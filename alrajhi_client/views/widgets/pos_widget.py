@@ -154,32 +154,32 @@ class POSWidget(QWidget):
         layout.addWidget(self.status_label)
 
 
-def _load_warehouses(self):
-    self.warehouse_combo.clear()
-    try:
-        default_id = warehouse_service.default_warehouse_id()
-        for wh in warehouse_service.warehouses():
-            self.warehouse_combo.addItem(wh.get('name', f"#{wh.get('id')}"), wh.get('id'))
-            if default_id and int(wh.get('id')) == int(default_id):
-                self.warehouse_combo.setCurrentIndex(self.warehouse_combo.count() - 1)
-    except Exception:
-        pass
+    def _load_warehouses(self):
+        self.warehouse_combo.clear()
+        try:
+            default_id = warehouse_service.default_warehouse_id()
+            for wh in warehouse_service.warehouses():
+                self.warehouse_combo.addItem(wh.get('name', f"#{wh.get('id')}"), wh.get('id'))
+                if default_id and int(wh.get('id')) == int(default_id):
+                    self.warehouse_combo.setCurrentIndex(self.warehouse_combo.count() - 1)
+        except Exception:
+            pass
 
-def _selected_warehouse_id(self):
-    try:
-        return int(self.warehouse_combo.currentData() or 0) or None
-    except Exception:
-        return None
+    def _selected_warehouse_id(self):
+        try:
+            return int(self.warehouse_combo.currentData() or 0) or None
+        except Exception:
+            return None
 
-def on_warehouse_changed(self):
-    new_id = self._selected_warehouse_id()
-    if self.cart.lines:
-        reply = QMessageBox.question(self, "تغيير المستودع", "سيتم تفريغ السلة عند تغيير مستودع الصرف. هل تريد المتابعة؟", QMessageBox.Yes | QMessageBox.No)
-        if reply != QMessageBox.Yes:
-            return
-    self.cart = pos_service.new_cart(new_id)
-    self.refresh_cart()
-    self.barcode_input.setFocus()
+    def on_warehouse_changed(self):
+        new_id = self._selected_warehouse_id()
+        if self.cart.lines:
+            reply = QMessageBox.question(self, "تغيير المستودع", "سيتم تفريغ السلة عند تغيير مستودع الصرف. هل تريد المتابعة؟", QMessageBox.Yes | QMessageBox.No)
+            if reply != QMessageBox.Yes:
+                return
+        self.cart = pos_service.new_cart(new_id)
+        self.refresh_cart()
+        self.barcode_input.setFocus()
 
     def _setup_shortcuts(self):
         QShortcut(QKeySequence("F2"), self, self.pay_cash_full)
