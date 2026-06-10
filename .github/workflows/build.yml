@@ -26,7 +26,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
 
-      - name: Install dependencies
+      - name: Install requirements
         shell: pwsh
         run: |
           pip install -r requirements.txt
@@ -36,15 +36,12 @@ jobs:
         shell: pwsh
         run: |
           python -c "import PyQt5"
-          python -c "import qtawesome"
-          python -c "import pyqtgraph"
-          python -c "import qrcode"
-          python -c "import barcode"
           python -c "import cv2"
           python -c "from pyzbar.pyzbar import decode"
-          python -c "import openpyxl"
-          python -c "import reportlab"
-          python -c "import cryptography"
+          python -c "import qrcode"
+          python -c "import barcode"
+          python -c "import qtawesome"
+          python -c "import pyqtgraph"
 
       - name: Verify project structure
         shell: pwsh
@@ -57,34 +54,30 @@ jobs:
         shell: pwsh
         run: |
           $code = @"
-import os
-import shutil
-import pyzbar
+          import os
+          import shutil
+          import pyzbar
 
-base = os.path.dirname(pyzbar.__file__)
+          base = os.path.dirname(pyzbar.__file__)
 
-for dll in (
-    "libiconv.dll",
-    "libzbar-64.dll",
-    "libzbar-32.dll"
-):
-    src = os.path.join(base, dll)
-    if os.path.exists(src):
-        shutil.copy(src, ".")
-        print("Copied", dll)
-"@
+          for dll in ("libiconv.dll", "libzbar-64.dll", "libzbar-32.dll"):
+              src = os.path.join(base, dll)
+              if os.path.exists(src):
+                  shutil.copy(src, ".")
+                  print("Copied", dll)
+          "@
 
-          Set-Content copy_pyzbar_dlls.py $code
+          Set-Content -Path copy_pyzbar_dlls.py -Value $code -Encoding UTF8
           python copy_pyzbar_dlls.py
 
-      - name: Locate Qt Platforms
+      - name: Locate Qt platforms
         id: qtpath
         shell: pwsh
         run: |
           $path = python -c "import PyQt5, os; print(os.path.join(os.path.dirname(PyQt5.__file__), 'Qt5', 'plugins', 'platforms'))"
           echo "platforms_path=$path" >> $env:GITHUB_OUTPUT
 
-      - name: Build EXE
+      - name: Build executable
         shell: pwsh
         run: |
           $extra = @()
@@ -107,29 +100,28 @@ for dll in (
           pyinstaller `
             --clean `
             --noconfirm `
-            --windowed `
             --onedir `
+            --windowed `
             --name AlrajhiAccounting `
             --paths alrajhi_client `
             --paths . `
             --collect-all PyQt5 `
-            --collect-all qtawesome `
-            --collect-all pyqtgraph `
             --collect-all pyzbar `
             --collect-all cv2 `
             --collect-all qrcode `
             --collect-all barcode `
-            --hidden-import PyQt5.QtPrintSupport `
+            --collect-all qtawesome `
+            --collect-all pyqtgraph `
             --hidden-import pyzbar.pyzbar `
             --hidden-import cv2 `
             --hidden-import qrcode `
             --hidden-import barcode `
             --hidden-import decimal `
             --hidden-import sqlite3 `
+            --hidden-import requests `
+            --hidden-import cryptography `
             --hidden-import openpyxl `
             --hidden-import reportlab `
-            --hidden-import cryptography `
-            --hidden-import requests `
             --add-data "${{ steps.qtpath.outputs.platforms_path }};platforms" `
             @extra `
             alrajhi_client\main.py
@@ -145,44 +137,44 @@ for dll in (
         run: |
           curl -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Arabic.isl" https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Arabic.isl
 
-      - name: Create Installer Script
+      - name: Create Inno Setup Script
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path output | Out-Null
 
           $iss = @"
-[Setup]
-AppName=Alrajhi Accounting
-AppVersion=1.0
-DefaultDirName={pf}\AlrajhiAccounting
-DefaultGroupName=Alrajhi Accounting
-UninstallDisplayIcon={app}\AlrajhiAccounting.exe
-Compression=lzma2
-SolidCompression=yes
-OutputDir=output
-OutputBaseFilename=AlrajhiAccounting_Setup
-WizardStyle=modern
-ShowLanguageDialog=yes
+          [Setup]
+          AppName=Alrajhi Accounting
+          AppVersion=1.0
+          DefaultDirName={pf}\AlrajhiAccounting
+          DefaultGroupName=Alrajhi Accounting
+          UninstallDisplayIcon={app}\AlrajhiAccounting.exe
+          Compression=lzma2
+          SolidCompression=yes
+          OutputDir=output
+          OutputBaseFilename=AlrajhiAccounting_Setup
+          WizardStyle=modern
+          ShowLanguageDialog=yes
 
-[Languages]
-Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
+          [Languages]
+          Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
 
-[Files]
-Source: "dist\AlrajhiAccounting\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+          [Files]
+          Source: "dist\AlrajhiAccounting\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-[Tasks]
-Name: "desktopicon"; Description: "Create desktop shortcut"; Flags: unchecked
+          [Tasks]
+          Name: "desktopicon"; Description: "Create desktop shortcut"; Flags: unchecked
 
-[Icons]
-Name: "{group}\Alrajhi Accounting"; Filename: "{app}\AlrajhiAccounting.exe"
-Name: "{group}\Uninstall"; Filename: "{uninstallexe}"
-Name: "{userdesktop}\Alrajhi Accounting"; Filename: "{app}\AlrajhiAccounting.exe"; Tasks: desktopicon
+          [Icons]
+          Name: "{group}\Alrajhi Accounting"; Filename: "{app}\AlrajhiAccounting.exe"
+          Name: "{group}\Uninstall"; Filename: "{uninstallexe}"
+          Name: "{userdesktop}\Alrajhi Accounting"; Filename: "{app}\AlrajhiAccounting.exe"; Tasks: desktopicon
 
-[Run]
-Filename: "{app}\AlrajhiAccounting.exe"; Description: "Run Alrajhi Accounting"; Flags: postinstall nowait skipifsilent
-"@
+          [Run]
+          Filename: "{app}\AlrajhiAccounting.exe"; Description: "Run Alrajhi Accounting"; Flags: postinstall nowait skipifsilent
+          "@
 
-          Set-Content setup.iss $iss -Encoding UTF8
+          Set-Content -Path setup.iss -Value $iss -Encoding UTF8
 
       - name: Build Installer
         shell: pwsh
@@ -192,11 +184,11 @@ Filename: "{app}\AlrajhiAccounting.exe"; Description: "Run Alrajhi Accounting"; 
       - name: Upload Setup
         uses: actions/upload-artifact@v4
         with:
-          name: AlrajhiAccounting_Setup
+          name: AlrajhiAccounting_Release_Setup
           path: output/AlrajhiAccounting_Setup.exe
 
-      - name: Upload Portable
+      - name: Upload Portable Build
         uses: actions/upload-artifact@v4
         with:
-          name: AlrajhiAccounting_Portable
+          name: AlrajhiAccounting_Release_Portable
           path: dist/AlrajhiAccounting
