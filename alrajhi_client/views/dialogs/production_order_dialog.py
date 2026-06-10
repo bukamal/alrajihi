@@ -6,6 +6,7 @@ from PyQt5.QtCore import Qt
 from views.centered_dialog import CenteredDialog
 from core.services.catalog_service import catalog_service
 from core.services.manufacturing_service import manufacturing_service
+from core.services.warehouse_service import warehouse_service
 from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
 from currency import currency
@@ -35,6 +36,15 @@ class ProductionOrderDialog(CenteredDialog):
                     self.product_combo.addItem(f"{it['name']} ({price_display}) - ⚠️ لا توجد BOM", it['id'])
                 self.product_bom_map[it['id']] = bom
         layout.addRow("المنتج:", self.product_combo)
+
+        self.raw_warehouse_combo = QComboBox()
+        self.output_warehouse_combo = QComboBox()
+        self._load_warehouses()
+        layout.addRow("مستودع المواد الخام:", self.raw_warehouse_combo)
+        layout.addRow("مستودع المنتج النهائي:", self.output_warehouse_combo)
+        self.raw_warehouse_combo.currentIndexChanged.connect(self.update_materials_display)
+        self.output_warehouse_combo.currentIndexChanged.connect(self.update_materials_display)
+
         self.product_error = make_error_label()
         layout.addRow("", self.product_error)
 
@@ -42,6 +52,8 @@ class ProductionOrderDialog(CenteredDialog):
         self.qty_spin.setRange(0.01, 999999)
         self.qty_spin.setValue(1)
         layout.addRow("الكمية المخططة:", self.qty_spin)
+        self.qty_error = make_error_label()
+        layout.addRow("", self.qty_error)
 
         self.notes_edit = QTextEdit()
         self.notes_edit.setMaximumHeight(80)
@@ -68,8 +80,19 @@ class ProductionOrderDialog(CenteredDialog):
         self.save_btn.clicked.connect(self.save)
         cancel_btn.clicked.connect(self.reject)
         self.install_form_shortcuts(self.save)
-        self.watch_dirty_widgets([self.product_combo, self.qty_spin, self.notes_edit], reset=True)
+        self.watch_dirty_widgets([self.product_combo, self.raw_warehouse_combo, self.output_warehouse_combo, self.qty_spin, self.notes_edit], reset=True)
         self.update_materials_display()
+
+    def _load_warehouses(self):
+        warehouses = warehouse_service.warehouses()
+        default_id = warehouse_service.default_warehouse_id()
+        for combo in (self.raw_warehouse_combo, self.output_warehouse_combo):
+            combo.clear()
+            for wh in warehouses:
+                label = wh.get('name', '')
+                combo.addItem(label, wh.get('id'))
+                if default_id and int(wh.get('id') or 0) == int(default_id):
+                    combo.setCurrentIndex(combo.count() - 1)
 
     def update_materials_display(self):
         product_id = self.product_combo.currentData()
@@ -78,7 +101,7 @@ class ProductionOrderDialog(CenteredDialog):
             self.materials_group.setVisible(False)
             return
         try:
-            required = self.service.get_required_materials_recursive(product_id, planned_qty)
+            required = self.service.get_required_materials_recursive(product_id, planned_qty, self.raw_warehouse_combo.currentData())
         except Exception as e:
             self.materials_group.setVisible(False)
             show_toast(f"خطأ في تحليل BOM: {str(e)}", "error", self)
@@ -129,7 +152,11 @@ class ProductionOrderDialog(CenteredDialog):
             return
 
         try:
-            order_id = self.service.create_production_order(product_id, qty, notes)
+            order_id = self.service.create_production_order(
+                product_id, qty, notes,
+                raw_warehouse_id=self.raw_warehouse_combo.currentData(),
+                output_warehouse_id=self.output_warehouse_combo.currentData()
+            )
             show_toast(f"تم إنشاء أمر الإنتاج رقم {order_id}", "success", self)
             self.accept()
         except Exception as e:

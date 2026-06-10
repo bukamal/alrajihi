@@ -54,6 +54,13 @@ class WarehouseService:
     def available_qty(self, item_id: int, warehouse_id: int | None = None):
         return warehouse_dao.available_qty(item_id, warehouse_id)
 
+
+    def record_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type=None, reference_id=None, notes=''):
+        return warehouse_dao.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes)
+
+    def reverse_reference(self, reference_type, reference_id) -> None:
+        warehouse_dao.reverse_reference(reference_type, reference_id)
+
     def record_invoice_movements(self, invoice_id: int, invoice_data: Dict) -> None:
         from decimal import Decimal
         wh_id = invoice_data.get('warehouse_id') or self.default_warehouse_id()
@@ -80,6 +87,21 @@ class WarehouseService:
 
     def reverse_invoice_movements(self, invoice_id: int) -> None:
         warehouse_dao.reverse_reference('invoice', invoice_id)
+
+
+
+    def transfers(self, limit: int = 200) -> List[Dict]:
+        return records(warehouse_dao.transfers(limit=limit), 'transfers')
+
+    def create_transfer(self, data: Dict) -> int:
+        transfer_id = warehouse_dao.create_transfer(data)
+        audit_service.log('CREATE', 'WAREHOUSE_TRANSFER', transfer_id, new_values=data, details='إنشاء تحويل مستودعي')
+        return transfer_id
+
+    def cancel_transfer(self, transfer_id: int) -> None:
+        old = next((t for t in self.transfers(limit=500) if int(t.get('id') or 0) == int(transfer_id)), None)
+        warehouse_dao.cancel_transfer(transfer_id)
+        audit_service.log('REVERSE', 'WAREHOUSE_TRANSFER', transfer_id, old_values=old, details='إلغاء تحويل مستودعي')
 
     def _validate_payload(self, data: Dict) -> Dict:
         payload = dict(data or {})

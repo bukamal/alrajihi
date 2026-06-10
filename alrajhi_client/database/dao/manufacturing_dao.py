@@ -60,6 +60,31 @@ class ManufacturingDAO:
                 raise ValueError("يوجد مكون مكرر في BOM")
             seen.add(key)
 
+
+    # ========== Warehouse integration helpers ==========
+    def _default_warehouse_id(self):
+        try:
+            from core.services.warehouse_service import warehouse_service
+            return warehouse_service.default_warehouse_id()
+        except Exception:
+            return None
+
+    def _warehouse_available_qty(self, item_id: int, warehouse_id=None) -> Decimal:
+        try:
+            from core.services.warehouse_service import warehouse_service
+            return self._to_decimal(warehouse_service.available_qty(item_id, warehouse_id))
+        except Exception:
+            return self._get_item_qty(item_id)
+
+    def _record_warehouse_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost, reference_id, notes=''):
+        if not warehouse_id:
+            return
+        try:
+            from core.services.warehouse_service import warehouse_service
+            warehouse_service.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, 'production_order', reference_id, notes)
+        except Exception as exc:
+            raise ValueError(str(exc))
+
     # ========== BOM ==========
     def get_all_boms(self, limit: int = None, offset: int = None) -> Tuple[List[Dict], int]:
         uid = UserSession.get_current_user_id()
@@ -186,7 +211,7 @@ class ManufacturingDAO:
         visited.remove(product_id)
         return result
 
-    def get_required_materials_recursive(self, product_id: int, planned_qty: Decimal) -> List[Dict]:
+    def get_required_materials_recursive(self, product_id: int, planned_qty: Decimal, warehouse_id=None) -> List[Dict]:
         raw_materials = self._expand_bom(product_id, planned_qty)
         merged = {}
         for mat in raw_materials:
@@ -197,8 +222,7 @@ class ManufacturingDAO:
                 merged[key] = mat
         result = []
         for mat in merged.values():
-            item = self.db.execute("SELECT CAST(quantity AS REAL) as qty FROM items WHERE id=?", (mat['item_id'],)).fetchone()
-            available = Decimal(str(item['qty'])) if item else Decimal('0')
+            available = self._warehouse_available_qty(mat['item_id'], warehouse_id)
             mat['available_qty'] = available
             mat['is_sufficient'] = available >= mat['required_qty']
             result.append(mat)
@@ -239,9 +263,12 @@ class ManufacturingDAO:
         conn = self.db.get_connection()
         total = conn.execute("SELECT COUNT(*) FROM production_orders WHERE user_id = ?", (uid,)).fetchone()[0]
         query = """
-            SELECT po.*, i.name as product_name 
+            SELECT po.*, i.name as product_name,
+                   rw.name AS raw_warehouse_name, ow.name AS output_warehouse_name
             FROM production_orders po
             JOIN items i ON po.product_id = i.id
+            LEFT JOIN warehouses rw ON rw.id = po.raw_warehouse_id
+            LEFT JOIN warehouses ow ON ow.id = po.output_warehouse_id
             WHERE po.user_id = ?
             ORDER BY po.id DESC
         """
@@ -258,9 +285,12 @@ class ManufacturingDAO:
     def get_production_order(self, order_id: int) -> Optional[Dict]:
         uid = UserSession.get_current_user_id()
         row = self.db.execute("""
-            SELECT po.*, i.name as product_name 
+            SELECT po.*, i.name as product_name,
+                   rw.name AS raw_warehouse_name, ow.name AS output_warehouse_name
             FROM production_orders po
             JOIN items i ON po.product_id = i.id
+            LEFT JOIN warehouses rw ON rw.id = po.raw_warehouse_id
+            LEFT JOIN warehouses ow ON ow.id = po.output_warehouse_id
             WHERE po.id = ? AND po.user_id = ?
         """, (order_id, uid)).fetchone()
         if not row:
@@ -271,14 +301,18 @@ class ManufacturingDAO:
         order['reservations'] = [dict(r) for r in self.db.execute("SELECT * FROM material_reservations WHERE order_id=?", (order_id,)).fetchall()]
         return order
 
-    def create_production_order(self, product_id: int, planned_qty: Decimal, notes: str = '') -> int:
+    def create_production_order(self, product_id: int, planned_qty: Decimal, notes: str = '', raw_warehouse_id=None, output_warehouse_id=None) -> int:
         planned_qty = self._validate_positive_qty(planned_qty, "الكمية المخططة")
         uid = UserSession.get_current_user_id()
         now = datetime.datetime.now().isoformat()
         bom = self.get_bom_for_product(product_id)
         if not bom or not bom.get('lines'):
             raise ValueError("لا يمكن إنشاء أمر إنتاج دون BOM صالح يحتوي على مكونات")
-        required = self.get_required_materials_recursive(product_id, planned_qty)
+        raw_warehouse_id = raw_warehouse_id or self._default_warehouse_id()
+        output_warehouse_id = output_warehouse_id or self._default_warehouse_id()
+        if not raw_warehouse_id or not output_warehouse_id:
+            raise ValueError("يجب وجود مستودع مواد خام ومستودع منتج نهائي")
+        required = self.get_required_materials_recursive(product_id, planned_qty, raw_warehouse_id)
         insufficient = [m for m in required if not m.get('is_sufficient')]
         if insufficient:
             details = "\n".join(f"{m.get('item_name','')}: المطلوب {m.get('required_qty')}، المتوفر {m.get('available_qty')}" for m in insufficient)
@@ -303,9 +337,9 @@ class ManufacturingDAO:
                 VALUES (?,?,?,?,?,?,?)
             """, (snapshot_id, line['item_id'], line.get('item_name', ''), str(line['quantity']), line.get('unit_name', ''), str(line.get('conversion_factor', '1')), str(line.get('waste_percent', 0))))
         cur = self.db.execute("""
-            INSERT INTO production_orders (order_number, product_id, planned_qty, status, user_id, created_at, notes, bom_snapshot_id)
-            VALUES (?,?,?,?,?,?,?,?)
-        """, (order_number, product_id, str(planned_qty), 'planned', uid, now, notes, snapshot_id))
+            INSERT INTO production_orders (order_number, product_id, planned_qty, status, user_id, created_at, notes, bom_snapshot_id, raw_warehouse_id, output_warehouse_id)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+        """, (order_number, product_id, str(planned_qty), 'planned', uid, now, notes, snapshot_id, raw_warehouse_id, output_warehouse_id))
         order_id = cur.lastrowid
         self.create_reservations(order_id, required)
         self.db.commit()
@@ -332,7 +366,7 @@ class ManufacturingDAO:
         insufficient = []
         for r in reservations:
             required_qty = self._to_decimal(r.get('reserved_qty')) - self._to_decimal(r.get('consumed_qty'))
-            available = self._get_item_qty(r['item_id'])
+            available = self._warehouse_available_qty(r['item_id'], order.get('raw_warehouse_id'))
             if available < required_qty:
                 insufficient.append(f"{r['item_name']}: المطلوب {required_qty}، المتوفر {available}")
         if insufficient:
@@ -372,7 +406,7 @@ class ManufacturingDAO:
         remaining = reserved - consumed_sofar
         if consumed_qty > remaining:
             return False, f"الكمية المستهلكة ({consumed_qty}) تتجاوز المتبقي من الحجز ({remaining})"
-        available = self._get_item_qty(item_id)
+        available = self._warehouse_available_qty(item_id, order.get('raw_warehouse_id'))
         if available < consumed_qty:
             return False, f"المخزون غير كافٍ. المطلوب {consumed_qty}، المتوفر {available}"
         self.db.execute("""
@@ -386,6 +420,7 @@ class ManufacturingDAO:
             VALUES (?,?,?,?,?)
         """, (order_id, item_id, str(consumed_qty), str(unit_cost), now))
         self._record_inventory_movement(item_id, 'production_consume', consumed_qty, unit_cost, order_id)
+        self._record_warehouse_movement(item_id, order.get('raw_warehouse_id'), 'production_consume_out', -consumed_qty, unit_cost, order_id, 'استهلاك مواد أمر إنتاج')
         self.db.commit()
         return True, ""
 
@@ -418,6 +453,7 @@ class ManufacturingDAO:
             VALUES (?,?,?,?,?)
         """, (order_id, order['product_id'], str(produced_qty), str(unit_cost), now))
         self._record_inventory_movement(order['product_id'], 'production_out', produced_qty, unit_cost, order_id)
+        self._record_warehouse_movement(order['product_id'], order.get('output_warehouse_id'), 'production_output_in', produced_qty, unit_cost, order_id, 'إدخال منتج نهائي من أمر إنتاج')
         new_produced = self._to_decimal(order.get('produced_qty', 0)) + produced_qty
         self.db.execute("""
             UPDATE production_orders SET produced_qty=?, status='completed', end_date=?

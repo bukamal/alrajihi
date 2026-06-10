@@ -4,7 +4,7 @@ from decimal import Decimal
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QLabel, QTableView,
     QTabWidget, QDialog, QFormLayout, QCheckBox, QTextEdit, QMessageBox, QComboBox,
-    QHeaderView
+    QHeaderView, QDoubleSpinBox
 )
 from PyQt5.QtCore import Qt
 
@@ -35,7 +35,7 @@ class WarehousesWidget(QWidget):
         header.setObjectName('pageTitle')
         layout.addWidget(header)
 
-        hint = QLabel('هذه المرحلة تؤسس المستودعات وتعرض الأرصدة حسب المستودع دون تغيير سلوك الفواتير أو التصنيع بعد.')
+        hint = QLabel('إدارة المستودعات والأرصدة والتحويلات بين المستودعات مع حماية الرصيد من العجز.')
         hint.setObjectName('mutedLabel')
         layout.addWidget(hint)
 
@@ -45,6 +45,7 @@ class WarehousesWidget(QWidget):
         self._setup_warehouses_tab()
         self._setup_balances_tab()
         self._setup_movements_tab()
+        self._setup_transfers_tab()
 
     def _setup_warehouses_tab(self):
         page = QWidget()
@@ -116,12 +117,36 @@ class WarehousesWidget(QWidget):
         layout.addWidget(self.mov_table)
         self.tabs.addTab(page, 'الحركات')
 
+    def _setup_transfers_tab(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        tools = QHBoxLayout()
+        add_btn = QPushButton('🔁 تحويل جديد')
+        add_btn.setObjectName('primary')
+        add_btn.clicked.connect(self.add_transfer)
+        cancel_btn = QPushButton('↩️ إلغاء تحويل')
+        cancel_btn.clicked.connect(self.cancel_transfer)
+        refresh_btn = QPushButton('تحديث')
+        refresh_btn.clicked.connect(self.refresh_transfers)
+        tools.addWidget(QLabel('تحويلات المستودعات'))
+        tools.addStretch()
+        tools.addWidget(add_btn)
+        tools.addWidget(cancel_btn)
+        tools.addWidget(refresh_btn)
+        layout.addLayout(tools)
+        self.transfer_table = CustomTableView()
+        self.transfer_table.setSelectionBehavior(QTableView.SelectRows)
+        layout.addWidget(self.transfer_table)
+        self.tabs.addTab(page, 'التحويلات')
+
     def refresh(self):
         warehouse_service.bootstrap()
         self._reload_warehouse_filters()
         self.refresh_warehouses()
         self.refresh_balances()
         self.refresh_movements()
+        if hasattr(self, 'transfer_table'):
+            self.refresh_transfers()
 
     def _reload_warehouse_filters(self):
         warehouses = warehouse_service.warehouses(include_archived=False)
@@ -226,7 +251,124 @@ class WarehousesWidget(QWidget):
             'adjustment': 'تسوية',
             'production_out': 'إنتاج',
             'production_consume': 'استهلاك إنتاج',
+            'transfer_out': 'تحويل صادر',
+            'transfer_in': 'تحويل وارد',
+            'transfer_cancel_out': 'إلغاء تحويل صادر',
+            'transfer_cancel_in': 'إلغاء تحويل وارد',
         }.get(mtype or '', mtype or '')
+
+
+
+    def refresh_transfers(self):
+        rows = []
+        for t in warehouse_service.transfers(limit=300):
+            rows.append({
+                'id': t.get('id'),
+                'transfer_no': t.get('transfer_no') or '',
+                'created_at': t.get('created_at') or '',
+                'item_name': t.get('item_name') or '',
+                'from_warehouse': t.get('from_warehouse_name') or '',
+                'to_warehouse': t.get('to_warehouse_name') or '',
+                'quantity': t.get('quantity') or '0',
+                'unit_cost': currency.format_amount(t.get('unit_cost') or 0),
+                'status': 'ملغى' if t.get('status') == 'cancelled' else 'نشط',
+                'notes': t.get('notes') or '',
+            })
+        headers = ['رقم التحويل', 'التاريخ', 'المادة', 'من مستودع', 'إلى مستودع', 'الكمية', 'التكلفة', 'الحالة', 'ملاحظات']
+        keys = ['transfer_no', 'created_at', 'item_name', 'from_warehouse', 'to_warehouse', 'quantity', 'unit_cost', 'status', 'notes']
+        self.transfer_model = GenericTableModel(rows, headers, key_fields=['id'], data_keys=keys)
+        self.transfer_table.setModel(self.transfer_model)
+        self.transfer_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.transfer_table.horizontalHeader().setStretchLastSection(True)
+
+    def current_transfer_id(self):
+        idx = self.transfer_table.currentIndex() if hasattr(self, 'transfer_table') else None
+        if not idx or not idx.isValid() or not hasattr(self, 'transfer_model'):
+            return None
+        return self.transfer_model.get_id(idx.row())
+
+    def _transfer_dialog(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle('تحويل بين المستودعات')
+        dialog.setLayoutDirection(Qt.RightToLeft)
+        dialog.resize(520, 360)
+        layout = QFormLayout(dialog)
+        from_combo = QComboBox()
+        to_combo = QComboBox()
+        item_combo = QComboBox()
+        qty_spin = QDoubleSpinBox()
+        qty_spin.setRange(0.0001, 999999999)
+        qty_spin.setDecimals(3)
+        qty_spin.setValue(1)
+        notes = QTextEdit()
+        notes.setMaximumHeight(90)
+        warehouses = warehouse_service.warehouses(include_archived=False)
+        for wh in warehouses:
+            label = f"{wh.get('name','')} ({wh.get('code') or '—'})"
+            from_combo.addItem(label, wh.get('id'))
+            to_combo.addItem(label, wh.get('id'))
+        balances = warehouse_service.balances()
+        seen = set()
+        for b in balances:
+            item_id = b.get('item_id')
+            if not item_id or item_id in seen:
+                continue
+            seen.add(item_id)
+            item_combo.addItem(f"{b.get('item_name','')} - {b.get('barcode') or ''}", item_id)
+        layout.addRow('من مستودع:', from_combo)
+        layout.addRow('إلى مستودع:', to_combo)
+        layout.addRow('المادة:', item_combo)
+        layout.addRow('الكمية:', qty_spin)
+        layout.addRow('ملاحظة:', notes)
+        btns = QHBoxLayout()
+        save = QPushButton('تنفيذ التحويل')
+        save.setObjectName('primary')
+        cancel = QPushButton('إلغاء')
+        btns.addWidget(save)
+        btns.addWidget(cancel)
+        layout.addRow(btns)
+        payload = {}
+        def do_save():
+            payload.update({
+                'from_warehouse_id': from_combo.currentData(),
+                'to_warehouse_id': to_combo.currentData(),
+                'item_id': item_combo.currentData(),
+                'quantity': qty_spin.value(),
+                'notes': notes.toPlainText().strip(),
+            })
+            dialog.accept()
+        save.clicked.connect(do_save)
+        cancel.clicked.connect(dialog.reject)
+        if dialog.exec() == QDialog.Accepted:
+            return payload
+        return None
+
+    def add_transfer(self):
+        payload = self._transfer_dialog()
+        if not payload:
+            return
+        try:
+            warehouse_service.create_transfer(payload)
+            show_toast('تم تنفيذ التحويل', 'success', self)
+            self.refresh()
+            self.tabs.setCurrentIndex(self.tabs.indexOf(self.transfer_table.parent()))
+        except Exception as e:
+            show_toast(str(e), 'error', self)
+
+    def cancel_transfer(self):
+        transfer_id = self.current_transfer_id()
+        if not transfer_id:
+            show_toast('اختر تحويلاً أولاً', 'warning', self)
+            return
+        reply = QMessageBox.question(self, 'تأكيد الإلغاء', 'هل تريد إلغاء هذا التحويل وعكس حركاته؟', QMessageBox.Yes | QMessageBox.No)
+        if reply != QMessageBox.Yes:
+            return
+        try:
+            warehouse_service.cancel_transfer(transfer_id)
+            show_toast('تم إلغاء التحويل', 'success', self)
+            self.refresh()
+        except Exception as e:
+            show_toast(str(e), 'error', self)
 
     def current_warehouse_id(self):
         idx = self.wh_table.currentIndex()

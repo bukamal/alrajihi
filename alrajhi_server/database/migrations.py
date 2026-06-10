@@ -282,6 +282,8 @@ def init_database():
             created_at TEXT,
             notes TEXT,
             bom_snapshot_id INTEGER,
+            raw_warehouse_id INTEGER,
+            output_warehouse_id INTEGER,
             FOREIGN KEY (product_id) REFERENCES items(id),
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (bom_snapshot_id) REFERENCES bom_snapshots(id)

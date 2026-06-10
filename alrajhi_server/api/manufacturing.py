@@ -238,9 +238,11 @@ def get_orders():
     db = get_db()
     total = db.execute("SELECT COUNT(*) FROM production_orders WHERE user_id=?", (user_id,)).fetchone()[0]
     rows = db.execute("""
-        SELECT po.*, i.name as product_name 
+        SELECT po.*, i.name as product_name, rw.name AS raw_warehouse_name, ow.name AS output_warehouse_name 
         FROM production_orders po
         JOIN items i ON po.product_id = i.id
+        LEFT JOIN warehouses rw ON rw.id = po.raw_warehouse_id
+        LEFT JOIN warehouses ow ON ow.id = po.output_warehouse_id
         WHERE po.user_id = ?
         ORDER BY po.id DESC
         LIMIT ? OFFSET ?
@@ -294,9 +296,9 @@ def create_order():
         num = 1
     order_number = f"{year}-{num:04d}"
     cursor = db.execute("""
-        INSERT INTO production_orders (order_number, product_id, planned_qty, status, user_id, created_at, notes)
-        VALUES (?,?,?,?,?,?,?)
-    """, (order_number, product_id, str(planned_qty), 'planned', user_id, now, data.get('notes', '')))
+        INSERT INTO production_orders (order_number, product_id, planned_qty, status, user_id, created_at, notes, raw_warehouse_id, output_warehouse_id)
+        VALUES (?,?,?,?,?,?,?,?,?)
+    """, (order_number, product_id, str(planned_qty), 'planned', user_id, now, data.get('notes', ''), data.get('raw_warehouse_id'), data.get('output_warehouse_id')))
     order_id = cursor.lastrowid
     for mat in required:
         db.execute("""

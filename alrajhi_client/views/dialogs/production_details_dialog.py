@@ -35,6 +35,8 @@ class ProductionDetailsDialog(CenteredDialog):
             <b>الكمية المخططة:</b> {order.get('planned_qty', 0)}<br>
             <b>الكمية المنتجة:</b> {order.get('produced_qty', 0)}<br>
             <b>الحالة:</b> {status_map.get(order.get('status', 'planned'), 'مخطط')}<br>
+            <b>مستودع المواد الخام:</b> {order.get('raw_warehouse_name') or '-'}<br>
+            <b>مستودع المنتج النهائي:</b> {order.get('output_warehouse_name') or '-'}<br>
             <b>تاريخ البدء:</b> {order.get('start_date', '-')}<br>
             <b>ملاحظات:</b> {order.get('notes', '')}
         """)

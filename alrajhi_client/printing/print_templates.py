@@ -149,12 +149,12 @@ def invoice_html(invoice: Dict[str, Any], paper: str = 'a4') -> str:
 
 
 def voucher_html(voucher: Dict[str, Any], paper: str = 'a4') -> str:
+    print_settings = settings_service.get_printing_settings()
+    if paper == 'default':
+        paper = print_settings.get('invoice_template', 'a4')
     vtype = voucher.get('type')
     label = {'receipt': 'سند قبض', 'payment': 'سند دفع', 'expense': 'سند مصروف'}.get(vtype, 'سند')
-    qr_payload = f"INV|{ref}|{date}|{invoice.get('total', '')}|{party}"
-    qr_uri = _qr_data_uri(qr_payload) if print_settings.get('show_qr', True) else ''
-    qr_html = f"<div class='qr-box'><img src='{qr_uri}'/><div>رمز الفاتورة</div></div>" if qr_uri else ''
-    footer_text = print_settings.get('footer_text') or 'شكراً لتعاملكم معنا'
+    footer_text = print_settings.get('footer_text') or label
     body = f"""
     {_company_header(print_settings)}
     <div class="doc-title">{label}</div>
@@ -164,18 +164,22 @@ def voucher_html(voucher: Dict[str, Any], paper: str = 'a4') -> str:
         <tr><td colspan="2"><b>البيان:</b> {_s(voucher.get('description', ''))}</td></tr>
     </table>
     <div class="signatures"><div class="signature">المستلم</div><div class="signature">المحاسب</div></div>
-    <div class="footer">{_s(label)}</div>
+    <div class="footer">{_s(footer_text)}<br/>تاريخ الطباعة: {_print_meta_line()}</div>
     """
     return base_document(label, body, paper)
 
 
 def report_html(title: str, rows: List[List[Any]], headers: List[str], subtitle: str = '', summary: Optional[Dict[str, Any]] = None) -> str:
+    print_settings = settings_service.get_printing_settings()
     head = ''.join(f"<th>{_s(h)}</th>" for h in headers)
     body_rows = ''.join('<tr>' + ''.join(f"<td>{_s(c)}</td>" for c in row) + '</tr>' for row in rows)
-    qr_payload = f"INV|{ref}|{date}|{invoice.get('total', '')}|{party}"
-    qr_uri = _qr_data_uri(qr_payload) if print_settings.get('show_qr', True) else ''
-    qr_html = f"<div class='qr-box'><img src='{qr_uri}'/><div>رمز الفاتورة</div></div>" if qr_uri else ''
-    footer_text = print_settings.get('footer_text') or 'شكراً لتعاملكم معنا'
+    summary_html = ''
+    if summary:
+        cards = []
+        for key, value in summary.items():
+            cards.append(f"<div class='summary-card'><b>{_s(key)}</b><span>{_s(value)}</span></div>")
+        summary_html = f"<div class='summary-cards'>{''.join(cards)}</div>"
+    footer_text = print_settings.get('footer_text') or 'تم إنشاء التقرير بواسطة نظام الراجحي'
     body = f"""
     {_company_header(print_settings)}
     <div class="doc-title">{_s(title)}</div>
@@ -183,6 +187,6 @@ def report_html(title: str, rows: List[List[Any]], headers: List[str], subtitle:
     <div style="text-align:center;color:#6b7280;margin-bottom:8px;">تاريخ الطباعة: {_print_meta_line()}</div>
     {summary_html}
     <table class="items"><thead><tr>{head}</tr></thead><tbody>{body_rows}</tbody></table>
-    <div class="footer">{_s(print_settings.get('footer_text') or 'تم إنشاء التقرير بواسطة نظام الراجحي')}</div>
+    <div class="footer">{_s(footer_text)}</div>
     """
     return base_document(title, body, 'a4')

@@ -48,5 +48,14 @@ class WarehouseDAO:
     def reverse_reference(self, reference_type, reference_id):
         return self.repo.reverse_reference(reference_type, reference_id)
 
+    def create_transfer(self, data):
+        return self.repo.create_transfer(data)
+
+    def cancel_transfer(self, transfer_id):
+        return self.repo.cancel_transfer(transfer_id)
+
+    def transfers(self, limit=200):
+        return self.repo.transfers(limit=limit)
+
 
 warehouse_dao = WarehouseDAO()

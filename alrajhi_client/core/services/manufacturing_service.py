@@ -14,6 +14,7 @@ from typing import Dict, List, Optional, Tuple
 from core.compat import records, pair
 from database.dao.manufacturing_dao import manufacturing_dao
 from core.services.audit_service import audit_service
+from core.services.warehouse_service import warehouse_service
 
 
 class ManufacturingService:
@@ -49,6 +50,15 @@ class ManufacturingService:
         audit_service.log('DELETE', 'BOM', bom_id, old_values=old, details='حذف BOM')
         return result
 
+    def warehouses(self):
+        return warehouse_service.warehouses()
+
+    def default_warehouse_id(self):
+        return warehouse_service.default_warehouse_id()
+
+    def available_qty(self, item_id: int, warehouse_id=None):
+        return warehouse_service.available_qty(item_id, warehouse_id)
+
     # Production orders
     def production_orders_pair(self, limit: int | None = None, offset: int | None = None) -> Tuple[List[Dict], int]:
         return pair(manufacturing_dao.get_all_production_orders(limit=limit, offset=offset), 'orders')
@@ -60,19 +70,24 @@ class ManufacturingService:
         order = manufacturing_dao.get_production_order(order_id)
         return order if isinstance(order, dict) else None
 
-    def create_production_order(self, product_id: int | Dict, planned_qty=None, notes: str = '') -> int:
+    def create_production_order(self, product_id: int | Dict, planned_qty=None, notes: str = '', raw_warehouse_id=None, output_warehouse_id=None) -> int:
         """Create an order using either legacy dict payload or explicit args."""
         if isinstance(product_id, dict):
-            data = product_id
+            data = dict(product_id)
             order_id = manufacturing_dao.create_production_order(
                 data.get('product_id'),
                 Decimal(str(data.get('planned_qty', data.get('quantity', '0')))),
-                data.get('notes', '')
+                data.get('notes', ''),
+                data.get('raw_warehouse_id') or data.get('warehouse_id'),
+                data.get('output_warehouse_id') or data.get('warehouse_id')
             )
             audit_service.log('CREATE', 'PRODUCTION_ORDER', order_id, new_values=data, details='إنشاء أمر إنتاج')
             return order_id
-        order_id = manufacturing_dao.create_production_order(product_id, Decimal(str(planned_qty)), notes)
-        audit_service.log('CREATE', 'PRODUCTION_ORDER', order_id, new_values={'product_id': product_id, 'planned_qty': str(planned_qty), 'notes': notes}, details='إنشاء أمر إنتاج')
+        order_id = manufacturing_dao.create_production_order(product_id, Decimal(str(planned_qty)), notes, raw_warehouse_id, output_warehouse_id)
+        audit_service.log('CREATE', 'PRODUCTION_ORDER', order_id, new_values={
+            'product_id': product_id, 'planned_qty': str(planned_qty), 'notes': notes,
+            'raw_warehouse_id': raw_warehouse_id, 'output_warehouse_id': output_warehouse_id
+        }, details='إنشاء أمر إنتاج')
         return order_id
 
     def start_production(self, order_id: int):
@@ -108,8 +123,8 @@ class ManufacturingService:
         return result
 
     # Materials, reservations and outputs
-    def get_required_materials_recursive(self, product_id: int, planned_qty: Decimal) -> List[Dict]:
-        return records(manufacturing_dao.get_required_materials_recursive(product_id, planned_qty), 'materials')
+    def get_required_materials_recursive(self, product_id: int, planned_qty: Decimal, warehouse_id=None) -> List[Dict]:
+        return records(manufacturing_dao.get_required_materials_recursive(product_id, planned_qty, warehouse_id), 'materials')
 
     def get_required_materials(self, *args) -> List[Dict]:
         return records(manufacturing_dao.get_required_materials(*args), 'materials')

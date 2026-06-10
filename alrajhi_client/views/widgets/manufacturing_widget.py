@@ -137,10 +137,12 @@ class ManufacturingWidget(QWidget):
                 'planned_qty': str(o.get('planned_qty', 0)),
                 'produced_qty': str(o.get('produced_qty', 0)),
                 'status': status_map.get(o.get('status', 'planned'), 'مخطط'),
+                'raw_warehouse': o.get('raw_warehouse_name') or '-',
+                'output_warehouse': o.get('output_warehouse_name') or '-',
                 'start_date': o.get('start_date', '-')[:10] if o.get('start_date') else '-'
             })
-        headers = ['order_number', 'product', 'planned_qty', 'produced_qty', 'status', 'start_date']
-        display_headers = ['رقم الأمر', 'المنتج', 'الكمية المخططة', 'الكمية المنتجة', 'الحالة', 'تاريخ البدء']
+        headers = ['order_number', 'product', 'planned_qty', 'produced_qty', 'status', 'raw_warehouse', 'output_warehouse', 'start_date']
+        display_headers = ['رقم الأمر', 'المنتج', 'الكمية المخططة', 'الكمية المنتجة', 'الحالة', 'مستودع الخام', 'مستودع المنتج', 'تاريخ البدء']
         self.orders_model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.orders_table.setModel(self.orders_model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.

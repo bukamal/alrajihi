@@ -289,6 +289,8 @@ def init_database():
             bom_snapshot_id INTEGER,
             linked_entry_id INTEGER,
             linked_entry_type TEXT,
+            raw_warehouse_id INTEGER,
+            output_warehouse_id INTEGER,
             FOREIGN KEY (product_id) REFERENCES items(id),
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (bom_snapshot_id) REFERENCES bom_snapshots(id)
@@ -505,6 +507,22 @@ def ensure_db():
                 FOREIGN KEY (item_id) REFERENCES items(id),
                 FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
             );
+
+            CREATE TABLE IF NOT EXISTS warehouse_transfers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                transfer_no TEXT NOT NULL,
+                item_id INTEGER NOT NULL,
+                from_warehouse_id INTEGER NOT NULL,
+                to_warehouse_id INTEGER NOT NULL,
+                quantity TEXT NOT NULL,
+                unit_cost TEXT DEFAULT '0',
+                notes TEXT,
+                status TEXT DEFAULT 'active',
+                created_at TEXT,
+                cancelled_at TEXT,
+                UNIQUE(user_id, transfer_no)
+            );
             CREATE INDEX IF NOT EXISTS idx_wh_user ON warehouses(user_id);
             CREATE INDEX IF NOT EXISTS idx_wh_bal_item ON item_warehouse_balances(item_id);
             CREATE INDEX IF NOT EXISTS idx_wh_bal_wh ON item_warehouse_balances(warehouse_id);
@@ -669,6 +687,17 @@ def ensure_db():
         if 'original_currency' not in ecols:
             cursor.execute("ALTER TABLE expenses ADD COLUMN original_currency TEXT DEFAULT 'USD'")
 
+
+        # Warehouse-4: production order warehouse links
+        try:
+            cursor.execute("PRAGMA table_info(production_orders)")
+            _po_cols = {row[1] for row in cursor.fetchall()}
+            if 'raw_warehouse_id' not in _po_cols:
+                cursor.execute("ALTER TABLE production_orders ADD COLUMN raw_warehouse_id INTEGER")
+            if 'output_warehouse_id' not in _po_cols:
+                cursor.execute("ALTER TABLE production_orders ADD COLUMN output_warehouse_id INTEGER")
+        except Exception:
+            pass
         conn.commit()
         conn.close()
 
