@@ -546,50 +546,50 @@ class InvoiceDialog(CenteredDialog):
             return False
 
 
-def _load_warehouses(self):
-    try:
-        warehouses = warehouse_service.warehouses()
-    except Exception:
-        warehouses = []
-    self.warehouse_combo.clear()
-    default_id = None
-    try:
-        default_id = warehouse_service.default_warehouse_id()
-    except Exception:
-        pass
-    for wh in warehouses:
-        self.warehouse_combo.addItem(wh.get('name', f"#{wh.get('id')}"), wh.get('id'))
-        if default_id and int(wh.get('id')) == int(default_id):
-            self.warehouse_combo.setCurrentIndex(self.warehouse_combo.count() - 1)
-
-def _selected_warehouse_id(self):
-    if not hasattr(self, 'warehouse_combo'):
-        return None
-    value = self.warehouse_combo.currentData()
-    try:
-        return int(value) if value else None
-    except Exception:
-        return None
-
-def update_warehouse_availability_label(self):
-    if not hasattr(self, 'warehouse_availability_label'):
-        return
-    wh_id = self._selected_warehouse_id()
-    if not wh_id:
-        self.warehouse_availability_label.setText("لم يتم اختيار مستودع")
-        return
-    selected = [line for line in getattr(self.lines_model, 'lines', []) if line.get('item_id')]
-    if not selected:
-        self.warehouse_availability_label.setText("سيتم استخدام المستودع المحدد لهذه الفاتورة")
-        return
-    parts = []
-    for line in selected[:3]:
+    def _load_warehouses(self):
         try:
-            available = warehouse_service.available_qty(int(line.get('item_id')), wh_id)
-            parts.append(f"{line.get('item_name','')}: {available}")
+            warehouses = warehouse_service.warehouses()
+        except Exception:
+            warehouses = []
+        self.warehouse_combo.clear()
+        default_id = None
+        try:
+            default_id = warehouse_service.default_warehouse_id()
         except Exception:
             pass
-    self.warehouse_availability_label.setText("المتاح في المستودع: " + " | ".join(parts) if parts else "سيتم استخدام المستودع المحدد لهذه الفاتورة")
+        for wh in warehouses:
+            self.warehouse_combo.addItem(wh.get('name', f"#{wh.get('id')}"), wh.get('id'))
+            if default_id and int(wh.get('id')) == int(default_id):
+                self.warehouse_combo.setCurrentIndex(self.warehouse_combo.count() - 1)
+
+    def _selected_warehouse_id(self):
+        if not hasattr(self, 'warehouse_combo'):
+            return None
+        value = self.warehouse_combo.currentData()
+        try:
+            return int(value) if value else None
+        except Exception:
+            return None
+
+    def update_warehouse_availability_label(self):
+        if not hasattr(self, 'warehouse_availability_label'):
+            return
+        wh_id = self._selected_warehouse_id()
+        if not wh_id:
+            self.warehouse_availability_label.setText("لم يتم اختيار مستودع")
+            return
+        selected = [line for line in getattr(self.lines_model, 'lines', []) if line.get('item_id')]
+        if not selected:
+            self.warehouse_availability_label.setText("سيتم استخدام المستودع المحدد لهذه الفاتورة")
+            return
+        parts = []
+        for line in selected[:3]:
+            try:
+                available = warehouse_service.available_qty(int(line.get('item_id')), wh_id)
+                parts.append(f"{line.get('item_name','')}: {available}")
+            except Exception:
+                pass
+        self.warehouse_availability_label.setText("المتاح في المستودع: " + " | ".join(parts) if parts else "سيتم استخدام المستودع المحدد لهذه الفاتورة")
 
     def _stock_available_for_item(self, item_id):
         item = product_service.item_by_id(item_id)
