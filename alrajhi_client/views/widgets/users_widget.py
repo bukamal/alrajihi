@@ -8,6 +8,7 @@ from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from utils import show_toast
+from core.services.branch_service import branch_service
 
 class UsersWidget(QWidget):
     def __init__(self, parent=None):
@@ -62,11 +63,12 @@ class UsersWidget(QWidget):
                 'username': u.get('username'),
                 'full_name': u.get('full_name', ''),
                 'role': role_text,
+                'branch': u.get('branch_name', ''),
                 'created_at': (u.get('created_at', '')[:10] if u.get('created_at') else ''),
                 'last_login': (u.get('last_login', '')[:10] if u.get('last_login') else '')
             })
-        headers = ['username', 'full_name', 'role', 'created_at', 'last_login']
-        display_headers = ['اسم المستخدم', 'الاسم الكامل', 'الصلاحية', 'تاريخ التسجيل', 'آخر دخول']
+        headers = ['username', 'full_name', 'role', 'branch', 'created_at', 'last_login']
+        display_headers = ['اسم المستخدم', 'الاسم الكامل', 'الصلاحية', 'الفرع', 'تاريخ التسجيل', 'آخر دخول']
         self.model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.table.setModel(self.model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض؛ لا نخفي العمود الأول الحقيقي.
@@ -124,6 +126,11 @@ class UserDialog(QDialog):
         self.role_combo.addItems(["مدير", "مستخدم", "مشاهد"])
         form.addRow("الصلاحية:", self.role_combo)
 
+        self.branch_combo = QComboBox()
+        for br in branch_service.branches():
+            self.branch_combo.addItem(br.get('name', f"#{br.get('id')}"), br.get('id'))
+        form.addRow("الفرع:", self.branch_combo)
+
         if not user_id:
             self.password_edit = QLineEdit()
             self.password_edit.setEchoMode(QLineEdit.Password)
@@ -156,6 +163,11 @@ class UserDialog(QDialog):
         if user:
             self.username_edit.setText(user.get('username', ''))
             self.fullname_edit.setText(user.get('full_name', ''))
+            branch_id = user.get('branch_id')
+            for i in range(self.branch_combo.count()):
+                if str(self.branch_combo.itemData(i)) == str(branch_id):
+                    self.branch_combo.setCurrentIndex(i)
+                    break
             role_map = {'admin': 0, 'user': 1, 'viewer': 2}
             self.role_combo.setCurrentIndex(role_map.get(user.get('role', 'user'), 1))
 
@@ -177,14 +189,14 @@ class UserDialog(QDialog):
                 QMessageBox.warning(self, "خطأ", "كلمتا المرور غير متطابقتين")
                 return
             try:
-                repo.create(username, password, self.fullname_edit.text().strip(), role)
+                repo.create(username, password, self.fullname_edit.text().strip(), role, self.branch_combo.currentData())
                 QMessageBox.information(self, "نجاح", "تمت إضافة المستخدم")
                 self.accept()
             except Exception as e:
                 QMessageBox.critical(self, "خطأ", str(e))
         else:
             try:
-                repo.update(self.user_id, self.fullname_edit.text().strip(), role)
+                repo.update(self.user_id, self.fullname_edit.text().strip(), role, self.branch_combo.currentData())
                 QMessageBox.information(self, "نجاح", "تم تحديث المستخدم")
                 self.accept()
             except Exception as e:

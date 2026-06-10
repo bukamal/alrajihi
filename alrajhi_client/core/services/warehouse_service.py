@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 
 from core.compat import records
 from core.services.audit_service import audit_service
+from core.services.branch_service import branch_service
 from database.dao.warehouse_dao import warehouse_dao
 
 
@@ -112,6 +113,7 @@ class WarehouseService:
         payload['code'] = str(payload.get('code', '')).strip()
         payload['location'] = str(payload.get('location', '')).strip()
         payload['notes'] = str(payload.get('notes', '')).strip()
+        payload['branch_id'] = payload.get('branch_id') or branch_service.default_branch_id()
         payload['is_active'] = 1 if payload.get('is_active', 1) else 0
         return payload
 

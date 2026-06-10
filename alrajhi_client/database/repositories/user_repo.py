@@ -10,7 +10,7 @@ class UserRepository(BaseRepository):
         if self.db.is_remote():
             return self.db.get_rest_client().get_users()
         else:
-            return self._fetch_all("SELECT id, username, full_name, role, created_at, last_login, force_password_change FROM users ORDER BY id")
+            return self._fetch_all("SELECT u.id, u.username, u.full_name, u.role, u.branch_id, b.name AS branch_name, u.created_at, u.last_login, u.force_password_change FROM users u LEFT JOIN branches b ON b.id=u.branch_id ORDER BY u.id")
 
     def get_by_id(self, user_id: str) -> Optional[Dict]:
         if self.db.is_remote():
@@ -43,13 +43,14 @@ class UserRepository(BaseRepository):
             return user
         return None
 
-    def create(self, username: str, password: str, full_name: str, role: str) -> str:
+    def create(self, username: str, password: str, full_name: str, role: str, branch_id=None) -> str:
         if self.db.is_remote():
             data = {
                 'username': username,
                 'password': password,
                 'full_name': full_name,
-                'role': role
+                'role': role,
+                'branch_id': branch_id
             }
             return str(self.db.get_rest_client().add_user(data))
         else:
@@ -57,9 +58,9 @@ class UserRepository(BaseRepository):
             now = datetime.datetime.now().isoformat()
             user_id = f"user_{int(datetime.datetime.now().timestamp())}"
             self._execute('''
-                INSERT INTO users (id, username, password_hash, salt, full_name, role, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, username, pwd_hash, salt, full_name, role, now))
+                INSERT INTO users (id, username, password_hash, salt, full_name, role, branch_id, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, username, pwd_hash, salt, full_name, role, branch_id, now))
             self._commit()
             current = UserSession.get_current()
             if current:
@@ -71,12 +72,12 @@ class UserRepository(BaseRepository):
                 )
             return user_id
 
-    def update(self, user_id: str, full_name: str, role: str):
+    def update(self, user_id: str, full_name: str, role: str, branch_id=None):
         if self.db.is_remote():
-            data = {'full_name': full_name, 'role': role}
+            data = {'full_name': full_name, 'role': role, 'branch_id': branch_id}
             self.db.get_rest_client().update_user(int(user_id), data)
         else:
-            self._execute('UPDATE users SET full_name=?, role=? WHERE id=?', (full_name, role, user_id))
+            self._execute('UPDATE users SET full_name=?, role=?, branch_id=? WHERE id=?', (full_name, role, branch_id, user_id))
             self._commit()
             current = UserSession.get_current()
             if current:

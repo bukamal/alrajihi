@@ -18,6 +18,9 @@ from views.widgets.settings_widget import SettingsWidget
 from views.widgets.users_widget import UsersWidget
 from views.widgets.categories_widget import CategoriesWidget
 from views.widgets.warehouses_widget import WarehousesWidget
+from views.widgets.branches_widget import BranchesWidget
+from views.widgets.cashboxes_widget import CashboxesWidget
+from views.widgets.returns_widget import ReturnsWidget, PurchaseReturnsWidget
 from views.widgets.audit_log_widget import AuditLogWidget
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from views.dialogs.login_dialog import LoginDialog
@@ -32,9 +35,13 @@ PAGE_META = {
     'items': ('المواد والمخزون', 'الرئيسية > المخزون > المواد'),
     'categories': ('التصنيفات', 'الرئيسية > المخزون > التصنيفات'),
     'warehouses': ('المستودعات', 'الرئيسية > المخزون > المستودعات'),
+    'branches': ('الفروع', 'الرئيسية > الإدارة > الفروع'),
+    'cashboxes': ('الصناديق والبنوك', 'الرئيسية > المالية > الصناديق والبنوك'),
     'customers': ('العملاء', 'الرئيسية > المبيعات > العملاء'),
     'suppliers': ('الموردون', 'الرئيسية > المشتريات > الموردون'),
     'vouchers': ('السندات', 'الرئيسية > المالية > السندات'),
+    'returns': ('مرتجعات المبيعات', 'الرئيسية > المبيعات > مرتجعات المبيعات'),
+    'purchase_returns': ('مرتجعات المشتريات', 'الرئيسية > المشتريات > مرتجعات المشتريات'),
     'manufacturing': ('التصنيع', 'الرئيسية > التصنيع'),
     'reports': ('التقارير', 'الرئيسية > التقارير'),
     'settings': ('الإعدادات', 'الرئيسية > النظام > الإعدادات'),
@@ -49,9 +56,13 @@ NAV_GROUP_BY_PAGE = {
     'customers': 'المبيعات',
     'suppliers': 'المشتريات',
     'vouchers': 'المبيعات',
+    'returns': 'المبيعات',
+    'purchase_returns': 'المشتريات',
     'items': 'المخزون',
     'categories': 'المخزون',
     'warehouses': 'المخزون',
+    'branches': 'الإدارة',
+    'cashboxes': 'المبيعات',
     'manufacturing': 'التصنيع',
     'reports': 'التقارير',
     'settings': 'الإدارة',
@@ -148,11 +159,15 @@ class MainWindow(QMainWindow):
         self.pages['customers'] = CustomersWidget(self)
         self.pages['suppliers'] = SuppliersWidget(self)
         self.pages['vouchers'] = VouchersWidget(self)
+        self.pages['returns'] = ReturnsWidget(self)
+        self.pages['purchase_returns'] = PurchaseReturnsWidget(self)
         self.pages['reports'] = ReportsWidget(self)
         self.pages['settings'] = SettingsWidget(self)
         self.pages['users'] = UsersWidget(self)
         self.pages['categories'] = CategoriesWidget(self)
         self.pages['warehouses'] = WarehousesWidget(self)
+        self.pages['branches'] = BranchesWidget(self)
+        self.pages['cashboxes'] = CashboxesWidget(self)
         self.pages['audit_log'] = AuditLogWidget(self)
 
         for page in self.pages.values():
@@ -203,6 +218,10 @@ class MainWindow(QMainWindow):
             ("فواتير البيع", "file-invoice", lambda: self.switch_page('invoices'), None),
             ("العملاء", "user-friends", lambda: self.switch_page('customers'), None),
             ("سندات قبض", "hand-holding-usd", lambda: self.switch_page('vouchers'), None),
+            ("مرتجعات المبيعات", "undo", lambda: self.switch_page('returns'), None),
+            ("مرتجعات المشتريات", "undo-alt", lambda: self.switch_page('purchase_returns'), None),
+            ("مرتجعات المشتريات", "undo-alt", lambda: self.switch_page('purchase_returns'), None),
+            ("الصناديق والبنوك", "cash-register", lambda: self.switch_page('cashboxes'), None),
         ])
         self.top_bar.add_menu_button("المشتريات", "truck", [
             ("فواتير الشراء", "file-invoice", lambda: self.switch_page('invoices'), None),
@@ -226,6 +245,7 @@ class MainWindow(QMainWindow):
         ])
         self.top_bar.add_menu_button("الإدارة", "cog", [
             ("الإعدادات", "sliders-h", lambda: self.switch_page('settings'), None),
+            ("الفروع", "code-branch", lambda: self.switch_page('branches'), None),
             ("طباعة احترافية", "print", lambda: self.show_print_dialog(), None),
             ("تغيير كلمة المرور", "key", lambda: self.change_password(), None),
         ])

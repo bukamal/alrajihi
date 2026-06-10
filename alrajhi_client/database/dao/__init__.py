@@ -9,6 +9,8 @@ from .customer_dao import customer_dao
 from .supplier_dao import supplier_dao
 from .manufacturing_dao import ManufacturingDAO, manufacturing_dao
 from .warehouse_dao import WarehouseDAO, warehouse_dao
+from .branch_dao import BranchDAO, branch_dao
+from .cashbox_dao import CashboxDAO, cashbox_dao
 
 reporting_dao = ReportingDAO()
 expense_dao = ExpenseDAO()
@@ -16,7 +18,7 @@ expense_dao = ExpenseDAO()
 __all__ = [
     'reporting_dao', 'expense_dao', 'voucher_dao', 'invoice_dao',
     'item_dao', 'category_dao', 'inventory_dao',
-    'customer_dao', 'supplier_dao', 'manufacturing_dao', 'warehouse_dao'
+    'customer_dao', 'supplier_dao', 'manufacturing_dao', 'warehouse_dao', 'branch_dao', 'cashbox_dao'
 ]
 
 

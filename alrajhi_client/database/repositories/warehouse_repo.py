@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 
 from database.repositories.base_repo import BaseRepository
 from auth.session import UserSession
+from database.repositories.branch_repo import BranchRepository
 
 DEFAULT_WAREHOUSE_NAME = 'المستودع الرئيسي'
 
@@ -33,6 +34,7 @@ class WarehouseRepository(BaseRepository):
                 code TEXT,
                 location TEXT,
                 notes TEXT,
+                branch_id INTEGER,
                 is_default INTEGER DEFAULT 0,
                 is_active INTEGER DEFAULT 1,
                 deleted_at TEXT,
@@ -97,12 +99,24 @@ class WarehouseRepository(BaseRepository):
             CREATE INDEX IF NOT EXISTS idx_wh_mov_item ON warehouse_movements(item_id);
             CREATE INDEX IF NOT EXISTS idx_wh_mov_wh ON warehouse_movements(warehouse_id);
         ''')
+        try:
+            conn.execute("ALTER TABLE warehouses ADD COLUMN branch_id INTEGER")
+        except Exception:
+            pass
+        try:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_warehouses_branch ON warehouses(branch_id)")
+        except Exception:
+            pass
         conn.commit()
 
     def bootstrap_defaults(self) -> None:
         if self.db.is_remote():
             return
         self.ensure_schema()
+        try:
+            BranchRepository().bootstrap_defaults()
+        except Exception:
+            pass
         conn = self.db.get_connection()
         now = self._now()
         users = conn.execute('''
@@ -121,9 +135,9 @@ class WarehouseRepository(BaseRepository):
             else:
                 cur = conn.execute('''
                     INSERT OR IGNORE INTO warehouses
-                    (user_id, name, code, location, notes, is_default, is_active, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, 1, 1, ?, ?)
-                ''', (uid, DEFAULT_WAREHOUSE_NAME, 'MAIN', '', 'تم إنشاؤه تلقائياً عند تفعيل نظام المستودعات', now, now))
+                    (user_id, name, code, location, notes, branch_id, is_default, is_active, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, BranchRepository().default_branch_id(?), 1, 1, ?, ?)
+                ''', (uid, DEFAULT_WAREHOUSE_NAME, 'MAIN', '', 'تم إنشاؤه تلقائياً عند تفعيل نظام المستودعات', uid, now, now))
                 wh_id = cur.lastrowid or conn.execute(
                     "SELECT id FROM warehouses WHERE user_id=? AND name=? LIMIT 1",
                     (uid, DEFAULT_WAREHOUSE_NAME)
@@ -172,9 +186,10 @@ class WarehouseRepository(BaseRepository):
         self.bootstrap_defaults()
         uid = self._uid()
         sql = '''
-            SELECT w.*, COUNT(DISTINCT b.item_id) AS item_count,
+            SELECT w.*, br.name AS branch_name, COUNT(DISTINCT b.item_id) AS item_count,
                    COALESCE(SUM(CAST(b.quantity AS REAL)), 0) AS total_qty
             FROM warehouses w
+            LEFT JOIN branches br ON br.id = w.branch_id
             LEFT JOIN item_warehouse_balances b ON b.warehouse_id = w.id
             WHERE w.user_id=?
         '''
@@ -200,9 +215,9 @@ class WarehouseRepository(BaseRepository):
         now = self._now()
         conn = self.db.get_connection()
         cur = conn.execute('''
-            INSERT INTO warehouses (user_id, name, code, location, notes, is_default, is_active, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, 0, 1, ?, ?)
-        ''', (uid, data['name'].strip(), data.get('code', '').strip(), data.get('location', '').strip(), data.get('notes', '').strip(), now, now))
+            INSERT INTO warehouses (user_id, name, code, location, notes, branch_id, is_default, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?, ?)
+        ''', (uid, data['name'].strip(), data.get('code', '').strip(), data.get('location', '').strip(), data.get('notes', '').strip(), data.get('branch_id') or BranchRepository().default_branch_id(uid), now, now))
         conn.commit()
         return int(cur.lastrowid)
 
@@ -216,9 +231,9 @@ class WarehouseRepository(BaseRepository):
         if not row:
             raise ValueError('المستودع غير موجود')
         conn.execute('''
-            UPDATE warehouses SET name=?, code=?, location=?, notes=?, is_active=?, updated_at=?
+            UPDATE warehouses SET name=?, code=?, location=?, notes=?, branch_id=?, is_active=?, updated_at=?
             WHERE id=? AND user_id=?
-        ''', (data['name'].strip(), data.get('code', '').strip(), data.get('location', '').strip(), data.get('notes', '').strip(), 1 if data.get('is_active', 1) else 0, self._now(), warehouse_id, uid))
+        ''', (data['name'].strip(), data.get('code', '').strip(), data.get('location', '').strip(), data.get('notes', '').strip(), data.get('branch_id') or BranchRepository().default_branch_id(uid), 1 if data.get('is_active', 1) else 0, self._now(), warehouse_id, uid))
         conn.commit()
 
     def archive(self, warehouse_id: int) -> None:

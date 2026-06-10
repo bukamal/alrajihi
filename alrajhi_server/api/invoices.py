@@ -120,13 +120,13 @@ def add_invoice():
     try:
         # إدراج الفاتورة
         cursor = db.execute('''
-            INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, exchange_rate_to_usd, original_currency)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, exchange_rate_to_usd, original_currency, warehouse_id, branch_id)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ''', (
             user_id, data['type'], data.get('customer_id'), data.get('supplier_id'),
             data['date'], data.get('reference', ''), data.get('notes', ''),
             str(data['total']), str(data['paid_amount']), 'active',
-            data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD')
+            data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'), data.get('warehouse_id'), data.get('branch_id')
         ))
         invoice_id = cursor.lastrowid
         # إدراج البنود وتسجيل حركات المخزون (محاكاة منطق العميل)
@@ -197,13 +197,13 @@ def update_invoice(invoice_id):
         db.execute("DELETE FROM invoice_lines WHERE invoice_id=?", (invoice_id,))
         db.execute('''
             UPDATE invoices SET type=?, customer_id=?, supplier_id=?, date=?, reference=?, notes=?, total=?, paid=?,
-                status='active', exchange_rate_to_usd=?, original_currency=?, deleted_at=NULL
+                status='active', exchange_rate_to_usd=?, original_currency=?, warehouse_id=?, branch_id=?, deleted_at=NULL
             WHERE id=? AND user_id=?
         ''', (
             data['type'], data.get('customer_id'), data.get('supplier_id'), data['date'],
             data.get('reference', ''), data.get('notes', ''), str(data['total']),
             str(data.get('paid_amount', data.get('paid', 0))), data.get('exchange_rate_to_usd', 1.0),
-            data.get('original_currency', 'USD'), invoice_id, user_id
+            data.get('original_currency', 'USD'), data.get('warehouse_id'), data.get('branch_id'), invoice_id, user_id
         ))
         for line in data['lines']:
             conv_factor = Decimal(str(line.get('conversion_factor', 1)))

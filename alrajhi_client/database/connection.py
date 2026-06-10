@@ -191,7 +191,7 @@ class DatabaseConnection:
             SELECT i.*, c.name as category_name,
                    COALESCE((
                        SELECT SUM(CASE
-                           WHEN movement_type IN ('opening','purchase','adjustment','production_out') THEN CAST(quantity AS REAL)
+                           WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return') THEN CAST(quantity AS REAL)
                            WHEN movement_type IN ('sale','production_consume') THEN -CAST(quantity AS REAL)
                            ELSE 0 END)
                        FROM inventory_movements
@@ -302,7 +302,7 @@ class DatabaseConnection:
             SELECT i.*, c.name as category_name,
                    COALESCE((
                        SELECT SUM(CASE
-                           WHEN movement_type IN ('opening','purchase','adjustment','production_out') THEN CAST(quantity AS REAL)
+                           WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return') THEN CAST(quantity AS REAL)
                            WHEN movement_type IN ('sale','production_consume') THEN -CAST(quantity AS REAL)
                            ELSE 0 END)
                        FROM inventory_movements
@@ -478,6 +478,7 @@ class DatabaseConnection:
             FROM invoices i
             LEFT JOIN customers c ON i.customer_id = c.id
             LEFT JOIN suppliers s ON i.supplier_id = s.id
+            LEFT JOIN branches b ON i.branch_id = b.id
             WHERE i.user_id = ? AND i.deleted_at IS NULL
         """
         count_params = [uid]
@@ -502,10 +503,11 @@ class DatabaseConnection:
             count_params.append(supplier_id)
         total = conn.execute(count_sql, count_params).fetchone()[0]
         query = """
-            SELECT i.*, c.name as customer_name, s.name as supplier_name
+            SELECT i.*, c.name as customer_name, s.name as supplier_name, b.name as branch_name
             FROM invoices i
             LEFT JOIN customers c ON i.customer_id = c.id
             LEFT JOIN suppliers s ON i.supplier_id = s.id
+            LEFT JOIN branches b ON i.branch_id = b.id
             WHERE i.user_id = ? AND i.deleted_at IS NULL
         """
         params = [uid]
@@ -558,13 +560,15 @@ class DatabaseConnection:
         self.begin()
         try:
             cursor = conn.execute('''
-                INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, exchange_rate_to_usd, original_currency)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, exchange_rate_to_usd, original_currency, warehouse_id, branch_id, cashbox_id, bank_account_id, payment_method, shift_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ''', (
                 uid, data['type'], data.get('customer_id'), data.get('supplier_id'),
                 data['date'], data.get('reference', ''), data.get('notes', ''),
                 str(data['total']), str(data['paid_amount']), 'active',
-                data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD')
+                data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'),
+                data.get('warehouse_id'), data.get('branch_id'), data.get('cashbox_id'),
+                data.get('bank_account_id'), data.get('payment_method', 'cash'), data.get('shift_id')
             ))
             invoice_id = cursor.lastrowid
             for line in data['lines']:
@@ -635,13 +639,13 @@ class DatabaseConnection:
             conn.execute("DELETE FROM invoice_lines WHERE invoice_id=?", (invoice_id,))
             conn.execute('''
                 UPDATE invoices SET type=?, customer_id=?, supplier_id=?, date=?, reference=?, notes=?, total=?, paid=?,
-                    status='active', exchange_rate_to_usd=?, original_currency=?, deleted_at=NULL
+                    status='active', exchange_rate_to_usd=?, original_currency=?, warehouse_id=?, branch_id=?, deleted_at=NULL
                 WHERE id=?
             ''', (
                 data['type'], data.get('customer_id'), data.get('supplier_id'), data['date'],
                 data.get('reference', ''), data.get('notes', ''), str(data['total']),
                 str(data.get('paid_amount', data.get('paid', 0))), data.get('exchange_rate_to_usd', 1.0),
-                data.get('original_currency', 'USD'), invoice_id
+                data.get('original_currency', 'USD'), data.get('warehouse_id'), data.get('branch_id'), invoice_id
             ))
 
             new_item_ids = []
@@ -792,10 +796,10 @@ class DatabaseConnection:
             count_sql += " AND type = ?"
             count_params.append(vtype)
         total = conn.execute(count_sql, count_params).fetchone()[0]
-        query = "SELECT * FROM vouchers WHERE user_id = ?"
+        query = "SELECT v.*, b.name AS branch_name, c.name AS cashbox_name, ba.bank_name AS bank_name, ba.account_name AS bank_account_name FROM vouchers v LEFT JOIN branches b ON b.id=v.branch_id LEFT JOIN cashboxes c ON c.id=v.cashbox_id LEFT JOIN bank_accounts ba ON ba.id=v.bank_account_id WHERE v.user_id = ?"
         params = [uid]
         if vtype and vtype in ('receipt', 'payment', 'expense'):
-            query += " AND type = ?"
+            query += " AND v.type = ?"
             params.append(vtype)
         query += " ORDER BY id DESC"
         if limit is not None:
@@ -824,13 +828,14 @@ class DatabaseConnection:
         self.begin()
         try:
             cursor = conn.execute('''
-                INSERT INTO vouchers (user_id, type, date, amount, description, reference, customer_id, supplier_id, invoice_id, exchange_rate_to_usd, original_currency)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                INSERT INTO vouchers (user_id, type, date, amount, description, reference, customer_id, supplier_id, invoice_id, exchange_rate_to_usd, original_currency, branch_id, cashbox_id, bank_account_id, payment_method)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ''', (
                 uid, data['type'], data['date'], str(data['amount']),
                 data.get('description', ''), data.get('reference', ''),
                 data.get('customer_id'), data.get('supplier_id'), data.get('invoice_id'),
-                data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD')
+                data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'), data.get('branch_id'),
+                data.get('cashbox_id'), data.get('bank_account_id'), data.get('payment_method', 'cash')
             ))
             voucher_id = cursor.lastrowid
             amount = Decimal(str(data['amount']))
@@ -968,7 +973,7 @@ class DatabaseConnection:
         cur = conn.execute('''
             SELECT SUM(
                 CASE 
-                    WHEN movement_type IN ('opening','purchase','adjustment','production_out') 
+                    WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return') 
                     THEN CAST(quantity AS REAL)
                     WHEN movement_type IN ('sale','production_consume') 
                     THEN -CAST(quantity AS REAL)
@@ -990,7 +995,7 @@ class DatabaseConnection:
                 SUM(CAST(quantity AS REAL)) as total_qty,
                 SUM(CAST(quantity AS REAL) * CAST(unit_cost AS REAL)) as total_cost
             FROM inventory_movements
-            WHERE item_id = ? AND movement_type IN ('opening', 'purchase', 'adjustment', 'production_out')
+            WHERE item_id = ? AND movement_type IN ('opening', 'purchase', 'adjustment', 'production_out', 'sales_return')
         ''', (item_id,))
         row = cur.fetchone()
         total_qty = Decimal(str(row[0])) if row[0] else Decimal('0')

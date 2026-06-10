@@ -38,6 +38,20 @@ class UserSession:
         return cls._current_user_role
 
     @classmethod
+    def get_current_branch_id(cls):
+        user = cls.get_current() or {}
+        branch_id = user.get('branch_id')
+        try:
+            return int(branch_id) if branch_id not in (None, '', 0, '0') else None
+        except Exception:
+            return None
+
+    @classmethod
+    def set_current_branch_id(cls, branch_id):
+        if cls._current_user is not None:
+            cls._current_user['branch_id'] = branch_id
+
+    @classmethod
     def is_authenticated(cls) -> bool:
         return cls._current_user is not None
 

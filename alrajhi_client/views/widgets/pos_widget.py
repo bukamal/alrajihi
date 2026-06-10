@@ -14,6 +14,7 @@ import qtawesome as qta
 
 from core.services.pos_service import pos_service, POSException
 from core.services.warehouse_service import warehouse_service
+from core.services.cashbox_service import cashbox_service
 from currency import currency
 from utils import show_toast
 
@@ -24,7 +25,7 @@ class POSWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(Qt.RightToLeft)
-        self.cart = pos_service.new_cart()
+        self.cart = pos_service.new_cart(self._selected_warehouse_id() if hasattr(self, 'warehouse_combo') else None, self._selected_cashbox_id() if hasattr(self, 'cashbox_combo') else None)
         self.display_curr = currency.get_display_currency()
         self._init_ui()
         self._setup_shortcuts()
@@ -56,6 +57,23 @@ class POSWidget(QWidget):
         self.warehouse_combo.currentIndexChanged.connect(self.on_warehouse_changed)
         wh_row.addWidget(self.warehouse_combo, 1)
         layout.addLayout(wh_row)
+
+        shift_row = QHBoxLayout()
+        shift_row.addWidget(QLabel("الصندوق:"))
+        self.cashbox_combo = QComboBox()
+        self._load_cashboxes()
+        self.cashbox_combo.currentIndexChanged.connect(self.on_cashbox_changed)
+        shift_row.addWidget(self.cashbox_combo, 1)
+        self.shift_label = QLabel("لا توجد وردية مفتوحة")
+        self.shift_label.setObjectName("muted")
+        shift_row.addWidget(self.shift_label, 1)
+        self.open_shift_btn = QPushButton("فتح وردية")
+        self.open_shift_btn.clicked.connect(self.open_shift)
+        self.close_shift_btn = QPushButton("إغلاق وردية")
+        self.close_shift_btn.clicked.connect(self.close_shift)
+        shift_row.addWidget(self.open_shift_btn)
+        shift_row.addWidget(self.close_shift_btn)
+        layout.addLayout(shift_row)
 
         scan_row = QHBoxLayout()
         self.barcode_input = QLineEdit()
@@ -154,6 +172,95 @@ class POSWidget(QWidget):
         layout.addWidget(self.status_label)
 
 
+
+    def _load_cashboxes(self):
+        self.cashbox_combo.clear()
+        try:
+            default_id = cashbox_service.default_cashbox_id()
+            for cb in cashbox_service.cashboxes():
+                self.cashbox_combo.addItem(cb.get('name', f"#{cb.get('id')}"), cb.get('id'))
+                if default_id and int(cb.get('id')) == int(default_id):
+                    self.cashbox_combo.setCurrentIndex(self.cashbox_combo.count() - 1)
+        except Exception:
+            pass
+        self.refresh_shift_state()
+
+    def _selected_cashbox_id(self):
+        try:
+            return int(self.cashbox_combo.currentData() or 0) or None
+        except Exception:
+            return None
+
+    def refresh_shift_state(self):
+        try:
+            shift = cashbox_service.current_open_shift(self._selected_cashbox_id())
+            if shift:
+                self.current_shift_id = shift.get('id')
+                self.shift_label.setText(f"وردية مفتوحة #{shift.get('id')} - {shift.get('cashbox_name','')}")
+                self.open_shift_btn.setEnabled(False)
+                self.close_shift_btn.setEnabled(True)
+            else:
+                self.current_shift_id = None
+                self.shift_label.setText("لا توجد وردية مفتوحة")
+                self.open_shift_btn.setEnabled(True)
+                self.close_shift_btn.setEnabled(False)
+            if hasattr(self, 'checkout_btn'):
+                self.checkout_btn.setEnabled(bool(getattr(self, 'cart', None) and self.cart.lines) and bool(getattr(self, 'current_shift_id', None)))
+        except Exception:
+            pass
+
+    def on_cashbox_changed(self):
+        if getattr(self, 'cart', None) and self.cart.lines:
+            reply = QMessageBox.question(self, "تغيير الصندوق", "سيتم تفريغ السلة عند تغيير الصندوق. هل تريد المتابعة؟", QMessageBox.Yes | QMessageBox.No)
+            if reply != QMessageBox.Yes:
+                return
+        self.cart = pos_service.new_cart(self._selected_warehouse_id(), self._selected_cashbox_id())
+        self.refresh_cart()
+        self.refresh_shift_state()
+        self.barcode_input.setFocus()
+
+    def open_shift(self):
+        cashbox_id = self._selected_cashbox_id()
+        if not cashbox_id:
+            QMessageBox.warning(self, "وردية", "اختر صندوقاً أولاً")
+            return
+        opening, ok = QInputDialog.getDouble(self, "فتح وردية", "الرصيد الافتتاحي:", 0, 0, 999999999, 2)
+        if not ok:
+            return
+        try:
+            sid = cashbox_service.open_shift({'cashbox_id': cashbox_id, 'opening_amount': Decimal(str(opening))})
+            self.cart = pos_service.new_cart(self._selected_warehouse_id(), cashbox_id, sid)
+            self.refresh_shift_state()
+            show_toast("تم فتح الوردية", "success", self)
+        except Exception as e:
+            QMessageBox.warning(self, "خطأ", str(e))
+        self.barcode_input.setFocus()
+
+    def close_shift(self):
+        shift = cashbox_service.current_open_shift(self._selected_cashbox_id())
+        if not shift:
+            QMessageBox.information(self, "إغلاق وردية", "لا توجد وردية مفتوحة")
+            return
+        try:
+            summary = cashbox_service.shift_summary(shift['id'])
+            expected = Decimal(str(summary.get('expected_amount') or 0))
+        except Exception:
+            expected = Decimal('0')
+        actual, ok = QInputDialog.getDouble(self, "إغلاق وردية", f"الرصيد المتوقع: {currency.format_amount(currency.convert(expected, 'USD', self.display_curr))}\nأدخل الرصيد الفعلي:", float(currency.convert(expected, 'USD', self.display_curr)), 0, 999999999, 2)
+        if not ok:
+            return
+        try:
+            actual_usd = currency.convert(Decimal(str(actual)), self.display_curr, 'USD')
+            summary = cashbox_service.close_shift(shift['id'], actual_usd)
+            diff = Decimal(str(summary.get('difference_amount') or 0))
+            QMessageBox.information(self, "تقرير إغلاق الوردية", f"تم إغلاق الوردية #{shift['id']}\nالمبيعات: {summary.get('total_sales')}\nالنقد: {summary.get('total_cash')}\nالبطاقة: {summary.get('total_card')}\nالفرق: {diff}")
+            self.cart = pos_service.new_cart(self._selected_warehouse_id(), self._selected_cashbox_id())
+            self.refresh_shift_state()
+            self.refresh_cart()
+        except Exception as e:
+            QMessageBox.warning(self, "خطأ", str(e))
+        self.barcode_input.setFocus()
+
     def _load_warehouses(self):
         self.warehouse_combo.clear()
         try:
@@ -177,7 +284,7 @@ class POSWidget(QWidget):
             reply = QMessageBox.question(self, "تغيير المستودع", "سيتم تفريغ السلة عند تغيير مستودع الصرف. هل تريد المتابعة؟", QMessageBox.Yes | QMessageBox.No)
             if reply != QMessageBox.Yes:
                 return
-        self.cart = pos_service.new_cart(new_id)
+        self.cart = pos_service.new_cart(new_id, self._selected_cashbox_id())
         self.refresh_cart()
         self.barcode_input.setFocus()
 
@@ -241,7 +348,8 @@ class POSWidget(QWidget):
         if self.payment_combo.currentData() in ('cash', 'card'):
             self.paid_spin.setValue(float(total_display))
         self.update_change_due()
-        self.checkout_btn.setEnabled(bool(self.cart.lines))
+        self.refresh_shift_state()
+        self.checkout_btn.setEnabled(bool(self.cart.lines) and bool(getattr(self, 'current_shift_id', None)))
 
     def update_change_due(self):
         try:
@@ -311,7 +419,7 @@ class POSWidget(QWidget):
             if not ok:
                 return
             pos_service.suspend(self.cart, note)
-            self.cart = pos_service.new_cart()
+            self.cart = pos_service.new_cart(self._selected_warehouse_id() if hasattr(self, 'warehouse_combo') else None, self._selected_cashbox_id() if hasattr(self, 'cashbox_combo') else None)
             self.refresh_cart()
             show_toast("تم تعليق البيع", "success", self)
         except POSException as e:
@@ -341,6 +449,9 @@ class POSWidget(QWidget):
 
     def checkout(self):
         try:
+            self.refresh_shift_state()
+            if not getattr(self, 'current_shift_id', None):
+                raise POSException('افتح وردية قبل إنهاء البيع')
             payment_method = self.payment_combo.currentData() or 'cash'
             paid_display = Decimal(str(self.paid_spin.value()))
             paid_usd = currency.convert(paid_display, self.display_curr, 'USD')
@@ -351,7 +462,7 @@ class POSWidget(QWidget):
             invoice_id = pos_service.checkout(self.cart, payment_method, paid_usd)
             show_toast(f"تم إنهاء البيع وإنشاء فاتورة رقم {invoice_id}", "success", self)
             self._offer_print_receipt(invoice_id)
-            self.cart = pos_service.new_cart()
+            self.cart = pos_service.new_cart(self._selected_warehouse_id() if hasattr(self, 'warehouse_combo') else None, self._selected_cashbox_id() if hasattr(self, 'cashbox_combo') else None)
             self.refresh_cart()
         except POSException as e:
             show_toast(str(e), "error", self)

@@ -93,4 +93,53 @@ class ReportingService:
         return {'warehouses': list(warehouses.values()), 'grand_total': grand_total, 'balances': balances}
 
 
+    # ========== Cash / Bank reports ==========
+    def cashboxes_report(self) -> List[Dict]:
+        """Cashbox balances for financial reporting."""
+        try:
+            from core.services.cashbox_service import cashbox_service
+            return cashbox_service.cashboxes(include_archived=False)
+        except Exception:
+            return []
+
+    def bank_accounts_report(self) -> List[Dict]:
+        """Bank account balances for financial reporting."""
+        try:
+            from core.services.cashbox_service import cashbox_service
+            return cashbox_service.bank_accounts(include_archived=False)
+        except Exception:
+            return []
+
+    def cash_bank_movements(self, cashbox_id: int | None = None, bank_account_id: int | None = None, limit: int = 1000) -> List[Dict]:
+        """Unified cash/bank movement ledger."""
+        try:
+            from core.services.cashbox_service import cashbox_service
+            return cashbox_service.movements(limit=limit, cashbox_id=cashbox_id, bank_account_id=bank_account_id)
+        except Exception:
+            return []
+
+    def pos_shifts_report(self, limit: int = 1000, status: str | None = None) -> List[Dict]:
+        """POS shift report."""
+        try:
+            from core.services.cashbox_service import cashbox_service
+            return cashbox_service.shifts(limit=limit, status=status)
+        except Exception:
+            return []
+
+    def cash_bank_summary(self) -> Dict:
+        """Financial liquidity summary from cashboxes and bank accounts."""
+        from decimal import Decimal
+        cashboxes = self.cashboxes_report()
+        banks = self.bank_accounts_report()
+        cash_total = sum(Decimal(str(c.get('balance') or 0)) for c in cashboxes)
+        bank_total = sum(Decimal(str(b.get('balance') or 0)) for b in banks)
+        return {
+            'cash_total': cash_total,
+            'bank_total': bank_total,
+            'available_total': cash_total + bank_total,
+            'cashbox_count': len(cashboxes),
+            'bank_count': len(banks),
+        }
+
+
 reporting_service = ReportingService()

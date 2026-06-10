@@ -56,6 +56,16 @@ class ReportsWidget(QWidget):
         self._load_warehouses()
         period_layout.addWidget(self.warehouse_filter)
 
+        period_layout.addWidget(QLabel("الصندوق:"))
+        self.cashbox_filter = QComboBox()
+        self._load_cashboxes()
+        period_layout.addWidget(self.cashbox_filter)
+
+        period_layout.addWidget(QLabel("البنك:"))
+        self.bank_filter = QComboBox()
+        self._load_banks()
+        period_layout.addWidget(self.bank_filter)
+
         refresh_btn = QPushButton("تحديث")
         refresh_btn.clicked.connect(self.refresh_report)
         period_layout.addWidget(refresh_btn)
@@ -73,15 +83,24 @@ class ReportsWidget(QWidget):
         self.wh_balances_tab = QWidget()
         self.wh_movements_tab = QWidget()
         self.wh_transfers_tab = QWidget()
+        self.cash_summary_tab = QWidget()
+        self.cash_movements_tab = QWidget()
+        self.bank_movements_tab = QWidget()
+        self.pos_shifts_tab = QWidget()
         self.setup_income_tab()
         self.setup_balance_tab()
         self.setup_warehouse_tabs()
+        self.setup_cash_bank_tabs()
         self.tabs.addTab(self.income_tab, "قائمة الدخل")
         self.tabs.addTab(self.balance_tab, "الميزانية العمومية")
         self.tabs.addTab(self.wh_valuation_tab, "تقييم المستودعات")
         self.tabs.addTab(self.wh_balances_tab, "أرصدة المستودعات")
         self.tabs.addTab(self.wh_movements_tab, "حركات المستودعات")
         self.tabs.addTab(self.wh_transfers_tab, "تحويلات المستودعات")
+        self.tabs.addTab(self.cash_summary_tab, "ملخص الصناديق والبنوك")
+        self.tabs.addTab(self.cash_movements_tab, "حركات الصناديق")
+        self.tabs.addTab(self.bank_movements_tab, "حركات البنوك")
+        self.tabs.addTab(self.pos_shifts_tab, "ورديات POS")
         layout.addWidget(self.tabs)
 
         self.on_period_type_changed()
@@ -93,6 +112,27 @@ class ReportsWidget(QWidget):
         try:
             for wh in warehouse_service.warehouses(include_archived=False):
                 self.warehouse_filter.addItem(wh.get('name', ''), wh.get('id'))
+        except Exception:
+            pass
+
+    def _load_cashboxes(self):
+        self.cashbox_filter.clear()
+        self.cashbox_filter.addItem("كل الصناديق", None)
+        try:
+            for c in reporting_service.cashboxes_report():
+                self.cashbox_filter.addItem(c.get('name', ''), c.get('id'))
+        except Exception:
+            pass
+
+    def _load_banks(self):
+        self.bank_filter.clear()
+        self.bank_filter.addItem("كل البنوك", None)
+        try:
+            for b in reporting_service.bank_accounts_report():
+                title = b.get('bank_name') or ''
+                if b.get('account_name'):
+                    title += f" - {b.get('account_name')}"
+                self.bank_filter.addItem(title, b.get('id'))
         except Exception:
             pass
 
@@ -151,6 +191,25 @@ class ReportsWidget(QWidget):
         self.wh_transfers_table = CustomTableView()
         trans_layout.addWidget(self.wh_transfers_table)
 
+    def setup_cash_bank_tabs(self):
+        self.cash_summary_status = QLabel()
+        cash_layout = QVBoxLayout(self.cash_summary_tab)
+        cash_layout.addWidget(self.cash_summary_status)
+        self.cash_summary_table = CustomTableView()
+        cash_layout.addWidget(self.cash_summary_table)
+
+        cash_mov_layout = QVBoxLayout(self.cash_movements_tab)
+        self.cash_movements_table = CustomTableView()
+        cash_mov_layout.addWidget(self.cash_movements_table)
+
+        bank_mov_layout = QVBoxLayout(self.bank_movements_tab)
+        self.bank_movements_table = CustomTableView()
+        bank_mov_layout.addWidget(self.bank_movements_table)
+
+        shifts_layout = QVBoxLayout(self.pos_shifts_tab)
+        self.pos_shifts_table = CustomTableView()
+        shifts_layout.addWidget(self.pos_shifts_table)
+
     def _set_table(self, table, rows, headers, keys):
         model = GenericTableModel(rows, headers, data_keys=keys)
         table.setModel(model)
@@ -164,6 +223,7 @@ class ReportsWidget(QWidget):
         self._refresh_income(start, end, display_curr)
         self._refresh_balance(start, end, display_curr)
         self._refresh_warehouse_reports(display_curr)
+        self._refresh_cash_bank_reports(display_curr)
 
     def _refresh_income(self, start, end, display_curr):
         stmt = reporting_service.income_statement(start, end)
@@ -258,6 +318,103 @@ class ReportsWidget(QWidget):
             })
         self._set_table(self.wh_transfers_table, trans_rows, ['رقم التحويل', 'التاريخ', 'المادة', 'من', 'إلى', 'الكمية', 'الحالة', 'ملاحظات'], ['no', 'date', 'item', 'from', 'to', 'qty', 'status', 'notes'])
 
+    def _refresh_cash_bank_reports(self, display_curr):
+        cashbox_id = self.cashbox_filter.currentData() if hasattr(self, 'cashbox_filter') else None
+        bank_id = self.bank_filter.currentData() if hasattr(self, 'bank_filter') else None
+        summary = reporting_service.cash_bank_summary()
+        cash_total = currency.convert(Decimal(str(summary.get('cash_total') or 0)), 'USD', display_curr)
+        bank_total = currency.convert(Decimal(str(summary.get('bank_total') or 0)), 'USD', display_curr)
+        available = currency.convert(Decimal(str(summary.get('available_total') or 0)), 'USD', display_curr)
+        self.cash_summary_status.setText(
+            f"الصناديق: {currency.format_amount(cash_total)} | البنوك: {currency.format_amount(bank_total)} | الإجمالي المتاح: {currency.format_amount(available)}"
+        )
+        summary_rows = []
+        for c in reporting_service.cashboxes_report():
+            bal = currency.convert(Decimal(str(c.get('balance') or 0)), 'USD', display_curr)
+            summary_rows.append({
+                'type': 'صندوق',
+                'branch': c.get('branch_name') or '',
+                'name': c.get('name') or '',
+                'code': c.get('code') or '',
+                'balance': currency.format_amount(bal),
+                'status': 'نشط' if int(c.get('is_active') or 0) else 'مؤرشف',
+            })
+        for b in reporting_service.bank_accounts_report():
+            bal = currency.convert(Decimal(str(b.get('balance') or 0)), 'USD', display_curr)
+            summary_rows.append({
+                'type': 'بنك',
+                'branch': b.get('branch_name') or '',
+                'name': f"{b.get('bank_name') or ''} - {b.get('account_name') or ''}".strip(' -'),
+                'code': b.get('account_number') or b.get('iban') or '',
+                'balance': currency.format_amount(bal),
+                'status': 'نشط' if int(b.get('is_active') or 0) else 'مؤرشف',
+            })
+        self._set_table(self.cash_summary_table, summary_rows, ['النوع', 'الفرع', 'الاسم', 'الرقم/الكود', 'الرصيد', 'الحالة'], ['type','branch','name','code','balance','status'])
+
+        cash_rows = []
+        for m in reporting_service.cash_bank_movements(cashbox_id=cashbox_id, limit=1000):
+            if m.get('cashbox_id') is None:
+                continue
+            amount = currency.convert(Decimal(str(m.get('amount') or 0)), 'USD', display_curr)
+            cash_rows.append({
+                'date': m.get('movement_date') or m.get('created_at') or '',
+                'branch': m.get('branch_name') or '',
+                'cashbox': m.get('cashbox_name') or '',
+                'type': self._cash_movement_label(m.get('movement_type')),
+                'direction': 'داخل' if Decimal(str(m.get('amount') or 0)) >= 0 else 'خارج',
+                'amount': currency.format_amount(amount),
+                'ref': m.get('reference_type') or '—',
+                'desc': m.get('description') or '',
+            })
+        self._set_table(self.cash_movements_table, cash_rows, ['التاريخ', 'الفرع', 'الصندوق', 'النوع', 'الاتجاه', 'المبلغ', 'المرجع', 'البيان'], ['date','branch','cashbox','type','direction','amount','ref','desc'])
+
+        bank_rows = []
+        for m in reporting_service.cash_bank_movements(bank_account_id=bank_id, limit=1000):
+            if m.get('bank_account_id') is None:
+                continue
+            amount = currency.convert(Decimal(str(m.get('amount') or 0)), 'USD', display_curr)
+            bank_rows.append({
+                'date': m.get('movement_date') or m.get('created_at') or '',
+                'branch': m.get('branch_name') or '',
+                'bank': f"{m.get('bank_name') or ''} - {m.get('account_name') or ''}".strip(' -'),
+                'type': self._cash_movement_label(m.get('movement_type')),
+                'direction': 'داخل' if Decimal(str(m.get('amount') or 0)) >= 0 else 'خارج',
+                'amount': currency.format_amount(amount),
+                'ref': m.get('reference_type') or '—',
+                'desc': m.get('description') or '',
+            })
+        self._set_table(self.bank_movements_table, bank_rows, ['التاريخ', 'الفرع', 'الحساب البنكي', 'النوع', 'الاتجاه', 'المبلغ', 'المرجع', 'البيان'], ['date','branch','bank','type','direction','amount','ref','desc'])
+
+        shift_rows = []
+        for s in reporting_service.pos_shifts_report(limit=1000):
+            shift_rows.append({
+                'id': s.get('id'),
+                'branch': s.get('branch_name') or '',
+                'cashbox': s.get('cashbox_name') or '',
+                'opened': s.get('opened_at') or '',
+                'closed': s.get('closed_at') or '—',
+                'opening': currency.format_amount(s.get('opening_amount') or 0),
+                'cash': currency.format_amount(s.get('total_cash') or 0),
+                'card': currency.format_amount(s.get('total_card') or 0),
+                'expected': currency.format_amount(s.get('expected_amount') or 0),
+                'actual': currency.format_amount(s.get('actual_amount') or 0),
+                'diff': currency.format_amount(s.get('difference_amount') or 0),
+                'status': 'مفتوحة' if s.get('status') == 'open' else 'مغلقة',
+            })
+        self._set_table(self.pos_shifts_table, shift_rows, ['#', 'الفرع', 'الصندوق', 'الفتح', 'الإغلاق', 'افتتاحي', 'نقد', 'بطاقة', 'متوقع', 'فعلي', 'الفرق', 'الحالة'], ['id','branch','cashbox','opened','closed','opening','cash','card','expected','actual','diff','status'])
+
+    def _cash_movement_label(self, mtype):
+        return {
+            'receipt': 'قبض',
+            'payment': 'دفع',
+            'expense': 'مصروف',
+            'pos_sale_cash': 'بيع POS نقدي',
+            'pos_sale_card': 'بيع POS بطاقة',
+            'cash_transfer': 'تحويل نقدي',
+            'bank_deposit': 'إيداع بنكي',
+            'bank_withdrawal': 'سحب بنكي',
+        }.get(mtype or '', mtype or '')
+
     def _movement_label(self, mtype):
         return {
             'migration_opening': 'ترحيل افتتاحي',
@@ -291,6 +448,14 @@ class ReportsWidget(QWidget):
             table = self.wh_movements_table
         elif tab is self.wh_transfers_tab:
             table = self.wh_transfers_table
+        elif tab is self.cash_summary_tab:
+            table = self.cash_summary_table
+        elif tab is self.cash_movements_tab:
+            table = self.cash_movements_table
+        elif tab is self.bank_movements_tab:
+            table = self.bank_movements_table
+        elif tab is self.pos_shifts_tab:
+            table = self.pos_shifts_table
         if not table or not table.model():
             return
         model = table.model()

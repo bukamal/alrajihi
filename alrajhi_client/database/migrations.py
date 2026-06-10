@@ -26,6 +26,7 @@ def init_database():
             salt TEXT NOT NULL,
             full_name TEXT,
             role TEXT DEFAULT 'user',
+            branch_id INTEGER,
             created_at TEXT,
             last_login TEXT,
             cash_balance TEXT DEFAULT '0',
@@ -111,6 +112,10 @@ def init_database():
             exchange_rate_to_usd REAL DEFAULT 1.0,
             original_currency TEXT DEFAULT 'USD',
             warehouse_id INTEGER,
+            branch_id INTEGER,
+            cashbox_id INTEGER,
+            bank_account_id INTEGER,
+            payment_method TEXT DEFAULT 'cash',
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (customer_id) REFERENCES customers(id),
             FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
@@ -148,6 +153,10 @@ def init_database():
             exchange_rate_to_usd REAL DEFAULT 1.0,
             original_currency TEXT DEFAULT 'USD',
             warehouse_id INTEGER,
+            branch_id INTEGER,
+            cashbox_id INTEGER,
+            bank_account_id INTEGER,
+            payment_method TEXT DEFAULT 'cash',
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (customer_id) REFERENCES customers(id),
             FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
@@ -163,10 +172,34 @@ def init_database():
             exchange_rate_to_usd REAL DEFAULT 1.0,
             original_currency TEXT DEFAULT 'USD',
             warehouse_id INTEGER,
+            branch_id INTEGER,
+            cashbox_id INTEGER,
+            bank_account_id INTEGER,
+            payment_method TEXT DEFAULT 'cash',
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
 
 
+
+        
+        CREATE TABLE IF NOT EXISTS branches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            name TEXT NOT NULL,
+            code TEXT,
+            address TEXT,
+            phone TEXT,
+            notes TEXT,
+            branch_id INTEGER,
+            is_default INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            deleted_at TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            UNIQUE(user_id, name),
+            UNIQUE(user_id, code)
+        );
 
         CREATE TABLE IF NOT EXISTS warehouses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -175,6 +208,7 @@ def init_database():
             code TEXT,
             location TEXT,
             notes TEXT,
+            branch_id INTEGER,
             is_default INTEGER DEFAULT 0,
             is_active INTEGER DEFAULT 1,
             deleted_at TEXT,
@@ -214,6 +248,86 @@ def init_database():
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (item_id) REFERENCES items(id),
             FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
+        );
+
+
+
+        CREATE TABLE IF NOT EXISTS cashboxes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            branch_id INTEGER,
+            name TEXT NOT NULL,
+            code TEXT,
+            notes TEXT,
+            is_default INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            deleted_at TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (branch_id) REFERENCES branches(id),
+            UNIQUE(user_id, branch_id, name),
+            UNIQUE(user_id, code)
+        );
+
+        CREATE TABLE IF NOT EXISTS bank_accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            branch_id INTEGER,
+            bank_name TEXT NOT NULL,
+            account_name TEXT,
+            account_number TEXT,
+            iban TEXT,
+            notes TEXT,
+            is_active INTEGER DEFAULT 1,
+            deleted_at TEXT,
+            created_at TEXT,
+            updated_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (branch_id) REFERENCES branches(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS cash_bank_movements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            branch_id INTEGER,
+            cashbox_id INTEGER,
+            bank_account_id INTEGER,
+            movement_type TEXT NOT NULL,
+            amount TEXT NOT NULL,
+            direction TEXT,
+            reference_type TEXT,
+            reference_id INTEGER,
+            description TEXT,
+            movement_date TEXT,
+            created_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (branch_id) REFERENCES branches(id),
+            FOREIGN KEY (cashbox_id) REFERENCES cashboxes(id),
+            FOREIGN KEY (bank_account_id) REFERENCES bank_accounts(id)
+        );
+
+
+        CREATE TABLE IF NOT EXISTS pos_shifts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            branch_id INTEGER,
+            cashbox_id INTEGER NOT NULL,
+            opening_amount TEXT DEFAULT '0',
+            closing_amount TEXT,
+            expected_amount TEXT DEFAULT '0',
+            actual_amount TEXT,
+            difference_amount TEXT,
+            total_sales TEXT DEFAULT '0',
+            total_cash TEXT DEFAULT '0',
+            total_card TEXT DEFAULT '0',
+            status TEXT DEFAULT 'open',
+            opened_at TEXT,
+            closed_at TEXT,
+            notes TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (branch_id) REFERENCES branches(id),
+            FOREIGN KEY (cashbox_id) REFERENCES cashboxes(id)
         );
 
         CREATE TABLE IF NOT EXISTS inventory_movements (
@@ -380,6 +494,11 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_wh_bal_wh ON item_warehouse_balances(warehouse_id);
         CREATE INDEX IF NOT EXISTS idx_wh_mov_item ON warehouse_movements(item_id);
         CREATE INDEX IF NOT EXISTS idx_wh_mov_wh ON warehouse_movements(warehouse_id);
+        CREATE INDEX IF NOT EXISTS idx_cashboxes_user_branch ON cashboxes(user_id, branch_id);
+        CREATE INDEX IF NOT EXISTS idx_banks_user_branch ON bank_accounts(user_id, branch_id);
+        CREATE INDEX IF NOT EXISTS idx_cash_mov_ref ON cash_bank_movements(reference_type, reference_id);
+        CREATE INDEX IF NOT EXISTS idx_pos_shifts_user_status ON pos_shifts(user_id, status);
+        CREATE INDEX IF NOT EXISTS idx_pos_shifts_cashbox ON pos_shifts(cashbox_id);
         CREATE INDEX IF NOT EXISTS idx_items_barcode ON items(barcode) WHERE barcode IS NOT NULL;
         CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id);
         CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(date);
@@ -427,6 +546,99 @@ def init_database():
     for code, rate in default_rates:
         cursor.execute("INSERT OR IGNORE INTO exchange_rates (currency_code, rate_to_usd, updated_at) VALUES (?,?,?)",
                        (code, rate, now))
+
+
+    # System-3.1 Sales Returns Management
+    cursor.executescript('''
+        CREATE TABLE IF NOT EXISTS sales_returns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            return_no TEXT,
+            original_invoice_id INTEGER NOT NULL,
+            customer_id INTEGER,
+            date TEXT,
+            total TEXT DEFAULT '0',
+            refund_amount TEXT DEFAULT '0',
+            credit_amount TEXT DEFAULT '0',
+            warehouse_id INTEGER,
+            branch_id INTEGER,
+            cashbox_id INTEGER,
+            bank_account_id INTEGER,
+            payment_method TEXT DEFAULT 'cash',
+            notes TEXT,
+            status TEXT DEFAULT 'active',
+            deleted_at TEXT,
+            created_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (original_invoice_id) REFERENCES invoices(id),
+            FOREIGN KEY (customer_id) REFERENCES customers(id)
+        );
+        CREATE TABLE IF NOT EXISTS sales_return_lines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sales_return_id INTEGER NOT NULL,
+            original_invoice_line_id INTEGER,
+            item_id INTEGER NOT NULL,
+            quantity TEXT DEFAULT '0',
+            unit_price TEXT DEFAULT '0',
+            total TEXT DEFAULT '0',
+            unit TEXT,
+            quantity_in_base TEXT DEFAULT '0',
+            unit_cost TEXT DEFAULT '0',
+            cost_amount TEXT DEFAULT '0',
+            FOREIGN KEY (sales_return_id) REFERENCES sales_returns(id) ON DELETE CASCADE,
+            FOREIGN KEY (item_id) REFERENCES items(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_sales_returns_user ON sales_returns(user_id);
+        CREATE INDEX IF NOT EXISTS idx_sales_returns_invoice ON sales_returns(original_invoice_id);
+        CREATE INDEX IF NOT EXISTS idx_sales_returns_branch ON sales_returns(branch_id);
+        CREATE INDEX IF NOT EXISTS idx_sales_return_lines_return ON sales_return_lines(sales_return_id);
+
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS purchase_returns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            return_no TEXT,
+            original_invoice_id INTEGER NOT NULL,
+            supplier_id INTEGER,
+            date TEXT NOT NULL,
+            total TEXT NOT NULL DEFAULT '0',
+            refund_amount TEXT NOT NULL DEFAULT '0',
+            credit_amount TEXT NOT NULL DEFAULT '0',
+            warehouse_id INTEGER,
+            branch_id INTEGER,
+            cashbox_id INTEGER,
+            bank_account_id INTEGER,
+            payment_method TEXT DEFAULT 'cash',
+            notes TEXT,
+            status TEXT DEFAULT 'active',
+            created_at TEXT,
+            deleted_at TEXT,
+            FOREIGN KEY (original_invoice_id) REFERENCES invoices(id),
+            FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+            FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
+            FOREIGN KEY (branch_id) REFERENCES branches(id)
+        );
+        CREATE TABLE IF NOT EXISTS purchase_return_lines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            purchase_return_id INTEGER NOT NULL,
+            original_invoice_line_id INTEGER,
+            item_id INTEGER NOT NULL,
+            quantity TEXT NOT NULL,
+            unit_price TEXT NOT NULL DEFAULT '0',
+            total TEXT NOT NULL DEFAULT '0',
+            unit TEXT,
+            quantity_in_base TEXT NOT NULL DEFAULT '0',
+            unit_cost TEXT NOT NULL DEFAULT '0',
+            cost_amount TEXT NOT NULL DEFAULT '0',
+            FOREIGN KEY (purchase_return_id) REFERENCES purchase_returns(id) ON DELETE CASCADE,
+            FOREIGN KEY (item_id) REFERENCES items(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_purchase_returns_user ON purchase_returns(user_id);
+        CREATE INDEX IF NOT EXISTS idx_purchase_returns_invoice ON purchase_returns(original_invoice_id);
+        CREATE INDEX IF NOT EXISTS idx_purchase_returns_branch ON purchase_returns(branch_id);
+        CREATE INDEX IF NOT EXISTS idx_purchase_return_lines_return ON purchase_return_lines(purchase_return_id);
+    """)
+    ''')
 
     conn.commit()
     conn.close()
@@ -528,6 +740,11 @@ def ensure_db():
             CREATE INDEX IF NOT EXISTS idx_wh_bal_wh ON item_warehouse_balances(warehouse_id);
             CREATE INDEX IF NOT EXISTS idx_wh_mov_item ON warehouse_movements(item_id);
             CREATE INDEX IF NOT EXISTS idx_wh_mov_wh ON warehouse_movements(warehouse_id);
+        CREATE INDEX IF NOT EXISTS idx_cashboxes_user_branch ON cashboxes(user_id, branch_id);
+        CREATE INDEX IF NOT EXISTS idx_banks_user_branch ON bank_accounts(user_id, branch_id);
+        CREATE INDEX IF NOT EXISTS idx_cash_mov_ref ON cash_bank_movements(reference_type, reference_id);
+        CREATE INDEX IF NOT EXISTS idx_pos_shifts_user_status ON pos_shifts(user_id, status);
+        CREATE INDEX IF NOT EXISTS idx_pos_shifts_cashbox ON pos_shifts(cashbox_id);
         ''')
         now = datetime.datetime.now().isoformat()
         warehouse_users = cursor.execute('''
@@ -698,7 +915,119 @@ def ensure_db():
                 cursor.execute("ALTER TABLE production_orders ADD COLUMN output_warehouse_id INTEGER")
         except Exception:
             pass
-        conn.commit()
-        conn.close()
+        
+    # Branches core migration/bootstrap
+
+        # Branches operational integration: users/invoices/vouchers/expenses
+        for table, coldef in [
+            ('users', 'branch_id INTEGER'),
+            ('invoices', 'branch_id INTEGER'),
+            ('vouchers', 'branch_id INTEGER'),
+            ('expenses', 'branch_id INTEGER')
+        ]:
+            try:
+                cursor.execute(f"PRAGMA table_info({table})")
+                _cols = {row[1] for row in cursor.fetchall()}
+                cname = coldef.split()[0]
+                if cname not in _cols:
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN {coldef}")
+            except Exception:
+                pass
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_branch ON users(branch_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_branch ON invoices(branch_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_vouchers_branch ON vouchers(branch_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_expenses_branch ON expenses(branch_id)")
+
+    try:
+        cursor.execute("ALTER TABLE warehouses ADD COLUMN branch_id INTEGER")
+    except Exception:
+        pass
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_branches_user ON branches(user_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_warehouses_branch ON warehouses(branch_id)")
+    now = datetime.datetime.now().isoformat()
+    users_for_branches = cursor.execute('''
+        SELECT id FROM users
+        UNION
+        SELECT DISTINCT user_id AS id FROM warehouses WHERE user_id IS NOT NULL
+        UNION
+        SELECT DISTINCT user_id AS id FROM items WHERE user_id IS NOT NULL
+    ''').fetchall()
+    for user_row in users_for_branches:
+        uid = user_row['id'] if hasattr(user_row, 'keys') else user_row[0]
+        if not uid:
+            continue
+        branch = cursor.execute(
+            "SELECT id FROM branches WHERE user_id=? AND is_default=1 AND deleted_at IS NULL LIMIT 1",
+            (uid,)
+        ).fetchone()
+        if branch:
+            branch_id = branch['id'] if hasattr(branch, 'keys') else branch[0]
+        else:
+            cursor.execute('''
+                INSERT OR IGNORE INTO branches
+                (user_id, name, code, address, phone, notes, is_default, is_active, created_at, updated_at)
+                VALUES (?, 'الفرع الرئيسي', 'MAIN', '', '', 'تم إنشاؤه تلقائياً عند تفعيل نظام الفروع', 1, 1, ?, ?)
+            ''', (uid, now, now))
+            branch = cursor.execute("SELECT id FROM branches WHERE user_id=? AND is_default=1 LIMIT 1", (uid,)).fetchone()
+            branch_id = branch['id'] if hasattr(branch, 'keys') else branch[0]
+        cursor.execute("UPDATE warehouses SET branch_id=? WHERE user_id=? AND branch_id IS NULL", (branch_id, uid))
+
+        cursor.execute("UPDATE users SET branch_id=? WHERE id=? AND branch_id IS NULL", (branch_id, uid))
+        cursor.execute("UPDATE invoices SET branch_id=? WHERE user_id=? AND branch_id IS NULL", (branch_id, uid))
+        cursor.execute("UPDATE vouchers SET branch_id=? WHERE user_id=? AND branch_id IS NULL", (branch_id, uid))
+        try:
+            cursor.execute("UPDATE expenses SET branch_id=? WHERE user_id=? AND branch_id IS NULL", (branch_id, uid))
+        except Exception:
+            pass
+
+
+    # System-3.1 Sales Returns Management
+    cursor.executescript('''
+        CREATE TABLE IF NOT EXISTS sales_returns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            return_no TEXT,
+            original_invoice_id INTEGER NOT NULL,
+            customer_id INTEGER,
+            date TEXT,
+            total TEXT DEFAULT '0',
+            refund_amount TEXT DEFAULT '0',
+            credit_amount TEXT DEFAULT '0',
+            warehouse_id INTEGER,
+            branch_id INTEGER,
+            cashbox_id INTEGER,
+            bank_account_id INTEGER,
+            payment_method TEXT DEFAULT 'cash',
+            notes TEXT,
+            status TEXT DEFAULT 'active',
+            deleted_at TEXT,
+            created_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (original_invoice_id) REFERENCES invoices(id),
+            FOREIGN KEY (customer_id) REFERENCES customers(id)
+        );
+        CREATE TABLE IF NOT EXISTS sales_return_lines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sales_return_id INTEGER NOT NULL,
+            original_invoice_line_id INTEGER,
+            item_id INTEGER NOT NULL,
+            quantity TEXT DEFAULT '0',
+            unit_price TEXT DEFAULT '0',
+            total TEXT DEFAULT '0',
+            unit TEXT,
+            quantity_in_base TEXT DEFAULT '0',
+            unit_cost TEXT DEFAULT '0',
+            cost_amount TEXT DEFAULT '0',
+            FOREIGN KEY (sales_return_id) REFERENCES sales_returns(id) ON DELETE CASCADE,
+            FOREIGN KEY (item_id) REFERENCES items(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_sales_returns_user ON sales_returns(user_id);
+        CREATE INDEX IF NOT EXISTS idx_sales_returns_invoice ON sales_returns(original_invoice_id);
+        CREATE INDEX IF NOT EXISTS idx_sales_returns_branch ON sales_returns(branch_id);
+        CREATE INDEX IF NOT EXISTS idx_sales_return_lines_return ON sales_return_lines(sales_return_id);
+    ''')
+
+    conn.commit()
+    conn.close()
 
 

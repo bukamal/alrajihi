@@ -12,6 +12,7 @@ from core.compat import records, pair
 from database.dao.invoice_dao import invoice_dao
 from core.services.audit_service import audit_service
 from core.services.warehouse_service import warehouse_service
+from core.services.branch_service import branch_service
 
 
 class InvoiceService:
@@ -69,12 +70,14 @@ class InvoiceService:
         return invoice if isinstance(invoice, dict) else None
 
     def create(self, data: Dict) -> int:
+        data = branch_service.ensure_branch_id(data)
         invoice_id = invoice_dao.create_invoice(data)
         warehouse_service.record_invoice_movements(invoice_id, data)
         audit_service.log('CREATE', 'SALE_INVOICE' if data.get('type') == 'sale' else 'PURCHASE_INVOICE', invoice_id, new_values=data, details='إنشاء فاتورة')
         return invoice_id
 
     def update(self, invoice_id: int, data: Dict):
+        data = branch_service.ensure_branch_id(data)
         old = self.get(invoice_id)
         warehouse_service.reverse_invoice_movements(invoice_id)
         result = invoice_dao.update_invoice(invoice_id, data)

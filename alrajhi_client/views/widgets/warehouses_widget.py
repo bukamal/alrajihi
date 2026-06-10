@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 
 from core.services.warehouse_service import warehouse_service
+from core.services.branch_service import branch_service
 from currency import currency
 from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
@@ -177,14 +178,15 @@ class WarehousesWidget(QWidget):
                 'name': wh.get('name', ''),
                 'code': wh.get('code') or '—',
                 'location': wh.get('location') or '—',
+                'branch_name': wh.get('branch_name') or 'الفرع الرئيسي',
                 'item_count': int(wh.get('item_count') or 0),
                 'total_qty': f"{Decimal(str(wh.get('total_qty') or 0)):.2f}",
                 'is_default': 'نعم' if int(wh.get('is_default') or 0) == 1 else 'لا',
                 'status': 'مؤرشف' if archived else 'نشط',
                 'notes': wh.get('notes') or '',
             })
-        headers = ['المستودع', 'الكود', 'الموقع', 'عدد المواد', 'إجمالي الكميات', 'رئيسي', 'الحالة', 'ملاحظات']
-        keys = ['name', 'code', 'location', 'item_count', 'total_qty', 'is_default', 'status', 'notes']
+        headers = ['المستودع', 'الكود', 'الفرع', 'الموقع', 'عدد المواد', 'إجمالي الكميات', 'رئيسي', 'الحالة', 'ملاحظات']
+        keys = ['name', 'code', 'branch_name', 'location', 'item_count', 'total_qty', 'is_default', 'status', 'notes']
         self.wh_model = GenericTableModel(rows, headers, key_fields=['id'], data_keys=keys)
         self.wh_table.setModel(self.wh_model)
         self.wh_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
@@ -384,6 +386,9 @@ class WarehousesWidget(QWidget):
         layout = QFormLayout(dialog)
         name = QLineEdit()
         code = QLineEdit()
+        branch_combo = QComboBox()
+        for br in branch_service.branches(include_archived=False):
+            branch_combo.addItem(br.get('name',''), br.get('id'))
         location = QLineEdit()
         notes = QTextEdit()
         notes.setMaximumHeight(90)
@@ -393,10 +398,16 @@ class WarehousesWidget(QWidget):
             name.setText(warehouse.get('name', ''))
             code.setText(warehouse.get('code') or '')
             location.setText(warehouse.get('location') or '')
+            current_branch = warehouse.get('branch_id') or branch_service.default_branch_id()
+            for i in range(branch_combo.count()):
+                if branch_combo.itemData(i) == current_branch:
+                    branch_combo.setCurrentIndex(i)
+                    break
             notes.setPlainText(warehouse.get('notes') or '')
             active.setChecked(int(warehouse.get('is_active') or 0) == 1 and not warehouse.get('deleted_at'))
         layout.addRow('الاسم:', name)
         layout.addRow('الكود:', code)
+        layout.addRow('الفرع:', branch_combo)
         layout.addRow('الموقع:', location)
         layout.addRow('ملاحظات:', notes)
         layout.addRow('', active)
@@ -417,6 +428,7 @@ class WarehousesWidget(QWidget):
                 'name': name.text().strip(),
                 'code': code.text().strip(),
                 'location': location.text().strip(),
+                'branch_id': branch_combo.currentData(),
                 'notes': notes.toPlainText().strip(),
                 'is_active': 1 if active.isChecked() else 0,
             })

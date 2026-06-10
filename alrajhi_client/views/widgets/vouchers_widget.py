@@ -7,6 +7,7 @@ from decimal import Decimal
 from core.services.voucher_service import voucher_service
 from core.services.catalog_service import catalog_service
 from core.services.invoice_service import invoice_service
+from core.services.cashbox_service import cashbox_service
 from currency import currency
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
@@ -87,10 +88,11 @@ class VouchersWidget(QWidget):
                 'type': type_text,
                 'party': party,
                 'amount': currency.format_amount(amount_display),
+                'account': v.get('cashbox_name') or v.get('bank_name') or '',
                 'description': v.get('description', '')
             })
-        headers = ['date', 'type', 'party', 'amount', 'description']
-        display_headers = ['التاريخ', 'النوع', 'الجهة', 'المبلغ', 'الوصف']
+        headers = ['date', 'type', 'party', 'amount', 'account', 'description']
+        display_headers = ['التاريخ', 'النوع', 'الجهة', 'المبلغ', 'الحساب', 'الوصف']
         self.model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.table.setModel(self.model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض؛ لا نخفي العمود الأول الحقيقي.
@@ -161,6 +163,24 @@ class VoucherDialog(QDialog):
         self.amount_spin.setDecimals(2)
         form.addRow("المبلغ:", self.amount_spin)
 
+        self.payment_method_combo = QComboBox()
+        self.payment_method_combo.addItem("نقدي", 'cash')
+        self.payment_method_combo.addItem("بنك", 'bank')
+        form.addRow("طريقة الدفع:", self.payment_method_combo)
+
+        self.cashbox_combo = QComboBox()
+        for c in cashbox_service.cashboxes():
+            label = f"{c.get('branch_name','')} - {c.get('name','')}"
+            self.cashbox_combo.addItem(label, c.get('id'))
+        form.addRow("الصندوق:", self.cashbox_combo)
+
+        self.bank_combo = QComboBox()
+        self.bank_combo.addItem("اختر حساباً بنكياً", None)
+        for b in cashbox_service.bank_accounts():
+            label = f"{b.get('branch_name','')} - {b.get('bank_name','')} {b.get('account_name') or ''}"
+            self.bank_combo.addItem(label, b.get('id'))
+        form.addRow("الحساب البنكي:", self.bank_combo)
+
         self.date_edit = QDateEdit()
         self.date_edit.setDate(QDate.currentDate())
         form.addRow("التاريخ:", self.date_edit)
@@ -192,10 +212,17 @@ class VoucherDialog(QDialog):
         self.type_combo.currentTextChanged.connect(update_visibility)
         self.customer_combo.currentIndexChanged.connect(self.update_invoice_list)
         self.supplier_combo.currentIndexChanged.connect(self.update_invoice_list)
+        self.payment_method_combo.currentIndexChanged.connect(self.update_payment_visibility)
 
         if self.is_edit:
             self.load_voucher_data()
         update_visibility()
+        self.update_payment_visibility()
+
+    def update_payment_visibility(self):
+        is_bank = self.payment_method_combo.currentData() == 'bank'
+        self.bank_combo.setVisible(is_bank)
+        self.cashbox_combo.setVisible(not is_bank)
 
     def load_voucher_data(self):
         v = self.voucher
@@ -214,6 +241,19 @@ class VoucherDialog(QDialog):
         self.date_edit.setDate(QDate.fromString(v['date'], "yyyy-MM-dd"))
         self.desc_edit.setText(v.get('description', ''))
         self.ref_edit.setText(v.get('reference', ''))
+        if v.get('payment_method') == 'bank':
+            self.payment_method_combo.setCurrentIndex(self.payment_method_combo.findData('bank'))
+        else:
+            self.payment_method_combo.setCurrentIndex(self.payment_method_combo.findData('cash'))
+        if v.get('cashbox_id'):
+            idx = self.cashbox_combo.findData(v.get('cashbox_id'))
+            if idx >= 0:
+                self.cashbox_combo.setCurrentIndex(idx)
+        if v.get('bank_account_id'):
+            idx = self.bank_combo.findData(v.get('bank_account_id'))
+            if idx >= 0:
+                self.bank_combo.setCurrentIndex(idx)
+        self.update_payment_visibility()
         if v.get('invoice_id'):
             self.update_invoice_list()
             idx = self.invoice_combo.findData(v['invoice_id'])
@@ -253,6 +293,12 @@ class VoucherDialog(QDialog):
         if typ == "دفع" and not self.supplier_combo.currentData():
             show_toast("اختر مورداً", "error", self)
             return
+        if self.payment_method_combo.currentData() == 'cash' and not self.cashbox_combo.currentData():
+            show_toast("اختر صندوقاً", "error", self)
+            return
+        if self.payment_method_combo.currentData() == 'bank' and not self.bank_combo.currentData():
+            show_toast("اختر حساباً بنكياً", "error", self)
+            return
         amount_display = self.amount_spin.value()
         if amount_display <= 0:
             show_toast("المبلغ يجب أن يكون أكبر من صفر", "error", self)
@@ -268,7 +314,10 @@ class VoucherDialog(QDialog):
             'supplier_id': self.supplier_combo.currentData() if typ == "دفع" else None,
             'invoice_id': self.invoice_combo.currentData() or None,
             'exchange_rate_to_usd': float(currency.get_current_rate(currency.get_display_currency())),
-            'original_currency': currency.get_display_currency()
+            'original_currency': currency.get_display_currency(),
+            'payment_method': self.payment_method_combo.currentData(),
+            'cashbox_id': self.cashbox_combo.currentData() if self.payment_method_combo.currentData() == 'cash' else None,
+            'bank_account_id': self.bank_combo.currentData() if self.payment_method_combo.currentData() == 'bank' else None
         }
         try:
             if self.is_edit:

@@ -17,6 +17,8 @@ from core.services.product_service import product_service
 from core.services.invoice_service import invoice_service
 from core.services.audit_service import audit_service
 from core.services.warehouse_service import warehouse_service
+from core.services.branch_service import branch_service
+from core.services.cashbox_service import cashbox_service
 from currency import currency
 
 
@@ -67,6 +69,8 @@ class POSLine:
 class POSCart:
     lines: List[POSLine] = field(default_factory=list)
     warehouse_id: Optional[int] = None
+    cashbox_id: Optional[int] = None
+    shift_id: Optional[int] = None
     created_at: str = field(default_factory=lambda: datetime.now().isoformat(timespec='seconds'))
     note: str = ''
 
@@ -90,8 +94,10 @@ class POSService:
     def __init__(self):
         self.suspended_carts: List[POSCart] = []
 
-    def new_cart(self, warehouse_id: int | None = None) -> POSCart:
-        return POSCart(warehouse_id=warehouse_id or warehouse_service.default_warehouse_id())
+    def new_cart(self, warehouse_id: int | None = None, cashbox_id: int | None = None, shift_id: int | None = None) -> POSCart:
+        cashbox_id = cashbox_id or cashbox_service.default_cashbox_id(branch_service.current_branch_id())
+        shift = cashbox_service.current_open_shift(cashbox_id) if cashbox_id else None
+        return POSCart(warehouse_id=warehouse_id or warehouse_service.default_warehouse_id(), cashbox_id=cashbox_id, shift_id=shift_id or ((shift or {}).get('id') if shift else None))
 
     def _decimal(self, value, default='0') -> Decimal:
         try:
@@ -185,6 +191,10 @@ class POSService:
             raise POSException('المدفوع لا يمكن أن يكون سالبًا')
         if paid_usd > total:
             paid_usd = total
+        shift = cashbox_service.current_open_shift(cart.cashbox_id)
+        if not shift:
+            raise POSException('لا يمكن البيع من POS بدون وردية مفتوحة. افتح وردية أولاً.')
+        cart.shift_id = shift.get('id')
         data = {
             'type': 'sale',
             'customer_id': None,
@@ -198,8 +208,14 @@ class POSService:
             'exchange_rate_to_usd': float(currency.get_current_rate(currency.get_display_currency())),
             'original_currency': currency.get_display_currency(),
             'warehouse_id': cart.warehouse_id or warehouse_service.default_warehouse_id(),
+            'branch_id': branch_service.current_branch_id(),
+            'cashbox_id': cart.cashbox_id,
+            'payment_method': payment_method,
+            'shift_id': cart.shift_id,
         }
         invoice_id = invoice_service.create(data)
+        if paid_usd > 0 and payment_method in ('cash', 'card'):
+            cashbox_service.record_pos_sale(invoice_id, paid_usd, payment_method, data.get('branch_id'), cart.cashbox_id, cart.shift_id)
         audit_service.log('POS_CHECKOUT', 'SALE_INVOICE', invoice_id, new_values={**data, 'cart': cart.as_dict()}, details='إنهاء بيع سريع')
         return invoice_id
 
