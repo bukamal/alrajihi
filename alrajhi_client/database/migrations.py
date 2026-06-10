@@ -740,11 +740,111 @@ def ensure_db():
             CREATE INDEX IF NOT EXISTS idx_wh_bal_wh ON item_warehouse_balances(warehouse_id);
             CREATE INDEX IF NOT EXISTS idx_wh_mov_item ON warehouse_movements(item_id);
             CREATE INDEX IF NOT EXISTS idx_wh_mov_wh ON warehouse_movements(warehouse_id);
-        CREATE INDEX IF NOT EXISTS idx_cashboxes_user_branch ON cashboxes(user_id, branch_id);
-        CREATE INDEX IF NOT EXISTS idx_banks_user_branch ON bank_accounts(user_id, branch_id);
-        CREATE INDEX IF NOT EXISTS idx_cash_mov_ref ON cash_bank_movements(reference_type, reference_id);
-        CREATE INDEX IF NOT EXISTS idx_pos_shifts_user_status ON pos_shifts(user_id, status);
-        CREATE INDEX IF NOT EXISTS idx_pos_shifts_cashbox ON pos_shifts(cashbox_id);
+
+            -- Branch/Cashbox/Bank tables are created here in the upgrade path too.
+            -- Previously only their indexes were created here, which made existing
+            -- databases fail with: no such table: main.cashboxes.
+            CREATE TABLE IF NOT EXISTS branches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                code TEXT,
+                address TEXT,
+                phone TEXT,
+                notes TEXT,
+                is_default INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                deleted_at TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                UNIQUE(user_id, name),
+                UNIQUE(user_id, code)
+            );
+
+            CREATE TABLE IF NOT EXISTS cashboxes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                branch_id INTEGER,
+                name TEXT NOT NULL,
+                code TEXT,
+                notes TEXT,
+                is_default INTEGER DEFAULT 0,
+                is_active INTEGER DEFAULT 1,
+                deleted_at TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (branch_id) REFERENCES branches(id),
+                UNIQUE(user_id, branch_id, name),
+                UNIQUE(user_id, code)
+            );
+
+            CREATE TABLE IF NOT EXISTS bank_accounts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                branch_id INTEGER,
+                bank_name TEXT NOT NULL,
+                account_name TEXT,
+                account_number TEXT,
+                iban TEXT,
+                notes TEXT,
+                is_active INTEGER DEFAULT 1,
+                deleted_at TEXT,
+                created_at TEXT,
+                updated_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (branch_id) REFERENCES branches(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS cash_bank_movements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                branch_id INTEGER,
+                cashbox_id INTEGER,
+                bank_account_id INTEGER,
+                movement_type TEXT NOT NULL,
+                amount TEXT NOT NULL,
+                direction TEXT,
+                reference_type TEXT,
+                reference_id INTEGER,
+                description TEXT,
+                movement_date TEXT,
+                created_at TEXT,
+                shift_id INTEGER,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (branch_id) REFERENCES branches(id),
+                FOREIGN KEY (cashbox_id) REFERENCES cashboxes(id),
+                FOREIGN KEY (bank_account_id) REFERENCES bank_accounts(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS pos_shifts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                branch_id INTEGER,
+                cashbox_id INTEGER NOT NULL,
+                opening_amount TEXT DEFAULT '0',
+                closing_amount TEXT,
+                expected_amount TEXT DEFAULT '0',
+                actual_amount TEXT,
+                difference_amount TEXT,
+                total_sales TEXT DEFAULT '0',
+                total_cash TEXT DEFAULT '0',
+                total_card TEXT DEFAULT '0',
+                status TEXT DEFAULT 'open',
+                opened_at TEXT,
+                closed_at TEXT,
+                notes TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (branch_id) REFERENCES branches(id),
+                FOREIGN KEY (cashbox_id) REFERENCES cashboxes(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_cashboxes_user_branch ON cashboxes(user_id, branch_id);
+            CREATE INDEX IF NOT EXISTS idx_banks_user_branch ON bank_accounts(user_id, branch_id);
+            CREATE INDEX IF NOT EXISTS idx_cash_mov_ref ON cash_bank_movements(reference_type, reference_id);
+            CREATE INDEX IF NOT EXISTS idx_pos_shifts_user_status ON pos_shifts(user_id, status);
+            CREATE INDEX IF NOT EXISTS idx_pos_shifts_cashbox ON pos_shifts(cashbox_id);
         ''')
         now = datetime.datetime.now().isoformat()
         warehouse_users = cursor.execute('''
