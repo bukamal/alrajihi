@@ -12,6 +12,7 @@ class BaseWidget(QWidget, BaseActionHandler):
     search_placeholder = "بحث..."
     headers = []
     has_delete = True
+    has_edit = True
     has_add = True
     has_export = True
     has_print = True
@@ -37,6 +38,7 @@ class BaseWidget(QWidget, BaseActionHandler):
 
         self.toolbar = TableToolbar(self.entity_name, self.search_placeholder, self)
         self.toolbar.addRequested.connect(self.add_item)
+        self.toolbar.editRequested.connect(self._on_edit_shortcut)
         self.toolbar.deleteRequested.connect(self._on_delete_shortcut)
         self.toolbar.exportRequested.connect(self.export_to_excel)
         self.toolbar.printRequested.connect(self.print_table)
@@ -44,6 +46,7 @@ class BaseWidget(QWidget, BaseActionHandler):
         self.toolbar.resetColumnsRequested.connect(lambda: self.table.reset_layout() if self.table else None)
         self.toolbar.searchChanged.connect(lambda _text: self._on_toolbar_search_changed())
         self.toolbar.set_add_visible(self.has_add)
+        self.toolbar.set_edit_visible(self.has_edit)
         self.toolbar.set_delete_visible(self.has_delete)
         self.toolbar.set_export_visible(self.has_export)
         self.toolbar.set_print_visible(self.has_print)
@@ -53,6 +56,7 @@ class BaseWidget(QWidget, BaseActionHandler):
         self.btn_widget = self.toolbar
         self.btn_layout = None
         self.add_btn = self.toolbar.add_btn
+        self.edit_btn = self.toolbar.edit_btn
         self.delete_btn = self.toolbar.delete_btn
         self.export_btn = self.toolbar.export_btn
         self.print_btn = self.toolbar.print_btn
@@ -217,9 +221,12 @@ class BaseWidget(QWidget, BaseActionHandler):
     def _update_action_buttons_state(self):
         sm = self.table.selectionModel() if self.table else None
         has_selection = len(sm.selectedRows()) > 0 if sm else False
+        if self.has_edit and hasattr(self, 'edit_btn'):
+            self.edit_btn.setEnabled(has_selection)
         if self.has_delete and hasattr(self, 'delete_btn'):
             self.delete_btn.setEnabled(has_selection)
         if hasattr(self, 'toolbar'):
+            self.toolbar.set_edit_enabled(has_selection and self.has_edit)
             self.toolbar.set_delete_enabled(has_selection and self.has_delete)
         for _, _, btn_name in self.extra_buttons:
             if hasattr(self, btn_name):

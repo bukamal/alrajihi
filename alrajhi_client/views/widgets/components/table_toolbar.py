@@ -8,6 +8,7 @@ class TableToolbar(QWidget):
     searchChanged = pyqtSignal(str)
     addRequested = pyqtSignal()
     deleteRequested = pyqtSignal()
+    editRequested = pyqtSignal()
     exportRequested = pyqtSignal()
     printRequested = pyqtSignal()
     refreshRequested = pyqtSignal()
@@ -29,7 +30,12 @@ class TableToolbar(QWidget):
         self.add_btn.clicked.connect(self.addRequested.emit)
         layout.addWidget(self.add_btn)
 
-        self.delete_btn = QPushButton("🗑 حذف المحدد")
+        self.edit_btn = QPushButton("✏️ تعديل")
+        self.edit_btn.setEnabled(False)
+        self.edit_btn.clicked.connect(self.editRequested.emit)
+        layout.addWidget(self.edit_btn)
+
+        self.delete_btn = QPushButton("🗑 حذف")
         self.delete_btn.setObjectName("danger")
         self.delete_btn.setEnabled(False)
         self.delete_btn.clicked.connect(self.deleteRequested.emit)
@@ -77,11 +83,19 @@ class TableToolbar(QWidget):
     def set_delete_enabled(self, enabled):
         self.delete_btn.setEnabled(bool(enabled))
 
+    def set_edit_enabled(self, enabled):
+        if hasattr(self, 'edit_btn'):
+            self.edit_btn.setEnabled(bool(enabled))
+
     def set_add_visible(self, visible):
         self.add_btn.setVisible(bool(visible))
 
     def set_delete_visible(self, visible):
         self.delete_btn.setVisible(bool(visible))
+
+    def set_edit_visible(self, visible):
+        if hasattr(self, 'edit_btn'):
+            self.edit_btn.setVisible(bool(visible))
 
     def set_export_visible(self, visible):
         self.export_btn.setVisible(bool(visible))
