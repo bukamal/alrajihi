@@ -1,0 +1,78 @@
+from flask import Flask, jsonify
+import os
+import secrets
+from flask_jwt_extended import JWTManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from database.connection import get_db, init_db
+import datetime
+
+app = Flask(__name__)
+
+# يجب ضبط ALRAJHI_JWT_SECRET في الإنتاج. fallback للتطوير المحلي فقط.
+_jwt_secret = os.environ.get('ALRAJHI_JWT_SECRET')
+if not _jwt_secret:
+    if os.environ.get('FLASK_ENV') == 'production' or os.environ.get('ALRAJHI_ENV') == 'production':
+        raise RuntimeError('ALRAJHI_JWT_SECRET must be set in production')
+    _jwt_secret = secrets.token_urlsafe(64)
+app.config['JWT_SECRET_KEY'] = _jwt_secret
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=8)
+jwt = JWTManager(app)
+
+limiter = Limiter(get_remote_address, app=app, default_limits=["500 per minute"])
+
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    jti = jwt_payload.get('jti')
+    if not jti:
+        return True
+    db = get_db()
+    row = db.execute('SELECT 1 FROM token_blacklist WHERE jti = ? LIMIT 1', (jti,)).fetchone()
+    return row is not None
+
+init_db()
+
+@app.teardown_appcontext
+def close_db(error):
+    db = get_db()
+    if db:
+        db.close()
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({'status': 'alive'})
+
+# استيراد blueprints
+from api.auth import auth_bp
+from api.items import items_bp
+from api.invoices import invoices_bp
+from api.customers import customers_bp
+from api.suppliers import suppliers_bp
+from api.vouchers import vouchers_bp
+from api.expenses import expenses_bp
+from api.manufacturing import manufacturing_bp
+from api.reports import reports_bp
+from api.settings import settings_bp
+from api.users import users_bp
+from api.audit_log import audit_bp
+
+app.register_blueprint(auth_bp, url_prefix='/api')
+app.register_blueprint(items_bp, url_prefix='/api')
+app.register_blueprint(invoices_bp, url_prefix='/api')
+app.register_blueprint(customers_bp, url_prefix='/api')
+app.register_blueprint(suppliers_bp, url_prefix='/api')
+app.register_blueprint(vouchers_bp, url_prefix='/api')
+app.register_blueprint(expenses_bp, url_prefix='/api')
+app.register_blueprint(manufacturing_bp, url_prefix='/api')
+app.register_blueprint(reports_bp, url_prefix='/api')
+app.register_blueprint(settings_bp, url_prefix='/api')
+app.register_blueprint(users_bp, url_prefix='/api')
+app.register_blueprint(audit_bp, url_prefix='/api')
+
+if __name__ == '__main__':
+    host = os.environ.get('ALRAJHI_HOST', '127.0.0.1')
+    port = int(os.environ.get('ALRAJHI_PORT', '8000'))
+    debug = os.environ.get('ALRAJHI_DEBUG', '0') == '1'
+    app.run(host=host, port=port, debug=debug)
+
+

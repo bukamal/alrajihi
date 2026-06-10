@@ -1,0 +1,363 @@
+# -*- coding: utf-8 -*-
+from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
+                             QTabWidget, QDateEdit, QComboBox, QLabel, QHeaderView, QMessageBox)
+from PyQt5.QtCore import Qt, QDate
+from decimal import Decimal
+from core.services.invoice_service import invoice_service
+from core.services.catalog_service import catalog_service
+from currency import currency
+from views.custom_table_view import CustomTableView
+from models.table_models import GenericTableModel
+from views.dialogs.invoice_dialog import InvoiceDialog
+from utils import show_toast
+from views.widgets.components.table_toolbar import TableToolbar
+
+class InvoicesWidget(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setLayoutDirection(Qt.RightToLeft)
+        self.sales_page = 0
+        self.purchases_page = 0
+        self.page_size = 50
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(12)
+        layout.setContentsMargins(12, 12, 12, 12)
+
+        self.tabs = QTabWidget()
+        self.sales_tab = QWidget()
+        self.purchases_tab = QWidget()
+        self.setup_sales_tab()
+        self.setup_purchases_tab()
+        self.tabs.addTab(self.sales_tab, "💰 فواتير البيع")
+        self.tabs.addTab(self.purchases_tab, "📦 فواتير الشراء")
+        layout.addWidget(self.tabs)
+
+        self.refresh_all()
+
+    def setup_sales_tab(self):
+        layout = QVBoxLayout(self.sales_tab)
+
+        self.sales_toolbar = TableToolbar("فاتورة بيع", "بحث في فواتير البيع...", self)
+        self.sales_toolbar.addRequested.connect(lambda: self.create_invoice('sale'))
+        self.sales_toolbar.editRequested.connect(lambda: self.edit_selected_invoice('sale'))
+        self.sales_toolbar.deleteRequested.connect(lambda: self.delete_selected_invoice('sale'))
+        self.sales_toolbar.exportRequested.connect(lambda: self.sales_table.export_to_excel())
+        self.sales_toolbar.printRequested.connect(lambda: self.sales_table.print_table())
+        self.sales_toolbar.refreshRequested.connect(lambda: self.refresh_tab('sale', reset_page=True))
+        self.sales_toolbar.resetColumnsRequested.connect(lambda: self.sales_table.reset_layout())
+        self.sales_toolbar.searchChanged.connect(lambda _text: self.refresh_tab('sale', reset_page=True))
+        layout.addWidget(self.sales_toolbar)
+        self.sales_search = self.sales_toolbar.search_edit
+
+        # شريط الفلترة المتخصص للتبويب
+        filter_layout = QHBoxLayout()
+
+        self.sales_start_date = QDateEdit()
+        self.sales_start_date.setDate(QDate.currentDate().addDays(-30))
+        self.sales_start_date.setCalendarPopup(True)
+        self.sales_start_date.dateChanged.connect(lambda: self.refresh_tab('sale', reset_page=True))
+        filter_layout.addWidget(QLabel("من:"))
+        filter_layout.addWidget(self.sales_start_date)
+
+        self.sales_end_date = QDateEdit()
+        self.sales_end_date.setDate(QDate.currentDate())
+        self.sales_end_date.setCalendarPopup(True)
+        self.sales_end_date.dateChanged.connect(lambda: self.refresh_tab('sale', reset_page=True))
+        filter_layout.addWidget(QLabel("إلى:"))
+        filter_layout.addWidget(self.sales_end_date)
+
+        self.sales_customer_combo = QComboBox()
+        self.sales_customer_combo.addItem("الكل", None)
+        self.load_customers()
+        self.sales_customer_combo.currentIndexChanged.connect(lambda: self.refresh_tab('sale', reset_page=True))
+        filter_layout.addWidget(QLabel("العميل:"))
+        filter_layout.addWidget(self.sales_customer_combo)
+
+        layout.addLayout(filter_layout)
+
+        self.sales_table = CustomTableView()
+        self.sales_table.set_table_identity("InvoicesWidget.sales")
+        self.sales_toolbar.set_table(self.sales_table)
+        self.sales_table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.sales_table.doubleClicked.connect(lambda idx: self.edit_invoice('sale', idx))
+        layout.addWidget(self.sales_table)
+
+        # شريط التنقل
+        pagination = QHBoxLayout()
+        self.sales_prev = QPushButton("السابق")
+        self.sales_prev.clicked.connect(lambda: self.prev_page('sale'))
+        self.sales_next = QPushButton("التالي")
+        self.sales_next.clicked.connect(lambda: self.next_page('sale'))
+        self.sales_page_label = QLabel()
+        pagination.addWidget(self.sales_prev)
+        pagination.addWidget(self.sales_page_label)
+        pagination.addWidget(self.sales_next)
+        pagination.addStretch()
+        layout.addLayout(pagination)
+
+    def setup_purchases_tab(self):
+        layout = QVBoxLayout(self.purchases_tab)
+
+        self.purchases_toolbar = TableToolbar("فاتورة شراء", "بحث في فواتير الشراء...", self)
+        self.purchases_toolbar.addRequested.connect(lambda: self.create_invoice('purchase'))
+        self.purchases_toolbar.editRequested.connect(lambda: self.edit_selected_invoice('purchase'))
+        self.purchases_toolbar.deleteRequested.connect(lambda: self.delete_selected_invoice('purchase'))
+        self.purchases_toolbar.exportRequested.connect(lambda: self.purchases_table.export_to_excel())
+        self.purchases_toolbar.printRequested.connect(lambda: self.purchases_table.print_table())
+        self.purchases_toolbar.refreshRequested.connect(lambda: self.refresh_tab('purchase', reset_page=True))
+        self.purchases_toolbar.resetColumnsRequested.connect(lambda: self.purchases_table.reset_layout())
+        self.purchases_toolbar.searchChanged.connect(lambda _text: self.refresh_tab('purchase', reset_page=True))
+        layout.addWidget(self.purchases_toolbar)
+        self.purchases_search = self.purchases_toolbar.search_edit
+
+        filter_layout = QHBoxLayout()
+
+        self.purchases_start_date = QDateEdit()
+        self.purchases_start_date.setDate(QDate.currentDate().addDays(-30))
+        self.purchases_start_date.setCalendarPopup(True)
+        self.purchases_start_date.dateChanged.connect(lambda: self.refresh_tab('purchase', reset_page=True))
+        filter_layout.addWidget(QLabel("من:"))
+        filter_layout.addWidget(self.purchases_start_date)
+
+        self.purchases_end_date = QDateEdit()
+        self.purchases_end_date.setDate(QDate.currentDate())
+        self.purchases_end_date.setCalendarPopup(True)
+        self.purchases_end_date.dateChanged.connect(lambda: self.refresh_tab('purchase', reset_page=True))
+        filter_layout.addWidget(QLabel("إلى:"))
+        filter_layout.addWidget(self.purchases_end_date)
+
+        self.purchases_supplier_combo = QComboBox()
+        self.purchases_supplier_combo.addItem("الكل", None)
+        self.load_suppliers()
+        self.purchases_supplier_combo.currentIndexChanged.connect(lambda: self.refresh_tab('purchase', reset_page=True))
+        filter_layout.addWidget(QLabel("المورد:"))
+        filter_layout.addWidget(self.purchases_supplier_combo)
+
+        layout.addLayout(filter_layout)
+
+        self.purchases_table = CustomTableView()
+        self.purchases_table.set_table_identity("InvoicesWidget.purchases")
+        self.purchases_toolbar.set_table(self.purchases_table)
+        self.purchases_table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.purchases_table.doubleClicked.connect(lambda idx: self.edit_invoice('purchase', idx))
+        layout.addWidget(self.purchases_table)
+
+        pagination = QHBoxLayout()
+        self.purchases_prev = QPushButton("السابق")
+        self.purchases_prev.clicked.connect(lambda: self.prev_page('purchase'))
+        self.purchases_next = QPushButton("التالي")
+        self.purchases_next.clicked.connect(lambda: self.next_page('purchase'))
+        self.purchases_page_label = QLabel()
+        pagination.addWidget(self.purchases_prev)
+        pagination.addWidget(self.purchases_page_label)
+        pagination.addWidget(self.purchases_next)
+        pagination.addStretch()
+        layout.addLayout(pagination)
+
+    def load_customers(self):
+        customers = catalog_service.customers(limit=1000)  # جلب أول 1000 عميل فقط للقائمة
+        for c in customers:
+            self.sales_customer_combo.addItem(c.get('name', ''), c.get('id'))
+
+    def load_suppliers(self):
+        suppliers = catalog_service.suppliers(limit=1000)
+        for s in suppliers:
+            self.purchases_supplier_combo.addItem(s.get('name', ''), s.get('id'))
+
+    def refresh_all(self):
+        self.refresh_tab('sale', reset_page=True)
+        self.refresh_tab('purchase', reset_page=True)
+
+    def refresh_tab(self, inv_type, reset_page=False):
+        if inv_type == 'sale':
+            if reset_page:
+                self.sales_page = 0
+            search = self.sales_search.text().strip() or None
+            start_date = self.sales_start_date.date().toString("yyyy-MM-dd")
+            end_date = self.sales_end_date.date().toString("yyyy-MM-dd")
+            customer_id = self.sales_customer_combo.currentData()
+            invoices, total = invoice_service.list_invoices(
+                search=search, inv_type='sale', start_date=start_date, end_date=end_date,
+                customer_id=customer_id, limit=self.page_size, offset=self.sales_page * self.page_size
+            )
+            data = []
+            for inv in invoices:
+                remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0)))
+                data.append({
+                    'id': inv['id'],
+                    'reference': inv.get('reference', ''),
+                    'date': inv.get('date', ''),
+                    'customer': inv.get('customer_name', 'نقدي'),
+                    'total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
+                    'paid': currency.format_amount(currency.convert(inv.get('paid', 0), 'USD', currency.get_display_currency())),
+                    'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))
+                })
+            headers = ['reference', 'date', 'customer', 'total', 'paid', 'remaining']
+            display_headers = ['المرجع', 'التاريخ', 'العميل', 'الإجمالي', 'المدفوع', 'المتبقي']
+            model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
+            self.sales_table.setModel(model)
+            self._connect_table_selection('sale')
+            # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
+            self.sales_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+            self.sales_table.horizontalHeader().setStretchLastSection(True)
+            self.sales_table.refresh_style()
+            self.sales_invoices = invoices
+            total_pages = (total + self.page_size - 1) // self.page_size
+            total_pages = max(1, total_pages)
+            self.sales_page_label.setText(f"الصفحة {self.sales_page + 1} من {total_pages}")
+            self.sales_toolbar.set_counter(self._counter_text(self.sales_page, len(data), total))
+            self.sales_prev.setEnabled(self.sales_page > 0)
+            self.sales_next.setEnabled(self.sales_page + 1 < total_pages)
+        else:
+            if reset_page:
+                self.purchases_page = 0
+            search = self.purchases_search.text().strip() or None
+            start_date = self.purchases_start_date.date().toString("yyyy-MM-dd")
+            end_date = self.purchases_end_date.date().toString("yyyy-MM-dd")
+            supplier_id = self.purchases_supplier_combo.currentData()
+            invoices, total = invoice_service.list_invoices(
+                search=search, inv_type='purchase', start_date=start_date, end_date=end_date,
+                supplier_id=supplier_id, limit=self.page_size, offset=self.purchases_page * self.page_size
+            )
+            data = []
+            for inv in invoices:
+                remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0)))
+                data.append({
+                    'id': inv['id'],
+                    'reference': inv.get('reference', ''),
+                    'date': inv.get('date', ''),
+                    'supplier': inv.get('supplier_name', 'نقدي'),
+                    'total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
+                    'paid': currency.format_amount(currency.convert(inv.get('paid', 0), 'USD', currency.get_display_currency())),
+                    'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))
+                })
+            headers = ['reference', 'date', 'supplier', 'total', 'paid', 'remaining']
+            display_headers = ['المرجع', 'التاريخ', 'المورد', 'الإجمالي', 'المدفوع', 'المتبقي']
+            model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
+            self.purchases_table.setModel(model)
+            self._connect_table_selection('purchase')
+            # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
+            self.purchases_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+            self.purchases_table.horizontalHeader().setStretchLastSection(True)
+            self.purchases_table.refresh_style()
+            self.purchases_invoices = invoices
+            total_pages = (total + self.page_size - 1) // self.page_size
+            total_pages = max(1, total_pages)
+            self.purchases_page_label.setText(f"الصفحة {self.purchases_page + 1} من {total_pages}")
+            self.purchases_toolbar.set_counter(self._counter_text(self.purchases_page, len(data), total))
+            self.purchases_prev.setEnabled(self.purchases_page > 0)
+            self.purchases_next.setEnabled(self.purchases_page + 1 < total_pages)
+
+    def create_invoice(self, inv_type):
+        dialog = InvoiceDialog(inv_type, self)
+        if dialog.exec():
+            self.refresh_all()
+
+    def edit_invoice(self, inv_type, index):
+        row = index.row()
+        if inv_type == 'sale':
+            inv_id = self.sales_table.model().get_id(row)
+        else:
+            inv_id = self.purchases_table.model().get_id(row)
+        if inv_id:
+            dialog = InvoiceDialog(inv_type, self, invoice_id=inv_id)
+            if dialog.exec():
+                self.refresh_all()
+
+
+    def _counter_text(self, page, visible_count, total_count):
+        if total_count <= 0:
+            return "لا توجد سجلات"
+        start = page * self.page_size + 1
+        end = min(total_count, page * self.page_size + visible_count)
+        return f"عرض {start}-{end} من أصل {total_count} سجل"
+
+    def _connect_table_selection(self, inv_type):
+        table = self.sales_table if inv_type == 'sale' else self.purchases_table
+        sm = table.selectionModel()
+        if sm is None:
+            return
+        handler = self._on_sales_selection_changed if inv_type == 'sale' else self._on_purchases_selection_changed
+        try:
+            sm.selectionChanged.disconnect(handler)
+        except Exception:
+            pass
+        sm.selectionChanged.connect(handler)
+        self._update_invoice_actions(inv_type)
+
+    def _on_sales_selection_changed(self, selected=None, deselected=None):
+        self._update_invoice_actions('sale')
+
+    def _on_purchases_selection_changed(self, selected=None, deselected=None):
+        self._update_invoice_actions('purchase')
+
+    def _update_invoice_actions(self, inv_type):
+        table = self.sales_table if inv_type == 'sale' else self.purchases_table
+        toolbar = self.sales_toolbar if inv_type == 'sale' else self.purchases_toolbar
+        sm = table.selectionModel()
+        has_selection = bool(sm and sm.selectedRows())
+        toolbar.set_edit_enabled(has_selection)
+        toolbar.set_delete_enabled(has_selection)
+
+    def _selected_invoice_id(self, inv_type):
+        table = self.sales_table if inv_type == 'sale' else self.purchases_table
+        model = table.model()
+        sm = table.selectionModel()
+        if not model or not sm or not sm.selectedRows():
+            return None
+        row = sm.selectedRows()[0].row()
+        return model.get_id(row)
+
+    def edit_selected_invoice(self, inv_type):
+        inv_id = self._selected_invoice_id(inv_type)
+        if not inv_id:
+            show_toast("الرجاء تحديد فاتورة أولاً", "warning", self)
+            return
+        dialog = InvoiceDialog(inv_type, self, invoice_id=inv_id)
+        if dialog.exec():
+            self.refresh_all()
+
+    def delete_selected_invoice(self, inv_type):
+        inv_id = self._selected_invoice_id(inv_type)
+        if not inv_id:
+            show_toast("الرجاء تحديد فاتورة للحذف", "warning", self)
+            return
+        inv = invoice_service.get(inv_id) or {}
+        reference = inv.get('reference', inv_id)
+        if invoice_service.has_linked_vouchers(inv_id):
+            QMessageBox.warning(self, "لا يمكن الحذف", "لا يمكن حذف فاتورة مرتبطة بسندات قبض/دفع. احذف أو عكس السندات أولاً.")
+            return
+        reply = QMessageBox.question(
+            self,
+            "تأكيد حذف الفاتورة",
+            f"هل تريد حذف/إلغاء الفاتورة {reference}؟\nسيتم عكس أثرها المخزني والمحاسبي حسب قواعد النظام.",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+        try:
+            invoice_service.delete(inv_id)
+            show_toast("تم حذف/إلغاء الفاتورة", "success", self)
+            self.refresh_all()
+        except Exception as e:
+            QMessageBox.critical(self, "فشل الحذف", str(e))
+
+
+    def prev_page(self, inv_type):
+        if inv_type == 'sale' and self.sales_page > 0:
+            self.sales_page -= 1
+            self.refresh_tab('sale')
+        elif inv_type == 'purchase' and self.purchases_page > 0:
+            self.purchases_page -= 1
+            self.refresh_tab('purchase')
+
+    def next_page(self, inv_type):
+        if inv_type == 'sale':
+            self.sales_page += 1
+            self.refresh_tab('sale')
+        else:
+            self.purchases_page += 1
+            self.refresh_tab('purchase')
+
+
