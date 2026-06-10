@@ -552,7 +552,9 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_sales_returns_branch ON sales_returns(branch_id);
         CREATE INDEX IF NOT EXISTS idx_sales_return_lines_return ON sales_return_lines(sales_return_id);
 
-    conn.executescript("""
+    ''')
+
+    cursor.executescript('''
         CREATE TABLE IF NOT EXISTS purchase_returns (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
@@ -572,6 +574,7 @@ def init_database():
             status TEXT DEFAULT 'active',
             created_at TEXT,
             deleted_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (original_invoice_id) REFERENCES invoices(id),
             FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
             FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
@@ -596,7 +599,6 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_purchase_returns_invoice ON purchase_returns(original_invoice_id);
         CREATE INDEX IF NOT EXISTS idx_purchase_returns_branch ON purchase_returns(branch_id);
         CREATE INDEX IF NOT EXISTS idx_purchase_return_lines_return ON purchase_return_lines(purchase_return_id);
-    """)
     ''')
 
     conn.commit()

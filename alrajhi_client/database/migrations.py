@@ -593,7 +593,9 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_sales_returns_branch ON sales_returns(branch_id);
         CREATE INDEX IF NOT EXISTS idx_sales_return_lines_return ON sales_return_lines(sales_return_id);
 
-    conn.executescript("""
+    ''')
+
+    cursor.executescript('''
         CREATE TABLE IF NOT EXISTS purchase_returns (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
@@ -613,6 +615,7 @@ def init_database():
             status TEXT DEFAULT 'active',
             created_at TEXT,
             deleted_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (original_invoice_id) REFERENCES invoices(id),
             FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
             FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
@@ -637,7 +640,6 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_purchase_returns_invoice ON purchase_returns(original_invoice_id);
         CREATE INDEX IF NOT EXISTS idx_purchase_returns_branch ON purchase_returns(branch_id);
         CREATE INDEX IF NOT EXISTS idx_purchase_return_lines_return ON purchase_return_lines(purchase_return_id);
-    """)
     ''')
 
     conn.commit()
@@ -650,6 +652,7 @@ def ensure_db():
         return
     if not os.path.exists(DB_PATH):
         init_database()
+        return
     else:
         # ترقية الجداول القديمة (إضافة أعمدة جديدة)
         conn = sqlite3.connect(DB_PATH)
@@ -1126,6 +1129,54 @@ def ensure_db():
         CREATE INDEX IF NOT EXISTS idx_sales_returns_branch ON sales_returns(branch_id);
         CREATE INDEX IF NOT EXISTS idx_sales_return_lines_return ON sales_return_lines(sales_return_id);
     ''')
+
+    cursor.executescript('''
+        CREATE TABLE IF NOT EXISTS purchase_returns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            return_no TEXT,
+            original_invoice_id INTEGER NOT NULL,
+            supplier_id INTEGER,
+            date TEXT NOT NULL,
+            total TEXT NOT NULL DEFAULT '0',
+            refund_amount TEXT NOT NULL DEFAULT '0',
+            credit_amount TEXT NOT NULL DEFAULT '0',
+            warehouse_id INTEGER,
+            branch_id INTEGER,
+            cashbox_id INTEGER,
+            bank_account_id INTEGER,
+            payment_method TEXT DEFAULT 'cash',
+            notes TEXT,
+            status TEXT DEFAULT 'active',
+            created_at TEXT,
+            deleted_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (original_invoice_id) REFERENCES invoices(id),
+            FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+            FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
+            FOREIGN KEY (branch_id) REFERENCES branches(id)
+        );
+        CREATE TABLE IF NOT EXISTS purchase_return_lines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            purchase_return_id INTEGER NOT NULL,
+            original_invoice_line_id INTEGER,
+            item_id INTEGER NOT NULL,
+            quantity TEXT NOT NULL,
+            unit_price TEXT NOT NULL DEFAULT '0',
+            total TEXT NOT NULL DEFAULT '0',
+            unit TEXT,
+            quantity_in_base TEXT NOT NULL DEFAULT '0',
+            unit_cost TEXT NOT NULL DEFAULT '0',
+            cost_amount TEXT NOT NULL DEFAULT '0',
+            FOREIGN KEY (purchase_return_id) REFERENCES purchase_returns(id) ON DELETE CASCADE,
+            FOREIGN KEY (item_id) REFERENCES items(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_purchase_returns_user ON purchase_returns(user_id);
+        CREATE INDEX IF NOT EXISTS idx_purchase_returns_invoice ON purchase_returns(original_invoice_id);
+        CREATE INDEX IF NOT EXISTS idx_purchase_returns_branch ON purchase_returns(branch_id);
+        CREATE INDEX IF NOT EXISTS idx_purchase_return_lines_return ON purchase_return_lines(purchase_return_id);
+    ''')
+
 
     conn.commit()
     conn.close()
