@@ -1,0 +1,12 @@
+UI-Pro-5 — Invoice & POS Experience Upgrade
+
+Applied changes:
+- Added stock validation before saving sale invoices.
+- Added missing invoice line helpers for barcode/name scanning: find line + increment quantity.
+- Improved invoice quick search placeholder and shortcuts: Ctrl+L, F8, F6.
+- POS now has a cashier-focused title/hint, full-screen toggle, F11 shortcut.
+- POS shows customer change / remaining amount live.
+- POS warns before completing cash/card sale with underpayment.
+- Kept accounting logic delegated to existing invoice_service/pos_service.
+
+Verification target: compileall + zip integrity.

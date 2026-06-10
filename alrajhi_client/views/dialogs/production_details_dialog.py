@@ -1,0 +1,356 @@
+# -*- coding: utf-8 -*-
+from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+                             QTabWidget, QHeaderView, QMessageBox, QMenu, QAction,
+                             QShortcut, QFormLayout, QComboBox, QDoubleSpinBox)
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QKeySequence
+from views.centered_dialog import CenteredDialog
+from views.custom_table_view import CustomTableView
+from models.table_models import GenericTableModel
+from core.services.manufacturing_service import manufacturing_service
+from core.services.product_service import product_service
+from currency import currency
+from utils import show_toast
+from auth import can_manage_production, can_reverse_production
+
+class ProductionDetailsDialog(CenteredDialog):
+    def __init__(self, parent, order_id):
+        super().__init__(parent)
+        self.order_id = order_id
+        self.service = manufacturing_service
+        self.setWindowTitle(f"تفاصيل أمر إنتاج")
+        self.resize(850, 700)
+
+        order = self.service.get_production_order(order_id)
+        if not order:
+            show_toast("أمر الإنتاج غير موجود", "error", self)
+            self.reject()
+            return
+
+        layout = QVBoxLayout(self)
+        status_map = {'planned': 'مخطط', 'in_progress': 'قيد التنفيذ', 'completed': 'مكتمل', 'cancelled': 'ملغي'}
+        info = QLabel(f"""
+            <b>رقم الأمر:</b> {order.get('order_number', '')}<br>
+            <b>المنتج:</b> {order.get('product_name', '')}<br>
+            <b>الكمية المخططة:</b> {order.get('planned_qty', 0)}<br>
+            <b>الكمية المنتجة:</b> {order.get('produced_qty', 0)}<br>
+            <b>الحالة:</b> {status_map.get(order.get('status', 'planned'), 'مخطط')}<br>
+            <b>تاريخ البدء:</b> {order.get('start_date', '-')}<br>
+            <b>ملاحظات:</b> {order.get('notes', '')}
+        """)
+        info.setWordWrap(True)
+        layout.addWidget(info)
+
+        btn_layout = QHBoxLayout()
+        if can_manage_production():
+            if order.get('status') == 'planned':
+                start_btn = QPushButton("▶️ بدء الإنتاج")
+                start_btn.clicked.connect(self.start_production)
+                btn_layout.addWidget(start_btn)
+                cancel_order_btn = QPushButton("❌ إلغاء الأمر")
+                cancel_order_btn.clicked.connect(self.cancel_production)
+                btn_layout.addWidget(cancel_order_btn)
+            elif order.get('status') == 'in_progress':
+                consume_btn = QPushButton("📦 استهلاك مواد")
+                consume_btn.clicked.connect(self.add_consumption)
+                complete_btn = QPushButton("✅ إتمام الإنتاج")
+                complete_btn.clicked.connect(self.complete_production)
+                btn_layout.addWidget(consume_btn)
+                btn_layout.addWidget(complete_btn)
+        if can_reverse_production() and order.get('status') in ('in_progress', 'completed'):
+            reverse_btn = QPushButton("🔄 التراجع عن الإنتاج بالكامل")
+            reverse_btn.setObjectName("danger")
+            reverse_btn.clicked.connect(self.reverse_production)
+            btn_layout.addWidget(reverse_btn)
+
+        close_btn = QPushButton("إغلاق")
+        close_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(close_btn)
+        layout.addLayout(btn_layout)
+
+        tabs = QTabWidget()
+        # تبويب المواد المستهلكة
+        self.cons_table = CustomTableView()
+        self.cons_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.cons_table.customContextMenuRequested.connect(self.show_cons_menu)
+        tabs.addTab(self.cons_table, "المواد المستهلكة")
+        # تبويب المنتج النهائي
+        self.out_table = CustomTableView()
+        self.out_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.out_table.customContextMenuRequested.connect(self.show_out_menu)
+        tabs.addTab(self.out_table, "المنتج النهائي")
+        # تبويب الحجوزات (يظهر فقط للأوامر المخطط لها أو قيد التنفيذ)
+        if order.get('status') in ('planned', 'in_progress'):
+            self.res_table = CustomTableView()
+            tabs.addTab(self.res_table, "الحجوزات والمواد المتبقية")
+        layout.addWidget(tabs)
+
+        self.refresh_consumptions()
+        self.refresh_outputs()
+        if order.get('status') in ('planned', 'in_progress'):
+            self.refresh_reservations()
+
+    def refresh_consumptions(self):
+        cons = self.service.get_consumptions(self.order_id)
+        data = []
+        for c in cons:
+            data.append({
+                'id': c['id'],
+                'item': c.get('item_name', ''),
+                'quantity': f"{float(c['consumed_qty']):.2f}",
+                'cost': currency.format_amount(currency.convert(float(c['unit_cost']), 'USD', currency.get_display_currency())),
+                'date': c.get('movement_date', '')
+            })
+        headers = ['item', 'quantity', 'cost', 'date']
+        display_headers = ['المادة', 'الكمية', 'سعر الوحدة', 'التاريخ']
+        model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
+        self.cons_table.setModel(model)
+        # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
+        self.cons_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.cons_table.refresh_style()
+
+    def refresh_outputs(self):
+        outs = self.service.get_outputs(self.order_id)
+        data = []
+        for o in outs:
+            data.append({
+                'id': o['id'],
+                'item': o.get('item_name', ''),
+                'quantity': f"{float(o['produced_qty']):.2f}",
+                'cost': currency.format_amount(currency.convert(float(o['unit_cost']), 'USD', currency.get_display_currency())),
+                'date': o.get('output_date', '')
+            })
+        headers = ['item', 'quantity', 'cost', 'date']
+        display_headers = ['المنتج', 'الكمية', 'تكلفة الوحدة', 'التاريخ']
+        model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
+        self.out_table.setModel(model)
+        # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
+        self.out_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.out_table.refresh_style()
+
+    def refresh_reservations(self):
+        reservations = self.service.get_reservations(self.order_id)
+        data = []
+        for r in reservations:
+            reserved = float(r['reserved_qty'])
+            consumed = float(r['consumed_qty'])
+            remaining = reserved - consumed
+            data.append({
+                'id': r['id'],
+                'item': r.get('item_name', ''),
+                'reserved': f"{reserved:.2f}",
+                'consumed': f"{consumed:.2f}",
+                'remaining': f"{remaining:.2f}"
+            })
+        headers = ['item', 'reserved', 'consumed', 'remaining']
+        display_headers = ['المادة', 'المحجوز', 'المستهلك', 'المتبقي']
+        model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
+        self.res_table.setModel(model)
+        # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
+        self.res_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.res_table.refresh_style()
+
+    def start_production(self):
+        success, msg = self.service.start_production(self.order_id)
+        if success:
+            show_toast("تم بدء الإنتاج", "success", self)
+            self.accept()
+        else:
+            QMessageBox.critical(self, "خطأ", msg)
+
+    def cancel_production(self):
+        reply = QMessageBox.question(self, "تأكيد", "هل تريد إلغاء أمر الإنتاج؟", QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.service.cancel_production(self.order_id)
+            show_toast("تم إلغاء أمر الإنتاج", "success", self)
+            self.accept()
+
+    def add_consumption(self):
+        order = self.service.get_production_order(self.order_id)
+        if not order:
+            return
+        # جلب الحجوزات لعرض المواد التي لم تستهلك بالكامل
+        reservations = self.service.get_reservations(self.order_id)
+        remaining_items = {}
+        for r in reservations:
+            reserved = float(r['reserved_qty'])
+            consumed = float(r['consumed_qty'])
+            remaining = reserved - consumed
+            if remaining > 0:
+                remaining_items[r['item_id']] = {
+                    'name': r.get('item_name', ''),
+                    'remaining': remaining,
+                    'unit_cost': 0
+                }
+        if not remaining_items:
+            show_toast("تم استهلاك جميع المواد المطلوبة لهذا الأمر", "info", self)
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("استهلاك مواد")
+        dlg.setLayoutDirection(Qt.RightToLeft)
+        dlg.resize(500, 400)
+        layout = QFormLayout(dlg)
+        item_combo = QComboBox()
+        for item_id, data in remaining_items.items():
+            item_combo.addItem(f"{data['name']} (المتبقي: {data['remaining']:.2f})", item_id)
+        layout.addRow("المادة:", item_combo)
+        qty_spin = QDoubleSpinBox()
+        qty_spin.setRange(0.01, 999999)
+        qty_spin.setValue(1)
+        layout.addRow("الكمية المستهلكة:", qty_spin)
+        def update_max():
+            item_id = item_combo.currentData()
+            if item_id in remaining_items:
+                max_qty = float(remaining_items[item_id]['remaining'])
+                qty_spin.setMaximum(max_qty)
+                qty_spin.setValue(min(qty_spin.value(), max_qty))
+        item_combo.currentIndexChanged.connect(update_max)
+        update_max()
+        cost_spin = QDoubleSpinBox()
+        cost_spin.setRange(0, 999999)
+        cost_spin.setDecimals(2)
+        cost_spin.setPrefix(f"{currency.get_currency_symbol()} ")
+        layout.addRow("سعر الوحدة:", cost_spin)
+        def update_cost():
+            item_id = item_combo.currentData()
+            if item_id:
+                it = product_service.item_by_id(item_id)
+                if it:
+                    price = it.get('average_cost', 0) if it.get('average_cost', 0) > 0 else it.get('purchase_price', 0)
+                    price_display = currency.convert(price, 'USD', currency.get_display_currency())
+                    cost_spin.setValue(float(price_display))
+        item_combo.currentIndexChanged.connect(update_cost)
+        update_cost()
+        btn_layout = QHBoxLayout()
+        save_btn = QPushButton("تسجيل")
+        cancel_btn = QPushButton("إلغاء")
+        btn_layout.addWidget(save_btn)
+        btn_layout.addWidget(cancel_btn)
+        layout.addRow(btn_layout)
+        def do_consume():
+            item_id = item_combo.currentData()
+            qty = qty_spin.value()
+            cost_display = cost_spin.value()
+            cost_usd = currency.convert(cost_display, currency.get_display_currency(), 'USD')
+            success, msg = self.service.consume_material(self.order_id, item_id, qty, cost_usd)
+            if success:
+                show_toast("تم تسجيل الاستهلاك", "success", dlg)
+                dlg.accept()
+                self.refresh_consumptions()
+                self.refresh_reservations()
+            else:
+                QMessageBox.critical(dlg, "خطأ", msg)
+        save_btn.clicked.connect(do_consume)
+        cancel_btn.clicked.connect(dlg.reject)
+        dlg.exec()
+
+    def complete_production(self):
+        order = self.service.get_production_order(self.order_id)
+        if not order:
+            return
+        # حساب أقصى كمية يمكن إنتاجها من الاستهلاكات المسجلة
+        reservations = self.service.get_reservations(self.order_id)
+        max_producible = None
+        for r in reservations:
+            reserved = float(r['reserved_qty'])
+            consumed = float(r['consumed_qty'])
+            remaining = reserved - consumed
+            # المطلوب استهلاكه بالكامل، لذا إذا بقي شيء لا يمكن إتمام الإنتاج
+            if remaining > 0.001:
+                QMessageBox.warning(self, "استهلاك ناقص", f"لم يتم استهلاك كامل كمية المادة {r.get('item_name', '')}. المتبقي: {remaining:.2f}")
+                return
+            # يمكننا أيضاً حساب الكمية القصوى بناءً على أقل نسبة (لكن بما أن الاستهلاك كامل، كل شيء جيد)
+        # السماح بإنتاج الكمية المخططة فقط (أو أقل إذا كان هناك قيود أخرى)
+        max_producible = float(order['planned_qty']) - float(order.get('produced_qty', 0))
+        if max_producible <= 0:
+            QMessageBox.warning(self, "تنبيه", "تم إنتاج الكمية المخططة بالكامل")
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("إتمام الإنتاج")
+        dlg.setLayoutDirection(Qt.RightToLeft)
+        dlg.resize(450, 250)
+        layout = QFormLayout(dlg)
+        qty_spin = QDoubleSpinBox()
+        qty_spin.setRange(0.01, float(max_producible))
+        qty_spin.setValue(float(max_producible))
+        layout.addRow("الكمية المنتجة فعلياً:", qty_spin)
+        btn_layout = QHBoxLayout()
+        save_btn = QPushButton("إتمام")
+        cancel_btn = QPushButton("إلغاء")
+        btn_layout.addWidget(save_btn)
+        btn_layout.addWidget(cancel_btn)
+        layout.addRow(btn_layout)
+        def do_complete():
+            success, msg = self.service.complete_production(self.order_id, qty_spin.value())
+            if success:
+                show_toast("تم إتمام الإنتاج", "success", dlg)
+                dlg.accept()
+                self.accept()
+            else:
+                QMessageBox.critical(dlg, "خطأ", msg)
+        save_btn.clicked.connect(do_complete)
+        cancel_btn.clicked.connect(dlg.reject)
+        dlg.exec()
+
+    def reverse_production(self):
+        reply = QMessageBox.question(self, "تأكيد التراجع", "هل تريد التراجع عن أمر الإنتاج بالكامل؟ لا يمكن التراجع.", QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            success, msg = self.service.reverse_production_order(self.order_id)
+            if success:
+                show_toast(msg, "success", self)
+                self.accept()
+            else:
+                QMessageBox.critical(self, "خطأ", msg)
+
+    def show_cons_menu(self, pos):
+        index = self.cons_table.indexAt(pos)
+        if not index.isValid():
+            return
+        row = index.row()
+        cons_id = self.cons_table.model().get_id(row)
+        if not cons_id:
+            return
+        menu = QMenu()
+        delete_action = QAction("🗑 حذف الاستهلاك", self)
+        delete_action.triggered.connect(lambda: self.delete_consumption(cons_id))
+        menu.addAction(delete_action)
+        menu.exec(self.cons_table.viewport().mapToGlobal(pos))
+
+    def show_out_menu(self, pos):
+        index = self.out_table.indexAt(pos)
+        if not index.isValid():
+            return
+        row = index.row()
+        out_id = self.out_table.model().get_id(row)
+        if not out_id:
+            return
+        menu = QMenu()
+        delete_action = QAction("🗑 حذف الإنتاج", self)
+        delete_action.triggered.connect(lambda: self.delete_output(out_id))
+        menu.addAction(delete_action)
+        menu.exec(self.out_table.viewport().mapToGlobal(pos))
+
+    def delete_consumption(self, cons_id):
+        reply = QMessageBox.question(self, "تأكيد", "حذف الاستهلاك؟ سيتم إعادة الكمية للمخزون وتحديث الحجز.", QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            success, msg = self.service.delete_consumption(cons_id)
+            if success:
+                show_toast("تم حذف الاستهلاك", "success", self)
+                self.refresh_consumptions()
+                self.refresh_reservations()
+            else:
+                QMessageBox.critical(self, "خطأ", msg)
+
+    def delete_output(self, out_id):
+        reply = QMessageBox.question(self, "تأكيد", "حذف الإنتاج؟ سيتم خصم الكمية من المخزون.", QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            success, msg = self.service.delete_output(out_id)
+            if success:
+                show_toast("تم حذف الإنتاج", "success", self)
+                self.refresh_outputs()
+            else:
+                QMessageBox.critical(self, "خطأ", msg)
+
+

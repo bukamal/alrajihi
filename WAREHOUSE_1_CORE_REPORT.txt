@@ -1,0 +1,23 @@
+Warehouse-1 Core Infrastructure
+===============================
+
+تم إدخال أول بنية فعلية للمستودعات دون تغيير منطق الفواتير أو التصنيع بعد.
+
+المضاف:
+- warehouses
+- item_warehouse_balances
+- warehouse_movements
+- warehouse_repo.py
+- warehouse_dao.py
+- warehouse_service.py
+- warehouses_widget.py
+- صفحة مستودعات داخل المخزون
+- ترحيل أرصدة المواد الحالية إلى المستودع الرئيسي بشكل idempotent
+
+قيود المرحلة:
+- الفواتير لا تختار المستودع بعد.
+- التصنيع لا يخصم/يضيف حسب المستودع بعد.
+- التحويلات بين المستودعات مؤجلة إلى Warehouse-3.
+
+المرحلة التالية المقترحة:
+Warehouse-2 Invoice/POS Integration: اختيار المستودع في البيع والشراء ونقطة البيع.
