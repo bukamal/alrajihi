@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -18,6 +18,7 @@ from core.services.cashbox_service import cashbox_service
 from core.services.settings_service import settings_service
 from currency import currency
 from utils import show_toast
+from ui.barcode_widgets import BarcodeLineEdit, focused_widget_is_barcode
 
 
 class POSWidget(QWidget):
@@ -79,11 +80,15 @@ class POSWidget(QWidget):
         self._apply_shift_mode_visibility()
 
         scan_row = QHBoxLayout()
-        self.barcode_input = QLineEdit()
+        self.barcode_input = BarcodeLineEdit(clear_on_escape=True)
         self.barcode_input.setPlaceholderText("امسح الباركود أو اكتب الكود ثم Enter...")
         self.barcode_input.setMinimumHeight(60)
         self.barcode_input.setStyleSheet("font-size: 24px; font-weight: bold; padding: 8px;")
         self.barcode_input.returnPressed.connect(self.scan_entered_barcode)
+        # بعض أجهزة قارئ الباركود ترسل مفتاح Escape بعد Enter.
+        # كان ذلك يفعّل اختصار إلغاء السلة ويظهر مربع تأكيد عند كل مسح.
+        # نلتقط Escape داخل حقل الباركود ونبتلعه حتى تبقى عملية المسح صامتة وسريعة.
+        self.barcode_input.installEventFilter(self)
         scan_row.addWidget(self.barcode_input, 1)
 
         self.qty_spin = QDoubleSpinBox()
@@ -160,7 +165,7 @@ class POSWidget(QWidget):
         self.remove_btn.clicked.connect(self.remove_selected_line)
         buttons.addWidget(self.remove_btn)
 
-        self.clear_btn = QPushButton("Esc إلغاء السلة")
+        self.clear_btn = QPushButton("إلغاء السلة")
         self.clear_btn.clicked.connect(self.clear_cart)
         buttons.addWidget(self.clear_btn)
 
@@ -175,6 +180,19 @@ class POSWidget(QWidget):
         layout.addWidget(self.status_label)
 
 
+
+
+    def eventFilter(self, obj, event):
+        """منع قارئ الباركود من تشغيل أوامر إلغاء/خروج عند إرسال Escape."""
+        try:
+            if obj is getattr(self, 'barcode_input', None) and event.type() == QEvent.KeyPress:
+                if event.key() == Qt.Key_Escape:
+                    self.barcode_input.clear()
+                    self.barcode_input.setFocus()
+                    return True
+        except Exception:
+            pass
+        return super().eventFilter(obj, event)
 
     def _pos_shifts_enabled(self):
         try:
@@ -323,7 +341,8 @@ class POSWidget(QWidget):
         QShortcut(QKeySequence("F5"), self, self.resume_cart)
         QShortcut(QKeySequence("F10"), self, self.checkout)
         QShortcut(QKeySequence("Delete"), self, self.remove_selected_line)
-        QShortcut(QKeySequence("Escape"), self, self.clear_cart)
+        # لا نربط Escape بإلغاء السلة في POS لأن كثيراً من قارئات الباركود
+        # ترسله كسuffix بعد قراءة الباركود، ما كان يفتح تأكيد الإلغاء عند كل مسح.
         QShortcut(QKeySequence("Ctrl+L"), self, lambda: self.barcode_input.setFocus())
         QShortcut(QKeySequence("F11"), self, self.toggle_fullscreen)
 

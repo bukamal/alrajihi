@@ -27,6 +27,7 @@ from currency import currency
 from views.centered_dialog import CenteredDialog
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
+from ui.barcode_widgets import BarcodeLineEdit, ignore_if_barcode_focus
 import qtawesome as qta
 
 class LinesModel(QAbstractTableModel):
@@ -601,7 +602,7 @@ class InvoiceDialog(CenteredDialog):
         search_frame.setObjectName("ActionCard")
         search_layout = QHBoxLayout(search_frame)
         search_layout.setContentsMargins(12, 10, 12, 10)
-        self.search_input = QLineEdit()
+        self.search_input = BarcodeLineEdit(clear_on_escape=True)
         self.search_input.setPlaceholderText("حقل الباركود / بحث المادة — امسح الباركود ثم Enter")
         self.search_input.returnPressed.connect(self.add_item_from_search)
         self.camera_scan_btn = QPushButton("📷 مسح")
@@ -1167,7 +1168,7 @@ class InvoiceDialog(CenteredDialog):
         QShortcut(QKeySequence("Delete"), self, self.remove_selected_line)
         QShortcut(QKeySequence("Ctrl+Return"), self, self.on_save)
         QShortcut(QKeySequence("Ctrl+S"), self, self.on_save)
-        QShortcut(QKeySequence("Escape"), self, self.reject)
+        QShortcut(QKeySequence("Escape"), self, ignore_if_barcode_focus(self.reject))
         QShortcut(QKeySequence("F6"), self, self.print_invoice_professional)
         QShortcut(QKeySequence("F8"), self, lambda: self.discount_value.setFocus())
         QShortcut(QKeySequence("Ctrl+L"), self, self.focus_barcode_input)

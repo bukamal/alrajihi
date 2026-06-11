@@ -11,6 +11,7 @@ from core.services.barcode_service import barcode_service, BarcodeError
 from currency import currency
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
+from ui.barcode_widgets import BarcodeLineEdit, ignore_if_barcode_focus
 from decimal import Decimal, InvalidOperation
 
 class ItemDialog(CenteredDialog):
@@ -100,7 +101,7 @@ class ItemDialog(CenteredDialog):
         barcode_layout = QHBoxLayout(barcode_widget)
         barcode_layout.setContentsMargins(0, 0, 0, 0)
         barcode_layout.setSpacing(8)
-        self.barcode_edit = QLineEdit()
+        self.barcode_edit = BarcodeLineEdit(clear_on_escape=True)
         self.barcode_edit.setPlaceholderText("EAN-13 أو Code128")
         self.barcode_type_combo = QComboBox()
         self.barcode_type_combo.addItems(["EAN13", "CODE128"])

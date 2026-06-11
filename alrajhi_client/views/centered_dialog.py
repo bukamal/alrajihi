@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt, QEvent, QObject
 from .frameless_dialog import FramelessDialog
 from PyQt5.QtWidgets import QMessageBox, QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox
 from PyQt5.QtGui import QKeySequence
+from ui.barcode_widgets import ignore_if_barcode_focus
 from PyQt5.QtWidgets import QShortcut
 from utils import focus_first_input
 from i18n.qt_i18n import apply_widget_language
@@ -80,7 +81,7 @@ class CenteredDialog(FramelessDialog):
                 shortcut.activated.connect(save_handler)
                 self._standard_shortcuts.append(shortcut)
         shortcut = QShortcut(QKeySequence('Esc'), self)
-        shortcut.activated.connect(cancel_handler or self.reject)
+        shortcut.activated.connect(ignore_if_barcode_focus(cancel_handler or self.reject))
         self._standard_shortcuts.append(shortcut)
 
     def reject(self):

@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QSta
 from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer
 from PyQt5.QtGui import QIcon, QKeySequence
 import qtawesome as qta
+from ui.barcode_widgets import ignore_if_barcode_focus
 from auth.session import UserSession
 from theme_manager import ThemeManager
 from views.widgets.dashboard_widget import DashboardWidget
@@ -306,7 +307,7 @@ class MainWindow(QMainWindow):
 
     def setup_shortcuts(self):
         self.esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
-        self.esc_shortcut.activated.connect(lambda: self.switch_page('dashboard'))
+        self.esc_shortcut.activated.connect(ignore_if_barcode_focus(lambda: self.switch_page('dashboard')))
         self.dashboard_shortcut = QShortcut(QKeySequence('F1'), self)
         self.dashboard_shortcut.activated.connect(lambda: self.switch_page('dashboard'))
         self.pos_shortcut = QShortcut(QKeySequence('F2'), self)
