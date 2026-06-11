@@ -19,6 +19,7 @@ from core.services.audit_service import audit_service
 from core.services.warehouse_service import warehouse_service
 from core.services.branch_service import branch_service
 from core.services.cashbox_service import cashbox_service
+from core.services.settings_service import settings_service
 from currency import currency
 
 
@@ -96,7 +97,7 @@ class POSService:
 
     def new_cart(self, warehouse_id: int | None = None, cashbox_id: int | None = None, shift_id: int | None = None) -> POSCart:
         cashbox_id = cashbox_id or cashbox_service.default_cashbox_id(branch_service.current_branch_id())
-        shift = cashbox_service.current_open_shift(cashbox_id) if cashbox_id else None
+        shift = cashbox_service.current_open_shift(cashbox_id) if (cashbox_id and settings_service.pos_shifts_enabled()) else None
         return POSCart(warehouse_id=warehouse_id or warehouse_service.default_warehouse_id(), cashbox_id=cashbox_id, shift_id=shift_id or ((shift or {}).get('id') if shift else None))
 
     def _decimal(self, value, default='0') -> Decimal:
@@ -191,10 +192,13 @@ class POSService:
             raise POSException('المدفوع لا يمكن أن يكون سالبًا')
         if paid_usd > total:
             paid_usd = total
-        shift = cashbox_service.current_open_shift(cart.cashbox_id)
-        if not shift:
-            raise POSException('لا يمكن البيع من POS بدون وردية مفتوحة. افتح وردية أولاً.')
-        cart.shift_id = shift.get('id')
+        if settings_service.pos_shifts_enabled():
+            shift = cashbox_service.current_open_shift(cart.cashbox_id)
+            if not shift:
+                raise POSException('لا يمكن البيع من POS بدون وردية مفتوحة. افتح وردية أولاً.')
+            cart.shift_id = shift.get('id')
+        else:
+            cart.shift_id = None
         data = {
             'type': 'sale',
             'customer_id': None,

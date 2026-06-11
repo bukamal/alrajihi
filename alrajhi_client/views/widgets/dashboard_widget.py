@@ -3,8 +3,6 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
                              QGridLayout, QPushButton, QComboBox, QHeaderView)
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
 from decimal import Decimal
-import pyqtgraph as pg
-
 from core.services.dashboard_service import dashboard_service
 from core.services.alert_service import alert_service
 from currency import currency
@@ -12,9 +10,6 @@ from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 import qtawesome as qta
-
-pg.setConfigOptions(antialias=True)
-
 
 class KPICard(QFrame):
     clicked = pyqtSignal()
@@ -85,13 +80,6 @@ class DashboardWidget(QWidget):
         self.setObjectName("DashboardWidget")
         self._loading_currencies = False
 
-        # إنشاء الرسم البياني أولاً
-        self.plot_widget = pg.PlotWidget()
-        self.plot_widget.setBackground(None)
-        self.plot_widget.setLabel('left', f'المبلغ ({currency.get_display_currency()})')
-        self.plot_widget.setLabel('bottom', 'الشهر')
-        self.plot_widget.showGrid(x=True, y=True, alpha=0.3)
-
         main_layout = QVBoxLayout(self)
         main_layout.setSpacing(20)
         main_layout.setContentsMargins(20, 20, 20, 20)
@@ -107,8 +95,6 @@ class DashboardWidget(QWidget):
         self.arrange_cards()
         main_layout.addLayout(self.card_grid)
 
-        self.setup_chart(main_layout)
-        self.setup_recent_table(main_layout)
         self.setup_alerts_table(main_layout)
 
         # تأخير التحديث الأول لضمان اكتمال الإنشاء
@@ -366,50 +352,8 @@ class DashboardWidget(QWidget):
             self.card_grid.setColumnStretch(col, 1)
 
     # ------------------------------------------------------------
-    # 3. الرسم البياني
+    # 3. مركز التنبيهات
     # ------------------------------------------------------------
-    def setup_chart(self, parent_layout):
-        chart_container = QFrame()
-        chart_container.setStyleSheet("""
-            QFrame {
-                background-color: palette(base);
-                border-radius: 16px;
-                border: 1px solid palette(mid);
-                padding: 8px;
-            }
-        """)
-        chart_layout = QVBoxLayout(chart_container)
-        title = QLabel("اتجاه الإيرادات والمصروفات (آخر 6 أشهر)")
-        title.setStyleSheet("font-weight: bold; font-size: 16px;")
-        title.setAlignment(Qt.AlignCenter)
-        chart_layout.addWidget(title)
-        chart_layout.addWidget(self.plot_widget)
-        parent_layout.addWidget(chart_container)
-
-    # ------------------------------------------------------------
-    # 4. جدول آخر 5 قيود
-    # ------------------------------------------------------------
-    def setup_recent_table(self, parent_layout):
-        container = QFrame()
-        container.setStyleSheet("""
-            QFrame {
-                background-color: palette(base);
-                border-radius: 16px;
-                border: 1px solid palette(mid);
-                padding: 8px;
-            }
-        """)
-        layout = QVBoxLayout(container)
-        title = QLabel("آخر 5 قيود مضافة")
-        title.setStyleSheet("font-weight: bold; font-size: 16px;")
-        title.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title)
-
-        self.recent_table = CustomTableView()
-        self.recent_table.setMinimumHeight(200)
-        layout.addWidget(self.recent_table)
-        parent_layout.addWidget(container)
-
     def setup_alerts_table(self, parent_layout):
         container = QFrame()
         container.setStyleSheet("""
@@ -440,8 +384,6 @@ class DashboardWidget(QWidget):
 
         display_curr = currency.get_display_currency()
         self.update_rate_label(display_curr)
-        self.plot_widget.setLabel('left', f'المبلغ ({display_curr})')
-
         snapshot = dashboard_service.snapshot(use_cache=False)
         summary = snapshot.get('summary', {})
 
@@ -457,52 +399,7 @@ class DashboardWidget(QWidget):
             amount = currency.convert(Decimal(str(summary.get(key, 0))), 'USD', display_curr)
             self.cards[card_key].set_value(currency.format_amount(amount))
 
-        self.plot_monthly_trend(snapshot.get('monthly_trend', []))
-        self.load_recent_entries(snapshot.get('recent_entries', []))
         self.load_alerts()
-
-    def plot_monthly_trend(self, trend=None):
-        trend = trend if trend is not None else dashboard_service.monthly_trend()
-        display_curr = currency.get_display_currency()
-        months = []
-        in_vals = []
-        out_vals = []
-        for row in trend:
-            months.append(row.get('label', ''))
-            in_vals.append(float(currency.convert(row.get('incoming', Decimal('0')), 'USD', display_curr)))
-            out_vals.append(float(currency.convert(row.get('outgoing', Decimal('0')), 'USD', display_curr)))
-
-        self.plot_widget.clear()
-        if not months:
-            return
-        x = list(range(len(months)))
-        bg_in = pg.BarGraphItem(x=x, height=in_vals, width=0.4, brush='#28a745', name='وارد')
-        bg_out = pg.BarGraphItem(x=[i+0.4 for i in x], height=out_vals, width=0.4, brush='#dc3545', name='صادر')
-        self.plot_widget.addItem(bg_in)
-        self.plot_widget.addItem(bg_out)
-        ax = self.plot_widget.getAxis('bottom')
-        ticks = [list(zip(range(len(months)), months))]
-        ax.setTicks(ticks)
-        self.plot_widget.addLegend()
-
-    def load_recent_entries(self, entries=None):
-        entries = entries if entries is not None else dashboard_service.recent_entries(limit=5)
-        data = []
-        display_curr = currency.get_display_currency()
-        for e in entries:
-            amount_display = currency.convert(Decimal(str(e.get('amount', 0))), 'USD', display_curr)
-            data.append({
-                'date': e.get('date', ''),
-                'company': e.get('company', ''),
-                'amount': currency.format_amount(amount_display),
-                'type': e.get('type', '')
-            })
-        headers = ['date', 'company', 'amount', 'type']
-        display_headers = ['التاريخ', 'الشركة', 'المبلغ', 'النوع']
-        model = GenericTableModel(data, display_headers, key_fields=['date'], data_keys=headers)
-        self.recent_table.setModel(model)
-        self.recent_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.recent_table.refresh_style()
 
     def load_alerts(self):
         alerts = alert_service.dashboard_alerts(limit=8)
@@ -534,9 +431,5 @@ class DashboardWidget(QWidget):
 
     def apply_theme_colors(self):
         self.refresh_all()
-        self.plot_widget.setBackground(None)
-        self.plot_monthly_trend()
-        if hasattr(self.recent_table, 'refresh_style'):
-            self.recent_table.refresh_style()
 
 

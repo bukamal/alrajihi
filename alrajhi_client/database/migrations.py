@@ -4,6 +4,7 @@ import os
 import datetime
 from .connection import DatabaseConnection, DB_PATH
 from auth.password import hash_password
+from .schema_manager import apply_common_schema
 
 def init_database():
     db = DatabaseConnection()
@@ -642,6 +643,7 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_purchase_return_lines_return ON purchase_return_lines(purchase_return_id);
     ''')
 
+    apply_common_schema(conn)
     conn.commit()
     conn.close()
     print(f"✅ تم تهيئة قاعدة البيانات المحلية في: {DB_PATH}")
@@ -657,6 +659,7 @@ def ensure_db():
         # ترقية الجداول القديمة (إضافة أعمدة جديدة)
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
+        apply_common_schema(conn)
 
         # Ensure category hierarchy/status support exists for upgraded databases
         cursor.execute("PRAGMA table_info(categories)")

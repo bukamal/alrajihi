@@ -9,6 +9,7 @@ from models.table_models import GenericTableModel
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from utils import show_toast
 from core.services.branch_service import branch_service
+from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 class UsersWidget(QWidget):
     def __init__(self, parent=None):
@@ -47,6 +48,7 @@ class UsersWidget(QWidget):
         pagination_layout.addStretch()
         layout.addLayout(pagination_layout)
 
+        apply_modern_widget(self, '👤 المستخدمون والصلاحيات', 'إدارة الحسابات والأدوار وحالة التفعيل')
         self.refresh()
 
     def refresh(self):

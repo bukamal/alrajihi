@@ -13,6 +13,7 @@ from currency import currency
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
 from decimal import Decimal
+from views.widgets.modern_ui import apply_modern_dialog
 
 class ProductionOrderDialog(CenteredDialog):
     def __init__(self, parent=None):
@@ -80,6 +81,7 @@ class ProductionOrderDialog(CenteredDialog):
         self.save_btn.clicked.connect(self.save)
         cancel_btn.clicked.connect(self.reject)
         self.install_form_shortcuts(self.save)
+        apply_modern_dialog(self, 'أمر إنتاج')
         self.watch_dirty_widgets([self.product_combo, self.raw_warehouse_combo, self.output_warehouse_combo, self.qty_spin, self.notes_edit], reset=True)
         self.update_materials_display()
 

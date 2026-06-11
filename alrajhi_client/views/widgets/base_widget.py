@@ -6,6 +6,8 @@ from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 from views.widgets.components.table_toolbar import TableToolbar
+from views.widgets.modern_ui import apply_modern_widget
+from i18n.translator import translate_text
 
 class BaseWidget(QWidget, BaseActionHandler):
     entity_name = "العنصر"
@@ -89,9 +91,9 @@ class BaseWidget(QWidget, BaseActionHandler):
 
         if self.has_pagination:
             self.pagination_layout = QHBoxLayout()
-            self.prev_btn = QPushButton("السابق")
+            self.prev_btn = QPushButton(translate_text("السابق"))
             self.prev_btn.clicked.connect(self.prev_page)
-            self.next_btn = QPushButton("التالي")
+            self.next_btn = QPushButton(translate_text("التالي"))
             self.next_btn.clicked.connect(self.next_page)
             self.page_label = QLabel()
             self.pagination_layout.addWidget(self.prev_btn)
@@ -103,6 +105,7 @@ class BaseWidget(QWidget, BaseActionHandler):
         self.status_label = QLabel()
         self.status_label.setObjectName("muted")
         layout.addWidget(self.status_label)
+        apply_modern_widget(self, self.entity_name, self.search_placeholder)
 
     def _on_toolbar_search_changed(self):
         self.current_page = 0
@@ -145,7 +148,7 @@ class BaseWidget(QWidget, BaseActionHandler):
             if self.current_page >= total_pages:
                 self.current_page = max(0, total_pages - 1)
             if hasattr(self, 'page_label'):
-                self.page_label.setText(f"الصفحة {self.current_page + 1} من {total_pages}")
+                self.page_label.setText(f"{translate_text('الصفحة')} {self.current_page + 1} {translate_text('من')} {total_pages}")
             if hasattr(self, 'prev_btn'):
                 self.prev_btn.setEnabled(self.current_page > 0)
             if hasattr(self, 'next_btn'):
@@ -169,9 +172,9 @@ class BaseWidget(QWidget, BaseActionHandler):
         if self.has_pagination:
             start = 0 if total_records == 0 else self.current_page * self.page_size + 1
             end = min(total_records, self.current_page * self.page_size + visible_count)
-            counter_text = f"عرض {start}-{end} من أصل {total_records} سجل"
+            counter_text = f"{translate_text('عرض')} {start}-{end} {translate_text('من أصل')} {total_records} {translate_text('سجل')}"
         else:
-            counter_text = f"عرض {visible_count} من أصل {total_records} سجل"
+            counter_text = f"{translate_text('عرض')} {visible_count} {translate_text('من أصل')} {total_records} {translate_text('سجل')}"
         self.status_label.setText(counter_text)
         if hasattr(self, 'toolbar'):
             self.toolbar.set_counter(counter_text)

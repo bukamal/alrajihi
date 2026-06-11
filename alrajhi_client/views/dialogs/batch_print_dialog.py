@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QTableWidgetItem,
                              QPushButton, QSpinBox, QHeaderView, QMessageBox, QComboBox, QLabel,
                              QListWidget, QListWidgetItem, QDialogButtonBox, QTableView, QCheckBox)
 from PyQt5.QtCore import Qt
+from views.widgets.modern_ui import apply_modern_dialog
 from views.centered_dialog import CenteredDialog
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
@@ -153,6 +154,7 @@ class BatchPrintDialog(CenteredDialog):
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
+        apply_modern_dialog(self, 'طباعة دفعة')
         if dialog.exec():
             for list_item in list_widget.selectedItems():
                 item_id = list_item.data(Qt.UserRole)

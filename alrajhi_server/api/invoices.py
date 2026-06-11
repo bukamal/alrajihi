@@ -16,8 +16,8 @@ def _invoice_has_vouchers(db, invoice_id, user_id):
 def _update_item_quantity(db, item_id, user_id):
     row = db.execute('''
         SELECT SUM(CASE
-            WHEN movement_type IN ('opening','purchase','adjustment','production_out') THEN CAST(quantity AS REAL)
-            WHEN movement_type IN ('sale','production_consume') THEN -CAST(quantity AS REAL)
+            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return') THEN CAST(quantity AS REAL)
+            WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
             ELSE 0 END) AS total_qty
         FROM inventory_movements
         WHERE item_id=? AND user_id=?
@@ -31,7 +31,7 @@ def _recalculate_average_cost(db, item_id, user_id):
         SELECT SUM(CAST(quantity AS REAL)) AS total_qty,
                SUM(CAST(quantity AS REAL) * CAST(unit_cost AS REAL)) AS total_cost
         FROM inventory_movements
-        WHERE item_id=? AND user_id=? AND movement_type IN ('opening','purchase','adjustment','production_out')
+        WHERE item_id=? AND user_id=? AND movement_type IN ('opening','purchase','adjustment','production_out','sales_return')
     ''', (item_id, user_id)).fetchone()
     total_qty = Decimal(str(row['total_qty'])) if row and row['total_qty'] is not None else Decimal('0')
     total_cost = Decimal(str(row['total_cost'])) if row and row['total_cost'] is not None else Decimal('0')
@@ -160,7 +160,7 @@ def add_invoice():
                 db.execute('''
                     INSERT INTO inventory_movements (item_id, user_id, movement_type, quantity, unit_cost, reference_id, movement_date)
                     VALUES (?,?,?,?,?,?,?)
-                ''', (line['item_id'], user_id, 'sale', str(base_qty), str(unit_cost), invoice_id, datetime.datetime.now().isoformat()))
+                ''', (line['item_id'], user_id, 'sale', str(base_qty), str(avg_cost), invoice_id, datetime.datetime.now().isoformat()))
         for item_id in {line['item_id'] for line in data['lines']}:
             _update_item_quantity(db, item_id, user_id)
             _recalculate_average_cost(db, item_id, user_id)
@@ -227,7 +227,7 @@ def update_invoice(invoice_id):
                 movement_type = 'sale'
                 item = db.execute("SELECT CAST(average_cost AS TEXT) as avg_cost FROM items WHERE id=? AND user_id=?", (line['item_id'], user_id)).fetchone()
                 avg_cost = Decimal(str(item['avg_cost'])) if item else Decimal('0')
-                movement_cost = unit_cost
+                movement_cost = avg_cost
                 cost_amt = base_qty * avg_cost
             db.execute("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
             db.execute('''

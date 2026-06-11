@@ -113,6 +113,15 @@ class DatabaseConnection:
                 self._local_conn.row_factory = sqlite3.Row
                 self._local_conn.execute('PRAGMA journal_mode=WAL')
                 self._local_conn.execute('PRAGMA foreign_keys=ON')
+                # Runtime schema guard: always upgrade old local databases before
+                # repositories can run INSERT/UPDATE statements. This prevents
+                # errors such as: table invoices has no column named warehouse_id.
+                try:
+                    from .schema_manager import apply_common_schema
+                    apply_common_schema(self._local_conn)
+                except Exception as exc:
+                    print(f"⚠️ فشل فحص/ترقية بنية قاعدة البيانات: {exc}")
+                    raise
             return self._local_conn
         else:
             return None
@@ -572,11 +581,11 @@ class DatabaseConnection:
             ))
             invoice_id = cursor.lastrowid
             for line in data['lines']:
-                conv_factor = line.get('conversion_factor', Decimal('1'))
+                conv_factor = Decimal(str(line.get('conversion_factor', Decimal('1'))))
                 if conv_factor <= 0:
                     conv_factor = Decimal('1')
-                base_qty = line.get('base_qty', line['quantity'])
-                unit_cost = line['unit_price']
+                base_qty = Decimal(str(line.get('base_qty', line.get('quantity', '0'))))
+                unit_cost = Decimal(str(line['unit_price']))
                 cursor2 = conn.execute('''
                     INSERT INTO invoice_lines (invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
                     VALUES (?,?,?,?,?,?,?,?,?,?)
@@ -596,7 +605,7 @@ class DatabaseConnection:
                     avg_cost = Decimal(str(item['avg_cost'])) if item else Decimal('0')
                     cost_amt = base_qty * avg_cost
                     conn.execute("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
-                    self._record_inventory_movement(line['item_id'], 'sale', base_qty, unit_cost, invoice_id)
+                    self._record_inventory_movement(line['item_id'], 'sale', base_qty, avg_cost, invoice_id)
             if data['type'] == 'sale' and data.get('customer_id'):
                 self._update_customer_balance(data['customer_id'], Decimal(str(data['total'])) - Decimal(str(data['paid_amount'])))
             elif data['type'] == 'purchase' and data.get('supplier_id'):
@@ -672,7 +681,7 @@ class DatabaseConnection:
                     item = conn.execute("SELECT CAST(average_cost AS TEXT) as avg_cost FROM items WHERE id=?", (line['item_id'],)).fetchone()
                     avg_cost = Decimal(str(item['avg_cost'])) if item else Decimal('0')
                     cost_amt = base_qty * avg_cost
-                    self._record_inventory_movement(line['item_id'], 'sale', base_qty, unit_cost, invoice_id)
+                    self._record_inventory_movement(line['item_id'], 'sale', base_qty, avg_cost, invoice_id)
                 conn.execute("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
 
             for item_id in set(old_item_ids + new_item_ids):

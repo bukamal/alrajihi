@@ -72,11 +72,17 @@ class WarehouseService:
             item_id = line.get('item_id')
             if not item_id:
                 continue
-            qty = line.get('base_qty', line.get('quantity', 0))
-            unit_cost = line.get('unit_price', 0)
+            qty = line.get('base_qty', line.get('quantity_in_base', line.get('quantity', 0)))
+            unit_cost = line.get('unit_cost_base', line.get('average_cost', line.get('unit_price', 0)))
             if inv_type == 'sale':
                 movement_type = 'invoice_sale_out'
                 signed_qty = -abs(Decimal(str(qty or 0)))
+                try:
+                    from core.services.product_service import product_service
+                    item = product_service.item_by_id(int(item_id)) or {}
+                    unit_cost = item.get('average_cost', unit_cost)
+                except Exception:
+                    pass
                 note = 'صرف فاتورة بيع من المستودع'
             elif inv_type == 'purchase':
                 movement_type = 'invoice_purchase_in'

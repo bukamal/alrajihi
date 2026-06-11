@@ -4,6 +4,9 @@ from .frameless_dialog import FramelessDialog
 from PyQt5.QtWidgets import QMessageBox, QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QShortcut
+from utils import focus_first_input
+from i18n.qt_i18n import apply_widget_language
+from i18n.translator import translate_text
 
 class CenteredDialog(FramelessDialog):
     def __init__(self, parent=None):
@@ -27,14 +30,16 @@ class CenteredDialog(FramelessDialog):
         if self.parent() and not self._parent_move_filter:
             self._install_parent_filter()
         self._center_on_main_window()
+        apply_widget_language(self)
+        focus_first_input(self)
     
     def _confirm_discard_changes(self) -> bool:
         if not getattr(self, '_dirty_tracking_enabled', False) or not getattr(self, '_dirty', False):
             return True
         reply = QMessageBox.question(
             self,
-            'تغييرات غير محفوظة',
-            'لديك تغييرات غير محفوظة. هل تريد الخروج دون حفظ؟',
+            translate_text('تغييرات غير محفوظة'),
+            translate_text('لديك تغييرات غير محفوظة. هل تريد الخروج دون حفظ؟'),
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )

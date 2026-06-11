@@ -34,12 +34,12 @@ class ItemComboDelegate(QStyledItemDelegate):
         item_data = editor.currentData()
         if item_data:
             model.set_item(index.row(), item_data['id'], item_data['name'],
-                           item_data['units_list'], item_data['price'])
+                           item_data['units_list'], item_data['price'], item_data.get('barcode', ''))
         else:
             for it in self.items:
                 if it['name'] == current_text:
                     model.set_item(index.row(), it['id'], it['name'],
-                                   it['units_list'], it['price'])
+                                   it['units_list'], it['price'], it.get('barcode', ''))
                     break
 
 class UnitComboBoxDelegate(QStyledItemDelegate):
@@ -68,22 +68,37 @@ class UnitComboBoxDelegate(QStyledItemDelegate):
         selected_data = editor.currentData()
         if selected_data:
             row = index.row()
-            old_factor = model.lines[row].get('conversion_factor', Decimal('1'))
-            new_factor = selected_data[2]
+            try:
+                old_factor = Decimal(str(model.lines[row].get('conversion_factor', Decimal('1'))))
+            except Exception:
+                old_factor = Decimal('1')
+            try:
+                new_factor = Decimal(str(selected_data[2]))
+            except Exception:
+                new_factor = Decimal('1')
+            if new_factor <= 0:
+                new_factor = Decimal('1')
+
             # تحديث الوحدة وعامل التحويل في النموذج
-            model.setData(index, selected_data, Qt.EditRole)
-            # تعديل السعر بناءً على نسبة معاملات التحويل (عمود السعر هو index 4)
+            model.setData(index, (selected_data[0], selected_data[1], new_factor), Qt.EditRole)
+
+            # تعديل السعر بناءً على نسبة معاملات التحويل.
+            # مهم: عمود الوحدة = 4، أما عمود السعر الحقيقي = 5.
+            # الخطأ السابق كان يكتب السعر في عمود الوحدة، لذلك لا يتغير الإجمالي عند اختيار وحدة فرعية.
+            price_col = getattr(model, 'COL_PRICE', 5)
             if old_factor != new_factor and old_factor > 0:
-                old_price = model.lines[row]['price']
+                old_price = Decimal(str(model.lines[row].get('price', Decimal('0'))))
                 new_price = old_price * (new_factor / old_factor)
-                # استخدام رقم العمود 4 (السعر) مباشرة لتجنب الحاجة إلى استيراد LinesModel
-                model.setData(model.index(row, 4), new_price, Qt.EditRole)
-            model.update_row_total(row)
+                model.setData(model.index(row, price_col), new_price, Qt.EditRole)
+            else:
+                model.update_row_total(row)
+
+            model.dataChanged.emit(model.index(row, 0), model.index(row, model.columnCount() - 1))
 
 class DoubleSpinDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         spin = QDoubleSpinBox(parent)
-        spin.setRange(0.01, 999999999)
+        spin.setRange(0, 999999999)
         spin.setDecimals(2)
         return spin
 

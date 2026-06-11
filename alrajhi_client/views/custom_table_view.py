@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QTableView, QMenu, QAction, QFileDialog, QMessageBox, QApplication, QHeaderView, QStyledItemDelegate
 from PyQt5.QtCore import Qt, QSettings, QTimer
-from PyQt5.QtGui import QKeySequence, QTextDocument, QFont
-from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
+from PyQt5.QtGui import QKeySequence
 from theme_manager import ThemeManager
 from views.widgets.components.table_preferences import TablePreferences
 import re
-import html as _html
+from i18n.translator import translate_text
 
 class CenterAlignDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
@@ -114,28 +113,28 @@ class CustomTableView(QTableView):
 
     def _show_menu(self, pos):
         menu = QMenu()
-        export_excel = QAction("📊 تصدير إلى Excel", self)
+        export_excel = QAction("📊 " + translate_text("تصدير إلى Excel"), self)
         export_excel.triggered.connect(self.export_to_excel)
         menu.addAction(export_excel)
-        export_pdf = QAction("📄 طباعة", self)
+        export_pdf = QAction("📄 " + translate_text("طباعة"), self)
         export_pdf.triggered.connect(self.print_table)
         menu.addAction(export_pdf)
         menu.addSeparator()
-        copy_act = QAction("📋 نسخ", self)
+        copy_act = QAction("📋 " + translate_text("نسخ"), self)
         copy_act.triggered.connect(self.copy_selection)
         menu.addAction(copy_act)
 
         model = self.model()
         if model:
-            columns_menu = menu.addMenu("🧩 الأعمدة")
+            columns_menu = menu.addMenu("🧩 " + translate_text("الأعمدة"))
             for col in range(model.columnCount()):
-                header = model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or f"عمود {col + 1}"
+                header = model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or translate_text("عمود") + f" {col + 1}"
                 action = QAction(str(header), self)
                 action.setCheckable(True)
                 action.setChecked(not self.isColumnHidden(col))
                 action.toggled.connect(lambda checked, c=col: self.set_column_visible(c, checked))
                 columns_menu.addAction(action)
-            reset_columns = QAction("↩️ إعادة ضبط الأعمدة", self)
+            reset_columns = QAction("↩️ " + translate_text("إعادة ضبط الأعمدة"), self)
             reset_columns.triggered.connect(self.reset_layout)
             columns_menu.addSeparator()
             columns_menu.addAction(reset_columns)
@@ -156,14 +155,14 @@ class CustomTableView(QTableView):
             import openpyxl
             from openpyxl.styles import Font, Alignment
         except ImportError:
-            QMessageBox.warning(self, "تنبيه", "مكتبة openpyxl غير مثبتة")
+            QMessageBox.warning(self, translate_text("تنبيه"), translate_text("مكتبة openpyxl غير مثبتة"))
             return
-        filename, _ = QFileDialog.getSaveFileName(self, "حفظ التقرير", "report.xlsx", "Excel (*.xlsx)")
+        filename, _ = QFileDialog.getSaveFileName(self, translate_text("حفظ التقرير"), "report.xlsx", "Excel (*.xlsx)")
         if not filename:
             return
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "تقرير"
+        ws.title = translate_text("تقرير")[:31]
         visible_cols = [col for col in range(model.columnCount()) if not self.isColumnHidden(col)]
         for out_col, col in enumerate(visible_cols, start=1):
             header = model.headerData(col, Qt.Horizontal, Qt.DisplayRole)
@@ -176,9 +175,14 @@ class CustomTableView(QTableView):
                 value = model.data(idx, Qt.DisplayRole)
                 ws.cell(row=row+2, column=out_col, value=value)
         wb.save(filename)
-        QMessageBox.information(self, "نجاح", f"تم التصدير إلى {filename}")
+        QMessageBox.information(self, translate_text("نجاح"), f"{translate_text('تم التصدير إلى')} {filename}")
 
     def print_table(self):
+        """Print table through the centralized printing service.
+
+        Supports any Qt model already used by project pages, respects hidden columns,
+        and uses the unified company/report template instead of a local ad-hoc HTML.
+        """
         model = self.model()
         if not model:
             return
@@ -186,45 +190,24 @@ class CustomTableView(QTableView):
         headers = []
         for col in visible_cols:
             h = model.headerData(col, Qt.Horizontal, Qt.DisplayRole)
-            headers.append(str(h) if h else f"عمود{col+1}")
-        data = []
+            headers.append(str(h) if h else translate_text("عمود") + f" {col + 1}")
+
+        rows = []
         for row in range(model.rowCount()):
             row_data = []
             for col in visible_cols:
                 idx = model.index(row, col)
                 val = model.data(idx, Qt.DisplayRole)
                 row_data.append(str(val) if val is not None else '')
-            data.append(row_data)
-        
-        html = f'''<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head><meta charset="UTF-8"><title>طباعة الجدول</title>
-<style>
-    body {{ font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial; direction: rtl; background: white; margin: 1.5cm; }}
-    table {{ width: 100%; border-collapse: collapse; direction: rtl; }}
-    th, td {{ border: 1px solid #ccc; padding: 6px; text-align: center; }}
-    th {{ background: #f1f5f9; }}
-</style>
-</head>
-<body>
-<table>
-    <thead><tr>{''.join(f'<th>{_html.escape(h)}</th>' for h in headers)}</tr></thead>
-    <tbody>
-'''
-        for row in data:
-            html += '<tr>' + ''.join(f'<td>{_html.escape(str(cell))}</td>' for cell in row) + '</tr>'
-        html += '''
-    </tbody>
-</table>
-</body>
-</html>'''
-        doc = QTextDocument()
-        doc.setHtml(html)
-        doc.setDefaultFont(QFont("Tajawal", 10))
-        printer = QPrinter(QPrinter.HighResolution)
-        preview = QPrintPreviewDialog(printer, self)
-        preview.paintRequested.connect(lambda p: doc.print(p))
-        preview.exec()
+            rows.append(row_data)
+
+        title = translate_text(self.property('print_title') or self.windowTitle() or self.objectName() or 'تقرير جدول')
+        subtitle = f"{translate_text('عدد السجلات')}: {len(rows)}"
+        try:
+            from printing.printing_service import printing_service
+            printing_service.report_preview(str(title), rows, headers, self, subtitle=subtitle)
+        except Exception as exc:
+            QMessageBox.warning(self, translate_text("تعذر الطباعة"), str(exc))
 
     def refresh_style(self):
         self.setStyleSheet(ThemeManager.get_stylesheet())

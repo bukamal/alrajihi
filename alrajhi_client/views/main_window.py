@@ -7,7 +7,7 @@ from auth.session import UserSession
 from theme_manager import ThemeManager
 from views.widgets.dashboard_widget import DashboardWidget
 from views.widgets.items_widget import ItemsWidget
-from views.widgets.invoices_widget import InvoicesWidget
+from views.widgets.invoices_widget import SalesInvoicesWidget, PurchaseInvoicesWidget
 from views.widgets.pos_widget import POSWidget
 from views.widgets.manufacturing_widget import ManufacturingWidget
 from views.widgets.customers_widget import CustomersWidget
@@ -25,13 +25,14 @@ from views.widgets.audit_log_widget import AuditLogWidget
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from views.dialogs.login_dialog import LoginDialog
 from views.modern_topbar import ModernTopBar
-from i18n.translator import translate, set_language
+from i18n.translator import translate, set_language, direction
 from core.services.settings_service import settings_service
 
 PAGE_META = {
     'dashboard': ('لوحة التحكم', 'الرئيسية'),
     'pos': ('نقطة البيع POS', 'الرئيسية > المبيعات > نقطة البيع'),
-    'invoices': ('الفواتير', 'الرئيسية > المبيعات والمشتريات > الفواتير'),
+    'sales_invoices': ('فواتير البيع', 'الرئيسية > المبيعات > فواتير البيع'),
+    'purchase_invoices': ('فواتير الشراء', 'الرئيسية > المشتريات > فواتير الشراء'),
     'items': ('المواد والمخزون', 'الرئيسية > المخزون > المواد'),
     'categories': ('التصنيفات', 'الرئيسية > المخزون > التصنيفات'),
     'warehouses': ('المستودعات', 'الرئيسية > المخزون > المستودعات'),
@@ -52,7 +53,8 @@ PAGE_META = {
 NAV_GROUP_BY_PAGE = {
     'dashboard': 'الرئيسية',
     'pos': 'المبيعات',
-    'invoices': 'المبيعات',
+    'sales_invoices': 'المبيعات',
+    'purchase_invoices': 'المشتريات',
     'customers': 'المبيعات',
     'suppliers': 'المشتريات',
     'vouchers': 'المبيعات',
@@ -80,7 +82,9 @@ class MainWindow(QMainWindow):
         self.resize(1400, 900)
         self.drag_pos = None
 
-        set_language(settings_service.get_language())
+        lang = settings_service.get_language()
+        set_language(lang)
+        self.setLayoutDirection(Qt.RightToLeft if direction(lang) == "rtl" else Qt.LeftToRight)
         theme = settings_service.get_theme()
         ThemeManager.apply_theme(theme)
 
@@ -153,7 +157,10 @@ class MainWindow(QMainWindow):
     def init_pages(self):
         self.pages['dashboard'] = DashboardWidget(self)
         self.pages['items'] = ItemsWidget(self)
-        self.pages['invoices'] = InvoicesWidget(self)
+        # Sales and purchases are intentionally separate MainWindow pages.
+        # Do not instantiate the legacy combined InvoicesWidget here.
+        self.pages['sales_invoices'] = SalesInvoicesWidget(self)
+        self.pages['purchase_invoices'] = PurchaseInvoicesWidget(self)
         self.pages['pos'] = POSWidget(self)
         self.pages['manufacturing'] = ManufacturingWidget(self)
         self.pages['customers'] = CustomersWidget(self)
@@ -174,87 +181,86 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(page)
 
     def setup_menus(self):
-        file_menu = self.menu_bar.addMenu(qta.icon('fa5s.file-alt'), " ملف")
-        logout_action = QAction(qta.icon('fa5s.sign-out-alt'), "تسجيل الخروج", self)
+        file_menu = self.menu_bar.addMenu(qta.icon('fa5s.file-alt'), " " + translate("file"))
+        logout_action = QAction(qta.icon('fa5s.sign-out-alt'), translate("logout"), self)
         logout_action.setShortcut(QKeySequence("Ctrl+Q"))
         logout_action.triggered.connect(self.logout)
         file_menu.addAction(logout_action)
         file_menu.addSeparator()
-        exit_action = QAction(qta.icon('fa5s.times-circle'), "خروج", self)
+        exit_action = QAction(qta.icon('fa5s.times-circle'), translate("exit"), self)
         exit_action.setShortcut(QKeySequence("Alt+F4"))
         exit_action.triggered.connect(self.close_app)
         file_menu.addAction(exit_action)
 
-        view_menu = self.menu_bar.addMenu(qta.icon('fa5s.eye'), " عرض")
-        toggle_title_action = QAction(qta.icon('fa5s.window-maximize'), "إظهار شريط العنوان", self)
+        view_menu = self.menu_bar.addMenu(qta.icon('fa5s.eye'), " " + translate("view"))
+        toggle_title_action = QAction(qta.icon('fa5s.window-maximize'), translate("show_title_bar"), self)
         toggle_title_action.setCheckable(True)
         toggle_title_action.setChecked(True)
         toggle_title_action.triggered.connect(self.toggle_title_bar)
         view_menu.addAction(toggle_title_action)
         view_menu.addSeparator()
-        touch_action = QAction(qta.icon('fa5s.hand-peace'), "الوضع اللمسي", self)
+        touch_action = QAction(qta.icon('fa5s.hand-peace'), translate("touch_mode"), self)
         touch_action.setCheckable(True)
         touch_action.setChecked(False)
         touch_action.triggered.connect(self.toggle_touch_mode)
         view_menu.addAction(touch_action)
 
-        theme_menu = self.menu_bar.addMenu(qta.icon('fa5s.palette'), " الثيمات")
-        themes = [("فاتح", "light"), ("داكن", "dark")]
+        theme_menu = self.menu_bar.addMenu(qta.icon('fa5s.palette'), " " + translate("themes"))
+        themes = [(translate("light"), "light"), (translate("dark"), "dark")]
         for name, theme_id in themes:
             action = QAction(name, self)
             action.triggered.connect(lambda checked, t=theme_id: self.change_theme(t))
             theme_menu.addAction(action)
 
-        help_menu = self.menu_bar.addMenu(qta.icon('fa5s.question-circle'), " مساعدة")
-        about_action = QAction(qta.icon('fa5s.info-circle'), "حول البرنامج", self)
+        help_menu = self.menu_bar.addMenu(qta.icon('fa5s.question-circle'), " " + translate("help"))
+        about_action = QAction(qta.icon('fa5s.info-circle'), translate("about"), self)
         about_action.setShortcut(QKeySequence("F1"))
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
 
     def setup_topbar_buttons(self):
-        self.top_bar.add_button("الرئيسية", "tachometer-alt", lambda: self.switch_page('dashboard'), show_text=False)
-        self.top_bar.add_menu_button("المبيعات", "shopping-cart", [
-            ("بيع سريع POS", "barcode", lambda: self.switch_page('pos'), None),
-            ("فواتير البيع", "file-invoice", lambda: self.switch_page('invoices'), None),
-            ("العملاء", "user-friends", lambda: self.switch_page('customers'), None),
-            ("سندات قبض", "hand-holding-usd", lambda: self.switch_page('vouchers'), None),
-            ("مرتجعات المبيعات", "undo", lambda: self.switch_page('returns'), None),
-            ("مرتجعات المشتريات", "undo-alt", lambda: self.switch_page('purchase_returns'), None),
-            ("مرتجعات المشتريات", "undo-alt", lambda: self.switch_page('purchase_returns'), None),
-            ("الصناديق والبنوك", "cash-register", lambda: self.switch_page('cashboxes'), None),
+        self.top_bar.add_button(translate("dashboard"), "tachometer-alt", lambda: self.switch_page('dashboard'), show_text=False)
+        self.top_bar.add_menu_button(translate("sales"), "shopping-cart", [
+            (translate("pos"), "barcode", lambda: self.switch_page('pos'), None),
+            (translate("sales_invoices"), "file-invoice", lambda: self.switch_page('sales_invoices'), None),
+            (translate("customers"), "user-friends", lambda: self.switch_page('customers'), None),
+            (translate("receipt_vouchers"), "hand-holding-usd", lambda: self.switch_page('vouchers'), None),
+            (translate("sales_returns"), "undo", lambda: self.switch_page('returns'), None),
+            (translate("cashboxes_banks"), "cash-register", lambda: self.switch_page('cashboxes'), None),
         ])
-        self.top_bar.add_menu_button("المشتريات", "truck", [
-            ("فواتير الشراء", "file-invoice", lambda: self.switch_page('invoices'), None),
-            ("الموردين", "users", lambda: self.switch_page('suppliers'), None),
-            ("سندات دفع", "money-bill", lambda: self.switch_page('vouchers'), None),
+        self.top_bar.add_menu_button(translate("purchases"), "truck", [
+            (translate("purchase_invoices"), "file-invoice", lambda: self.switch_page('purchase_invoices'), None),
+            (translate("suppliers"), "users", lambda: self.switch_page('suppliers'), None),
+            (translate("payment_vouchers"), "money-bill", lambda: self.switch_page('vouchers'), None),
+            (translate("purchase_returns"), "undo-alt", lambda: self.switch_page('purchase_returns'), None),
         ])
-        self.top_bar.add_menu_button("المخزون", "boxes", [
-            ("المواد", "box", lambda: self.switch_page('items'), None),
-            ("التصنيفات", "folder", lambda: self.switch_page('categories'), None),
-            ("المستودعات", "warehouse", lambda: self.switch_page('warehouses'), None),
+        self.top_bar.add_menu_button(translate("inventory"), "boxes", [
+            (translate("items"), "box", lambda: self.switch_page('items'), None),
+            (translate("categories"), "folder", lambda: self.switch_page('categories'), None),
+            (translate("warehouses"), "warehouse", lambda: self.switch_page('warehouses'), None),
         ])
-        self.top_bar.add_menu_button("التصنيع", "industry", [
-            ("قوائم المواد", "list", lambda: self.switch_page('manufacturing'), None),
-            ("أوامر الإنتاج", "tasks", lambda: self.switch_page('manufacturing'), None),
+        self.top_bar.add_menu_button(translate("manufacturing"), "industry", [
+            (translate("bom"), "list", lambda: self.switch_page('manufacturing'), None),
+            (translate("production_orders"), "tasks", lambda: self.switch_page('manufacturing'), None),
         ])
-        self.top_bar.add_menu_button("التقارير", "chart-line", [
-            ("قائمة الدخل", "chart-line", lambda: self.switch_page('reports'), None),
-            ("الميزانية العمومية", "building", lambda: self.switch_page('reports'), None),
-            ("كشف حساب عميل", "user", lambda: self.switch_page('reports'), None),
-            ("كشف حساب مورد", "truck", lambda: self.switch_page('reports'), None),
+        self.top_bar.add_menu_button(translate("reports"), "chart-line", [
+            (translate("income_statement"), "chart-line", lambda: self.switch_page('reports'), None),
+            (translate("balance_sheet"), "building", lambda: self.switch_page('reports'), None),
+            (translate("customer_statement"), "user", lambda: self.switch_page('reports'), None),
+            (translate("supplier_statement"), "truck", lambda: self.switch_page('reports'), None),
         ])
-        self.top_bar.add_menu_button("الإدارة", "cog", [
-            ("الإعدادات", "sliders-h", lambda: self.switch_page('settings'), None),
-            ("الفروع", "code-branch", lambda: self.switch_page('branches'), None),
+        self.top_bar.add_menu_button(translate("management"), "cog", [
+            (translate("settings"), "sliders-h", lambda: self.switch_page('settings'), None),
+            (translate("branches"), "code-branch", lambda: self.switch_page('branches'), None),
             ("طباعة احترافية", "print", lambda: self.show_print_dialog(), None),
             ("تغيير كلمة المرور", "key", lambda: self.change_password(), None),
         ])
         if UserSession.is_admin():
-            self.top_bar.add_menu_button("المستخدمين", "user-cog", [
-                ("إدارة المستخدمين", "users", lambda: self.switch_page('users'), None),
-                ("سجل التدقيق", "history", lambda: self.switch_page('audit_log'), None),
+            self.top_bar.add_menu_button(translate("users"), "user-cog", [
+                (translate("users"), "users", lambda: self.switch_page('users'), None),
+                (translate("audit_log"), "history", lambda: self.switch_page('audit_log'), None),
             ])
-        self.top_bar.add_button("مساعدة", "question-circle", self.show_about, show_text=True)
+        self.top_bar.add_button(translate("help"), "question-circle", self.show_about, show_text=True)
 
         self.top_bar.search_box.returnPressed.connect(self.global_search)
         self.top_bar.theme_btn.clicked.connect(self.toggle_theme)
@@ -306,7 +312,7 @@ class MainWindow(QMainWindow):
         self.pos_shortcut = QShortcut(QKeySequence('F2'), self)
         self.pos_shortcut.activated.connect(lambda: self.switch_page('pos'))
         self.sale_shortcut = QShortcut(QKeySequence('F3'), self)
-        self.sale_shortcut.activated.connect(lambda: self.switch_page('invoices'))
+        self.sale_shortcut.activated.connect(lambda: self.switch_page('sales_invoices'))
         self.new_item_shortcut = QShortcut(QKeySequence('F4'), self)
         self.new_item_shortcut.activated.connect(lambda: self.switch_page('items'))
         self.warehouse_shortcut = QShortcut(QKeySequence('F5'), self)
@@ -318,7 +324,7 @@ class MainWindow(QMainWindow):
         try:
             from core.services.invoice_service import invoice_service
             pending = invoice_service.pending_count()
-            self.top_bar.set_badge("الفواتير", pending)
+            self.top_bar.set_badge(translate("sales_invoices"), pending)
         except:
             pass
 
@@ -348,7 +354,7 @@ class MainWindow(QMainWindow):
 
     def show_about(self):
         from PyQt5.QtWidgets import QMessageBox
-        QMessageBox.about(self, "حول البرنامج",
+        QMessageBox.about(self, translate("about"),
             "<h3>الراجحي للمحاسبة</h3>"
             "<p>الإصدار 2.0</p>"
             "<p>نظام متكامل لإدارة المحاسبة والمخزون والتصنيع</p>")
@@ -390,6 +396,8 @@ class MainWindow(QMainWindow):
             self.max_btn.setIcon(qta.icon('fa5s.window-restore'))
 
     def switch_page(self, pid):
+        if pid == 'invoices':
+            pid = 'sales_invoices'
         if pid in self.pages:
             if self.stack.currentWidget() is not self.pages[pid]:
                 self.stack.setCurrentWidget(self.pages[pid])
@@ -403,7 +411,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "نجاح", "تم تغيير كلمة المرور")
 
     def logout(self):
-        reply = QMessageBox.question(self, "تسجيل الخروج", "هل تريد تسجيل الخروج؟",
+        reply = QMessageBox.question(self, translate("logout"), "هل تريد تسجيل الخروج؟",
                                      QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             from database.connection import DatabaseConnection

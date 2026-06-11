@@ -98,7 +98,11 @@ class ManufacturingService:
         return result
 
     def cancel_production(self, order_id: int):
-        return manufacturing_dao.cancel_production(order_id)
+        old = self.get_production_order(order_id)
+        result = manufacturing_dao.cancel_production(order_id)
+        new = self.get_production_order(order_id)
+        audit_service.log('CANCEL', 'PRODUCTION_ORDER', order_id, old_values=old, new_values=new, details='إلغاء أمر إنتاج')
+        return result
 
     def consume_material(self, order_id: int, item_id: int, consumed_qty, unit_cost):
         result = manufacturing_dao.consume_material(order_id, item_id, consumed_qty, unit_cost)
@@ -113,7 +117,10 @@ class ManufacturingService:
         return result
 
     def delete_production_order(self, order_id: int):
-        return manufacturing_dao.delete_production_order(order_id)
+        old = self.get_production_order(order_id)
+        result = manufacturing_dao.delete_production_order(order_id)
+        audit_service.log('DELETE', 'PRODUCTION_ORDER', order_id, old_values=old, details='حذف أمر إنتاج')
+        return result
 
     def reverse_production_order(self, order_id: int):
         old = self.get_production_order(order_id)
@@ -142,10 +149,28 @@ class ManufacturingService:
         return records(manufacturing_dao.get_outputs(order_id), 'outputs')
 
     def delete_consumption(self, consumption_id: int):
-        return manufacturing_dao.delete_consumption(consumption_id)
+        old = None
+        try:
+            conn = manufacturing_dao.db
+            row = conn.execute('SELECT * FROM production_consumptions WHERE id=?', (consumption_id,)).fetchone()
+            old = dict(row) if row else None
+        except Exception:
+            pass
+        result = manufacturing_dao.delete_consumption(consumption_id)
+        audit_service.log('DELETE', 'PRODUCTION_CONSUMPTION', consumption_id, old_values=old, details='حذف استهلاك مادة إنتاج')
+        return result
 
     def delete_output(self, output_id: int):
-        return manufacturing_dao.delete_output(output_id)
+        old = None
+        try:
+            conn = manufacturing_dao.db
+            row = conn.execute('SELECT * FROM production_outputs WHERE id=?', (output_id,)).fetchone()
+            old = dict(row) if row else None
+        except Exception:
+            pass
+        result = manufacturing_dao.delete_output(output_id)
+        audit_service.log('DELETE', 'PRODUCTION_OUTPUT', output_id, old_values=old, details='حذف مخرج إنتاج')
+        return result
 
 
 manufacturing_service = ManufacturingService()

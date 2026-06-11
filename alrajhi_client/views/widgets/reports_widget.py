@@ -4,10 +4,12 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QCo
 from PyQt5.QtCore import Qt, QDate
 from decimal import Decimal
 from core.services.reporting_service import reporting_service
+from core.services.settings_service import settings_service
 from core.services.warehouse_service import warehouse_service
 from currency import currency
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
+from views.widgets.modern_ui import apply_modern_widget
 
 
 class ReportsWidget(QWidget):
@@ -101,9 +103,11 @@ class ReportsWidget(QWidget):
         self.tabs.addTab(self.cash_movements_tab, "حركات الصناديق")
         self.tabs.addTab(self.bank_movements_tab, "حركات البنوك")
         self.tabs.addTab(self.pos_shifts_tab, "ورديات POS")
+        self._apply_pos_shift_report_visibility()
         layout.addWidget(self.tabs)
 
         self.on_period_type_changed()
+        apply_modern_widget(self, '📊 التقارير', 'تقارير مالية ومخزنية وصناديق وبنوك')
         self.refresh_report()
 
     def _load_warehouses(self):
@@ -216,6 +220,15 @@ class ReportsWidget(QWidget):
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         table.horizontalHeader().setStretchLastSection(True)
         return model
+
+    def _apply_pos_shift_report_visibility(self):
+        try:
+            if not settings_service.pos_shifts_enabled():
+                idx = self.tabs.indexOf(self.pos_shifts_tab)
+                if idx >= 0:
+                    self.tabs.removeTab(idx)
+        except Exception:
+            pass
 
     def refresh_report(self):
         start, end = self.get_date_range()

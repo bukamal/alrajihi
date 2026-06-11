@@ -18,8 +18,9 @@ from views.dialogs.activation_dialog import ActivationDialog
 from views.dialogs.login_dialog import LoginDialog
 from views.main_window import MainWindow
 from auth.session import UserSession
-from utils import enable_auto_select_all
+from utils import enable_auto_select_all, install_non_blocking_message_boxes
 from theme_manager import ThemeManager
+from i18n.translator import translate, set_language
 
 _backup_stop_event = None
 _backup_thread = None
@@ -146,10 +147,12 @@ def main():
         return
 
     app = QApplication(sys.argv)
+    install_non_blocking_message_boxes(app)
     app.setFont(QFont("Tajawal", 10))
     enable_auto_select_all(app)
 
     settings = QSettings("Alrajhi", "Accounting")
+    set_language(settings.value("language", "ar"))
 
     from database.connection import DatabaseConnection
     db_conn = DatabaseConnection()
@@ -187,14 +190,14 @@ def main():
     ThemeManager.init_app(app)
 
     splash = ModernSplashScreen()
-    splash.set_progress(10, "جاري تهيئة قاعدة البيانات...")
+    splash.set_progress(10, translate("startup_database"))
     ensure_db()
     try:
         warehouse_service.bootstrap()
     except Exception as e:
         print(f"Warehouse bootstrap warning: {e}")
 
-    splash.set_progress(30, "التحقق من الترخيص...")
+    splash.set_progress(30, translate("startup_license"))
     activated, _ = check_activation()
     if not activated:
         old_splash = splash
@@ -206,11 +209,11 @@ def main():
         old_splash.close()
         old_splash.deleteLater()
         splash = ModernSplashScreen()
-        splash.set_progress(30, "تم التفعيل...")
+        splash.set_progress(30, translate("startup_license"))
 
     start_license_checker(24, on_license_invalid)
 
-    splash.set_progress(60, "تسجيل الدخول...")
+    splash.set_progress(60, translate("startup_login"))
     login = LoginDialog(splash)
     splash.hide()
     if login.exec() != LoginDialog.Accepted:
@@ -225,7 +228,7 @@ def main():
             repo = UserRepository()
             repo.set_force_password_change(UserSession.get_current()['id'], False)
 
-    splash.set_progress(90, "جاري تحميل الواجهة...")
+    splash.set_progress(90, translate("startup_ui"))
     window = MainWindow()
     splash.finish(window)
     window.show()

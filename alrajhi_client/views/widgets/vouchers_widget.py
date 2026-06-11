@@ -12,6 +12,7 @@ from currency import currency
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 class VouchersWidget(QWidget):
     def __init__(self, parent=None):
@@ -61,6 +62,7 @@ class VouchersWidget(QWidget):
         pagination_layout.addStretch()
         layout.addLayout(pagination_layout)
 
+        apply_modern_widget(self, '🧾 السندات', 'إدارة سندات القبض والصرف والبحث السريع')
         self.refresh()
 
     def refresh(self):
@@ -201,6 +203,7 @@ class VoucherDialog(QDialog):
         btn_box.accepted.connect(self.save)
         btn_box.rejected.connect(self.reject)
         layout.addWidget(btn_box)
+        apply_modern_dialog(self, 'سند قبض/صرف')
 
         def update_visibility():
             typ = self.type_combo.currentText()

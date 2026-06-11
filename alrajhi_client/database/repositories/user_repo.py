@@ -143,8 +143,14 @@ class UserRepository(BaseRepository):
             # قد لا يكون مدعوماً في وضع العميل
             pass
         else:
+            old = self.get_by_id(user_id)
             val = 1 if force else 0
             self._execute("UPDATE users SET force_password_change=? WHERE id=?", (val, user_id))
             self._commit()
+            try:
+                from core.services.audit_service import audit_service
+                audit_service.log('UPDATE', 'USER', None, old_values=old, new_values=self.get_by_id(user_id), details='تعديل إلزام تغيير كلمة المرور')
+            except Exception:
+                pass
 
 

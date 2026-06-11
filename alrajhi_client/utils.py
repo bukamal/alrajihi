@@ -44,18 +44,72 @@ def clean_text(text: str) -> str:
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
-def show_toast(message, msg_type='info', parent=None):
+def show_toast(message, msg_type='info', parent=None, duration=2600):
+    """Show a non-blocking professional toast notification."""
     try:
         from views.widgets.toast_notification import ToastNotification
-        if parent:
-            toast = ToastNotification(message, msg_type, parent)
-            toast.show_toast()
-        else:
-            from PyQt5.QtWidgets import QMessageBox
-            QMessageBox.information(parent, "معلومة", message)
-    except ImportError:
-        from PyQt5.QtWidgets import QMessageBox
-        QMessageBox.information(parent, "معلومة", message)
+        target = parent or QApplication.activeWindow()
+        toast = ToastNotification(message, msg_type, target, duration=duration)
+        toast.show_toast()
+        app = QApplication.instance()
+        if app is not None:
+            refs = getattr(app, '_toast_refs', [])
+            refs.append(toast)
+            app._toast_refs = refs[-8:]
+    except Exception:
+        print(f"[{msg_type}] {message}")
+
+
+def install_non_blocking_message_boxes(app=None):
+    """Replace OK-style QMessageBox info/warning/error with auto-dismiss toasts.
+
+    Confirmation dialogs (QMessageBox.question) are intentionally not changed.
+    """
+    from PyQt5.QtWidgets import QMessageBox
+    if getattr(QMessageBox, '_alrajhi_toast_patched', False):
+        return
+
+    def _toast(parent, title, message, msg_type='info', *args, **kwargs):
+        show_toast(message or title, msg_type, parent)
+        return QMessageBox.Ok
+
+    QMessageBox.information = staticmethod(
+        lambda parent, title, message='', *a, **k: _toast(
+            parent, title, message,
+            'success' if str(title).strip() in ('نجاح', 'تم الحفظ', 'تم') else 'info',
+            *a, **k
+        )
+    )
+    QMessageBox.warning = staticmethod(lambda parent, title, message='', *a, **k: _toast(parent, title, message, 'warning', *a, **k))
+    QMessageBox.critical = staticmethod(lambda parent, title, message='', *a, **k: _toast(parent, title, message, 'error', *a, **k))
+    QMessageBox._alrajhi_toast_patched = True
+
+
+def focus_first_input(widget, delay=120):
+    """Focus the first practical input field in a dialog/window."""
+    def _focus():
+        try:
+            candidates = []
+            for cls in (QLineEdit, QComboBox, QDoubleSpinBox, QSpinBox, QDateEdit, QTextEdit):
+                candidates.extend(widget.findChildren(cls))
+            # Prefer text fields, then combos, then numeric/date fields.
+            candidates.sort(key=lambda w: 0 if isinstance(w, QLineEdit) else 1 if isinstance(w, QComboBox) else 2)
+            for child in candidates:
+                if not child.isVisible() or not child.isEnabled():
+                    continue
+                child.setFocus(Qt.OtherFocusReason)
+                if isinstance(child, QLineEdit):
+                    child.selectAll()
+                elif isinstance(child, QComboBox) and child.isEditable() and child.lineEdit():
+                    child.lineEdit().selectAll()
+                elif isinstance(child, (QSpinBox, QDoubleSpinBox)):
+                    le = child.findChild(QLineEdit)
+                    if le:
+                        le.selectAll()
+                return
+        except Exception:
+            pass
+    QTimer.singleShot(delay, _focus)
 
 # ========== تحديد النص تلقائياً ==========
 class AutoSelectManager(QObject):

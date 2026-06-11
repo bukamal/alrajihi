@@ -30,6 +30,37 @@ class AuditService:
         except Exception:
             return set()
 
+    def ensure_schema(self, conn) -> None:
+        """Create/upgrade audit_log defensively on every audit write.
+
+        This makes the feature safe for old customer databases even when the
+        normal migration path was skipped or the file was copied manually.
+        """
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT,
+                username TEXT,
+                action TEXT,
+                table_name TEXT,
+                record_id INTEGER,
+                details TEXT,
+                ip_address TEXT,
+                timestamp TEXT
+            )
+        """)
+        cols = self._columns(conn, 'audit_log')
+        for col_name, col_type in [
+            ('event_time', 'TEXT'), ('entity_type', 'TEXT'), ('entity_id', 'INTEGER'),
+            ('old_values', 'TEXT'), ('new_values', 'TEXT'), ('session_id', 'TEXT'), ('source', 'TEXT')
+        ]:
+            if col_name not in cols:
+                conn.execute(f"ALTER TABLE audit_log ADD COLUMN {col_name} {col_type}")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log(entity_type, entity_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action)")
+
     def log(self, action: str, entity_type: str, entity_id: Optional[int] = None,
             old_values: Any = None, new_values: Any = None, details: str = '',
             source: str = 'USER', ip_address: str = '127.0.0.1') -> None:
@@ -39,6 +70,7 @@ class AuditService:
                 # In client/server mode the server is authoritative for audit entries.
                 return
             conn = db.get_connection()
+            self.ensure_schema(conn)
             cols = self._columns(conn, 'audit_log')
             now = datetime.datetime.now().isoformat(timespec='seconds')
             user = UserSession.get_current() or {}

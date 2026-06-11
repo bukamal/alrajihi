@@ -10,6 +10,7 @@ from core.services.branch_service import branch_service
 from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 
 class BranchDialog(QDialog):
@@ -42,6 +43,8 @@ class BranchDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        apply_modern_dialog(self, 'فرع جديد' if not data else 'تعديل فرع')
+        self.name_edit.setFocus()
 
     def payload(self):
         return {
@@ -59,6 +62,7 @@ class BranchesWidget(QWidget):
         super().__init__(parent)
         self.setLayoutDirection(Qt.RightToLeft)
         self._setup_ui()
+        apply_modern_widget(self, '🏬 الفروع', 'إدارة فروع الشركة والربط مع المستودعات')
         self.refresh()
 
     def _setup_ui(self):

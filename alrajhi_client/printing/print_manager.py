@@ -122,13 +122,13 @@ class PrintManager:
 
     @staticmethod
     def print_invoice(invoice_data, parent=None):
-        html = ProfessionalInvoicePrinter.generate_invoice_html(invoice_data)
-        PrintManager.print_html(html, f"فاتورة {invoice_data.get('reference', '')}", parent)
+        from printing.printing_service import printing_service
+        printing_service.invoice_preview(invoice_data, parent, paper='default')
 
 
 class ProfessionalInvoicePrinter:
     @staticmethod
-    def generate_invoice_html(invoice_data, paper='a4'):
+    def generate_invoice_html(invoice_data, paper='default'):
         return invoice_html(invoice_data, paper)
 
 

@@ -9,6 +9,7 @@ from views.dialogs.bom_dialog import BOMDialog
 from views.dialogs.production_order_dialog import ProductionOrderDialog
 from views.dialogs.production_details_dialog import ProductionDetailsDialog
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_widget
 
 class ManufacturingWidget(QWidget):
     def __init__(self, parent=None):
@@ -31,6 +32,7 @@ class ManufacturingWidget(QWidget):
         self.tabs.addTab(self.bom_tab, "قوائم المواد (BOM)")
         self.tabs.addTab(self.orders_tab, "أوامر الإنتاج")
         layout.addWidget(self.tabs)
+        apply_modern_widget(self, '🏭 التصنيع', 'وصفات الإنتاج، أوامر التصنيع، والاستهلاك')
 
         self.refresh_bom()
         self.refresh_orders()

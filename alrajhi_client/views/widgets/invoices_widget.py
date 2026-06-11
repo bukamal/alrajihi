@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
-                             QTabWidget, QDateEdit, QComboBox, QLabel, QHeaderView, QMessageBox)
+                             QTabWidget, QDateEdit, QComboBox, QLabel, QHeaderView, QMessageBox, QFrame)
 from PyQt5.QtCore import Qt, QDate
 from decimal import Decimal
 from core.services.invoice_service import invoice_service
@@ -13,9 +13,18 @@ from utils import show_toast
 from views.widgets.components.table_toolbar import TableToolbar
 
 class InvoicesWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, invoice_scope=None):
+        """Invoice list widget.
+
+        invoice_scope:
+            None       -> legacy combined widget with sale/purchase tabs.
+            'sale'     -> standalone sales invoices page.
+            'purchase' -> standalone purchase invoices page.
+        """
         super().__init__(parent)
         self.setLayoutDirection(Qt.RightToLeft)
+        self._apply_page_style()
+        self.invoice_scope = invoice_scope
         self.sales_page = 0
         self.purchases_page = 0
         self.page_size = 50
@@ -24,19 +33,107 @@ class InvoicesWidget(QWidget):
         layout.setSpacing(12)
         layout.setContentsMargins(12, 12, 12, 12)
 
-        self.tabs = QTabWidget()
-        self.sales_tab = QWidget()
-        self.purchases_tab = QWidget()
-        self.setup_sales_tab()
-        self.setup_purchases_tab()
-        self.tabs.addTab(self.sales_tab, "💰 فواتير البيع")
-        self.tabs.addTab(self.purchases_tab, "📦 فواتير الشراء")
-        layout.addWidget(self.tabs)
+        if invoice_scope == 'sale':
+            self.sales_tab = QWidget()
+            self.setup_sales_tab()
+            layout.addWidget(self.sales_tab)
+        elif invoice_scope == 'purchase':
+            self.purchases_tab = QWidget()
+            self.setup_purchases_tab()
+            layout.addWidget(self.purchases_tab)
+        else:
+            self.tabs = QTabWidget()
+            self.sales_tab = QWidget()
+            self.purchases_tab = QWidget()
+            self.setup_sales_tab()
+            self.setup_purchases_tab()
+            self.tabs.addTab(self.sales_tab, "💰 فواتير البيع")
+            self.tabs.addTab(self.purchases_tab, "📦 فواتير الشراء")
+            layout.addWidget(self.tabs)
 
         self.refresh_all()
 
+    def _apply_page_style(self):
+        self.setStyleSheet("""
+            QWidget {
+                background: #f8fafc;
+            }
+            QFrame#InvoicePageCard {
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 14px;
+            }
+            QLabel#PageTitle {
+                color: #0f172a;
+                font-size: 22px;
+                font-weight: 800;
+            }
+            QLabel#PageSubtitle {
+                color: #64748b;
+                font-size: 12px;
+            }
+            QLabel#FilterLabel {
+                color: #475569;
+                font-weight: 700;
+            }
+            QLineEdit, QComboBox, QDateEdit {
+                min-height: 34px;
+                border: 1px solid #cbd5e1;
+                border-radius: 9px;
+                padding: 5px 9px;
+                background: #ffffff;
+            }
+            QTableView {
+                background: #ffffff;
+                alternate-background-color: #f8fafc;
+                gridline-color: #e2e8f0;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                selection-background-color: #dbeafe;
+                selection-color: #0f172a;
+            }
+            QHeaderView::section {
+                background: #f1f5f9;
+                color: #0f172a;
+                font-weight: 700;
+                padding: 8px;
+                border: none;
+                border-left: 1px solid #e2e8f0;
+            }
+            QPushButton {
+                min-height: 32px;
+                border-radius: 8px;
+                padding: 5px 12px;
+                background: #ffffff;
+                border: 1px solid #cbd5e1;
+                font-weight: 600;
+            }
+            QPushButton:hover { background: #f1f5f9; }
+        """)
+
+    def _make_page_header(self, title, subtitle):
+        card = QFrame()
+        card.setObjectName("InvoicePageCard")
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(16, 12, 16, 12)
+        title_label = QLabel(title)
+        title_label.setObjectName("PageTitle")
+        subtitle_label = QLabel(subtitle)
+        subtitle_label.setObjectName("PageSubtitle")
+        layout.addWidget(title_label)
+        layout.addWidget(subtitle_label)
+        return card
+
+    def _label(self, text):
+        label = QLabel(text)
+        label.setObjectName("FilterLabel")
+        return label
+
     def setup_sales_tab(self):
         layout = QVBoxLayout(self.sales_tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+        layout.addWidget(self._make_page_header("فواتير المبيعات", "إدارة فواتير البيع بشكل مستقل مع بحث وفلاتر أسرع."))
 
         self.sales_toolbar = TableToolbar("فاتورة بيع", "بحث في فواتير البيع...", self)
         self.sales_toolbar.addRequested.connect(lambda: self.create_invoice('sale'))
@@ -57,29 +154,35 @@ class InvoicesWidget(QWidget):
         self.sales_start_date.setDate(QDate.currentDate().addDays(-30))
         self.sales_start_date.setCalendarPopup(True)
         self.sales_start_date.dateChanged.connect(lambda: self.refresh_tab('sale', reset_page=True))
-        filter_layout.addWidget(QLabel("من:"))
+        filter_layout.addWidget(self._label("من:"))
         filter_layout.addWidget(self.sales_start_date)
 
         self.sales_end_date = QDateEdit()
         self.sales_end_date.setDate(QDate.currentDate())
         self.sales_end_date.setCalendarPopup(True)
         self.sales_end_date.dateChanged.connect(lambda: self.refresh_tab('sale', reset_page=True))
-        filter_layout.addWidget(QLabel("إلى:"))
+        filter_layout.addWidget(self._label("إلى:"))
         filter_layout.addWidget(self.sales_end_date)
 
         self.sales_customer_combo = QComboBox()
         self.sales_customer_combo.addItem("الكل", None)
         self.load_customers()
         self.sales_customer_combo.currentIndexChanged.connect(lambda: self.refresh_tab('sale', reset_page=True))
-        filter_layout.addWidget(QLabel("العميل:"))
+        filter_layout.addWidget(self._label("العميل:"))
         filter_layout.addWidget(self.sales_customer_combo)
 
-        layout.addLayout(filter_layout)
+        filter_card = QFrame()
+        filter_card.setObjectName("InvoicePageCard")
+        filter_card_layout = QVBoxLayout(filter_card)
+        filter_card_layout.setContentsMargins(12, 10, 12, 10)
+        filter_card_layout.addLayout(filter_layout)
+        layout.addWidget(filter_card)
 
         self.sales_table = CustomTableView()
         self.sales_table.set_table_identity("InvoicesWidget.sales")
         self.sales_toolbar.set_table(self.sales_table)
         self.sales_table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.sales_table.verticalHeader().setDefaultSectionSize(38)
         self.sales_table.doubleClicked.connect(lambda idx: self.edit_invoice('sale', idx))
         layout.addWidget(self.sales_table)
 
@@ -98,6 +201,9 @@ class InvoicesWidget(QWidget):
 
     def setup_purchases_tab(self):
         layout = QVBoxLayout(self.purchases_tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
+        layout.addWidget(self._make_page_header("فواتير المشتريات", "إدارة فواتير الشراء بشكل مستقل مع الموردين والمستودعات."))
 
         self.purchases_toolbar = TableToolbar("فاتورة شراء", "بحث في فواتير الشراء...", self)
         self.purchases_toolbar.addRequested.connect(lambda: self.create_invoice('purchase'))
@@ -117,29 +223,35 @@ class InvoicesWidget(QWidget):
         self.purchases_start_date.setDate(QDate.currentDate().addDays(-30))
         self.purchases_start_date.setCalendarPopup(True)
         self.purchases_start_date.dateChanged.connect(lambda: self.refresh_tab('purchase', reset_page=True))
-        filter_layout.addWidget(QLabel("من:"))
+        filter_layout.addWidget(self._label("من:"))
         filter_layout.addWidget(self.purchases_start_date)
 
         self.purchases_end_date = QDateEdit()
         self.purchases_end_date.setDate(QDate.currentDate())
         self.purchases_end_date.setCalendarPopup(True)
         self.purchases_end_date.dateChanged.connect(lambda: self.refresh_tab('purchase', reset_page=True))
-        filter_layout.addWidget(QLabel("إلى:"))
+        filter_layout.addWidget(self._label("إلى:"))
         filter_layout.addWidget(self.purchases_end_date)
 
         self.purchases_supplier_combo = QComboBox()
         self.purchases_supplier_combo.addItem("الكل", None)
         self.load_suppliers()
         self.purchases_supplier_combo.currentIndexChanged.connect(lambda: self.refresh_tab('purchase', reset_page=True))
-        filter_layout.addWidget(QLabel("المورد:"))
+        filter_layout.addWidget(self._label("المورد:"))
         filter_layout.addWidget(self.purchases_supplier_combo)
 
-        layout.addLayout(filter_layout)
+        filter_card = QFrame()
+        filter_card.setObjectName("InvoicePageCard")
+        filter_card_layout = QVBoxLayout(filter_card)
+        filter_card_layout.setContentsMargins(12, 10, 12, 10)
+        filter_card_layout.addLayout(filter_layout)
+        layout.addWidget(filter_card)
 
         self.purchases_table = CustomTableView()
         self.purchases_table.set_table_identity("InvoicesWidget.purchases")
         self.purchases_toolbar.set_table(self.purchases_table)
         self.purchases_table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.purchases_table.verticalHeader().setDefaultSectionSize(38)
         self.purchases_table.doubleClicked.connect(lambda idx: self.edit_invoice('purchase', idx))
         layout.addWidget(self.purchases_table)
 
@@ -166,8 +278,13 @@ class InvoicesWidget(QWidget):
             self.purchases_supplier_combo.addItem(s.get('name', ''), s.get('id'))
 
     def refresh_all(self):
-        self.refresh_tab('sale', reset_page=True)
-        self.refresh_tab('purchase', reset_page=True)
+        if self.invoice_scope == 'sale':
+            self.refresh_tab('sale', reset_page=True)
+        elif self.invoice_scope == 'purchase':
+            self.refresh_tab('purchase', reset_page=True)
+        else:
+            self.refresh_tab('sale', reset_page=True)
+            self.refresh_tab('purchase', reset_page=True)
 
     def refresh_tab(self, inv_type, reset_page=False):
         if inv_type == 'sale':
@@ -361,3 +478,13 @@ class InvoicesWidget(QWidget):
             self.refresh_tab('purchase')
 
 
+class SalesInvoicesWidget(InvoicesWidget):
+    """Standalone sales invoices page; no purchase tab."""
+    def __init__(self, parent=None):
+        super().__init__(parent, invoice_scope='sale')
+
+
+class PurchaseInvoicesWidget(InvoicesWidget):
+    """Standalone purchase invoices page; no sales tab."""
+    def __init__(self, parent=None):
+        super().__init__(parent, invoice_scope='purchase')

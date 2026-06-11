@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import (QFormLayout, QLineEdit, QDoubleSpinBox, QComboBox, QPushButton,
                              QHBoxLayout, QVBoxLayout, QMessageBox, QTableWidget, QTableWidgetItem,
                              QHeaderView, QLabel, QWidget, QSplitter, QGroupBox, QApplication, QDialog,
-                             QShortcut)
+                             QShortcut, QFrame)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 from views.centered_dialog import CenteredDialog
@@ -33,25 +33,72 @@ class ItemDialog(CenteredDialog):
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self.content_widget)
-        splitter = QSplitter(Qt.Horizontal)
-        main_layout.addWidget(splitter)
+        main_layout.setSpacing(12)
+        main_layout.setContentsMargins(14, 14, 14, 14)
 
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setSpacing(15)
-        left_layout.setContentsMargins(10, 10, 10, 10)
+        header_card = QFrame()
+        header_card.setObjectName("HeaderCard")
+        header_layout = QHBoxLayout(header_card)
+        header_layout.setContentsMargins(16, 12, 16, 12)
+        header_layout.setSpacing(12)
 
-        left_layout.addWidget(QLabel("اسم المادة:"))
+        title_box = QVBoxLayout()
+        title_box.setSpacing(3)
+        title_label = QLabel("📦 بيانات المادة" if not self.is_edit else "📦 تعديل بيانات المادة")
+        title_label.setObjectName("DialogTitle")
+        subtitle_label = QLabel("واجهة موحدة بدون تبويبات: بيانات أساسية، أسعار، مخزون، ووحدات في أقسام واضحة مثل الفواتير.")
+        subtitle_label.setObjectName("DialogSubtitle")
+        title_box.addWidget(title_label)
+        title_box.addWidget(subtitle_label)
+        header_layout.addLayout(title_box, 1)
+
+        self.new_btn = QPushButton("جديد")
+        self.new_btn.setObjectName("softAction")
+        self.new_btn.clicked.connect(self.clear_for_new)
+        self.top_save_btn = QPushButton("حفظ")
+        self.top_save_btn.setObjectName("primary")
+        self.top_save_btn.clicked.connect(self.save)
+        self.top_cancel_btn = QPushButton("إلغاء")
+        self.top_cancel_btn.clicked.connect(self.reject)
+        header_layout.addWidget(self.new_btn)
+        header_layout.addWidget(self.top_save_btn)
+        header_layout.addWidget(self.top_cancel_btn)
+        main_layout.addWidget(header_card)
+
+        content_frame = QFrame()
+        content_frame.setObjectName("ContentCard")
+        content_layout = QHBoxLayout(content_frame)
+        content_layout.setContentsMargins(14, 14, 14, 14)
+        content_layout.setSpacing(12)
+
+        left_column = QWidget()
+        left_layout = QVBoxLayout(left_column)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(12)
+
+        right_column = QWidget()
+        right_layout = QVBoxLayout(right_column)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(12)
+
+        general_group = QGroupBox("البيانات الأساسية")
+        general_group.setObjectName("FormCard")
+        general_form = QFormLayout(general_group)
+        general_form.setLabelAlignment(Qt.AlignRight)
+        general_form.setFormAlignment(Qt.AlignTop)
+        general_form.setHorizontalSpacing(16)
+        general_form.setVerticalSpacing(10)
+
         self.name_edit = QLineEdit()
         self.name_edit.setPlaceholderText("اسم المادة (مطلوب)")
-        left_layout.addWidget(self.name_edit)
+        general_form.addRow("اسم المادة:", self.name_edit)
         self.name_error = make_error_label()
-        left_layout.addWidget(self.name_error)
+        general_form.addRow("", self.name_error)
 
-        left_layout.addWidget(QLabel("الباركود:"))
         barcode_widget = QWidget()
         barcode_layout = QHBoxLayout(barcode_widget)
         barcode_layout.setContentsMargins(0, 0, 0, 0)
+        barcode_layout.setSpacing(8)
         self.barcode_edit = QLineEdit()
         self.barcode_edit.setPlaceholderText("EAN-13 أو Code128")
         self.barcode_type_combo = QComboBox()
@@ -63,84 +110,111 @@ class ItemDialog(CenteredDialog):
         camera_btn = QPushButton("📷 مسح")
         camera_btn.setToolTip("مسح باركود/QR بالكاميرا إن كانت متاحة")
         camera_btn.clicked.connect(self.scan_barcode_with_camera)
-        barcode_layout.addWidget(self.barcode_edit)
+        barcode_layout.addWidget(self.barcode_edit, 1)
         barcode_layout.addWidget(self.barcode_type_combo)
         barcode_layout.addWidget(generate_btn)
         barcode_layout.addWidget(camera_btn)
-        left_layout.addWidget(barcode_widget)
+        general_form.addRow("الباركود:", barcode_widget)
         self.barcode_status_label = QLabel("")
         self.barcode_status_label.setStyleSheet("font-size: 11px; color: #666;")
-        left_layout.addWidget(self.barcode_status_label)
+        general_form.addRow("", self.barcode_status_label)
         self.barcode_error = make_error_label()
-        left_layout.addWidget(self.barcode_error)
+        general_form.addRow("", self.barcode_error)
         self.barcode_edit.textChanged.connect(self.update_barcode_status)
-        self.update_barcode_status()
 
-        left_layout.addWidget(QLabel("التصنيف:"))
         self.category_combo = QComboBox()
         self.category_combo.addItems(self.category_names)
-        left_layout.addWidget(self.category_combo)
+        general_form.addRow("التصنيف:", self.category_combo)
 
-        left_layout.addWidget(QLabel("نوع المادة:"))
         self.type_combo = QComboBox()
         self.type_combo.addItems(["مخزون", "منتج نهائي", "خدمة"])
-        left_layout.addWidget(self.type_combo)
+        general_form.addRow("نوع المادة:", self.type_combo)
 
-        left_layout.addWidget(QLabel("الوحدة الأساسية:"))
         self.unit_edit = QLineEdit()
         self.unit_edit.setPlaceholderText("مثال: قطعة، كيلو، متر")
-        left_layout.addWidget(self.unit_edit)
+        if not self.is_edit:
+            self.unit_edit.setText("قطعة")
+        general_form.addRow("الوحدة الأساسية:", self.unit_edit)
         self.unit_error = make_error_label()
-        left_layout.addWidget(self.unit_error)
+        general_form.addRow("", self.unit_error)
+        left_layout.addWidget(general_group)
 
-        prices_widget = QWidget()
-        prices_layout = QHBoxLayout(prices_widget)
-        prices_layout.setContentsMargins(0, 0, 0, 0)
+        prices_group = QGroupBox("الأسعار")
+        prices_group.setObjectName("FormCard")
+        prices_form = QFormLayout(prices_group)
+        prices_form.setLabelAlignment(Qt.AlignRight)
+        prices_form.setHorizontalSpacing(16)
+        prices_form.setVerticalSpacing(12)
+
         self.purchase_spin = QDoubleSpinBox()
         self.purchase_spin.setRange(0, 999999999)
         self.purchase_spin.setDecimals(2)
         self.purchase_spin.setPrefix(f"{self.symbol} ")
+        prices_form.addRow("سعر الشراء:", self.purchase_spin)
+
         self.selling_spin = QDoubleSpinBox()
         self.selling_spin.setRange(0, 999999999)
         self.selling_spin.setDecimals(2)
         self.selling_spin.setPrefix(f"{self.symbol} ")
-        prices_layout.addWidget(QLabel("سعر الشراء:"))
-        prices_layout.addWidget(self.purchase_spin)
-        prices_layout.addWidget(QLabel("سعر البيع:"))
-        prices_layout.addWidget(self.selling_spin)
-        left_layout.addWidget(prices_widget)
+        prices_form.addRow("سعر البيع:", self.selling_spin)
 
-        left_layout.addWidget(QLabel("الكمية الافتتاحية:"))
+        self.margin_label = QLabel("هامش الربح: —")
+        self.margin_label.setObjectName("InfoLabel")
+        prices_form.addRow("", self.margin_label)
+        self.purchase_spin.valueChanged.connect(self.update_margin_preview)
+        self.selling_spin.valueChanged.connect(self.update_margin_preview)
+        left_layout.addWidget(prices_group)
+
+        stock_group = QGroupBox("المخزون")
+        stock_group.setObjectName("FormCard")
+        stock_form = QFormLayout(stock_group)
+        stock_form.setLabelAlignment(Qt.AlignRight)
+        stock_form.setHorizontalSpacing(16)
+        stock_form.setVerticalSpacing(12)
+
         self.qty_spin = QDoubleSpinBox()
         self.qty_spin.setRange(0, 999999)
         self.qty_spin.setDecimals(2)
-        left_layout.addWidget(self.qty_spin)
+        stock_form.addRow("الكمية الافتتاحية:", self.qty_spin)
         self.qty_error = make_error_label()
-        left_layout.addWidget(self.qty_error)
+        stock_form.addRow("", self.qty_error)
 
-        left_layout.addWidget(QLabel("حد إعادة الطلب:"))
         self.reorder_spin = QDoubleSpinBox()
         self.reorder_spin.setRange(0, 999999)
         self.reorder_spin.setDecimals(2)
         self.reorder_spin.setToolTip("عند وصول الكمية الحالية إلى هذا الحد تظهر المادة كمخزون منخفض. اتركه 0 لتعطيل التنبيه لهذه المادة.")
-        left_layout.addWidget(self.reorder_spin)
+        stock_form.addRow("حد إعادة الطلب:", self.reorder_spin)
         self.reorder_error = make_error_label()
-        left_layout.addWidget(self.reorder_error)
-        left_layout.addStretch()
+        stock_form.addRow("", self.reorder_error)
 
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
-        right_layout.setSpacing(15)
-        right_layout.setContentsMargins(10, 10, 10, 10)
+        self.stock_status_frame = QFrame()
+        self.stock_status_frame.setObjectName("StockStatusFrame")
+        stock_status_layout = QVBoxLayout(self.stock_status_frame)
+        stock_status_layout.setContentsMargins(12, 10, 12, 10)
+        self.current_stock_label = QLabel("الرصيد الحالي: —")
+        self.current_stock_label.setObjectName("StockValueLabel")
+        self.stock_warning_label = QLabel("لا يوجد تنبيه مخزون حالياً")
+        self.stock_warning_label.setObjectName("StockWarningLabel")
+        stock_status_layout.addWidget(self.current_stock_label)
+        stock_status_layout.addWidget(self.stock_warning_label)
+        stock_form.addRow("", self.stock_status_frame)
+
+        self.qty_spin.valueChanged.connect(self.update_stock_preview)
+        self.reorder_spin.valueChanged.connect(self.update_stock_preview)
+        right_layout.addWidget(stock_group)
 
         units_group = QGroupBox("الوحدات الفرعية (للتحويل في الفواتير)")
+        units_group.setObjectName("FormCard")
         units_layout = QVBoxLayout(units_group)
         self.units_table = QTableWidget()
         self.units_table.setColumnCount(3)
         self.units_table.setHorizontalHeaderLabels(["الوحدة", "عامل التحويل", ""])
-        self.units_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.units_table.setColumnWidth(2, 50)
+        self.units_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.units_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.units_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+        self.units_table.setColumnWidth(2, 58)
         self.units_table.verticalHeader().setVisible(False)
+        self.units_table.setAlternatingRowColors(True)
         units_layout.addWidget(self.units_table)
 
         btn_units_layout = QHBoxLayout()
@@ -148,27 +222,193 @@ class ItemDialog(CenteredDialog):
         add_unit_btn.clicked.connect(self.add_subunit)
         remove_unit_btn = QPushButton("🗑 حذف المحددة")
         remove_unit_btn.clicked.connect(self.remove_subunit)
+        btn_units_layout.addStretch()
         btn_units_layout.addWidget(add_unit_btn)
         btn_units_layout.addWidget(remove_unit_btn)
         units_layout.addLayout(btn_units_layout)
-        right_layout.addWidget(units_group)
-        right_layout.addStretch()
+        right_layout.addWidget(units_group, 1)
 
-        splitter.addWidget(left_widget)
-        splitter.addWidget(right_widget)
-        splitter.setSizes([550, 350])
+        content_layout.addWidget(left_column, 1)
+        content_layout.addWidget(right_column, 1)
+        main_layout.addWidget(content_frame, 1)
 
-        btn_layout = QHBoxLayout()
+        action_card = QFrame()
+        action_card.setObjectName("ActionCard")
+        btn_layout = QHBoxLayout(action_card)
+        btn_layout.setContentsMargins(12, 10, 12, 10)
+        btn_layout.setSpacing(10)
+        hint_label = QLabel("Ctrl+S للحفظ — Esc للإلغاء")
+        hint_label.setObjectName("muted")
         self.save_btn = QPushButton("حفظ (Ctrl+S)")
         self.save_btn.setObjectName("primary")
         self.cancel_btn = QPushButton("إلغاء (Esc)")
+        btn_layout.addWidget(hint_label)
+        btn_layout.addStretch()
         btn_layout.addWidget(self.save_btn)
         btn_layout.addWidget(self.cancel_btn)
-        main_layout.addLayout(btn_layout)
+        main_layout.addWidget(action_card)
 
         self.save_btn.clicked.connect(self.save)
         self.cancel_btn.clicked.connect(self.reject)
 
+        self.apply_modern_item_style()
+        self.update_barcode_status()
+        self.update_margin_preview()
+        self.update_stock_preview()
+        self.name_edit.setFocus()
+
+
+
+    def apply_modern_item_style(self):
+        accent = "#2563eb"
+        self.setStyleSheet(self.styleSheet() + f"""
+            QDialog {{
+                background: #f8fafc;
+            }}
+            QLabel#DialogTitle {{
+                color: #0f172a;
+                font-size: 21px;
+                font-weight: 800;
+            }}
+            QLabel#DialogSubtitle {{
+                color: #64748b;
+                font-size: 12px;
+            }}
+            QLabel#muted {{
+                color: #64748b;
+                font-size: 11px;
+            }}
+            QFrame#HeaderCard, QFrame#ActionCard, QFrame#ContentCard {{
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 14px;
+            }}
+            QGroupBox#FormCard {{
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 14px;
+                margin-top: 14px;
+                padding: 18px 14px 14px 14px;
+                font-weight: 800;
+                color: #0f172a;
+            }}
+            QGroupBox#FormCard::title {{
+                subcontrol-origin: margin;
+                right: 16px;
+                padding: 0 8px;
+                color: #0f172a;
+                background: #ffffff;
+            }}
+            QLineEdit, QComboBox, QDoubleSpinBox {{
+                min-height: 34px;
+                border: 1px solid #cbd5e1;
+                border-radius: 9px;
+                padding: 5px 9px;
+                background: #ffffff;
+                font-size: 13px;
+            }}
+            QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus {{
+                border: 1px solid {accent};
+                background: #f8fbff;
+            }}
+            QPushButton {{
+                min-height: 34px;
+                border-radius: 9px;
+                padding: 6px 12px;
+                border: 1px solid #cbd5e1;
+                background: #ffffff;
+                color: #0f172a;
+                font-weight: 600;
+            }}
+            QPushButton:hover {{ background: #f1f5f9; }}
+            QPushButton#primary {{
+                background: {accent};
+                color: white;
+                border: 1px solid {accent};
+                font-weight: 800;
+            }}
+            QPushButton#softAction {{
+                background: #f8fafc;
+            }}
+            QFrame#StockStatusFrame {{
+                border: 1px solid #dbeafe;
+                border-radius: 12px;
+                background: #eff6ff;
+            }}
+            QLabel#StockValueLabel {{
+                font-weight: 800;
+                color: #1e3a8a;
+            }}
+            QLabel#StockWarningLabel, QLabel#InfoLabel {{
+                color: #4b5563;
+            }}
+            QTableWidget {{
+                background: #ffffff;
+                alternate-background-color: #f8fafc;
+                gridline-color: #e2e8f0;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                selection-background-color: #dbeafe;
+                selection-color: #0f172a;
+            }}
+            QHeaderView::section {{
+                background: #f1f5f9;
+                color: #0f172a;
+                font-weight: 700;
+                padding: 8px;
+                border: none;
+                border-left: 1px solid #e2e8f0;
+            }}
+        """)
+
+    def clear_for_new(self):
+        if not self.is_edit:
+            self.name_edit.clear()
+            self.barcode_edit.setText(product_service.generate_barcode(self.barcode_type_combo.currentText()))
+            self.category_combo.setCurrentIndex(0)
+            self.type_combo.setCurrentIndex(0)
+            self.unit_edit.setText("قطعة")
+            self.purchase_spin.setValue(0)
+            self.selling_spin.setValue(0)
+            self.qty_spin.setValue(0)
+            self.reorder_spin.setValue(0)
+            self.units_table.setRowCount(0)
+            self.update_barcode_status()
+            self.update_margin_preview()
+            self.update_stock_preview()
+            self.name_edit.setFocus()
+            return
+        show_toast("زر جديد متاح عند إضافة مادة جديدة فقط", "info", self)
+
+    def update_margin_preview(self):
+        if not hasattr(self, 'margin_label'):
+            return
+        purchase = float(self.purchase_spin.value()) if hasattr(self, 'purchase_spin') else 0.0
+        selling = float(self.selling_spin.value()) if hasattr(self, 'selling_spin') else 0.0
+        profit = selling - purchase
+        margin = (profit / selling * 100) if selling > 0 else 0.0
+        self.margin_label.setText(f"هامش الربح: {profit:.2f} {self.symbol} ({margin:.1f}%)")
+        if profit < 0:
+            self.margin_label.setStyleSheet("color: #b91c1c; font-weight: 700;")
+        elif profit > 0:
+            self.margin_label.setStyleSheet("color: #047857; font-weight: 700;")
+        else:
+            self.margin_label.setStyleSheet("color: #4b5563;")
+
+    def update_stock_preview(self):
+        if not hasattr(self, 'current_stock_label'):
+            return
+        qty = float(self.qty_spin.value()) if hasattr(self, 'qty_spin') else 0.0
+        reorder = float(self.reorder_spin.value()) if hasattr(self, 'reorder_spin') else 0.0
+        self.current_stock_label.setText(f"الرصيد الحالي: {qty:.2f}")
+        if reorder > 0 and qty <= reorder:
+            self.stock_warning_label.setText("تنبيه: الرصيد الحالي أقل من أو يساوي حد إعادة الطلب")
+            self.stock_warning_label.setStyleSheet("color: #b91c1c; font-weight: 700;")
+            self.stock_status_frame.setStyleSheet("QFrame#StockStatusFrame { border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; }")
+        else:
+            self.stock_warning_label.setText("لا يوجد تنبيه مخزون حالياً")
+            self.stock_warning_label.setStyleSheet("color: #047857; font-weight: 700;")
+            self.stock_status_frame.setStyleSheet("QFrame#StockStatusFrame { border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; }")
 
     def scan_barcode_with_camera(self):
         try:
@@ -273,7 +513,7 @@ class ItemDialog(CenteredDialog):
                 if idx >= 0:
                     self.category_combo.setCurrentIndex(idx)
         self.type_combo.setCurrentText(item.get('item_type', 'مخزون'))
-        self.unit_edit.setText(item.get('unit', ''))
+        self.unit_edit.setText(item.get('unit') or 'قطعة')
 
         purchase_display = currency.convert(item.get('purchase_price', 0), 'USD', self.display_curr)
         selling_display = currency.convert(item.get('selling_price', 0), 'USD', self.display_curr)
@@ -314,6 +554,27 @@ class ItemDialog(CenteredDialog):
                 validator.custom(False, self.barcode_edit, self.barcode_error, str(e))
         else:
             FormValidator.clear(self.barcode_error, self.barcode_edit)
+        # تحقق من الوحدات الفرعية قبل الحفظ: لا تكرار، لا تطابق مع الوحدة الأساسية، وعامل تحويل موجب.
+        base_unit = " ".join(self.unit_edit.text().strip().split()).casefold()
+        seen_units = set()
+        for row in range(self.units_table.rowCount()):
+            unit_item = self.units_table.item(row, 0)
+            factor_item = self.units_table.item(row, 1)
+            unit_name = " ".join((unit_item.text() if unit_item else '').strip().split())
+            if not unit_name:
+                continue
+            key = unit_name.casefold()
+            if base_unit and key == base_unit:
+                validator.custom(False, self.unit_edit, self.unit_error, f"الوحدة الفرعية '{unit_name}' مطابقة للوحدة الأساسية")
+            if key in seen_units:
+                validator.custom(False, self.unit_edit, self.unit_error, f"الوحدة الفرعية '{unit_name}' مكررة")
+            seen_units.add(key)
+            try:
+                factor = Decimal(str(factor_item.text()).strip()) if factor_item and factor_item.text().strip() else Decimal('1')
+                if factor <= 0:
+                    raise ValueError
+            except Exception:
+                validator.custom(False, self.unit_edit, self.unit_error, f"عامل التحويل للوحدة '{unit_name}' يجب أن يكون أكبر من صفر")
         if not validator.is_valid:
             validator.focus_first_invalid()
             show_toast("يرجى تصحيح الحقول المحددة", "error", self)
@@ -342,7 +603,7 @@ class ItemDialog(CenteredDialog):
                     return
 
         item_type = self.type_combo.currentText()
-        unit = self.unit_edit.text().strip()
+        unit = self.unit_edit.text().strip() or 'قطعة'
 
         purchase_display = self.purchase_spin.value()
         selling_display = self.selling_spin.value()
@@ -364,20 +625,23 @@ class ItemDialog(CenteredDialog):
         }
 
         try:
+            units_payload = []
+            for row in range(self.units_table.rowCount()):
+                unit_item = self.units_table.item(row, 0)
+                factor_item = self.units_table.item(row, 1)
+                unit_name = unit_item.text().strip() if unit_item else ''
+                if not unit_name:
+                    continue
+                factor = float(factor_item.text()) if factor_item and factor_item.text().strip() else 1
+                units_payload.append({'unit_name': unit_name, 'conversion_factor': factor})
+
             if self.is_edit:
                 product_service.update_item(self.item_id, data)
-                product_service.clear_units(self.item_id)
-                for row in range(self.units_table.rowCount()):
-                    unit_name = self.units_table.item(row, 0).text()
-                    factor = float(self.units_table.item(row, 1).text())
-                    product_service.add_unit(self.item_id, unit_name, factor)
+                product_service.replace_units(self.item_id, units_payload)
                 show_toast("تم التعديل", "success", self)
             else:
                 new_id = product_service.add_item(data)
-                for row in range(self.units_table.rowCount()):
-                    unit_name = self.units_table.item(row, 0).text()
-                    factor = float(self.units_table.item(row, 1).text())
-                    product_service.add_unit(new_id, unit_name, factor)
+                product_service.replace_units(new_id, units_payload)
                 show_toast("تمت الإضافة", "success", self)
             self.accept()
         except Exception as e:

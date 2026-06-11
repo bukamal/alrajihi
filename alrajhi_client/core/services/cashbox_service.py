@@ -8,6 +8,13 @@ from core.services.branch_service import branch_service
 from database.dao.cashbox_dao import cashbox_dao
 
 class CashboxService:
+    def pos_shifts_enabled(self):
+        try:
+            from core.services.settings_service import settings_service
+            return settings_service.pos_shifts_enabled()
+        except Exception:
+            return False
+
     def bootstrap(self): cashbox_dao.bootstrap_defaults()
     def cashboxes(self, include_archived=False)->List[Dict]: return records(cashbox_dao.get_cashboxes(include_archived),'cashboxes')
     def bank_accounts(self, include_archived=False)->List[Dict]: return records(cashbox_dao.get_bank_accounts(include_archived),'bank_accounts')
@@ -60,20 +67,28 @@ class CashboxService:
         return cashbox_dao.delete_reference_movements(reference_type, reference_id)
 
     def current_open_shift(self, cashbox_id=None):
+        if not self.pos_shifts_enabled():
+            return None
         return cashbox_dao.current_open_shift(cashbox_id)
 
     def shifts(self, limit=100, status=None):
         return records(cashbox_dao.shifts(limit,status),'shifts')
 
     def open_shift(self, data):
+        if not self.pos_shifts_enabled():
+            raise ValueError('نظام الورديات معطل من الإعدادات')
         sid=cashbox_dao.open_shift(data)
         audit_service.log('POS_SHIFT_OPEN','POS_SHIFT',sid,new_values=data,details='فتح وردية كاشير')
         return sid
 
     def shift_summary(self, shift_id):
+        if not self.pos_shifts_enabled():
+            raise ValueError('نظام الورديات معطل من الإعدادات')
         return cashbox_dao.shift_summary(shift_id)
 
     def close_shift(self, shift_id, actual_amount, notes=''):
+        if not self.pos_shifts_enabled():
+            raise ValueError('نظام الورديات معطل من الإعدادات')
         old=cashbox_dao.shift_summary(shift_id)
         summary=cashbox_dao.close_shift(shift_id,actual_amount,notes)
         audit_service.log('POS_SHIFT_CLOSE','POS_SHIFT',shift_id,old_values=old,new_values=summary,details='إغلاق وردية كاشير')

@@ -12,6 +12,7 @@ from core.services.warehouse_service import warehouse_service
 from core.services.cashbox_service import cashbox_service
 from currency import currency
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 
 class SalesReturnDialog(CenteredDialog):
@@ -179,6 +180,7 @@ class ReturnsWidget(QWidget):
         self.page_size = 50
         self.total = 0
         self._init_ui()
+        apply_modern_widget(self, '↩️ مرتجعات المبيعات', 'تسجيل ومراجعة مرتجعات البيع')
         self.refresh()
 
     def _init_ui(self):
@@ -437,6 +439,7 @@ class PurchaseReturnsWidget(QWidget):
         self.page_size = 50
         self.total = 0
         self._init_ui()
+        apply_modern_widget(self, '↩️ مرتجعات المشتريات', 'تسجيل ومراجعة مرتجعات الشراء')
         self.refresh()
 
     def _init_ui(self):

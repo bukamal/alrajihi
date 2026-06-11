@@ -11,8 +11,8 @@ class TopBarButton(QPushButton):
         self.show_text = show_text
         self.setObjectName("TopBarButton")
         self.setCursor(Qt.PointingHandCursor)
-        self.setFixedHeight(40)
-        self.setMinimumWidth(92 if show_text else 48)
+        self.setFixedHeight(46)
+        self.setMinimumWidth(116 if show_text else 56)
         self.setIcon(qta.icon(f'fa5s.{icon_name}'))
         self.setIconSize(QSize(24, 24))
         self.setText(text if show_text else "")
@@ -43,7 +43,7 @@ class ModernTopBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("ModernTopBar")
-        self.setMinimumHeight(112)
+        self.setMinimumHeight(138)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.buttons = {}
         self.menus = {}
@@ -60,7 +60,7 @@ class ModernTopBar(QWidget):
         buttons.
         """
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(16, 8, 16, 10)
+        outer.setContentsMargins(18, 10, 18, 12)
         outer.setSpacing(8)
 
         # Context row: page title + breadcrumb on the right, utilities on the left.
@@ -86,8 +86,8 @@ class ModernTopBar(QWidget):
         self.search_box = QLineEdit()
         self.search_box.setObjectName("GlobalSearchBox")
         self.search_box.setPlaceholderText("بحث عام: مادة، عميل، فاتورة...")
-        self.search_box.setMinimumWidth(220)
-        self.search_box.setMaximumWidth(360)
+        self.search_box.setMinimumWidth(260)
+        self.search_box.setMaximumWidth(460)
         self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         info_row.addWidget(self.search_box, 1)
 
@@ -110,7 +110,7 @@ class ModernTopBar(QWidget):
         self.user_label = QLabel("")
         self.user_label.setObjectName("ShellUserLabel")
         self.user_label.setMinimumHeight(32)
-        self.user_label.setMaximumWidth(210)
+        self.user_label.setMaximumWidth(260)
         self.user_label.setToolTip("المستخدم الحالي")
         info_row.addWidget(self.user_label)
 
@@ -119,7 +119,7 @@ class ModernTopBar(QWidget):
         # Navigation row: scrollable instead of compressed. Buttons keep readable sizes.
         nav_frame = QFrame()
         nav_frame.setObjectName("ShellNavFrame")
-        nav_frame.setMinimumHeight(48)
+        nav_frame.setMinimumHeight(58)
         nav_layout = QHBoxLayout(nav_frame)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         nav_layout.setSpacing(8)
@@ -130,7 +130,7 @@ class ModernTopBar(QWidget):
         self.nav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.nav_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.nav_scroll.setFrameShape(QFrame.NoFrame)
-        self.nav_scroll.setFixedHeight(48)
+        self.nav_scroll.setFixedHeight(58)
 
         self.nav_content = QWidget()
         self.nav_content.setObjectName("ShellNavContent")
@@ -149,7 +149,7 @@ class ModernTopBar(QWidget):
         self.more_btn.setMenu(self.more_menu)
         self.more_btn.setPopupMode(QToolButton.InstantPopup)
         self.more_btn.setToolTip("المزيد")
-        self.more_btn.setFixedSize(42, 40)
+        self.more_btn.setFixedSize(48, 46)
         self.more_btn.setVisible(True)
         nav_layout.addWidget(self.more_btn)
 
@@ -163,8 +163,8 @@ class ModernTopBar(QWidget):
         btn.setToolTip(name)
         btn.setLayoutDirection(Qt.RightToLeft)
         btn.setCursor(Qt.PointingHandCursor)
-        btn.setFixedHeight(40)
-        btn.setMinimumWidth(104)
+        btn.setFixedHeight(48)
+        btn.setMinimumWidth(132)
         btn.setObjectName("TopBarButton")
         btn.setPopupMode(QToolButton.InstantPopup)
         btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
@@ -266,12 +266,12 @@ class ModernTopBar(QWidget):
             }}
             #ShellPageTitle {{
                 color: {c['text_primary']};
-                font-size: 18px;
+                font-size: 20px;
                 font-weight: 800;
             }}
             #ShellBreadcrumb {{
                 color: {c['text_muted']};
-                font-size: 11px;
+                font-size: 13px;
             }}
             #ShellUserLabel {{
                 color: {c['text_secondary']};
@@ -308,8 +308,8 @@ class ModernTopBar(QWidget):
                 border-radius: 10px;
                 color: {c['text_secondary']};
                 font-weight: bold;
-                font-size: 12px;
-                padding: 0 8px;
+                font-size: 13px;
+                padding: 0 12px;
             }}
             #TopBarButton:hover, QToolButton#TopBarButton:hover {{
                 background-color: {c['bg_window']};

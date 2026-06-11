@@ -3,6 +3,7 @@ import sqlite3
 import os
 import datetime
 from auth.password import hash_password
+from .schema_manager import apply_common_schema
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'alrajhi_server.db')
 
@@ -601,6 +602,7 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_purchase_return_lines_return ON purchase_return_lines(purchase_return_id);
     ''')
 
+    apply_common_schema(conn)
     conn.commit()
     conn.close()
     print(f"✅ تم تهيئة قاعدة بيانات الخادم في: {DB_PATH}")

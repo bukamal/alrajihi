@@ -14,6 +14,7 @@ from currency import currency
 from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_widget
 
 
 class WarehousesWidget(QWidget):
@@ -25,6 +26,7 @@ class WarehousesWidget(QWidget):
         self.setObjectName('WarehousesWidget')
         warehouse_service.bootstrap()
         self.setup_ui()
+        apply_modern_widget(self, '🏬 المستودعات', 'إدارة المستودعات، التحويلات، وحركات المخزون')
         self.refresh()
 
     def setup_ui(self):

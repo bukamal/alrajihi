@@ -6,6 +6,7 @@ from database import UserRepository
 from auth.session import UserSession
 from i18n.translator import translate
 from theme_manager import ThemeManager
+from views.widgets.modern_ui import apply_modern_dialog
 
 
 class ChangePasswordDialog(FramelessDialog):

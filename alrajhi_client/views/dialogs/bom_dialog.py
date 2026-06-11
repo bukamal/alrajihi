@@ -9,6 +9,7 @@ from core.services.manufacturing_service import manufacturing_service
 from currency import currency
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
+from views.widgets.modern_ui import apply_modern_dialog
 
 class BOMDialog(CenteredDialog):
     def __init__(self, parent=None, bom_id=None):
@@ -69,6 +70,7 @@ class BOMDialog(CenteredDialog):
         if self.is_edit:
             self.load_bom_data()
         self.install_form_shortcuts(self.save)
+        apply_modern_dialog(self, 'وصفة التصنيع')
         self.watch_dirty_widgets([self.product_combo, self.qty_spin], reset=True)
 
     def add_line(self):

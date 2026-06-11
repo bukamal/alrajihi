@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
-                             QDateEdit, QLabel, QHeaderView, QMessageBox, QFileDialog)
+                             QDateEdit, QLabel, QHeaderView, QMessageBox, QFileDialog, QLineEdit, QDialog, QTextEdit)
 from PyQt5.QtCore import Qt, QDate
 from database import AuditRepository
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 class AuditLogWidget(QWidget):
     def __init__(self, parent=None):
@@ -24,7 +25,23 @@ class AuditLogWidget(QWidget):
         self.user_filter = QComboBox()
         self.user_filter.addItem("الكل", None)
         self.action_filter = QComboBox()
-        self.action_filter.addItems(["الكل", "تسجيل دخول", "تسجيل خروج", "إضافة مستخدم", "تعديل مستخدم", "حذف مستخدم", "تغيير كلمة المرور", "إضافة مادة", "تعديل مادة", "حذف مادة", "إضافة فاتورة", "تعديل فاتورة", "حذف فاتورة"])
+        self.action_filter.addItem("الكل", None)
+        for label, value in [
+            ("إنشاء", "CREATE"), ("تعديل", "UPDATE"), ("حذف/أرشفة", "SOFT_DELETE"),
+            ("حذف", "DELETE"), ("تعديل وحدات", "UPDATE_UNITS"), ("ترحيل", "POST"),
+            ("عكس", "REVERSE"), ("تسجيل دخول", "LOGIN"), ("تسجيل خروج", "LOGOUT"),
+        ]:
+            self.action_filter.addItem(label, value)
+        self.entity_filter = QComboBox()
+        self.entity_filter.addItem("كل الكيانات", None)
+        for label, value in [
+            ("فواتير البيع", "SALE_INVOICE"), ("فواتير الشراء", "PURCHASE_INVOICE"),
+            ("المواد", "ITEM"), ("التصنيفات", "CATEGORY"), ("العملاء", "CUSTOMER"),
+            ("الموردون", "SUPPLIER"), ("السندات", "VOUCHER"), ("المصاريف", "EXPENSE"),
+        ]:
+            self.entity_filter.addItem(label, value)
+        self.search_edit = QLineEdit()
+        self.search_edit.setPlaceholderText("بحث في التفاصيل أو رقم السجل")
         self.start_date = QDateEdit()
         self.start_date.setDate(QDate.currentDate().addDays(-30))
         self.start_date.setCalendarPopup(True)
@@ -37,6 +54,10 @@ class AuditLogWidget(QWidget):
         filter_layout.addWidget(self.user_filter)
         filter_layout.addWidget(QLabel("العملية:"))
         filter_layout.addWidget(self.action_filter)
+        filter_layout.addWidget(QLabel("الكيان:"))
+        filter_layout.addWidget(self.entity_filter)
+        filter_layout.addWidget(QLabel("بحث:"))
+        filter_layout.addWidget(self.search_edit)
         filter_layout.addWidget(QLabel("من تاريخ:"))
         filter_layout.addWidget(self.start_date)
         filter_layout.addWidget(QLabel("إلى تاريخ:"))
@@ -56,6 +77,7 @@ class AuditLogWidget(QWidget):
 
         self.table = CustomTableView()
         self.table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.table.doubleClicked.connect(self.show_details)
         layout.addWidget(self.table)
 
         pagination_layout = QHBoxLayout()
@@ -70,31 +92,39 @@ class AuditLogWidget(QWidget):
         pagination_layout.addStretch()
         layout.addLayout(pagination_layout)
 
+        apply_modern_widget(self, '🛡️ سجل التدقيق', 'تتبع العمليات الحساسة والتغييرات على البيانات')
         self.refresh()
 
     def refresh(self, reset_page=True):
         if reset_page:
             self.current_page = 0
         user_id = self.user_filter.currentData()
-        action = self.action_filter.currentText()
-        if action == "الكل":
-            action = None
+        action = self.action_filter.currentData()
+        entity_type = self.entity_filter.currentData()
+        search_text = self.search_edit.text().strip()
         start = self.start_date.date().toString("yyyy-MM-dd")
         end = self.end_date.date().toString("yyyy-MM-dd")
         offset = self.current_page * self.page_size
         logs, self.total_count = self.repo.get_all(
             limit=self.page_size, offset=offset,
-            user_id=user_id, action=action, start_date=start, end_date=end
+            user_id=user_id, action=action, table_name=entity_type, start_date=start, end_date=end
         )
+        if search_text:
+            needle = search_text.lower()
+            logs = [l for l in logs if needle in str(l.get('entity_id') or l.get('record_id') or '').lower()
+                    or needle in str(l.get('details') or '').lower()
+                    or needle in str(l.get('old_values') or '').lower()
+                    or needle in str(l.get('new_values') or '').lower()]
+            self.total_count = len(logs)
         data = []
         for log in logs:
             data.append({
                 'id': log['id'],
                 'username': log.get('username', ''),
-                'action': log.get('action', ''),
+                'action': self._action_label(log.get('action', '')),
                 'entity_type': log.get('entity_type') or log.get('table_name', ''),
                 'entity_id': log.get('entity_id') or log.get('record_id', ''),
-                'details': log.get('details', ''),
+                'details': self._short_details(log),
                 'source': log.get('source', ''),
                 'ip_address': log.get('ip_address', ''),
                 'timestamp': (log.get('event_time') or log.get('timestamp', ''))[:19]
@@ -112,6 +142,43 @@ class AuditLogWidget(QWidget):
         self.page_label.setText(f"الصفحة {self.current_page + 1} من {total_pages}")
         self.prev_btn.setEnabled(self.current_page > 0)
         self.next_btn.setEnabled(self.current_page + 1 < total_pages)
+
+
+    def _action_label(self, action):
+        mapping = {
+            'CREATE': 'إنشاء', 'UPDATE': 'تعديل', 'DELETE': 'حذف', 'SOFT_DELETE': 'حذف/أرشفة',
+            'UPDATE_UNITS': 'تعديل وحدات', 'POST': 'ترحيل', 'REVERSE': 'عكس',
+            'LOGIN': 'تسجيل دخول', 'LOGOUT': 'تسجيل خروج'
+        }
+        return mapping.get(action, action or '')
+
+    def _short_details(self, log):
+        details = log.get('details') or ''
+        if len(details) > 140:
+            return details[:140] + '…'
+        return details
+
+    def show_details(self):
+        row = self.table.currentIndex().row()
+        if row < 0 or not hasattr(self, 'model'):
+            return
+        try:
+            log = self.model._data[row]
+        except Exception:
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle('تفاصيل سجل التدقيق')
+        dlg.setLayoutDirection(Qt.RightToLeft)
+        layout = QVBoxLayout(dlg)
+        text = QTextEdit()
+        text.setReadOnly(True)
+        text.setPlainText('\n'.join(f"{k}: {v}" for k, v in log.items()))
+        layout.addWidget(text)
+        close_btn = QPushButton('إغلاق')
+        close_btn.clicked.connect(dlg.accept)
+        layout.addWidget(close_btn)
+        dlg.resize(760, 520)
+        dlg.exec_()
 
     def export_to_excel(self):
         self.table.export_to_excel()

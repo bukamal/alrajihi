@@ -14,8 +14,8 @@ from views.widgets.base_widget import BaseWidget
 class ItemsWidget(BaseWidget):
     entity_name = "المادة"
     search_placeholder = "بحث عن مادة (اسم أو باركود)..."
-    headers = ['name', 'unit', 'quantity', 'reorder_level', 'stock_status', 'avg_cost', 'total_value', 'barcode']
-    display_headers = ['المادة', 'الوحدة', 'الكمية', 'حد إعادة الطلب', 'الحالة', 'متوسط التكلفة', 'قيمة المخزون', 'الباركود']
+    headers = ['name', 'quantity', 'unit', 'sold_quantity', 'available_quantity', 'available_total', 'unit_cost']
+    display_headers = ['اسم المادة', 'الكمية', 'الوحدة الافتراضية', 'الكمية المباعة', 'الكمية المتوفرة', 'مجموع المتوفر', 'تكلفة الوحدة']
     has_delete = True
     has_add = True
     has_export = True
@@ -102,23 +102,28 @@ class ItemsWidget(BaseWidget):
     def prepare_table_data(self, items):
         data = []
         display_curr = currency.get_display_currency()
+        item_ids = [it.get('id') for it in items if it.get('id') is not None]
+        sold_map = product_service.sold_quantities(item_ids)
         for it in items:
-            avg_cost_display = currency.convert(Decimal(str(it.get('average_cost', 0))), 'USD', display_curr)
-            available_qty = Decimal(str(it.get('available', it.get('quantity', 0))))
-            total_value_usd = available_qty * Decimal(str(it.get('average_cost', 0)))
+            item_id = it.get('id')
+            opening_qty = Decimal(str(it.get('opening_quantity', it.get('quantity', 0)) or 0))
+            available_qty = Decimal(str(it.get('available', it.get('quantity', 0)) or 0))
+            sold_qty = Decimal(str(sold_map.get(int(item_id), 0))) if item_id is not None else Decimal('0')
+            unit_cost_usd = Decimal(str(it.get('average_cost', it.get('purchase_price', 0)) or 0))
+            total_value_usd = available_qty * unit_cost_usd
+            unit_cost_display = currency.convert(unit_cost_usd, 'USD', display_curr)
             total_value_display = currency.convert(total_value_usd, 'USD', display_curr)
             reorder_level = Decimal(str(it.get('reorder_level', 0) or 0))
-            status_label, severity = self._stock_status(available_qty, reorder_level)
+            _, severity = self._stock_status(available_qty, reorder_level)
             data.append({
                 'id': it['id'],
-                'name': it['name'],
-                'unit': it.get('unit', ''),
-                'quantity': f"{available_qty:.2f}",
-                'reorder_level': f"{reorder_level:.2f}",
-                'stock_status': status_label,
-                'avg_cost': currency.format_amount(avg_cost_display),
-                'total_value': currency.format_amount(total_value_display),
-                'barcode': it.get('barcode', ''),
+                'name': it.get('name', ''),
+                'quantity': f"{opening_qty:.2f}",
+                'unit': it.get('unit') or 'قطعة',
+                'sold_quantity': f"{sold_qty:.2f}",
+                'available_quantity': f"{available_qty:.2f}",
+                'available_total': currency.format_amount(total_value_display),
+                'unit_cost': currency.format_amount(unit_cost_display),
                 '_row_status': severity
             })
         return data
@@ -126,7 +131,7 @@ class ItemsWidget(BaseWidget):
     def get_data_keys(self):
         # يجب أن يطابق ترتيب المفاتيح ترتيب عناوين الأعمدة المعروضة.
         # المعرّف id يبقى داخل بيانات الصف ويُستخدم عبر key_fields، لكنه لا يُعرض كعمود.
-        return ['name', 'unit', 'quantity', 'reorder_level', 'stock_status', 'avg_cost', 'total_value', 'barcode']
+        return ['name', 'quantity', 'unit', 'sold_quantity', 'available_quantity', 'available_total', 'unit_cost']
 
     def print_barcode(self):
         selected = self.table.selectionModel().selectedRows()

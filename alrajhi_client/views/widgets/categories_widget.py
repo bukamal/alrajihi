@@ -9,6 +9,7 @@ from core.services.product_service import product_service
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_widget
 
 
 class CategoriesWidget(QWidget):
@@ -20,6 +21,7 @@ class CategoriesWidget(QWidget):
         self._categories = []
         self.setObjectName('CategoriesWidget')
         self.setup_ui()
+        apply_modern_widget(self, '🏷️ التصنيفات', 'تنظيم المواد ضمن مجموعات واضحة')
         self.refresh()
 
     def setup_ui(self):

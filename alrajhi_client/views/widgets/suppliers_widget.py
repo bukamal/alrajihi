@@ -10,6 +10,7 @@ from models.table_models import GenericTableModel
 from views.centered_dialog import CenteredDialog
 from views.dialogs.add_entity_dialog import AddEntityDialog
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 class SuppliersWidget(QWidget):
     def __init__(self, parent=None):
@@ -59,6 +60,7 @@ class SuppliersWidget(QWidget):
         pagination_layout.addStretch()
         layout.addLayout(pagination_layout)
 
+        apply_modern_widget(self, '🏢 الموردون', 'إدارة الموردين، البحث، الفلترة، والأرصدة')
         self.refresh()
 
     def refresh(self):
@@ -139,6 +141,7 @@ class SuppliersWidget(QWidget):
                 show_toast(str(e), "error", dialog)
         save_btn.clicked.connect(save)
         cancel_btn.clicked.connect(dialog.reject)
+        apply_modern_dialog(dialog, 'تعديل مورد')
         dialog.exec()
 
     def prev_page(self):

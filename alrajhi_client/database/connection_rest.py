@@ -2,6 +2,7 @@
 import requests
 import time
 import json
+from decimal import Decimal
 from typing import List, Dict, Any, Tuple
 from auth.session import save_token, load_token, clear_token
 
@@ -20,8 +21,19 @@ class RestClient:
             headers['Authorization'] = f'Bearer {self.token}'
         return headers
 
+    def _json_safe(self, value):
+        if isinstance(value, Decimal):
+            return str(value)
+        if isinstance(value, dict):
+            return {k: self._json_safe(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [self._json_safe(v) for v in value]
+        return value
+
     def _request(self, method, endpoint, data=None, params=None, retries=3, backoff=1.0, queue_on_failure=True):
         url = f"{self.server_url}{endpoint}"
+        data = self._json_safe(data)
+        params = self._json_safe(params)
         last_exception = None
         for attempt in range(retries):
             try:

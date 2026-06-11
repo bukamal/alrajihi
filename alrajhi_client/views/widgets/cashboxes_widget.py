@@ -5,11 +5,13 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
 from PyQt5.QtCore import Qt
 from decimal import Decimal
 from core.services.cashbox_service import cashbox_service
+from core.services.settings_service import settings_service
 from core.services.branch_service import branch_service
 from currency import currency
 from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 class CashboxDialog(QDialog):
     def __init__(self, parent=None, data=None):
@@ -24,7 +26,7 @@ class CashboxDialog(QDialog):
         self.notes_edit=QTextEdit(self.data.get('notes','')); self.notes_edit.setMaximumHeight(70)
         self.active_check=QCheckBox('نشط'); self.active_check.setChecked(bool(int(self.data.get('is_active',1) or 0)))
         form.addRow('الفرع:', self.branch_combo); form.addRow('اسم الصندوق:', self.name_edit); form.addRow('الكود:', self.code_edit); form.addRow('ملاحظات:', self.notes_edit); form.addRow('', self.active_check)
-        layout.addLayout(form); buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel); buttons.button(QDialogButtonBox.Save).setText('حفظ'); buttons.button(QDialogButtonBox.Cancel).setText('إلغاء'); buttons.accepted.connect(self.accept); buttons.rejected.connect(self.reject); layout.addWidget(buttons)
+        layout.addLayout(form); buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel); buttons.button(QDialogButtonBox.Save).setText('حفظ'); buttons.button(QDialogButtonBox.Cancel).setText('إلغاء'); buttons.accepted.connect(self.accept); buttons.rejected.connect(self.reject); layout.addWidget(buttons); apply_modern_dialog(self, 'صندوق جديد' if not data else 'تعديل صندوق'); self.name_edit.setFocus()
     def payload(self): return {'branch_id':self.branch_combo.currentData(),'name':self.name_edit.text().strip(),'code':self.code_edit.text().strip(),'notes':self.notes_edit.toPlainText().strip(),'is_active':1 if self.active_check.isChecked() else 0}
 
 class BankDialog(QDialog):
@@ -38,15 +40,24 @@ class BankDialog(QDialog):
         self.bank_edit=QLineEdit(self.data.get('bank_name','')); self.account_name=QLineEdit(self.data.get('account_name','')); self.account_number=QLineEdit(self.data.get('account_number','')); self.iban=QLineEdit(self.data.get('iban',''))
         self.notes=QTextEdit(self.data.get('notes','')); self.notes.setMaximumHeight(70); self.active_check=QCheckBox('نشط'); self.active_check.setChecked(bool(int(self.data.get('is_active',1) or 0)))
         form.addRow('الفرع:', self.branch_combo); form.addRow('البنك:', self.bank_edit); form.addRow('اسم الحساب:', self.account_name); form.addRow('رقم الحساب:', self.account_number); form.addRow('IBAN:', self.iban); form.addRow('ملاحظات:', self.notes); form.addRow('', self.active_check)
-        layout.addLayout(form); buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel); buttons.button(QDialogButtonBox.Save).setText('حفظ'); buttons.button(QDialogButtonBox.Cancel).setText('إلغاء'); buttons.accepted.connect(self.accept); buttons.rejected.connect(self.reject); layout.addWidget(buttons)
+        layout.addLayout(form); buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel); buttons.button(QDialogButtonBox.Save).setText('حفظ'); buttons.button(QDialogButtonBox.Cancel).setText('إلغاء'); buttons.accepted.connect(self.accept); buttons.rejected.connect(self.reject); layout.addWidget(buttons); apply_modern_dialog(self, 'حساب بنكي جديد' if not data else 'تعديل حساب بنكي'); self.bank_edit.setFocus()
     def payload(self): return {'branch_id':self.branch_combo.currentData(),'bank_name':self.bank_edit.text().strip(),'account_name':self.account_name.text().strip(),'account_number':self.account_number.text().strip(),'iban':self.iban.text().strip(),'notes':self.notes.toPlainText().strip(),'is_active':1 if self.active_check.isChecked() else 0}
 
 class CashboxesWidget(QWidget):
-    def __init__(self,parent=None): super().__init__(parent); self.setLayoutDirection(Qt.RightToLeft); self._setup_ui(); self.refresh()
+    def __init__(self,parent=None): super().__init__(parent); self.setLayoutDirection(Qt.RightToLeft); self._setup_ui(); apply_modern_widget(self, '💰 الصناديق والبنوك', 'الصناديق، الحسابات البنكية، الورديات، والحركات'); self.refresh()
     def _setup_ui(self):
         layout=QVBoxLayout(self); title=QLabel('💰 الصناديق والبنوك'); title.setObjectName('sectionTitle'); layout.addWidget(title); self.tabs=QTabWidget(); layout.addWidget(self.tabs)
         self.cash_tab=QWidget(); self.bank_tab=QWidget(); self.shift_tab=QWidget(); self.mov_tab=QWidget(); self.tabs.addTab(self.cash_tab,'الصناديق'); self.tabs.addTab(self.bank_tab,'الحسابات البنكية'); self.tabs.addTab(self.shift_tab,'ورديات POS'); self.tabs.addTab(self.mov_tab,'الحركات المالية')
-        self._cash_ui(); self._bank_ui(); self._shift_ui(); self._mov_ui()
+        self._cash_ui(); self._bank_ui(); self._shift_ui(); self._mov_ui(); self._apply_shift_tab_visibility()
+    def _apply_shift_tab_visibility(self):
+        try:
+            if not settings_service.pos_shifts_enabled():
+                idx = self.tabs.indexOf(self.shift_tab)
+                if idx >= 0:
+                    self.tabs.removeTab(idx)
+        except Exception:
+            pass
+
     def _cash_ui(self):
         layout=QVBoxLayout(self.cash_tab); bar=QHBoxLayout(); self.cash_search=QLineEdit(); self.cash_search.setPlaceholderText('بحث في الصناديق...'); self.cash_search.textChanged.connect(self.refresh_cashboxes)
         add=QPushButton('➕ صندوق'); add.clicked.connect(self.add_cashbox); edit=QPushButton('✏️ تعديل'); edit.clicked.connect(self.edit_cashbox); arch=QPushButton('🗑️ أرشفة'); arch.clicked.connect(self.archive_cashbox)
@@ -60,7 +71,10 @@ class CashboxesWidget(QWidget):
 
     def _mov_ui(self):
         layout=QVBoxLayout(self.mov_tab); bar=QHBoxLayout(); refresh=QPushButton('تحديث'); refresh.clicked.connect(self.refresh_movements); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.mov_table=CustomTableView(); self.mov_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.mov_table)
-    def refresh(self): cashbox_service.bootstrap(); self.refresh_cashboxes(); self.refresh_banks(); self.refresh_shifts(); self.refresh_movements()
+    def refresh(self):
+        cashbox_service.bootstrap(); self.refresh_cashboxes(); self.refresh_banks();
+        if settings_service.pos_shifts_enabled(): self.refresh_shifts()
+        self.refresh_movements()
     def refresh_cashboxes(self):
         text=self.cash_search.text().strip().lower() if hasattr(self,'cash_search') else ''; rows=[]
         for c in cashbox_service.cashboxes(True):

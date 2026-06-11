@@ -5,6 +5,7 @@ from views.centered_dialog import CenteredDialog
 from core.services.entity_service import entity_service
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
+from views.widgets.modern_ui import apply_modern_dialog
 
 class AddEntityDialog(CenteredDialog):
     def __init__(self, parent, inv_type):
@@ -41,6 +42,7 @@ class AddEntityDialog(CenteredDialog):
         save_btn.clicked.connect(self.save)
         cancel_btn.clicked.connect(self.reject)
         self.install_form_shortcuts(self.save)
+        apply_modern_dialog(self, 'إضافة عميل/مورد')
         self.watch_dirty_widgets([self.name_edit, self.phone_edit, self.address_edit], reset=True)
 
     def save(self):

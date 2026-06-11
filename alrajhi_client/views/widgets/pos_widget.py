@@ -15,6 +15,7 @@ import qtawesome as qta
 from core.services.pos_service import pos_service, POSException
 from core.services.warehouse_service import warehouse_service
 from core.services.cashbox_service import cashbox_service
+from core.services.settings_service import settings_service
 from currency import currency
 from utils import show_toast
 
@@ -74,6 +75,8 @@ class POSWidget(QWidget):
         shift_row.addWidget(self.open_shift_btn)
         shift_row.addWidget(self.close_shift_btn)
         layout.addLayout(shift_row)
+        self._shift_row_widgets = [self.shift_label, self.open_shift_btn, self.close_shift_btn]
+        self._apply_shift_mode_visibility()
 
         scan_row = QHBoxLayout()
         self.barcode_input = QLineEdit()
@@ -173,6 +176,19 @@ class POSWidget(QWidget):
 
 
 
+    def _pos_shifts_enabled(self):
+        try:
+            return settings_service.pos_shifts_enabled()
+        except Exception:
+            return False
+
+    def _apply_shift_mode_visibility(self):
+        enabled = self._pos_shifts_enabled()
+        for widget in getattr(self, '_shift_row_widgets', []):
+            widget.setVisible(enabled)
+        if hasattr(self, 'shift_label') and not enabled:
+            self.shift_label.setText('الورديات معطلة - البيع يسجل مباشرة على الصندوق')
+
     def _load_cashboxes(self):
         self.cashbox_combo.clear()
         try:
@@ -193,6 +209,18 @@ class POSWidget(QWidget):
 
     def refresh_shift_state(self):
         try:
+            if not self._pos_shifts_enabled():
+                self.current_shift_id = None
+                if hasattr(self, 'shift_label'):
+                    self.shift_label.setText('الورديات معطلة - البيع مباشر على الصندوق')
+                if hasattr(self, 'open_shift_btn'):
+                    self.open_shift_btn.setEnabled(False)
+                if hasattr(self, 'close_shift_btn'):
+                    self.close_shift_btn.setEnabled(False)
+                if hasattr(self, 'checkout_btn'):
+                    self.checkout_btn.setEnabled(bool(getattr(self, 'cart', None) and self.cart.lines))
+                return
+
             shift = cashbox_service.current_open_shift(self._selected_cashbox_id())
             if shift:
                 self.current_shift_id = shift.get('id')
@@ -201,7 +229,7 @@ class POSWidget(QWidget):
                 self.close_shift_btn.setEnabled(True)
             else:
                 self.current_shift_id = None
-                self.shift_label.setText("لا توجد وردية مفتوحة")
+                self.shift_label.setText('لا توجد وردية مفتوحة')
                 self.open_shift_btn.setEnabled(True)
                 self.close_shift_btn.setEnabled(False)
             if hasattr(self, 'checkout_btn'):
@@ -349,7 +377,7 @@ class POSWidget(QWidget):
             self.paid_spin.setValue(float(total_display))
         self.update_change_due()
         self.refresh_shift_state()
-        self.checkout_btn.setEnabled(bool(self.cart.lines) and bool(getattr(self, 'current_shift_id', None)))
+        self.checkout_btn.setEnabled(bool(self.cart.lines) and (not self._pos_shifts_enabled() or bool(getattr(self, 'current_shift_id', None))))
 
     def update_change_due(self):
         try:
@@ -450,7 +478,7 @@ class POSWidget(QWidget):
     def checkout(self):
         try:
             self.refresh_shift_state()
-            if not getattr(self, 'current_shift_id', None):
+            if self._pos_shifts_enabled() and not getattr(self, 'current_shift_id', None):
                 raise POSException('افتح وردية قبل إنهاء البيع')
             payment_method = self.payment_combo.currentData() or 'cash'
             paid_display = Decimal(str(self.paid_spin.value()))
