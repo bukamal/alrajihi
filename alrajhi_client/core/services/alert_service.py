@@ -8,20 +8,90 @@ from __future__ import annotations
 
 from decimal import Decimal
 from typing import Dict, List
+import datetime
+import os
+from PyQt5.QtCore import QSettings
 
 from core.services.product_service import product_service
 from core.services.invoice_service import invoice_service
 from core.services.settings_service import settings_service
+from core.services.cashbox_service import cashbox_service
 
 
 class AlertService:
     def dashboard_alerts(self, limit: int = 10) -> List[Dict]:
         alerts: List[Dict] = []
-        alerts.extend(self.inventory_alerts(limit=limit))
+        alerts.extend(self.system_alerts())
+        remaining = max(0, limit - len(alerts))
+        if remaining:
+            alerts.extend(self.inventory_alerts(limit=remaining))
         remaining = max(0, limit - len(alerts))
         if remaining:
             alerts.extend(self.unpaid_invoice_alerts(limit=remaining))
         return alerts[:limit]
+
+    def system_alerts(self) -> List[Dict]:
+        alerts: List[Dict] = []
+        alerts.extend(self.backup_alerts())
+        alerts.extend(self.shift_alerts())
+        return alerts
+
+    def backup_alerts(self) -> List[Dict]:
+        try:
+            settings = QSettings('AlRajhi', 'Settings')
+            enabled = settings.value('backup/enabled', False, type=bool)
+            folder = str(settings.value('backup/folder', '') or '').strip()
+            if not enabled:
+                return [{
+                    'severity': 'info',
+                    'type': 'BACKUP',
+                    'title': 'النسخ الاحتياطي غير مفعل',
+                    'message': 'يفضل تفعيل النسخ الاحتياطي التلقائي من الإعدادات',
+                    'target': 'settings',
+                    'entity_id': None,
+                }]
+            if not folder or not os.path.isdir(folder):
+                return [{
+                    'severity': 'warning',
+                    'type': 'BACKUP',
+                    'title': 'مجلد النسخ الاحتياطي غير صالح',
+                    'message': 'اختر مجلد نسخ احتياطي صحيح من الإعدادات',
+                    'target': 'settings',
+                    'entity_id': None,
+                }]
+            today = datetime.date.today().strftime('%Y%m%d')
+            has_today_backup = any(name.startswith('alrajhi_backup_' + today) and name.endswith('.db') for name in os.listdir(folder))
+            if not has_today_backup:
+                return [{
+                    'severity': 'warning',
+                    'type': 'BACKUP',
+                    'title': 'لا توجد نسخة احتياطية اليوم',
+                    'message': 'لم يتم العثور على نسخة احتياطية بتاريخ اليوم في المجلد المحدد',
+                    'target': 'settings',
+                    'entity_id': None,
+                }]
+        except Exception:
+            return []
+        return []
+
+    def shift_alerts(self) -> List[Dict]:
+        try:
+            if not cashbox_service.pos_shifts_enabled():
+                return []
+            shift = cashbox_service.current_open_shift()
+            if not shift:
+                return []
+            opened_at = str(shift.get('opened_at') or '')[:16].replace('T', ' ')
+            return [{
+                'severity': 'info',
+                'type': 'POS_SHIFT',
+                'title': 'وردية مفتوحة',
+                'message': f"{shift.get('cashbox_name', 'الصندوق')} — منذ {opened_at}",
+                'target': 'cashboxes',
+                'entity_id': shift.get('id'),
+            }]
+        except Exception:
+            return []
 
     def inventory_alerts(self, limit: int = 10) -> List[Dict]:
         default_threshold = self._threshold()

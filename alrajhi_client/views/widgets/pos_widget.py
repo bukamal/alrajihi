@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtCore import Qt, QEvent, QTimer
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -19,6 +19,7 @@ from core.services.settings_service import settings_service
 from currency import currency
 from utils import show_toast
 from ui.barcode_widgets import BarcodeLineEdit, focused_widget_is_barcode
+from views.widgets.components.table_preferences import TablePreferences
 
 
 class POSWidget(QWidget):
@@ -29,6 +30,9 @@ class POSWidget(QWidget):
         self.setLayoutDirection(Qt.RightToLeft)
         self.cart = pos_service.new_cart(self._selected_warehouse_id() if hasattr(self, 'warehouse_combo') else None, self._selected_cashbox_id() if hasattr(self, 'cashbox_combo') else None)
         self.display_curr = currency.get_display_currency()
+        self._table_preferences = TablePreferences()
+        self._restoring_pos_table_layout = False
+        self._pos_table_layout_save_pending = False
         self._init_ui()
         self._setup_shortcuts()
         self.refresh_cart()
@@ -104,14 +108,9 @@ class POSWidget(QWidget):
         layout.addLayout(scan_row)
 
         self.table = QTableWidget(0, 7)
+        self.table.setObjectName("pos_cart_table")
         self.table.setHorizontalHeaderLabels(["المادة", "الباركود", "الوحدة", "الكمية", "السعر", "الإجمالي", "المتاح"])
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        self._setup_pos_table_columns()
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -178,6 +177,60 @@ class POSWidget(QWidget):
         self.status_label = QLabel("جاهز للمسح")
         self.status_label.setObjectName("muted")
         layout.addWidget(self.status_label)
+
+
+    def _pos_table_layout_key(self):
+        return "tables/POSWidget/pos_cart_table"
+
+    def _setup_pos_table_columns(self):
+        """Make POS cart columns manually resizable like the other material/invoice tables."""
+        header = self.table.horizontalHeader()
+        header.setSectionsMovable(True)
+        header.setStretchLastSection(False)
+        header.setDefaultAlignment(Qt.AlignCenter)
+        header.setSectionResizeMode(QHeaderView.Interactive)
+        default_widths = {
+            0: 260,  # المادة
+            1: 150,  # الباركود
+            2: 90,   # الوحدة
+            3: 90,   # الكمية
+            4: 110,  # السعر
+            5: 120,  # الإجمالي
+            6: 100,  # المتاح
+        }
+        for col, width in default_widths.items():
+            self.table.setColumnWidth(col, width)
+        header.sectionResized.connect(self._schedule_pos_table_layout_save)
+        header.sectionMoved.connect(lambda *args: self._schedule_pos_table_layout_save())
+        QTimer.singleShot(0, self._restore_pos_table_layout)
+
+    def _schedule_pos_table_layout_save(self, *args):
+        if self._restoring_pos_table_layout or self._pos_table_layout_save_pending:
+            return
+        self._pos_table_layout_save_pending = True
+        QTimer.singleShot(250, self._save_pos_table_layout)
+
+    def _save_pos_table_layout(self):
+        self._pos_table_layout_save_pending = False
+        try:
+            self._table_preferences.save_state(self._pos_table_layout_key(), self.table.horizontalHeader().saveState())
+        except Exception:
+            pass
+
+    def _restore_pos_table_layout(self):
+        try:
+            state = self._table_preferences.load_state(self._pos_table_layout_key())
+            if not state:
+                return
+            self._restoring_pos_table_layout = True
+            try:
+                self.table.horizontalHeader().restoreState(state)
+                self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+                self.table.horizontalHeader().setStretchLastSection(False)
+            finally:
+                self._restoring_pos_table_layout = False
+        except Exception:
+            self._restoring_pos_table_layout = False
 
 
 
