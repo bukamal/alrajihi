@@ -80,9 +80,17 @@ class ProductService:
     def _normalize_unit_name(self, name: str) -> str:
         return " ".join(str(name or "").strip().split())
 
-    def _validate_units_payload(self, item_id: int, units: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    def _parse_unit_factor(self, value) -> Decimal:
+        text = str(value or '').strip()
+        if not text:
+            raise InvalidOperation
+        arabic_digits = str.maketrans('٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٫٬', '01234567890123456789..')
+        text = text.translate(arabic_digits).replace(' ', '').replace(',', '.')
+        return Decimal(text)
+
+    def _validate_units_payload(self, item_id: int, units: List[Dict[str, Any]], base_unit: str = None) -> List[Dict[str, str]]:
         item = self.item_by_id(item_id) or {}
-        base_unit = self._normalize_unit_name(item.get('unit') or 'قطعة')
+        base_unit = self._normalize_unit_name(base_unit if base_unit is not None else (item.get('unit') or 'قطعة'))
         seen = set()
         clean_units: List[Dict[str, str]] = []
         for unit in units or []:
@@ -96,7 +104,7 @@ class ProductService:
                 raise ValueError(f"الوحدة الفرعية '{name}' مكررة")
             seen.add(key)
             try:
-                factor = Decimal(str(unit.get('conversion_factor', '1')))
+                factor = self._parse_unit_factor(unit.get('conversion_factor', '1'))
             except (InvalidOperation, ValueError, TypeError):
                 raise ValueError(f"عامل التحويل للوحدة '{name}' غير صالح")
             if factor <= 0:
@@ -112,9 +120,9 @@ class ProductService:
     def clear_units(self, item_id: int) -> None:
         item_dao.clear_units(item_id)
 
-    def replace_units(self, item_id: int, units: List[Dict[str, Any]]) -> None:
+    def replace_units(self, item_id: int, units: List[Dict[str, Any]], base_unit: str = None) -> None:
         old_units = self.item_units(item_id)
-        saved_units = self._validate_units_payload(item_id, units)
+        saved_units = self._validate_units_payload(item_id, units, base_unit=base_unit)
         self.clear_units(item_id)
         for unit in saved_units:
             item_dao.add_unit(item_id, unit['unit_name'], unit['conversion_factor'])
