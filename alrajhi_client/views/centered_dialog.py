@@ -3,11 +3,8 @@ from PyQt5.QtCore import Qt, QEvent, QObject
 from .frameless_dialog import FramelessDialog
 from PyQt5.QtWidgets import QMessageBox, QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox
 from PyQt5.QtGui import QKeySequence
-from ui.barcode_widgets import ignore_if_barcode_focus
 from PyQt5.QtWidgets import QShortcut
 from utils import focus_first_input
-from i18n.qt_i18n import apply_widget_language
-from i18n.translator import translate_text
 
 class CenteredDialog(FramelessDialog):
     def __init__(self, parent=None):
@@ -31,7 +28,6 @@ class CenteredDialog(FramelessDialog):
         if self.parent() and not self._parent_move_filter:
             self._install_parent_filter()
         self._center_on_main_window()
-        apply_widget_language(self)
         focus_first_input(self)
     
     def _confirm_discard_changes(self) -> bool:
@@ -39,8 +35,8 @@ class CenteredDialog(FramelessDialog):
             return True
         reply = QMessageBox.question(
             self,
-            translate_text('تغييرات غير محفوظة'),
-            translate_text('لديك تغييرات غير محفوظة. هل تريد الخروج دون حفظ؟'),
+            'تغييرات غير محفوظة',
+            'لديك تغييرات غير محفوظة. هل تريد الخروج دون حفظ؟',
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No,
         )
@@ -81,7 +77,7 @@ class CenteredDialog(FramelessDialog):
                 shortcut.activated.connect(save_handler)
                 self._standard_shortcuts.append(shortcut)
         shortcut = QShortcut(QKeySequence('Esc'), self)
-        shortcut.activated.connect(ignore_if_barcode_focus(cancel_handler or self.reject))
+        shortcut.activated.connect(cancel_handler or self.reject)
         self._standard_shortcuts.append(shortcut)
 
     def reject(self):

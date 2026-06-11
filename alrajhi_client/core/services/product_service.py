@@ -8,7 +8,6 @@ APIs intact for backward compatibility while giving UI code one stable facade.
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple
-from decimal import Decimal, InvalidOperation
 
 from core.compat import records, pair
 from core.services.audit_service import audit_service
@@ -77,55 +76,23 @@ class ProductService:
     def item_units(self, item_id: int) -> List[Dict]:
         return records(item_dao.get_units(item_id), 'units')
 
-    def _normalize_unit_name(self, name: str) -> str:
-        return " ".join(str(name or "").strip().split())
-
-    def _parse_unit_factor(self, value) -> Decimal:
-        text = str(value or '').strip()
-        if not text:
-            raise InvalidOperation
-        arabic_digits = str.maketrans('٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٫٬', '01234567890123456789..')
-        text = text.translate(arabic_digits).replace(' ', '').replace(',', '.')
-        return Decimal(text)
-
-    def _validate_units_payload(self, item_id: int, units: List[Dict[str, Any]], base_unit: str = None) -> List[Dict[str, str]]:
-        item = self.item_by_id(item_id) or {}
-        base_unit = self._normalize_unit_name(base_unit if base_unit is not None else (item.get('unit') or 'قطعة'))
-        seen = set()
-        clean_units: List[Dict[str, str]] = []
-        for unit in units or []:
-            name = self._normalize_unit_name(unit.get('unit_name', ''))
-            if not name:
-                continue
-            key = name.casefold()
-            if base_unit and key == base_unit.casefold():
-                raise ValueError(f"لا يجوز إضافة الوحدة الفرعية '{name}' لأنها مطابقة للوحدة الأساسية")
-            if key in seen:
-                raise ValueError(f"الوحدة الفرعية '{name}' مكررة")
-            seen.add(key)
-            try:
-                factor = self._parse_unit_factor(unit.get('conversion_factor', '1'))
-            except (InvalidOperation, ValueError, TypeError):
-                raise ValueError(f"عامل التحويل للوحدة '{name}' غير صالح")
-            if factor <= 0:
-                raise ValueError(f"عامل التحويل للوحدة '{name}' يجب أن يكون أكبر من صفر")
-            clean_units.append({'unit_name': name, 'conversion_factor': str(factor)})
-        return clean_units
-
     def add_unit(self, item_id: int, unit_name: str, conversion_factor: float) -> None:
-        clean = self._validate_units_payload(item_id, [{'unit_name': unit_name, 'conversion_factor': conversion_factor}])
-        if clean:
-            item_dao.add_unit(item_id, clean[0]['unit_name'], clean[0]['conversion_factor'])
+        item_dao.add_unit(item_id, unit_name, conversion_factor)
 
     def clear_units(self, item_id: int) -> None:
         item_dao.clear_units(item_id)
 
-    def replace_units(self, item_id: int, units: List[Dict[str, Any]], base_unit: str = None) -> None:
+    def replace_units(self, item_id: int, units: List[Dict[str, Any]]) -> None:
         old_units = self.item_units(item_id)
-        saved_units = self._validate_units_payload(item_id, units, base_unit=base_unit)
         self.clear_units(item_id)
-        for unit in saved_units:
-            item_dao.add_unit(item_id, unit['unit_name'], unit['conversion_factor'])
+        saved_units = []
+        for unit in units:
+            name = str(unit.get('unit_name', '')).strip()
+            if not name:
+                continue
+            factor = float(unit.get('conversion_factor', 1))
+            self.add_unit(item_id, name, factor)
+            saved_units.append({'unit_name': name, 'conversion_factor': factor})
         audit_service.log(
             'UPDATE_UNITS', 'ITEM', item_id,
             old_values={'units': old_units},

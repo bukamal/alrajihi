@@ -21,8 +21,7 @@ class SettingsRepository(BaseRepository):
         self._cache.clear()
     
     def get_language(self):
-        lang = self.get('language', 'ar')
-        return lang if lang in ('ar', 'en', 'de', 'fr') else 'ar'
+        return self.get('language', 'ar')
     
     def get_theme(self):
         return self.get('theme', 'light')

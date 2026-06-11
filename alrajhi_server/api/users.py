@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from database.connection import get_db
 from decorators import admin_required
 import datetime
@@ -51,7 +51,7 @@ def delete_user(user_id):
 @users_bp.route('/users/change_password', methods=['POST'])
 @jwt_required()
 def change_password():
-    user_id = int(get_jwt_identity())
+    user_id = str(get_jwt_identity())
     data = request.get_json()
     old_password = data.get('old_password')
     new_password = data.get('new_password')

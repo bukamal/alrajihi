@@ -55,6 +55,7 @@ from api.reports import reports_bp
 from api.settings import settings_bp
 from api.users import users_bp
 from api.audit_log import audit_bp
+from api.categories import categories_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api')
 app.register_blueprint(items_bp, url_prefix='/api')
@@ -68,6 +69,7 @@ app.register_blueprint(reports_bp, url_prefix='/api')
 app.register_blueprint(settings_bp, url_prefix='/api')
 app.register_blueprint(users_bp, url_prefix='/api')
 app.register_blueprint(audit_bp, url_prefix='/api')
+app.register_blueprint(categories_bp, url_prefix='/api')
 
 if __name__ == '__main__':
     host = os.environ.get('ALRAJHI_HOST', '127.0.0.1')

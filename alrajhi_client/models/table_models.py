@@ -1,7 +1,6 @@
 from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
 from typing import List, Dict, Any, Optional
 from PyQt5.QtGui import QColor, QBrush
-from i18n.translator import translate_text
 
 class GenericTableModel(QAbstractTableModel):
     def __init__(self, data: List[Dict], headers: List[str], key_fields: List[str] = None, data_keys: List[str] = None):
@@ -112,7 +111,7 @@ class GenericTableModel(QAbstractTableModel):
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             if section < len(self._headers):
-                return translate_text(self._headers[section])
+                return self._headers[section]
         return None
 
     def flags(self, index):

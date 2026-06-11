@@ -4,7 +4,6 @@ from PyQt5.QtCore import Qt, QPropertyAnimation
 from PyQt5.QtGui import QPixmap
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
-from i18n.translator import translate, direction
 
 
 class ModernSplashScreen(QSplashScreen):
@@ -23,18 +22,17 @@ class ModernSplashScreen(QSplashScreen):
         self.container.setObjectName('startupCard')
         self.container.setStyleSheet(DesignSystem.card_style(accent=True))
         DesignSystem.apply_shadow(self.container, blur=34, y=12, alpha=95)
-        self.container.setLayoutDirection(Qt.RightToLeft if direction() == "rtl" else Qt.LeftToRight)
         layout = QVBoxLayout(self.container)
         layout.setAlignment(Qt.AlignCenter)
         layout.setSpacing(14)
         layout.setContentsMargins(46, 38, 46, 34)
 
-        self.logo = QLabel("🏢 " + translate("app_title"))
+        self.logo = QLabel("🏢 الراجحي للمحاسبة")
         self.logo.setAlignment(Qt.AlignCenter)
         self.logo.setStyleSheet("font-size: 34px; font-weight: bold; color: white;")
         layout.addWidget(self.logo)
 
-        self.subtitle = QLabel(translate("app_subtitle"))
+        self.subtitle = QLabel("نظام محاسبة ومخزون وتصنيع")
         self.subtitle.setAlignment(Qt.AlignCenter)
         self.subtitle.setStyleSheet("font-size: 14px; color: rgba(255,255,255,0.86);")
         layout.addWidget(self.subtitle)
@@ -43,7 +41,7 @@ class ModernSplashScreen(QSplashScreen):
         chips.setSpacing(8)
         chips.setAlignment(Qt.AlignCenter)
         self.boot_chips = []
-        for text in (translate("startup_database"), translate("startup_license"), translate("startup_login"), translate("startup_ui")) :
+        for text in ("قاعدة البيانات", "الترخيص", "تسجيل الدخول", "الواجهة"):
             chip = QLabel(text)
             chip.setAlignment(Qt.AlignCenter)
             chip.setStyleSheet("background-color: rgba(255,255,255,0.16); color: white; border-radius: 12px; padding: 5px 10px; font-size: 11px;")
@@ -51,7 +49,7 @@ class ModernSplashScreen(QSplashScreen):
             self.boot_chips.append(chip)
         layout.addLayout(chips)
 
-        self.step_label = QLabel(translate("startup_init"))
+        self.step_label = QLabel("تهيئة بدء التشغيل")
         self.step_label.setAlignment(Qt.AlignCenter)
         self.step_label.setStyleSheet("font-size: 13px; font-weight: bold; color: white;")
         layout.addWidget(self.step_label)
@@ -75,13 +73,13 @@ class ModernSplashScreen(QSplashScreen):
         """)
         layout.addWidget(self.progress, alignment=Qt.AlignCenter)
 
-        self.status_label = QLabel(translate("startup_loading"))
+        self.status_label = QLabel("جاري تهيئة النظام...")
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setWordWrap(True)
         self.status_label.setStyleSheet("color: rgba(255,255,255,0.78); font-size: 12px;")
         layout.addWidget(self.status_label)
 
-        self.detail_label = QLabel(translate("startup_do_not_close"))
+        self.detail_label = QLabel("الرجاء عدم إغلاق التطبيق أثناء التحميل")
         self.detail_label.setAlignment(Qt.AlignCenter)
         self.detail_label.setWordWrap(True)
         self.detail_label.setStyleSheet("color: rgba(255,255,255,0.62); font-size: 11px;")
@@ -124,9 +122,9 @@ class ModernSplashScreen(QSplashScreen):
             QProgressBar::chunk { background-color: #ef4444; border-radius: 6px; }
         """)
         self.progress.setValue(max(self.progress.value(), 5))
-        self.step_label.setText(translate("startup_error_title"))
+        self.step_label.setText("تعذر إكمال التشغيل")
         self.status_label.setText(message)
-        self.detail_label.setText(detail or translate("startup_error_detail"))
+        self.detail_label.setText(detail or "راجع الرسالة ثم أعد المحاولة.")
         QApplication.processEvents()
 
     def finish(self, main_window):

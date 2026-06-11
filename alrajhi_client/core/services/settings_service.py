@@ -30,15 +30,6 @@ class SettingsService:
     def get_language(self) -> str:
         return self.repo.get_language()
 
-    def set_language(self, language: str):
-        if language not in ('ar', 'en', 'de', 'fr'):
-            language = 'ar'
-        old = {'language': self.get_language()}
-        self.set('language', language)
-        self.clear_cache()
-        audit_service.log('UPDATE', 'SETTINGS_LANGUAGE', None, old_values=old, new_values={'language': language}, details='تعديل لغة النظام')
-
-
     def get_theme(self) -> str:
         theme = self.repo.get_theme()
         return theme if theme in ('light', 'dark') else 'light'
@@ -97,7 +88,6 @@ class SettingsService:
             'accent_color': self.get('printing/accent_color', '#1d4ed8'),
             'zebra_rows': self.get('printing/zebra_rows', 'true').lower() == 'true',
             'compact_tables': self.get('printing/compact_tables', 'false').lower() == 'true',
-            'template_language': self.get('printing/template_language', 'auto'),
         }
 
     def save_printing_settings(self, invoice_template: str = 'a4', show_logo: bool = True,
@@ -106,7 +96,7 @@ class SettingsService:
                                report_template: str = 'a4', voucher_template: str = 'a4',
                                return_template: str = 'a4', font_family: str = '',
                                font_size: str = '10.5pt', accent_color: str = '#1d4ed8',
-                               zebra_rows: bool = True, compact_tables: bool = False, template_language: str = 'auto'):
+                               zebra_rows: bool = True, compact_tables: bool = False):
         old = self.get_printing_settings()
         new = {
             'invoice_template': invoice_template or 'a4',
@@ -124,7 +114,6 @@ class SettingsService:
             'accent_color': accent_color or '#1d4ed8',
             'zebra_rows': bool(zebra_rows),
             'compact_tables': bool(compact_tables),
-            'template_language': template_language or 'auto',
         }
         self.set('printing/invoice_template', new['invoice_template'])
         self.set('printing/report_template', new['report_template'])
@@ -141,7 +130,6 @@ class SettingsService:
         self.set('printing/accent_color', new['accent_color'])
         self.set('printing/zebra_rows', 'true' if zebra_rows else 'false')
         self.set('printing/compact_tables', 'true' if compact_tables else 'false')
-        self.set('printing/template_language', new['template_language'])
         self.clear_cache()
         audit_service.log('UPDATE', 'SETTINGS_PRINTING', None, old_values=old, new_values=new, details='تعديل إعدادات الطباعة')
 

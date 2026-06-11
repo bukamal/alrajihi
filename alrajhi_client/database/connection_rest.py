@@ -2,7 +2,6 @@
 import requests
 import time
 import json
-from decimal import Decimal
 from typing import List, Dict, Any, Tuple
 from auth.session import save_token, load_token, clear_token
 
@@ -21,19 +20,8 @@ class RestClient:
             headers['Authorization'] = f'Bearer {self.token}'
         return headers
 
-    def _json_safe(self, value):
-        if isinstance(value, Decimal):
-            return str(value)
-        if isinstance(value, dict):
-            return {k: self._json_safe(v) for k, v in value.items()}
-        if isinstance(value, (list, tuple)):
-            return [self._json_safe(v) for v in value]
-        return value
-
     def _request(self, method, endpoint, data=None, params=None, retries=3, backoff=1.0, queue_on_failure=True):
         url = f"{self.server_url}{endpoint}"
-        data = self._json_safe(data)
-        params = self._json_safe(params)
         last_exception = None
         for attempt in range(retries):
             try:
@@ -79,6 +67,34 @@ class RestClient:
         self._request('POST', '/api/logout', queue_on_failure=False)
         self.token = None
         clear_token()
+
+
+    def change_password(self, old_password: str, new_password: str):
+        return self._request('POST', '/api/users/change_password', {
+            'old_password': old_password,
+            'new_password': new_password
+        }, queue_on_failure=False)
+
+    def get_categories(self, search=None, include_inactive=False, include_deleted=False):
+        params = {}
+        if search: params['search'] = search
+        if include_inactive: params['include_inactive'] = 1
+        if include_deleted: params['include_deleted'] = 1
+        result = self._request('GET', '/api/categories', params=params)
+        return result.get('categories', []) if isinstance(result, dict) else (result or [])
+
+    def add_category(self, data: Dict) -> int:
+        result = self._request('POST', '/api/categories', data)
+        return result['id']
+
+    def update_category(self, category_id: int, data: Dict):
+        self._request('PUT', f'/api/categories/{category_id}', data)
+
+    def delete_category(self, category_id: int):
+        self._request('DELETE', f'/api/categories/{category_id}')
+
+    def restore_category(self, category_id: int):
+        self._request('POST', f'/api/categories/{category_id}/restore')
 
     # ------------------- المواد -------------------
     def get_items(self, search=None, limit=None, offset=None) -> Tuple[List[Dict], int]:

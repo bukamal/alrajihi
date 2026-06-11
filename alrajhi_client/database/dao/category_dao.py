@@ -26,6 +26,11 @@ class CategoryDAO:
         return int(parent_id)
 
     def get_by_id(self, cid: int) -> Optional[Dict]:
+        if self.db.is_remote():
+            for category in self.db.get_rest_client().get_categories(include_inactive=True, include_deleted=True):
+                if int(category.get('id', 0)) == int(cid):
+                    return category
+            return None
         uid = self._uid()
         row = self.db.execute('''
             SELECT c.*, p.name AS parent_name,
@@ -38,6 +43,8 @@ class CategoryDAO:
         return dict(row) if row else None
 
     def get_all(self, search=None, include_inactive: bool = False, include_deleted: bool = False):
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_categories(search=search, include_inactive=include_inactive, include_deleted=include_deleted)
         uid = UserSession.get_current_user_id()
         if not uid:
             return []
@@ -106,6 +113,11 @@ class CategoryDAO:
         return name, parent_id
 
     def add(self, name, parent_id=None, description='', color='#64748B', icon='folder', is_active=1):
+        if self.db.is_remote():
+            return self.db.get_rest_client().add_category({
+                'name': name, 'parent_id': parent_id, 'description': description,
+                'color': color, 'icon': icon, 'is_active': is_active
+            })
         uid = self._uid()
         name, parent_id = self._validate(name, parent_id)
         cur = self.db.execute('''
@@ -116,6 +128,13 @@ class CategoryDAO:
         return cur.lastrowid
 
     def update(self, cid, data_or_name, parent_id=None, description=None, color=None, icon=None, is_active=None):
+        if self.db.is_remote():
+            if isinstance(data_or_name, dict):
+                data = dict(data_or_name)
+            else:
+                data = {'name': data_or_name, 'parent_id': parent_id, 'description': description or '', 'color': color or '#64748B', 'icon': icon or 'folder', 'is_active': 1 if is_active is None else is_active}
+            self.db.get_rest_client().update_category(int(cid), data)
+            return
         uid = self._uid()
         if isinstance(data_or_name, dict):
             data = dict(data_or_name)
@@ -136,17 +155,26 @@ class CategoryDAO:
         self.db.commit()
 
     def archive(self, cid):
+        if self.db.is_remote():
+            self.db.get_rest_client().delete_category(int(cid))
+            return
         uid = self._uid()
         now = datetime.datetime.now().isoformat()
         self.db.execute("UPDATE categories SET deleted_at = ?, is_active = 0 WHERE id = ? AND user_id = ?", (now, cid, uid))
         self.db.commit()
 
     def restore(self, cid):
+        if self.db.is_remote():
+            self.db.get_rest_client().restore_category(int(cid))
+            return
         uid = self._uid()
         self.db.execute("UPDATE categories SET deleted_at = NULL, is_active = 1 WHERE id = ? AND user_id = ?", (cid, uid))
         self.db.commit()
 
     def delete(self, cid):
+        if self.db.is_remote():
+            self.db.get_rest_client().delete_category(int(cid))
+            return
         uid = self._uid()
         cur = self.db.execute("SELECT id FROM items WHERE category_id=? AND user_id=? AND COALESCE(deleted_at, '') = '' LIMIT 1", (cid, uid))
         if cur.fetchone():

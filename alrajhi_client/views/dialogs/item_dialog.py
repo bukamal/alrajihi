@@ -4,15 +4,13 @@ from PyQt5.QtWidgets import (QFormLayout, QLineEdit, QDoubleSpinBox, QComboBox, 
                              QHeaderView, QLabel, QWidget, QSplitter, QGroupBox, QApplication, QDialog,
                              QShortcut, QFrame)
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QKeySequence, QColor
+from PyQt5.QtGui import QKeySequence
 from views.centered_dialog import CenteredDialog
 from core.services.product_service import product_service
 from core.services.barcode_service import barcode_service, BarcodeError
 from currency import currency
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
-from ui.barcode_widgets import BarcodeLineEdit, ignore_if_barcode_focus
-from decimal import Decimal, InvalidOperation
 
 class ItemDialog(CenteredDialog):
     def __init__(self, parent=None, item_id=None):
@@ -101,7 +99,7 @@ class ItemDialog(CenteredDialog):
         barcode_layout = QHBoxLayout(barcode_widget)
         barcode_layout.setContentsMargins(0, 0, 0, 0)
         barcode_layout.setSpacing(8)
-        self.barcode_edit = BarcodeLineEdit(clear_on_escape=True)
+        self.barcode_edit = QLineEdit()
         self.barcode_edit.setPlaceholderText("EAN-13 أو Code128")
         self.barcode_type_combo = QComboBox()
         self.barcode_type_combo.addItems(["EAN13", "CODE128"])
@@ -218,8 +216,6 @@ class ItemDialog(CenteredDialog):
         self.units_table.verticalHeader().setVisible(False)
         self.units_table.setAlternatingRowColors(True)
         units_layout.addWidget(self.units_table)
-        self.units_error = make_error_label()
-        units_layout.addWidget(self.units_error)
 
         btn_units_layout = QHBoxLayout()
         add_unit_btn = QPushButton("➕ إضافة وحدة")
@@ -377,9 +373,6 @@ class ItemDialog(CenteredDialog):
             self.qty_spin.setValue(0)
             self.reorder_spin.setValue(0)
             self.units_table.setRowCount(0)
-            self._validated_units_payload = []
-            self._clear_units_validation_state()
-            FormValidator.clear(self.unit_error, self.unit_edit)
             self.update_barcode_status()
             self.update_margin_preview()
             self.update_stock_preview()
@@ -393,15 +386,13 @@ class ItemDialog(CenteredDialog):
         purchase = float(self.purchase_spin.value()) if hasattr(self, 'purchase_spin') else 0.0
         selling = float(self.selling_spin.value()) if hasattr(self, 'selling_spin') else 0.0
         profit = selling - purchase
-        margin = (profit / purchase * 100) if purchase > 0 else 0.0
+        margin = (profit / selling * 100) if selling > 0 else 0.0
+        self.margin_label.setText(f"هامش الربح: {profit:.2f} {self.symbol} ({margin:.1f}%)")
         if profit < 0:
-            self.margin_label.setText(f"خسارة: {abs(profit):.2f} {self.symbol} ({margin:.1f}%)")
             self.margin_label.setStyleSheet("color: #b91c1c; font-weight: 700;")
         elif profit > 0:
-            self.margin_label.setText(f"هامش الربح: {profit:.2f} {self.symbol} ({margin:.1f}%)")
             self.margin_label.setStyleSheet("color: #047857; font-weight: 700;")
         else:
-            self.margin_label.setText("هامش الربح: 0.00 {0} (0.0%)".format(self.symbol))
             self.margin_label.setStyleSheet("color: #4b5563;")
 
     def update_stock_preview(self):
@@ -479,18 +470,10 @@ class ItemDialog(CenteredDialog):
         layout.addRow(btn_layout)
 
         def on_add():
-            name = self._normalize_unit_name(unit_name_edit.text())
+            name = unit_name_edit.text().strip()
             if not name:
                 show_toast("اسم الوحدة مطلوب", "error", dialog)
                 return
-            if name.casefold() == self._normalize_unit_name(self.unit_edit.text()).casefold():
-                show_toast("الوحدة الفرعية لا يجوز أن تطابق الوحدة الأساسية", "error", dialog)
-                return
-            for existing_row in range(self.units_table.rowCount()):
-                existing = self.units_table.item(existing_row, 0)
-                if existing and self._normalize_unit_name(existing.text()).casefold() == name.casefold():
-                    show_toast("هذه الوحدة الفرعية مكررة", "error", dialog)
-                    return
             factor = factor_spin.value()
             if factor <= 0:
                 show_toast("عامل التحويل يجب أن يكون أكبر من صفر", "error", dialog)
@@ -501,7 +484,7 @@ class ItemDialog(CenteredDialog):
             self.units_table.setItem(row, 1, QTableWidgetItem(str(factor)))
             del_btn = QPushButton("🗑")
             del_btn.setFixedSize(30, 30)
-            del_btn.clicked.connect(lambda checked=False, btn=del_btn: self._remove_unit_row_by_button(btn))
+            del_btn.clicked.connect(lambda checked, r=row: self.units_table.removeRow(r))
             self.units_table.setCellWidget(row, 2, del_btn)
             dialog.accept()
 
@@ -509,18 +492,10 @@ class ItemDialog(CenteredDialog):
         cancel_btn.clicked.connect(dialog.reject)
         dialog.exec()
 
-    def _remove_unit_row_by_button(self, button):
-        for row in range(self.units_table.rowCount()):
-            if self.units_table.cellWidget(row, 2) is button:
-                self.units_table.removeRow(row)
-                self._clear_units_validation_state()
-                return
-
     def remove_subunit(self):
         row = self.units_table.currentRow()
         if row >= 0:
             self.units_table.removeRow(row)
-            self._clear_units_validation_state()
 
     def load_item_data(self):
         item = product_service.item_by_id(self.item_id)
@@ -554,7 +529,7 @@ class ItemDialog(CenteredDialog):
             self.units_table.setItem(row, 1, QTableWidgetItem(str(su['conversion_factor'])))
             del_btn = QPushButton("🗑")
             del_btn.setFixedSize(30, 30)
-            del_btn.clicked.connect(lambda checked=False, btn=del_btn: self._remove_unit_row_by_button(btn))
+            del_btn.clicked.connect(lambda checked, r=row: self.units_table.removeRow(r))
             self.units_table.setCellWidget(row, 2, del_btn)
 
     def setup_shortcuts(self):
@@ -563,125 +538,6 @@ class ItemDialog(CenteredDialog):
             self.name_edit, self.barcode_edit, self.category_combo, self.type_combo,
             self.unit_edit, self.purchase_spin, self.selling_spin, self.qty_spin, self.reorder_spin
         ], reset=True)
-
-    @staticmethod
-    def _normalize_unit_name(value: str) -> str:
-        return " ".join(str(value or '').strip().split())
-
-    @staticmethod
-    def _parse_unit_factor(value) -> Decimal:
-        """Parse a unit conversion factor consistently in UI and service payloads.
-
-        Supports Arabic/Persian digits and both comma/dot decimal separators.
-        Empty values are invalid here; fully empty rows are skipped before parsing.
-        """
-        text = str(value or '').strip()
-        if not text:
-            raise InvalidOperation
-        arabic_digits = str.maketrans('٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٫٬', '01234567890123456789..')
-        text = text.translate(arabic_digits)
-        text = text.replace(' ', '').replace(',', '.')
-        return Decimal(text)
-
-    def _clear_units_validation_state(self):
-        if hasattr(self, 'units_error'):
-            FormValidator.clear(self.units_error, self.units_table)
-        for row in range(self.units_table.rowCount()):
-            for col in (0, 1):
-                item = self.units_table.item(row, col)
-                if item is not None:
-                    item.setBackground(QColor('white'))
-                    item.setToolTip('')
-        self.units_table.setProperty("invalid", False)
-        self.units_table.style().unpolish(self.units_table)
-        self.units_table.style().polish(self.units_table)
-
-    def _mark_unit_cell_invalid(self, row: int, col: int, message: str):
-        item = self.units_table.item(row, col)
-        if item is None:
-            item = QTableWidgetItem('')
-            self.units_table.setItem(row, col, item)
-        item.setBackground(QColor('#fee2e2'))
-        item.setToolTip(message)
-        self.units_table.setCurrentCell(row, col)
-        self.units_table.scrollToItem(item)
-
-    def _collect_units_payload(self):
-        """Validate and collect sub-units.
-
-        Important: unit-table errors must stay inside the units section and must
-        never be written to self.unit_error, which belongs only to the base-unit
-        field. This method returns (ok, payload).
-        """
-        self._clear_units_validation_state()
-        errors = []
-        payload = []
-        base_unit = self._normalize_unit_name(self.unit_edit.text()).casefold()
-        seen_units = set()
-        first_invalid = None
-
-        for row in range(self.units_table.rowCount()):
-            unit_item = self.units_table.item(row, 0)
-            factor_item = self.units_table.item(row, 1)
-            unit_name = self._normalize_unit_name(unit_item.text() if unit_item else '')
-            factor_text = str(factor_item.text()).strip() if factor_item else ''
-
-            # Ignore rows that are completely empty. This prevents a blank
-            # spare row from blocking save with a misleading conversion error.
-            if not unit_name and not factor_text:
-                continue
-
-            if not unit_name:
-                msg = "اسم الوحدة الفرعية مطلوب"
-                errors.append(msg)
-                self._mark_unit_cell_invalid(row, 0, msg)
-                first_invalid = first_invalid or (row, 0)
-                continue
-
-            key = unit_name.casefold()
-            if base_unit and key == base_unit:
-                msg = f"الوحدة الفرعية '{unit_name}' مطابقة للوحدة الأساسية"
-                errors.append(msg)
-                self._mark_unit_cell_invalid(row, 0, msg)
-                first_invalid = first_invalid or (row, 0)
-
-            if key in seen_units:
-                msg = f"الوحدة الفرعية '{unit_name}' مكررة"
-                errors.append(msg)
-                self._mark_unit_cell_invalid(row, 0, msg)
-                first_invalid = first_invalid or (row, 0)
-            seen_units.add(key)
-
-            try:
-                factor = self._parse_unit_factor(factor_text)
-                if factor <= 0:
-                    raise InvalidOperation
-            except Exception:
-                msg = f"عامل التحويل للوحدة '{unit_name}' يجب أن يكون أكبر من صفر"
-                errors.append(msg)
-                self._mark_unit_cell_invalid(row, 1, msg)
-                first_invalid = first_invalid or (row, 1)
-                continue
-
-            payload.append({'unit_name': unit_name, 'conversion_factor': str(factor)})
-
-        if errors:
-            # Show a compact unique error list in the units section only.
-            unique_errors = []
-            for msg in errors:
-                if msg not in unique_errors:
-                    unique_errors.append(msg)
-            self.units_error.setText(" • ".join(unique_errors))
-            self.units_error.setVisible(True)
-            FormValidator.mark_invalid(self.units_table, True)
-            if first_invalid:
-                self.units_table.setCurrentCell(first_invalid[0], first_invalid[1])
-            return False, []
-
-        self.units_error.clear()
-        self.units_error.setVisible(False)
-        self._validated_units_payload = payload
-        return True, payload
 
     def validate_form(self) -> bool:
         validator = FormValidator()
@@ -698,21 +554,10 @@ class ItemDialog(CenteredDialog):
                 validator.custom(False, self.barcode_edit, self.barcode_error, str(e))
         else:
             FormValidator.clear(self.barcode_error, self.barcode_edit)
-
-        units_ok, units_payload = self._collect_units_payload()
-
         if not validator.is_valid:
             validator.focus_first_invalid()
             show_toast("يرجى تصحيح الحقول المحددة", "error", self)
-            return False
-
-        if not units_ok:
-            self.units_table.setFocus()
-            show_toast("يرجى تصحيح الوحدات الفرعية", "error", self)
-            return False
-
-        self._validated_units_payload = units_payload
-        return True
+        return validator.is_valid
 
     def save(self):
         if not self.validate_form():
@@ -759,20 +604,23 @@ class ItemDialog(CenteredDialog):
         }
 
         try:
-            units_payload = getattr(self, '_validated_units_payload', None)
-            if units_payload is None:
-                ok, units_payload = self._collect_units_payload()
-                if not ok:
-                    self.units_table.setFocus()
-                    return
+            units_payload = []
+            for row in range(self.units_table.rowCount()):
+                unit_item = self.units_table.item(row, 0)
+                factor_item = self.units_table.item(row, 1)
+                unit_name = unit_item.text().strip() if unit_item else ''
+                if not unit_name:
+                    continue
+                factor = float(factor_item.text()) if factor_item and factor_item.text().strip() else 1
+                units_payload.append({'unit_name': unit_name, 'conversion_factor': factor})
 
             if self.is_edit:
                 product_service.update_item(self.item_id, data)
-                product_service.replace_units(self.item_id, units_payload, base_unit=unit)
+                product_service.replace_units(self.item_id, units_payload)
                 show_toast("تم التعديل", "success", self)
             else:
                 new_id = product_service.add_item(data)
-                product_service.replace_units(new_id, units_payload, base_unit=unit)
+                product_service.replace_units(new_id, units_payload)
                 show_toast("تمت الإضافة", "success", self)
             self.accept()
         except Exception as e:

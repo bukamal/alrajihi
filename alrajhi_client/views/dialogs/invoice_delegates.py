@@ -68,32 +68,17 @@ class UnitComboBoxDelegate(QStyledItemDelegate):
         selected_data = editor.currentData()
         if selected_data:
             row = index.row()
-            try:
-                old_factor = Decimal(str(model.lines[row].get('conversion_factor', Decimal('1'))))
-            except Exception:
-                old_factor = Decimal('1')
-            try:
-                new_factor = Decimal(str(selected_data[2]))
-            except Exception:
-                new_factor = Decimal('1')
-            if new_factor <= 0:
-                new_factor = Decimal('1')
-
+            old_factor = model.lines[row].get('conversion_factor', Decimal('1'))
+            new_factor = selected_data[2]
             # تحديث الوحدة وعامل التحويل في النموذج
-            model.setData(index, (selected_data[0], selected_data[1], new_factor), Qt.EditRole)
-
-            # تعديل السعر بناءً على نسبة معاملات التحويل.
-            # مهم: عمود الوحدة = 4، أما عمود السعر الحقيقي = 5.
-            # الخطأ السابق كان يكتب السعر في عمود الوحدة، لذلك لا يتغير الإجمالي عند اختيار وحدة فرعية.
-            price_col = getattr(model, 'COL_PRICE', 5)
+            model.setData(index, selected_data, Qt.EditRole)
+            # تعديل السعر بناءً على نسبة معاملات التحويل (عمود السعر هو index 4)
             if old_factor != new_factor and old_factor > 0:
-                old_price = Decimal(str(model.lines[row].get('price', Decimal('0'))))
+                old_price = model.lines[row]['price']
                 new_price = old_price * (new_factor / old_factor)
-                model.setData(model.index(row, price_col), new_price, Qt.EditRole)
-            else:
-                model.update_row_total(row)
-
-            model.dataChanged.emit(model.index(row, 0), model.index(row, model.columnCount() - 1))
+                # استخدام رقم العمود 4 (السعر) مباشرة لتجنب الحاجة إلى استيراد LinesModel
+                model.setData(model.index(row, 4), new_price, Qt.EditRole)
+            model.update_row_total(row)
 
 class DoubleSpinDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):

@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame,
-                             QGridLayout, QPushButton, QComboBox, QHeaderView,
-                             QSizePolicy, QToolButton)
-from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer, QSettings
+                             QGridLayout, QPushButton, QComboBox, QHeaderView)
+from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
 from decimal import Decimal
 from core.services.dashboard_service import dashboard_service
 from core.services.alert_service import alert_service
-from core.services.cashbox_service import cashbox_service
 from currency import currency
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 import qtawesome as qta
-import datetime
 
 class KPICard(QFrame):
     clicked = pyqtSignal()
@@ -71,208 +68,6 @@ class KPICard(QFrame):
     def mouseReleaseEvent(self, event):
         self.clicked.emit()
         super().mouseReleaseEvent(event)
-
-
-class CashPrivacyCard(QFrame):
-    clicked = pyqtSignal()
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setObjectName("CashPrivacyCard")
-        self.setFrameShape(QFrame.StyledPanel)
-        self._settings = QSettings("AlRajhi", "Dashboard")
-        # Financial privacy: keep the cash balance hidden by default unless the
-        # user explicitly chose otherwise in this workstation profile.
-        self._visible = self._settings.value("cash_balance_visible", False, type=bool)
-        self._balance_text = "0"
-        self._has_data = False
-        self.setMinimumHeight(260)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        self.setStyleSheet("""
-            QFrame#CashPrivacyCard {
-                background-color: palette(base);
-                border-radius: 20px;
-                border: 1px solid palette(mid);
-                padding: 16px;
-            }
-            QFrame#CashPrivacyCard:hover {
-                border: 1px solid #10b981;
-                background-color: palette(alternate-base);
-            }
-            QLabel#cashTitle {
-                font-size: 14px;
-                font-weight: 600;
-                color: palette(mid);
-            }
-            QLabel#cashValue {
-                font-size: 28px;
-                font-weight: bold;
-                color: palette(text);
-            }
-            QLabel#cashMetricLabel {
-                font-size: 12px;
-                color: #64748b;
-                background: transparent;
-            }
-            QLabel#cashMetricValue {
-                font-size: 13px;
-                font-weight: bold;
-                color: #111827;
-                background: transparent;
-            }
-            QToolButton#eyeButton {
-                border: none;
-                border-radius: 12px;
-                padding: 6px;
-                background: transparent;
-            }
-            QToolButton#eyeButton:hover {
-                background-color: palette(alternate-base);
-            }
-            QPushButton#detailsButton {
-                border: 1px solid palette(mid);
-                border-radius: 10px;
-                padding: 6px 10px;
-                font-weight: bold;
-                background-color: palette(button);
-            }
-            QPushButton#detailsButton:hover {
-                background-color: palette(alternate-base);
-            }
-        """)
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(8)
-
-        header = QHBoxLayout()
-        icon_label = QLabel()
-        icon_label.setPixmap(qta.icon('fa5s.money-bill-wave', color='#10b981').pixmap(QSize(30, 30)))
-        self.title_label = QLabel("رصيد الصندوق")
-        self.title_label.setObjectName("cashTitle")
-        self.eye_btn = QToolButton()
-        self.eye_btn.setObjectName("eyeButton")
-        self.eye_btn.setCursor(Qt.PointingHandCursor)
-        self.eye_btn.clicked.connect(self.toggle_visibility)
-        header.addWidget(icon_label)
-        header.addWidget(self.title_label)
-        header.addStretch()
-        header.addWidget(self.eye_btn)
-        layout.addLayout(header)
-
-        self.value_label = QLabel()
-        self.value_label.setObjectName("cashValue")
-        self.value_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.value_label)
-
-        self.metrics = {}
-        for key, label in (
-            ('opening', 'رصيد بداية اليوم'),
-            ('in', 'قبض اليوم'),
-            ('out', 'دفع اليوم'),
-            ('net', 'صافي حركة اليوم'),
-            ('closing', 'رصيد نهاية اليوم'),
-        ):
-            row = QHBoxLayout()
-            l = QLabel(label)
-            l.setObjectName('cashMetricLabel')
-            v = QLabel('0')
-            v.setObjectName('cashMetricValue')
-            v.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            row.addWidget(l)
-            row.addStretch()
-            row.addWidget(v)
-            layout.addLayout(row)
-            self.metrics[key] = v
-
-        self.details_btn = QPushButton("تفاصيل حركة اليوم")
-        self.details_btn.setObjectName("detailsButton")
-        self.details_btn.setCursor(Qt.PointingHandCursor)
-        self.details_btn.clicked.connect(self.clicked.emit)
-        layout.addWidget(self.details_btn)
-        self._update_eye()
-        self._update_value()
-
-    def toggle_visibility(self):
-        self._visible = not self._visible
-        self._settings.setValue("cash_balance_visible", self._visible)
-        self._update_eye()
-        self._update_value()
-
-    def set_value(self, text):
-        self._balance_text = str(text if text not in (None, '') else '0')
-        self._has_data = True
-        self._update_value()
-
-    def set_daily_metrics(self, metrics):
-        for key in self.metrics:
-            self.metrics[key].setText('0')
-        for key, value in (metrics or {}).items():
-            if key in self.metrics:
-                self.metrics[key].setText(str(value if value not in (None, '') else '0'))
-
-    def _update_eye(self):
-        icon_name = 'eye' if not self._visible else 'eye-slash'
-        tooltip = 'إظهار الرصيد' if not self._visible else 'إخفاء الرصيد'
-        self.eye_btn.setIcon(qta.icon(f'fa5s.{icon_name}', color='#64748b'))
-        self.eye_btn.setToolTip(tooltip)
-
-    def _update_value(self):
-        self.value_label.setText(self._balance_text if self._visible else '••••••')
-
-    def mouseReleaseEvent(self, event):
-        self.clicked.emit()
-        super().mouseReleaseEvent(event)
-
-
-class InfoListCard(QFrame):
-    def __init__(self, title, icon_name, color="#3b82f6", parent=None):
-        super().__init__(parent)
-        self.setObjectName("InfoListCard")
-        self.setStyleSheet(f"""
-            QFrame#InfoListCard {{
-                background-color: palette(base);
-                border-radius: 20px;
-                border: 1px solid palette(mid);
-                padding: 16px;
-            }}
-            QLabel#infoTitle {{
-                font-size: 16px;
-                font-weight: bold;
-            }}
-            QLabel.infoLine {{
-                border-radius: 10px;
-                padding: 6px 8px;
-                background-color: palette(alternate-base);
-                font-size: 12px;
-            }}
-        """)
-        layout = QVBoxLayout(self)
-        layout.setSpacing(8)
-        header = QHBoxLayout()
-        icon_label = QLabel()
-        icon_label.setPixmap(qta.icon(f'fa5s.{icon_name}', color=color).pixmap(QSize(24, 24)))
-        title_label = QLabel(title)
-        title_label.setObjectName("infoTitle")
-        header.addWidget(icon_label)
-        header.addWidget(title_label)
-        header.addStretch()
-        layout.addLayout(header)
-        self.lines_layout = QVBoxLayout()
-        self.lines_layout.setSpacing(6)
-        layout.addLayout(self.lines_layout)
-        layout.addStretch()
-
-    def set_lines(self, lines):
-        while self.lines_layout.count():
-            item = self.lines_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-        for text in (lines or ["لا توجد بيانات حالياً"]):
-            lbl = QLabel(str(text))
-            lbl.setProperty('class', 'infoLine')
-            lbl.setWordWrap(True)
-            self.lines_layout.addWidget(lbl)
 
 
 class DashboardWidget(QWidget):
@@ -387,13 +182,14 @@ class DashboardWidget(QWidget):
     # 2. البطاقات
     # ------------------------------------------------------------
     def create_cards(self):
-        self.cards['cash'] = CashPrivacyCard()
-        self.cards['cash'].clicked.connect(lambda: self._switch_page('cashboxes'))
+        self.cards['cash'] = KPICard("رصيد الصندوق", "0", "money-bill-wave", "#10b981")
+        self.cards['sales'] = KPICard("إجمالي المبيعات", "0", "chart-line", "#3b82f6")
+        self.cards['purchases'] = KPICard("إجمالي المشتريات", "0", "shopping-cart", "#f59e0b")
+        self.cards['expenses'] = KPICard("إجمالي المصروفات", "0", "receipt", "#ef4444")
         self.cards['receivables'] = KPICard("الذمم المدينة", "0", "users", "#8b5cf6")
         self.cards['payables'] = KPICard("الذمم الدائنة", "0", "truck", "#ec4899")
+        self.cards['net_profit'] = KPICard("صافي الربح", "0", "chart-pie", "#14b8a6")
         self.actions_card = self.create_actions_card()
-        self.work_alerts_card = InfoListCard("تنبيهات العمل", "exclamation-triangle", "#f59e0b")
-        self.recent_ops_card = InfoListCard("آخر العمليات", "history", "#3b82f6")
 
     def create_actions_card(self):
         card = QFrame()
@@ -436,33 +232,31 @@ class DashboardWidget(QWidget):
         title.setAlignment(Qt.AlignRight)
         layout.addWidget(title)
 
+        pos_btn = QPushButton(qta.icon('fa5s.barcode'), " نقطة البيع POS   F9")
+        pos_btn.setObjectName("posActionButton")
+        pos_btn.setMinimumHeight(58)
+        pos_btn.clicked.connect(self._open_pos)
+        layout.addWidget(pos_btn)
+
         grid = QGridLayout()
-        grid.setSpacing(10)
-        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setSpacing(8)
         actions = [
-            ("POS", 'barcode', '#059669', self._open_pos),
             ("فاتورة بيع", 'file-invoice-dollar', '#10b981', lambda: self._open_invoice('sale')),
             ("فاتورة شراء", 'shopping-cart', '#f59e0b', lambda: self._open_invoice('purchase')),
-            ("مادة", 'box', '#3b82f6', self._open_add_item),
-            ("عميل", 'user-plus', '#8b5cf6', self._open_add_customer),
-            ("مورد", 'truck-loading', '#ec4899', self._open_add_supplier),
-            ("قبض", 'hand-holding-usd', '#14b8a6', lambda: self._open_voucher('receipt')),
-            ("دفع", 'money-bill-wave', '#ef4444', lambda: self._open_voucher('payment')),
+            ("إضافة مادة", 'box', '#3b82f6', self._open_add_item),
+            ("إضافة عميل", 'user-plus', '#8b5cf6', self._open_add_customer),
+            ("إضافة مورد", 'truck-loading', '#ec4899', self._open_add_supplier),
+            ("سند قبض", 'hand-holding-usd', '#14b8a6', lambda: self._open_voucher('receipt')),
+            ("سند دفع", 'money-bill-wave', '#ef4444', lambda: self._open_voucher('payment')),
             ("المواد", 'boxes', '#64748b', lambda: self._switch_page('items')),
-            ("الصناديق", 'cash-register', '#0ea5e9', lambda: self._switch_page('cashboxes')),
-            ("التقارير", 'chart-line', '#6366f1', lambda: self._switch_page('reports')),
-            ("السجل", 'history', '#475569', lambda: self._switch_page('audit_log')),
         ]
         for i, (text, icon, color, callback) in enumerate(actions):
-            btn = QPushButton(qta.icon(f'fa5s.{icon}'), f"\n{text}")
+            btn = QPushButton(qta.icon(f'fa5s.{icon}'), f" {text}")
             btn.setProperty("class", "quick-action")
             btn.setStyleSheet(f"background-color: {color};")
             btn.clicked.connect(callback)
-            btn.setMinimumHeight(74)
-            btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            grid.addWidget(btn, i // 4, i % 4)
-        for col in range(4):
-            grid.setColumnStretch(col, 1)
+            btn.setMinimumHeight(42)
+            grid.addWidget(btn, i // 2, i % 2)
         layout.addLayout(grid)
         layout.addStretch()
         return card
@@ -546,23 +340,15 @@ class DashboardWidget(QWidget):
                 show_toast(str(e), "error", self)
 
     def arrange_cards(self):
-        """Arrange dashboard cards without financial-total KPI cards.
-
-        The dashboard intentionally keeps operational cards only:
-        cash balance, receivables, payables, and quick actions.
-        Hidden/removed cards such as total sales, purchases, expenses,
-        and net profit are not referenced here to avoid KeyError during refresh.
-        """
-        # الصندوق يحتاج مساحة أوسع لأنه يحتوي على رصيد مخفي وحركة يومية.
-        # لذلك يأخذ نصف عرض اللوحة ويمتد عمودياً، بينما تبقى الذمم
-        # والاختصارات في النصف الآخر.
-        self.card_grid.addWidget(self.cards['cash'], 0, 0, 2, 2)
-        self.card_grid.addWidget(self.cards['receivables'], 0, 2)
-        self.card_grid.addWidget(self.cards['payables'], 0, 3)
-        self.card_grid.addWidget(self.actions_card, 1, 2, 1, 2)
-        self.card_grid.addWidget(self.work_alerts_card, 2, 0, 1, 2)
-        self.card_grid.addWidget(self.recent_ops_card, 2, 2, 1, 2)
-        for col in range(4):
+        self.card_grid.addWidget(self.cards['cash'], 0, 0)
+        self.card_grid.addWidget(self.cards['sales'], 0, 1)
+        self.card_grid.addWidget(self.cards['purchases'], 0, 2)
+        self.card_grid.addWidget(self.cards['expenses'], 1, 0)
+        self.card_grid.addWidget(self.cards['receivables'], 1, 1)
+        self.card_grid.addWidget(self.cards['payables'], 1, 2)
+        self.card_grid.addWidget(self.cards['net_profit'], 2, 0)
+        self.card_grid.addWidget(self.actions_card, 2, 1, 1, 2)
+        for col in range(3):
             self.card_grid.setColumnStretch(col, 1)
 
     # ------------------------------------------------------------
@@ -593,186 +379,30 @@ class DashboardWidget(QWidget):
     # 5. تحديث البيانات
     # ------------------------------------------------------------
     def refresh_all(self):
-        """Refresh dashboard without letting one failing service empty the whole page."""
         if not hasattr(self, 'cards') or not self.cards:
             return
 
         display_curr = currency.get_display_currency()
         self.update_rate_label(display_curr)
+        snapshot = dashboard_service.snapshot(use_cache=False)
+        summary = snapshot.get('summary', {})
 
-        summary = self._safe_dashboard_summary()
         for key, card_key in (
             ('cash_balance', 'cash'),
+            ('total_sales', 'sales'),
+            ('total_purchases', 'purchases'),
+            ('total_expenses', 'expenses'),
             ('receivables', 'receivables'),
             ('payables', 'payables'),
+            ('net_profit', 'net_profit'),
         ):
-            if card_key not in self.cards:
-                continue
-            amount = self._money(summary.get(key, 0))
-            converted = currency.convert(amount, 'USD', display_curr)
-            self.cards[card_key].set_value(currency.format_amount(converted))
-
-        if 'cash' in self.cards and hasattr(self.cards['cash'], 'set_daily_metrics'):
-            self.cards['cash'].set_daily_metrics(self._cash_daily_metrics(display_curr, summary))
+            amount = currency.convert(Decimal(str(summary.get(key, 0))), 'USD', display_curr)
+            self.cards[card_key].set_value(currency.format_amount(amount))
 
         self.load_alerts()
-        self.load_work_alerts()
-        self.load_recent_operations()
-
-    def _safe_dashboard_summary(self):
-        """Return a summary dict even when reporting/dashboard services fail.
-
-        The previous dashboard refreshed through a broad snapshot path.  If any
-        secondary part of that path failed, the cash card could remain empty.
-        This method isolates the three values actually shown on the dashboard.
-        """
-        try:
-            summary = dashboard_service.summary()
-            if isinstance(summary, dict):
-                return summary
-        except Exception:
-            pass
-        try:
-            from core.services.reporting_service import reporting_service
-            summary = reporting_service.summary()
-            return summary if isinstance(summary, dict) else {}
-        except Exception:
-            return {}
-
-    def _money(self, value):
-        try:
-            return Decimal(str(value or 0))
-        except Exception:
-            return Decimal('0')
-
-    def _fmt_money(self, value, display_curr):
-        return currency.format_amount(currency.convert(self._money(value), 'USD', display_curr))
-
-    def _cash_daily_metrics(self, display_curr, summary=None):
-        """Return a reliable daily cash summary.
-
-        It uses cash_bank_movements directly when available.  If there are no
-        movements yet, the card still displays zeros plus the current cash
-        balance from the dashboard summary, so it never appears blank.
-        """
-        today = datetime.date.today().isoformat()
-        current_balance_usd = self._money((summary or {}).get('cash_balance', 0))
-        incoming = Decimal('0')
-        outgoing = Decimal('0')
-        try:
-            from database.connection import DatabaseConnection
-            conn = DatabaseConnection().get_connection()
-            # Current cashbox balance from the authoritative cash movement table.
-            try:
-                row = conn.execute("""
-                    SELECT COALESCE(SUM(CAST(amount AS REAL)), 0) AS balance
-                    FROM cash_bank_movements
-                    WHERE cashbox_id IS NOT NULL
-                """).fetchone()
-                if row is not None:
-                    current_balance_usd = self._money(row['balance'] if hasattr(row, 'keys') else row[0])
-            except Exception:
-                pass
-            rows = conn.execute("""
-                SELECT amount, direction, movement_date, created_at
-                FROM cash_bank_movements
-                WHERE cashbox_id IS NOT NULL
-                  AND substr(COALESCE(movement_date, created_at, ''), 1, 10) = ?
-            """, (today,)).fetchall()
-            for r in rows:
-                row = dict(r)
-                amount = self._money(row.get('amount'))
-                direction = str(row.get('direction') or '').lower()
-                if direction == 'out' or amount < 0:
-                    outgoing += abs(amount)
-                else:
-                    incoming += abs(amount)
-        except Exception:
-            # Fallback through service API.  This is less direct but keeps the card
-            # useful if the database schema is older or remote.
-            try:
-                movements = cashbox_service.movements(limit=5000)
-                cashboxes = cashbox_service.cashboxes(True)
-                if cashboxes:
-                    current_balance_usd = sum(self._money(c.get('balance')) for c in cashboxes)
-                for m in movements:
-                    date_text = str(m.get('movement_date') or m.get('created_at') or '')[:10]
-                    if date_text != today:
-                        continue
-                    amount = self._money(m.get('amount'))
-                    direction = str(m.get('direction') or '').lower()
-                    if direction == 'out' or amount < 0:
-                        outgoing += abs(amount)
-                    else:
-                        incoming += abs(amount)
-            except Exception:
-                pass
-        net = incoming - outgoing
-        opening = current_balance_usd - net
-        return {
-            'opening': self._fmt_money(opening, display_curr),
-            'in': self._fmt_money(incoming, display_curr),
-            'out': self._fmt_money(outgoing, display_curr),
-            'net': self._fmt_money(net, display_curr),
-            'closing': self._fmt_money(current_balance_usd, display_curr),
-        }
-
-    def load_work_alerts(self):
-        try:
-            alerts = alert_service.dashboard_alerts(limit=5)
-            lines = []
-            for a in alerts:
-                prefix = self._severity_label(a.get('severity', 'info'))
-                title = a.get('title', '')
-                message = a.get('message', '')
-                lines.append(f"{prefix} {title} — {message}" if message else f"{prefix} {title}")
-            if not lines:
-                lines = ['✅ لا توجد تنبيهات تشغيلية حالياً']
-            self.work_alerts_card.set_lines(lines)
-        except Exception as e:
-            self.work_alerts_card.set_lines([f'تعذر تحميل التنبيهات: {e}'])
-
-    def load_recent_operations(self):
-        try:
-            from database.connection import DatabaseConnection
-            conn = DatabaseConnection().get_connection()
-            rows = conn.execute(
-                """
-                SELECT action, COALESCE(entity_type, table_name, '') AS entity,
-                       COALESCE(entity_id, record_id, '') AS rid,
-                       COALESCE(event_time, timestamp, '') AS ts, username
-                FROM audit_log
-                ORDER BY id DESC
-                LIMIT 5
-                """
-            ).fetchall()
-            lines = []
-            entity_labels = {
-                'INVOICE': 'فاتورة', 'ITEM': 'مادة', 'CUSTOMER': 'عميل',
-                'SUPPLIER': 'مورد', 'VOUCHER': 'سند', 'CASHBOX': 'صندوق',
-                'BANK_ACCOUNT': 'حساب بنكي', 'RETURN': 'مرتجع', 'POS_SHIFT': 'وردية',
-            }
-            action_labels = {
-                'CREATE': 'إنشاء', 'UPDATE': 'تعديل', 'DELETE': 'حذف',
-                'SOFT_DELETE': 'أرشفة', 'POS_SHIFT_OPEN': 'فتح وردية',
-                'POS_SHIFT_CLOSE': 'إغلاق وردية',
-            }
-            for r in rows:
-                row = dict(r)
-                action = action_labels.get(str(row.get('action') or ''), str(row.get('action') or 'عملية'))
-                entity = entity_labels.get(str(row.get('entity') or ''), str(row.get('entity') or 'سجل'))
-                rid = row.get('rid') or ''
-                ts = str(row.get('ts') or '')[:16].replace('T', ' ')
-                lines.append(f"{action} {entity} #{rid} — {ts}")
-            self.recent_ops_card.set_lines(lines or ['لا توجد عمليات مسجلة بعد'])
-        except Exception:
-            self.recent_ops_card.set_lines(['لا توجد عمليات مسجلة بعد'])
 
     def load_alerts(self):
-        try:
-            alerts = alert_service.dashboard_alerts(limit=8)
-        except Exception:
-            alerts = []
+        alerts = alert_service.dashboard_alerts(limit=8)
         data = []
         for a in alerts:
             data.append({

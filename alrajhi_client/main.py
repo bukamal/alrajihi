@@ -20,7 +20,6 @@ from views.main_window import MainWindow
 from auth.session import UserSession
 from utils import enable_auto_select_all, install_non_blocking_message_boxes
 from theme_manager import ThemeManager
-from i18n.translator import translate, set_language
 
 _backup_stop_event = None
 _backup_thread = None
@@ -137,8 +136,13 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == '--server':
         print("تشغيل خادم الراجحي للمحاسبة...")
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        if project_root not in sys.path:
-            sys.path.insert(0, project_root)
+        server_root = os.path.join(project_root, 'alrajhi_server')
+        # ضع مسار الخادم أولاً حتى لا تلتقط Python حزمة database الخاصة بالعميل.
+        for path in (project_root, server_root):
+            if path in sys.path:
+                sys.path.remove(path)
+        sys.path.insert(0, project_root)
+        sys.path.insert(0, server_root)
         from database.migrations import ensure_db as ensure_db_remote
         ensure_db_remote()
         from waitress import serve
@@ -152,7 +156,6 @@ def main():
     enable_auto_select_all(app)
 
     settings = QSettings("Alrajhi", "Accounting")
-    set_language(settings.value("language", "ar"))
 
     from database.connection import DatabaseConnection
     db_conn = DatabaseConnection()
@@ -190,14 +193,14 @@ def main():
     ThemeManager.init_app(app)
 
     splash = ModernSplashScreen()
-    splash.set_progress(10, translate("startup_database"))
+    splash.set_progress(10, "جاري تهيئة قاعدة البيانات...")
     ensure_db()
     try:
         warehouse_service.bootstrap()
     except Exception as e:
         print(f"Warehouse bootstrap warning: {e}")
 
-    splash.set_progress(30, translate("startup_license"))
+    splash.set_progress(30, "التحقق من الترخيص...")
     activated, _ = check_activation()
     if not activated:
         old_splash = splash
@@ -209,11 +212,11 @@ def main():
         old_splash.close()
         old_splash.deleteLater()
         splash = ModernSplashScreen()
-        splash.set_progress(30, translate("startup_license"))
+        splash.set_progress(30, "تم التفعيل...")
 
     start_license_checker(24, on_license_invalid)
 
-    splash.set_progress(60, translate("startup_login"))
+    splash.set_progress(60, "تسجيل الدخول...")
     login = LoginDialog(splash)
     splash.hide()
     if login.exec() != LoginDialog.Accepted:
@@ -227,8 +230,15 @@ def main():
         if dlg.exec():
             repo = UserRepository()
             repo.set_force_password_change(UserSession.get_current()['id'], False)
+            UserSession.set_force_password_change(False)
+        else:
+            # لا نسمح بفتح النظام إذا كان الخادم يفرض تغيير كلمة المرور.
+            # فتح الواجهة في هذه الحالة يؤدي إلى استدعاء DAOs محلية أثناء remote mode.
+            UserSession.logout()
+            stop_license_checker()
+            sys.exit(0)
 
-    splash.set_progress(90, translate("startup_ui"))
+    splash.set_progress(90, "جاري تحميل الواجهة...")
     window = MainWindow()
     splash.finish(window)
     window.show()

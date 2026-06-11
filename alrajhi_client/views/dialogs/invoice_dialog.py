@@ -6,18 +6,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBo
                              QSplitter, QSizePolicy)
 from PyQt5.QtCore import Qt, QDate, QAbstractTableModel, QModelIndex, QStringListModel, QEvent, QTimer
 from PyQt5.QtGui import QKeySequence, QFont
-from decimal import Decimal, InvalidOperation
-
-
-def _dec(value, default='0'):
-    """Return Decimal safely from UI/service values."""
-    try:
-        if value is None or value == '':
-            value = default
-        return Decimal(str(value))
-    except (InvalidOperation, ValueError, TypeError):
-        return Decimal(str(default))
-
+from decimal import Decimal
 
 from core.services.product_service import product_service
 from core.services.catalog_service import catalog_service
@@ -27,7 +16,6 @@ from currency import currency
 from views.centered_dialog import CenteredDialog
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
-from ui.barcode_widgets import BarcodeLineEdit, ignore_if_barcode_focus
 import qtawesome as qta
 
 class LinesModel(QAbstractTableModel):
@@ -210,8 +198,7 @@ class LinesModel(QAbstractTableModel):
             item_id = val(line, 'item_id')
             item = product_service.item_by_id(item_id) if item_id else None
             units = product_service.item_units(item_id)
-            base_unit = (item or {}).get('unit') or 'قطعة'
-            current_unit = val(line, 'unit', base_unit) or base_unit
+            base_unit = val(line, 'unit', 'قطعة') or 'قطعة'
             units_list = [{'id': None, 'unit_name': base_unit, 'conversion_factor': Decimal('1')}]
             for u in units:
                 if not isinstance(u, dict):
@@ -220,6 +207,7 @@ class LinesModel(QAbstractTableModel):
                 if factor == 0:
                     factor = Decimal('1')
                 units_list.append({'id': u.get('id'), 'unit_name': u.get('unit_name', ''), 'conversion_factor': factor})
+            current_unit = base_unit
             current_factor = Decimal('1')
             current_unit_id = None
             for u in units_list:
@@ -261,25 +249,20 @@ class LinesModel(QAbstractTableModel):
                 continue
             if Decimal(str(line.get('qty', 0))) <= 0:
                 continue
-            conversion_factor = _dec(line.get('conversion_factor', Decimal('1')), '1')
-            if conversion_factor <= 0:
-                conversion_factor = Decimal('1')
-            qty = _dec(line.get('qty', 0))
-            base_qty = qty * conversion_factor
-            price_usd = _dec(currency.convert(line.get('price', 0), self.display_curr, 'USD'))
-            total_usd = _dec(currency.convert(line.get('total', 0), self.display_curr, 'USD'))
+            base_qty = line['qty'] * line.get('conversion_factor', Decimal('1'))
+            price_usd = currency.convert(line['price'], self.display_curr, 'USD')
+            total_usd = currency.convert(line['total'], self.display_curr, 'USD')
             result.append({
-                'item_id': int(line['item_id']),
-                'quantity': str(qty),
+                'item_id': line['item_id'],
+                'quantity': line['qty'],
                 'unit': line.get('unit_display', ''),
-                'conversion_factor': str(conversion_factor),
-                'base_qty': str(base_qty),
-                'quantity_in_base': str(base_qty),
-                'unit_price': str(price_usd),
-                'total': str(total_usd),
+                'conversion_factor': line.get('conversion_factor', Decimal('1')),
+                'base_qty': base_qty,
+                'unit_price': price_usd,
+                'total': total_usd,
                 'description': line.get('notes', ''),
-                'discount_percent': str(_dec(line.get('discount_percent', Decimal('0')))),
-                'tax_percent': str(_dec(line.get('tax_percent', Decimal('0'))))
+                'discount_percent': float(line.get('discount_percent', Decimal('0'))),
+                'tax_percent': float(line.get('tax_percent', Decimal('0')))
             })
         return result
 
@@ -602,7 +585,7 @@ class InvoiceDialog(CenteredDialog):
         search_frame.setObjectName("ActionCard")
         search_layout = QHBoxLayout(search_frame)
         search_layout.setContentsMargins(12, 10, 12, 10)
-        self.search_input = BarcodeLineEdit(clear_on_escape=True)
+        self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("حقل الباركود / بحث المادة — امسح الباركود ثم Enter")
         self.search_input.returnPressed.connect(self.add_item_from_search)
         self.camera_scan_btn = QPushButton("📷 مسح")
@@ -907,10 +890,7 @@ class InvoiceDialog(CenteredDialog):
         item = product_service.item_by_id(item_id)
         if not item or item.get('item_type') == 'خدمة':
             return None
-        wh_id = self._selected_warehouse_id()
         try:
-            if wh_id:
-                return Decimal(str(warehouse_service.available_qty(item_id, wh_id) or 0))
             return Decimal(str(item.get('available', item.get('quantity', 0)) or 0))
         except Exception:
             return Decimal('0')
@@ -931,10 +911,9 @@ class InvoiceDialog(CenteredDialog):
         for item_id, needed in totals.items():
             available = self._stock_available_for_item(item_id)
             if available is not None and needed > available:
-                shortages.append(f"{names.get(item_id, item_id)}: المطلوب {needed}، المتاح في المستودع المحدد {available}")
+                shortages.append(f"{names.get(item_id, item_id)}: المطلوب {needed}، المتاح {available}")
         if shortages:
-            show_toast('لا يمكن حفظ الفاتورة بسبب نقص المخزون في المستودع المحدد', 'error', self)
-            QMessageBox.warning(self, "المخزون غير كافٍ", "لا يمكن حفظ الفاتورة بسبب نقص المخزون في المستودع المحدد:\n" + "\n".join(shortages))
+            QMessageBox.warning(self, "المخزون غير كافٍ", "لا يمكن حفظ الفاتورة بسبب نقص المخزون:\n" + "\n".join(shortages))
             return False
         return True
 
@@ -1168,7 +1147,7 @@ class InvoiceDialog(CenteredDialog):
         QShortcut(QKeySequence("Delete"), self, self.remove_selected_line)
         QShortcut(QKeySequence("Ctrl+Return"), self, self.on_save)
         QShortcut(QKeySequence("Ctrl+S"), self, self.on_save)
-        QShortcut(QKeySequence("Escape"), self, ignore_if_barcode_focus(self.reject))
+        QShortcut(QKeySequence("Escape"), self, self.reject)
         QShortcut(QKeySequence("F6"), self, self.print_invoice_professional)
         QShortcut(QKeySequence("F8"), self, lambda: self.discount_value.setFocus())
         QShortcut(QKeySequence("Ctrl+L"), self, self.focus_barcode_input)
@@ -1202,9 +1181,9 @@ class InvoiceDialog(CenteredDialog):
         FormValidator.clear(self.form_error_label, self.search_input)
         if not self._validate_stock_before_save():
             return
-        total_usd = _dec(currency.convert(self.total_after_discount, self.display_curr, 'USD'))
-        paid_display = _dec(self.paid_spin.value())
-        paid_usd = _dec(currency.convert(paid_display, self.display_curr, 'USD'))
+        total_usd = currency.convert(self.total_after_discount, self.display_curr, 'USD')
+        paid_display = Decimal(str(self.paid_spin.value()))
+        paid_usd = currency.convert(paid_display, self.display_curr, 'USD')
         if paid_usd > total_usd:
             paid_usd = total_usd
         entity_id = self.selected_entity_id
@@ -1222,10 +1201,10 @@ class InvoiceDialog(CenteredDialog):
             'date': self.date_edit.date().toString("yyyy-MM-dd"),
             'reference': reference,
             'notes': self.notes_edit.toPlainText().strip(),
-            'total': str(total_usd),
-            'paid_amount': str(paid_usd),
+            'total': total_usd,
+            'paid_amount': paid_usd,
             'lines': lines,
-            'exchange_rate_to_usd': str(currency.get_current_rate(self.display_curr)),
+            'exchange_rate_to_usd': float(currency.get_current_rate(self.display_curr)),
             'original_currency': self.display_curr,
             'warehouse_id': self._selected_warehouse_id()
         }
@@ -1266,14 +1245,11 @@ class InvoiceDialog(CenteredDialog):
                     'discount_percent': str(line.get('discount_percent', 0)),
                     'tax_percent': str(line.get('tax_percent', 0)),
                     'total': currency.format_amount(line.get('total', 0)),
-                    'conversion_factor': str(line.get('conversion_factor', '1')),
-                    'quantity_in_base': str(_dec(line.get('qty', 0)) * _dec(line.get('conversion_factor', 1))),
-                    'base_unit_note': f"{line.get('qty', '')} {line.get('unit_display', '')} × {line.get('conversion_factor', '1')} = {_dec(line.get('qty', 0)) * _dec(line.get('conversion_factor', 1))}",
                 })
-        total_before = _dec(getattr(self, 'total_before_discount', 0))
-        discount_amt = _dec(getattr(self, 'discount_amount', 0))
-        total_after = _dec(getattr(self, 'total_after_discount', 0))
-        paid = _dec(self.paid_spin.value())
+        total_before = self.total_before_discount if hasattr(self, 'total_before_discount') else 0
+        discount_amt = self.discount_amount if hasattr(self, 'discount_amount') else 0
+        total_after = self.total_after_discount if hasattr(self, 'total_after_discount') else 0
+        paid = self.paid_spin.value()
         remaining = total_after - paid
         invoice_payload = {
             'type': self.inv_type,

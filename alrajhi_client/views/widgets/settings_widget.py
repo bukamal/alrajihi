@@ -15,7 +15,6 @@ from auth.activation import activate_network, check_network_activation
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from utils import show_toast
-from i18n.translator import translate, translate_text, set_language, available_languages, direction
 import requests
 import os
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
@@ -26,7 +25,7 @@ class SettingsWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft if direction(settings_service.get_language()) == "rtl" else Qt.LeftToRight)
+        self.setLayoutDirection(Qt.RightToLeft)
         self.settings = settings_service
         self.setObjectName('settingsWidget')
 
@@ -38,18 +37,18 @@ class SettingsWidget(QWidget):
         self.tabs = QTabWidget()
         self.tabs.setObjectName('settingsTabs')
         self.tabs.setDocumentMode(True)
-        self.tabs.addTab(self.create_appearance_tab(), '🎨 ' + translate('appearance'))
+        self.tabs.addTab(self.create_appearance_tab(), '🎨 المظهر')
         self.tabs.addTab(self.create_company_tab(), '🏢 الشركة')
-        self.tabs.addTab(self.create_printing_tab(), '🖨️ ' + translate('print'))
+        self.tabs.addTab(self.create_printing_tab(), '🖨️ الطباعة')
         self.tabs.addTab(self.create_pos_tab(), '🧾 نقطة البيع')
-        self.tabs.addTab(self.create_currency_tab(), '💰 ' + translate('currency'))
+        self.tabs.addTab(self.create_currency_tab(), '💰 العملات')
         self.tabs.addTab(self.create_rates_tab(), '💱 أسعار الصرف')
         self.tabs.addTab(self.create_network_tab(), '🌐 الشبكة')
         self.tabs.addTab(self.create_backup_tab(), '💾 النسخ والبيانات')
         main.addWidget(self.tabs, 1)
 
         self._apply_local_style()
-        apply_modern_widget(self, '⚙️ ' + translate('settings'), translate('settings'))
+        apply_modern_widget(self, '⚙️ الإعدادات', 'إعدادات النظام والطباعة والنسخ الاحتياطي والشبكة')
         self.load_rates_table()
 
     def _create_header(self):
@@ -134,44 +133,22 @@ class SettingsWidget(QWidget):
 
     def create_appearance_tab(self):
         scroll, layout = self._scroll_tab()
-        group, form = self._form_card(translate('appearance'), translate('language_restart_note'))
+        group, form = self._form_card('إعدادات المظهر', 'تغيير شكل التطبيق وحفظه للتشغيل القادم.')
         self.theme_combo = QComboBox()
-        self.theme_combo.addItem(translate('light'), 'light')
-        self.theme_combo.addItem(translate('dark'), 'dark')
+        self.theme_combo.addItem('فاتح', 'light')
+        self.theme_combo.addItem('داكن', 'dark')
         current_theme = settings_service.get_theme()
         self.theme_combo.setCurrentIndex(1 if current_theme == 'dark' else 0)
-        form.addRow(translate('theme') + ':', self.theme_combo)
-        apply_btn = QPushButton(translate('save_appearance'))
+        form.addRow('الثيم:', self.theme_combo)
+        form.addRow(self._note('سيتم تطبيق الثيم فورًا على النافذة الحالية، ويُحفظ تلقائيًا للمرة القادمة.', 'info'))
+        apply_btn = QPushButton('تطبيق وحفظ المظهر')
         apply_btn.setObjectName('primary')
         apply_btn.clicked.connect(self.save_appearance_settings)
         form.addRow(self._button_row(apply_btn))
         layout.addWidget(group)
-
-        lang_group, lang_form = self._form_card(translate('language_settings'), translate('language_restart_note'))
-        self.language_combo = QComboBox()
-        self._language_codes = list(available_languages().keys())
-        for code in self._language_codes:
-            self.language_combo.addItem(available_languages()[code], code)
-        current_lang = settings_service.get_language()
-        idx = self.language_combo.findData(current_lang)
-        self.language_combo.setCurrentIndex(max(0, idx))
-        lang_form.addRow(translate('language') + ':', self.language_combo)
-        save_lang_btn = QPushButton(translate('save_language'))
-        save_lang_btn.setObjectName('primary')
-        save_lang_btn.clicked.connect(self.save_language_settings)
-        lang_form.addRow(self._button_row(save_lang_btn))
-        layout.addWidget(lang_group)
         layout.addStretch()
         return scroll
 
-
-    def save_language_settings(self):
-        lang = self.language_combo.currentData() or 'ar'
-        settings_service.set_language(lang)
-        QSettings('Alrajhi', 'Accounting').setValue('language', lang)
-        set_language(lang)
-        self.setLayoutDirection(Qt.RightToLeft if direction(lang) == 'rtl' else Qt.LeftToRight)
-        show_toast(translate('language_saved'), 'success', self)
 
     def create_pos_tab(self):
         scroll, layout = self._scroll_tab()
@@ -229,23 +206,14 @@ class SettingsWidget(QWidget):
         scroll, layout = self._scroll_tab()
         cfg = settings_service.get_printing_settings()
 
-        templates_group, form = self._form_card(translate_text('قوالب HTML الموحدة'), translate_text('هذه الإعدادات تغذي قالب HTML واحد للفواتير، السندات، المرتجعات، الجداول، التقارير وملفات PDF.'))
-
-        self.print_template_language = QComboBox()
-        self.print_template_language.addItem(translate('auto_by_language'), 'auto')
-        for code, name in available_languages().items():
-            self.print_template_language.addItem(name, code)
-        idx = self.print_template_language.findData(cfg.get('template_language', 'auto'))
-        self.print_template_language.setCurrentIndex(max(0, idx))
-        form.addRow(translate('print_template_language') + ':', self.print_template_language)
-
+        templates_group, form = self._form_card('قوالب HTML الموحدة', 'هذه الإعدادات تغذي قالب HTML واحد للفواتير، السندات، المرتجعات، الجداول، التقارير وملفات PDF.')
         self.print_invoice_template = QComboBox()
         self.print_invoice_template.addItem('A4 احترافي', 'a4')
         self.print_invoice_template.addItem('حراري 80mm', 'thermal80')
         self.print_invoice_template.addItem('حراري 58mm', 'thermal58')
         idx = self.print_invoice_template.findData(cfg.get('invoice_template', 'a4'))
         self.print_invoice_template.setCurrentIndex(max(0, idx))
-        form.addRow(translate_text('قالب الفاتورة') + ':', self.print_invoice_template)
+        form.addRow('قالب الفاتورة:', self.print_invoice_template)
 
         self.print_report_template = QComboBox()
         self.print_report_template.addItem('A4 احترافي', 'a4')
@@ -253,7 +221,7 @@ class SettingsWidget(QWidget):
         self.print_report_template.addItem('حراري 58mm', 'thermal58')
         idx = self.print_report_template.findData(cfg.get('report_template', 'a4'))
         self.print_report_template.setCurrentIndex(max(0, idx))
-        form.addRow(translate_text('قالب التقارير والجداول') + ':', self.print_report_template)
+        form.addRow('قالب التقارير والجداول:', self.print_report_template)
 
         self.print_voucher_template = QComboBox()
         self.print_voucher_template.addItem('A4 احترافي', 'a4')
@@ -261,7 +229,7 @@ class SettingsWidget(QWidget):
         self.print_voucher_template.addItem('حراري 58mm', 'thermal58')
         idx = self.print_voucher_template.findData(cfg.get('voucher_template', 'a4'))
         self.print_voucher_template.setCurrentIndex(max(0, idx))
-        form.addRow(translate_text('قالب السندات') + ':', self.print_voucher_template)
+        form.addRow('قالب السندات:', self.print_voucher_template)
 
         self.print_return_template = QComboBox()
         self.print_return_template.addItem('A4 احترافي', 'a4')
@@ -269,54 +237,54 @@ class SettingsWidget(QWidget):
         self.print_return_template.addItem('حراري 58mm', 'thermal58')
         idx = self.print_return_template.findData(cfg.get('return_template', cfg.get('invoice_template', 'a4')))
         self.print_return_template.setCurrentIndex(max(0, idx))
-        form.addRow(translate_text('قالب المرتجعات') + ':', self.print_return_template)
+        form.addRow('قالب المرتجعات:', self.print_return_template)
 
         self.print_thermal_size = QComboBox()
         self.print_thermal_size.addItems(['80mm', '58mm'])
         self.print_thermal_size.setCurrentText(cfg.get('thermal_size', '80mm'))
-        form.addRow(translate_text('حجم الطابعة الحرارية الافتراضي') + ':', self.print_thermal_size)
+        form.addRow('حجم الطابعة الحرارية الافتراضي:', self.print_thermal_size)
         layout.addWidget(templates_group)
 
-        identity_group, identity_form = self._form_card(translate_text('هوية الطباعة'), translate_text('ضبط الرأس، الألوان، الخط، الشعار، QR والتذييل لكل مستند مطبوع أو محفوظ كـ PDF.'))
-        self.print_show_logo = QCheckBox(translate_text('إظهار شعار الشركة في رأس المستند'))
+        identity_group, identity_form = self._form_card('هوية الطباعة', 'ضبط الرأس، الألوان، الخط، الشعار، QR والتذييل لكل مستند مطبوع أو محفوظ كـ PDF.')
+        self.print_show_logo = QCheckBox('إظهار شعار الشركة في رأس المستند')
         self.print_show_logo.setChecked(bool(cfg.get('show_logo', True)))
         identity_form.addRow(self.print_show_logo)
 
-        self.print_show_tax = QCheckBox(translate_text('إظهار الرقم الضريبي'))
+        self.print_show_tax = QCheckBox('إظهار الرقم الضريبي')
         self.print_show_tax.setChecked(bool(cfg.get('show_tax_number', True)))
         identity_form.addRow(self.print_show_tax)
 
-        self.print_show_qr = QCheckBox(translate_text('إظهار QR في الفواتير والمرتجعات'))
+        self.print_show_qr = QCheckBox('إظهار QR في الفواتير والمرتجعات')
         self.print_show_qr.setChecked(bool(cfg.get('show_qr', True)))
         identity_form.addRow(self.print_show_qr)
 
         self.print_accent_color = QLineEdit(cfg.get('accent_color', '#1d4ed8'))
         self.print_accent_color.setPlaceholderText('#1d4ed8')
-        identity_form.addRow(translate_text('لون العنوان والجداول') + ':', self.print_accent_color)
+        identity_form.addRow('لون العنوان والجداول:', self.print_accent_color)
 
         self.print_font_family = QLineEdit(cfg.get('font_family', 'Tajawal, Arial, DejaVu Sans, sans-serif'))
-        identity_form.addRow(translate_text('خط الطباعة') + ':', self.print_font_family)
+        identity_form.addRow('خط الطباعة:', self.print_font_family)
 
         self.print_font_size = QComboBox()
         self.print_font_size.addItems(['9.5pt', '10pt', '10.5pt', '11pt', '12pt'])
         self.print_font_size.setCurrentText(cfg.get('print_font_size', '10.5pt'))
-        identity_form.addRow(translate_text('حجم خط A4') + ':', self.print_font_size)
+        identity_form.addRow('حجم خط A4:', self.print_font_size)
 
-        self.print_zebra_rows = QCheckBox(translate_text('تظليل الصفوف بالتناوب في الجداول'))
+        self.print_zebra_rows = QCheckBox('تظليل الصفوف بالتناوب في الجداول')
         self.print_zebra_rows.setChecked(bool(cfg.get('zebra_rows', True)))
         identity_form.addRow(self.print_zebra_rows)
 
-        self.print_compact_tables = QCheckBox(translate_text('جداول مضغوطة للكميات الكبيرة'))
+        self.print_compact_tables = QCheckBox('جداول مضغوطة للكميات الكبيرة')
         self.print_compact_tables.setChecked(bool(cfg.get('compact_tables', False)))
         identity_form.addRow(self.print_compact_tables)
 
         self.print_footer = QLineEdit(cfg.get('footer_text', ''))
-        self.print_footer.setPlaceholderText(translate_text('مثال: شكراً لتعاملكم معنا'))
-        identity_form.addRow(translate_text('تذييل المستندات') + ':', self.print_footer)
+        self.print_footer.setPlaceholderText('مثال: شكراً لتعاملكم معنا')
+        identity_form.addRow('تذييل المستندات:', self.print_footer)
         layout.addWidget(identity_group)
 
-        actions_group, actions_box = self._card(translate_text('الحفظ والتطبيق'), translate_text('بعد الحفظ ستستخدم جميع مسارات الطباعة القالب HTML الموحد تلقائياً: Preview، Direct Print، PDF.'))
-        save_btn = QPushButton(translate_text('حفظ إعدادات الطباعة الموحدة'))
+        actions_group, actions_box = self._card('الحفظ والتطبيق', 'بعد الحفظ ستستخدم جميع مسارات الطباعة القالب HTML الموحد تلقائياً: Preview، Direct Print، PDF.')
+        save_btn = QPushButton('حفظ إعدادات الطباعة الموحدة')
         save_btn.setObjectName('primary')
         save_btn.clicked.connect(self.save_printing_settings)
         actions_box.addLayout(self._button_row(save_btn))
@@ -424,9 +392,8 @@ class SettingsWidget(QWidget):
             accent_color=self.print_accent_color.text().strip(),
             zebra_rows=self.print_zebra_rows.isChecked(),
             compact_tables=self.print_compact_tables.isChecked(),
-            template_language=self.print_template_language.currentData() or 'auto',
         )
-        show_toast(translate_text('تم حفظ إعدادات الطباعة الموحدة'), 'success', self)
+        show_toast('تم حفظ إعدادات الطباعة الموحدة', 'success', self)
 
     def browse_logo(self):
         filename, _ = QFileDialog.getOpenFileName(self, 'اختر شعار الشركة', '', 'Images (*.png *.jpg *.jpeg *.bmp)')
