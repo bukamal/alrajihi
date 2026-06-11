@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
-from database.connection import get_db
-from database.repositories.user_repo import UserRepository
+from alrajhi_server.database.connection import get_db
+from alrajhi_server.auth.password import verify_password
 import datetime
-from api.audit_utils import audit_log
+from alrajhi_server.api.audit_utils import audit_log
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -13,8 +13,15 @@ def login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    repo = UserRepository()
-    user = repo.authenticate(username, password)
+    db = get_db()
+    user = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    if not user or not verify_password(password or '', user['password_hash'], user['salt']):
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+    now_login = datetime.datetime.now().isoformat()
+    db.execute("UPDATE users SET last_login = ? WHERE id = ?", (now_login, user['id']))
+    db.commit()
+
     if user:
         token = create_access_token(identity=str(user['id']))
         # تسجيل التدقيق
@@ -32,7 +39,7 @@ def login():
                 'username': user['username'],
                 'full_name': user['full_name'],
                 'role': user['role'],
-                'force_password_change': user.get('force_password_change', 0)
+                'force_password_change': user['force_password_change'] if 'force_password_change' in user.keys() else 0
             }
         })
     return jsonify({'error': 'Invalid credentials'}), 401

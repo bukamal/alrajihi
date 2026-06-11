@@ -3,7 +3,7 @@ import json
 import datetime
 from flask import request
 from flask_jwt_extended import get_jwt_identity
-from database.connection import get_db
+from alrajhi_server.database.connection import get_db
 
 
 def _json(value):

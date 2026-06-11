@@ -2,7 +2,7 @@
 import sqlite3
 import os
 import datetime
-from auth.password import hash_password
+from alrajhi_server.auth.password import hash_password
 from .schema_manager import apply_common_schema
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'alrajhi_server.db')

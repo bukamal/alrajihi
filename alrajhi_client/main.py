@@ -7,6 +7,7 @@ import time
 import requests
 import tempfile
 import threading
+import socket
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtCore import QTimer, QSettings
 from PyQt5.QtGui import QFont
@@ -63,6 +64,20 @@ def wait_for_server(url, timeout=10):
             pass
         time.sleep(0.5)
     return False
+
+
+def port_in_use(port: int, host: str = "127.0.0.1") -> bool:
+    """Return True when a TCP port is already occupied.
+
+    Used before starting the embedded Waitress server so the desktop
+    client does not crash with OSError: [Errno 98] Address already in use.
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.5)
+            return s.connect_ex((host, int(port))) == 0
+    except Exception:
+        return False
 
 def periodic_backup_worker(interval_seconds, folder, db_path=None):
     global _backup_stop_event
@@ -143,11 +158,22 @@ def main():
                 sys.path.remove(path)
         sys.path.insert(0, project_root)
         sys.path.insert(0, server_root)
+        server_port = 8000
+        if port_in_use(server_port):
+            print(f"✅ الخادم يعمل مسبقاً على المنفذ {server_port}")
+            return
+
         from database.migrations import ensure_db as ensure_db_remote
         ensure_db_remote()
         from waitress import serve
         from alrajhi_server.app import app as server_app
-        serve(server_app, host='0.0.0.0', port=8000, threads=4)
+        try:
+            serve(server_app, host='0.0.0.0', port=server_port, threads=4)
+        except OSError as e:
+            if getattr(e, 'errno', None) == 98 or 'Address already in use' in str(e):
+                print(f"✅ الخادم يعمل مسبقاً على المنفذ {server_port}")
+                return
+            raise
         return
 
     app = QApplication(sys.argv)

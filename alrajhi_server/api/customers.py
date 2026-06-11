@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from api.audit_utils import audit_log
-from database.connection import get_db
+from alrajhi_server.api.audit_utils import audit_log
+from alrajhi_server.database.connection import get_db
 
 customers_bp = Blueprint('customers', __name__)
 

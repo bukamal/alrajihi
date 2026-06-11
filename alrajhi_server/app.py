@@ -4,7 +4,7 @@ import secrets
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from database.connection import get_db, init_db
+from alrajhi_server.database.connection import get_db, init_db
 import datetime
 
 app = Flask(__name__)
@@ -43,19 +43,19 @@ def health():
     return jsonify({'status': 'alive'})
 
 # استيراد blueprints
-from api.auth import auth_bp
-from api.items import items_bp
-from api.invoices import invoices_bp
-from api.customers import customers_bp
-from api.suppliers import suppliers_bp
-from api.vouchers import vouchers_bp
-from api.expenses import expenses_bp
-from api.manufacturing import manufacturing_bp
-from api.reports import reports_bp
-from api.settings import settings_bp
-from api.users import users_bp
-from api.audit_log import audit_bp
-from api.categories import categories_bp
+from alrajhi_server.api.auth import auth_bp
+from alrajhi_server.api.items import items_bp
+from alrajhi_server.api.invoices import invoices_bp
+from alrajhi_server.api.customers import customers_bp
+from alrajhi_server.api.suppliers import suppliers_bp
+from alrajhi_server.api.vouchers import vouchers_bp
+from alrajhi_server.api.expenses import expenses_bp
+from alrajhi_server.api.manufacturing import manufacturing_bp
+from alrajhi_server.api.reports import reports_bp
+from alrajhi_server.api.settings import settings_bp
+from alrajhi_server.api.users import users_bp
+from alrajhi_server.api.audit_log import audit_bp
+from alrajhi_server.api.categories import categories_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api')
 app.register_blueprint(items_bp, url_prefix='/api')

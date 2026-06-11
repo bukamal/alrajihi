@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from database.connection import get_db
-from decorators import admin_required
+from alrajhi_server.database.connection import get_db
+from alrajhi_server.decorators import admin_required
 import datetime
 
 users_bp = Blueprint('users', __name__)
@@ -17,7 +17,7 @@ def get_users():
 @admin_required
 def add_user():
     data = request.get_json()
-    from auth.password import hash_password
+    from alrajhi_server.auth.password import hash_password
     pwd_hash, salt = hash_password(data['password'])
     db = get_db()
     now = datetime.datetime.now().isoformat()
@@ -59,10 +59,10 @@ def change_password():
     user = db.execute('SELECT password_hash, salt FROM users WHERE id=?', (user_id,)).fetchone()
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    from auth.password import verify_password
+    from alrajhi_server.auth.password import verify_password
     if not verify_password(old_password, user['password_hash'], user['salt']):
         return jsonify({'error': 'Invalid old password'}), 401
-    from auth.password import hash_password
+    from alrajhi_server.auth.password import hash_password
     new_hash, new_salt = hash_password(new_password)
     db.execute('UPDATE users SET password_hash=?, salt=?, force_password_change=0 WHERE id=?',
                (new_hash, new_salt, user_id))

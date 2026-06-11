@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from database.connection import get_db
-from decorators import admin_required
+from alrajhi_server.database.connection import get_db
+from alrajhi_server.decorators import admin_required
 
 settings_bp = Blueprint('settings', __name__)
 

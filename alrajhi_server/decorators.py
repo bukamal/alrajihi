@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import jsonify
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
-from database.connection import get_db
+from alrajhi_server.database.connection import get_db
 
 def admin_required(fn):
     @wraps(fn)

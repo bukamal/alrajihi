@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from database.connection import get_db
+from alrajhi_server.database.connection import get_db
 from decimal import Decimal
 
 reports_bp = Blueprint('reports', __name__)
