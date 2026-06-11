@@ -9,7 +9,7 @@ import tempfile
 import threading
 import socket
 from PyQt5.QtWidgets import QApplication, QMessageBox
-from PyQt5.QtCore import QTimer, QSettings
+from PyQt5.QtCore import QTimer, QSettings, Qt
 from PyQt5.QtGui import QFont
 from database import ensure_db
 from core.services.warehouse_service import warehouse_service
@@ -136,7 +136,7 @@ def open_network_settings():
     from views.widgets.settings_widget import SettingsWidget
     dialog = QDialog()
     dialog.setWindowTitle("إعدادات الشبكة")
-    dialog.setLayoutDirection(__import__('PyQt5.QtCore').Qt.RightToLeft)
+    dialog.setLayoutDirection(Qt.RightToLeft)
     dialog.resize(600, 500)
     layout = QVBoxLayout(dialog)
     settings_widget = SettingsWidget(dialog)
