@@ -6,8 +6,9 @@ from PyQt5.QtGui import QFont
 from views.frameless_dialog import FramelessDialog
 from utils import show_toast
 
-TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'barcode_templates')
-os.makedirs(TEMPLATES_DIR, exist_ok=True)
+from core.app_paths import barcode_templates_dir
+
+TEMPLATES_DIR = str(barcode_templates_dir())
 
 class LabelDesigner(FramelessDialog):
     DEFAULT_TEMPLATE = """<!DOCTYPE html>

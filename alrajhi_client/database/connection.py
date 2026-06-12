@@ -18,17 +18,13 @@ except Exception:
         return raw
 
 # ========== المسارات ==========
+from core.app_paths import local_db_path, user_data_dir
+
 def get_local_db_path():
-    if os.name == 'nt':
-        appdata = os.environ.get('APPDATA', os.path.expanduser('~\\AppData\\Roaming'))
-        data_dir = os.path.join(appdata, 'Alrajhi')
-    else:
-        data_dir = os.path.expanduser('~/.alrajhi')
-    os.makedirs(data_dir, exist_ok=True)
-    return os.path.join(data_dir, 'alrajhi_data.db')
+    return str(local_db_path())
 
 LOCAL_DB_PATH = get_local_db_path()
-OFFLINE_DB_PATH = os.path.join(os.path.dirname(LOCAL_DB_PATH), 'offline_queue.db')
+OFFLINE_DB_PATH = str(user_data_dir() / 'offline_queue.db')
 
 # ========== Offline Queue Manager ==========
 import hashlib

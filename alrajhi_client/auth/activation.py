@@ -8,10 +8,11 @@ import threading
 import time
 import requests
 from typing import Tuple, Optional, Callable
+from core.app_paths import license_file, network_license_file
 
 SERVER_URL = 'https://license.manhal-almasriiii199119.workers.dev/activate'
-LICENSE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'license.dat')
-NETWORK_LICENSE_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'network_license.dat')
+LICENSE_FILE = str(license_file())
+NETWORK_LICENSE_FILE = str(network_license_file())
 
 def get_device_id() -> str:
     try:

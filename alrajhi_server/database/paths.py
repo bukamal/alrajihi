@@ -15,8 +15,14 @@ from pathlib import Path
 
 def _client_compatible_data_dir() -> Path:
     if os.name == 'nt':
-        base = os.environ.get('APPDATA') or os.environ.get('LOCALAPPDATA') or str(Path.home() / 'AppData' / 'Roaming')
-        return Path(base) / 'Alrajhi'
+        # Do not write to Program Files/_internal.  Prefer the new writable app
+        # data folder, but keep using the legacy DB when it already exists.
+        legacy_base = os.environ.get('APPDATA') or os.environ.get('LOCALAPPDATA') or str(Path.home() / 'AppData' / 'Roaming')
+        legacy = Path(legacy_base) / 'Alrajhi'
+        if (legacy / 'alrajhi_data.db').exists():
+            return legacy
+        base = os.environ.get('LOCALAPPDATA') or os.environ.get('APPDATA') or str(Path.home() / 'AppData' / 'Local')
+        return Path(base) / 'AlrajhiAccounting'
     return Path.home() / '.alrajhi'
 
 
