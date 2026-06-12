@@ -301,4 +301,59 @@ class RestClient:
         result = self._request('GET', f'/api/exchange_rates/{currency_code}/history', params={'date': date})
         return result.get('rate_to_usd', 1.0) if result else 1.0
 
+    # ------------------- المرتجعات -------------------
+    def get_sales_returns(self, search=None, limit=None, offset=None):
+        params = {}
+        if search: params['search'] = search
+        if limit is not None: params['limit'] = limit
+        if offset is not None: params['offset'] = offset
+        result = self._request('GET', '/api/returns/sales', params=params, queue_on_failure=False)
+        return result.get('returns', []), result.get('total', 0)
+
+    def get_purchase_returns(self, search=None, limit=None, offset=None):
+        params = {}
+        if search: params['search'] = search
+        if limit is not None: params['limit'] = limit
+        if offset is not None: params['offset'] = offset
+        result = self._request('GET', '/api/returns/purchase', params=params, queue_on_failure=False)
+        return result.get('returns', []), result.get('total', 0)
+
+    def get_sales_return(self, return_id: int):
+        return self._request('GET', f'/api/returns/sales/{return_id}', queue_on_failure=False)
+
+    def get_purchase_return(self, return_id: int):
+        return self._request('GET', f'/api/returns/purchase/{return_id}', queue_on_failure=False)
+
+    def get_sales_return_invoices(self, search=None, limit=200):
+        params = {'limit': limit}
+        if search: params['search'] = search
+        result = self._request('GET', '/api/returns/sales/invoices', params=params, queue_on_failure=False)
+        return result.get('invoices', [])
+
+    def get_purchase_return_invoices(self, search=None, limit=200):
+        params = {'limit': limit}
+        if search: params['search'] = search
+        result = self._request('GET', '/api/returns/purchase/invoices', params=params, queue_on_failure=False)
+        return result.get('invoices', [])
+
+    def get_sales_returnable_lines(self, invoice_id: int):
+        result = self._request('GET', f'/api/returns/sales/invoices/{invoice_id}/lines', queue_on_failure=False)
+        return result.get('lines', [])
+
+    def get_purchase_returnable_lines(self, invoice_id: int):
+        result = self._request('GET', f'/api/returns/purchase/invoices/{invoice_id}/lines', queue_on_failure=False)
+        return result.get('lines', [])
+
+    def create_sales_return(self, data: Dict[str, Any]):
+        return self._request('POST', '/api/returns/sales', data=data, queue_on_failure=True)
+
+    def create_purchase_return(self, data: Dict[str, Any]):
+        return self._request('POST', '/api/returns/purchase', data=data, queue_on_failure=True)
+
+    def delete_sales_return(self, return_id: int):
+        return self._request('DELETE', f'/api/returns/sales/{return_id}', queue_on_failure=True)
+
+    def delete_purchase_return(self, return_id: int):
+        return self._request('DELETE', f'/api/returns/purchase/{return_id}', queue_on_failure=True)
+
 

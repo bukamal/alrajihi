@@ -32,6 +32,8 @@ class PurchaseReturnService:
         return uid
 
     def next_return_no(self) -> str:
+        if self.db.is_remote():
+            return f"PR-{datetime.now().strftime('%Y')}-AUTO"
         uid = self._uid()
         year = datetime.now().strftime('%Y')
         prefix = f'PR-{year}-'
@@ -47,6 +49,8 @@ class PurchaseReturnService:
         return f'{prefix}{num:04d}'
 
     def list_returns(self, search: str | None = None, limit: int | None = None, offset: int | None = None) -> Tuple[List[Dict], int]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_purchase_returns(search=search, limit=limit, offset=offset)
         uid = self._uid()
         conn = self._conn()
         where = ["pr.user_id=?", "pr.deleted_at IS NULL"]
@@ -75,6 +79,8 @@ class PurchaseReturnService:
         return [dict(r) for r in conn.execute(sql, params).fetchall()], int(total or 0)
 
     def get(self, return_id: int) -> Optional[Dict]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_purchase_return(return_id)
         row = self._conn().execute("SELECT * FROM purchase_returns WHERE id=?", (return_id,)).fetchone()
         if not row:
             return None
@@ -83,10 +89,14 @@ class PurchaseReturnService:
         return ret
 
     def purchase_invoices(self, search: str | None = None, limit: int = 200) -> List[Dict]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_purchase_return_invoices(search=search, limit=limit)
         invoices, _ = invoice_service.list_invoices(search=search, inv_type='purchase', limit=limit, offset=0)
         return invoices
 
     def returned_qty(self, invoice_id: int, line_id: int | None = None, item_id: int | None = None) -> Decimal:
+        if self.db.is_remote():
+            return Decimal('0')
         conn = self._conn()
         if line_id:
             row = conn.execute("""
@@ -105,6 +115,8 @@ class PurchaseReturnService:
         return Decimal(str(row['qty'] if row else 0))
 
     def invoice_returnable_lines(self, invoice_id: int) -> List[Dict]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_purchase_returnable_lines(invoice_id)
         inv = invoice_service.get(invoice_id)
         if not inv or inv.get('type') != 'purchase':
             raise PurchaseReturnException('يجب اختيار فاتورة شراء صالحة')
@@ -121,6 +133,9 @@ class PurchaseReturnService:
         return result
 
     def create_return(self, data: Dict) -> int:
+        if self.db.is_remote():
+            result = self.db.get_rest_client().create_purchase_return(data)
+            return int((result or {}).get('id') or 0)
         uid = self._uid()
         invoice_id = int(data.get('original_invoice_id') or 0)
         inv = invoice_service.get(invoice_id)
@@ -204,6 +219,9 @@ class PurchaseReturnService:
         return rid
 
     def delete_return(self, return_id: int) -> None:
+        if self.db.is_remote():
+            self.db.get_rest_client().delete_purchase_return(return_id)
+            return
         ret = self.get(return_id)
         if not ret or ret.get('deleted_at'):
             raise PurchaseReturnException('مرتجع المشتريات غير موجود')
