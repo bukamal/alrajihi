@@ -1,0 +1,246 @@
+# -*- coding: utf-8 -*-
+from __future__ import annotations
+
+import datetime
+from decimal import Decimal
+
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
+
+from alrajhi_server.database.connection import get_db
+from alrajhi_server.decorators import admin_required
+
+cashboxes_bp = Blueprint('cashboxes', __name__)
+
+
+def _uid():
+    try:
+        return int(get_jwt_identity())
+    except Exception:
+        return get_jwt_identity()
+
+
+def _now():
+    return datetime.datetime.now().isoformat()
+
+
+def _rowdict(row):
+    return dict(row) if row else None
+
+
+def _default_branch_id(db, uid):
+    row = db.execute("SELECT id FROM branches WHERE user_id=? AND is_default=1 AND deleted_at IS NULL LIMIT 1", (uid,)).fetchone()
+    if row:
+        return row['id']
+    row = db.execute("SELECT id FROM branches WHERE user_id=? AND deleted_at IS NULL ORDER BY id LIMIT 1", (uid,)).fetchone()
+    if row:
+        return row['id']
+    now = _now()
+    cur = db.execute("""
+        INSERT INTO branches (user_id, name, code, is_default, is_active, created_at, updated_at)
+        VALUES (?, ?, ?, 1, 1, ?, ?)
+    """, (uid, 'الفرع الرئيسي', 'MAIN', now, now))
+    db.commit()
+    return cur.lastrowid
+
+
+def _ensure_default_cashbox(db, uid, branch_id=None):
+    branch_id = branch_id or _default_branch_id(db, uid)
+    row = db.execute(
+        "SELECT id FROM cashboxes WHERE user_id=? AND branch_id=? AND is_default=1 AND deleted_at IS NULL LIMIT 1",
+        (uid, branch_id),
+    ).fetchone()
+    if row:
+        return int(row['id'])
+    row = db.execute(
+        "SELECT id FROM cashboxes WHERE user_id=? AND branch_id=? AND deleted_at IS NULL ORDER BY is_default DESC, id LIMIT 1",
+        (uid, branch_id),
+    ).fetchone()
+    if row:
+        return int(row['id'])
+    now = _now()
+    cur = db.execute("""
+        INSERT INTO cashboxes (user_id, branch_id, name, code, notes, is_default, is_active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 1, 1, ?, ?)
+    """, (uid, branch_id, 'الصندوق الرئيسي', f'CASH-{branch_id}', 'تم إنشاؤه تلقائياً', now, now))
+    db.commit()
+    return int(cur.lastrowid)
+
+
+def _cashbox_payload(data, uid):
+    db = get_db()
+    return {
+        'branch_id': data.get('branch_id') or _default_branch_id(db, uid),
+        'name': (data.get('name') or '').strip() or 'صندوق',
+        'code': (data.get('code') or '').strip(),
+        'notes': data.get('notes') or '',
+        'is_active': 1 if data.get('is_active', 1) else 0,
+    }
+
+
+def _bank_payload(data, uid):
+    db = get_db()
+    return {
+        'branch_id': data.get('branch_id') or _default_branch_id(db, uid),
+        'bank_name': (data.get('bank_name') or '').strip() or 'بنك',
+        'account_name': (data.get('account_name') or '').strip() or '',
+        'account_number': data.get('account_number') or '',
+        'iban': data.get('iban') or '',
+        'notes': data.get('notes') or '',
+        'is_active': 1 if data.get('is_active', 1) else 0,
+    }
+
+
+@cashboxes_bp.route('/cashboxes', methods=['GET'])
+@jwt_required()
+def list_cashboxes():
+    uid = _uid(); db = get_db(); include = str(request.args.get('include_archived', '')).lower() in ('1','true','yes')
+    _ensure_default_cashbox(db, uid)
+    sql = """
+        SELECT c.*, b.name AS branch_name,
+               COALESCE(SUM(CASE WHEN m.cashbox_id=c.id THEN CAST(m.amount AS REAL) ELSE 0 END),0) AS balance
+        FROM cashboxes c
+        LEFT JOIN branches b ON b.id=c.branch_id
+        LEFT JOIN cash_bank_movements m ON m.cashbox_id=c.id
+        WHERE c.user_id=?
+    """
+    params = [uid]
+    if not include:
+        sql += " AND c.deleted_at IS NULL AND COALESCE(c.is_active,1)=1"
+    sql += " GROUP BY c.id ORDER BY b.name, c.is_default DESC, c.name"
+    rows = [_rowdict(r) for r in db.execute(sql, params).fetchall()]
+    return jsonify({'cashboxes': rows})
+
+
+@cashboxes_bp.route('/cashboxes/default', methods=['GET'])
+@jwt_required()
+def default_cashbox():
+    uid = _uid(); db = get_db(); branch_id = request.args.get('branch_id')
+    cid = _ensure_default_cashbox(db, uid, branch_id)
+    return jsonify({'id': cid})
+
+
+@cashboxes_bp.route('/cashboxes/<int:cid>', methods=['GET'])
+@jwt_required()
+def get_cashbox(cid):
+    row = get_db().execute('SELECT * FROM cashboxes WHERE id=? AND user_id=?', (cid, _uid())).fetchone()
+    if not row:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify(_rowdict(row))
+
+
+@cashboxes_bp.route('/cashboxes', methods=['POST'])
+@admin_required
+def add_cashbox():
+    uid = _uid(); db = get_db(); p = _cashbox_payload(request.get_json() or {}, uid); now = _now()
+    cur = db.execute("""
+        INSERT INTO cashboxes (user_id, branch_id, name, code, notes, is_default, is_active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
+    """, (uid, p['branch_id'], p['name'], p['code'], p['notes'], p['is_active'], now, now))
+    db.commit()
+    return jsonify({'id': cur.lastrowid}), 201
+
+
+@cashboxes_bp.route('/cashboxes/<int:cid>', methods=['PUT'])
+@admin_required
+def update_cashbox(cid):
+    uid = _uid(); db = get_db(); p = _cashbox_payload(request.get_json() or {}, uid)
+    db.execute('UPDATE cashboxes SET branch_id=?, name=?, code=?, notes=?, is_active=?, updated_at=? WHERE id=? AND user_id=?',
+               (p['branch_id'], p['name'], p['code'], p['notes'], p['is_active'], _now(), cid, uid))
+    db.commit()
+    return jsonify({'status': 'ok'})
+
+
+@cashboxes_bp.route('/cashboxes/<int:cid>', methods=['DELETE'])
+@admin_required
+def archive_cashbox(cid):
+    uid = _uid(); db = get_db(); now = _now()
+    row = db.execute('SELECT is_default FROM cashboxes WHERE id=? AND user_id=?', (cid, uid)).fetchone()
+    if not row:
+        return jsonify({'error': 'not found'}), 404
+    if int(row['is_default'] or 0) == 1:
+        return jsonify({'error': 'لا يمكن أرشفة الصندوق الرئيسي'}), 400
+    db.execute('UPDATE cashboxes SET deleted_at=?, is_active=0, updated_at=? WHERE id=? AND user_id=?', (now, now, cid, uid))
+    db.commit()
+    return jsonify({'status': 'ok'})
+
+
+@cashboxes_bp.route('/bank_accounts', methods=['GET'])
+@jwt_required()
+def list_bank_accounts():
+    uid = _uid(); db = get_db(); include = str(request.args.get('include_archived', '')).lower() in ('1','true','yes')
+    sql = """
+        SELECT ba.*, b.name AS branch_name,
+               COALESCE(SUM(CASE WHEN m.bank_account_id=ba.id THEN CAST(m.amount AS REAL) ELSE 0 END),0) AS balance
+        FROM bank_accounts ba
+        LEFT JOIN branches b ON b.id=ba.branch_id
+        LEFT JOIN cash_bank_movements m ON m.bank_account_id=ba.id
+        WHERE ba.user_id=?
+    """
+    params = [uid]
+    if not include:
+        sql += " AND ba.deleted_at IS NULL AND COALESCE(ba.is_active,1)=1"
+    sql += " GROUP BY ba.id ORDER BY b.name, ba.bank_name, ba.account_name"
+    return jsonify({'bank_accounts': [_rowdict(r) for r in db.execute(sql, params).fetchall()]})
+
+
+@cashboxes_bp.route('/bank_accounts/<int:bid>', methods=['GET'])
+@jwt_required()
+def get_bank_account(bid):
+    row = get_db().execute('SELECT * FROM bank_accounts WHERE id=? AND user_id=?', (bid, _uid())).fetchone()
+    if not row:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify(_rowdict(row))
+
+
+@cashboxes_bp.route('/bank_accounts', methods=['POST'])
+@admin_required
+def add_bank_account():
+    uid = _uid(); db = get_db(); p = _bank_payload(request.get_json() or {}, uid); now = _now()
+    cur = db.execute("""
+        INSERT INTO bank_accounts (user_id, branch_id, bank_name, account_name, account_number, iban, notes, is_active, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (uid, p['branch_id'], p['bank_name'], p['account_name'], p['account_number'], p['iban'], p['notes'], p['is_active'], now, now))
+    db.commit()
+    return jsonify({'id': cur.lastrowid}), 201
+
+
+@cashboxes_bp.route('/bank_accounts/<int:bid>', methods=['PUT'])
+@admin_required
+def update_bank_account(bid):
+    uid = _uid(); db = get_db(); p = _bank_payload(request.get_json() or {}, uid)
+    db.execute('UPDATE bank_accounts SET branch_id=?, bank_name=?, account_name=?, account_number=?, iban=?, notes=?, is_active=?, updated_at=? WHERE id=? AND user_id=?',
+               (p['branch_id'], p['bank_name'], p['account_name'], p['account_number'], p['iban'], p['notes'], p['is_active'], _now(), bid, uid))
+    db.commit()
+    return jsonify({'status': 'ok'})
+
+
+@cashboxes_bp.route('/bank_accounts/<int:bid>', methods=['DELETE'])
+@admin_required
+def archive_bank_account(bid):
+    uid = _uid(); db = get_db(); now = _now()
+    db.execute('UPDATE bank_accounts SET deleted_at=?, is_active=0, updated_at=? WHERE id=? AND user_id=?', (now, now, bid, uid))
+    db.commit()
+    return jsonify({'status': 'ok'})
+
+
+@cashboxes_bp.route('/cash_bank_movements', methods=['GET'])
+@jwt_required()
+def movements():
+    uid = _uid(); db = get_db(); limit = int(request.args.get('limit', 200) or 200)
+    cashbox_id = request.args.get('cashbox_id'); bank_account_id = request.args.get('bank_account_id')
+    sql = """
+        SELECT m.*, c.name AS cashbox_name, ba.bank_name, ba.account_name, b.name AS branch_name
+        FROM cash_bank_movements m
+        LEFT JOIN cashboxes c ON c.id=m.cashbox_id
+        LEFT JOIN bank_accounts ba ON ba.id=m.bank_account_id
+        LEFT JOIN branches b ON b.id=m.branch_id
+        WHERE m.user_id=?
+    """
+    params = [uid]
+    if cashbox_id:
+        sql += ' AND m.cashbox_id=?'; params.append(cashbox_id)
+    if bank_account_id:
+        sql += ' AND m.bank_account_id=?'; params.append(bank_account_id)
+    sql += ' ORDER BY m.id DESC LIMIT ?'; params.append(limit)
+    return jsonify({'movements': [_rowdict(r) for r in db.execute(sql, params).fetchall()]})

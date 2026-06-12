@@ -50,11 +50,29 @@ def port_in_use(port: int, host: str = "127.0.0.1") -> bool:
         return False
 
 
-def health_check(url: Optional[str] = None, timeout: float = 2.0) -> bool:
+REQUIRED_REMOTE_ROUTES = {
+    '/api/reports/summary',
+    '/api/settings/theme',
+    '/api/users',
+    '/api/cashboxes',
+    '/api/returns/sales',
+    '/api/manufacturing/boms',
+}
+
+def health_check(url: Optional[str] = None, timeout: float = 2.0, require_routes: bool = True) -> bool:
     url = (url or get_server_url()).rstrip("/")
     try:
         resp = requests.get(f"{url}/health", timeout=timeout)
-        return resp.status_code == 200 and resp.json().get("status") == "alive"
+        if resp.status_code != 200 or resp.json().get("status") != "alive":
+            return False
+        if not require_routes:
+            return True
+        routes_resp = requests.get(f"{url}/api/routes", timeout=timeout)
+        if routes_resp.status_code != 200:
+            return False
+        routes = set(routes_resp.json().get('routes', []))
+        # Flask routes may include variable parts; exact static API roots must exist.
+        return REQUIRED_REMOTE_ROUTES.issubset(routes)
     except Exception:
         return False
 

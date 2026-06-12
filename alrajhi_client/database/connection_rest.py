@@ -75,6 +75,73 @@ class RestClient:
             'new_password': new_password
         }, queue_on_failure=False)
 
+    # ------------------- المستخدمون -------------------
+    def get_users(self) -> List[Dict]:
+        result = self._request('GET', '/api/users', queue_on_failure=False)
+        if isinstance(result, dict):
+            return result.get('users', [])
+        return result or []
+
+    def add_user(self, data: Dict) -> int:
+        result = self._request('POST', '/api/users', data, queue_on_failure=False)
+        return result['id']
+
+    def update_user(self, user_id: int, data: Dict):
+        return self._request('PUT', f'/api/users/{user_id}', data, queue_on_failure=False)
+
+    def delete_user(self, user_id: int):
+        return self._request('DELETE', f'/api/users/{user_id}', queue_on_failure=False)
+
+    # ------------------- الصناديق والبنوك -------------------
+    def get_cashboxes(self, include_archived=False) -> List[Dict]:
+        params = {'include_archived': 1} if include_archived else {}
+        result = self._request('GET', '/api/cashboxes', params=params, queue_on_failure=False)
+        return result.get('cashboxes', []) if isinstance(result, dict) else (result or [])
+
+    def get_bank_accounts(self, include_archived=False) -> List[Dict]:
+        params = {'include_archived': 1} if include_archived else {}
+        result = self._request('GET', '/api/bank_accounts', params=params, queue_on_failure=False)
+        return result.get('bank_accounts', []) if isinstance(result, dict) else (result or [])
+
+    def get_cashbox(self, cashbox_id: int) -> Dict:
+        return self._request('GET', f'/api/cashboxes/{cashbox_id}', queue_on_failure=False)
+
+    def get_bank_account(self, bank_account_id: int) -> Dict:
+        return self._request('GET', f'/api/bank_accounts/{bank_account_id}', queue_on_failure=False)
+
+    def add_cashbox(self, data: Dict) -> int:
+        result = self._request('POST', '/api/cashboxes', data, queue_on_failure=False)
+        return result['id']
+
+    def update_cashbox(self, cashbox_id: int, data: Dict):
+        return self._request('PUT', f'/api/cashboxes/{cashbox_id}', data, queue_on_failure=False)
+
+    def archive_cashbox(self, cashbox_id: int):
+        return self._request('DELETE', f'/api/cashboxes/{cashbox_id}', queue_on_failure=False)
+
+    def add_bank_account(self, data: Dict) -> int:
+        result = self._request('POST', '/api/bank_accounts', data, queue_on_failure=False)
+        return result['id']
+
+    def update_bank_account(self, bank_account_id: int, data: Dict):
+        return self._request('PUT', f'/api/bank_accounts/{bank_account_id}', data, queue_on_failure=False)
+
+    def archive_bank_account(self, bank_account_id: int):
+        return self._request('DELETE', f'/api/bank_accounts/{bank_account_id}', queue_on_failure=False)
+
+    def get_cash_bank_movements(self, limit=200, cashbox_id=None, bank_account_id=None) -> List[Dict]:
+        params = {'limit': limit}
+        if cashbox_id: params['cashbox_id'] = cashbox_id
+        if bank_account_id: params['bank_account_id'] = bank_account_id
+        result = self._request('GET', '/api/cash_bank_movements', params=params, queue_on_failure=False)
+        return result.get('movements', []) if isinstance(result, dict) else (result or [])
+
+    def default_cashbox_id(self, branch_id=None):
+        params = {}
+        if branch_id: params['branch_id'] = branch_id
+        result = self._request('GET', '/api/cashboxes/default', params=params, queue_on_failure=False)
+        return result.get('id') if isinstance(result, dict) else None
+
     def get_categories(self, search=None, include_inactive=False, include_deleted=False):
         params = {}
         if search: params['search'] = search
@@ -356,4 +423,14 @@ class RestClient:
     def delete_purchase_return(self, return_id: int):
         return self._request('DELETE', f'/api/returns/purchase/{return_id}', queue_on_failure=True)
 
+    # ------------------- سجل التدقيق -------------------
+    def get_audit_log(self, limit: int = 2000, offset: int = 0) -> List[Dict]:
+        params = {'limit': limit, 'offset': offset}
+        result = self._request('GET', '/api/audit_log', params=params, queue_on_failure=False)
+        if isinstance(result, dict):
+            return result.get('logs', [])
+        return result or []
+
+    def delete_old_audit_logs(self, days: int = 90):
+        return self._request('DELETE', '/api/audit_log/old', data={'days': days}, queue_on_failure=False)
 

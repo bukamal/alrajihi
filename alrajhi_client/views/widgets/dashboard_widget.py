@@ -384,8 +384,12 @@ class DashboardWidget(QWidget):
 
         display_curr = currency.get_display_currency()
         self.update_rate_label(display_curr)
-        snapshot = dashboard_service.snapshot(use_cache=False)
-        summary = snapshot.get('summary', {})
+        try:
+            snapshot = dashboard_service.snapshot(use_cache=False)
+        except Exception as exc:
+            print(f"⚠️ تعذر تحديث لوحة التحكم: {exc}")
+            snapshot = {'summary': {}}
+        summary = snapshot.get('summary', {}) if isinstance(snapshot, dict) else {}
 
         for key, card_key in (
             ('cash_balance', 'cash'),
@@ -396,13 +400,19 @@ class DashboardWidget(QWidget):
             ('payables', 'payables'),
             ('net_profit', 'net_profit'),
         ):
+            if card_key not in self.cards:
+                continue
             amount = currency.convert(Decimal(str(summary.get(key, 0))), 'USD', display_curr)
             self.cards[card_key].set_value(currency.format_amount(amount))
 
         self.load_alerts()
 
     def load_alerts(self):
-        alerts = alert_service.dashboard_alerts(limit=8)
+        try:
+            alerts = alert_service.dashboard_alerts(limit=8)
+        except Exception as exc:
+            print(f"⚠️ تعذر تحميل تنبيهات لوحة التحكم: {exc}")
+            alerts = []
         data = []
         for a in alerts:
             data.append({

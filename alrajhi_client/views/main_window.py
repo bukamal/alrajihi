@@ -152,31 +152,54 @@ class MainWindow(QMainWindow):
         self.title_bar.mouseMoveEvent = self._mouse_move
         self.title_bar.mouseReleaseEvent = self._mouse_release
 
-    def init_pages(self):
-        self.pages['dashboard'] = DashboardWidget(self)
-        self.pages['items'] = ItemsWidget(self)
-        # Sales and purchases are intentionally separate MainWindow pages.
-        # Do not instantiate the legacy combined InvoicesWidget here.
-        self.pages['sales_invoices'] = SalesInvoicesWidget(self)
-        self.pages['purchase_invoices'] = PurchaseInvoicesWidget(self)
-        self.pages['pos'] = POSWidget(self)
-        self.pages['manufacturing'] = ManufacturingWidget(self)
-        self.pages['customers'] = CustomersWidget(self)
-        self.pages['suppliers'] = SuppliersWidget(self)
-        self.pages['vouchers'] = VouchersWidget(self)
-        self.pages['returns'] = ReturnsWidget(self)
-        self.pages['purchase_returns'] = PurchaseReturnsWidget(self)
-        self.pages['reports'] = ReportsWidget(self)
-        self.pages['settings'] = SettingsWidget(self)
-        self.pages['users'] = UsersWidget(self)
-        self.pages['categories'] = CategoriesWidget(self)
-        self.pages['warehouses'] = WarehousesWidget(self)
-        self.pages['branches'] = BranchesWidget(self)
-        self.pages['cashboxes'] = CashboxesWidget(self)
-        self.pages['audit_log'] = AuditLogWidget(self)
+    def _remote_error_page(self, page_key: str, exc: Exception):
+        title = PAGE_META.get(page_key, (page_key, ''))[0]
+        w = QWidget(self)
+        layout = QVBoxLayout(w)
+        layout.setContentsMargins(36, 36, 36, 36)
+        msg = QLabel(
+            f"تعذر تحميل صفحة {title}.\n\n"
+            f"السبب: {exc}\n\n"
+            "لن يتم إغلاق البرنامج. تحقق من اتصال الخادم أو من توفر واجهة REST المطلوبة ثم افتح الصفحة مرة أخرى."
+        )
+        msg.setWordWrap(True)
+        msg.setAlignment(Qt.AlignCenter)
+        msg.setStyleSheet("QLabel { font-size: 15px; color: #7f1d1d; padding: 24px; background:#fff1f2; border:1px solid #fecdd3; border-radius:12px; }")
+        layout.addWidget(msg)
+        return w
 
-        for page in self.pages.values():
-            self.stack.addWidget(page)
+    def _create_page_safely(self, page_key: str, factory):
+        try:
+            return factory(self)
+        except Exception as exc:
+            print(f"⚠️ تعذر تحميل الصفحة {page_key}: {exc}")
+            return self._remote_error_page(page_key, exc)
+
+    def init_pages(self):
+        page_factories = [
+            ('dashboard', DashboardWidget),
+            ('items', ItemsWidget),
+            ('sales_invoices', SalesInvoicesWidget),
+            ('purchase_invoices', PurchaseInvoicesWidget),
+            ('pos', POSWidget),
+            ('manufacturing', ManufacturingWidget),
+            ('customers', CustomersWidget),
+            ('suppliers', SuppliersWidget),
+            ('vouchers', VouchersWidget),
+            ('returns', ReturnsWidget),
+            ('purchase_returns', PurchaseReturnsWidget),
+            ('reports', ReportsWidget),
+            ('settings', SettingsWidget),
+            ('users', UsersWidget),
+            ('categories', CategoriesWidget),
+            ('warehouses', WarehousesWidget),
+            ('branches', BranchesWidget),
+            ('cashboxes', CashboxesWidget),
+            ('audit_log', AuditLogWidget),
+        ]
+        for key, factory in page_factories:
+            self.pages[key] = self._create_page_safely(key, factory)
+            self.stack.addWidget(self.pages[key])
 
     def setup_menus(self):
         file_menu = self.menu_bar.addMenu(qta.icon('fa5s.file-alt'), " ملف")

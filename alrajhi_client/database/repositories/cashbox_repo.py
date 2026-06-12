@@ -153,7 +153,7 @@ class CashboxRepository(BaseRepository):
         conn.commit(); self.migrate_voucher_movements()
 
     def default_cashbox_id(self, branch_id=None, user_id=None):
-        if self.db.is_remote(): return None
+        if self.db.is_remote(): return self.db.get_rest_client().default_cashbox_id(branch_id)
         self.ensure_schema(); uid = user_id or self._uid(); bid = branch_id or BranchRepository().default_branch_id(uid)
         row = self.db.get_connection().execute('SELECT id FROM cashboxes WHERE user_id=? AND branch_id=? AND is_default=1 AND deleted_at IS NULL LIMIT 1', (uid,bid)).fetchone()
         if row: return int(row['id'])
@@ -162,7 +162,7 @@ class CashboxRepository(BaseRepository):
         return int(row['id']) if row else None
 
     def list_cashboxes(self, include_archived=False):
-        if self.db.is_remote(): return []
+        if self.db.is_remote(): return self.db.get_rest_client().get_cashboxes(include_archived)
         self.bootstrap_defaults(); uid = self._uid()
         sql = '''SELECT c.*, b.name AS branch_name, COALESCE(SUM(CASE WHEN m.cashbox_id=c.id THEN CAST(m.amount AS REAL) ELSE 0 END),0) AS balance FROM cashboxes c LEFT JOIN branches b ON b.id=c.branch_id LEFT JOIN cash_bank_movements m ON m.cashbox_id=c.id WHERE c.user_id=?'''
         params=[uid]
@@ -171,7 +171,7 @@ class CashboxRepository(BaseRepository):
         return [dict(r) for r in self.db.get_connection().execute(sql, params).fetchall()]
 
     def list_bank_accounts(self, include_archived=False):
-        if self.db.is_remote(): return []
+        if self.db.is_remote(): return self.db.get_rest_client().get_bank_accounts(include_archived)
         self.bootstrap_defaults(); uid = self._uid()
         sql = '''SELECT ba.*, b.name AS branch_name, COALESCE(SUM(CASE WHEN m.bank_account_id=ba.id THEN CAST(m.amount AS REAL) ELSE 0 END),0) AS balance FROM bank_accounts ba LEFT JOIN branches b ON b.id=ba.branch_id LEFT JOIN cash_bank_movements m ON m.bank_account_id=ba.id WHERE ba.user_id=?'''
         params=[uid]
@@ -180,35 +180,43 @@ class CashboxRepository(BaseRepository):
         return [dict(r) for r in self.db.get_connection().execute(sql, params).fetchall()]
 
     def get_cashbox(self, cid):
+        if self.db.is_remote(): return self.db.get_rest_client().get_cashbox(cid)
         row = self.db.get_connection().execute('SELECT * FROM cashboxes WHERE id=? AND user_id=?', (cid,self._uid())).fetchone()
         return dict(row) if row else None
     def get_bank_account(self, bid):
+        if self.db.is_remote(): return self.db.get_rest_client().get_bank_account(bid)
         row = self.db.get_connection().execute('SELECT * FROM bank_accounts WHERE id=? AND user_id=?', (bid,self._uid())).fetchone()
         return dict(row) if row else None
 
     def add_cashbox(self, data):
+        if self.db.is_remote(): return self.db.get_rest_client().add_cashbox(data)
         self.bootstrap_defaults(); uid=self._uid(); now=self._now(); p=self._cashbox_payload(data)
         cur=self.db.get_connection().execute('''INSERT INTO cashboxes (user_id, branch_id, name, code, notes, is_default, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)''', (uid,p['branch_id'],p['name'],p['code'],p['notes'],p['is_active'],now,now))
         self.db.get_connection().commit(); return int(cur.lastrowid)
     def update_cashbox(self, cid, data):
+        if self.db.is_remote(): return self.db.get_rest_client().update_cashbox(cid, data)
         p=self._cashbox_payload(data); conn=self.db.get_connection()
         conn.execute('UPDATE cashboxes SET branch_id=?, name=?, code=?, notes=?, is_active=?, updated_at=? WHERE id=? AND user_id=?', (p['branch_id'],p['name'],p['code'],p['notes'],p['is_active'],self._now(),cid,self._uid()))
         conn.commit()
     def archive_cashbox(self, cid):
+        if self.db.is_remote(): return self.db.get_rest_client().archive_cashbox(cid)
         conn=self.db.get_connection(); row=conn.execute('SELECT is_default FROM cashboxes WHERE id=? AND user_id=?',(cid,self._uid())).fetchone()
         if not row: raise ValueError('الصندوق غير موجود')
         if int(row['is_default'] or 0)==1: raise ValueError('لا يمكن أرشفة الصندوق الرئيسي')
         now=self._now(); conn.execute('UPDATE cashboxes SET deleted_at=?, is_active=0, updated_at=? WHERE id=? AND user_id=?',(now,now,cid,self._uid())); conn.commit()
 
     def add_bank_account(self, data):
+        if self.db.is_remote(): return self.db.get_rest_client().add_bank_account(data)
         self.bootstrap_defaults(); uid=self._uid(); now=self._now(); p=self._bank_payload(data)
         cur=self.db.get_connection().execute('''INSERT INTO bank_accounts (user_id, branch_id, bank_name, account_name, account_number, iban, notes, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',(uid,p['branch_id'],p['bank_name'],p['account_name'],p['account_number'],p['iban'],p['notes'],p['is_active'],now,now))
         self.db.get_connection().commit(); return int(cur.lastrowid)
     def update_bank_account(self, bid, data):
+        if self.db.is_remote(): return self.db.get_rest_client().update_bank_account(bid, data)
         p=self._bank_payload(data); conn=self.db.get_connection()
         conn.execute('UPDATE bank_accounts SET branch_id=?, bank_name=?, account_name=?, account_number=?, iban=?, notes=?, is_active=?, updated_at=? WHERE id=? AND user_id=?',(p['branch_id'],p['bank_name'],p['account_name'],p['account_number'],p['iban'],p['notes'],p['is_active'],self._now(),bid,self._uid()))
         conn.commit()
     def archive_bank_account(self, bid):
+        if self.db.is_remote(): return self.db.get_rest_client().archive_bank_account(bid)
         now=self._now(); self.db.get_connection().execute('UPDATE bank_accounts SET deleted_at=?, is_active=0, updated_at=? WHERE id=? AND user_id=?',(now,now,bid,self._uid())); self.db.get_connection().commit()
 
     def record_movement(self, data):
@@ -216,6 +224,7 @@ class CashboxRepository(BaseRepository):
         cur=self.db.get_connection().execute('''INSERT INTO cash_bank_movements (user_id, branch_id, cashbox_id, bank_account_id, movement_type, amount, direction, shift_id, reference_type, reference_id, description, movement_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',(uid,data.get('branch_id'),data.get('cashbox_id'),data.get('bank_account_id'),data['movement_type'],str(amount),data.get('direction'),data.get('shift_id'),data.get('reference_type'),data.get('reference_id'),data.get('description',''),data.get('movement_date') or now,now))
         self.db.get_connection().commit(); return int(cur.lastrowid)
     def movements(self, limit=200, cashbox_id=None, bank_account_id=None):
+        if self.db.is_remote(): return self.db.get_rest_client().get_cash_bank_movements(limit, cashbox_id, bank_account_id)
         self.bootstrap_defaults(); uid=self._uid(); sql='''SELECT m.*, c.name AS cashbox_name, ba.bank_name, ba.account_name, b.name AS branch_name FROM cash_bank_movements m LEFT JOIN cashboxes c ON c.id=m.cashbox_id LEFT JOIN bank_accounts ba ON ba.id=m.bank_account_id LEFT JOIN branches b ON b.id=m.branch_id WHERE m.user_id=?'''; params=[uid]
         if cashbox_id: sql+=' AND m.cashbox_id=?'; params.append(cashbox_id)
         if bank_account_id: sql+=' AND m.bank_account_id=?'; params.append(bank_account_id)

@@ -61,7 +61,12 @@ def close_db(error):
 
 @app.route('/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'alive'})
+    return jsonify({'status': 'alive', 'app': 'alrajhi_server', 'api_version': 2})
+
+@app.route('/api/routes', methods=['GET'])
+def api_routes():
+    routes = sorted(str(rule.rule) for rule in app.url_map.iter_rules())
+    return jsonify({'routes': routes, 'api_version': 2})
 
 # استيراد blueprints
 from alrajhi_server.api.auth import auth_bp
@@ -78,6 +83,7 @@ from alrajhi_server.api.users import users_bp
 from alrajhi_server.api.audit_log import audit_bp
 from alrajhi_server.api.categories import categories_bp
 from alrajhi_server.api.returns import returns_bp
+from alrajhi_server.api.cashboxes import cashboxes_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api')
 app.register_blueprint(items_bp, url_prefix='/api')
@@ -87,12 +93,13 @@ app.register_blueprint(suppliers_bp, url_prefix='/api')
 app.register_blueprint(vouchers_bp, url_prefix='/api')
 app.register_blueprint(expenses_bp, url_prefix='/api')
 app.register_blueprint(manufacturing_bp, url_prefix='/api/manufacturing')
-app.register_blueprint(reports_bp, url_prefix='/api')
+app.register_blueprint(reports_bp, url_prefix='/api/reports')
 app.register_blueprint(settings_bp, url_prefix='/api')
 app.register_blueprint(users_bp, url_prefix='/api')
 app.register_blueprint(audit_bp, url_prefix='/api')
 app.register_blueprint(categories_bp, url_prefix='/api')
 app.register_blueprint(returns_bp, url_prefix='/api')
+app.register_blueprint(cashboxes_bp, url_prefix='/api')
 
 if __name__ == '__main__':
     host = os.environ.get('ALRAJHI_HOST', '127.0.0.1')

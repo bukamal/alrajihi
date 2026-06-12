@@ -36,16 +36,27 @@ class DashboardService:
         if use_cache and self._fresh() and self._cache:
             return self._cache
         data = {
-            'summary': self.summary(),
-            'monthly_trend': self.monthly_trend(),
-            'recent_entries': self.recent_entries(limit=5),
+            'summary': self._safe_call(self.summary, {}),
+            'monthly_trend': self._safe_call(self.monthly_trend, []),
+            'recent_entries': self._safe_call(lambda: self.recent_entries(limit=5), []),
         }
         self._cache = data
         self._cache_time = datetime.now()
         return data
 
+    def _safe_call(self, func, default):
+        try:
+            return func()
+        except Exception as exc:
+            print(f"⚠️ تعذر تحميل بيانات لوحة التحكم: {exc}")
+            return default
+
     def summary(self) -> Dict:
-        summary = reporting_service.summary()
+        try:
+            summary = reporting_service.summary()
+        except Exception as exc:
+            print(f"⚠️ تعذر تحميل ملخص التقارير للوحة التحكم: {exc}")
+            summary = {}
         if not isinstance(summary, dict):
             summary = {}
         keys = ('cash_balance', 'total_sales', 'total_purchases', 'total_expenses',

@@ -114,9 +114,9 @@ def start_periodic_backup():
 
 def test_server_connection(url):
     try:
-        resp = requests.get(f"{url}/health", timeout=3)
-        return resp.status_code == 200 and resp.json().get("status") == "alive"
-    except:
+        from core.server_control import health_check
+        return health_check(url, timeout=3, require_routes=True)
+    except Exception:
         return False
 
 def open_network_settings():
