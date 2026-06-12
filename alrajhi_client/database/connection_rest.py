@@ -41,7 +41,10 @@ class RestClient:
                     time.sleep(wait_time)
                     continue
                 if resp.status_code >= 400:
-                    raise Exception(f"API error {resp.status_code}: {resp.text}")
+                    detail = (resp.text or '').strip()
+                    # Include the effective URL so remote-mode diagnostics can distinguish
+                    # a missing endpoint from a wrong saved server address.
+                    raise Exception(f"API error {resp.status_code} at {url}: {detail}")
                 return resp.json() if resp.text else None
             except requests.exceptions.ConnectionError as e:
                 last_exception = e

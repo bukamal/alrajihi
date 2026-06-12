@@ -32,6 +32,21 @@ class POSWidget(QWidget):
         self._setup_shortcuts()
         self.refresh_cart()
 
+    def _focus_barcode_input(self):
+        """Safely focus the barcode field when the POS UI has been fully built.
+
+        In remote/client mode a REST endpoint may fail while the POS page is still
+        being initialized. Qt can still deliver show/focus events to the partial
+        widget; direct access to self.barcode_input then raises AttributeError and
+        aborts the whole application. This guard keeps page-load failures isolated.
+        """
+        widget = getattr(self, 'barcode_input', None)
+        if widget is not None:
+            try:
+                widget.setFocus()
+            except RuntimeError:
+                pass
+
     def _init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
@@ -245,7 +260,7 @@ class POSWidget(QWidget):
         self.cart = pos_service.new_cart(self._selected_warehouse_id(), self._selected_cashbox_id())
         self.refresh_cart()
         self.refresh_shift_state()
-        self.barcode_input.setFocus()
+        self._focus_barcode_input()
 
     def open_shift(self):
         cashbox_id = self._selected_cashbox_id()
@@ -262,7 +277,7 @@ class POSWidget(QWidget):
             show_toast("تم فتح الوردية", "success", self)
         except Exception as e:
             QMessageBox.warning(self, "خطأ", str(e))
-        self.barcode_input.setFocus()
+        self._focus_barcode_input()
 
     def close_shift(self):
         shift = cashbox_service.current_open_shift(self._selected_cashbox_id())
@@ -287,7 +302,7 @@ class POSWidget(QWidget):
             self.refresh_cart()
         except Exception as e:
             QMessageBox.warning(self, "خطأ", str(e))
-        self.barcode_input.setFocus()
+        self._focus_barcode_input()
 
     def _load_warehouses(self):
         self.warehouse_combo.clear()
@@ -314,7 +329,7 @@ class POSWidget(QWidget):
                 return
         self.cart = pos_service.new_cart(new_id, self._selected_cashbox_id())
         self.refresh_cart()
-        self.barcode_input.setFocus()
+        self._focus_barcode_input()
 
     def _setup_shortcuts(self):
         QShortcut(QKeySequence("F2"), self, self.pay_cash_full)
@@ -324,7 +339,7 @@ class POSWidget(QWidget):
         QShortcut(QKeySequence("F10"), self, self.checkout)
         QShortcut(QKeySequence("Delete"), self, self.remove_selected_line)
         QShortcut(QKeySequence("Escape"), self, self.clear_cart)
-        QShortcut(QKeySequence("Ctrl+L"), self, lambda: self.barcode_input.setFocus())
+        QShortcut(QKeySequence("Ctrl+L"), self, lambda: self._focus_barcode_input())
         QShortcut(QKeySequence("F11"), self, self.toggle_fullscreen)
 
     def scan_entered_barcode(self):
@@ -339,7 +354,7 @@ class POSWidget(QWidget):
             dialog.exec()
         except Exception as e:
             show_toast(f"تعذر تشغيل الكاميرا: {e}", "warning", self)
-            self.barcode_input.setFocus()
+            self._focus_barcode_input()
 
     def add_barcode_to_cart(self, code):
         try:
@@ -354,7 +369,7 @@ class POSWidget(QWidget):
         except Exception as e:
             show_toast(f"خطأ في المسح: {e}", "error", self)
         finally:
-            self.barcode_input.setFocus()
+            self._focus_barcode_input()
 
     def refresh_cart(self):
         self.table.setRowCount(0)
@@ -404,7 +419,7 @@ class POSWidget(QWidget):
         else:
             window.showFullScreen()
             self.fullscreen_btn.setText("خروج من ملء الشاشة")
-        self.barcode_input.setFocus()
+        self._focus_barcode_input()
 
     def on_payment_method_changed(self):
         if self.payment_combo.currentData() == 'credit':
@@ -428,18 +443,18 @@ class POSWidget(QWidget):
         item_id = self.cart.lines[row].item_id
         pos_service.remove_line(self.cart, item_id)
         self.refresh_cart()
-        self.barcode_input.setFocus()
+        self._focus_barcode_input()
 
     def clear_cart(self):
         if not self.cart.lines:
-            self.barcode_input.setFocus()
+            self._focus_barcode_input()
             return
         reply = QMessageBox.question(self, "إلغاء البيع", "هل تريد إلغاء السلة الحالية؟", QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             pos_service.clear(self.cart)
             self.refresh_cart()
             self.status_label.setText("تم إلغاء السلة")
-            self.barcode_input.setFocus()
+            self._focus_barcode_input()
 
     def suspend_cart(self):
         try:
@@ -453,7 +468,7 @@ class POSWidget(QWidget):
         except POSException as e:
             show_toast(str(e), "warning", self)
         finally:
-            self.barcode_input.setFocus()
+            self._focus_barcode_input()
 
     def resume_cart(self):
         if not pos_service.suspended_carts:
@@ -473,7 +488,7 @@ class POSWidget(QWidget):
         except POSException as e:
             show_toast(str(e), "error", self)
         finally:
-            self.barcode_input.setFocus()
+            self._focus_barcode_input()
 
     def checkout(self):
         try:
@@ -497,7 +512,7 @@ class POSWidget(QWidget):
         except Exception as e:
             show_toast(f"فشل إنهاء البيع: {e}", "error", self)
         finally:
-            self.barcode_input.setFocus()
+            self._focus_barcode_input()
 
     def _offer_print_receipt(self, invoice_id):
         reply = QMessageBox.question(self, "طباعة إيصال", "هل تريد طباعة إيصال حراري؟", QMessageBox.Yes | QMessageBox.No)
@@ -514,4 +529,4 @@ class POSWidget(QWidget):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self.barcode_input.setFocus()
+        self._focus_barcode_input()
