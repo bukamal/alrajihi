@@ -108,6 +108,14 @@ class DatabaseConnection:
     def is_remote(self) -> bool:
         return self.mode == "client"
 
+    def effective_mode(self) -> str:
+        return self.mode
+
+    def data_source_label(self) -> str:
+        if self.mode == 'client':
+            return f"REST: {self.server_url}"
+        return f"SQLite: {LOCAL_DB_PATH}"
+
     def get_rest_client(self):
         return self._rest_client
 

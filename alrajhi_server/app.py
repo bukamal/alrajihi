@@ -84,6 +84,7 @@ from alrajhi_server.api.audit_log import audit_bp
 from alrajhi_server.api.categories import categories_bp
 from alrajhi_server.api.returns import returns_bp
 from alrajhi_server.api.cashboxes import cashboxes_bp
+from alrajhi_server.api.debug import debug_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api')
 app.register_blueprint(items_bp, url_prefix='/api')
@@ -100,6 +101,7 @@ app.register_blueprint(audit_bp, url_prefix='/api')
 app.register_blueprint(categories_bp, url_prefix='/api')
 app.register_blueprint(returns_bp, url_prefix='/api')
 app.register_blueprint(cashboxes_bp, url_prefix='/api')
+app.register_blueprint(debug_bp, url_prefix='/api')
 
 if __name__ == '__main__':
     host = os.environ.get('ALRAJHI_HOST', '127.0.0.1')

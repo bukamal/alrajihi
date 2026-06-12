@@ -2,8 +2,9 @@
 import sqlite3
 import os
 from flask import g
+from .paths import get_server_db_path
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'alrajhi_server.db')
+DB_PATH = get_server_db_path()
 
 def get_db():
     if 'db' not in g:
@@ -17,6 +18,6 @@ def get_db():
 def init_db():
     from .migrations import ensure_db
     ensure_db()
-    print("✅ تم التحقق من قاعدة بيانات الخادم")
+    print(f"✅ تم التحقق من قاعدة بيانات الخادم في: {DB_PATH}")
 
 

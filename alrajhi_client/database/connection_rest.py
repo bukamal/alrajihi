@@ -462,3 +462,7 @@ class RestClient:
     def delete_old_audit_logs(self, days: int = 90):
         return self._request('DELETE', '/api/audit_log/old', data={'days': days}, queue_on_failure=False)
 
+
+    # ------------------- تشخيص وضع الشبكة -------------------
+    def debug_status(self) -> Dict:
+        return self._request('GET', '/api/debug/status', queue_on_failure=False)

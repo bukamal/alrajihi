@@ -155,6 +155,7 @@ REQUIRED_REMOTE_ROUTES = {
     '/api/cashboxes',
     '/api/returns/sales',
     '/api/manufacturing/boms',
+    '/api/debug/status',
 }
 
 def health_check(url: Optional[str] = None, timeout: float = 2.0, require_routes: bool = True) -> bool:

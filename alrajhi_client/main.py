@@ -239,7 +239,18 @@ def main():
             print(f"✅ الخادم يعمل مسبقاً على المنفذ {server_port}")
             return
 
-        from database.migrations import ensure_db as ensure_db_remote
+        # Ensure the API server uses the same writable SQLite file as the desktop server UI.
+        try:
+            if os.name == 'nt':
+                _base = os.environ.get('APPDATA') or os.environ.get('LOCALAPPDATA') or os.path.expanduser('~\\AppData\\Roaming')
+                _client_db_path = os.path.join(_base, 'Alrajhi', 'alrajhi_data.db')
+            else:
+                _client_db_path = os.path.expanduser('~/.alrajhi/alrajhi_data.db')
+            os.environ.setdefault('ALRAJHI_SERVER_DB_PATH', _client_db_path)
+            print(f"ℹ️ مسار قاعدة بيانات الخادم: {os.environ.get('ALRAJHI_SERVER_DB_PATH')}")
+        except Exception as exc:
+            print(f"⚠️ تعذر ضبط مسار قاعدة بيانات الخادم الموحد: {exc}")
+        from alrajhi_server.database.migrations import ensure_db as ensure_db_remote
         ensure_db_remote()
         from waitress import serve
         from alrajhi_server.app import app as server_app
@@ -308,11 +319,17 @@ def main():
 
     splash = ModernSplashScreen()
     splash.set_progress(10, "جاري تهيئة قاعدة البيانات...")
-    ensure_db()
-    try:
-        warehouse_service.bootstrap()
-    except Exception as e:
-        print(f"Warehouse bootstrap warning: {e}")
+    # In client mode the source of truth is the remote server. Do not create or
+    # bootstrap a local SQLite database, otherwise the UI may appear to use local
+    # data and background services can mutate the wrong database.
+    if not db_conn.is_remote():
+        ensure_db()
+        try:
+            warehouse_service.bootstrap()
+        except Exception as e:
+            print(f"Warehouse bootstrap warning: {e}")
+    else:
+        print(f"ℹ️ وضع العميل مفعل. مصدر البيانات: {db_conn.data_source_label()}")
 
     splash.set_progress(30, "التحقق من الترخيص...")
     activated, _ = check_activation()

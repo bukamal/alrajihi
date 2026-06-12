@@ -4,8 +4,9 @@ import os
 import datetime
 from alrajhi_server.auth.password import hash_password
 from .schema_manager import apply_common_schema
+from .paths import get_server_db_path
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'alrajhi_server.db')
+DB_PATH = get_server_db_path()
 
 def init_database():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
