@@ -137,9 +137,14 @@ def port_in_use(port: int, host: str = "127.0.0.1") -> bool:
         return False
 
 
+# Routes that must exist on the server for remote/client mode.
+# Important: do not require protected concrete URLs such as
+# /api/settings/theme here.  The settings endpoint is intentionally
+# protected and returns 401 without a token; /api/routes exposes it as
+# /api/settings/<key>, which is enough to prove the API exists.
 REQUIRED_REMOTE_ROUTES = {
     '/api/reports/summary',
-    '/api/settings/theme',
+    '/api/settings/<key>',
     '/api/users',
     '/api/cashboxes',
     '/api/returns/sales',
