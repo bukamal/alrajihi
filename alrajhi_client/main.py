@@ -22,6 +22,15 @@ from auth.session import UserSession
 from utils import enable_auto_select_all, install_non_blocking_message_boxes
 from theme_manager import ThemeManager
 
+from core.server_control import (
+    DEFAULT_PORT,
+    get_server_port,
+    health_check,
+    port_in_use,
+    start_server_process,
+    stop_server_process,
+)
+
 _backup_stop_event = None
 _backup_thread = None
 
@@ -36,22 +45,14 @@ def on_license_invalid():
     QTimer.singleShot(0, show)
 
 def run_flask_server():
-    error_log = os.path.join(tempfile.gettempdir(), "alrajhi_subprocess_error.log")
-    try:
-        exe_path = sys.executable
-        cmd = [exe_path, os.path.abspath(__file__), '--server']
-        if sys.platform == 'win32':
-            subprocess.Popen(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
-        else:
-            subprocess.Popen(cmd)
-    except Exception as e:
-        with open(error_log, "w", encoding='utf-8') as f:
-            f.write(str(e))
-        def show_error():
-            QMessageBox.critical(None, "خطأ في الخادم",
-                                 f"فشل بدء خادم Flask.\nتم تسجيل الخطأ في:\n{error_log}")
-        QTimer.singleShot(0, show_error)
-        raise
+    """Start the optional embedded server as a controlled child process.
+
+    Kept as a compatibility wrapper for older calls, but it no longer launches
+    recursively or without lifecycle control.
+    """
+    ok, msg = start_server_process(main_file=os.path.abspath(__file__), port=get_server_port())
+    print(("✅ " if ok else "❌ ") + msg)
+    return ok
 
 def wait_for_server(url, timeout=10):
     start = time.time()
@@ -65,19 +66,6 @@ def wait_for_server(url, timeout=10):
         time.sleep(0.5)
     return False
 
-
-def port_in_use(port: int, host: str = "127.0.0.1") -> bool:
-    """Return True when a TCP port is already occupied.
-
-    Used before starting the embedded Waitress server so the desktop
-    client does not crash with OSError: [Errno 98] Address already in use.
-    """
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.5)
-            return s.connect_ex((host, int(port))) == 0
-    except Exception:
-        return False
 
 def periodic_backup_worker(interval_seconds, folder, db_path=None):
     global _backup_stop_event
@@ -142,7 +130,7 @@ def open_network_settings():
     """
     from PyQt5.QtWidgets import (
         QDialog, QVBoxLayout, QFormLayout, QHBoxLayout, QDialogButtonBox,
-        QComboBox, QLineEdit, QLabel, QPushButton, QMessageBox
+        QComboBox, QLineEdit, QLabel, QPushButton, QMessageBox, QSpinBox, QCheckBox
     )
 
     dialog = QDialog()
@@ -183,6 +171,15 @@ def open_network_settings():
     server_url_edit.setPlaceholderText("http://192.168.1.100:8000")
     form.addRow("عنوان الخادم:", server_url_edit)
 
+    server_port_spin = QSpinBox()
+    server_port_spin.setRange(1024, 65535)
+    server_port_spin.setValue(int(qsettings.value("server/port", DEFAULT_PORT)))
+    form.addRow("منفذ الخادم المحلي:", server_port_spin)
+
+    auto_start_check = QCheckBox("تشغيل الخادم المحلي تلقائياً عند بدء التطبيق")
+    auto_start_check.setChecked(qsettings.value("server/auto_start", False, type=bool))
+    form.addRow(auto_start_check)
+
     status = QLabel("")
     status.setWordWrap(True)
     form.addRow("الحالة:", status)
@@ -212,8 +209,12 @@ def open_network_settings():
     button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     def save_and_accept():
+        port = server_port_spin.value()
         qsettings.setValue("network/mode", mode_combo.currentData() or "local")
-        qsettings.setValue("network/server_url", server_url_edit.text().strip() or "http://localhost:8000")
+        qsettings.setValue("network/server_url", server_url_edit.text().strip() or f"http://localhost:{port}")
+        qsettings.setValue("server/port", port)
+        qsettings.setValue("server/auto_start", auto_start_check.isChecked())
+        qsettings.sync()
         dialog.accept()
 
     button_box.accepted.connect(save_and_accept)
@@ -232,7 +233,7 @@ def main():
                 sys.path.remove(path)
         sys.path.insert(0, project_root)
         sys.path.insert(0, server_root)
-        server_port = 8000
+        server_port = int(os.environ.get("ALRAJHI_SERVER_PORT", str(DEFAULT_PORT)))
         if port_in_use(server_port):
             print(f"✅ الخادم يعمل مسبقاً على المنفذ {server_port}")
             return
@@ -272,12 +273,24 @@ def main():
             db_conn.mode = "local"
 
     if mode == "server":
-        run_flask_server()
-        if not wait_for_server("http://localhost:8000"):
-            QMessageBox.critical(None, "خطأ", "فشل بدء الخادم الداخلي. تحقق من المنفذ 8000 أو جدار الحماية.")
-            sys.exit(1)
-        QMessageBox.information(None, "خادم", "تم بدء الخادم بنجاح. يمكن للأجهزة الأخرى الاتصال به.")
+        # وضع الخادم يعني أن هذا الجهاز يستخدم قاعدة محلية ويمكنه اختيارياً
+        # تشغيل خدمة API للأجهزة الأخرى. لا نشغّل الخادم تلقائياً إلا إذا
+        # فعّل المستخدم ذلك صراحة من إعدادات الشبكة. هذا يمنع فتح التطبيق
+        # لنفسه بشكل متكرر عند بدء التشغيل.
         os.environ['ALRAJHI_MODE'] = 'server'
+        auto_start_server = settings.value("server/auto_start", False, type=bool)
+        server_port = get_server_port()
+        if auto_start_server:
+            ok, msg = start_server_process(main_file=os.path.abspath(__file__), port=server_port)
+            if not ok:
+                QMessageBox.warning(
+                    None,
+                    "تنبيه الخادم",
+                    f"تعذر تشغيل الخادم المحلي تلقائياً:\n{msg}\n\n"
+                    "يمكن تشغيله أو إيقافه يدوياً من الإعدادات > الشبكة."
+                )
+        else:
+            print("ℹ️ وضع الخادم مفعل، لكن التشغيل التلقائي للخادم معطل من الإعدادات.")
     elif mode == "client":
         os.environ['ALRAJHI_MODE'] = 'client'
         if not test_server_connection(server_url):

@@ -15,6 +15,7 @@ from auth.activation import activate_network, check_network_activation
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from utils import show_toast
+from core.server_control import get_server_port, server_status, start_server_process, stop_server_process, health_check
 import requests
 import os
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
@@ -325,15 +326,42 @@ class SettingsWidget(QWidget):
 
     def create_network_tab(self):
         scroll, layout = self._scroll_tab()
-        group, form = self._form_card('إعدادات الشبكة', 'اختيار وضع التشغيل المحلي أو الاتصال بخادم مركزي. التغيير يحتاج عادةً إلى إعادة تشغيل التطبيق.')
-        self.mode_combo = QComboBox(); self.mode_combo.addItems(['محلي (بدون شبكة)', 'عميل (اتصال بخادم)', 'خادم (تشغيل خدمة)'])
+        group, form = self._form_card(
+            'إعدادات الشبكة',
+            'تم فصل وضع الاتصال عن تشغيل الخادم. اختر هل يعمل البرنامج محلياً، كعميل يتصل بخادم، أو كجهاز خادم، ثم شغّل خدمة الخادم يدوياً عند الحاجة.'
+        )
+        self.mode_combo = QComboBox(); self.mode_combo.addItems(['محلي (بدون شبكة)', 'عميل (اتصال بخادم)', 'خادم / قاعدة محلية مع خدمة اختيارية'])
         settings = QSettings('Alrajhi', 'Accounting')
         current_mode = settings.value('network/mode', 'local')
         self.mode_combo.setCurrentIndex({'local': 0, 'client': 1, 'server': 2}.get(current_mode, 0))
-        form.addRow('وضع التشغيل:', self.mode_combo)
+        form.addRow('وضع الاتصال:', self.mode_combo)
+
         self.server_url_edit = QLineEdit(settings.value('network/server_url', 'http://localhost:8000'))
         self.server_url_edit.setPlaceholderText('http://192.168.1.100:8000')
-        form.addRow('عنوان الخادم:', self.server_url_edit)
+        form.addRow('عنوان الخادم للاتصال:', self.server_url_edit)
+
+        self.server_port_spin = QSpinBox(); self.server_port_spin.setRange(1024, 65535); self.server_port_spin.setValue(int(settings.value('server/port', 8000)))
+        form.addRow('منفذ الخادم المحلي:', self.server_port_spin)
+
+        self.server_auto_start_check = QCheckBox('تشغيل الخادم المحلي تلقائياً عند بدء التطبيق')
+        self.server_auto_start_check.setChecked(settings.value('server/auto_start', False, type=bool))
+        form.addRow(self.server_auto_start_check)
+
+        self.server_status_label = QLabel('')
+        self.server_status_label.setWordWrap(True)
+        form.addRow('حالة الخادم:', self.server_status_label)
+
+        start_btn = QPushButton('▶ تشغيل الخادم الآن'); start_btn.clicked.connect(self.start_local_server_now)
+        stop_btn = QPushButton('■ إيقاف الخادم'); stop_btn.clicked.connect(self.stop_local_server_now)
+        refresh_btn = QPushButton('🔄 تحديث الحالة'); refresh_btn.clicked.connect(self.refresh_server_status)
+        test_btn = QPushButton('اختبار الاتصال'); test_btn.clicked.connect(self.test_network_connection)
+        form.addRow(self._button_row(start_btn, stop_btn, refresh_btn, test_btn))
+
+        form.addRow(self._note(
+            'ملاحظة: وضع “خادم” لا يعني تشغيل الخدمة تلقائياً. تشغيل الخدمة وإيقافها يتمان من هذه الأزرار أو عبر خيار التشغيل التلقائي.',
+            'info'
+        ))
+
         network_ok, network_msg = check_network_activation()
         if not network_ok:
             form.addRow(self._note(f'⚠️ {network_msg}. يلزم تفعيل ميزة الشبكة لاستخدام وضع العميل/الخادم.', 'warning'))
@@ -341,7 +369,7 @@ class SettingsWidget(QWidget):
             form.addRow(self._button_row(activate_btn))
         save_btn = QPushButton('حفظ إعدادات الشبكة'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_network_settings)
         form.addRow(self._button_row(save_btn))
-        layout.addWidget(group); layout.addStretch(); return scroll
+        layout.addWidget(group); layout.addStretch(); self.refresh_server_status(); return scroll
 
     def create_backup_tab(self):
         scroll, layout = self._scroll_tab()
@@ -534,11 +562,55 @@ class SettingsWidget(QWidget):
             QMessageBox.information(self, 'نجاح', 'تم تفعيل الشبكة. يرجى إعادة تشغيل التطبيق.'); dialog.accept()
         else: status_label.setText(f'فشل: {msg}')
 
+    def refresh_server_status(self):
+        if not hasattr(self, 'server_status_label'):
+            return
+        running, msg = server_status()
+        self.server_status_label.setText(('✅ ' if running else '⚪ ') + msg)
+        self.server_status_label.setStyleSheet('color:#15803d;' if running else 'color:#475569;')
+
+    def start_local_server_now(self):
+        settings = QSettings('Alrajhi', 'Accounting')
+        settings.setValue('server/port', self.server_port_spin.value())
+        settings.sync()
+        ok, msg = start_server_process(port=self.server_port_spin.value())
+        QMessageBox.information(self, 'تشغيل الخادم' if ok else 'تعذر تشغيل الخادم', msg)
+        self.refresh_server_status()
+
+    def stop_local_server_now(self):
+        ok, msg = stop_server_process()
+        QMessageBox.information(self, 'إيقاف الخادم' if ok else 'تعذر إيقاف الخادم', msg)
+        self.refresh_server_status()
+
+    def test_network_connection(self):
+        url = self.server_url_edit.text().strip().rstrip('/') or f"http://localhost:{self.server_port_spin.value()}"
+        if health_check(url, timeout=2):
+            QMessageBox.information(self, 'اختبار الاتصال', f'✅ الاتصال ناجح:\n{url}')
+        else:
+            QMessageBox.warning(self, 'اختبار الاتصال', f'❌ لا يمكن الاتصال:\n{url}')
+
     def save_network_settings(self):
         mode = {0: 'local', 1: 'client', 2: 'server'}[self.mode_combo.currentIndex()]
         settings = QSettings('Alrajhi', 'Accounting')
-        old = {'network/mode': settings.value('network/mode', 'local'), 'network/server_url': settings.value('network/server_url', '')}
-        new = {'network/mode': mode, 'network/server_url': self.server_url_edit.text()}
-        settings.setValue('network/mode', mode); settings.setValue('network/server_url', self.server_url_edit.text())
-        audit_service.log('UPDATE', 'SETTINGS_NETWORK', None, old_values=old, new_values=new, details='تعديل إعدادات الشبكة')
-        QMessageBox.information(self, 'تم الحفظ', 'سيتم تطبيق الإعدادات بعد إعادة تشغيل التطبيق')
+        old = {
+            'network/mode': settings.value('network/mode', 'local'),
+            'network/server_url': settings.value('network/server_url', ''),
+            'server/port': settings.value('server/port', 8000),
+            'server/auto_start': settings.value('server/auto_start', False, type=bool),
+        }
+        port = self.server_port_spin.value() if hasattr(self, 'server_port_spin') else 8000
+        url = self.server_url_edit.text().strip() or f'http://localhost:{port}'
+        new = {
+            'network/mode': mode,
+            'network/server_url': url,
+            'server/port': port,
+            'server/auto_start': self.server_auto_start_check.isChecked() if hasattr(self, 'server_auto_start_check') else False,
+        }
+        settings.setValue('network/mode', mode)
+        settings.setValue('network/server_url', url)
+        settings.setValue('server/port', port)
+        settings.setValue('server/auto_start', new['server/auto_start'])
+        settings.sync()
+        audit_service.log('UPDATE', 'SETTINGS_NETWORK', None, old_values=old, new_values=new, details='تعديل إعدادات الشبكة والخادم')
+        QMessageBox.information(self, 'تم الحفظ', 'تم حفظ إعدادات الشبكة. قد تحتاج لإعادة تشغيل التطبيق لتغيير وضع الاتصال.')
+        self.refresh_server_status()
