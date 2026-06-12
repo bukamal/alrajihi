@@ -220,6 +220,7 @@ class CashboxRepository(BaseRepository):
         now=self._now(); self.db.get_connection().execute('UPDATE bank_accounts SET deleted_at=?, is_active=0, updated_at=? WHERE id=? AND user_id=?',(now,now,bid,self._uid())); self.db.get_connection().commit()
 
     def record_movement(self, data):
+        if self.db.is_remote(): return self.db.get_rest_client().add_cash_bank_movement(data)
         self.ensure_schema(); uid=self._uid(); now=self._now(); amount=Decimal(str(data.get('amount',0)))
         cur=self.db.get_connection().execute('''INSERT INTO cash_bank_movements (user_id, branch_id, cashbox_id, bank_account_id, movement_type, amount, direction, shift_id, reference_type, reference_id, description, movement_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',(uid,data.get('branch_id'),data.get('cashbox_id'),data.get('bank_account_id'),data['movement_type'],str(amount),data.get('direction'),data.get('shift_id'),data.get('reference_type'),data.get('reference_id'),data.get('description',''),data.get('movement_date') or now,now))
         self.db.get_connection().commit(); return int(cur.lastrowid)
@@ -231,6 +232,7 @@ class CashboxRepository(BaseRepository):
         sql+=' ORDER BY m.id DESC LIMIT ?'; params.append(limit)
         return [dict(r) for r in self.db.get_connection().execute(sql,params).fetchall()]
     def delete_reference_movements(self, reference_type, reference_id):
+        if self.db.is_remote(): return self.db.get_rest_client().delete_reference_movements(reference_type, reference_id)
         self.ensure_schema(); self.db.get_connection().execute('DELETE FROM cash_bank_movements WHERE user_id=? AND reference_type=? AND reference_id=?',(self._uid(),reference_type,reference_id)); self.db.get_connection().commit()
 
     def migrate_voucher_movements(self):
@@ -247,6 +249,7 @@ class CashboxRepository(BaseRepository):
 
 
     def current_open_shift(self, cashbox_id=None):
+        if self.db.is_remote(): return self.db.get_rest_client().current_open_shift(cashbox_id)
         self.ensure_schema(); uid=self._uid()
         sql = '''SELECT s.*, c.name AS cashbox_name, b.name AS branch_name FROM pos_shifts s LEFT JOIN cashboxes c ON c.id=s.cashbox_id LEFT JOIN branches b ON b.id=s.branch_id WHERE s.user_id=? AND s.status='open' '''
         params=[uid]
@@ -257,6 +260,7 @@ class CashboxRepository(BaseRepository):
         return dict(row) if row else None
 
     def shifts(self, limit=100, status=None):
+        if self.db.is_remote(): return self.db.get_rest_client().get_shifts(limit, status)
         self.ensure_schema(); uid=self._uid()
         sql='''SELECT s.*, c.name AS cashbox_name, b.name AS branch_name FROM pos_shifts s LEFT JOIN cashboxes c ON c.id=s.cashbox_id LEFT JOIN branches b ON b.id=s.branch_id WHERE s.user_id=?'''
         params=[uid]
@@ -266,6 +270,7 @@ class CashboxRepository(BaseRepository):
         return [dict(r) for r in self.db.get_connection().execute(sql,params).fetchall()]
 
     def open_shift(self, data):
+        if self.db.is_remote(): return self.db.get_rest_client().open_shift(data)
         self.ensure_schema(); uid=self._uid(); now=self._now(); branch_id=data.get('branch_id') or BranchRepository().default_branch_id(uid); cashbox_id=data.get('cashbox_id') or self.default_cashbox_id(branch_id, uid)
         if not cashbox_id: raise ValueError('يجب اختيار صندوق للوردية')
         if self.current_open_shift(cashbox_id): raise ValueError('توجد وردية مفتوحة على هذا الصندوق')
@@ -274,6 +279,7 @@ class CashboxRepository(BaseRepository):
         self.db.get_connection().commit(); return int(cur.lastrowid)
 
     def shift_summary(self, shift_id):
+        if self.db.is_remote(): return self.db.get_rest_client().shift_summary(shift_id)
         self.ensure_schema(); conn=self.db.get_connection(); uid=self._uid()
         shift=conn.execute('''SELECT s.*, c.name AS cashbox_name, b.name AS branch_name FROM pos_shifts s LEFT JOIN cashboxes c ON c.id=s.cashbox_id LEFT JOIN branches b ON b.id=s.branch_id WHERE s.id=? AND s.user_id=?''',(shift_id,uid)).fetchone()
         if not shift: raise ValueError('الوردية غير موجودة')
@@ -294,6 +300,7 @@ class CashboxRepository(BaseRepository):
         return shift
 
     def close_shift(self, shift_id, actual_amount, notes=''):
+        if self.db.is_remote(): return self.db.get_rest_client().close_shift(shift_id, actual_amount, notes)
         self.ensure_schema(); conn=self.db.get_connection(); summary=self.shift_summary(shift_id)
         if summary.get('status')!='open': raise ValueError('الوردية مغلقة بالفعل')
         actual=Decimal(str(actual_amount or 0)); expected=Decimal(str(summary.get('expected_amount') or 0)); diff=actual-expected; now=self._now()

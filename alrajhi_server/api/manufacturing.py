@@ -460,3 +460,212 @@ def reverse_order(order_id):
     return jsonify({'status': 'ok'})
 
 
+
+# ===== Remote coverage phase 2: detailed manufacturing endpoints =====
+def _json_safe(value):
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(v) for v in value]
+    return value
+
+@manufacturing_bp.route('/boms/by-product/<int:product_id>', methods=['GET'])
+@jwt_required()
+def get_bom_by_product(product_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    row = db.execute('SELECT id FROM bom WHERE product_id=? AND user_id=?', (product_id, user_id)).fetchone()
+    if not row:
+        return jsonify({}), 404
+    bom = db.execute('SELECT * FROM bom WHERE id=? AND user_id=?', (row['id'], user_id)).fetchone()
+    lines = db.execute('''
+        SELECT bl.*, i.name as item_name, u.unit_name, CAST(COALESCE(u.conversion_factor, 1) AS TEXT) as conversion_factor
+        FROM bom_lines bl
+        JOIN items i ON i.id=bl.item_id
+        LEFT JOIN item_units u ON u.id=bl.unit_id
+        WHERE bl.bom_id=?
+    ''', (row['id'],)).fetchall()
+    out = dict(bom)
+    out['lines'] = [dict(l) for l in lines]
+    return jsonify(_json_safe(out))
+
+@manufacturing_bp.route('/boms/<int:bom_id>/can-edit', methods=['GET'])
+@jwt_required()
+def can_edit_bom_endpoint(bom_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    bom = db.execute('SELECT * FROM bom WHERE id=? AND user_id=?', (bom_id, user_id)).fetchone()
+    if not bom:
+        return jsonify({'can_edit': False, 'message': 'BOM غير موجود'})
+    rows = db.execute("""
+        SELECT id, status FROM production_orders
+        WHERE product_id=? AND user_id=? AND status IN ('planned', 'in_progress')
+    """, (bom['product_id'], user_id)).fetchall()
+    if rows:
+        return jsonify({'can_edit': False, 'message': 'لا يمكن تعديل BOM لوجود أوامر إنتاج نشطة: ' + ', '.join(str(r['id']) for r in rows)})
+    return jsonify({'can_edit': True, 'message': ''})
+
+@manufacturing_bp.route('/boms/<int:bom_id>/required-materials', methods=['GET'])
+@jwt_required()
+def required_materials_endpoint(bom_id):
+    user_id = get_jwt_identity()
+    planned_qty = _dec(request.args.get('planned_qty', '1'))
+    db = get_db()
+    bom = db.execute('SELECT * FROM bom WHERE id=? AND user_id=?', (bom_id, user_id)).fetchone()
+    if not bom:
+        return jsonify({'materials': []})
+    try:
+        materials = get_required_materials_recursive(db, bom['product_id'], planned_qty, user_id)
+        return jsonify({'materials': _json_safe(materials)})
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 400
+
+@manufacturing_bp.route('/boms/<int:bom_id>/availability', methods=['GET'])
+@jwt_required()
+def availability_endpoint(bom_id):
+    user_id = get_jwt_identity()
+    planned_qty = _dec(request.args.get('planned_qty', '1'))
+    db = get_db()
+    bom = db.execute('SELECT * FROM bom WHERE id=? AND user_id=?', (bom_id, user_id)).fetchone()
+    if not bom:
+        return jsonify({'sufficient': False, 'materials': []})
+    try:
+        materials = get_required_materials_recursive(db, bom['product_id'], planned_qty, user_id)
+        sufficient = all(bool(m.get('is_sufficient')) for m in materials)
+        return jsonify({'sufficient': sufficient, 'materials': _json_safe(materials)})
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 400
+
+@manufacturing_bp.route('/orders/<int:order_id>/reservations', methods=['GET'])
+@jwt_required()
+def order_reservations_endpoint(order_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    own = db.execute('SELECT id FROM production_orders WHERE id=? AND user_id=?', (order_id, user_id)).fetchone()
+    if not own:
+        return jsonify({'reservations': []}), 404
+    rows = db.execute('''
+        SELECT mr.*, i.name as item_name
+        FROM material_reservations mr
+        JOIN items i ON i.id=mr.item_id
+        WHERE mr.order_id=?
+        ORDER BY mr.id
+    ''', (order_id,)).fetchall()
+    return jsonify({'reservations': [dict(r) for r in rows]})
+
+@manufacturing_bp.route('/orders/<int:order_id>/consumptions', methods=['GET'])
+@jwt_required()
+def order_consumptions_endpoint(order_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    own = db.execute('SELECT id FROM production_orders WHERE id=? AND user_id=?', (order_id, user_id)).fetchone()
+    if not own:
+        return jsonify({'consumptions': []}), 404
+    rows = db.execute('''
+        SELECT pc.*, i.name as item_name
+        FROM production_consumptions pc
+        JOIN items i ON i.id=pc.item_id
+        WHERE pc.order_id=?
+        ORDER BY pc.id
+    ''', (order_id,)).fetchall()
+    return jsonify({'consumptions': [dict(r) for r in rows]})
+
+@manufacturing_bp.route('/orders/<int:order_id>/outputs', methods=['GET'])
+@jwt_required()
+def order_outputs_endpoint(order_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    own = db.execute('SELECT id FROM production_orders WHERE id=? AND user_id=?', (order_id, user_id)).fetchone()
+    if not own:
+        return jsonify({'outputs': []}), 404
+    rows = db.execute('''
+        SELECT po.*, i.name as item_name
+        FROM production_outputs po
+        JOIN items i ON i.id=po.item_id
+        WHERE po.order_id=?
+        ORDER BY po.id
+    ''', (order_id,)).fetchall()
+    return jsonify({'outputs': [dict(r) for r in rows]})
+
+@manufacturing_bp.route('/orders/<int:order_id>/cancel', methods=['POST'])
+@jwt_required()
+def cancel_order_endpoint(order_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    row = db.execute('SELECT * FROM production_orders WHERE id=? AND user_id=?', (order_id, user_id)).fetchone()
+    if not row:
+        return jsonify({'error': 'Order not found'}), 404
+    if row['status'] == 'completed':
+        return jsonify({'error': 'لا يمكن إلغاء أمر مكتمل؛ استخدم العكس'}), 400
+    now = datetime.datetime.now().isoformat()
+    db.execute("UPDATE production_orders SET status='cancelled', end_date=? WHERE id=? AND user_id=?", (now, order_id, user_id))
+    db.execute('DELETE FROM material_reservations WHERE order_id=?', (order_id,))
+    audit_log('CANCEL', 'PRODUCTION_ORDER', order_id, old_values=dict(row), details='إلغاء أمر إنتاج')
+    db.commit()
+    return jsonify({'status': 'ok'})
+
+@manufacturing_bp.route('/orders/<int:order_id>', methods=['DELETE'])
+@jwt_required()
+def delete_order_endpoint(order_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    row = db.execute('SELECT * FROM production_orders WHERE id=? AND user_id=?', (order_id, user_id)).fetchone()
+    if not row:
+        return jsonify({'error': 'Order not found'}), 404
+    if row['status'] not in ('planned', 'cancelled'):
+        return jsonify({'error': f"لا يمكن حذف أمر بحالة {row['status']}"}), 400
+    db.execute('DELETE FROM production_consumptions WHERE order_id=?', (order_id,))
+    db.execute('DELETE FROM production_outputs WHERE order_id=?', (order_id,))
+    db.execute('DELETE FROM material_reservations WHERE order_id=?', (order_id,))
+    db.execute('DELETE FROM production_orders WHERE id=? AND user_id=?', (order_id, user_id))
+    audit_log('DELETE', 'PRODUCTION_ORDER', order_id, old_values=dict(row), details='حذف أمر إنتاج')
+    db.commit()
+    return jsonify({'status': 'ok'})
+
+@manufacturing_bp.route('/consumptions/<int:consumption_id>', methods=['DELETE'])
+@jwt_required()
+def delete_consumption_endpoint(consumption_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    row = db.execute('''
+        SELECT pc.*, po.status, po.user_id FROM production_consumptions pc
+        JOIN production_orders po ON po.id=pc.order_id
+        WHERE pc.id=? AND po.user_id=?
+    ''', (consumption_id, user_id)).fetchone()
+    if not row:
+        return jsonify({'error': 'الاستهلاك غير موجود'}), 404
+    if row['status'] != 'in_progress':
+        return jsonify({'error': f"لا يمكن حذف استهلاك من أمر {row['status']}"}), 400
+    qty = _dec(row['consumed_qty']); cost = _dec(row['unit_cost'])
+    db.execute('UPDATE material_reservations SET consumed_qty = CAST(consumed_qty AS REAL) - ? WHERE order_id=? AND item_id=?', (str(qty), row['order_id'], row['item_id']))
+    _record_movement(db, user_id, row['item_id'], 'consumption_reverse', qty, cost, None)
+    db.execute('DELETE FROM production_consumptions WHERE id=?', (consumption_id,))
+    audit_log('DELETE', 'PRODUCTION_CONSUMPTION', consumption_id, old_values=dict(row), details='حذف استهلاك مادة إنتاج')
+    db.commit()
+    return jsonify({'status': 'ok'})
+
+@manufacturing_bp.route('/outputs/<int:output_id>', methods=['DELETE'])
+@jwt_required()
+def delete_output_endpoint(output_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    row = db.execute('''
+        SELECT po2.*, po.status, po.user_id FROM production_outputs po2
+        JOIN production_orders po ON po.id=po2.order_id
+        WHERE po2.id=? AND po.user_id=?
+    ''', (output_id, user_id)).fetchone()
+    if not row:
+        return jsonify({'error': 'مخرج الإنتاج غير موجود'}), 404
+    if row['status'] == 'completed':
+        return jsonify({'error': 'لا يمكن حذف مخرج من أمر مكتمل؛ استخدم العكس'}), 400
+    qty = _dec(row['produced_qty']); cost = _dec(row['unit_cost'])
+    available = _item_qty(db, row['item_id'])
+    if available < qty:
+        return jsonify({'error': f'لا يمكن حذف المخرج لأن المخزون غير كاف. المتوفر {available}'}), 400
+    _record_movement(db, user_id, row['item_id'], 'adjustment', -qty, cost, None)
+    db.execute('DELETE FROM production_outputs WHERE id=?', (output_id,))
+    audit_log('DELETE', 'PRODUCTION_OUTPUT', output_id, old_values=dict(row), details='حذف مخرج إنتاج')
+    db.commit()
+    return jsonify({'status': 'ok'})

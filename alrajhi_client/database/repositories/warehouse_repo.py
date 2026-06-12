@@ -176,7 +176,7 @@ class WarehouseRepository(BaseRepository):
 
     def default_warehouse_id(self, user_id: str | None = None) -> Optional[int]:
         if self.db.is_remote():
-            return None
+            return self.db.get_rest_client().default_warehouse_id()
         self.bootstrap_defaults()
         uid = user_id or self._uid()
         row = self.db.get_connection().execute(
@@ -186,7 +186,7 @@ class WarehouseRepository(BaseRepository):
 
     def list_warehouses(self, include_archived: bool = False) -> List[Dict]:
         if self.db.is_remote():
-            return []
+            return self.db.get_rest_client().get_warehouses(include_archived)
         self.bootstrap_defaults()
         uid = self._uid()
         sql = '''
@@ -205,7 +205,7 @@ class WarehouseRepository(BaseRepository):
 
     def get_by_id(self, warehouse_id: int) -> Optional[Dict]:
         if self.db.is_remote():
-            return None
+            return self.db.get_rest_client().get_warehouse(warehouse_id)
         self.bootstrap_defaults()
         uid = self._uid()
         row = self.db.get_connection().execute("SELECT * FROM warehouses WHERE id=? AND user_id=?", (warehouse_id, uid)).fetchone()
@@ -213,7 +213,7 @@ class WarehouseRepository(BaseRepository):
 
     def add(self, data: Dict) -> int:
         if self.db.is_remote():
-            raise NotImplementedError('Warehouses REST API will be introduced in a later stage')
+            return self.db.get_rest_client().add_warehouse(data)
         self.bootstrap_defaults()
         uid = self._uid()
         now = self._now()
@@ -227,7 +227,7 @@ class WarehouseRepository(BaseRepository):
 
     def update(self, warehouse_id: int, data: Dict) -> None:
         if self.db.is_remote():
-            raise NotImplementedError('Warehouses REST API will be introduced in a later stage')
+            return self.db.get_rest_client().update_warehouse(warehouse_id, data)
         self.bootstrap_defaults()
         uid = self._uid()
         conn = self.db.get_connection()
@@ -242,7 +242,7 @@ class WarehouseRepository(BaseRepository):
 
     def archive(self, warehouse_id: int) -> None:
         if self.db.is_remote():
-            raise NotImplementedError('Warehouses REST API will be introduced in a later stage')
+            return self.db.get_rest_client().archive_warehouse(warehouse_id)
         self.bootstrap_defaults()
         uid = self._uid()
         conn = self.db.get_connection()
@@ -327,7 +327,7 @@ class WarehouseRepository(BaseRepository):
 
     def available_qty(self, item_id: int, warehouse_id: int | None = None) -> Decimal:
         if self.db.is_remote():
-            return Decimal('0')
+            return Decimal(str(self.db.get_rest_client().warehouse_available_qty(item_id, warehouse_id)))
         self.bootstrap_defaults()
         uid = self._uid()
         wh_id = warehouse_id or self.default_warehouse_id(uid)

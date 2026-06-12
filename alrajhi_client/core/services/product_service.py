@@ -83,6 +83,19 @@ class ProductService:
         item_dao.clear_units(item_id)
 
     def replace_units(self, item_id: int, units: List[Dict[str, Any]]) -> None:
+        # In remote mode item units are persisted atomically by POST/PUT /api/items.
+        # Calling clear_units/add_unit would intentionally fail because the client
+        # must not manipulate SQLite directly.
+        try:
+            if getattr(item_dao.repo.db, 'is_remote', lambda: False)():
+                audit_service.log(
+                    'UPDATE_UNITS', 'ITEM', item_id,
+                    new_values={'units': units},
+                    details='تعديل وحدات المادة عبر الخادم'
+                )
+                return
+        except Exception:
+            pass
         old_units = self.item_units(item_id)
         self.clear_units(item_id)
         saved_units = []

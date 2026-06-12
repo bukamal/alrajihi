@@ -614,6 +614,8 @@ class ItemDialog(CenteredDialog):
                 factor = float(factor_item.text()) if factor_item and factor_item.text().strip() else 1
                 units_payload.append({'unit_name': unit_name, 'conversion_factor': factor})
 
+            data['units'] = units_payload
+
             if self.is_edit:
                 product_service.update_item(self.item_id, data)
                 product_service.replace_units(self.item_id, units_payload)

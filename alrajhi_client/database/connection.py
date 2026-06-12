@@ -413,11 +413,7 @@ class DatabaseConnection:
 
     def get_item_by_id(self, item_id: int) -> Optional[Dict]:
         if self.is_remote():
-            items, _ = self.get_items()
-            for it in items:
-                if it['id'] == item_id:
-                    return it
-            return None
+            return self._rest_client.get_item(item_id)
         from auth.session import UserSession
         uid = UserSession.get_current_user_id()
         conn = self.get_connection()

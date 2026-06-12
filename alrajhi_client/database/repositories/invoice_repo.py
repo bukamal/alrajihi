@@ -22,6 +22,8 @@ class InvoiceRepository(BaseRepository):
         self.db.delete_invoice(invoice_id)
 
     def get_next_reference(self, inv_type: str) -> str:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_next_invoice_reference(inv_type)
         from auth.session import UserSession
         uid = UserSession.get_current_user_id()
         year = __import__('datetime').datetime.now().strftime("%Y")

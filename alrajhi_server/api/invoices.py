@@ -97,6 +97,30 @@ def get_invoices():
     rows = db.execute(query, params).fetchall()
     return jsonify({'invoices': [dict(row) for row in rows], 'total': total})
 
+
+@invoices_bp.route('/invoices/next-reference', methods=['GET'])
+@jwt_required()
+def next_invoice_reference():
+    user_id = get_jwt_identity()
+    inv_type = request.args.get('type') or request.args.get('inv_type') or 'sale'
+    inv_type = 'purchase' if inv_type == 'purchase' else 'sale'
+    year = datetime.datetime.now().strftime('%Y')
+    prefix = f"{inv_type[:3].upper()}-{year}-"
+    db = get_db()
+    row = db.execute(
+        "SELECT MAX(reference) AS max_ref FROM invoices WHERE reference LIKE ? AND user_id=?",
+        (prefix + '%', user_id)
+    ).fetchone()
+    max_ref = row['max_ref'] if row else None
+    if max_ref:
+        try:
+            num = int(str(max_ref).split('-')[-1]) + 1
+        except Exception:
+            num = 1
+    else:
+        num = 1
+    return jsonify({'reference': f'{prefix}{num:04d}'})
+
 @invoices_bp.route('/invoices/<int:invoice_id>', methods=['GET'])
 @jwt_required()
 def get_invoice(invoice_id):

@@ -77,6 +77,56 @@ def _assert_unique_barcode(db, user_id, barcode, item_id=None):
         raise ValueError(f"الباركود '{value}' مستخدم بالفعل للمادة: {row['name']}")
     return value
 
+
+
+def _normalize_units(units):
+    """Return valid item sub-units, ignoring empty rows and validating factors."""
+    result = []
+    seen = set()
+    for unit in units or []:
+        name = str((unit or {}).get('unit_name') or (unit or {}).get('name') or '').strip()
+        if not name:
+            continue
+        try:
+            factor = Decimal(str((unit or {}).get('conversion_factor', 1)))
+        except Exception:
+            raise ValueError(f"عامل التحويل للوحدة '{name}' غير صالح")
+        if factor <= 0:
+            raise ValueError(f"عامل التحويل للوحدة '{name}' يجب أن يكون أكبر من صفر")
+        key = name.casefold()
+        if key in seen:
+            raise ValueError(f"الوحدة الفرعية '{name}' مكررة")
+        seen.add(key)
+        result.append({'unit_name': name, 'conversion_factor': str(factor)})
+    return result
+
+
+def _save_item_units(db, item_id, units):
+    db.execute('DELETE FROM item_units WHERE item_id=?', (item_id,))
+    for unit in _normalize_units(units):
+        db.execute(
+            'INSERT INTO item_units (item_id, unit_name, conversion_factor) VALUES (?,?,?)',
+            (item_id, unit['unit_name'], unit['conversion_factor'])
+        )
+
+
+def _attach_units(db, items):
+    """Attach item_units to item dict(s) so remote invoices can use base/sub-units."""
+    single = isinstance(items, dict)
+    rows = [items] if single else list(items or [])
+    ids = [int(r['id']) for r in rows if r and r.get('id') is not None]
+    units_by_item = {i: [] for i in ids}
+    if ids:
+        placeholders = ','.join('?' for _ in ids)
+        for row in db.execute(
+            f'SELECT id, item_id, unit_name, conversion_factor FROM item_units WHERE item_id IN ({placeholders}) ORDER BY id',
+            ids
+        ).fetchall():
+            units_by_item.setdefault(int(row['item_id']), []).append(dict(row))
+    for row in rows:
+        if row and row.get('id') is not None:
+            row['units'] = units_by_item.get(int(row['id']), [])
+    return rows[0] if single else rows
 @items_bp.route('/items', methods=['GET'])
 @jwt_required()
 def get_items():
@@ -122,7 +172,8 @@ def get_items():
         count_params.extend([f"%{search}%", f"%{search}%"])
     total = db.execute(count_query, count_params).fetchone()[0]
     rows = db.execute(query, params).fetchall()
-    return jsonify({'items': [dict(row) for row in rows], 'total': total})
+    items = _attach_units(db, [dict(row) for row in rows])
+    return jsonify({'items': items, 'total': total})
 
 @items_bp.route('/items', methods=['POST'])
 @jwt_required()
@@ -144,6 +195,11 @@ def add_item():
         data.get('barcode'), data.get('reorder_level', 0)
     ))
     item_id = cursor.lastrowid
+    try:
+        _save_item_units(db, item_id, data.get('units', []))
+    except ValueError as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 400
     _sync_opening_inventory(db, item_id, user_id, data.get('quantity', 0), data.get('average_cost', data.get('purchase_price', 0)))
     db.commit()
     audit_log('CREATE', 'ITEM', item_id, new_values=data, details='إنشاء مادة')
@@ -187,6 +243,30 @@ def _get_item_usage_summary(db, item_id, user_id):
     return summary
 
 
+
+@items_bp.route('/items/<int:item_id>', methods=['GET'])
+@jwt_required()
+def get_item(item_id):
+    user_id = get_jwt_identity()
+    db = get_db()
+    row = db.execute("""
+        SELECT i.*, c.name as category_name,
+               COALESCE((
+                   SELECT SUM(CASE
+                       WHEN movement_type IN ('opening','purchase','adjustment','production_out') THEN CAST(quantity AS REAL)
+                       WHEN movement_type IN ('sale','production_consume') THEN -CAST(quantity AS REAL)
+                       ELSE 0 END)
+                   FROM inventory_movements
+                   WHERE item_id = i.id AND user_id = i.user_id
+               ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS available
+        FROM items i
+        LEFT JOIN categories c ON i.category_id = c.id
+        WHERE i.id=? AND i.user_id=? AND i.deleted_at IS NULL
+    """, (item_id, user_id)).fetchone()
+    if not row:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify(_attach_units(db, dict(row)))
+
 @items_bp.route('/items/<int:item_id>', methods=['PUT'])
 @jwt_required()
 def update_item(item_id):
@@ -210,6 +290,11 @@ def update_item(item_id):
         data.get('quantity', 0), data.get('unit', ''), data.get('average_cost', 0),
         data.get('barcode'), data.get('reorder_level', 0), item_id, user_id
     ))
+    try:
+        _save_item_units(db, item_id, data.get('units', []))
+    except ValueError as e:
+        db.rollback()
+        return jsonify({'error': str(e)}), 400
     _sync_opening_inventory(db, item_id, user_id, data.get('quantity', 0), data.get('average_cost', data.get('purchase_price', 0)))
     db.commit()
     return jsonify({'status': 'ok'})

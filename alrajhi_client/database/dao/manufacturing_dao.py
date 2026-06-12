@@ -136,6 +136,8 @@ class ManufacturingDAO:
         return bom
 
     def get_bom_for_product(self, product_id: int) -> Optional[Dict]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_bom_for_product(product_id)
         uid = UserSession.get_current_user_id()
         row = self.db.execute("SELECT id FROM bom WHERE product_id = ? AND user_id = ?", (product_id, uid)).fetchone()
         if row:
@@ -143,6 +145,8 @@ class ManufacturingDAO:
         return None
 
     def save_bom(self, bom_data: Dict) -> int:
+        if self.db.is_remote():
+            return self.db.get_rest_client().save_bom(bom_data)
         self._validate_bom_payload(bom_data)
         uid = UserSession.get_current_user_id()
         now = datetime.datetime.now().isoformat()
@@ -168,6 +172,9 @@ class ManufacturingDAO:
         return bom_id
 
     def delete_bom(self, bom_id: int) -> Tuple[bool, str]:
+        if self.db.is_remote():
+            self.db.get_rest_client().delete_bom(bom_id)
+            return True, ''
         uid = UserSession.get_current_user_id()
         rows = self.db.execute("""
             SELECT id, status FROM production_orders 
@@ -230,6 +237,8 @@ class ManufacturingDAO:
 
     # ========== حجوزات المواد ==========
     def create_reservations(self, order_id: int, required_materials: List[Dict]):
+        if self.db.is_remote():
+            return
         for mat in required_materials:
             self.db.execute("""
                 INSERT INTO material_reservations (order_id, item_id, reserved_qty, consumed_qty)
@@ -238,6 +247,8 @@ class ManufacturingDAO:
         self.db.commit()
 
     def get_reservations(self, order_id: int) -> List[Dict]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_reservations(order_id)
         rows = self.db.execute("""
             SELECT r.*, i.name as item_name 
             FROM material_reservations r
@@ -302,6 +313,14 @@ class ManufacturingDAO:
         return order
 
     def create_production_order(self, product_id: int, planned_qty: Decimal, notes: str = '', raw_warehouse_id=None, output_warehouse_id=None) -> int:
+        if self.db.is_remote():
+            return self.db.get_rest_client().create_production_order({
+                'product_id': product_id,
+                'planned_qty': str(planned_qty),
+                'notes': notes,
+                'raw_warehouse_id': raw_warehouse_id,
+                'output_warehouse_id': output_warehouse_id,
+            })
         planned_qty = self._validate_positive_qty(planned_qty, "الكمية المخططة")
         uid = UserSession.get_current_user_id()
         now = datetime.datetime.now().isoformat()
@@ -346,6 +365,9 @@ class ManufacturingDAO:
         return order_id
 
     def start_production(self, order_id: int) -> Tuple[bool, str]:
+        if self.db.is_remote():
+            self.db.get_rest_client().start_production(order_id)
+            return True, ''
         order = self.get_production_order(order_id)
         if not order:
             return False, "أمر الإنتاج غير موجود"
@@ -376,12 +398,17 @@ class ManufacturingDAO:
         return True, ""
 
     def cancel_production(self, order_id: int):
+        if self.db.is_remote():
+            return self.db.get_rest_client().cancel_production(order_id)
         self.db.execute("UPDATE production_orders SET status='cancelled', end_date=? WHERE id=?", (datetime.datetime.now().isoformat(), order_id))
         self.db.commit()
         self.db.execute("DELETE FROM material_reservations WHERE order_id=?", (order_id,))
         self.db.commit()
 
     def consume_material(self, order_id: int, item_id: int, consumed_qty: Decimal, unit_cost: Decimal) -> Tuple[bool, str]:
+        if self.db.is_remote():
+            self.db.get_rest_client().consume_material(order_id, item_id, str(consumed_qty), str(unit_cost))
+            return True, ''
         order = self.get_production_order(order_id)
         if not order:
             return False, "أمر الإنتاج غير موجود"
@@ -425,6 +452,9 @@ class ManufacturingDAO:
         return True, ""
 
     def complete_production(self, order_id: int, produced_qty: Decimal) -> Tuple[bool, str]:
+        if self.db.is_remote():
+            self.db.get_rest_client().complete_production(order_id, str(produced_qty))
+            return True, ''
         order = self.get_production_order(order_id)
         if not order:
             return False, "أمر الإنتاج غير موجود"
@@ -474,6 +504,9 @@ class ManufacturingDAO:
         return True, ""
 
     def delete_production_order(self, order_id: int) -> Tuple[bool, str]:
+        if self.db.is_remote():
+            self.db.get_rest_client().delete_production_order(order_id)
+            return True, ''
         order = self.get_production_order(order_id)
         if not order:
             return False, "أمر الإنتاج غير موجود"
@@ -565,6 +598,8 @@ class ManufacturingDAO:
 
     # ========== دوال التوافق ==========
     def get_consumptions(self, order_id: int) -> List[Dict]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_consumptions(order_id)
         rows = self.db.execute("""
             SELECT pc.*, i.name as item_name
             FROM production_consumptions pc
@@ -575,6 +610,8 @@ class ManufacturingDAO:
         return [dict(row) for row in rows]
 
     def get_outputs(self, order_id: int) -> List[Dict]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_outputs(order_id)
         rows = self.db.execute("""
             SELECT po.*, i.name as item_name
             FROM production_outputs po
@@ -585,6 +622,8 @@ class ManufacturingDAO:
         return [dict(row) for row in rows]
 
     def get_required_materials(self, bom_id: int, planned_qty: Decimal) -> List[Dict]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().get_required_materials(bom_id, str(planned_qty))
         bom = self.get_bom(bom_id)
         if not bom:
             return []
@@ -601,6 +640,8 @@ class ManufacturingDAO:
         return required
 
     def check_materials_availability(self, bom_id: int, planned_qty: Decimal) -> Tuple[bool, List[Dict]]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().check_materials_availability(bom_id, str(planned_qty))
         required = self.get_required_materials(bom_id, planned_qty)
         for mat in required:
             item = self.db.execute("SELECT CAST(quantity AS REAL) as qty FROM items WHERE id=?", (mat['item_id'],)).fetchone()
@@ -610,6 +651,8 @@ class ManufacturingDAO:
         return all_sufficient, required
 
     def can_edit_bom(self, bom_id: int) -> Tuple[bool, str]:
+        if self.db.is_remote():
+            return self.db.get_rest_client().can_edit_bom(bom_id)
         bom = self.get_bom(bom_id)
         if not bom:
             return False, "BOM غير موجود"
@@ -622,6 +665,9 @@ class ManufacturingDAO:
         return True, ""
 
     def delete_consumption(self, consumption_id: int) -> Tuple[bool, str]:
+        if self.db.is_remote():
+            self.db.get_rest_client().delete_consumption(consumption_id)
+            return True, ''
         row = self.db.execute("SELECT * FROM production_consumptions WHERE id=?", (consumption_id,)).fetchone()
         if not row:
             return False, "الاستهلاك غير موجود"
@@ -642,6 +688,9 @@ class ManufacturingDAO:
         return True, ""
 
     def delete_output(self, output_id: int) -> Tuple[bool, str]:
+        if self.db.is_remote():
+            self.db.get_rest_client().delete_output(output_id)
+            return True, ''
         row = self.db.execute("SELECT * FROM production_outputs WHERE id=?", (output_id,)).fetchone()
         if not row:
             return False, "الإنتاج غير موجود"
@@ -663,6 +712,9 @@ class ManufacturingDAO:
         return True, ""
 
     def reverse_production_order(self, order_id: int) -> Tuple[bool, str]:
+        if self.db.is_remote():
+            self.db.get_rest_client().reverse_production_order(order_id)
+            return True, ''
         order = self.get_production_order(order_id)
         if not order:
             return False, "أمر الإنتاج غير موجود"

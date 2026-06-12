@@ -201,6 +201,87 @@ class RestClient:
         result = self._request('GET', '/api/cashboxes/default', params=params, queue_on_failure=False)
         return result.get('id') if isinstance(result, dict) else None
 
+
+    def add_cash_bank_movement(self, data: Dict) -> int:
+        result = self._request('POST', '/api/cash_bank_movements', data, queue_on_failure=True)
+        return result.get('id') if isinstance(result, dict) else None
+
+    def delete_reference_movements(self, reference_type, reference_id):
+        return self._request('DELETE', '/api/cash_bank_movements/by-reference', params={'reference_type': reference_type, 'reference_id': reference_id}, queue_on_failure=False)
+
+    def current_open_shift(self, cashbox_id=None):
+        params = {}
+        if cashbox_id: params['cashbox_id'] = cashbox_id
+        return self._request('GET', '/api/pos_shifts/current', params=params, queue_on_failure=False)
+
+    def get_shifts(self, limit=100, status=None):
+        params = {'limit': limit}
+        if status: params['status'] = status
+        result = self._request('GET', '/api/pos_shifts', params=params, queue_on_failure=False)
+        return result.get('shifts', []) if isinstance(result, dict) else (result or [])
+
+    def open_shift(self, data: Dict) -> int:
+        result = self._request('POST', '/api/pos_shifts', data, queue_on_failure=False)
+        return result.get('id') if isinstance(result, dict) else None
+
+    def shift_summary(self, shift_id: int):
+        return self._request('GET', f'/api/pos_shifts/{shift_id}/summary', queue_on_failure=False)
+
+    def close_shift(self, shift_id: int, actual_amount, notes=''):
+        return self._request('POST', f'/api/pos_shifts/{shift_id}/close', {'actual_amount': actual_amount, 'notes': notes}, queue_on_failure=False)
+
+
+    # ------------------- الفروع والمستودعات -------------------
+    def get_branches(self, include_archived=False):
+        params = {'include_archived': 1} if include_archived else {}
+        result = self._request('GET', '/api/branches', params=params, queue_on_failure=False)
+        return result.get('branches', []) if isinstance(result, dict) else (result or [])
+
+    def default_branch_id(self):
+        result = self._request('GET', '/api/branches/default', queue_on_failure=False)
+        return result.get('id') if isinstance(result, dict) else None
+
+    def get_branch(self, branch_id: int):
+        return self._request('GET', f'/api/branches/{branch_id}', queue_on_failure=False)
+
+    def add_branch(self, data: Dict) -> int:
+        result = self._request('POST', '/api/branches', data, queue_on_failure=False)
+        return result['id']
+
+    def update_branch(self, branch_id: int, data: Dict):
+        return self._request('PUT', f'/api/branches/{branch_id}', data, queue_on_failure=False)
+
+    def archive_branch(self, branch_id: int):
+        return self._request('DELETE', f'/api/branches/{branch_id}', queue_on_failure=False)
+
+    def get_warehouses(self, include_archived=False):
+        params = {'include_archived': 1} if include_archived else {}
+        result = self._request('GET', '/api/warehouses', params=params, queue_on_failure=False)
+        return result.get('warehouses', []) if isinstance(result, dict) else (result or [])
+
+    def default_warehouse_id(self):
+        result = self._request('GET', '/api/warehouses/default', queue_on_failure=False)
+        return result.get('id') if isinstance(result, dict) else None
+
+    def get_warehouse(self, warehouse_id: int):
+        return self._request('GET', f'/api/warehouses/{warehouse_id}', queue_on_failure=False)
+
+    def add_warehouse(self, data: Dict) -> int:
+        result = self._request('POST', '/api/warehouses', data, queue_on_failure=False)
+        return result['id']
+
+    def update_warehouse(self, warehouse_id: int, data: Dict):
+        return self._request('PUT', f'/api/warehouses/{warehouse_id}', data, queue_on_failure=False)
+
+    def archive_warehouse(self, warehouse_id: int):
+        return self._request('DELETE', f'/api/warehouses/{warehouse_id}', queue_on_failure=False)
+
+    def warehouse_available_qty(self, item_id: int, warehouse_id=None):
+        params = {'item_id': item_id}
+        if warehouse_id: params['warehouse_id'] = warehouse_id
+        result = self._request('GET', '/api/warehouses/available_qty', params=params, queue_on_failure=False)
+        return result.get('quantity', '0') if isinstance(result, dict) else '0'
+
     def get_categories(self, search=None, include_inactive=False, include_deleted=False):
         params = {}
         if search: params['search'] = search
@@ -230,6 +311,9 @@ class RestClient:
         if offset: params['offset'] = offset
         result = self._request('GET', '/api/items', params=params)
         return result.get('items', []), result.get('total', 0)
+
+    def get_item(self, item_id: int) -> Dict:
+        return self._request('GET', f'/api/items/{item_id}', queue_on_failure=False)
 
     def add_item(self, data: Dict) -> int:
         result = self._request('POST', '/api/items', data)
@@ -303,6 +387,11 @@ class RestClient:
     def delete_invoice(self, invoice_id: int):
         self._request('DELETE', f'/api/invoices/{invoice_id}')
 
+
+    def get_next_invoice_reference(self, inv_type: str) -> str:
+        result = self._request('GET', '/api/invoices/next-reference', params={'type': inv_type}, queue_on_failure=False)
+        return result.get('reference') if isinstance(result, dict) else str(result)
+
     # ------------------- التصنيع -------------------
     def get_boms(self, limit=None, offset=None) -> Tuple[List[Dict], int]:
         params = {}
@@ -349,6 +438,47 @@ class RestClient:
 
     def reverse_production_order(self, order_id: int):
         self._request('POST', f'/api/manufacturing/orders/{order_id}/reverse')
+
+
+    # ------------------- تصنيع: وظائف تفصيلية -------------------
+    def get_bom_for_product(self, product_id: int):
+        return self._request('GET', f'/api/manufacturing/boms/by-product/{product_id}', queue_on_failure=False)
+
+    def can_edit_bom(self, bom_id: int):
+        result = self._request('GET', f'/api/manufacturing/boms/{bom_id}/can-edit', queue_on_failure=False)
+        return bool(result.get('can_edit', False)), result.get('message', '')
+
+    def cancel_production(self, order_id: int):
+        return self._request('POST', f'/api/manufacturing/orders/{order_id}/cancel', queue_on_failure=False)
+
+    def get_reservations(self, order_id: int):
+        result = self._request('GET', f'/api/manufacturing/orders/{order_id}/reservations', queue_on_failure=False)
+        return result.get('reservations', []) if isinstance(result, dict) else (result or [])
+
+    def get_consumptions(self, order_id: int):
+        result = self._request('GET', f'/api/manufacturing/orders/{order_id}/consumptions', queue_on_failure=False)
+        return result.get('consumptions', []) if isinstance(result, dict) else (result or [])
+
+    def get_outputs(self, order_id: int):
+        result = self._request('GET', f'/api/manufacturing/orders/{order_id}/outputs', queue_on_failure=False)
+        return result.get('outputs', []) if isinstance(result, dict) else (result or [])
+
+    def get_required_materials(self, bom_id: int, planned_qty):
+        result = self._request('GET', f'/api/manufacturing/boms/{bom_id}/required-materials', params={'planned_qty': planned_qty}, queue_on_failure=False)
+        return result.get('materials', []) if isinstance(result, dict) else (result or [])
+
+    def check_materials_availability(self, bom_id: int, planned_qty):
+        result = self._request('GET', f'/api/manufacturing/boms/{bom_id}/availability', params={'planned_qty': planned_qty}, queue_on_failure=False)
+        return bool(result.get('sufficient', False)), result.get('materials', [])
+
+    def delete_consumption(self, consumption_id: int):
+        return self._request('DELETE', f'/api/manufacturing/consumptions/{consumption_id}', queue_on_failure=False)
+
+    def delete_output(self, output_id: int):
+        return self._request('DELETE', f'/api/manufacturing/outputs/{output_id}', queue_on_failure=False)
+
+    def cancel_production_order(self, order_id: int):
+        return self.cancel_production(order_id)
 
     # ------------------- السندات -------------------
     def get_vouchers(self, vtype=None, limit=None, offset=None) -> Tuple[List[Dict], int]:

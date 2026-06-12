@@ -99,7 +99,7 @@ class BranchRepository(BaseRepository):
 
     def default_branch_id(self, user_id: str | None = None) -> Optional[int]:
         if self.db.is_remote():
-            return None
+            return self.db.get_rest_client().default_branch_id()
         self.bootstrap_defaults()
         uid = user_id or self._uid()
         row = self.db.get_connection().execute(
@@ -110,7 +110,7 @@ class BranchRepository(BaseRepository):
 
     def list_branches(self, include_archived: bool = False) -> List[Dict]:
         if self.db.is_remote():
-            return []
+            return self.db.get_rest_client().get_branches(include_archived)
         self.bootstrap_defaults()
         uid = self._uid()
         sql = """
@@ -127,7 +127,7 @@ class BranchRepository(BaseRepository):
 
     def get_by_id(self, branch_id: int) -> Optional[Dict]:
         if self.db.is_remote():
-            return None
+            return self.db.get_rest_client().get_branch(branch_id)
         self.bootstrap_defaults()
         uid = self._uid()
         row = self.db.get_connection().execute("SELECT * FROM branches WHERE id=? AND user_id=?", (branch_id, uid)).fetchone()
@@ -135,7 +135,7 @@ class BranchRepository(BaseRepository):
 
     def add(self, data: Dict) -> int:
         if self.db.is_remote():
-            raise NotImplementedError('Branches REST API will be introduced in a later stage')
+            return self.db.get_rest_client().add_branch(data)
         self.bootstrap_defaults()
         uid = self._uid()
         payload = self._validate(data)
@@ -149,7 +149,7 @@ class BranchRepository(BaseRepository):
 
     def update(self, branch_id: int, data: Dict) -> None:
         if self.db.is_remote():
-            raise NotImplementedError('Branches REST API will be introduced in a later stage')
+            return self.db.get_rest_client().update_branch(branch_id, data)
         self.bootstrap_defaults()
         uid = self._uid()
         payload = self._validate(data)
@@ -166,7 +166,7 @@ class BranchRepository(BaseRepository):
 
     def archive(self, branch_id: int) -> None:
         if self.db.is_remote():
-            raise NotImplementedError('Branches REST API will be introduced in a later stage')
+            return self.db.get_rest_client().archive_branch(branch_id)
         self.bootstrap_defaults()
         uid = self._uid()
         conn = self.db.get_connection()

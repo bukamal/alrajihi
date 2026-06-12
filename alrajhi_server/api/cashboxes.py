@@ -244,3 +244,121 @@ def movements():
         sql += ' AND m.bank_account_id=?'; params.append(bank_account_id)
     sql += ' ORDER BY m.id DESC LIMIT ?'; params.append(limit)
     return jsonify({'movements': [_rowdict(r) for r in db.execute(sql, params).fetchall()]})
+
+@cashboxes_bp.route('/cash_bank_movements', methods=['POST'])
+@jwt_required()
+def add_movement():
+    uid = _uid(); db = get_db(); data = request.get_json() or {}; now = _now()
+    amount = Decimal(str(data.get('amount', 0)))
+    cur = db.execute('''
+        INSERT INTO cash_bank_movements
+        (user_id, branch_id, cashbox_id, bank_account_id, movement_type, amount, direction, shift_id,
+         reference_type, reference_id, description, movement_date, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        uid, data.get('branch_id'), data.get('cashbox_id'), data.get('bank_account_id'),
+        data.get('movement_type') or 'manual', str(amount), data.get('direction'), data.get('shift_id'),
+        data.get('reference_type'), data.get('reference_id'), data.get('description') or '',
+        data.get('movement_date') or now, now
+    ))
+    db.commit()
+    return jsonify({'id': cur.lastrowid}), 201
+
+@cashboxes_bp.route('/cash_bank_movements/by-reference', methods=['DELETE'])
+@jwt_required()
+def delete_movements_by_reference():
+    uid = _uid(); db = get_db(); reference_type = request.args.get('reference_type'); reference_id = request.args.get('reference_id', type=int)
+    db.execute('DELETE FROM cash_bank_movements WHERE user_id=? AND reference_type=? AND reference_id=?', (uid, reference_type, reference_id))
+    db.commit()
+    return jsonify({'status': 'ok'})
+
+@cashboxes_bp.route('/pos_shifts/current', methods=['GET'])
+@jwt_required()
+def current_shift():
+    uid = _uid(); db = get_db(); cashbox_id = request.args.get('cashbox_id', type=int)
+    sql = '''SELECT s.*, c.name AS cashbox_name, b.name AS branch_name
+             FROM pos_shifts s
+             LEFT JOIN cashboxes c ON c.id=s.cashbox_id
+             LEFT JOIN branches b ON b.id=s.branch_id
+             WHERE s.user_id=? AND s.status='open' '''
+    params = [uid]
+    if cashbox_id:
+        sql += ' AND s.cashbox_id=?'; params.append(cashbox_id)
+    sql += ' ORDER BY s.id DESC LIMIT 1'
+    row = db.execute(sql, params).fetchone()
+    return jsonify(_rowdict(row) or {})
+
+@cashboxes_bp.route('/pos_shifts', methods=['GET'])
+@jwt_required()
+def list_shifts():
+    uid = _uid(); db = get_db(); status = request.args.get('status'); limit = request.args.get('limit', 100, type=int)
+    sql = '''SELECT s.*, c.name AS cashbox_name, b.name AS branch_name
+             FROM pos_shifts s
+             LEFT JOIN cashboxes c ON c.id=s.cashbox_id
+             LEFT JOIN branches b ON b.id=s.branch_id
+             WHERE s.user_id=?'''
+    params = [uid]
+    if status:
+        sql += ' AND s.status=?'; params.append(status)
+    sql += ' ORDER BY s.id DESC LIMIT ?'; params.append(limit)
+    return jsonify({'shifts': [_rowdict(r) for r in db.execute(sql, params).fetchall()]})
+
+@cashboxes_bp.route('/pos_shifts', methods=['POST'])
+@jwt_required()
+def open_shift():
+    uid = _uid(); db = get_db(); data = request.get_json() or {}; now = _now()
+    branch_id = data.get('branch_id')
+    if not branch_id:
+        branch_id = _default_branch_id(db, uid)
+    cashbox_id = data.get('cashbox_id') or _ensure_default_cashbox(db, uid, branch_id)
+    exists = db.execute("SELECT id FROM pos_shifts WHERE user_id=? AND cashbox_id=? AND status='open' LIMIT 1", (uid, cashbox_id)).fetchone()
+    if exists:
+        return jsonify({'error': 'توجد وردية مفتوحة على هذا الصندوق'}), 400
+    opening = Decimal(str(data.get('opening_amount') or 0))
+    cur = db.execute('''INSERT INTO pos_shifts
+        (user_id, branch_id, cashbox_id, opening_amount, expected_amount, status, opened_at, notes)
+        VALUES (?, ?, ?, ?, ?, 'open', ?, ?)''',
+        (uid, branch_id, cashbox_id, str(opening), str(opening), now, data.get('notes') or ''))
+    db.commit(); return jsonify({'id': cur.lastrowid}), 201
+
+def _shift_summary_dict(db, uid, shift_id):
+    shift = db.execute('''SELECT s.*, c.name AS cashbox_name, b.name AS branch_name
+                          FROM pos_shifts s
+                          LEFT JOIN cashboxes c ON c.id=s.cashbox_id
+                          LEFT JOIN branches b ON b.id=s.branch_id
+                          WHERE s.id=? AND s.user_id=?''', (shift_id, uid)).fetchone()
+    if not shift: return None
+    d = _rowdict(shift)
+    rows = db.execute('SELECT movement_type, amount, direction FROM cash_bank_movements WHERE shift_id=? AND user_id=?', (shift_id, uid)).fetchall()
+    total_cash = Decimal('0'); total_card = Decimal('0'); expenses = Decimal('0')
+    for r in rows:
+        amount = Decimal(str(r['amount'] or 0)); mtype = str(r['movement_type'] or '')
+        if mtype in ('pos_sale_cash','sale_cash'):
+            total_cash += amount
+        elif mtype in ('pos_sale_card','sale_card'):
+            total_card += amount
+        elif amount < 0:
+            expenses += abs(amount)
+    opening = Decimal(str(d.get('opening_amount') or 0)); expected = opening + total_cash - expenses
+    d.update({'total_cash': str(total_cash), 'total_card': str(total_card), 'total_sales': str(total_cash + total_card), 'expenses': str(expenses), 'expected_amount': str(expected)})
+    return d
+
+@cashboxes_bp.route('/pos_shifts/<int:shift_id>/summary', methods=['GET'])
+@jwt_required()
+def shift_summary(shift_id):
+    summary = _shift_summary_dict(get_db(), _uid(), shift_id)
+    if not summary: return jsonify({'error': 'not found'}), 404
+    return jsonify(summary)
+
+@cashboxes_bp.route('/pos_shifts/<int:shift_id>/close', methods=['POST'])
+@jwt_required()
+def close_shift(shift_id):
+    uid = _uid(); db = get_db(); data = request.get_json() or {}; summary = _shift_summary_dict(db, uid, shift_id)
+    if not summary: return jsonify({'error': 'not found'}), 404
+    if summary.get('status') != 'open': return jsonify({'error': 'الوردية مغلقة بالفعل'}), 400
+    actual = Decimal(str(data.get('actual_amount') or 0)); expected = Decimal(str(summary.get('expected_amount') or 0)); diff = actual - expected; now = _now()
+    db.execute('''UPDATE pos_shifts SET closing_amount=?, expected_amount=?, actual_amount=?, difference_amount=?,
+                  total_sales=?, total_cash=?, total_card=?, status='closed', closed_at=?, notes=COALESCE(NULLIF(?,''),notes)
+                  WHERE id=? AND user_id=?''',
+               (str(actual), str(expected), str(actual), str(diff), summary.get('total_sales','0'), summary.get('total_cash','0'), summary.get('total_card','0'), now, data.get('notes',''), shift_id, uid))
+    db.commit(); return jsonify(_shift_summary_dict(db, uid, shift_id))
