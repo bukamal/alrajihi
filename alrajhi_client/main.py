@@ -132,17 +132,91 @@ def test_server_connection(url):
         return False
 
 def open_network_settings():
-    from PyQt5.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox
-    from views.widgets.settings_widget import SettingsWidget
+    """Open a safe local-only network settings dialog.
+
+    This function is called specifically when the client cannot reach the
+    configured server. It must not instantiate the full SettingsWidget because
+    that widget reads application settings through settings_service; in client
+    mode this routes to REST and can crash with:
+    "Request queued due to no connection: /api/settings/theme".
+    """
+    from PyQt5.QtWidgets import (
+        QDialog, QVBoxLayout, QFormLayout, QHBoxLayout, QDialogButtonBox,
+        QComboBox, QLineEdit, QLabel, QPushButton, QMessageBox
+    )
+
     dialog = QDialog()
     dialog.setWindowTitle("إعدادات الشبكة")
     dialog.setLayoutDirection(Qt.RightToLeft)
-    dialog.resize(600, 500)
+    dialog.resize(520, 260)
+
+    qsettings = QSettings("Alrajhi", "Accounting")
+
     layout = QVBoxLayout(dialog)
-    settings_widget = SettingsWidget(dialog)
-    layout.addWidget(settings_widget)
+    layout.setContentsMargins(18, 18, 18, 18)
+    layout.setSpacing(12)
+
+    note = QLabel(
+        "لا يمكن الاتصال بالخادم الحالي. عدّل وضع التشغيل أو عنوان الخادم هنا. "
+        "هذه النافذة تستخدم إعدادات محلية فقط ولا تحتاج إلى اتصال بالخادم."
+    )
+    note.setWordWrap(True)
+    note.setStyleSheet(
+        "QLabel { background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; "
+        "border-radius:8px; padding:10px; }"
+    )
+    layout.addWidget(note)
+
+    form = QFormLayout()
+    form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+    mode_combo = QComboBox()
+    mode_combo.addItem("محلي (بدون شبكة)", "local")
+    mode_combo.addItem("عميل (اتصال بخادم)", "client")
+    mode_combo.addItem("خادم (تشغيل خدمة)", "server")
+    current_mode = qsettings.value("network/mode", "local")
+    idx = mode_combo.findData(current_mode)
+    mode_combo.setCurrentIndex(idx if idx >= 0 else 0)
+    form.addRow("وضع التشغيل:", mode_combo)
+
+    server_url_edit = QLineEdit(qsettings.value("network/server_url", "http://localhost:8000"))
+    server_url_edit.setPlaceholderText("http://192.168.1.100:8000")
+    form.addRow("عنوان الخادم:", server_url_edit)
+
+    status = QLabel("")
+    status.setWordWrap(True)
+    form.addRow("الحالة:", status)
+
+    layout.addLayout(form)
+
+    def test_current_server():
+        url = server_url_edit.text().strip().rstrip('/')
+        if not url:
+            status.setText("يرجى إدخال عنوان الخادم.")
+            status.setStyleSheet("color:#b91c1c;")
+            return
+        if test_server_connection(url):
+            status.setText("✅ الاتصال بالخادم ناجح.")
+            status.setStyleSheet("color:#15803d;")
+        else:
+            status.setText("❌ لا يمكن الاتصال بهذا العنوان.")
+            status.setStyleSheet("color:#b91c1c;")
+
+    test_btn = QPushButton("اختبار الاتصال")
+    test_btn.clicked.connect(test_current_server)
+    btn_row = QHBoxLayout()
+    btn_row.addStretch()
+    btn_row.addWidget(test_btn)
+    layout.addLayout(btn_row)
+
     button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-    button_box.accepted.connect(dialog.accept)
+
+    def save_and_accept():
+        qsettings.setValue("network/mode", mode_combo.currentData() or "local")
+        qsettings.setValue("network/server_url", server_url_edit.text().strip() or "http://localhost:8000")
+        dialog.accept()
+
+    button_box.accepted.connect(save_and_accept)
     button_box.rejected.connect(dialog.reject)
     layout.addWidget(button_box)
     return dialog.exec() == QDialog.Accepted
