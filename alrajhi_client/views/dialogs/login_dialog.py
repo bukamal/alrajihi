@@ -3,8 +3,7 @@ from PyQt5.QtWidgets import QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLa
 from PyQt5.QtCore import Qt, QSettings
 import qtawesome as qta
 from views.frameless_dialog import FramelessDialog
-from database import UserRepository
-from database.connection import DatabaseConnection
+from core.services.user_service import user_service
 from auth.session import UserSession
 from i18n.translator import translate, set_language
 from theme_manager import ThemeManager
@@ -20,8 +19,6 @@ class LoginDialog(FramelessDialog):
         self.resize(500, 620)
         self.setMinimumSize(430, 540)
         self.settings = QSettings("Alrajhi", "Accounting")
-        self.user_repo = UserRepository()
-        self.db_conn = DatabaseConnection()
 
         self.main_frame.setObjectName('loginCard')
         self.main_frame.setStyleSheet(ThemeManager.get_stylesheet())
@@ -45,7 +42,7 @@ class LoginDialog(FramelessDialog):
         subtitle.setObjectName('muted')
         layout.addWidget(subtitle)
 
-        mode = "متصل بخادم" if self.db_conn.is_remote() else "محلي"
+        mode = "متصل بخادم" if user_service.is_remote() else "محلي"
         self.connection_label = DesignSystem.status_pill(f"وضع التشغيل: {mode}", 'info')
         layout.addWidget(self.connection_label)
 
@@ -122,13 +119,13 @@ class LoginDialog(FramelessDialog):
         self.fade_in()
 
     def _populate_users(self):
-        if self.db_conn.is_remote():
+        if user_service.is_remote():
             self.username_combo.setEditable(True)
             self.username_combo.clear()
             self.username_combo.addItem("")
             self.username_combo.setCurrentText("")
         else:
-            users = self.user_repo.get_all()
+            users = user_service.list_users()
             self.username_combo.clear()
             for u in users:
                 if isinstance(u, dict):
@@ -188,11 +185,7 @@ class LoginDialog(FramelessDialog):
         self.login_btn.setEnabled(False)
         self.login_btn.setText("جاري التحقق...")
         try:
-            if self.db_conn.is_remote():
-                rest_client = self.db_conn.get_rest_client()
-                user = rest_client.login(username, password)
-            else:
-                user = self.user_repo.authenticate(username, password)
+            user = user_service.authenticate(username, password)
             if user:
                 UserSession.login(user)
                 self._save_user(username)

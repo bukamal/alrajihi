@@ -28,6 +28,8 @@ from views.dialogs.login_dialog import LoginDialog
 from views.modern_topbar import ModernTopBar
 from i18n.translator import translate, set_language
 from core.services.settings_service import settings_service
+from core.services.system_service import system_service
+from core.services.offline_queue_service import offline_queue_service
 
 PAGE_META = {
     'dashboard': ('لوحة التحكم', 'الرئيسية'),
@@ -354,8 +356,7 @@ class MainWindow(QMainWindow):
         except:
             pass
         try:
-            from database.connection import offline_queue
-            pending_offline = offline_queue.count_pending()
+            pending_offline = offline_queue_service.count_pending()
             self.top_bar.set_badge('الطلبات المعلقة', pending_offline)
         except Exception:
             pass
@@ -446,15 +447,10 @@ class MainWindow(QMainWindow):
         reply = QMessageBox.question(self, "تسجيل الخروج", "هل تريد تسجيل الخروج؟",
                                      QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
-            from database.connection import DatabaseConnection
-            db = DatabaseConnection()
-            if db.is_remote():
-                try:
-                    rest_client = db.get_rest_client()
-                    if rest_client:
-                        rest_client.logout()
-                except Exception as e:
-                    print(f"Logout error: {e}")
+            try:
+                system_service.logout_remote()
+            except Exception as e:
+                print(f"Logout error: {e}")
             UserSession.logout()
             self.hide()
             login = LoginDialog(self)
@@ -470,52 +466,14 @@ class MainWindow(QMainWindow):
 
     # ========== Offline Queue Support ==========
     def setup_offline_queue(self):
-        from database.connection import offline_queue, DatabaseConnection
-        self.db_conn = DatabaseConnection()
         self.queue_timer = QTimer()
         self.queue_timer.timeout.connect(self.process_offline_queue)
         self.queue_timer.start(30000)
 
     def process_offline_queue(self, show_messages=False):
-        from database.connection import offline_queue
-        import requests
-        import json
-
-        if not self.db_conn.is_remote():
-            return
-        try:
-            resp = requests.get(f"{self.db_conn.server_url}/health", timeout=3)
-            if resp.status_code != 200:
-                return
-        except Exception:
-            return
-
-        rest = self.db_conn.get_rest_client()
-        if not rest:
-            return
-        sent = 0
-        failed = 0
-        for req in offline_queue.get_pending_requests():
-            try:
-                payload = json.loads(req['data']) if req.get('data') else None
-                method = (req.get('method') or '').upper()
-                if method == 'POST':
-                    rest._request('POST', req['endpoint'], payload, queue_on_failure=False, retries=1)
-                elif method == 'PUT':
-                    rest._request('PUT', req['endpoint'], payload, queue_on_failure=False, retries=1)
-                elif method == 'PATCH':
-                    rest._request('PATCH', req['endpoint'], payload, queue_on_failure=False, retries=1)
-                elif method == 'DELETE':
-                    rest._request('DELETE', req['endpoint'], queue_on_failure=False, retries=1)
-                else:
-                    continue
-                offline_queue.mark_sent(req['id'])
-                sent += 1
-                print(f"✅ تم إرسال الطلب المعلق: {req.get('title') or req['endpoint']}")
-            except Exception as e:
-                failed += 1
-                offline_queue.mark_attempt(req['id'], e)
-                print(f"⚠️ فشل إرسال الطلب المعلق {req.get('title') or req['endpoint']}: {e}")
+        result = offline_queue_service.process_pending()
+        sent = int(result.get('sent', 0) or 0)
+        failed = int(result.get('failed', 0) or 0)
         if sent or failed:
             try:
                 self.update_badges()

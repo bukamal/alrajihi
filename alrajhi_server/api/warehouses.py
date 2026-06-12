@@ -115,3 +115,288 @@ def archive_warehouse(warehouse_id):
     if int(row['is_default'] or 0) == 1: return jsonify({'error': 'لا يمكن أرشفة المستودع الرئيسي'}), 400
     db.execute('UPDATE warehouses SET deleted_at=?, is_active=0, updated_at=? WHERE id=? AND user_id=?', (now, now, warehouse_id, uid))
     db.commit(); return jsonify({'status': 'ok'})
+
+
+# ------------------- Warehouse balances, movements, and transfers for Remote Mode -------------------
+
+def _dec(value, default='0'):
+    try:
+        return Decimal(str(value if value is not None else default))
+    except Exception:
+        return Decimal(str(default))
+
+def _ensure_transfer_schema(db):
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS warehouse_transfers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            transfer_no TEXT NOT NULL,
+            item_id INTEGER NOT NULL,
+            from_warehouse_id INTEGER NOT NULL,
+            to_warehouse_id INTEGER NOT NULL,
+            quantity TEXT NOT NULL,
+            unit_cost TEXT DEFAULT '0',
+            notes TEXT,
+            status TEXT DEFAULT 'active',
+            created_at TEXT,
+            cancelled_at TEXT,
+            UNIQUE(user_id, transfer_no)
+        )
+    """)
+
+def _warehouse_active(db, uid, warehouse_id):
+    row = db.execute("""
+        SELECT id FROM warehouses
+        WHERE id=? AND user_id=? AND deleted_at IS NULL AND COALESCE(is_active,1)=1
+    """, (warehouse_id, uid)).fetchone()
+    return bool(row)
+
+def _item_cost(db, uid, item_id):
+    row = db.execute("SELECT COALESCE(average_cost, '0') AS average_cost FROM items WHERE id=? AND user_id=?", (item_id, uid)).fetchone()
+    return _dec(row['average_cost']) if row else Decimal('0')
+
+def _ensure_balance_row(db, uid, item_id, warehouse_id, unit_cost='0'):
+    if db.execute("""
+        SELECT id FROM item_warehouse_balances WHERE user_id=? AND item_id=? AND warehouse_id=?
+    """, (uid, item_id, warehouse_id)).fetchone():
+        return
+    now = _now()
+    db.execute("""
+        INSERT INTO item_warehouse_balances
+        (user_id, item_id, warehouse_id, quantity, average_cost, updated_at)
+        VALUES (?, ?, ?, '0', ?, ?)
+    """, (uid, item_id, warehouse_id, str(unit_cost or '0'), now))
+
+def _available_qty(db, uid, item_id, warehouse_id):
+    row = db.execute("""
+        SELECT quantity FROM item_warehouse_balances
+        WHERE user_id=? AND item_id=? AND warehouse_id=?
+    """, (uid, item_id, warehouse_id)).fetchone()
+    return _dec(row['quantity']) if row and row['quantity'] is not None else Decimal('0')
+
+def _record_warehouse_movement(db, uid, item_id, warehouse_id, movement_type, quantity,
+                               unit_cost='0', reference_type=None, reference_id=None, notes=''):
+    item_id = int(item_id or 0)
+    warehouse_id = int(warehouse_id or 0)
+    qty = _dec(quantity)
+    cost = _dec(unit_cost)
+    if item_id <= 0:
+        raise ValueError('المادة غير صحيحة')
+    if warehouse_id <= 0:
+        warehouse_id = _ensure_default_warehouse(db, uid)
+    if qty == 0:
+        return 0
+    if not _warehouse_active(db, uid, warehouse_id):
+        raise ValueError('المستودع غير نشط أو غير موجود')
+    _ensure_balance_row(db, uid, item_id, warehouse_id, cost)
+    current = _available_qty(db, uid, item_id, warehouse_id)
+    new_qty = current + qty
+    if new_qty < 0:
+        raise ValueError('الرصيد غير كافٍ في المستودع المحدد')
+    now = _now()
+    avg_cost = str(cost if cost > 0 else _item_cost(db, uid, item_id))
+    db.execute("""
+        UPDATE item_warehouse_balances SET quantity=?, average_cost=?, updated_at=?
+        WHERE user_id=? AND item_id=? AND warehouse_id=?
+    """, (str(new_qty), avg_cost, now, uid, item_id, warehouse_id))
+    cur = db.execute("""
+        INSERT INTO warehouse_movements
+        (user_id, item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes, movement_date, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (uid, item_id, warehouse_id, movement_type, str(qty), str(cost), reference_type, reference_id, notes or '', now, now))
+    return int(cur.lastrowid)
+
+@warehouses_bp.route('/warehouses/balances', methods=['GET'])
+@jwt_required()
+def warehouse_balances():
+    uid = _uid(); db = get_db()
+    _ensure_default_warehouse(db, uid)
+    search = request.args.get('search') or None
+    warehouse_id = request.args.get('warehouse_id', type=int)
+    limit = request.args.get('limit', type=int)
+    offset = request.args.get('offset', type=int)
+    sql = """
+        SELECT b.id, b.item_id, i.name AS item_name, i.barcode, i.unit,
+               b.warehouse_id, w.name AS warehouse_name, b.quantity, b.average_cost,
+               (CAST(COALESCE(b.quantity, '0') AS REAL) * CAST(COALESCE(b.average_cost, '0') AS REAL)) AS stock_value,
+               b.updated_at
+        FROM item_warehouse_balances b
+        JOIN items i ON i.id = b.item_id AND i.user_id=b.user_id
+        JOIN warehouses w ON w.id = b.warehouse_id AND w.user_id=b.user_id
+        WHERE b.user_id=? AND i.deleted_at IS NULL AND w.deleted_at IS NULL
+    """
+    params = [uid]
+    if search:
+        sql += " AND (i.name LIKE ? OR i.barcode LIKE ? OR w.name LIKE ?)"
+        like = f'%{search}%'
+        params.extend([like, like, like])
+    if warehouse_id:
+        sql += " AND b.warehouse_id=?"
+        params.append(warehouse_id)
+    sql += " ORDER BY w.is_default DESC, w.name, i.name"
+    if limit is not None:
+        sql += " LIMIT ?"; params.append(limit)
+    if offset is not None:
+        sql += " OFFSET ?"; params.append(offset)
+    return jsonify({'balances': [_rowdict(r) for r in db.execute(sql, params).fetchall()]})
+
+@warehouses_bp.route('/warehouses/balances/count', methods=['GET'])
+@jwt_required()
+def warehouse_balances_count():
+    uid = _uid(); db = get_db()
+    rows = warehouse_balances().json.get('balances', [])
+    return jsonify({'count': len(rows)})
+
+@warehouses_bp.route('/warehouses/movements', methods=['GET'])
+@jwt_required()
+def list_warehouse_movements():
+    uid = _uid(); db = get_db()
+    item_id = request.args.get('item_id', type=int)
+    warehouse_id = request.args.get('warehouse_id', type=int)
+    limit = request.args.get('limit', default=100, type=int) or 100
+    sql = """
+        SELECT m.*, i.name AS item_name, w.name AS warehouse_name
+        FROM warehouse_movements m
+        JOIN items i ON i.id=m.item_id AND i.user_id=m.user_id
+        JOIN warehouses w ON w.id=m.warehouse_id AND w.user_id=m.user_id
+        WHERE m.user_id=?
+    """
+    params = [uid]
+    if item_id:
+        sql += " AND m.item_id=?"; params.append(item_id)
+    if warehouse_id:
+        sql += " AND m.warehouse_id=?"; params.append(warehouse_id)
+    sql += " ORDER BY m.id DESC LIMIT ?"; params.append(limit)
+    return jsonify({'movements': [_rowdict(r) for r in db.execute(sql, params).fetchall()]})
+
+@warehouses_bp.route('/warehouses/movements', methods=['POST'])
+@jwt_required()
+def add_warehouse_movement():
+    uid = _uid(); db = get_db(); data = request.get_json() or {}
+    try:
+        mid = _record_warehouse_movement(
+            db, uid,
+            data.get('item_id'),
+            data.get('warehouse_id') or _ensure_default_warehouse(db, uid),
+            data.get('movement_type') or 'adjustment',
+            data.get('quantity') or '0',
+            data.get('unit_cost') or '0',
+            data.get('reference_type'),
+            data.get('reference_id'),
+            data.get('notes') or ''
+        )
+        db.commit()
+        return jsonify({'id': mid}), 201
+    except Exception as exc:
+        db.rollback()
+        return jsonify({'error': str(exc)}), 400
+
+@warehouses_bp.route('/warehouses/reverse_reference', methods=['POST'])
+@jwt_required()
+def reverse_warehouse_reference():
+    uid = _uid(); db = get_db(); data = request.get_json() or {}
+    reference_type = data.get('reference_type')
+    reference_id = data.get('reference_id')
+    rows = db.execute("""
+        SELECT * FROM warehouse_movements
+        WHERE user_id=? AND reference_type=? AND reference_id=?
+        ORDER BY id DESC
+    """, (uid, reference_type, reference_id)).fetchall()
+    try:
+        for r in rows:
+            _record_warehouse_movement(
+                db, uid, r['item_id'], r['warehouse_id'], 'reverse_' + str(r['movement_type']),
+                -_dec(r['quantity']), r['unit_cost'] or '0',
+                'reverse_' + str(reference_type), reference_id, 'عكس حركة مستودعية'
+            )
+        db.commit()
+        return jsonify({'status': 'ok', 'reversed': len(rows)})
+    except Exception as exc:
+        db.rollback()
+        return jsonify({'error': str(exc)}), 400
+
+def _next_transfer_no(db, uid):
+    _ensure_transfer_schema(db)
+    today = datetime.datetime.now().strftime('%Y%m%d')
+    row = db.execute("SELECT COUNT(*) AS c FROM warehouse_transfers WHERE user_id=? AND transfer_no LIKE ?", (uid, f'TR-{today}-%')).fetchone()
+    return f"TR-{today}-{int(row['c'] or 0) + 1:04d}"
+
+@warehouses_bp.route('/warehouses/transfers', methods=['POST'])
+@jwt_required()
+def create_warehouse_transfer():
+    uid = _uid(); db = get_db(); _ensure_transfer_schema(db)
+    data = request.get_json() or {}
+    try:
+        item_id = int(data.get('item_id') or 0)
+        from_wh = int(data.get('from_warehouse_id') or 0)
+        to_wh = int(data.get('to_warehouse_id') or 0)
+        qty = _dec(data.get('quantity') or '0')
+        notes = str(data.get('notes') or '').strip()
+        if item_id <= 0:
+            raise ValueError('اختر المادة')
+        if from_wh <= 0 or to_wh <= 0:
+            raise ValueError('اختر مستودع المصدر والوجهة')
+        if from_wh == to_wh:
+            raise ValueError('لا يمكن التحويل إلى نفس المستودع')
+        if qty <= 0:
+            raise ValueError('كمية التحويل يجب أن تكون أكبر من صفر')
+        if not _warehouse_active(db, uid, from_wh) or not _warehouse_active(db, uid, to_wh):
+            raise ValueError('لا يمكن التحويل من أو إلى مستودع مؤرشف')
+        if _available_qty(db, uid, item_id, from_wh) < qty:
+            raise ValueError('الرصيد غير كافٍ في المستودع المصدر')
+        unit_cost = _item_cost(db, uid, item_id)
+        now = _now()
+        transfer_no = _next_transfer_no(db, uid)
+        cur = db.execute("""
+            INSERT INTO warehouse_transfers
+            (user_id, transfer_no, item_id, from_warehouse_id, to_warehouse_id, quantity, unit_cost, notes, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+        """, (uid, transfer_no, item_id, from_wh, to_wh, str(qty), str(unit_cost), notes, now))
+        tid = int(cur.lastrowid)
+        _record_warehouse_movement(db, uid, item_id, from_wh, 'transfer_out', -qty, unit_cost, 'warehouse_transfer', tid, f'تحويل إلى مستودع #{to_wh}: {notes}')
+        _record_warehouse_movement(db, uid, item_id, to_wh, 'transfer_in', qty, unit_cost, 'warehouse_transfer', tid, f'تحويل من مستودع #{from_wh}: {notes}')
+        db.commit()
+        return jsonify({'id': tid}), 201
+    except Exception as exc:
+        db.rollback()
+        return jsonify({'error': str(exc)}), 400
+
+@warehouses_bp.route('/warehouses/transfers/<int:transfer_id>/cancel', methods=['POST'])
+@jwt_required()
+def cancel_warehouse_transfer(transfer_id):
+    uid = _uid(); db = get_db(); _ensure_transfer_schema(db)
+    t = db.execute("SELECT * FROM warehouse_transfers WHERE id=? AND user_id=?", (transfer_id, uid)).fetchone()
+    if not t:
+        return jsonify({'error': 'التحويل غير موجود'}), 404
+    if t['status'] != 'active':
+        return jsonify({'error': 'التحويل ملغى مسبقاً'}), 400
+    qty = _dec(t['quantity'])
+    if _available_qty(db, uid, t['item_id'], t['to_warehouse_id']) < qty:
+        return jsonify({'error': 'لا يمكن إلغاء التحويل لأن رصيد المستودع المستلم غير كافٍ'}), 400
+    try:
+        unit_cost = _dec(t['unit_cost'])
+        _record_warehouse_movement(db, uid, t['item_id'], t['to_warehouse_id'], 'transfer_cancel_out', -qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي')
+        _record_warehouse_movement(db, uid, t['item_id'], t['from_warehouse_id'], 'transfer_cancel_in', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي')
+        db.execute("UPDATE warehouse_transfers SET status='cancelled', cancelled_at=? WHERE id=? AND user_id=?", (_now(), transfer_id, uid))
+        db.commit()
+        return jsonify({'status': 'ok'})
+    except Exception as exc:
+        db.rollback()
+        return jsonify({'error': str(exc)}), 400
+
+@warehouses_bp.route('/warehouses/transfers', methods=['GET'])
+@jwt_required()
+def list_warehouse_transfers():
+    uid = _uid(); db = get_db(); _ensure_transfer_schema(db)
+    limit = request.args.get('limit', default=200, type=int) or 200
+    rows = db.execute("""
+        SELECT t.*, i.name AS item_name, fw.name AS from_warehouse_name, tw.name AS to_warehouse_name
+        FROM warehouse_transfers t
+        JOIN items i ON i.id=t.item_id AND i.user_id=t.user_id
+        JOIN warehouses fw ON fw.id=t.from_warehouse_id AND fw.user_id=t.user_id
+        JOIN warehouses tw ON tw.id=t.to_warehouse_id AND tw.user_id=t.user_id
+        WHERE t.user_id=?
+        ORDER BY t.id DESC LIMIT ?
+    """, (uid, limit)).fetchall()
+    return jsonify({'transfers': [_rowdict(r) for r in rows]})
+

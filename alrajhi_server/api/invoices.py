@@ -60,6 +60,9 @@ def get_invoices():
     end_date = request.args.get('end_date')
     limit = request.args.get('limit', type=int)
     offset = request.args.get('offset', type=int)
+    search = (request.args.get('search') or '').strip()
+    customer_id = request.args.get('customer_id', type=int)
+    supplier_id = request.args.get('supplier_id', type=int)
     db = get_db()
     count_query = "SELECT COUNT(*) FROM invoices i WHERE i.user_id = ? AND i.deleted_at IS NULL"
     count_params = [user_id]
@@ -86,6 +89,26 @@ def get_invoices():
         count_params.append(end_date)
         query += " AND i.date <= ?"
         params.append(end_date)
+    if customer_id:
+        count_query += " AND i.customer_id = ?"
+        count_params.append(customer_id)
+        query += " AND i.customer_id = ?"
+        params.append(customer_id)
+    if supplier_id:
+        count_query += " AND i.supplier_id = ?"
+        count_params.append(supplier_id)
+        query += " AND i.supplier_id = ?"
+        params.append(supplier_id)
+    if search:
+        like = f"%{search}%"
+        count_query += """ AND (
+            i.reference LIKE ? OR i.notes LIKE ?
+            OR EXISTS (SELECT 1 FROM customers c2 WHERE c2.id=i.customer_id AND c2.name LIKE ?)
+            OR EXISTS (SELECT 1 FROM suppliers s2 WHERE s2.id=i.supplier_id AND s2.name LIKE ?)
+        )"""
+        count_params.extend([like, like, like, like])
+        query += " AND (i.reference LIKE ? OR i.notes LIKE ? OR c.name LIKE ? OR s.name LIKE ?)"
+        params.extend([like, like, like, like])
     total = db.execute(count_query, count_params).fetchone()[0]
     query += " ORDER BY i.id DESC"
     if limit is not None:

@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import QFormLayout, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox, QLabel, QCheckBox
 from PyQt5.QtCore import Qt
 from views.frameless_dialog import FramelessDialog
-from database import UserRepository
+from core.services.user_service import user_service
 from auth.session import UserSession
 from i18n.translator import translate
 from theme_manager import ThemeManager
@@ -115,8 +115,7 @@ class ChangePasswordDialog(FramelessDialog):
         if self._score_password(new) < 2:
             QMessageBox.warning(self, translate('error'), "كلمة المرور ضعيفة جدًا")
             return
-        repo = UserRepository()
-        if repo.change_password(self.user_id, old, new):
+        if user_service.change_password(self.user_id, old, new):
             QMessageBox.information(self, translate('success'), "تم تغيير كلمة المرور")
             self.accept()
         else:

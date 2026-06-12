@@ -11,8 +11,9 @@ import socket
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtCore import QTimer, QSettings, Qt
 from PyQt5.QtGui import QFont
-from database import ensure_db
 from core.services.warehouse_service import warehouse_service
+from core.services.system_service import system_service
+from core.services.user_service import user_service
 from auth.activation import check_activation, start_license_checker, stop_license_checker, check_network_activation
 from views.splash_screen import ModernSplashScreen
 from views.dialogs.activation_dialog import ActivationDialog
@@ -22,16 +23,6 @@ from auth.session import UserSession
 from utils import enable_auto_select_all, install_non_blocking_message_boxes
 from theme_manager import ThemeManager
 
-from core.server_control import (
-    DEFAULT_PORT,
-    get_server_port,
-    health_check,
-    port_in_use,
-    start_server_process,
-    stop_server_process,
-    normalize_server_url,
-    server_diagnostics,
-)
 
 _backup_stop_event = None
 _backup_thread = None
@@ -52,7 +43,7 @@ def run_flask_server():
     Kept as a compatibility wrapper for older calls, but it no longer launches
     recursively or without lifecycle control.
     """
-    ok, msg = start_server_process(main_file=os.path.abspath(__file__), port=get_server_port())
+    ok, msg = system_service.start_server_process(main_file=os.path.abspath(__file__), port=system_service.get_server_port())
     print(("✅ " if ok else "❌ ") + msg)
     return ok
 
@@ -82,9 +73,7 @@ def periodic_backup_worker(interval_seconds, folder, db_path=None):
 
 def start_periodic_backup():
     global _backup_stop_event, _backup_thread
-    from database.connection import DatabaseConnection
-    db = DatabaseConnection()
-    if db.is_remote():
+    if system_service.is_remote():
         print("⚠️ النسخ الاحتياطي الدوري معطل في وضع العميل")
         return None
 
@@ -116,7 +105,7 @@ def start_periodic_backup():
 
 def test_server_connection(url):
     try:
-        ok, _message, _info = server_diagnostics(url, timeout=3, require_routes=True)
+        ok, _message, _info = system_service.server_diagnostics(url, timeout=3, require_routes=True)
         return ok
     except Exception:
         return False
@@ -175,7 +164,7 @@ def open_network_settings():
 
     server_port_spin = QSpinBox()
     server_port_spin.setRange(1024, 65535)
-    server_port_spin.setValue(int(qsettings.value("server/port", DEFAULT_PORT)))
+    server_port_spin.setValue(int(qsettings.value("server/port", system_service.default_port())))
     form.addRow("منفذ الخادم المحلي:", server_port_spin)
 
     auto_start_check = QCheckBox("تشغيل الخادم المحلي تلقائياً عند بدء التطبيق")
@@ -190,9 +179,9 @@ def open_network_settings():
 
     def test_current_server():
         raw = server_url_edit.text().strip()
-        url = normalize_server_url(raw, server_port_spin.value())
+        url = system_service.normalize_server_url(raw, server_port_spin.value())
         server_url_edit.setText(url)
-        ok, message, info = server_diagnostics(url, timeout=4, require_routes=True)
+        ok, message, info = system_service.server_diagnostics(url, timeout=4, require_routes=True)
         if ok:
             status.setText(f"✅ {message}\n{url}")
             status.setStyleSheet("color:#15803d;")
@@ -212,7 +201,7 @@ def open_network_settings():
     def save_and_accept():
         port = server_port_spin.value()
         qsettings.setValue("network/mode", mode_combo.currentData() or "local")
-        qsettings.setValue("network/server_url", normalize_server_url(server_url_edit.text().strip(), port))
+        qsettings.setValue("network/server_url", system_service.normalize_server_url(server_url_edit.text().strip(), port))
         qsettings.setValue("server/port", port)
         qsettings.setValue("server/auto_start", auto_start_check.isChecked())
         qsettings.sync()
@@ -234,24 +223,18 @@ def main():
                 sys.path.remove(path)
         sys.path.insert(0, project_root)
         sys.path.insert(0, server_root)
-        server_port = int(os.environ.get("ALRAJHI_SERVER_PORT", str(DEFAULT_PORT)))
-        if port_in_use(server_port):
+        server_port = int(os.environ.get("ALRAJHI_SERVER_PORT", str(system_service.default_port())))
+        if system_service.port_in_use(server_port):
             print(f"✅ الخادم يعمل مسبقاً على المنفذ {server_port}")
             return
 
         # Ensure the API server uses the same writable SQLite file as the desktop server UI.
         try:
-            if os.name == 'nt':
-                _base = os.environ.get('APPDATA') or os.environ.get('LOCALAPPDATA') or os.path.expanduser('~\\AppData\\Roaming')
-                _client_db_path = os.path.join(_base, 'Alrajhi', 'alrajhi_data.db')
-            else:
-                _client_db_path = os.path.expanduser('~/.alrajhi/alrajhi_data.db')
-            os.environ.setdefault('ALRAJHI_SERVER_DB_PATH', _client_db_path)
-            print(f"ℹ️ مسار قاعدة بيانات الخادم: {os.environ.get('ALRAJHI_SERVER_DB_PATH')}")
+            server_db_path = system_service.configure_server_database_path()
+            print(f"ℹ️ مسار قاعدة بيانات الخادم: {server_db_path}")
         except Exception as exc:
             print(f"⚠️ تعذر ضبط مسار قاعدة بيانات الخادم الموحد: {exc}")
-        from alrajhi_server.database.migrations import ensure_db as ensure_db_remote
-        ensure_db_remote()
+        system_service.ensure_server_database()
         from waitress import serve
         from alrajhi_server.app import app as server_app
         try:
@@ -270,10 +253,8 @@ def main():
 
     settings = QSettings("Alrajhi", "Accounting")
 
-    from database.connection import DatabaseConnection
-    db_conn = DatabaseConnection()
-    mode = db_conn.mode
-    server_url = normalize_server_url(db_conn.server_url, get_server_port())
+    mode = system_service.mode()
+    server_url = system_service.normalize_server_url(system_service.server_url(), system_service.get_server_port())
 
     if mode in ("client", "server"):
         network_ok, network_msg = check_network_activation()
@@ -282,7 +263,7 @@ def main():
                                  f"{network_msg}\n\nسيتم تشغيل التطبيق في الوضع المحلي.")
             mode = "local"
             settings.setValue("network/mode", "local")
-            db_conn.mode = "local"
+            system_service.set_mode("local")
 
     if mode == "server":
         # وضع الخادم يعني أن هذا الجهاز يستخدم قاعدة محلية ويمكنه اختيارياً
@@ -291,9 +272,9 @@ def main():
         # لنفسه بشكل متكرر عند بدء التشغيل.
         os.environ['ALRAJHI_MODE'] = 'server'
         auto_start_server = settings.value("server/auto_start", False, type=bool)
-        server_port = get_server_port()
+        server_port = system_service.get_server_port()
         if auto_start_server:
-            ok, msg = start_server_process(main_file=os.path.abspath(__file__), port=server_port)
+            ok, msg = system_service.start_server_process(main_file=os.path.abspath(__file__), port=server_port)
             if not ok:
                 QMessageBox.warning(
                     None,
@@ -322,14 +303,14 @@ def main():
     # In client mode the source of truth is the remote server. Do not create or
     # bootstrap a local SQLite database, otherwise the UI may appear to use local
     # data and background services can mutate the wrong database.
-    if not db_conn.is_remote():
-        ensure_db()
+    if not system_service.is_remote():
+        system_service.ensure_local_database()
         try:
             warehouse_service.bootstrap()
         except Exception as e:
             print(f"Warehouse bootstrap warning: {e}")
     else:
-        print(f"ℹ️ وضع العميل مفعل. مصدر البيانات: {db_conn.data_source_label()}")
+        print(f"ℹ️ وضع العميل مفعل. مصدر البيانات: {system_service.data_source_label()}")
 
     splash.set_progress(30, "التحقق من الترخيص...")
     activated, _ = check_activation()
@@ -356,11 +337,8 @@ def main():
 
     if UserSession.force_password_change():
         from views.dialogs.change_password_dialog import ChangePasswordDialog
-        from database import UserRepository
         dlg = ChangePasswordDialog()
         if dlg.exec():
-            repo = UserRepository()
-            repo.set_force_password_change(UserSession.get_current()['id'], False)
             UserSession.set_force_password_change(False)
         else:
             # لا نسمح بفتح النظام إذا كان الخادم يفرض تغيير كلمة المرور.

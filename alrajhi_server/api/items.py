@@ -314,3 +314,152 @@ def delete_item(item_id):
     return jsonify({'status': 'ok'})
 
 
+
+@items_bp.route('/items/<int:item_id>/inventory-movements', methods=['GET'])
+@jwt_required()
+def get_inventory_movements(item_id):
+    """Return legacy inventory_movements for an item through the API boundary."""
+    user_id = get_jwt_identity()
+    db = get_db()
+    exists = db.execute(
+        "SELECT id FROM items WHERE id=? AND user_id=? AND deleted_at IS NULL",
+        (item_id, user_id)
+    ).fetchone()
+    if not exists:
+        return jsonify({'error': 'not found'}), 404
+    rows = db.execute('''
+        SELECT id, movement_type, quantity, unit_cost, movement_date, reference_id
+        FROM inventory_movements
+        WHERE item_id=? AND user_id=?
+        ORDER BY movement_date DESC, id DESC
+    ''', (item_id, user_id)).fetchall()
+    return jsonify({'movements': [dict(row) for row in rows]})
+
+
+@items_bp.route('/inventory-movements', methods=['POST'])
+@jwt_required()
+def record_inventory_movement():
+    """Record a legacy inventory_movement through the API boundary.
+
+    This endpoint intentionally preserves the existing legacy semantics used by
+    InventoryMovementDAO.  It does not replace the newer warehouse ledger.
+    """
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    item_id = data.get('item_id')
+    movement_type = data.get('movement_type')
+    if not item_id or not movement_type:
+        return jsonify({'error': 'item_id and movement_type are required'}), 400
+    db = get_db()
+    exists = db.execute(
+        "SELECT id FROM items WHERE id=? AND user_id=? AND deleted_at IS NULL",
+        (item_id, user_id)
+    ).fetchone()
+    if not exists:
+        return jsonify({'error': 'item not found'}), 404
+    now = datetime.datetime.now().isoformat()
+    cursor = db.execute('''
+        INSERT INTO inventory_movements (item_id, user_id, movement_type, quantity, unit_cost, reference_id, movement_date)
+        VALUES (?,?,?,?,?,?,?)
+    ''', (
+        item_id,
+        user_id,
+        movement_type,
+        str(data.get('quantity', 0)),
+        str(data.get('unit_cost', 0)),
+        data.get('reference_id'),
+        now,
+    ))
+    movement_id = cursor.lastrowid
+    _update_item_quantity(db, item_id, user_id)
+    _recalculate_average_cost(db, item_id, user_id)
+    db.commit()
+    audit_log('POST', 'INVENTORY_MOVEMENT', movement_id, new_values=data, details='تسجيل حركة مخزون')
+    db.commit()
+    return jsonify({'id': movement_id}), 201
+
+
+@items_bp.route('/inventory-ledger', methods=['GET'])
+@jwt_required()
+def get_inventory_ledger():
+    """Return append-only inventory ledger entries without changing stock semantics."""
+    user_id = get_jwt_identity()
+    db = get_db()
+    sql = ["SELECT * FROM inventory_ledger WHERE user_id=?"]
+    params = [user_id]
+    for field in ('item_id', 'warehouse_id', 'reference_type', 'reference_id'):
+        value = request.args.get(field)
+        if value not in (None, ''):
+            sql.append(f"AND {field}=?")
+            params.append(value)
+    limit = request.args.get('limit', 200, type=int) or 200
+    sql.append("ORDER BY movement_date DESC, id DESC LIMIT ?")
+    params.append(min(limit, 1000))
+    rows = db.execute(' '.join(sql), tuple(params)).fetchall()
+    return jsonify({'ledger': [dict(row) for row in rows]})
+
+
+@items_bp.route('/inventory-ledger', methods=['POST'])
+@jwt_required()
+def record_inventory_ledger_entry():
+    """Append a ledger entry. Phase 22 does not recalculate stock from this table."""
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    required = ['item_id', 'movement_type', 'direction', 'quantity']
+    missing = [f for f in required if data.get(f) in (None, '')]
+    if missing:
+        return jsonify({'error': 'missing required fields', 'fields': missing}), 400
+    if data.get('direction') not in ('in', 'out', 'neutral'):
+        return jsonify({'error': 'direction must be one of: in, out, neutral'}), 400
+    item = db.execute("SELECT id FROM items WHERE id=? AND user_id=? AND deleted_at IS NULL", (data.get('item_id'), user_id)).fetchone()
+    if not item:
+        return jsonify({'error': 'item not found'}), 404
+    now = data.get('movement_date') or datetime.datetime.now().isoformat()
+    qty = str(data.get('quantity', '0'))
+    unit_cost = data.get('unit_cost')
+    total_cost = data.get('total_cost')
+    if total_cost is None and unit_cost is not None:
+        try:
+            from decimal import Decimal
+            total_cost = str(Decimal(str(qty)) * Decimal(str(unit_cost)))
+        except Exception:
+            total_cost = None
+    cur = db.execute("""
+        INSERT INTO inventory_ledger (
+            user_id, item_id, warehouse_id, movement_type, direction, quantity,
+            unit_cost, total_cost, reference_type, reference_id, source_table,
+            source_id, notes, movement_date
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        user_id, data.get('item_id'), data.get('warehouse_id'), data.get('movement_type'),
+        data.get('direction'), qty, str(unit_cost) if unit_cost is not None else None,
+        str(total_cost) if total_cost is not None else None, data.get('reference_type'),
+        data.get('reference_id'), data.get('source_table'), data.get('source_id'),
+        data.get('notes'), now
+    ))
+    entry_id = cur.lastrowid
+    db.commit()
+    audit_log('POST', 'INVENTORY_LEDGER', entry_id, new_values=data, details='تسجيل قيد دفتر مخزون')
+    db.commit()
+    return jsonify({'id': entry_id}), 201
+
+
+@items_bp.route('/inventory-ledger/balance', methods=['GET'])
+@jwt_required()
+def get_inventory_ledger_balance():
+    user_id = get_jwt_identity()
+    item_id = request.args.get('item_id')
+    warehouse_id = request.args.get('warehouse_id')
+    if not item_id:
+        return jsonify({'error': 'item_id is required'}), 400
+    sql = ["""SELECT SUM(CASE
+                WHEN direction='in' THEN CAST(quantity AS REAL)
+                WHEN direction='out' THEN -CAST(quantity AS REAL)
+                ELSE 0 END) AS qty
+             FROM inventory_ledger WHERE user_id=? AND item_id=?"""]
+    params = [user_id, item_id]
+    if warehouse_id not in (None, ''):
+        sql.append("AND warehouse_id=?")
+        params.append(warehouse_id)
+    row = db.execute(' '.join(sql), tuple(params)).fetchone()
+    return jsonify({'balance': str(row[0] if row and row[0] is not None else 0)})

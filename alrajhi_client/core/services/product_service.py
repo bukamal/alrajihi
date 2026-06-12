@@ -12,12 +12,15 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.compat import records, pair
 from core.services.audit_service import audit_service
 from core.services.barcode_service import barcode_service
-from database.dao.item_dao import item_dao
-from database.dao.category_dao import category_dao
+from gateways.product_gateway import create_product_gateways
 
 
 class ProductService:
     """Facade for item, unit, and category operations used by the UI."""
+
+    def __init__(self):
+        self.item_gateway, self.category_gateway = create_product_gateways()
+
 
     def _validate_item_barcode(self, barcode: str | None, item_id: int | None = None) -> str | None:
         info = barcode_service.validate(barcode, allow_empty=True)
@@ -39,23 +42,23 @@ class ProductService:
 
     # ---------- Items ----------
     def items(self, search: str | None = None, limit: int | None = None, offset: int | None = None) -> List[Dict]:
-        return records(item_dao.get_items(search=search, limit=limit, offset=offset), 'items')
+        return records(self.item_gateway.list(search=search, limit=limit, offset=offset), 'items')
 
     def items_pair(self, search: str | None = None, limit: int | None = None, offset: int | None = None) -> Tuple[List[Dict], int]:
-        return pair(item_dao.get_items(search=search, limit=limit, offset=offset), 'items')
+        return pair(self.item_gateway.list(search=search, limit=limit, offset=offset), 'items')
 
     def item_by_id(self, item_id: int) -> Optional[Dict]:
-        item = item_dao.get_by_id(item_id)
+        item = self.item_gateway.get(item_id)
         return item if isinstance(item, dict) else None
 
     def item_by_barcode(self, barcode: str) -> Optional[Dict]:
-        item = item_dao.get_by_barcode(barcode)
+        item = self.item_gateway.get_by_barcode(barcode)
         return item if isinstance(item, dict) else None
 
     def add_item(self, data: Dict[str, Any]) -> int:
         data = dict(data)
         data['barcode'] = self._validate_item_barcode(data.get('barcode'))
-        item_id = item_dao.add(data)
+        item_id = self.item_gateway.create(data)
         audit_service.log('CREATE', 'ITEM', item_id, new_values=data, details='إنشاء مادة')
         return item_id
 
@@ -63,31 +66,31 @@ class ProductService:
         old = self.item_by_id(item_id)
         data = dict(data)
         data['barcode'] = self._validate_item_barcode(data.get('barcode'), item_id=item_id)
-        item_dao.update(item_id, data)
+        self.item_gateway.update(item_id, data)
         new = self.item_by_id(item_id)
         audit_service.log('UPDATE', 'ITEM', item_id, old_values=old, new_values=new or data, details='تعديل مادة')
 
     def delete_item(self, item_id: int) -> None:
         old = self.item_by_id(item_id)
-        item_dao.delete(item_id)
+        self.item_gateway.delete(item_id)
         audit_service.log('SOFT_DELETE', 'ITEM', item_id, old_values=old, details='أرشفة مادة')
 
     # ---------- Item units ----------
     def item_units(self, item_id: int) -> List[Dict]:
-        return records(item_dao.get_units(item_id), 'units')
+        return records(self.item_gateway.get_units(item_id), 'units')
 
     def add_unit(self, item_id: int, unit_name: str, conversion_factor: float) -> None:
-        item_dao.add_unit(item_id, unit_name, conversion_factor)
+        self.item_gateway.add_unit(item_id, unit_name, conversion_factor)
 
     def clear_units(self, item_id: int) -> None:
-        item_dao.clear_units(item_id)
+        self.item_gateway.clear_units(item_id)
 
     def replace_units(self, item_id: int, units: List[Dict[str, Any]]) -> None:
         # In remote mode item units are persisted atomically by POST/PUT /api/items.
         # Calling clear_units/add_unit would intentionally fail because the client
         # must not manipulate SQLite directly.
         try:
-            if getattr(item_dao.repo.db, 'is_remote', lambda: False)():
+            if self.item_gateway.is_remote():
                 audit_service.log(
                     'UPDATE_UNITS', 'ITEM', item_id,
                     new_values={'units': units},
@@ -115,74 +118,23 @@ class ProductService:
 
 
     def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
-        """Return net sold quantities per item in base unit.
-
-        Net sold = sale invoice quantities - non-cancelled sales returns.
-        The method is defensive: if a legacy database does not yet contain
-        returns tables, it still returns sales totals without breaking the UI.
-        """
-        from decimal import Decimal
-        if not item_ids:
-            return {}
-        ids = [int(x) for x in item_ids if x is not None]
-        if not ids:
-            return {}
-        result = {i: Decimal('0') for i in ids}
-        try:
-            db = item_dao.repo.db
-            if db.is_remote():
-                return result
-            conn = db.get_connection()
-            placeholders = ','.join('?' for _ in ids)
-            rows = conn.execute(f"""
-                SELECT il.item_id, COALESCE(SUM(CAST(COALESCE(NULLIF(il.quantity_in_base,''), il.quantity, '0') AS REAL)), 0) AS qty
-                FROM invoice_lines il
-                JOIN invoices inv ON inv.id = il.invoice_id
-                WHERE inv.type = 'sale'
-                  AND COALESCE(inv.deleted_at, '') = ''
-                  AND il.item_id IN ({placeholders})
-                GROUP BY il.item_id
-            """, ids).fetchall()
-            for row in rows:
-                result[int(row['item_id'])] = Decimal(str(row['qty'] or 0))
-            try:
-                rrows = conn.execute(f"""
-                    SELECT srl.item_id, COALESCE(SUM(CAST(COALESCE(NULLIF(srl.quantity_in_base,''), srl.quantity, '0') AS REAL)), 0) AS qty
-                    FROM sales_return_lines srl
-                    JOIN sales_returns sr ON sr.id = srl.sales_return_id
-                    WHERE COALESCE(sr.status, 'active') != 'cancelled'
-                      AND COALESCE(sr.deleted_at, '') = ''
-                      AND srl.item_id IN ({placeholders})
-                    GROUP BY srl.item_id
-                """, ids).fetchall()
-                for row in rrows:
-                    item_id = int(row['item_id'])
-                    result[item_id] = result.get(item_id, Decimal('0')) - Decimal(str(row['qty'] or 0))
-                    if result[item_id] < 0:
-                        result[item_id] = Decimal('0')
-            except Exception:
-                pass
-            return result
-        except Exception:
-            return result
+        """Return net sold quantities per item in base unit through ItemGateway."""
+        return self.item_gateway.sold_quantities(item_ids)
 
     # ---------- Categories ----------
     def categories(self, search: str | None = None, include_inactive: bool = False, include_deleted: bool = False) -> List[Dict]:
-        return records(category_dao.get_all(search=search, include_inactive=include_inactive, include_deleted=include_deleted), 'categories')
+        return records(self.category_gateway.list(search=search, include_inactive=include_inactive, include_deleted=include_deleted), 'categories')
 
     def category_by_id(self, category_id: int) -> Optional[Dict]:
-        return category_dao.get_by_id(category_id)
+        return self.category_gateway.get(category_id)
 
     def add_category(self, data_or_name, parent_id=None, description: str = '', color: str = '#64748B', icon: str = 'folder', is_active: int = 1) -> int:
         if isinstance(data_or_name, dict):
             data = dict(data_or_name)
-            category_id = category_dao.add(
-                data.get('name'), data.get('parent_id'), data.get('description', ''),
-                data.get('color', '#64748B'), data.get('icon', 'folder'), data.get('is_active', 1)
-            )
+            category_id = self.category_gateway.create(data)
             new_values = data
         else:
-            category_id = category_dao.add(data_or_name, parent_id, description, color, icon, is_active)
+            category_id = self.category_gateway.create({'name': data_or_name, 'parent_id': parent_id, 'description': description, 'color': color, 'icon': icon, 'is_active': is_active})
             new_values = {'name': data_or_name, 'parent_id': parent_id, 'description': description, 'color': color, 'icon': icon, 'is_active': is_active}
         audit_service.log('CREATE', 'CATEGORY', category_id, new_values=new_values, details='إنشاء تصنيف')
         return category_id
@@ -190,21 +142,21 @@ class ProductService:
     def update_category(self, category_id: int, data_or_name, **kwargs) -> None:
         old = self.category_by_id(category_id)
         if isinstance(data_or_name, dict):
-            category_dao.update(category_id, data_or_name)
+            self.category_gateway.update(category_id, data_or_name)
             new_values = self.category_by_id(category_id) or data_or_name
         else:
-            category_dao.update(category_id, data_or_name, **kwargs)
+            self.category_gateway.update(category_id, {'name': data_or_name, **kwargs})
             new_values = self.category_by_id(category_id) or {'id': category_id, 'name': data_or_name, **kwargs}
         audit_service.log('UPDATE', 'CATEGORY', category_id, old_values=old, new_values=new_values, details='تعديل تصنيف')
 
     def delete_category(self, category_id: int) -> None:
         old = self.category_by_id(category_id)
-        category_dao.delete(category_id)
+        self.category_gateway.delete(category_id)
         audit_service.log('SOFT_DELETE', 'CATEGORY', category_id, old_values=old, details='أرشفة تصنيف')
 
     def restore_category(self, category_id: int) -> None:
         old = self.category_by_id(category_id)
-        category_dao.restore(category_id)
+        self.category_gateway.restore(category_id)
         audit_service.log('RESTORE', 'CATEGORY', category_id, old_values=old, new_values=self.category_by_id(category_id), details='استعادة تصنيف')
 
 

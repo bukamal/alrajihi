@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
                              QDateEdit, QLabel, QHeaderView, QMessageBox, QFileDialog, QLineEdit, QDialog, QTextEdit)
 from PyQt5.QtCore import Qt, QDate
-from database import AuditRepository
+from core.services.audit_service import audit_service
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
@@ -12,7 +12,7 @@ class AuditLogWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(Qt.RightToLeft)
-        self.repo = AuditRepository()
+        self.audit_service = audit_service
         self.current_page = 0
         self.page_size = 100
         self.total_count = 0
@@ -105,7 +105,7 @@ class AuditLogWidget(QWidget):
         start = self.start_date.date().toString("yyyy-MM-dd")
         end = self.end_date.date().toString("yyyy-MM-dd")
         offset = self.current_page * self.page_size
-        logs, self.total_count = self.repo.get_all(
+        logs, self.total_count = self.audit_service.list_logs(
             limit=self.page_size, offset=offset,
             user_id=user_id, action=action, table_name=entity_type, start_date=start, end_date=end
         )
@@ -187,7 +187,7 @@ class AuditLogWidget(QWidget):
         reply = QMessageBox.question(self, "تأكيد الحذف", "هل أنت متأكد من حذف جميع السجلات الأقدم من 90 يوماً؟ لا يمكن التراجع.",
                                      QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.repo.delete_old_logs(90)
+            self.audit_service.delete_old_logs(90)
             show_toast("تم حذف السجلات القديمة", "success", self)
             self.refresh()
 

@@ -10,28 +10,28 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from database.repositories.settings_repo import SettingsRepository
+from gateways.settings_gateway import create_settings_gateway
 from core.services.audit_service import audit_service
 
 
 class SettingsService:
     def __init__(self):
-        self.repo = SettingsRepository()
+        self.gateway = create_settings_gateway()
 
     def get(self, key: str, default: Any = None) -> Any:
-        return self.repo.get(key, default)
+        return self.gateway.get(key, default)
 
     def set(self, key: str, value: Any):
-        self.repo.set(key, str(value))
+        self.gateway.set(key, str(value))
 
     def clear_cache(self):
-        self.repo.clear_cache()
+        self.gateway.clear_cache()
 
     def get_language(self) -> str:
-        return self.repo.get_language()
+        return self.gateway.get_language()
 
     def get_theme(self) -> str:
-        theme = self.repo.get_theme()
+        theme = self.gateway.get_theme()
         return theme if theme in ('light', 'dark') else 'light'
 
     def set_theme(self, theme: str):
@@ -43,7 +43,7 @@ class SettingsService:
         audit_service.log('UPDATE', 'SETTINGS_APPEARANCE', None, old_values=old, new_values={'theme': theme}, details='تعديل مظهر البرنامج')
 
     def get_currency_settings(self) -> Dict[str, Any]:
-        return self.repo.get_currency_settings()
+        return self.gateway.get_currency_settings()
 
     def save_currency_settings(self, base_currency: str, display_currency: str,
                                decimals: int, number_format: str,

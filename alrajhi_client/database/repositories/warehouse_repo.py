@@ -263,7 +263,7 @@ class WarehouseRepository(BaseRepository):
 
     def balances(self, search: str | None = None, warehouse_id: int | None = None, limit: int | None = None, offset: int | None = None) -> List[Dict]:
         if self.db.is_remote():
-            return []
+            return self.db.get_rest_client().get_warehouse_balances(search=search, warehouse_id=warehouse_id, limit=limit, offset=offset)
         self.bootstrap_defaults()
         uid = self._uid()
         sql = '''
@@ -295,12 +295,12 @@ class WarehouseRepository(BaseRepository):
 
     def balance_count(self, search: str | None = None, warehouse_id: int | None = None) -> int:
         if self.db.is_remote():
-            return 0
+            return self.db.get_rest_client().get_warehouse_balance_count(search=search, warehouse_id=warehouse_id)
         return len(self.balances(search=search, warehouse_id=warehouse_id))
 
     def movements(self, item_id: int | None = None, warehouse_id: int | None = None, limit: int = 100) -> List[Dict]:
         if self.db.is_remote():
-            return []
+            return self.db.get_rest_client().get_warehouse_movements(item_id=item_id, warehouse_id=warehouse_id, limit=limit)
         self.bootstrap_defaults()
         uid = self._uid()
         sql = '''
@@ -370,7 +370,16 @@ class WarehouseRepository(BaseRepository):
 
     def record_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type=None, reference_id=None, notes='') -> int:
         if self.db.is_remote():
-            raise NotImplementedError('Warehouses REST API will be introduced in a later stage')
+            return self.db.get_rest_client().warehouse_record_movement({
+                'item_id': item_id,
+                'warehouse_id': warehouse_id,
+                'movement_type': movement_type,
+                'quantity': str(quantity or 0),
+                'unit_cost': str(unit_cost or 0),
+                'reference_type': reference_type,
+                'reference_id': reference_id,
+                'notes': notes or '',
+            })
         self.bootstrap_defaults()
         uid = self._uid()
         qty = Decimal(str(quantity or 0))
@@ -400,7 +409,7 @@ class WarehouseRepository(BaseRepository):
 
     def reverse_reference(self, reference_type, reference_id) -> None:
         if self.db.is_remote():
-            raise NotImplementedError('Warehouses REST API will be introduced in a later stage')
+            return self.db.get_rest_client().warehouse_reverse_reference(reference_type, reference_id)
         self.bootstrap_defaults()
         uid = self._uid()
         conn = self.db.get_connection()
@@ -423,7 +432,7 @@ class WarehouseRepository(BaseRepository):
 
     def create_transfer(self, data: Dict) -> int:
         if self.db.is_remote():
-            raise NotImplementedError('Warehouses REST API will be introduced in a later stage')
+            return self.db.get_rest_client().create_warehouse_transfer(data)
         self.bootstrap_defaults()
         uid = self._uid()
         item_id = int(data.get('item_id') or 0)
@@ -461,7 +470,7 @@ class WarehouseRepository(BaseRepository):
 
     def cancel_transfer(self, transfer_id: int) -> None:
         if self.db.is_remote():
-            raise NotImplementedError('Warehouses REST API will be introduced in a later stage')
+            return self.db.get_rest_client().cancel_warehouse_transfer(transfer_id)
         self.bootstrap_defaults()
         uid = self._uid()
         conn = self.db.get_connection()
@@ -484,7 +493,7 @@ class WarehouseRepository(BaseRepository):
 
     def transfers(self, limit: int = 200) -> List[Dict]:
         if self.db.is_remote():
-            return []
+            return self.db.get_rest_client().get_warehouse_transfers(limit=limit)
         self.bootstrap_defaults()
         uid = self._uid()
         rows = self.db.get_connection().execute("""

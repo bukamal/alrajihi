@@ -2,6 +2,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox
 from PyQt5.QtCore import Qt
 import json
+from core.services.offline_queue_service import offline_queue_service
 
 
 class OfflineQueueWidget(QWidget):
@@ -49,8 +50,7 @@ class OfflineQueueWidget(QWidget):
         self.clear_sent_btn.clicked.connect(self.clear_sent)
 
     def refresh(self):
-        from database.connection import offline_queue
-        rows = offline_queue.get_recent_requests(300)
+        rows = offline_queue_service.recent(300)
         self.table.setRowCount(len(rows))
         for r, row in enumerate(rows):
             values = [
@@ -64,7 +64,7 @@ class OfflineQueueWidget(QWidget):
                     item.setData(Qt.UserRole, int(row.get('id')))
                 self.table.setItem(r, c, item)
         self.table.resizeColumnsToContents()
-        self.info_label.setText(f'عدد الطلبات المعلقة: {offline_queue.count_pending()}')
+        self.info_label.setText(f'عدد الطلبات المعلقة: {offline_queue_service.count_pending()}')
 
     def _selected_id(self):
         indexes = self.table.selectionModel().selectedRows()
@@ -85,11 +85,9 @@ class OfflineQueueWidget(QWidget):
             QMessageBox.information(self, 'الطلبات المعلقة', 'اختر طلباً أولاً.')
             return
         if QMessageBox.question(self, 'حذف', 'حذف الطلب المحدد من الطابور؟') == QMessageBox.Yes:
-            from database.connection import offline_queue
-            offline_queue.delete_request(req_id)
+            offline_queue_service.delete(req_id)
             self.refresh()
 
     def clear_sent(self):
-        from database.connection import offline_queue
-        offline_queue.clear_sent()
+        offline_queue_service.clear_sent()
         self.refresh()

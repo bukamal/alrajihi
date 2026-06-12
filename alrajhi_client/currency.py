@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-from database.connection import DatabaseConnection
+from gateways.currency_gateway import create_currency_gateway
 from core.services.settings_service import settings_service
-import datetime
 from decimal import Decimal
 
 class CurrencyManager:
@@ -10,6 +9,7 @@ class CurrencyManager:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
+            cls._instance.gateway = create_currency_gateway()
         return cls._instance
     
     def get_base_currency(self) -> str:
@@ -39,39 +39,14 @@ class CurrencyManager:
     def get_current_rate(self, currency_code: str) -> Decimal:
         if currency_code == 'USD':
             return Decimal('1.0')
-        db = DatabaseConnection()
-        if db.is_remote():
-            rates = db.get_all_currencies()
-            for r in rates:
-                if r['currency_code'] == currency_code:
-                    return Decimal(str(r['rate_to_usd']))
-            return Decimal('1.0')
-        else:
-            conn = db.get_connection()
-            row = conn.execute("SELECT rate_to_usd FROM exchange_rates WHERE currency_code=?", (currency_code,)).fetchone()
-            if row:
-                return Decimal(str(row['rate_to_usd']))
-            return Decimal('1.0')
+        rate = self.gateway.get_current_rate(currency_code)
+        return Decimal(str(rate)) if rate is not None else Decimal('1.0')
     
     def get_historical_rate(self, currency_code: str, date: str) -> Decimal:
         if currency_code == 'USD':
             return Decimal('1.0')
-        db = DatabaseConnection()
-        if db.is_remote():
-            if db.get_rest_client():
-                rate = db.get_rest_client().get_historical_rate(currency_code, date)
-                return Decimal(str(rate)) if rate else Decimal('1.0')
-            return Decimal('1.0')
-        else:
-            conn = db.get_connection()
-            row = conn.execute("""
-                SELECT rate_to_usd FROM exchange_rate_history
-                WHERE currency_code = ? AND effective_date <= ?
-                ORDER BY effective_date DESC LIMIT 1
-            """, (currency_code, date)).fetchone()
-            if row:
-                return Decimal(str(row['rate_to_usd']))
-            return Decimal('1.0')
+        rate = self.gateway.get_historical_rate(currency_code, date)
+        return Decimal(str(rate)) if rate is not None else Decimal('1.0')
     
     def convert(self, amount, from_currency: str, to_currency: str, date: str = None):
         if not isinstance(amount, Decimal):
@@ -91,8 +66,7 @@ class CurrencyManager:
     
     def update_rate(self, currency_code: str, rate_to_usd: float):
         """تحديث سعر الصرف الحالي (يُستخدم من settings_widget.py)"""
-        db = DatabaseConnection()
-        db.update_exchange_rate(currency_code, rate_to_usd)
+        self.gateway.update_rate(currency_code, rate_to_usd)
     
     def _abbreviate_number(self, num: Decimal) -> str:
         num_float = float(num)
@@ -128,8 +102,7 @@ class CurrencyManager:
         return f"{formatted} {symbol}"
     
     def get_all_currencies(self) -> list:
-        db = DatabaseConnection()
-        return db.get_all_currencies()
+        return self.gateway.get_all_currencies()
 
 currency = CurrencyManager()
 

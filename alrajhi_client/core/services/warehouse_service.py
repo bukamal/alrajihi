@@ -3,64 +3,66 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from core.compat import records
 from core.services.audit_service import audit_service
 from core.services.branch_service import branch_service
-from database.dao.warehouse_dao import warehouse_dao
+from gateways.warehouse_gateway import create_warehouse_gateway
 
 
 class WarehouseService:
+    def __init__(self):
+        self.gateway = create_warehouse_gateway()
+
     def bootstrap(self) -> None:
-        warehouse_dao.bootstrap_defaults()
+        self.gateway.bootstrap()
 
     def warehouses(self, include_archived: bool = False) -> List[Dict]:
-        return records(warehouse_dao.get_all(include_archived=include_archived), 'warehouses')
+        return self.gateway.list(include_archived=include_archived)
 
     def warehouse_by_id(self, warehouse_id: int) -> Optional[Dict]:
-        wh = warehouse_dao.get_by_id(warehouse_id)
+        wh = self.gateway.get(warehouse_id)
         return wh if isinstance(wh, dict) else None
 
     def add_warehouse(self, data: Dict) -> int:
         data = self._validate_payload(data)
-        wh_id = warehouse_dao.add(data)
+        wh_id = self.gateway.create(data)
         audit_service.log('CREATE', 'WAREHOUSE', wh_id, new_values=data, details='إنشاء مستودع')
         return wh_id
 
     def update_warehouse(self, warehouse_id: int, data: Dict) -> None:
         old = self.warehouse_by_id(warehouse_id)
         data = self._validate_payload(data)
-        warehouse_dao.update(warehouse_id, data)
+        self.gateway.update(warehouse_id, data)
         audit_service.log('UPDATE', 'WAREHOUSE', warehouse_id, old_values=old, new_values=self.warehouse_by_id(warehouse_id) or data, details='تعديل مستودع')
 
     def archive_warehouse(self, warehouse_id: int) -> None:
         old = self.warehouse_by_id(warehouse_id)
-        warehouse_dao.delete(warehouse_id)
+        self.gateway.archive(warehouse_id)
         audit_service.log('SOFT_DELETE', 'WAREHOUSE', warehouse_id, old_values=old, details='أرشفة مستودع')
 
     def balances(self, search: str | None = None, warehouse_id: int | None = None, limit: int | None = None, offset: int | None = None) -> List[Dict]:
-        return records(warehouse_dao.balances(search=search, warehouse_id=warehouse_id, limit=limit, offset=offset), 'balances')
+        return self.gateway.balances(search=search, warehouse_id=warehouse_id, limit=limit, offset=offset)
 
     def balance_count(self, search: str | None = None, warehouse_id: int | None = None) -> int:
-        return int(warehouse_dao.balance_count(search=search, warehouse_id=warehouse_id) or 0)
+        return int(self.gateway.balance_count(search=search, warehouse_id=warehouse_id) or 0)
 
     def movements(self, item_id: int | None = None, warehouse_id: int | None = None, limit: int = 100) -> List[Dict]:
-        return records(warehouse_dao.movements(item_id=item_id, warehouse_id=warehouse_id, limit=limit), 'movements')
+        return self.gateway.movements(item_id=item_id, warehouse_id=warehouse_id, limit=limit)
 
     def default_warehouse_id(self) -> int | None:
-        return warehouse_dao.default_warehouse_id()
+        return self.gateway.default_warehouse_id()
 
     def default_warehouse(self) -> Optional[Dict]:
-        return warehouse_dao.default_warehouse()
+        return self.gateway.default_warehouse()
 
     def available_qty(self, item_id: int, warehouse_id: int | None = None):
-        return warehouse_dao.available_qty(item_id, warehouse_id)
+        return self.gateway.available_qty(item_id, warehouse_id)
 
 
     def record_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type=None, reference_id=None, notes=''):
-        return warehouse_dao.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes)
+        return self.gateway.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes)
 
     def reverse_reference(self, reference_type, reference_id) -> None:
-        warehouse_dao.reverse_reference(reference_type, reference_id)
+        self.gateway.reverse_reference(reference_type, reference_id)
 
     def record_invoice_movements(self, invoice_id: int, invoice_data: Dict) -> None:
         from decimal import Decimal
@@ -84,24 +86,24 @@ class WarehouseService:
                 note = 'استلام فاتورة شراء إلى المستودع'
             else:
                 continue
-            warehouse_dao.record_movement(item_id, wh_id, movement_type, signed_qty, unit_cost, 'invoice', invoice_id, note)
+            self.gateway.record_movement(item_id, wh_id, movement_type, signed_qty, unit_cost, 'invoice', invoice_id, note)
 
     def reverse_invoice_movements(self, invoice_id: int) -> None:
-        warehouse_dao.reverse_reference('invoice', invoice_id)
+        self.gateway.reverse_reference('invoice', invoice_id)
 
 
 
     def transfers(self, limit: int = 200) -> List[Dict]:
-        return records(warehouse_dao.transfers(limit=limit), 'transfers')
+        return self.gateway.transfers(limit=limit)
 
     def create_transfer(self, data: Dict) -> int:
-        transfer_id = warehouse_dao.create_transfer(data)
+        transfer_id = self.gateway.create_transfer(data)
         audit_service.log('CREATE', 'WAREHOUSE_TRANSFER', transfer_id, new_values=data, details='إنشاء تحويل مستودعي')
         return transfer_id
 
     def cancel_transfer(self, transfer_id: int) -> None:
         old = next((t for t in self.transfers(limit=500) if int(t.get('id') or 0) == int(transfer_id)), None)
-        warehouse_dao.cancel_transfer(transfer_id)
+        self.gateway.cancel_transfer(transfer_id)
         audit_service.log('REVERSE', 'WAREHOUSE_TRANSFER', transfer_id, old_values=old, details='إلغاء تحويل مستودعي')
 
     def _validate_payload(self, data: Dict) -> Dict:

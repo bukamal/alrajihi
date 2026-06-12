@@ -345,6 +345,30 @@ def init_database():
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
 
+
+
+        CREATE TABLE IF NOT EXISTS inventory_ledger (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            item_id INTEGER NOT NULL,
+            warehouse_id INTEGER,
+            movement_type TEXT NOT NULL,
+            direction TEXT NOT NULL CHECK(direction IN ('in','out','neutral')),
+            quantity TEXT NOT NULL,
+            unit_cost TEXT,
+            total_cost TEXT,
+            reference_type TEXT,
+            reference_id INTEGER,
+            source_table TEXT,
+            source_id INTEGER,
+            notes TEXT,
+            movement_date TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (item_id) REFERENCES items(id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
+        );
+
         CREATE TABLE IF NOT EXISTS bom (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL,
@@ -503,6 +527,10 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_items_barcode ON items(barcode) WHERE barcode IS NOT NULL;
         CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id);
         CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(date);
+
+        CREATE INDEX IF NOT EXISTS idx_inventory_ledger_user_item ON inventory_ledger(user_id, item_id);
+        CREATE INDEX IF NOT EXISTS idx_inventory_ledger_item_date ON inventory_ledger(item_id, movement_date);
+        CREATE INDEX IF NOT EXISTS idx_inventory_ledger_ref ON inventory_ledger(reference_type, reference_id);
         CREATE INDEX IF NOT EXISTS idx_production_orders_product_id ON production_orders(product_id);
         CREATE INDEX IF NOT EXISTS idx_bom_product_id ON bom(product_id);
         CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id);

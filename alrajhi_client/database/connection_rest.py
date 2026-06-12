@@ -282,6 +282,50 @@ class RestClient:
         result = self._request('GET', '/api/warehouses/available_qty', params=params, queue_on_failure=False)
         return result.get('quantity', '0') if isinstance(result, dict) else '0'
 
+    def warehouse_record_movement(self, data: Dict) -> int:
+        result = self._request('POST', '/api/warehouses/movements', data, queue_on_failure=False)
+        return int(result.get('id') or 0) if isinstance(result, dict) else 0
+
+    def warehouse_reverse_reference(self, reference_type, reference_id):
+        return self._request('POST', '/api/warehouses/reverse_reference', {
+            'reference_type': reference_type,
+            'reference_id': reference_id,
+        }, queue_on_failure=False)
+
+    def get_warehouse_balances(self, search=None, warehouse_id=None, limit=None, offset=None):
+        params = {}
+        if search: params['search'] = search
+        if warehouse_id: params['warehouse_id'] = warehouse_id
+        if limit is not None: params['limit'] = limit
+        if offset is not None: params['offset'] = offset
+        result = self._request('GET', '/api/warehouses/balances', params=params, queue_on_failure=False)
+        return result.get('balances', []) if isinstance(result, dict) else (result or [])
+
+    def get_warehouse_balance_count(self, search=None, warehouse_id=None):
+        params = {}
+        if search: params['search'] = search
+        if warehouse_id: params['warehouse_id'] = warehouse_id
+        result = self._request('GET', '/api/warehouses/balances/count', params=params, queue_on_failure=False)
+        return int(result.get('count') or 0) if isinstance(result, dict) else 0
+
+    def get_warehouse_movements(self, item_id=None, warehouse_id=None, limit=100):
+        params = {'limit': limit}
+        if item_id: params['item_id'] = item_id
+        if warehouse_id: params['warehouse_id'] = warehouse_id
+        result = self._request('GET', '/api/warehouses/movements', params=params, queue_on_failure=False)
+        return result.get('movements', []) if isinstance(result, dict) else (result or [])
+
+    def create_warehouse_transfer(self, data: Dict) -> int:
+        result = self._request('POST', '/api/warehouses/transfers', data, queue_on_failure=False)
+        return int(result.get('id') or 0) if isinstance(result, dict) else 0
+
+    def cancel_warehouse_transfer(self, transfer_id: int):
+        return self._request('POST', f'/api/warehouses/transfers/{transfer_id}/cancel', queue_on_failure=False)
+
+    def get_warehouse_transfers(self, limit=200):
+        result = self._request('GET', '/api/warehouses/transfers', params={'limit': limit}, queue_on_failure=False)
+        return result.get('transfers', []) if isinstance(result, dict) else (result or [])
+
     def get_categories(self, search=None, include_inactive=False, include_deleted=False):
         params = {}
         if search: params['search'] = search
@@ -364,11 +408,15 @@ class RestClient:
         self._request('DELETE', f'/api/suppliers/{supplier_id}')
 
     # ------------------- الفواتير -------------------
-    def get_invoices(self, inv_type=None, start_date=None, end_date=None, limit=None, offset=None) -> Tuple[List[Dict], int]:
+    def get_invoices(self, inv_type=None, start_date=None, end_date=None, limit=None, offset=None,
+                     search=None, customer_id=None, supplier_id=None) -> Tuple[List[Dict], int]:
         params = {}
         if inv_type: params['type'] = inv_type
         if start_date: params['start_date'] = start_date
         if end_date: params['end_date'] = end_date
+        if search: params['search'] = search
+        if customer_id: params['customer_id'] = customer_id
+        if supplier_id: params['supplier_id'] = supplier_id
         if limit: params['limit'] = limit
         if offset: params['offset'] = offset
         result = self._request('GET', '/api/invoices', params=params)
@@ -627,3 +675,29 @@ class RestClient:
     # ------------------- تشخيص وضع الشبكة -------------------
     def debug_status(self) -> Dict:
         return self._request('GET', '/api/debug/status', queue_on_failure=False)
+
+
+    # ------------------- inventory / ledger -------------------
+    def get_inventory_movements(self, item_id: int) -> List[Dict]:
+        result = self._request('GET', f'/api/items/{item_id}/inventory-movements', queue_on_failure=False)
+        return result.get('movements', []) if isinstance(result, dict) else (result or [])
+
+    def record_inventory_movement(self, data: Dict) -> int:
+        result = self._request('POST', '/api/inventory-movements', data)
+        return result.get('id') if isinstance(result, dict) else result
+
+    def get_inventory_ledger(self, **filters) -> List[Dict]:
+        params = {k: v for k, v in filters.items() if v is not None}
+        result = self._request('GET', '/api/inventory-ledger', params=params, queue_on_failure=False)
+        return result.get('ledger', []) if isinstance(result, dict) else (result or [])
+
+    def record_inventory_ledger_entry(self, data: Dict) -> int:
+        result = self._request('POST', '/api/inventory-ledger', data)
+        return result.get('id') if isinstance(result, dict) else result
+
+    def get_inventory_ledger_balance(self, item_id: int, warehouse_id=None):
+        params = {'item_id': item_id}
+        if warehouse_id is not None:
+            params['warehouse_id'] = warehouse_id
+        result = self._request('GET', '/api/inventory-ledger/balance', params=params, queue_on_failure=False)
+        return result.get('balance', '0') if isinstance(result, dict) else result

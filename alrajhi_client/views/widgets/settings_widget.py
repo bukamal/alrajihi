@@ -10,16 +10,12 @@ from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 from core.services.settings_service import settings_service
 from core.services.backup_service import backup_service
 from core.services.audit_service import audit_service
+from core.services.system_service import system_service
 from currency import currency
 from auth.activation import activate_network, check_network_activation
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from utils import show_toast
-from core.server_control import (
-    get_server_port, server_status, start_server_process, stop_server_process,
-    restart_server_process, get_server_runtime_info, open_server_data_dir,
-    backup_server_database, health_check, normalize_server_url, server_diagnostics
-)
 import requests
 import os
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
@@ -487,8 +483,7 @@ class SettingsWidget(QWidget):
         if folder: self.backup_folder.setText(folder)
 
     def save_backup_settings(self):
-        from database.connection import DatabaseConnection
-        if DatabaseConnection().is_remote(): QMessageBox.warning(self, 'تنبيه', 'لا يمكن حفظ إعدادات النسخ الاحتياطي في وضع العميل.'); return
+        if backup_service.is_remote(): QMessageBox.warning(self, 'تنبيه', 'لا يمكن حفظ إعدادات النسخ الاحتياطي في وضع العميل.'); return
         settings = QSettings('Alrajhi', 'Accounting')
         old = {
             'backup/enabled': settings.value('backup/enabled', False, type=bool),
@@ -540,17 +535,13 @@ class SettingsWidget(QWidget):
                 except Exception as e: QMessageBox.critical(self, 'خطأ', f'فشل الاستيراد: {str(e)}')
 
     def reset_database(self):
-        from database.connection import DatabaseConnection, DB_PATH
-        if DatabaseConnection().is_remote(): QMessageBox.warning(self, 'تنبيه', 'لا يمكن إعادة تهيئة قاعدة البيانات في وضع العميل.'); return
+        if backup_service.is_remote(): QMessageBox.warning(self, 'تنبيه', 'لا يمكن إعادة تهيئة قاعدة البيانات في وضع العميل.'); return
         reply = QMessageBox.question(self, 'تأكيد خطير', 'سيتم حذف كل البيانات وإعادة تهيئة قاعدة البيانات. سيتم إنشاء نسخة وقائية قبل الحذف. متابعة؟', QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
-                pre_reset = None
-                if os.path.exists(DB_PATH): pre_reset = backup_service.create_backup(os.path.join(os.path.dirname(DB_PATH), 'pre_reset_backups'), prefix='alrajhi_pre_reset')['backup_path']
-                db_conn = DatabaseConnection(); db_conn.close()
-                if os.path.exists(DB_PATH): os.remove(DB_PATH)
-                from database.migrations import init_database
-                init_database(); msg = 'تم إعادة تهيئة قاعدة البيانات. يرجى إعادة تشغيل التطبيق.'
+                result = backup_service.reset_database()
+                msg = 'تم إعادة تهيئة قاعدة البيانات. يرجى إعادة تشغيل التطبيق.'
+                pre_reset = result.get('pre_reset_backup')
                 if pre_reset: msg += f"{chr(10)}{chr(10)}نسخة وقائية قبل التهيئة:{chr(10)}{pre_reset}"
                 QMessageBox.information(self, 'نجاح', msg)
             except Exception as e: QMessageBox.critical(self, 'خطأ', f'فشل إعادة التهيئة: {str(e)}')
@@ -614,7 +605,7 @@ class SettingsWidget(QWidget):
     def refresh_server_status(self):
         if not hasattr(self, 'server_status_label'):
             return
-        info = get_server_runtime_info()
+        info = system_service.get_server_runtime_info()
         running = bool(info.get('running'))
         msg = str(info.get('message') or '')
         self.server_status_label.setText(('✅ ' if running else '⚪ ') + msg)
@@ -629,27 +620,27 @@ class SettingsWidget(QWidget):
         settings = QSettings('Alrajhi', 'Accounting')
         settings.setValue('server/port', self.server_port_spin.value())
         settings.sync()
-        ok, msg = start_server_process(port=self.server_port_spin.value())
+        ok, msg = system_service.start_server_process(port=self.server_port_spin.value())
         QMessageBox.information(self, 'تشغيل الخادم' if ok else 'تعذر تشغيل الخادم', msg)
         self.refresh_server_status()
 
     def stop_local_server_now(self):
-        ok, msg = stop_server_process()
+        ok, msg = system_service.stop_server_process()
         QMessageBox.information(self, 'إيقاف الخادم' if ok else 'تعذر إيقاف الخادم', msg)
         self.refresh_server_status()
 
     def restart_local_server_now(self):
-        ok, msg = restart_server_process(port=self.server_port_spin.value())
+        ok, msg = system_service.restart_server_process(port=self.server_port_spin.value())
         QMessageBox.information(self, 'إعادة تشغيل الخادم' if ok else 'تعذر إعادة تشغيل الخادم', msg)
         self.refresh_server_status()
 
     def backup_local_server_database(self):
-        ok, msg = backup_server_database()
+        ok, msg = system_service.backup_server_database()
         QMessageBox.information(self, 'نسخ احتياطي للخادم' if ok else 'تعذر النسخ الاحتياطي', msg)
         self.refresh_server_status()
 
     def open_local_server_data_dir(self):
-        ok, msg = open_server_data_dir()
+        ok, msg = system_service.open_server_data_dir()
         if not ok:
             QMessageBox.warning(self, 'فتح مجلد البيانات', msg)
         self.refresh_server_status()
@@ -657,8 +648,8 @@ class SettingsWidget(QWidget):
     def test_network_connection(self):
         raw = self.server_url_edit.text().strip()
         port = self.server_port_spin.value()
-        url = normalize_server_url(raw, port)
-        ok, message, info = server_diagnostics(url, timeout=4, require_routes=True)
+        url = system_service.normalize_server_url(raw, port)
+        ok, message, info = system_service.server_diagnostics(url, timeout=4, require_routes=True)
         self.server_url_edit.setText(url)
         details = f"العنوان المستخدم:\n{url}\n\n{message}"
         if hasattr(self, 'refresh_network_center'):
@@ -675,8 +666,8 @@ class SettingsWidget(QWidget):
             return
         raw = self.server_url_edit.text().strip() if hasattr(self, 'server_url_edit') else ''
         port = self.server_port_spin.value() if hasattr(self, 'server_port_spin') else 8000
-        url = normalize_server_url(raw, port)
-        ok, message, info = server_diagnostics(url, timeout=4, require_routes=True)
+        url = system_service.normalize_server_url(raw, port)
+        ok, message, info = system_service.server_diagnostics(url, timeout=4, require_routes=True)
         self.net_connection_label.setText(('🟢 متصل ومتوافق' if ok else '🔴 غير متوافق/غير متصل') + f"\n{message}")
         self.net_connection_label.setStyleSheet('color:#15803d;' if ok else 'color:#b91c1c;')
         latency = info.get('latency_ms')
@@ -692,10 +683,9 @@ class SettingsWidget(QWidget):
         # Authenticated database/source diagnostics.  It may fail before login or
         # if the saved token is invalid; this must never break the settings page.
         try:
-            from database.connection import DatabaseConnection
-            db = DatabaseConnection()
-            if db.is_remote() and db.get_rest_client():
-                status = db.get_rest_client().debug_status()
+            status = system_service.debug_status()
+            mode = status.get('_mode')
+            if mode == 'remote' and not status.get('error'):
                 self.net_db_label.setText(status.get('db_path') or '-')
                 counts = status.get('counts') or {}
                 quick = []
@@ -705,7 +695,7 @@ class SettingsWidget(QWidget):
                         value = 'خطأ'
                     quick.append(f"{label}: {value}")
                 self.net_counts_label.setText(' | '.join(quick))
-            elif db.is_remote():
+            elif mode == 'remote':
                 self.net_db_label.setText('وضع عميل، لكن لا يوجد RestClient مهيأ')
                 self.net_counts_label.setText('-')
             else:
@@ -724,8 +714,7 @@ class SettingsWidget(QWidget):
         text = QPlainTextEdit()
         text.setReadOnly(True)
         try:
-            from database.connection_rest import get_request_log
-            rows = get_request_log()
+            rows = system_service.request_log()
             if not rows:
                 content = 'لا توجد طلبات REST مسجلة بعد.'
             else:
@@ -759,7 +748,7 @@ class SettingsWidget(QWidget):
             'server/auto_start': settings.value('server/auto_start', False, type=bool),
         }
         port = self.server_port_spin.value() if hasattr(self, 'server_port_spin') else 8000
-        url = normalize_server_url(self.server_url_edit.text().strip(), port)
+        url = system_service.normalize_server_url(self.server_url_edit.text().strip(), port)
         new = {
             'network/mode': mode,
             'network/server_url': url,

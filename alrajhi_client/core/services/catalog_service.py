@@ -10,10 +10,9 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 
-from core.compat import records, pair
-from database.dao.customer_dao import customer_dao
-from database.dao.supplier_dao import supplier_dao
+from core.compat import records
 from core.services.product_service import product_service
+from core.services.entity_service import entity_service
 
 
 class CatalogService:
@@ -26,16 +25,16 @@ class CatalogService:
         return product_service.items_pair(search=search, limit=limit, offset=offset)
 
     def customers(self, search: str | None = None, limit: int | None = None, offset: int | None = None) -> List[Dict]:
-        return records(customer_dao.get_all(search=search, limit=limit, offset=offset), 'customers')
+        return records(entity_service.customers(search=search, limit=limit, offset=offset), 'customers')
 
     def customers_pair(self, search: str | None = None, limit: int | None = None, offset: int | None = None) -> Tuple[List[Dict], int]:
-        return pair(customer_dao.get_all(search=search, limit=limit, offset=offset), 'customers')
+        return entity_service.customers(search=search, limit=limit, offset=offset)
 
     def suppliers(self, search: str | None = None, limit: int | None = None, offset: int | None = None) -> List[Dict]:
-        return records(supplier_dao.get_all(search=search, limit=limit, offset=offset), 'suppliers')
+        return records(entity_service.suppliers(search=search, limit=limit, offset=offset), 'suppliers')
 
     def suppliers_pair(self, search: str | None = None, limit: int | None = None, offset: int | None = None) -> Tuple[List[Dict], int]:
-        return pair(supplier_dao.get_all(search=search, limit=limit, offset=offset), 'suppliers')
+        return entity_service.suppliers(search=search, limit=limit, offset=offset)
 
     def item_units(self, item_id: int) -> List[Dict]:
         return product_service.item_units(item_id)
@@ -44,12 +43,10 @@ class CatalogService:
         return product_service.item_by_id(item_id)
 
     def customer_by_id(self, customer_id: int) -> Optional[Dict]:
-        customer = customer_dao.get_by_id(customer_id)
-        return customer if isinstance(customer, dict) else None
+        return entity_service.customer_by_id(customer_id)
 
     def supplier_by_id(self, supplier_id: int) -> Optional[Dict]:
-        supplier = supplier_dao.get_by_id(supplier_id)
-        return supplier if isinstance(supplier, dict) else None
+        return entity_service.supplier_by_id(supplier_id)
 
 
 catalog_service = CatalogService()

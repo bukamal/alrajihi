@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
                              QHeaderView, QMessageBox, QDialog, QFormLayout, QComboBox, QLabel)
 from PyQt5.QtCore import Qt
-from database import UserRepository
+from core.services.user_service import user_service
 from auth.session import UserSession
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
@@ -53,8 +53,7 @@ class UsersWidget(QWidget):
 
     def refresh(self):
         offset = self.current_page * self.page_size
-        repo = UserRepository()
-        users = repo.get_all()
+        users = user_service.list_users()
         self.total_count = len(users)
         users = users[offset:offset + self.page_size]
         data = []
@@ -160,8 +159,7 @@ class UserDialog(QDialog):
             self.load_user()
 
     def load_user(self):
-        repo = UserRepository()
-        user = repo.get_by_id(self.user_id)
+        user = user_service.get_user(self.user_id)
         if user:
             self.username_edit.setText(user.get('username', ''))
             self.fullname_edit.setText(user.get('full_name', ''))
@@ -180,7 +178,6 @@ class UserDialog(QDialog):
             return
         role_map = {0: 'admin', 1: 'user', 2: 'viewer'}
         role = role_map[self.role_combo.currentIndex()]
-        repo = UserRepository()
         if not self.user_id:
             password = self.password_edit.text()
             confirm = self.confirm_edit.text()
@@ -191,14 +188,14 @@ class UserDialog(QDialog):
                 QMessageBox.warning(self, "خطأ", "كلمتا المرور غير متطابقتين")
                 return
             try:
-                repo.create(username, password, self.fullname_edit.text().strip(), role, self.branch_combo.currentData())
+                user_service.create_user(username, password, self.fullname_edit.text().strip(), role, self.branch_combo.currentData())
                 QMessageBox.information(self, "نجاح", "تمت إضافة المستخدم")
                 self.accept()
             except Exception as e:
                 QMessageBox.critical(self, "خطأ", str(e))
         else:
             try:
-                repo.update(self.user_id, self.fullname_edit.text().strip(), role, self.branch_combo.currentData())
+                user_service.update_user(self.user_id, self.fullname_edit.text().strip(), role, self.branch_combo.currentData())
                 QMessageBox.information(self, "نجاح", "تم تحديث المستخدم")
                 self.accept()
             except Exception as e:

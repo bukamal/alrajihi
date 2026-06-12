@@ -10,19 +10,22 @@ from typing import Dict, List, Optional, Tuple
 
 from core.compat import pair
 from core.services.catalog_service import catalog_service
-from database.dao.voucher_dao import voucher_dao
+from gateways.voucher_gateway import create_voucher_gateway
 from core.services.audit_service import audit_service
 from core.services.branch_service import branch_service
 from core.services.cashbox_service import cashbox_service
 
 
 class VoucherService:
+    def __init__(self, gateway=None):
+        self.gateway = gateway or create_voucher_gateway()
+
     def list_vouchers(self, search: str | None = None, vtype: str | None = None,
                       limit: int | None = None, offset: int | None = None) -> Tuple[List[Dict], int]:
-        return pair(voucher_dao.get_all(search=search, vtype=vtype, limit=limit, offset=offset), 'vouchers')
+        return pair(self.gateway.list(search=search, vtype=vtype, limit=limit, offset=offset), 'vouchers')
 
     def get(self, voucher_id: int) -> Optional[Dict]:
-        voucher = voucher_dao.get_by_id(voucher_id)
+        voucher = self.gateway.get(voucher_id)
         return voucher if isinstance(voucher, dict) else None
 
     def _entity_type(self, voucher: Dict) -> str:
@@ -45,7 +48,7 @@ class VoucherService:
                 pass
         data = branch_service.ensure_branch_id(data)
         data = cashbox_service.prepare_voucher_payload(data)
-        voucher_id = voucher_dao.add(data)
+        voucher_id = self.gateway.create(data)
         cashbox_service.record_voucher(voucher_id, data)
         audit_service.log('CREATE', self._entity_type(data), voucher_id, new_values=data, details='إنشاء سند')
         return voucher_id
@@ -55,7 +58,7 @@ class VoucherService:
         data = cashbox_service.prepare_voucher_payload(data)
         old = self.get(voucher_id)
         cashbox_service.reverse_voucher(voucher_id)
-        result = voucher_dao.update(voucher_id, data)
+        result = self.gateway.update(voucher_id, data)
         cashbox_service.record_voucher(voucher_id, data)
         new = self.get(voucher_id)
         audit_service.log('UPDATE', self._entity_type(new or old or data), voucher_id, old_values=old, new_values=new or data, details='تعديل سند')
@@ -64,7 +67,7 @@ class VoucherService:
     def delete(self, voucher_id: int):
         old = self.get(voucher_id)
         cashbox_service.reverse_voucher(voucher_id)
-        result = voucher_dao.delete(voucher_id)
+        result = self.gateway.delete(voucher_id)
         audit_service.log('DELETE', self._entity_type(old or {}), voucher_id, old_values=old, details='حذف سند')
         return result
 

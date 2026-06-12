@@ -3,24 +3,25 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from core.compat import records
 from core.services.audit_service import audit_service
-from database.dao.branch_dao import branch_dao
+from gateways.branch_gateway import create_branch_gateway
 
 
 class BranchService:
+    def __init__(self):
+        self.gateway = create_branch_gateway()
+
     def bootstrap(self) -> None:
-        branch_dao.bootstrap_defaults()
+        self.gateway.bootstrap()
 
     def branches(self, include_archived: bool = False) -> List[Dict]:
-        return records(branch_dao.get_all(include_archived=include_archived), 'branches')
+        return self.gateway.list(include_archived=include_archived)
 
     def branch_by_id(self, branch_id: int) -> Optional[Dict]:
-        branch = branch_dao.get_by_id(branch_id)
-        return branch if isinstance(branch, dict) else None
+        return self.gateway.get(branch_id)
 
     def default_branch_id(self) -> int | None:
-        return branch_dao.default_branch_id()
+        return self.gateway.default_branch_id()
 
     def default_branch(self) -> Optional[Dict]:
         bid = self.default_branch_id()
@@ -47,18 +48,18 @@ class BranchService:
         return (branch or {}).get('name', '')
 
     def add_branch(self, data: Dict) -> int:
-        branch_id = branch_dao.add(data)
+        branch_id = self.gateway.create(data)
         audit_service.log('CREATE', 'BRANCH', branch_id, new_values=data, details='إنشاء فرع')
         return branch_id
 
     def update_branch(self, branch_id: int, data: Dict) -> None:
         old = self.branch_by_id(branch_id)
-        branch_dao.update(branch_id, data)
+        self.gateway.update(branch_id, data)
         audit_service.log('UPDATE', 'BRANCH', branch_id, old_values=old, new_values=self.branch_by_id(branch_id) or data, details='تعديل فرع')
 
     def archive_branch(self, branch_id: int) -> None:
         old = self.branch_by_id(branch_id)
-        branch_dao.delete(branch_id)
+        self.gateway.archive(branch_id)
         audit_service.log('SOFT_DELETE', 'BRANCH', branch_id, old_values=old, details='أرشفة فرع')
 
 

@@ -1,111 +1,55 @@
 # -*- coding: utf-8 -*-
 """Audit log application service.
 
-This service records traceable business events with backwards-compatible audit_log
-columns and optional structured before/after payloads when the database has been
-migrated.  Calls are best-effort: audit failure must never break the business
-operation that already succeeded.
+Calls are best-effort: audit failure must never break the business operation
+that already succeeded.  Phase 13 routes persistence through AuditGateway so
+core services do not access DatabaseConnection directly.
 """
 from __future__ import annotations
 
-import json
-import socket
-import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional, Dict, List, Tuple
 
-from auth.session import UserSession
-from database.connection import DatabaseConnection, get_session_id
+from gateways.audit_gateway import create_audit_gateway
 
 
 class AuditService:
-    def _json(self, value: Any) -> str:
-        try:
-            return json.dumps(value, ensure_ascii=False, default=str, sort_keys=True)
-        except Exception:
-            return str(value)
+    def __init__(self):
+        self._gateway = None
 
-    def _columns(self, conn, table: str) -> set[str]:
-        try:
-            return {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
-        except Exception:
-            return set()
-
-    def ensure_schema(self, conn) -> None:
-        """Create/upgrade audit_log defensively on every audit write.
-
-        This makes the feature safe for old customer databases even when the
-        normal migration path was skipped or the file was copied manually.
-        """
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS audit_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT,
-                username TEXT,
-                action TEXT,
-                table_name TEXT,
-                record_id INTEGER,
-                details TEXT,
-                ip_address TEXT,
-                timestamp TEXT
-            )
-        """)
-        cols = self._columns(conn, 'audit_log')
-        for col_name, col_type in [
-            ('event_time', 'TEXT'), ('entity_type', 'TEXT'), ('entity_id', 'INTEGER'),
-            ('old_values', 'TEXT'), ('new_values', 'TEXT'), ('session_id', 'TEXT'), ('source', 'TEXT')
-        ]:
-            if col_name not in cols:
-                conn.execute(f"ALTER TABLE audit_log ADD COLUMN {col_name} {col_type}")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log(entity_type, entity_id)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action)")
+    def _get_gateway(self):
+        if self._gateway is None:
+            self._gateway = create_audit_gateway()
+        return self._gateway
 
     def log(self, action: str, entity_type: str, entity_id: Optional[int] = None,
             old_values: Any = None, new_values: Any = None, details: str = '',
             source: str = 'USER', ip_address: str = '127.0.0.1') -> None:
         try:
-            db = DatabaseConnection()
-            if db.is_remote():
-                # In client/server mode the server is authoritative for audit entries.
-                return
-            conn = db.get_connection()
-            self.ensure_schema(conn)
-            cols = self._columns(conn, 'audit_log')
-            now = datetime.datetime.now().isoformat(timespec='seconds')
-            user = UserSession.get_current() or {}
-            user_id = user.get('id') or UserSession.get_current_user_id()
-            username = user.get('username') or user.get('full_name') or 'system'
-            detail_payload = details
-            if old_values is not None or new_values is not None:
-                detail_payload = self._json({'details': details, 'old': old_values, 'new': new_values})
-
-            base = {
-                'user_id': user_id,
-                'username': username,
-                'action': action,
-                'table_name': entity_type,
-                'record_id': entity_id,
-                'details': detail_payload,
-                'ip_address': ip_address,
-                'timestamp': now,
-                'event_time': now,
-                'entity_type': entity_type,
-                'entity_id': entity_id,
-                'old_values': self._json(old_values) if old_values is not None else None,
-                'new_values': self._json(new_values) if new_values is not None else None,
-                'session_id': get_session_id(),
-                'source': source,
-            }
-            insert_cols = [c for c in base.keys() if c in cols]
-            if not insert_cols:
-                return
-            sql = f"INSERT INTO audit_log ({', '.join(insert_cols)}) VALUES ({', '.join(['?']*len(insert_cols))})"
-            conn.execute(sql, tuple(base[c] for c in insert_cols))
-            conn.commit()
+            self._get_gateway().log(
+                action=action,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                old_values=old_values,
+                new_values=new_values,
+                details=details,
+                source=source,
+                ip_address=ip_address,
+            )
         except Exception:
             # Audit must not interrupt business workflows.
             pass
+
+
+    def list_logs(self, limit: int = 1000, offset: int = 0, user_id: int | None = None,
+                  action: str | None = None, table_name: str | None = None,
+                  start_date: str | None = None, end_date: str | None = None) -> Tuple[List[Dict], int]:
+        return self._get_gateway().list_logs(
+            limit=limit, offset=offset, user_id=user_id, action=action,
+            table_name=table_name, start_date=start_date, end_date=end_date,
+        )
+
+    def delete_old_logs(self, days: int = 90) -> None:
+        self._get_gateway().delete_old_logs(days)
 
 
 audit_service = AuditService()

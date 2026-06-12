@@ -1,0 +1,105 @@
+# -*- coding: utf-8 -*-
+"""Item/category gateway contracts and factory.
+
+The UI and application services should use these contracts instead of importing
+item/category DAO classes directly.  Local DAO access is confined to the local
+adapter; remote mode is confined to the remote adapter.
+"""
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Tuple
+
+
+class ItemGateway(ABC):
+    @abstractmethod
+    def list(self, search: str | None = None, limit: int | None = None,
+             offset: int | None = None) -> Tuple[List[Dict], int]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get(self, item_id: int) -> Optional[Dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_by_barcode(self, barcode: str) -> Optional[Dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create(self, data: Dict[str, Any]) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update(self, item_id: int, data: Dict[str, Any]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete(self, item_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_units(self, item_id: int) -> List[Dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float):
+        raise NotImplementedError
+
+    @abstractmethod
+    def clear_units(self, item_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
+        """Return net sold quantities per item in base unit.
+
+        Net sold = sale invoice quantities - non-cancelled sales returns.
+        Implementations must hide local SQL/API details from ProductService.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_remote(self) -> bool:
+        raise NotImplementedError
+
+
+class CategoryGateway(ABC):
+    @abstractmethod
+    def list(self, search: str | None = None, include_inactive: bool = False,
+             include_deleted: bool = False) -> List[Dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get(self, category_id: int) -> Optional[Dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create(self, data: Dict[str, Any]) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update(self, category_id: int, data: Dict[str, Any]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete(self, category_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def restore(self, category_id: int):
+        raise NotImplementedError
+
+
+def create_product_gateways():
+    """Return the active item/category gateways."""
+    from database.connection import DatabaseConnection
+
+    db = DatabaseConnection()
+    if db.is_remote():
+        from gateways.remote.product_gateway import RemoteItemGateway, RemoteCategoryGateway
+        rest_client = db.get_rest_client()
+        return RemoteItemGateway(rest_client), RemoteCategoryGateway(rest_client)
+
+    from gateways.local.product_gateway import LocalItemGateway, LocalCategoryGateway
+    return LocalItemGateway(), LocalCategoryGateway()
