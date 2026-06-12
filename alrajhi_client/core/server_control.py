@@ -115,7 +115,13 @@ def server_diagnostics(url: Optional[str] = None, timeout: float = 3.0, require_
         except Exception:
             return False, "مسار /api/routes أجاب لكن الرد ليس JSON صالحاً.", info
         routes = set(routes_payload.get("routes", []))
-        missing = sorted(REQUIRED_REMOTE_ROUTES - routes)
+        # Flask represents path converters as <path:key>, while older builds used <key>.
+        # Treat both as the same logical settings endpoint so diagnostics does not
+        # fail when the server correctly supports nested setting keys such as
+        # /api/settings/pos/use_shifts.
+        normalized_routes = set(routes)
+        normalized_routes.update(r.replace('<path:key>', '<key>') for r in routes)
+        missing = sorted(REQUIRED_REMOTE_ROUTES - normalized_routes)
         info["missing_routes"] = missing
         if missing:
             return False, "الخادم يعمل لكن توجد مسارات API ناقصة: " + ", ".join(missing), info

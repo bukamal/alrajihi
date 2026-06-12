@@ -5,14 +5,14 @@ from alrajhi_server.decorators import admin_required
 
 settings_bp = Blueprint('settings', __name__)
 
-@settings_bp.route('/settings/<key>', methods=['GET'])
+@settings_bp.route('/settings/<path:key>', methods=['GET'])
 @jwt_required()
 def get_setting(key):
     db = get_db()
     row = db.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
     return jsonify({'value': row['value'] if row else None})
 
-@settings_bp.route('/settings/<key>', methods=['POST'])
+@settings_bp.route('/settings/<path:key>', methods=['POST'])
 @admin_required
 def set_setting(key):
     data = request.get_json()
