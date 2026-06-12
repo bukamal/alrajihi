@@ -2,8 +2,29 @@ from flask import Flask, jsonify
 import os
 import secrets
 from flask_jwt_extended import JWTManager
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
+
+# flask_limiter اختياري في النسخة المكتبية/المجمعة.
+# عند تشغيل التطبيق من PyInstaller قد لا تكون الحزمة مرفقة، ولا يجوز أن يمنع
+# ذلك فتح البرنامج أو تشغيل الخادم المحلي. في الإنتاج يفضّل تثبيتها وتفعيلها.
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+except ModuleNotFoundError:  # pragma: no cover - fallback للتشغيل بدون الاعتماد الاختياري
+    def get_remote_address():
+        return "127.0.0.1"
+
+    class Limiter:
+        def __init__(self, *args, **kwargs):
+            self.enabled = False
+
+        def limit(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+
+        def exempt(self, func):
+            return func
+
 from alrajhi_server.database.connection import get_db, init_db
 import datetime
 

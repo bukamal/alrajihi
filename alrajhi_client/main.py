@@ -36,31 +36,14 @@ def on_license_invalid():
     QTimer.singleShot(0, show)
 
 def run_flask_server():
-    """Start the embedded server once.
-
-    In server mode the desktop client launches a background process with
-    ``--server``.  Without these guards a packaged executable can recursively
-    open itself when the child process reads the saved "server" mode again, or
-    crash when port 8000 is already occupied.
-    """
-    server_port = 8000
-    if port_in_use(server_port):
-        print(f"✅ الخادم يعمل مسبقاً على المنفذ {server_port}")
-        return True
-
     error_log = os.path.join(tempfile.gettempdir(), "alrajhi_subprocess_error.log")
     try:
         exe_path = sys.executable
         cmd = [exe_path, os.path.abspath(__file__), '--server']
-        env = os.environ.copy()
-        env['ALRAJHI_SERVER_CHILD'] = '1'
-        env['ALRAJHI_MODE'] = 'server'
-
         if sys.platform == 'win32':
-            subprocess.Popen(cmd, creationflags=subprocess.CREATE_NO_WINDOW, env=env)
+            subprocess.Popen(cmd, creationflags=subprocess.CREATE_NO_WINDOW)
         else:
-            subprocess.Popen(cmd, env=env)
-        return True
+            subprocess.Popen(cmd)
     except Exception as e:
         with open(error_log, "w", encoding='utf-8') as f:
             f.write(str(e))
@@ -68,7 +51,7 @@ def run_flask_server():
             QMessageBox.critical(None, "خطأ في الخادم",
                                  f"فشل بدء خادم Flask.\nتم تسجيل الخطأ في:\n{error_log}")
         QTimer.singleShot(0, show_error)
-        return False
+        raise
 
 def wait_for_server(url, timeout=10):
     start = time.time()
@@ -239,7 +222,7 @@ def open_network_settings():
     return dialog.exec() == QDialog.Accepted
 
 def main():
-    if ('--server' in sys.argv) or (os.environ.get('ALRAJHI_SERVER_CHILD') == '1'):
+    if len(sys.argv) > 1 and sys.argv[1] == '--server':
         print("تشغيل خادم الراجحي للمحاسبة...")
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         server_root = os.path.join(project_root, 'alrajhi_server')
@@ -289,17 +272,12 @@ def main():
             db_conn.mode = "local"
 
     if mode == "server":
+        run_flask_server()
+        if not wait_for_server("http://localhost:8000"):
+            QMessageBox.critical(None, "خطأ", "فشل بدء الخادم الداخلي. تحقق من المنفذ 8000 أو جدار الحماية.")
+            sys.exit(1)
+        QMessageBox.information(None, "خادم", "تم بدء الخادم بنجاح. يمكن للأجهزة الأخرى الاتصال به.")
         os.environ['ALRAJHI_MODE'] = 'server'
-        if not port_in_use(8000):
-            if not run_flask_server():
-                QMessageBox.critical(None, "خطأ", "فشل بدء الخادم الداخلي.")
-                sys.exit(1)
-            if not wait_for_server("http://localhost:8000"):
-                QMessageBox.critical(None, "خطأ", "فشل بدء الخادم الداخلي. تحقق من المنفذ 8000 أو جدار الحماية.")
-                sys.exit(1)
-            QMessageBox.information(None, "خادم", "تم بدء الخادم بنجاح. يمكن للأجهزة الأخرى الاتصال به.")
-        else:
-            print("✅ الخادم يعمل مسبقاً، سيتم فتح العميل دون تشغيل نسخة جديدة.")
     elif mode == "client":
         os.environ['ALRAJHI_MODE'] = 'client'
         if not test_server_connection(server_url):
