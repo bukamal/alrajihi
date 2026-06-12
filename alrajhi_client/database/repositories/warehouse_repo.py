@@ -133,11 +133,15 @@ class WarehouseRepository(BaseRepository):
             if row:
                 wh_id = row['id']
             else:
+                try:
+                    default_branch_id = BranchRepository().default_branch_id(uid)
+                except Exception:
+                    default_branch_id = None
                 cur = conn.execute('''
                     INSERT OR IGNORE INTO warehouses
                     (user_id, name, code, location, notes, branch_id, is_default, is_active, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, BranchRepository().default_branch_id(?), 1, 1, ?, ?)
-                ''', (uid, DEFAULT_WAREHOUSE_NAME, 'MAIN', '', 'تم إنشاؤه تلقائياً عند تفعيل نظام المستودعات', uid, now, now))
+                    VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)
+                ''', (uid, DEFAULT_WAREHOUSE_NAME, 'MAIN', '', 'تم إنشاؤه تلقائياً عند تفعيل نظام المستودعات', default_branch_id, now, now))
                 wh_id = cur.lastrowid or conn.execute(
                     "SELECT id FROM warehouses WHERE user_id=? AND name=? LIMIT 1",
                     (uid, DEFAULT_WAREHOUSE_NAME)
