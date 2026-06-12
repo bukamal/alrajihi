@@ -2,6 +2,8 @@
 import requests
 import time
 import json
+from decimal import Decimal
+from datetime import date, datetime
 from typing import List, Dict, Any, Tuple
 from auth.session import save_token, load_token, clear_token
 try:
@@ -14,6 +16,19 @@ except Exception:
         if "://" not in raw:
             raw = "http://" + raw
         return raw
+
+
+def _json_safe(value):
+    """Convert Decimal/date/tuple values into JSON-serializable objects for REST payloads."""
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(v) for v in value]
+    return value
 
 class RestClient:
     def __init__(self, server_url: str):
@@ -35,7 +50,7 @@ class RestClient:
         last_exception = None
         for attempt in range(retries):
             try:
-                resp = requests.request(method, url, json=data, params=params, headers=self._headers(), timeout=10)
+                resp = requests.request(method, url, json=_json_safe(data), params=_json_safe(params), headers=self._headers(), timeout=10)
                 if resp.status_code == 429:
                     wait_time = min(30, backoff * (4 ** attempt))
                     time.sleep(wait_time)
