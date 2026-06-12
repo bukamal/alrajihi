@@ -18,6 +18,29 @@ except Exception:
         return raw
 
 
+REQUEST_LOG = []
+MAX_REQUEST_LOG = 120
+
+def _append_request_log(method, endpoint, url, status=None, ok=False, elapsed_ms=None, error=None):
+    try:
+        REQUEST_LOG.append({
+            'time': datetime.now().strftime('%H:%M:%S'),
+            'method': method,
+            'endpoint': endpoint,
+            'url': url,
+            'status': status,
+            'ok': bool(ok),
+            'elapsed_ms': elapsed_ms,
+            'error': str(error)[:300] if error else '',
+        })
+        del REQUEST_LOG[:-MAX_REQUEST_LOG]
+    except Exception:
+        pass
+
+def get_request_log():
+    return list(REQUEST_LOG)
+
+
 def _json_safe(value):
     """Convert Decimal/date/tuple values into JSON-serializable objects for REST payloads."""
     if isinstance(value, Decimal):
@@ -49,8 +72,11 @@ class RestClient:
         url = f"{self.server_url}{endpoint}"
         last_exception = None
         for attempt in range(retries):
+            started = time.perf_counter()
             try:
                 resp = requests.request(method, url, json=_json_safe(data), params=_json_safe(params), headers=self._headers(), timeout=10)
+                elapsed = int((time.perf_counter() - started) * 1000)
+                _append_request_log(method, endpoint, url, status=resp.status_code, ok=resp.status_code < 400, elapsed_ms=elapsed)
                 if resp.status_code == 429:
                     wait_time = min(30, backoff * (4 ** attempt))
                     time.sleep(wait_time)
@@ -61,22 +87,27 @@ class RestClient:
                     # a missing endpoint from a wrong saved server address.
                     raise Exception(f"API error {resp.status_code} at {url}: {detail}")
                 return resp.json() if resp.text else None
-            except requests.exceptions.ConnectionError as e:
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                _append_request_log(method, endpoint, url, ok=False, elapsed_ms=int((time.perf_counter() - started) * 1000), error=e)
                 last_exception = e
                 if attempt == retries - 1 and queue_on_failure:
-                    # استخراج record_id من endpoint (للطلبات التي تحتوي على معرف في المسار)
-                    record_id = None
-                    parts = endpoint.split('/')
-                    for part in parts:
-                        if part.isdigit():
-                            record_id = int(part)
-                            break
                     from database.connection import offline_queue
-                    offline_queue.add_request(endpoint, method, data, record_id=record_id)
-                    raise Exception(f"Request queued due to no connection: {endpoint}")
+                    if offline_queue.is_queueable(endpoint, method):
+                        record_id = None
+                        parts = endpoint.split('/')
+                        for part in parts:
+                            if part.isdigit():
+                                record_id = int(part)
+                                break
+                        qid = offline_queue.add_request(endpoint, method, data, record_id=record_id, error=e)
+                        _append_request_log(method, endpoint, url, ok=True, status='QUEUED', error=f'queued #{qid}')
+                        return {'queued': True, 'queue_id': qid, 'id': -qid}
+                    raise Exception(f"No connection and this operation cannot be queued safely: {endpoint}")
                 wait_time = backoff * (2 ** attempt)
                 time.sleep(wait_time)
             except Exception as e:
+                if not str(e).startswith('API error'):
+                    _append_request_log(method, endpoint, url, ok=False, elapsed_ms=int((time.perf_counter() - started) * 1000), error=e)
                 last_exception = e
                 if attempt < retries - 1:
                     wait_time = backoff * (2 ** attempt)

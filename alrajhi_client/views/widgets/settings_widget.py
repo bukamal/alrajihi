@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox,
     QPushButton, QGroupBox, QLabel, QMessageBox, QTabWidget, QFileDialog,
     QSpinBox, QCheckBox, QTableWidget, QTableWidgetItem, QHeaderView,
-    QDialog, QDialogButtonBox, QScrollArea, QFrame
+    QDialog, QDialogButtonBox, QScrollArea, QFrame, QPlainTextEdit
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 
@@ -15,7 +15,11 @@ from auth.activation import activate_network, check_network_activation
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from utils import show_toast
-from core.server_control import get_server_port, server_status, start_server_process, stop_server_process, health_check, normalize_server_url, server_diagnostics
+from core.server_control import (
+    get_server_port, server_status, start_server_process, stop_server_process,
+    restart_server_process, get_server_runtime_info, open_server_data_dir,
+    backup_server_database, health_check, normalize_server_url, server_diagnostics
+)
 import requests
 import os
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
@@ -351,11 +355,56 @@ class SettingsWidget(QWidget):
         self.server_status_label.setWordWrap(True)
         form.addRow('حالة الخادم:', self.server_status_label)
 
+        server_group, server_box = self._card(
+            'إدارة الخادم المحلي',
+            'تشغيل وإيقاف خدمة API المحلية من مكان واحد، مع معلومات PID ومدة التشغيل ونسخ احتياطي آمن لقاعدة الخادم.'
+        )
+        server_grid = QFormLayout()
+        self.server_pid_label = QLabel('-')
+        self.server_uptime_label = QLabel('-')
+        self.server_db_path_label = QLabel('-')
+        self.server_backup_path_label = QLabel('-')
+        for lbl in (self.server_pid_label, self.server_uptime_label, self.server_db_path_label, self.server_backup_path_label):
+            lbl.setWordWrap(True)
+        server_grid.addRow('PID:', self.server_pid_label)
+        server_grid.addRow('مدة التشغيل:', self.server_uptime_label)
+        server_grid.addRow('قاعدة الخادم:', self.server_db_path_label)
+        server_grid.addRow('مجلد النسخ:', self.server_backup_path_label)
+        server_box.addLayout(server_grid)
         start_btn = QPushButton('▶ تشغيل الخادم الآن'); start_btn.clicked.connect(self.start_local_server_now)
         stop_btn = QPushButton('■ إيقاف الخادم'); stop_btn.clicked.connect(self.stop_local_server_now)
+        restart_btn = QPushButton('↻ إعادة تشغيل الخادم'); restart_btn.clicked.connect(self.restart_local_server_now)
         refresh_btn = QPushButton('🔄 تحديث الحالة'); refresh_btn.clicked.connect(self.refresh_server_status)
+        backup_btn = QPushButton('💾 نسخ احتياطي لقاعدة الخادم'); backup_btn.clicked.connect(self.backup_local_server_database)
+        open_dir_btn = QPushButton('📂 فتح مجلد البيانات'); open_dir_btn.clicked.connect(self.open_local_server_data_dir)
         test_btn = QPushButton('اختبار الاتصال'); test_btn.clicked.connect(self.test_network_connection)
-        form.addRow(self._button_row(start_btn, stop_btn, refresh_btn, test_btn))
+        server_box.addLayout(self._button_row(start_btn, stop_btn, restart_btn, refresh_btn))
+        server_box.addLayout(self._button_row(backup_btn, open_dir_btn, test_btn))
+        layout.addWidget(server_group)
+
+        center_group, center_layout = self._card('مركز حالة الشبكة', 'تشخيص مباشر للاتصال، توافق API، ومصدر قاعدة البيانات الفعلي.')
+        grid = QFormLayout()
+        self.net_connection_label = QLabel('غير مفحوص')
+        self.net_latency_label = QLabel('-')
+        self.net_api_label = QLabel('-')
+        self.net_routes_label = QLabel('-')
+        self.net_db_label = QLabel('-')
+        self.net_counts_label = QLabel('-')
+        self.net_missing_label = QLabel('-')
+        for lbl in (self.net_connection_label, self.net_latency_label, self.net_api_label, self.net_routes_label, self.net_db_label, self.net_counts_label, self.net_missing_label):
+            lbl.setWordWrap(True)
+        grid.addRow('حالة الاتصال:', self.net_connection_label)
+        grid.addRow('زمن الاستجابة:', self.net_latency_label)
+        grid.addRow('نسخة API:', self.net_api_label)
+        grid.addRow('عدد المسارات:', self.net_routes_label)
+        grid.addRow('قاعدة البيانات:', self.net_db_label)
+        grid.addRow('عدادات سريعة:', self.net_counts_label)
+        grid.addRow('نواقص التوافق:', self.net_missing_label)
+        center_layout.addLayout(grid)
+        refresh_center_btn = QPushButton('🔎 فحص حالة الشبكة الآن'); refresh_center_btn.clicked.connect(self.refresh_network_center)
+        log_btn = QPushButton('📋 عرض سجل طلبات REST'); log_btn.clicked.connect(self.show_network_request_log)
+        center_layout.addLayout(self._button_row(refresh_center_btn, log_btn))
+        layout.addWidget(center_group)
 
         form.addRow(self._note(
             'ملاحظة: وضع “خادم” لا يعني تشغيل الخدمة تلقائياً. تشغيل الخدمة وإيقافها يتمان من هذه الأزرار أو عبر خيار التشغيل التلقائي.',
@@ -369,7 +418,7 @@ class SettingsWidget(QWidget):
             form.addRow(self._button_row(activate_btn))
         save_btn = QPushButton('حفظ إعدادات الشبكة'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_network_settings)
         form.addRow(self._button_row(save_btn))
-        layout.addWidget(group); layout.addStretch(); self.refresh_server_status(); return scroll
+        layout.addWidget(group); layout.addStretch(); self.refresh_server_status(); self.refresh_network_center(); return scroll
 
     def create_backup_tab(self):
         scroll, layout = self._scroll_tab()
@@ -565,9 +614,16 @@ class SettingsWidget(QWidget):
     def refresh_server_status(self):
         if not hasattr(self, 'server_status_label'):
             return
-        running, msg = server_status()
+        info = get_server_runtime_info()
+        running = bool(info.get('running'))
+        msg = str(info.get('message') or '')
         self.server_status_label.setText(('✅ ' if running else '⚪ ') + msg)
         self.server_status_label.setStyleSheet('color:#15803d;' if running else 'color:#475569;')
+        if hasattr(self, 'server_pid_label'):
+            self.server_pid_label.setText(str(info.get('pid') or '-'))
+            self.server_uptime_label.setText(str(info.get('uptime') or '-'))
+            self.server_db_path_label.setText(str(info.get('db_path') or '-'))
+            self.server_backup_path_label.setText(str(info.get('backup_dir') or '-'))
 
     def start_local_server_now(self):
         settings = QSettings('Alrajhi', 'Accounting')
@@ -582,6 +638,22 @@ class SettingsWidget(QWidget):
         QMessageBox.information(self, 'إيقاف الخادم' if ok else 'تعذر إيقاف الخادم', msg)
         self.refresh_server_status()
 
+    def restart_local_server_now(self):
+        ok, msg = restart_server_process(port=self.server_port_spin.value())
+        QMessageBox.information(self, 'إعادة تشغيل الخادم' if ok else 'تعذر إعادة تشغيل الخادم', msg)
+        self.refresh_server_status()
+
+    def backup_local_server_database(self):
+        ok, msg = backup_server_database()
+        QMessageBox.information(self, 'نسخ احتياطي للخادم' if ok else 'تعذر النسخ الاحتياطي', msg)
+        self.refresh_server_status()
+
+    def open_local_server_data_dir(self):
+        ok, msg = open_server_data_dir()
+        if not ok:
+            QMessageBox.warning(self, 'فتح مجلد البيانات', msg)
+        self.refresh_server_status()
+
     def test_network_connection(self):
         raw = self.server_url_edit.text().strip()
         port = self.server_port_spin.value()
@@ -589,11 +661,93 @@ class SettingsWidget(QWidget):
         ok, message, info = server_diagnostics(url, timeout=4, require_routes=True)
         self.server_url_edit.setText(url)
         details = f"العنوان المستخدم:\n{url}\n\n{message}"
+        if hasattr(self, 'refresh_network_center'):
+            self.refresh_network_center()
         if ok:
             QMessageBox.information(self, 'اختبار الاتصال', f'✅ الاتصال ناجح ومتوافق.\n\n{details}')
         else:
             QMessageBox.warning(self, 'اختبار الاتصال', f'❌ فشل اختبار الاتصال.\n\n{details}')
 
+
+    def refresh_network_center(self):
+        """Refresh the Network Control Center without requiring a restart."""
+        if not hasattr(self, 'net_connection_label'):
+            return
+        raw = self.server_url_edit.text().strip() if hasattr(self, 'server_url_edit') else ''
+        port = self.server_port_spin.value() if hasattr(self, 'server_port_spin') else 8000
+        url = normalize_server_url(raw, port)
+        ok, message, info = server_diagnostics(url, timeout=4, require_routes=True)
+        self.net_connection_label.setText(('🟢 متصل ومتوافق' if ok else '🔴 غير متوافق/غير متصل') + f"\n{message}")
+        self.net_connection_label.setStyleSheet('color:#15803d;' if ok else 'color:#b91c1c;')
+        latency = info.get('latency_ms')
+        routes_latency = info.get('routes_latency_ms')
+        latency_text = f"/health: {latency} ms" if latency is not None else '-'
+        if routes_latency is not None:
+            latency_text += f" | /api/routes: {routes_latency} ms"
+        self.net_latency_label.setText(latency_text)
+        self.net_api_label.setText(str(info.get('api_version') or '-'))
+        self.net_routes_label.setText(str(info.get('route_count') or '-'))
+        missing = info.get('missing_routes') or []
+        self.net_missing_label.setText('لا يوجد' if not missing else '\n'.join(missing))
+        # Authenticated database/source diagnostics.  It may fail before login or
+        # if the saved token is invalid; this must never break the settings page.
+        try:
+            from database.connection import DatabaseConnection
+            db = DatabaseConnection()
+            if db.is_remote() and db.get_rest_client():
+                status = db.get_rest_client().debug_status()
+                self.net_db_label.setText(status.get('db_path') or '-')
+                counts = status.get('counts') or {}
+                quick = []
+                for key, label in [('items', 'مواد'), ('customers', 'عملاء'), ('invoices', 'فواتير'), ('users', 'مستخدمون')]:
+                    value = counts.get(key, '-')
+                    if isinstance(value, dict):
+                        value = 'خطأ'
+                    quick.append(f"{label}: {value}")
+                self.net_counts_label.setText(' | '.join(quick))
+            elif db.is_remote():
+                self.net_db_label.setText('وضع عميل، لكن لا يوجد RestClient مهيأ')
+                self.net_counts_label.setText('-')
+            else:
+                self.net_db_label.setText('محلي SQLite')
+                self.net_counts_label.setText('-')
+        except Exception as exc:
+            self.net_db_label.setText(f'تعذر قراءة تشخيص قاعدة البيانات: {exc}')
+            self.net_counts_label.setText('-')
+
+    def show_network_request_log(self):
+        dialog = QDialog(self)
+        dialog.setWindowTitle('سجل طلبات REST')
+        dialog.setLayoutDirection(Qt.RightToLeft)
+        dialog.resize(780, 520)
+        layout = QVBoxLayout(dialog)
+        text = QPlainTextEdit()
+        text.setReadOnly(True)
+        try:
+            from database.connection_rest import get_request_log
+            rows = get_request_log()
+            if not rows:
+                content = 'لا توجد طلبات REST مسجلة بعد.'
+            else:
+                lines = []
+                for r in rows[-120:]:
+                    ok = '✓' if r.get('ok') else '✗'
+                    status = r.get('status') if r.get('status') is not None else '-'
+                    ms = r.get('elapsed_ms') if r.get('elapsed_ms') is not None else '-'
+                    line = f"{r.get('time','')} {ok} {r.get('method','')} {r.get('endpoint','')} [{status}] {ms}ms"
+                    if r.get('error'):
+                        line += f"\n    {r.get('error')}"
+                    lines.append(line)
+                content = '\n'.join(lines)
+        except Exception as exc:
+            content = f'تعذر قراءة سجل الطلبات: {exc}'
+        text.setPlainText(content)
+        layout.addWidget(text)
+        buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        buttons.rejected.connect(dialog.reject)
+        buttons.accepted.connect(dialog.accept)
+        layout.addWidget(buttons)
+        dialog.exec()
 
     def save_network_settings(self):
         mode = {0: 'local', 1: 'client', 2: 'server'}[self.mode_combo.currentIndex()]

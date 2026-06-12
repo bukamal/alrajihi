@@ -22,6 +22,7 @@ from views.widgets.branches_widget import BranchesWidget
 from views.widgets.cashboxes_widget import CashboxesWidget
 from views.widgets.returns_widget import ReturnsWidget, PurchaseReturnsWidget
 from views.widgets.audit_log_widget import AuditLogWidget
+from views.widgets.offline_queue_widget import OfflineQueueWidget
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from views.dialogs.login_dialog import LoginDialog
 from views.modern_topbar import ModernTopBar
@@ -48,6 +49,7 @@ PAGE_META = {
     'settings': ('الإعدادات', 'الرئيسية > النظام > الإعدادات'),
     'users': ('المستخدمون', 'الرئيسية > النظام > المستخدمون'),
     'audit_log': ('سجل التدقيق', 'الرئيسية > النظام > سجل التدقيق'),
+    'offline_queue': ('الطلبات المعلقة', 'الرئيسية > الشبكة > الطلبات المعلقة'),
 }
 
 NAV_GROUP_BY_PAGE = {
@@ -70,6 +72,7 @@ NAV_GROUP_BY_PAGE = {
     'settings': 'الإدارة',
     'users': 'المستخدمين',
     'audit_log': 'المستخدمين',
+    'offline_queue': 'الإدارة',
 }
 
 class MainWindow(QMainWindow):
@@ -196,6 +199,7 @@ class MainWindow(QMainWindow):
             ('branches', BranchesWidget),
             ('cashboxes', CashboxesWidget),
             ('audit_log', AuditLogWidget),
+            ('offline_queue', OfflineQueueWidget),
         ]
         for key, factory in page_factories:
             self.pages[key] = self._create_page_safely(key, factory)
@@ -275,6 +279,7 @@ class MainWindow(QMainWindow):
             ("الفروع", "code-branch", lambda: self.switch_page('branches'), None),
             ("طباعة احترافية", "print", lambda: self.show_print_dialog(), None),
             ("تغيير كلمة المرور", "key", lambda: self.change_password(), None),
+            ("الطلبات المعلقة", "cloud-upload-alt", lambda: self.switch_page('offline_queue'), None),
         ])
         if UserSession.is_admin():
             self.top_bar.add_menu_button("المستخدمين", "user-cog", [
@@ -347,6 +352,12 @@ class MainWindow(QMainWindow):
             pending = invoice_service.pending_count()
             self.top_bar.set_badge("فواتير البيع", pending)
         except:
+            pass
+        try:
+            from database.connection import offline_queue
+            pending_offline = offline_queue.count_pending()
+            self.top_bar.set_badge('الطلبات المعلقة', pending_offline)
+        except Exception:
             pass
 
     def global_search(self):
@@ -465,9 +476,8 @@ class MainWindow(QMainWindow):
         self.queue_timer.timeout.connect(self.process_offline_queue)
         self.queue_timer.start(30000)
 
-    def process_offline_queue(self):
+    def process_offline_queue(self, show_messages=False):
         from database.connection import offline_queue
-        from database.connection_rest import RestClient
         import requests
         import json
 
@@ -477,21 +487,44 @@ class MainWindow(QMainWindow):
             resp = requests.get(f"{self.db_conn.server_url}/health", timeout=3)
             if resp.status_code != 200:
                 return
-        except:
+        except Exception:
             return
 
         rest = self.db_conn.get_rest_client()
-        for req in offline_queue.get_all_requests():
+        if not rest:
+            return
+        sent = 0
+        failed = 0
+        for req in offline_queue.get_pending_requests():
             try:
-                if req['method'] == 'POST':
-                    rest._request('POST', req['endpoint'], json.loads(req['data']) if req['data'] else None, queue_on_failure=False)
-                elif req['method'] == 'PUT':
-                    rest._request('PUT', req['endpoint'], json.loads(req['data']) if req['data'] else None, queue_on_failure=False)
-                elif req['method'] == 'DELETE':
-                    rest._request('DELETE', req['endpoint'], queue_on_failure=False)
-                offline_queue.delete_request(req['id'])
-                print(f"✅ تم إعادة إرسال الطلب المحفوظ: {req['endpoint']}")
+                payload = json.loads(req['data']) if req.get('data') else None
+                method = (req.get('method') or '').upper()
+                if method == 'POST':
+                    rest._request('POST', req['endpoint'], payload, queue_on_failure=False, retries=1)
+                elif method == 'PUT':
+                    rest._request('PUT', req['endpoint'], payload, queue_on_failure=False, retries=1)
+                elif method == 'PATCH':
+                    rest._request('PATCH', req['endpoint'], payload, queue_on_failure=False, retries=1)
+                elif method == 'DELETE':
+                    rest._request('DELETE', req['endpoint'], queue_on_failure=False, retries=1)
+                else:
+                    continue
+                offline_queue.mark_sent(req['id'])
+                sent += 1
+                print(f"✅ تم إرسال الطلب المعلق: {req.get('title') or req['endpoint']}")
             except Exception as e:
-                print(f"⚠️ فشل إعادة محاولة الطلب {req['endpoint']}: {e}")
+                failed += 1
+                offline_queue.mark_attempt(req['id'], e)
+                print(f"⚠️ فشل إرسال الطلب المعلق {req.get('title') or req['endpoint']}: {e}")
+        if sent or failed:
+            try:
+                self.update_badges()
+                page = self.pages.get('offline_queue')
+                if page and hasattr(page, 'refresh'):
+                    page.refresh()
+            except Exception:
+                pass
+        if show_messages:
+            QMessageBox.information(self, 'الطلبات المعلقة', f'تم الإرسال: {sent}\nفشل: {failed}')
 
 

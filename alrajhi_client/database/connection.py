@@ -30,16 +30,42 @@ OFFLINE_DB_PATH = str(user_data_dir() / 'offline_queue.db')
 import hashlib
 from auth.activation import get_device_id
 
+
+def _queue_json_safe(value):
+    if isinstance(value, Decimal):
+        return str(value)
+    if isinstance(value, (datetime.datetime, datetime.date)):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(k): _queue_json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_queue_json_safe(v) for v in value]
+    return value
+
+
 def get_session_id():
     return hashlib.md5(get_device_id().encode()).hexdigest()
 
+
 class OfflineQueueManager:
+    WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
+    QUEUEABLE_PREFIXES = (
+        '/api/invoices', '/api/items', '/api/customers', '/api/suppliers',
+        '/api/vouchers', '/api/expenses', '/api/returns/sales', '/api/returns/purchase',
+    )
+
     def __init__(self):
         self._init_db()
+
+    def _connect(self):
+        os.makedirs(os.path.dirname(OFFLINE_DB_PATH), exist_ok=True)
+        conn = sqlite3.connect(OFFLINE_DB_PATH)
+        conn.row_factory = sqlite3.Row
+        return conn
     
     def _init_db(self):
-        conn = sqlite3.connect(OFFLINE_DB_PATH)
-        conn.execute('''
+        conn = self._connect()
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS queue (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id TEXT NOT NULL,
@@ -48,36 +74,110 @@ class OfflineQueueManager:
                 data TEXT,
                 created_at TEXT,
                 record_id INTEGER,
-                etag TEXT
+                etag TEXT,
+                status TEXT DEFAULT 'pending',
+                attempts INTEGER DEFAULT 0,
+                last_error TEXT,
+                last_attempt_at TEXT,
+                sent_at TEXT,
+                title TEXT,
+                entity TEXT
             )
-        ''')
-        conn.commit()
-        conn.close()
+        """)
+        cols = {row[1] for row in conn.execute('PRAGMA table_info(queue)').fetchall()}
+        for col, ddl in {
+            'status': "ALTER TABLE queue ADD COLUMN status TEXT DEFAULT 'pending'",
+            'attempts': "ALTER TABLE queue ADD COLUMN attempts INTEGER DEFAULT 0",
+            'last_error': "ALTER TABLE queue ADD COLUMN last_error TEXT",
+            'last_attempt_at': "ALTER TABLE queue ADD COLUMN last_attempt_at TEXT",
+            'sent_at': "ALTER TABLE queue ADD COLUMN sent_at TEXT",
+            'title': "ALTER TABLE queue ADD COLUMN title TEXT",
+            'entity': "ALTER TABLE queue ADD COLUMN entity TEXT",
+        }.items():
+            if col not in cols:
+                conn.execute(ddl)
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_offline_queue_status ON queue(status, id)')
+        conn.commit(); conn.close()
+
+    def is_queueable(self, endpoint: str, method: str) -> bool:
+        if (method or '').upper() not in self.WRITE_METHODS:
+            return False
+        endpoint = endpoint or ''
+        return any(endpoint.startswith(prefix) for prefix in self.QUEUEABLE_PREFIXES)
+
+    def _guess_entity(self, endpoint: str) -> str:
+        endpoint = endpoint or ''
+        for prefix, name in [
+            ('/api/invoices', 'الفواتير'), ('/api/items', 'المواد'),
+            ('/api/customers', 'العملاء'), ('/api/suppliers', 'الموردون'),
+            ('/api/vouchers', 'السندات'), ('/api/expenses', 'المصروفات'),
+            ('/api/returns/sales', 'مرتجعات المبيعات'), ('/api/returns/purchase', 'مرتجعات المشتريات'),
+        ]:
+            if endpoint.startswith(prefix):
+                return name
+        return endpoint
+
+    def _guess_title(self, endpoint: str, method: str, data) -> str:
+        entity = self._guess_entity(endpoint)
+        verb = {'POST': 'إنشاء', 'PUT': 'تعديل', 'PATCH': 'تعديل', 'DELETE': 'حذف'}.get((method or '').upper(), method)
+        extra = ''
+        if isinstance(data, dict):
+            for key in ('invoice_number', 'number', 'name', 'customer_name', 'supplier_name'):
+                if data.get(key):
+                    extra = f" — {data.get(key)}"
+                    break
+        return f"{verb} {entity}{extra}"
     
-    def add_request(self, endpoint, method, data=None, record_id=None, etag=None):
+    def add_request(self, endpoint, method, data=None, record_id=None, etag=None, error=None):
         session_id = get_session_id()
-        conn = sqlite3.connect(OFFLINE_DB_PATH)
-        now = datetime.datetime.now().isoformat()
-        conn.execute('''
-            INSERT INTO queue (session_id, endpoint, method, data, created_at, record_id, etag)
-            VALUES (?,?,?,?,?,?,?)
-        ''', (session_id, endpoint, method, json.dumps(data) if data else None, now, record_id, etag))
-        conn.commit()
-        conn.close()
+        conn = self._connect()
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        safe_data = _queue_json_safe(data) if data is not None else None
+        title = self._guess_title(endpoint, method, safe_data)
+        entity = self._guess_entity(endpoint)
+        cur = conn.execute("""
+            INSERT INTO queue (session_id, endpoint, method, data, created_at, record_id, etag, status, attempts, last_error, title, entity)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (session_id, endpoint, (method or '').upper(), json.dumps(safe_data, ensure_ascii=False) if safe_data is not None else None, now, record_id, etag, 'pending', 0, str(error)[:500] if error else None, title, entity))
+        conn.commit(); qid = int(cur.lastrowid); conn.close()
+        return qid
     
     def get_all_requests(self):
+        return self.get_pending_requests()
+
+    def get_pending_requests(self):
         session_id = get_session_id()
-        conn = sqlite3.connect(OFFLINE_DB_PATH)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute('SELECT * FROM queue WHERE session_id = ? ORDER BY id', (session_id,)).fetchall()
-        conn.close()
-        return [dict(row) for row in rows]
+        conn = self._connect()
+        rows = conn.execute("SELECT * FROM queue WHERE session_id = ? AND status = 'pending' ORDER BY id", (session_id,)).fetchall()
+        conn.close(); return [dict(row) for row in rows]
+
+    def get_recent_requests(self, limit=200):
+        session_id = get_session_id()
+        conn = self._connect()
+        rows = conn.execute('SELECT * FROM queue WHERE session_id = ? ORDER BY id DESC LIMIT ?', (session_id, int(limit))).fetchall()
+        conn.close(); return [dict(row) for row in rows]
+
+    def count_pending(self) -> int:
+        session_id = get_session_id()
+        conn = self._connect()
+        row = conn.execute("SELECT COUNT(*) FROM queue WHERE session_id=? AND status='pending'", (session_id,)).fetchone()
+        conn.close(); return int(row[0] or 0)
+
+    def mark_attempt(self, req_id, error=None):
+        conn = self._connect(); now = datetime.datetime.now().isoformat(timespec='seconds')
+        conn.execute('UPDATE queue SET attempts=COALESCE(attempts,0)+1, last_attempt_at=?, last_error=? WHERE id=?', (now, str(error)[:500] if error else None, req_id))
+        conn.commit(); conn.close()
+
+    def mark_sent(self, req_id):
+        conn = self._connect(); now = datetime.datetime.now().isoformat(timespec='seconds')
+        conn.execute("UPDATE queue SET status='sent', sent_at=?, last_error=NULL WHERE id=?", (now, req_id))
+        conn.commit(); conn.close()
     
     def delete_request(self, req_id):
-        conn = sqlite3.connect(OFFLINE_DB_PATH)
-        conn.execute('DELETE FROM queue WHERE id=?', (req_id,))
-        conn.commit()
-        conn.close()
+        conn = self._connect(); conn.execute('DELETE FROM queue WHERE id=?', (req_id,)); conn.commit(); conn.close()
+
+    def clear_sent(self):
+        conn = self._connect(); conn.execute("DELETE FROM queue WHERE status='sent'"); conn.commit(); conn.close()
 
 offline_queue = OfflineQueueManager()
 
