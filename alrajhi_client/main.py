@@ -29,6 +29,8 @@ from core.server_control import (
     port_in_use,
     start_server_process,
     stop_server_process,
+    normalize_server_url,
+    server_diagnostics,
 )
 
 _backup_stop_event = None
@@ -114,8 +116,8 @@ def start_periodic_backup():
 
 def test_server_connection(url):
     try:
-        from core.server_control import health_check
-        return health_check(url, timeout=3, require_routes=True)
+        ok, _message, _info = server_diagnostics(url, timeout=3, require_routes=True)
+        return ok
     except Exception:
         return False
 
@@ -168,7 +170,7 @@ def open_network_settings():
     form.addRow("وضع التشغيل:", mode_combo)
 
     server_url_edit = QLineEdit(qsettings.value("network/server_url", "http://localhost:8000"))
-    server_url_edit.setPlaceholderText("http://192.168.1.100:8000")
+    server_url_edit.setPlaceholderText("10.98.199.132 أو http://10.98.199.132:8000")
     form.addRow("عنوان الخادم:", server_url_edit)
 
     server_port_spin = QSpinBox()
@@ -187,16 +189,15 @@ def open_network_settings():
     layout.addLayout(form)
 
     def test_current_server():
-        url = server_url_edit.text().strip().rstrip('/')
-        if not url:
-            status.setText("يرجى إدخال عنوان الخادم.")
-            status.setStyleSheet("color:#b91c1c;")
-            return
-        if test_server_connection(url):
-            status.setText("✅ الاتصال بالخادم ناجح.")
+        raw = server_url_edit.text().strip()
+        url = normalize_server_url(raw, server_port_spin.value())
+        server_url_edit.setText(url)
+        ok, message, info = server_diagnostics(url, timeout=4, require_routes=True)
+        if ok:
+            status.setText(f"✅ {message}\n{url}")
             status.setStyleSheet("color:#15803d;")
         else:
-            status.setText("❌ لا يمكن الاتصال بهذا العنوان.")
+            status.setText(f"❌ {message}\nالعنوان المستخدم: {url}")
             status.setStyleSheet("color:#b91c1c;")
 
     test_btn = QPushButton("اختبار الاتصال")
@@ -211,7 +212,7 @@ def open_network_settings():
     def save_and_accept():
         port = server_port_spin.value()
         qsettings.setValue("network/mode", mode_combo.currentData() or "local")
-        qsettings.setValue("network/server_url", server_url_edit.text().strip() or f"http://localhost:{port}")
+        qsettings.setValue("network/server_url", normalize_server_url(server_url_edit.text().strip(), port))
         qsettings.setValue("server/port", port)
         qsettings.setValue("server/auto_start", auto_start_check.isChecked())
         qsettings.sync()
@@ -261,7 +262,7 @@ def main():
     from database.connection import DatabaseConnection
     db_conn = DatabaseConnection()
     mode = db_conn.mode
-    server_url = db_conn.server_url
+    server_url = normalize_server_url(db_conn.server_url, get_server_port())
 
     if mode in ("client", "server"):
         network_ok, network_msg = check_network_activation()

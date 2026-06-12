@@ -15,7 +15,7 @@ from auth.activation import activate_network, check_network_activation
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from utils import show_toast
-from core.server_control import get_server_port, server_status, start_server_process, stop_server_process, health_check
+from core.server_control import get_server_port, server_status, start_server_process, stop_server_process, health_check, normalize_server_url, server_diagnostics
 import requests
 import os
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
@@ -337,7 +337,7 @@ class SettingsWidget(QWidget):
         form.addRow('وضع الاتصال:', self.mode_combo)
 
         self.server_url_edit = QLineEdit(settings.value('network/server_url', 'http://localhost:8000'))
-        self.server_url_edit.setPlaceholderText('http://192.168.1.100:8000')
+        self.server_url_edit.setPlaceholderText('10.98.199.132 أو http://10.98.199.132:8000')
         form.addRow('عنوان الخادم للاتصال:', self.server_url_edit)
 
         self.server_port_spin = QSpinBox(); self.server_port_spin.setRange(1024, 65535); self.server_port_spin.setValue(int(settings.value('server/port', 8000)))
@@ -583,11 +583,17 @@ class SettingsWidget(QWidget):
         self.refresh_server_status()
 
     def test_network_connection(self):
-        url = self.server_url_edit.text().strip().rstrip('/') or f"http://localhost:{self.server_port_spin.value()}"
-        if health_check(url, timeout=2):
-            QMessageBox.information(self, 'اختبار الاتصال', f'✅ الاتصال ناجح:\n{url}')
+        raw = self.server_url_edit.text().strip()
+        port = self.server_port_spin.value()
+        url = normalize_server_url(raw, port)
+        ok, message, info = server_diagnostics(url, timeout=4, require_routes=True)
+        self.server_url_edit.setText(url)
+        details = f"العنوان المستخدم:\n{url}\n\n{message}"
+        if ok:
+            QMessageBox.information(self, 'اختبار الاتصال', f'✅ الاتصال ناجح ومتوافق.\n\n{details}')
         else:
-            QMessageBox.warning(self, 'اختبار الاتصال', f'❌ لا يمكن الاتصال:\n{url}')
+            QMessageBox.warning(self, 'اختبار الاتصال', f'❌ فشل اختبار الاتصال.\n\n{details}')
+
 
     def save_network_settings(self):
         mode = {0: 'local', 1: 'client', 2: 'server'}[self.mode_combo.currentIndex()]
@@ -599,7 +605,7 @@ class SettingsWidget(QWidget):
             'server/auto_start': settings.value('server/auto_start', False, type=bool),
         }
         port = self.server_port_spin.value() if hasattr(self, 'server_port_spin') else 8000
-        url = self.server_url_edit.text().strip() or f'http://localhost:{port}'
+        url = normalize_server_url(self.server_url_edit.text().strip(), port)
         new = {
             'network/mode': mode,
             'network/server_url': url,

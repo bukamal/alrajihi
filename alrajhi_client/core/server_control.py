@@ -35,10 +35,97 @@ def get_server_port() -> int:
 
 def get_server_url() -> str:
     settings = QSettings("Alrajhi", "Accounting")
-    configured = str(settings.value("network/server_url", "") or "").strip().rstrip("/")
-    if configured:
-        return configured
-    return f"http://localhost:{get_server_port()}"
+    configured = str(settings.value("network/server_url", "") or "").strip()
+    return normalize_server_url(configured, get_server_port())
+
+
+
+def normalize_server_url(address: Optional[str] = None, port: Optional[int] = None, default_scheme: str = "http") -> str:
+    """Normalize server address entered by the user.
+
+    Accepts all common forms:
+      - 10.98.199.132 + 8000
+      - 10.98.199.132:8000
+      - http://10.98.199.132:8000
+      - http://10.98.199.132/health
+      - http://10.98.199.132:8000/api/routes
+
+    Returns a clean base URL like: http://10.98.199.132:8000
+    """
+    from urllib.parse import urlparse, urlunparse
+
+    raw = str(address or "").strip()
+    port = _to_int(port or DEFAULT_PORT, DEFAULT_PORT)
+
+    if not raw:
+        raw = f"localhost:{port}"
+
+    # Fix common user typo: http//host -> http://host
+    if raw.startswith("http//"):
+        raw = "http://" + raw[len("http//"):]
+    elif raw.startswith("https//"):
+        raw = "https://" + raw[len("https//"):]
+
+    # If no scheme is present, add one so urlparse handles host:port correctly.
+    if "://" not in raw:
+        raw = f"{default_scheme}://{raw}"
+
+    parsed = urlparse(raw)
+    scheme = parsed.scheme or default_scheme
+    host = parsed.hostname or parsed.path.strip("/")
+    if not host:
+        host = "localhost"
+
+    final_port = parsed.port or port
+
+    # Keep IPv6 brackets if needed.
+    netloc_host = f"[{host}]" if ":" in host and not host.startswith("[") else host
+    netloc = f"{netloc_host}:{final_port}"
+
+    return urlunparse((scheme, netloc, "", "", "", "")).rstrip("/")
+
+
+def server_diagnostics(url: Optional[str] = None, timeout: float = 3.0, require_routes: bool = True) -> Tuple[bool, str, dict]:
+    """Return detailed connectivity diagnostics instead of a bare True/False."""
+    base_url = normalize_server_url(url or get_server_url(), get_server_port())
+    info = {"url": base_url, "health": None, "routes": None, "missing_routes": []}
+    try:
+        resp = requests.get(f"{base_url}/health", timeout=timeout)
+        info["health"] = {"status_code": resp.status_code, "text": resp.text[:500]}
+        if resp.status_code != 200:
+            return False, f"الخادم أجاب لكن /health أعاد الحالة {resp.status_code}.", info
+        try:
+            payload = resp.json()
+        except Exception:
+            return False, "الخادم أجاب على /health لكن الرد ليس JSON صالحاً.", info
+        if payload.get("status") != "alive":
+            return False, f"الخادم أجاب لكن الحالة ليست alive: {payload}", info
+        if not require_routes:
+            return True, "الخادم يعمل ويجيب على /health.", info
+
+        routes_resp = requests.get(f"{base_url}/api/routes", timeout=timeout)
+        info["routes"] = {"status_code": routes_resp.status_code, "text": routes_resp.text[:1000]}
+        if routes_resp.status_code != 200:
+            return False, (
+                "الخادم يعمل، لكن مسار /api/routes غير متاح. "
+                "هذا يعني غالباً أن نسخة الخادم أقدم من العميل أو أن عنوان العميل يشير إلى خادم آخر."
+            ), info
+        try:
+            routes_payload = routes_resp.json()
+        except Exception:
+            return False, "مسار /api/routes أجاب لكن الرد ليس JSON صالحاً.", info
+        routes = set(routes_payload.get("routes", []))
+        missing = sorted(REQUIRED_REMOTE_ROUTES - routes)
+        info["missing_routes"] = missing
+        if missing:
+            return False, "الخادم يعمل لكن توجد مسارات API ناقصة: " + ", ".join(missing), info
+        return True, "الاتصال ناجح والخادم متوافق مع هذه النسخة.", info
+    except requests.exceptions.ConnectTimeout:
+        return False, f"انتهت مهلة الاتصال بالخادم: {base_url}", info
+    except requests.exceptions.ConnectionError as exc:
+        return False, f"تعذر فتح اتصال بالخادم: {base_url}\n{exc}", info
+    except Exception as exc:
+        return False, f"فشل اختبار الاتصال: {exc}", info
 
 
 def port_in_use(port: int, host: str = "127.0.0.1") -> bool:
@@ -60,21 +147,8 @@ REQUIRED_REMOTE_ROUTES = {
 }
 
 def health_check(url: Optional[str] = None, timeout: float = 2.0, require_routes: bool = True) -> bool:
-    url = (url or get_server_url()).rstrip("/")
-    try:
-        resp = requests.get(f"{url}/health", timeout=timeout)
-        if resp.status_code != 200 or resp.json().get("status") != "alive":
-            return False
-        if not require_routes:
-            return True
-        routes_resp = requests.get(f"{url}/api/routes", timeout=timeout)
-        if routes_resp.status_code != 200:
-            return False
-        routes = set(routes_resp.json().get('routes', []))
-        # Flask routes may include variable parts; exact static API roots must exist.
-        return REQUIRED_REMOTE_ROUTES.issubset(routes)
-    except Exception:
-        return False
+    ok, _message, _info = server_diagnostics(url, timeout=timeout, require_routes=require_routes)
+    return ok
 
 
 def is_pid_running(pid: int) -> bool:

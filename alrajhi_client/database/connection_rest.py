@@ -4,10 +4,20 @@ import time
 import json
 from typing import List, Dict, Any, Tuple
 from auth.session import save_token, load_token, clear_token
+try:
+    from core.server_control import normalize_server_url
+except Exception:
+    def normalize_server_url(address=None, port=None, default_scheme="http"):
+        raw = str(address or "").strip().rstrip("/")
+        if raw.startswith("http//"):
+            raw = "http://" + raw[6:]
+        if "://" not in raw:
+            raw = "http://" + raw
+        return raw
 
 class RestClient:
     def __init__(self, server_url: str):
-        self.server_url = server_url.rstrip('/')
+        self.server_url = normalize_server_url(server_url).rstrip('/')
         self.token = load_token()
 
     def set_token(self, token: str):

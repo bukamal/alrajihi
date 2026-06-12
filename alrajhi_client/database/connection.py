@@ -6,6 +6,16 @@ import datetime
 from typing import List, Dict, Optional, Tuple
 from decimal import Decimal
 from PyQt5.QtCore import QSettings
+try:
+    from core.server_control import normalize_server_url
+except Exception:
+    def normalize_server_url(address=None, port=None, default_scheme="http"):
+        raw = str(address or "").strip().rstrip("/")
+        if raw.startswith("http//"):
+            raw = "http://" + raw[6:]
+        if "://" not in raw:
+            raw = "http://" + raw
+        return raw
 
 # ========== المسارات ==========
 def get_local_db_path():
@@ -89,7 +99,7 @@ class DatabaseConnection:
     def _init_mode(self):
         settings = QSettings("Alrajhi", "Accounting")
         self.mode = settings.value("network/mode", "local")
-        self.server_url = settings.value("network/server_url", "http://localhost:8000")
+        self.server_url = normalize_server_url(settings.value("network/server_url", "http://localhost:8000"), settings.value("server/port", 8000))
         self._rest_client = None
         if self.mode == "client":
             from .connection_rest import RestClient
