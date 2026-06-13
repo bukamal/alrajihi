@@ -32,6 +32,9 @@ class RemoteCustomerGateway(CustomerGateway):
         return self.rest_client.delete_customer(customer_id)
 
 
+    def is_remote(self) -> bool:
+        return True
+
 class RemoteSupplierGateway(SupplierGateway):
     def __init__(self, rest_client):
         self.rest_client = rest_client
@@ -55,3 +58,6 @@ class RemoteSupplierGateway(SupplierGateway):
 
     def delete(self, supplier_id: int):
         return self.rest_client.delete_supplier(supplier_id)
+
+    def is_remote(self) -> bool:
+        return True

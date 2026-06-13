@@ -12,8 +12,11 @@ import io
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional
 
-from barcode import Code128, EAN13
-from barcode.writer import ImageWriter
+try:
+    from barcode import Code128, EAN13
+    from barcode.writer import ImageWriter
+except Exception:  # optional dependency used only for barcode image rendering
+    Code128 = EAN13 = ImageWriter = None
 
 from config import get_company_info
 from core.services.barcode_service import barcode_service, BarcodeError
@@ -75,6 +78,8 @@ class BarcodeLabelService:
         return requested
 
     def barcode_png_base64(self, barcode: str, symbology: str = 'AUTO') -> str:
+        if Code128 is None or EAN13 is None or ImageWriter is None:
+            raise RuntimeError("حزمة python-barcode و Pillow مطلوبة لطباعة صور الباركود. ثبّت: pip install python-barcode Pillow")
         value = barcode_service.normalize(barcode)
         sym = self.resolve_symbology(value, symbology)
         writer = ImageWriter()

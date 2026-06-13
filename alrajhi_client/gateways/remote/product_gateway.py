@@ -81,3 +81,6 @@ class RemoteCategoryGateway(CategoryGateway):
 
     def restore(self, category_id: int):
         return self.rest_client.restore_category(category_id)
+
+    def is_remote(self) -> bool:
+        return True

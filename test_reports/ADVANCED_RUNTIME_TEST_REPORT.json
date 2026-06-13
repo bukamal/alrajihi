@@ -1,0 +1,274 @@
+{
+  "passed": 6,
+  "failed": 0,
+  "results": [
+    {
+      "name": "init_database_and_session",
+      "status": "PASS",
+      "detail": "/tmp/alrajhi_advanced_test_runtime/alrajhi_advanced_test.db"
+    },
+    {
+      "name": "import_all_core_services",
+      "status": "PASS",
+      "detail": {
+        "count": 26,
+        "services": [
+          "alert_service",
+          "audit_service",
+          "backup_service",
+          "barcode_label_service",
+          "barcode_scanner_service",
+          "barcode_service",
+          "branch_service",
+          "cashbox_service",
+          "catalog_service",
+          "dashboard_service",
+          "entity_service",
+          "expense_service",
+          "inventory_service",
+          "invoice_service",
+          "manufacturing_service",
+          "offline_queue_service",
+          "pos_service",
+          "product_service",
+          "purchase_return_service",
+          "reporting_service",
+          "sales_return_service",
+          "settings_service",
+          "system_service",
+          "user_service",
+          "voucher_service",
+          "warehouse_service"
+        ]
+      }
+    },
+    {
+      "name": "gateway_factories_instantiate_and_is_remote",
+      "status": "PASS",
+      "detail": {
+        "count": 20,
+        "factories": [
+          "create_audit_gateway",
+          "create_backup_gateway",
+          "create_branch_gateway",
+          "create_cashbox_gateway",
+          "create_currency_gateway",
+          "create_entity_gateways",
+          "create_expense_gateway",
+          "create_inventory_gateway",
+          "create_invoice_gateway",
+          "create_manufacturing_gateway",
+          "create_offline_queue_gateway",
+          "create_product_gateways",
+          "create_purchase_return_gateway",
+          "create_reporting_gateway",
+          "create_sales_return_gateway",
+          "create_settings_gateway",
+          "create_system_gateway",
+          "create_user_gateway",
+          "create_voucher_gateway",
+          "create_warehouse_gateway"
+        ]
+      }
+    },
+    {
+      "name": "static_ui_service_command_compatibility",
+      "status": "PASS",
+      "detail": {
+        "forbidden": 0,
+        "unknown_service_calls": 0
+      }
+    },
+    {
+      "name": "advanced_business_flow_multi_day_simulation",
+      "status": "PASS",
+      "detail": {
+        "ids": {
+          "item": 1,
+          "purchase": 1,
+          "sale": 2,
+          "sales_return": 1,
+          "purchase_return": 1,
+          "transfer": 1,
+          "wh1": 1,
+          "wh2": 2
+        },
+        "item_quantity_after_flow": "14.0",
+        "inventory_movements": [
+          {
+            "movement_type": "purchase",
+            "quantity": "20",
+            "reference_id": 1
+          },
+          {
+            "movement_type": "sale",
+            "quantity": "5",
+            "reference_id": 2
+          },
+          {
+            "movement_type": "sales_return",
+            "quantity": "1",
+            "reference_id": 1
+          },
+          {
+            "movement_type": "purchase_return",
+            "quantity": "2",
+            "reference_id": 1
+          }
+        ],
+        "warehouse_movement_count": 8,
+        "ledger_count": 8,
+        "ledger_sample": [
+          {
+            "movement_type": "invoice_purchase_in",
+            "direction": "in",
+            "quantity": "20",
+            "reference_type": "invoice",
+            "reference_id": 1
+          },
+          {
+            "movement_type": "invoice_sale_out",
+            "direction": "out",
+            "quantity": "5",
+            "reference_type": "invoice",
+            "reference_id": 2
+          },
+          {
+            "movement_type": "sales_return_in",
+            "direction": "in",
+            "quantity": "1",
+            "reference_type": "sales_return",
+            "reference_id": 1
+          },
+          {
+            "movement_type": "purchase_return_out",
+            "direction": "out",
+            "quantity": "2",
+            "reference_type": "purchase_return",
+            "reference_id": 1
+          },
+          {
+            "movement_type": "transfer_out",
+            "direction": "out",
+            "quantity": "3",
+            "reference_type": "warehouse_transfer",
+            "reference_id": 1
+          },
+          {
+            "movement_type": "transfer_in",
+            "direction": "in",
+            "quantity": "3",
+            "reference_type": "warehouse_transfer",
+            "reference_id": 1
+          },
+          {
+            "movement_type": "transfer_cancel_out",
+            "direction": "out",
+            "quantity": "3",
+            "reference_type": "warehouse_transfer_cancel",
+            "reference_id": 1
+          },
+          {
+            "movement_type": "transfer_cancel_in",
+            "direction": "in",
+            "quantity": "3",
+            "reference_type": "warehouse_transfer_cancel",
+            "reference_id": 1
+          }
+        ],
+        "invoice_update_guard": "blocked:لا يمكن تعديل فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.",
+        "invoice_delete_guard": "blocked:لا يمكن حذف فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.",
+        "dual_read_keys": [
+          "authoritative_source",
+          "checked",
+          "diagnostic_only",
+          "ledger_authoritative",
+          "matched",
+          "mismatched",
+          "mode",
+          "note",
+          "rows"
+        ],
+        "readiness_keys": [
+          "authoritative_source",
+          "blockers",
+          "diagnostic_only",
+          "dual_read_summary",
+          "health",
+          "ledger_authoritative",
+          "mode",
+          "note",
+          "phase",
+          "recommendation",
+          "safe_for_authoritative_read",
+          "safe_for_dual_read",
+          "summary",
+          "warnings"
+        ],
+        "controlled_read": {
+          "mode": "controlled_read",
+          "phase": 34,
+          "requested_mode": "operational",
+          "selected_source": "operational_stock",
+          "ledger_selected": false,
+          "authoritative_source": "operational_stock",
+          "ledger_authoritative": false,
+          "safe_for_ledger_read": true,
+          "fallback_reason": "requested_operational",
+          "readiness_summary": {
+            "integrity_issue_count": 0,
+            "reconciliation_mismatch_count": 0,
+            "dual_read_checked": 2,
+            "dual_read_mismatched": 0,
+            "snapshot_rows": 1
+          },
+          "blockers": [],
+          "warnings": [],
+          "rows": [
+            {
+              "scope": "item",
+              "item_id": 1,
+              "item_name": "ADV Item",
+              "warehouse_id": null,
+              "warehouse_name": null,
+              "operational_quantity": "14.0",
+              "ledger_quantity": "14.0",
+              "difference": "0.0",
+              "matches": true,
+              "read_source": "dual",
+              "selected_quantity": "14.0",
+              "selected_source": "operational_stock",
+              "requested_mode": "operational"
+            },
+            {
+              "scope": "warehouse",
+              "item_id": 1,
+              "item_name": "ADV Item",
+              "warehouse_id": 1,
+              "warehouse_name": "المستودع الرئيسي",
+              "operational_quantity": "14.0",
+              "ledger_quantity": "14.0",
+              "difference": "0.0",
+              "matches": true,
+              "read_source": "dual",
+              "selected_quantity": "14.0",
+              "selected_source": "operational_stock",
+              "requested_mode": "operational"
+            }
+          ],
+          "read_only": true,
+          "note": "Phase 34 can select ledger for reads only when readiness allows it; operational stock remains the default fallback."
+        }
+      }
+    },
+    {
+      "name": "offline_queue_permanent_failure_and_no_infinite_retry",
+      "status": "PASS",
+      "detail": {
+        "queued_id": 1,
+        "status": "failed",
+        "pending_after": 0
+      }
+    }
+  ]
+}

@@ -23,6 +23,7 @@ from views.widgets.cashboxes_widget import CashboxesWidget
 from views.widgets.returns_widget import ReturnsWidget, PurchaseReturnsWidget
 from views.widgets.audit_log_widget import AuditLogWidget
 from views.widgets.offline_queue_widget import OfflineQueueWidget
+from views.widgets.monitoring_widget import MonitoringWidget
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from views.dialogs.login_dialog import LoginDialog
 from views.modern_topbar import ModernTopBar
@@ -52,6 +53,7 @@ PAGE_META = {
     'users': ('المستخدمون', 'الرئيسية > النظام > المستخدمون'),
     'audit_log': ('سجل التدقيق', 'الرئيسية > النظام > سجل التدقيق'),
     'offline_queue': ('الطلبات المعلقة', 'الرئيسية > الشبكة > الطلبات المعلقة'),
+    'monitoring': ('مراقبة التشغيل', 'الرئيسية > النظام > مراقبة التشغيل'),
 }
 
 NAV_GROUP_BY_PAGE = {
@@ -75,13 +77,15 @@ NAV_GROUP_BY_PAGE = {
     'users': 'المستخدمين',
     'audit_log': 'المستخدمين',
     'offline_queue': 'الإدارة',
+    'monitoring': 'الإدارة',
 }
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowFlags(Qt.FramelessWindowHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        # Phase 41: use the native OS title bar again so the window can be moved
+        # normally and the minimize/maximize/close buttons remain available.
+        self.setWindowTitle("الراجحي للمحاسبة")
         self.setLayoutDirection(Qt.RightToLeft)
         self.setMinimumSize(1200, 700)
         self.resize(1400, 900)
@@ -137,7 +141,8 @@ class MainWindow(QMainWindow):
         self.min_btn.clicked.connect(self.showMinimized)
         title_layout.addWidget(self.min_btn)
 
-        main_layout.addWidget(self.title_bar)
+        # Legacy custom title strip is no longer part of the visible shell.
+        self.title_bar.setVisible(False)
 
         self.menu_bar = QMenuBar()
         self.menu_bar.setStyleSheet("QMenuBar { background-color: palette(window); border-bottom: 1px solid palette(mid); }")
@@ -202,6 +207,7 @@ class MainWindow(QMainWindow):
             ('cashboxes', CashboxesWidget),
             ('audit_log', AuditLogWidget),
             ('offline_queue', OfflineQueueWidget),
+            ('monitoring', MonitoringWidget),
         ]
         for key, factory in page_factories:
             self.pages[key] = self._create_page_safely(key, factory)
@@ -220,12 +226,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(exit_action)
 
         view_menu = self.menu_bar.addMenu(qta.icon('fa5s.eye'), " عرض")
-        toggle_title_action = QAction(qta.icon('fa5s.window-maximize'), "إظهار شريط العنوان", self)
-        toggle_title_action.setCheckable(True)
-        toggle_title_action.setChecked(True)
-        toggle_title_action.triggered.connect(self.toggle_title_bar)
-        view_menu.addAction(toggle_title_action)
-        view_menu.addSeparator()
+        # Phase 41: native title bar is restored; no custom-title toggle is needed.
         touch_action = QAction(qta.icon('fa5s.hand-peace'), "الوضع اللمسي", self)
         touch_action.setCheckable(True)
         touch_action.setChecked(False)
@@ -282,6 +283,7 @@ class MainWindow(QMainWindow):
             ("طباعة احترافية", "print", lambda: self.show_print_dialog(), None),
             ("تغيير كلمة المرور", "key", lambda: self.change_password(), None),
             ("الطلبات المعلقة", "cloud-upload-alt", lambda: self.switch_page('offline_queue'), None),
+            ("مراقبة التشغيل", "heartbeat", lambda: self.switch_page('monitoring'), None),
         ])
         if UserSession.is_admin():
             self.top_bar.add_menu_button("المستخدمين", "user-cog", [
@@ -330,7 +332,8 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'top_bar'):
             self.top_bar.set_page_context(title, breadcrumb)
             self.top_bar.set_active(NAV_GROUP_BY_PAGE.get(pid, pid))
-        self.title_label.setText(f"الراجحي للمحاسبة — {title}")
+        if hasattr(self, 'title_label'):
+            self.title_label.setText(f"الراجحي للمحاسبة — {title}")
 
     def setup_shortcuts(self):
         self.esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
@@ -393,7 +396,8 @@ class MainWindow(QMainWindow):
             "<p>نظام متكامل لإدارة المحاسبة والمخزون والتصنيع</p>")
 
     def toggle_title_bar(self, checked):
-        self.title_bar.setVisible(checked)
+        # Kept for backward compatibility with older shortcuts/plugins.
+        return
 
     def toggle_touch_mode(self, checked):
         pass

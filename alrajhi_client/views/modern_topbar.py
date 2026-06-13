@@ -50,73 +50,16 @@ class ModernTopBar(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        """Build a roomy, two-level application shell.
+        """Build a compact professional shell.
 
-        The previous top bar placed page title, breadcrumb, global search,
-        alerts, theme toggle, user identity and navigation buttons in a tight
-        vertical block. On smaller screens the bar looked compressed after
-        adding page/user context. This layout separates context from navigation
-        and gives the nav row a horizontal scroll area instead of squeezing
-        buttons.
+        Phase 41 keeps the navigation/menu row first, then places the global
+        search, notifications, theme toggle and user identity below it.
         """
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(18, 10, 18, 12)
+        outer.setContentsMargins(18, 8, 18, 10)
         outer.setSpacing(8)
 
-        # Context row: page title + breadcrumb on the right, utilities on the left.
-        info_row = QHBoxLayout()
-        info_row.setSpacing(12)
-
-        title_box = QVBoxLayout()
-        title_box.setSpacing(2)
-        self.page_title = QLabel("لوحة التحكم")
-        self.page_title.setObjectName("ShellPageTitle")
-        self.page_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.page_title.setWordWrap(False)
-        self.breadcrumb = QLabel("الرئيسية")
-        self.breadcrumb.setObjectName("ShellBreadcrumb")
-        self.breadcrumb.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.breadcrumb.setWordWrap(False)
-        title_box.addWidget(self.page_title)
-        title_box.addWidget(self.breadcrumb)
-        info_row.addLayout(title_box, 2)
-
-        info_row.addStretch(1)
-
-        self.search_box = QLineEdit()
-        self.search_box.setObjectName("GlobalSearchBox")
-        self.search_box.setPlaceholderText("بحث عام: مادة، عميل، فاتورة...")
-        self.search_box.setMinimumWidth(260)
-        self.search_box.setMaximumWidth(460)
-        self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        info_row.addWidget(self.search_box, 1)
-
-        self.alert_btn = QToolButton()
-        self.alert_btn.setObjectName("ShellIconButton")
-        self.alert_btn.setIcon(qta.icon('fa5s.bell'))
-        self.alert_btn.setIconSize(QSize(20, 20))
-        self.alert_btn.setToolTip("التنبيهات")
-        self.alert_btn.setFixedSize(38, 34)
-        info_row.addWidget(self.alert_btn)
-
-        self.theme_btn = QToolButton()
-        self.theme_btn.setObjectName("ShellIconButton")
-        self.theme_btn.setIcon(qta.icon('fa5s.adjust'))
-        self.theme_btn.setIconSize(QSize(20, 20))
-        self.theme_btn.setToolTip("تبديل الثيم")
-        self.theme_btn.setFixedSize(38, 34)
-        info_row.addWidget(self.theme_btn)
-
-        self.user_label = QLabel("")
-        self.user_label.setObjectName("ShellUserLabel")
-        self.user_label.setMinimumHeight(32)
-        self.user_label.setMaximumWidth(260)
-        self.user_label.setToolTip("المستخدم الحالي")
-        info_row.addWidget(self.user_label)
-
-        outer.addLayout(info_row)
-
-        # Navigation row: scrollable instead of compressed. Buttons keep readable sizes.
+        # Navigation row.
         nav_frame = QFrame()
         nav_frame.setObjectName("ShellNavFrame")
         nav_frame.setMinimumHeight(58)
@@ -154,6 +97,48 @@ class ModernTopBar(QWidget):
         nav_layout.addWidget(self.more_btn)
 
         outer.addWidget(nav_frame)
+
+        # Utility row: search + notifications + theme + user identity.
+        utility_frame = QFrame()
+        utility_frame.setObjectName("ShellUtilityFrame")
+        utility_layout = QHBoxLayout(utility_frame)
+        utility_layout.setContentsMargins(10, 8, 10, 8)
+        utility_layout.setSpacing(10)
+
+        self.search_box = QLineEdit()
+        self.search_box.setObjectName("GlobalSearchBox")
+        self.search_box.setPlaceholderText("بحث عام: مادة، عميل، فاتورة...")
+        self.search_box.setMinimumWidth(320)
+        self.search_box.setMaximumWidth(560)
+        self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        utility_layout.addWidget(self.search_box, 2)
+
+        utility_layout.addStretch(1)
+
+        self.alert_btn = QToolButton()
+        self.alert_btn.setObjectName("ShellIconButton")
+        self.alert_btn.setIcon(qta.icon('fa5s.bell'))
+        self.alert_btn.setIconSize(QSize(20, 20))
+        self.alert_btn.setToolTip("التنبيهات")
+        self.alert_btn.setFixedSize(40, 36)
+        utility_layout.addWidget(self.alert_btn)
+
+        self.theme_btn = QToolButton()
+        self.theme_btn.setObjectName("ShellIconButton")
+        self.theme_btn.setIcon(qta.icon('fa5s.adjust'))
+        self.theme_btn.setIconSize(QSize(20, 20))
+        self.theme_btn.setToolTip("تبديل الثيم")
+        self.theme_btn.setFixedSize(40, 36)
+        utility_layout.addWidget(self.theme_btn)
+
+        self.user_label = QLabel("")
+        self.user_label.setObjectName("ShellUserLabel")
+        self.user_label.setMinimumHeight(34)
+        self.user_label.setMaximumWidth(280)
+        self.user_label.setToolTip("المستخدم الحالي")
+        utility_layout.addWidget(self.user_label)
+
+        outer.addWidget(utility_frame)
 
     def add_menu_button(self, name, icon_name, menu_items):
         btn = QToolButton()
@@ -193,8 +178,8 @@ class ModernTopBar(QWidget):
         return btn
 
     def set_page_context(self, title: str, breadcrumb: str = ''):
-        self.page_title.setText(title or '')
-        self.breadcrumb.setText(breadcrumb or title or '')
+        # Page title/breadcrumb strip removed in Phase 40. Kept as no-op for compatibility.
+        return
 
     def set_user(self, username: str, role: str = ''):
         label = username or 'مستخدم'
@@ -246,6 +231,11 @@ class ModernTopBar(QWidget):
             #ModernTopBar {{
                 background-color: {c['bg_panel']};
                 border-bottom: 1px solid {c['border']};
+            }}
+            #ShellUtilityFrame {{
+                background-color: {c['card_bg']};
+                border: 1px solid {c['border']};
+                border-radius: 14px;
             }}
             #ShellNavFrame {{
                 background-color: {c['card_bg']};

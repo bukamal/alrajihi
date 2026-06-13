@@ -145,4 +145,20 @@ class SettingsService:
         self.clear_cache()
         audit_service.log('UPDATE', 'SETTINGS_POS', None, old_values=old, new_values={'pos/use_shifts': bool(use_shifts)}, details='تعديل إعدادات نقطة البيع')
 
+
+    # ========== Inventory read mode settings ==========
+    def get_inventory_stock_read_mode(self) -> str:
+        mode = str(self.get('inventory/stock_read_mode', 'operational') or 'operational').lower()
+        return mode if mode in ('operational', 'dual', 'ledger_trial', 'ledger_authoritative') else 'operational'
+
+    def set_inventory_stock_read_mode(self, mode: str):
+        mode = str(mode or 'operational').lower()
+        if mode not in ('operational', 'dual', 'ledger_trial', 'ledger_authoritative'):
+            mode = 'operational'
+        old = {'inventory/stock_read_mode': self.get_inventory_stock_read_mode()}
+        self.set('inventory/stock_read_mode', mode)
+        self.clear_cache()
+        audit_service.log('UPDATE', 'SETTINGS_INVENTORY', None, old_values=old, new_values={'inventory/stock_read_mode': mode}, details='تعديل مصدر قراءة المخزون')
+
+
 settings_service = SettingsService()

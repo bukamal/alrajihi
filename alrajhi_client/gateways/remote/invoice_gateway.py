@@ -43,5 +43,9 @@ class RemoteInvoiceGateway(InvoiceGateway):
         # pre-check UI flows without duplicating server SQL in the client.
         return False
 
+    def has_linked_returns(self, invoice_id: int) -> bool:
+        # Server update/delete endpoints enforce linked-return guards.
+        return False
+
     def is_remote(self) -> bool:
         return True

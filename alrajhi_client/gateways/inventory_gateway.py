@@ -34,6 +34,34 @@ class InventoryGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def ledger_reconciliation(self, item_id=None, warehouse_id=None, tolerance='0') -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def ledger_dual_read(self, item_id=None, warehouse_id=None, tolerance='0', include_matches=True) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def ledger_snapshot(self, item_id=None, warehouse_id=None) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def ledger_health(self, item_id=None, warehouse_id=None, tolerance='0') -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def ledger_backfill(self, dry_run=True, item_id=None, warehouse_id=None, clear_existing=False, include_item_movements=True, include_warehouse_movements=True) -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def ledger_readiness(self, item_id=None, warehouse_id=None, tolerance='0') -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def ledger_controlled_read(self, item_id=None, warehouse_id=None, mode='operational', tolerance='0') -> Dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
     def is_remote(self) -> bool:
         raise NotImplementedError
 

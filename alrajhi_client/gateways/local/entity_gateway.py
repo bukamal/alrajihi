@@ -31,6 +31,9 @@ class LocalCustomerGateway(CustomerGateway):
         return customer_dao.delete(customer_id)
 
 
+    def is_remote(self) -> bool:
+        return False
+
 class LocalSupplierGateway(SupplierGateway):
     def list(self, search: str | None = None, limit: int | None = None,
              offset: int | None = None) -> Tuple[List[Dict], int]:
@@ -48,3 +51,6 @@ class LocalSupplierGateway(SupplierGateway):
 
     def delete(self, supplier_id: int):
         return supplier_dao.delete(supplier_id)
+
+    def is_remote(self) -> bool:
+        return False

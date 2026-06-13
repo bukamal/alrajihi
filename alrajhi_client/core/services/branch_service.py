@@ -21,7 +21,14 @@ class BranchService:
         return self.gateway.get(branch_id)
 
     def default_branch_id(self) -> int | None:
-        return self.gateway.default_branch_id()
+        try:
+            return self.gateway.default_branch_id()
+        except Exception:
+            # In remote/client mode this may fail while offline.  Creating a
+            # queueable document must not crash just because the default branch
+            # could not be fetched; the server can resolve/validate branch_id
+            # when the queued request is replayed.
+            return None
 
     def default_branch(self) -> Optional[Dict]:
         bid = self.default_branch_id()
@@ -40,7 +47,9 @@ class BranchService:
     def ensure_branch_id(self, data: Dict | None) -> Dict:
         payload = dict(data or {})
         if not payload.get('branch_id'):
-            payload['branch_id'] = self.current_branch_id() or self.default_branch_id()
+            branch_id = self.current_branch_id()
+            if branch_id:
+                payload['branch_id'] = branch_id
         return payload
 
     def branch_name(self, branch_id: int | None) -> str:

@@ -30,3 +30,6 @@ class RemoteCurrencyGateway(CurrencyGateway):
     def update_rate(self, currency_code: str, rate_to_usd: float) -> None:
         if self.client is not None:
             self.client.update_exchange_rate(currency_code, rate_to_usd)
+
+    def is_remote(self) -> bool:
+        return True

@@ -75,3 +75,6 @@ class LocalCashboxGateway(CashboxGateway):
 
     def close_shift(self, shift_id: int, actual_amount, notes: str = ''):
         return cashbox_dao.close_shift(shift_id, actual_amount, notes)
+
+    def is_remote(self) -> bool:
+        return False

@@ -44,6 +44,10 @@ class InvoiceGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def has_linked_returns(self, invoice_id: int) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
     def is_remote(self) -> bool:
         raise NotImplementedError
 

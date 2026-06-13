@@ -13,11 +13,22 @@ def _invoice_has_vouchers(db, invoice_id, user_id):
     return bool(row and row['cnt'])
 
 
+def _invoice_has_returns(db, invoice_id, user_id):
+    row = db.execute("""
+        SELECT (
+            SELECT COUNT(*) FROM sales_returns WHERE original_invoice_id=? AND user_id=? AND deleted_at IS NULL
+        ) + (
+            SELECT COUNT(*) FROM purchase_returns WHERE original_invoice_id=? AND user_id=? AND deleted_at IS NULL
+        ) AS cnt
+    """, (invoice_id, user_id, invoice_id, user_id)).fetchone()
+    return bool(row and row['cnt'])
+
+
 def _update_item_quantity(db, item_id, user_id):
     row = db.execute('''
         SELECT SUM(CASE
-            WHEN movement_type IN ('opening','purchase','adjustment','production_out') THEN CAST(quantity AS REAL)
-            WHEN movement_type IN ('sale','production_consume') THEN -CAST(quantity AS REAL)
+            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return') THEN CAST(quantity AS REAL)
+            WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
             ELSE 0 END) AS total_qty
         FROM inventory_movements
         WHERE item_id=? AND user_id=?
@@ -50,6 +61,67 @@ def _apply_invoice_financial_effect(db, invoice, sign):
     if paid > 0:
         cash_delta = paid if invoice.get('type') == 'sale' else -paid
         db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS TEXT) + ? WHERE id=?", (str(sign * cash_delta), invoice['user_id']))
+
+
+
+def _post_inventory_ledger_entry(db, user_id, item_id, warehouse_id, movement_type, direction,
+                                 quantity, unit_cost, invoice_id, notes=''):
+    if direction not in {'in', 'out', 'neutral'}:
+        return
+    qty = abs(Decimal(str(quantity or '0')))
+    cost = Decimal(str(unit_cost or '0'))
+    total_cost = qty * cost
+    db.execute('''
+        INSERT INTO inventory_ledger (
+            user_id, item_id, warehouse_id, movement_type, direction, quantity,
+            unit_cost, total_cost, reference_type, reference_id, source_table,
+            source_id, notes, movement_date
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ''', (
+        user_id, item_id, warehouse_id, movement_type, direction, str(qty),
+        str(cost), str(total_cost), 'invoice', invoice_id, 'invoices',
+        invoice_id, notes, datetime.datetime.now().isoformat()
+    ))
+
+
+def _post_invoice_ledger_entries(db, user_id, invoice_id, invoice_data, lines=None):
+    inv_type = invoice_data.get('type')
+    warehouse_id = invoice_data.get('warehouse_id')
+    source_lines = lines if lines is not None else invoice_data.get('lines', [])
+    for line in source_lines or []:
+        item_id = line['item_id'] if isinstance(line, dict) else line['item_id']
+        qty = line.get('base_qty', line.get('quantity_in_base', line.get('quantity', 0))) if isinstance(line, dict) else line['quantity_in_base']
+        unit_cost = line.get('unit_price', line.get('unit_cost', 0)) if isinstance(line, dict) else line['unit_cost']
+        if inv_type == 'purchase':
+            _post_inventory_ledger_entry(
+                db, user_id, item_id, warehouse_id, 'invoice_purchase_in', 'in', qty, unit_cost,
+                invoice_id, 'استلام فاتورة شراء إلى دفتر المخزون'
+            )
+        elif inv_type == 'sale':
+            _post_inventory_ledger_entry(
+                db, user_id, item_id, warehouse_id, 'invoice_sale_out', 'out', qty, unit_cost,
+                invoice_id, 'صرف فاتورة بيع من دفتر المخزون'
+            )
+
+
+def _post_invoice_ledger_reversal(db, user_id, invoice_id, invoice_data, lines=None):
+    inv_type = invoice_data.get('type')
+    warehouse_id = invoice_data.get('warehouse_id')
+    source_lines = lines if lines is not None else invoice_data.get('lines', [])
+    for line in source_lines or []:
+        item_id = line['item_id'] if isinstance(line, dict) else line['item_id']
+        qty = line.get('base_qty', line.get('quantity_in_base', line.get('quantity', 0))) if isinstance(line, dict) else line['quantity_in_base']
+        unit_cost = line.get('unit_price', line.get('unit_cost', 0)) if isinstance(line, dict) else line['unit_cost']
+        if inv_type == 'purchase':
+            _post_inventory_ledger_entry(
+                db, user_id, item_id, warehouse_id, 'invoice_purchase_reversal', 'out', qty, unit_cost,
+                invoice_id, 'عكس دفتر مخزون فاتورة شراء'
+            )
+        elif inv_type == 'sale':
+            _post_inventory_ledger_entry(
+                db, user_id, item_id, warehouse_id, 'invoice_sale_reversal', 'in', qty, unit_cost,
+                invoice_id, 'عكس دفتر مخزون فاتورة بيع'
+            )
 
 @invoices_bp.route('/invoices', methods=['GET'])
 @jwt_required()
@@ -178,10 +250,11 @@ def add_invoice():
         invoice_id = cursor.lastrowid
         # إدراج البنود وتسجيل حركات المخزون (محاكاة منطق العميل)
         for line in data['lines']:
-            conv_factor = Decimal(str(line.get('conversion_factor', 1)))
+            conv_factor = Decimal(str(line.get('conversion_factor', 1) or 1))
             if conv_factor <= 0:
                 conv_factor = Decimal('1')
-            base_qty = Decimal(str(line.get('base_qty', line['quantity'])))
+            qty = Decimal(str(line.get('quantity', 0) or 0))
+            base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
             unit_cost = Decimal(str(line['unit_price']))
             db.execute('''
                 INSERT INTO invoice_lines (invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
@@ -211,6 +284,7 @@ def add_invoice():
         for item_id in {line['item_id'] for line in data['lines']}:
             _update_item_quantity(db, item_id, user_id)
             _recalculate_average_cost(db, item_id, user_id)
+        _post_invoice_ledger_entries(db, user_id, invoice_id, data)
         _apply_invoice_financial_effect(db, {
             'user_id': user_id, 'type': data['type'], 'customer_id': data.get('customer_id'),
             'supplier_id': data.get('supplier_id'), 'total': data['total'],
@@ -235,11 +309,15 @@ def update_invoice(invoice_id):
         return jsonify({'error': 'Not found'}), 404
     if _invoice_has_vouchers(db, invoice_id, user_id):
         return jsonify({'error': 'لا يمكن تعديل فاتورة مرتبطة بسندات. احذف أو عدّل السندات أولاً.'}), 400
+    if _invoice_has_returns(db, invoice_id, user_id):
+        return jsonify({'error': 'لا يمكن تعديل فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.'}), 400
     db.execute("BEGIN TRANSACTION")
     try:
         old_invoice_dict = dict(old_invoice)
         _apply_invoice_financial_effect(db, old_invoice_dict, Decimal('-1'))
-        old_item_ids = [row['item_id'] for row in db.execute("SELECT item_id FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()]
+        old_lines = db.execute("SELECT * FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()
+        old_item_ids = [row['item_id'] for row in old_lines]
+        _post_invoice_ledger_reversal(db, user_id, invoice_id, old_invoice_dict, old_lines)
         db.execute("DELETE FROM inventory_movements WHERE reference_id=? AND user_id=? AND movement_type IN ('purchase','sale')", (invoice_id, user_id))
         db.execute("DELETE FROM invoice_lines WHERE invoice_id=?", (invoice_id,))
         db.execute('''
@@ -253,10 +331,11 @@ def update_invoice(invoice_id):
             data.get('original_currency', 'USD'), data.get('warehouse_id'), data.get('branch_id'), invoice_id, user_id
         ))
         for line in data['lines']:
-            conv_factor = Decimal(str(line.get('conversion_factor', 1)))
+            conv_factor = Decimal(str(line.get('conversion_factor', 1) or 1))
             if conv_factor <= 0:
                 conv_factor = Decimal('1')
-            base_qty = Decimal(str(line.get('base_qty', line['quantity'])))
+            qty = Decimal(str(line.get('quantity', 0) or 0))
+            base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
             unit_cost = Decimal(str(line['unit_price']))
             cursor_line = db.execute('''
                 INSERT INTO invoice_lines (invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
@@ -284,6 +363,7 @@ def update_invoice(invoice_id):
         for item_id in set(old_item_ids + [line['item_id'] for line in data['lines']]):
             _update_item_quantity(db, item_id, user_id)
             _recalculate_average_cost(db, item_id, user_id)
+        _post_invoice_ledger_entries(db, user_id, invoice_id, data)
         _apply_invoice_financial_effect(db, {
             'user_id': user_id, 'type': data['type'], 'customer_id': data.get('customer_id'),
             'supplier_id': data.get('supplier_id'), 'total': data['total'],
@@ -306,9 +386,13 @@ def delete_invoice(invoice_id):
         return jsonify({'error': 'Not found'}), 404
     if _invoice_has_vouchers(db, invoice_id, user_id):
         return jsonify({'error': 'لا يمكن حذف فاتورة مرتبطة بسندات. احذف السندات أولاً.'}), 400
+    if _invoice_has_returns(db, invoice_id, user_id):
+        return jsonify({'error': 'لا يمكن حذف فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.'}), 400
     db.execute("BEGIN TRANSACTION")
     try:
-        item_ids = [row['item_id'] for row in db.execute("SELECT item_id FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()]
+        invoice_lines = db.execute("SELECT * FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()
+        item_ids = [row['item_id'] for row in invoice_lines]
+        _post_invoice_ledger_reversal(db, user_id, invoice_id, dict(inv), invoice_lines)
         db.execute("DELETE FROM inventory_movements WHERE reference_id=? AND user_id=? AND movement_type IN ('purchase','sale')", (invoice_id, user_id))
         for item_id in set(item_ids):
             _update_item_quantity(db, item_id, user_id)

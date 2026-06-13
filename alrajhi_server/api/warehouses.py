@@ -125,6 +125,42 @@ def _dec(value, default='0'):
     except Exception:
         return Decimal(str(default))
 
+
+
+def _post_inventory_ledger_entry(db, user_id, item_id, warehouse_id, movement_type, direction,
+                                 quantity, unit_cost=None, reference_type=None, reference_id=None,
+                                 source_table=None, source_id=None, notes=''):
+    """Shadow-post one warehouse event into inventory_ledger.
+
+    Phase 25 keeps this append-only and non-authoritative: existing warehouse
+    movements/balances remain the operational source for current stock.
+    """
+    if not item_id or not quantity:
+        return None
+    qty = abs(_dec(quantity))
+    if qty == 0:
+        return None
+    if direction not in ('in', 'out', 'neutral'):
+        direction = 'in' if _dec(quantity) > 0 else 'out' if _dec(quantity) < 0 else 'neutral'
+    cost = _dec(unit_cost or '0') if unit_cost is not None else None
+    total_cost = str(qty * cost) if cost is not None else None
+    cur = db.execute("""
+        INSERT INTO inventory_ledger (
+            user_id, item_id, warehouse_id, movement_type, direction, quantity,
+            unit_cost, total_cost, reference_type, reference_id, source_table,
+            source_id, notes, movement_date
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        user_id, item_id, warehouse_id, movement_type, direction, str(qty),
+        str(cost) if cost is not None else None, total_cost, reference_type,
+        reference_id, source_table, source_id, notes, _now()
+    ))
+    return int(cur.lastrowid)
+
+def _ledger_direction_from_qty(quantity):
+    q = _dec(quantity)
+    return 'in' if q > 0 else 'out' if q < 0 else 'neutral'
+
 def _ensure_transfer_schema(db):
     db.execute("""
         CREATE TABLE IF NOT EXISTS warehouse_transfers (
@@ -274,17 +310,27 @@ def list_warehouse_movements():
 def add_warehouse_movement():
     uid = _uid(); db = get_db(); data = request.get_json() or {}
     try:
+        item_id = data.get('item_id')
+        warehouse_id = data.get('warehouse_id') or _ensure_default_warehouse(db, uid)
+        movement_type = data.get('movement_type') or 'adjustment'
+        quantity = data.get('quantity') or '0'
+        unit_cost = data.get('unit_cost') or '0'
+        reference_type = data.get('reference_type')
+        reference_id = data.get('reference_id')
+        notes = data.get('notes') or ''
         mid = _record_warehouse_movement(
-            db, uid,
-            data.get('item_id'),
-            data.get('warehouse_id') or _ensure_default_warehouse(db, uid),
-            data.get('movement_type') or 'adjustment',
-            data.get('quantity') or '0',
-            data.get('unit_cost') or '0',
-            data.get('reference_type'),
-            data.get('reference_id'),
-            data.get('notes') or ''
+            db, uid, item_id, warehouse_id, movement_type, quantity, unit_cost,
+            reference_type, reference_id, notes
         )
+        # Phase 25: shadow-post direct warehouse movements, except invoice and
+        # return references which already have dedicated ledger hooks.
+        if reference_type not in ('invoice', 'sales_return', 'purchase_return'):
+            _post_inventory_ledger_entry(
+                db, uid, item_id, warehouse_id, movement_type,
+                _ledger_direction_from_qty(quantity), quantity, unit_cost,
+                reference_type or 'warehouse_movement', reference_id or mid,
+                'warehouse_movements', mid, notes
+            )
         db.commit()
         return jsonify({'id': mid}), 201
     except Exception as exc:
@@ -355,6 +401,8 @@ def create_warehouse_transfer():
         tid = int(cur.lastrowid)
         _record_warehouse_movement(db, uid, item_id, from_wh, 'transfer_out', -qty, unit_cost, 'warehouse_transfer', tid, f'تحويل إلى مستودع #{to_wh}: {notes}')
         _record_warehouse_movement(db, uid, item_id, to_wh, 'transfer_in', qty, unit_cost, 'warehouse_transfer', tid, f'تحويل من مستودع #{from_wh}: {notes}')
+        _post_inventory_ledger_entry(db, uid, item_id, from_wh, 'transfer_out', 'out', qty, unit_cost, 'warehouse_transfer', tid, 'warehouse_transfers', tid, f'دفتر مخزون تحويل إلى مستودع #{to_wh}')
+        _post_inventory_ledger_entry(db, uid, item_id, to_wh, 'transfer_in', 'in', qty, unit_cost, 'warehouse_transfer', tid, 'warehouse_transfers', tid, f'دفتر مخزون تحويل من مستودع #{from_wh}')
         db.commit()
         return jsonify({'id': tid}), 201
     except Exception as exc:
@@ -377,6 +425,8 @@ def cancel_warehouse_transfer(transfer_id):
         unit_cost = _dec(t['unit_cost'])
         _record_warehouse_movement(db, uid, t['item_id'], t['to_warehouse_id'], 'transfer_cancel_out', -qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي')
         _record_warehouse_movement(db, uid, t['item_id'], t['from_warehouse_id'], 'transfer_cancel_in', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي')
+        _post_inventory_ledger_entry(db, uid, t['item_id'], t['to_warehouse_id'], 'transfer_cancel_out', 'out', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'warehouse_transfers', transfer_id, 'دفتر مخزون إلغاء تحويل مستودعي')
+        _post_inventory_ledger_entry(db, uid, t['item_id'], t['from_warehouse_id'], 'transfer_cancel_in', 'in', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'warehouse_transfers', transfer_id, 'دفتر مخزون إلغاء تحويل مستودعي')
         db.execute("UPDATE warehouse_transfers SET status='cancelled', cancelled_at=? WHERE id=? AND user_id=?", (_now(), transfer_id, uid))
         db.commit()
         return jsonify({'status': 'ok'})

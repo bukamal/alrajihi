@@ -30,12 +30,28 @@ class ReportingService:
         result = self._gateway.balance_sheet(start_date, end_date)
         return result if isinstance(result, dict) else {}
 
-    def customer_statement(self, customer_id: int) -> List[Dict]:
-        result = self._gateway.customer_statement(customer_id)
+    def customer_statement(self, customer_id: int, start_date: str | None = None, end_date: str | None = None) -> List[Dict]:
+        result = self._gateway.customer_statement(customer_id, start_date, end_date)
         return result if isinstance(result, list) else []
 
-    def supplier_statement(self, supplier_id: int) -> List[Dict]:
-        result = self._gateway.supplier_statement(supplier_id)
+    def supplier_statement(self, supplier_id: int, start_date: str | None = None, end_date: str | None = None) -> List[Dict]:
+        result = self._gateway.supplier_statement(supplier_id, start_date, end_date)
+        return result if isinstance(result, list) else []
+
+    def customer_balances(self) -> List[Dict]:
+        result = self._gateway.customer_balances()
+        return result if isinstance(result, list) else []
+
+    def supplier_balances(self) -> List[Dict]:
+        result = self._gateway.supplier_balances()
+        return result if isinstance(result, list) else []
+
+    def customer_aging(self, as_of_date: str | None = None) -> List[Dict]:
+        result = self._gateway.customer_aging(as_of_date)
+        return result if isinstance(result, list) else []
+
+    def supplier_aging(self, as_of_date: str | None = None) -> List[Dict]:
+        result = self._gateway.supplier_aging(as_of_date)
         return result if isinstance(result, list) else []
 
     def trial_balance(self) -> List[Dict]:

@@ -64,6 +64,64 @@ def _record_movement(db, user_id, item_id, movement_type, quantity, unit_cost, r
     if movement_type in ('opening','purchase','adjustment','production_out','consumption_reverse'):
         _recalculate_average_cost(db, item_id)
 
+
+
+def _post_inventory_ledger_entry(db, user_id, item_id, warehouse_id, movement_type, direction,
+                                 quantity, unit_cost, reference_type, reference_id,
+                                 source_table=None, source_id=None, notes=''):
+    """Shadow-post manufacturing inventory effects into inventory_ledger.
+
+    Phase 26 keeps operational stock semantics unchanged. These entries are
+    append-only audit/read-model data and are not used yet to calculate stock.
+    """
+    qty = abs(_dec(quantity))
+    cost = _dec(unit_cost)
+    total = qty * cost
+    now = datetime.datetime.now().isoformat()
+    db.execute("""
+        INSERT INTO inventory_ledger (
+            user_id, item_id, warehouse_id, movement_type, direction, quantity,
+            unit_cost, total_cost, reference_type, reference_id, source_table,
+            source_id, notes, movement_date
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        user_id, item_id, warehouse_id, movement_type, direction, str(qty),
+        str(cost), str(total), reference_type, reference_id, source_table,
+        source_id, notes, now
+    ))
+
+
+def _post_manufacturing_consumption_ledger(db, user_id, order, item_id, qty, unit_cost, source_id=None, notes='دفتر مخزون استهلاك إنتاج'):
+    _post_inventory_ledger_entry(
+        db, user_id, item_id, order['raw_warehouse_id'], 'production_consume', 'out',
+        qty, unit_cost, 'production_order', order['id'], 'production_consumptions',
+        source_id, notes
+    )
+
+
+def _post_manufacturing_output_ledger(db, user_id, order, item_id, qty, unit_cost, source_id=None, notes='دفتر مخزون إنتاج منتج نهائي'):
+    _post_inventory_ledger_entry(
+        db, user_id, item_id, order['output_warehouse_id'], 'production_out', 'in',
+        qty, unit_cost, 'production_order', order['id'], 'production_outputs',
+        source_id, notes
+    )
+
+
+def _post_manufacturing_consumption_reversal_ledger(db, user_id, order, item_id, qty, unit_cost, source_id=None, notes='عكس دفتر مخزون استهلاك إنتاج'):
+    _post_inventory_ledger_entry(
+        db, user_id, item_id, order['raw_warehouse_id'], 'production_consume_reversal', 'in',
+        qty, unit_cost, 'production_order_reversal', order['id'], 'production_consumptions',
+        source_id, notes
+    )
+
+
+def _post_manufacturing_output_reversal_ledger(db, user_id, order, item_id, qty, unit_cost, source_id=None, notes='عكس دفتر مخزون إنتاج منتج نهائي'):
+    _post_inventory_ledger_entry(
+        db, user_id, item_id, order['output_warehouse_id'], 'production_out_reversal', 'out',
+        qty, unit_cost, 'production_order_reversal', order['id'], 'production_outputs',
+        source_id, notes
+    )
+
 def _validate_bom_payload(db, data, user_id):
     product_id = data.get('product_id')
     if not product_id:
@@ -375,11 +433,13 @@ def consume_material(order_id):
         WHERE order_id = ? AND item_id = ?
     """, (str(consumed_qty), order_id, item_id))
     now = datetime.datetime.now().isoformat()
-    db.execute("""
+    cur = db.execute("""
         INSERT INTO production_consumptions (order_id, item_id, consumed_qty, unit_cost, movement_date)
         VALUES (?,?,?,?,?)
     """, (order_id, item_id, str(consumed_qty), str(unit_cost), now))
+    consumption_id = cur.lastrowid
     _record_movement(db, user_id, item_id, 'production_consume', consumed_qty, unit_cost, order_id)
+    _post_manufacturing_consumption_ledger(db, user_id, order, item_id, consumed_qty, unit_cost, consumption_id)
     audit_log('POST', 'PRODUCTION_ORDER', order_id if 'order_id' in locals() else None, new_values=data if 'data' in locals() else None, details='عملية إنتاج')
     audit_log('POST', 'PRODUCTION_ORDER', order_id if 'order_id' in locals() else None, details='عملية إنتاج')
     db.commit()
@@ -414,11 +474,13 @@ def complete_order(order_id):
         return jsonify({'error': 'تكلفة الإنتاج يجب أن تكون أكبر من صفر'}), 400
     unit_cost = total_cost / produced_qty
     now = datetime.datetime.now().isoformat()
-    db.execute("""
+    cur = db.execute("""
         INSERT INTO production_outputs (order_id, item_id, produced_qty, unit_cost, output_date)
         VALUES (?,?,?,?,?)
     """, (order_id, order['product_id'], str(produced_qty), str(unit_cost), now))
+    output_id = cur.lastrowid
     _record_movement(db, user_id, order['product_id'], 'production_out', produced_qty, unit_cost, order_id)
+    _post_manufacturing_output_ledger(db, user_id, order, order['product_id'], produced_qty, unit_cost, output_id)
     db.execute("""
         UPDATE production_orders 
         SET produced_qty = CAST(produced_qty AS REAL) + ?, status='completed', end_date=?
@@ -448,8 +510,10 @@ def reverse_order(order_id):
     consumptions = db.execute("SELECT * FROM production_consumptions WHERE order_id=?", (order_id,)).fetchall()
     for c in consumptions:
         _record_movement(db, user_id, c['item_id'], 'adjustment', _dec(c['consumed_qty']), _dec(c['unit_cost']), None)
+        _post_manufacturing_consumption_reversal_ledger(db, user_id, order, c['item_id'], _dec(c['consumed_qty']), _dec(c['unit_cost']), c['id'])
     for o in outputs:
         _record_movement(db, user_id, o['item_id'], 'adjustment', -_dec(o['produced_qty']), _dec(o['unit_cost']), None)
+        _post_manufacturing_output_reversal_ledger(db, user_id, order, o['item_id'], _dec(o['produced_qty']), _dec(o['unit_cost']), o['id'])
     db.execute("DELETE FROM production_consumptions WHERE order_id=?", (order_id,))
     db.execute("DELETE FROM production_outputs WHERE order_id=?", (order_id,))
     db.execute("DELETE FROM material_reservations WHERE order_id=?", (order_id,))
@@ -630,7 +694,7 @@ def delete_consumption_endpoint(consumption_id):
     user_id = get_jwt_identity()
     db = get_db()
     row = db.execute('''
-        SELECT pc.*, po.status, po.user_id FROM production_consumptions pc
+        SELECT pc.*, po.status, po.user_id, po.raw_warehouse_id, po.output_warehouse_id, po.id AS order_ref_id FROM production_consumptions pc
         JOIN production_orders po ON po.id=pc.order_id
         WHERE pc.id=? AND po.user_id=?
     ''', (consumption_id, user_id)).fetchone()
@@ -641,6 +705,8 @@ def delete_consumption_endpoint(consumption_id):
     qty = _dec(row['consumed_qty']); cost = _dec(row['unit_cost'])
     db.execute('UPDATE material_reservations SET consumed_qty = CAST(consumed_qty AS REAL) - ? WHERE order_id=? AND item_id=?', (str(qty), row['order_id'], row['item_id']))
     _record_movement(db, user_id, row['item_id'], 'consumption_reverse', qty, cost, None)
+    order_ctx = {'id': row['order_id'], 'raw_warehouse_id': row['raw_warehouse_id'], 'output_warehouse_id': row['output_warehouse_id']}
+    _post_manufacturing_consumption_reversal_ledger(db, user_id, order_ctx, row['item_id'], qty, cost, consumption_id, 'عكس دفتر مخزون حذف استهلاك إنتاج')
     db.execute('DELETE FROM production_consumptions WHERE id=?', (consumption_id,))
     audit_log('DELETE', 'PRODUCTION_CONSUMPTION', consumption_id, old_values=dict(row), details='حذف استهلاك مادة إنتاج')
     db.commit()
@@ -652,7 +718,7 @@ def delete_output_endpoint(output_id):
     user_id = get_jwt_identity()
     db = get_db()
     row = db.execute('''
-        SELECT po2.*, po.status, po.user_id FROM production_outputs po2
+        SELECT po2.*, po.status, po.user_id, po.raw_warehouse_id, po.output_warehouse_id, po.id AS order_ref_id FROM production_outputs po2
         JOIN production_orders po ON po.id=po2.order_id
         WHERE po2.id=? AND po.user_id=?
     ''', (output_id, user_id)).fetchone()
@@ -665,6 +731,8 @@ def delete_output_endpoint(output_id):
     if available < qty:
         return jsonify({'error': f'لا يمكن حذف المخرج لأن المخزون غير كاف. المتوفر {available}'}), 400
     _record_movement(db, user_id, row['item_id'], 'adjustment', -qty, cost, None)
+    order_ctx = {'id': row['order_id'], 'raw_warehouse_id': row['raw_warehouse_id'], 'output_warehouse_id': row['output_warehouse_id']}
+    _post_manufacturing_output_reversal_ledger(db, user_id, order_ctx, row['item_id'], qty, cost, output_id, 'عكس دفتر مخزون حذف مخرج إنتاج')
     db.execute('DELETE FROM production_outputs WHERE id=?', (output_id,))
     audit_log('DELETE', 'PRODUCTION_OUTPUT', output_id, old_values=dict(row), details='حذف مخرج إنتاج')
     db.commit()

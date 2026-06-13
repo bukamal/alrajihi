@@ -10,6 +10,7 @@ from core.services.audit_service import audit_service
 from core.services.branch_service import branch_service
 from core.services.cashbox_service import cashbox_service
 from core.services.invoice_service import invoice_service
+from core.services.inventory_service import inventory_service
 from core.services.warehouse_service import warehouse_service
 from database.connection import DatabaseConnection
 from gateways.purchase_return_gateway import PurchaseReturnGateway, PurchaseReturnException
@@ -123,12 +124,25 @@ class LocalPurchaseReturnGateway(PurchaseReturnGateway):
         result = []
         wh_id = inv.get('warehouse_id') or warehouse_service.default_warehouse_id()
         for line in inv.get('lines') or []:
-            purchased = Decimal(str(line.get('quantity_in_base') or line.get('quantity') or 0))
-            returned = self.returned_qty(invoice_id, line.get('id'), line.get('item_id'))
-            remaining = max(Decimal('0'), purchased - returned)
-            available = Decimal(str(warehouse_service.available_qty(line.get('item_id'), wh_id) or 0))
+            factor = Decimal(str(line.get('conversion_factor') or 1))
+            if factor <= 0:
+                factor = Decimal('1')
+            purchased_base = Decimal(str(line.get('quantity_in_base') or line.get('quantity') or 0))
+            returned_base = self.returned_qty(invoice_id, line.get('id'), line.get('item_id'))
+            remaining_base = max(Decimal('0'), purchased_base - returned_base)
+            available_base = Decimal(str(warehouse_service.available_qty(line.get('item_id'), wh_id) or 0))
             row = dict(line)
-            row.update({'purchased_qty': str(purchased), 'returned_qty': str(returned), 'returnable_qty': str(remaining), 'warehouse_available': str(available)})
+            row.update({
+                'purchased_qty': str(purchased_base / factor),
+                'returned_qty': str(returned_base / factor),
+                'returnable_qty': str(remaining_base / factor),
+                'warehouse_available': str(available_base / factor),
+                'purchased_qty_base': str(purchased_base),
+                'returned_qty_base': str(returned_base),
+                'returnable_qty_base': str(remaining_base),
+                'warehouse_available_base': str(available_base),
+                'conversion_factor': str(factor),
+            })
             result.append(row)
         return result
 
@@ -156,27 +170,32 @@ class LocalPurchaseReturnGateway(PurchaseReturnGateway):
             qty = Decimal(str(line.get('quantity') or 0))
             if qty <= 0:
                 raise PurchaseReturnException('كمية المرتجع يجب أن تكون أكبر من صفر')
+            factor = Decimal(str(orig.get('conversion_factor') or 1))
+            if factor <= 0:
+                factor = Decimal('1')
+            base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * factor)) or 0))
             purchased = Decimal(str(orig.get('quantity_in_base') or orig.get('quantity') or 0))
             already = self.returned_qty(invoice_id, orig_line_id, orig.get('item_id'))
-            if qty > (purchased - already):
+            if base_qty > (purchased - already):
                 raise PurchaseReturnException('كمية المرتجع أكبر من الكمية المتبقية القابلة للإرجاع')
             available = Decimal(str(warehouse_service.available_qty(orig.get('item_id'), wh_id) or 0))
-            if qty > available:
+            if base_qty > available:
                 raise PurchaseReturnException('لا توجد كمية كافية في المستودع لإرجاع هذا البند')
             price = Decimal(str(orig.get('unit_price') or orig.get('price') or 0))
-            cost = Decimal(str(orig.get('unit_cost') or price))
+            cost_per_display_unit = Decimal(str(orig.get('unit_cost') or price))
+            cost_per_base_unit = cost_per_display_unit / factor
             amount = qty * price
             total += amount
             prepared.append({
                 'original_invoice_line_id': orig_line_id,
                 'item_id': orig.get('item_id'),
                 'quantity': qty,
-                'quantity_in_base': qty,
+                'quantity_in_base': base_qty,
                 'unit_price': price,
-                'unit_cost': cost,
+                'unit_cost': cost_per_base_unit,
                 'total': amount,
                 'unit': orig.get('unit') or '',
-                'cost_amount': qty * cost,
+                'cost_amount': base_qty * cost_per_base_unit,
             })
         remaining_payable = max(Decimal('0'), Decimal(str(inv.get('total') or 0)) - Decimal(str(inv.get('paid') or 0)))
         requested = data.get('refund_amount')
@@ -209,6 +228,12 @@ class LocalPurchaseReturnGateway(PurchaseReturnGateway):
                   str(line['total']), line['unit'], str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
             self.db._record_inventory_movement(line['item_id'], 'purchase_return', line['quantity_in_base'], line['unit_cost'], rid)
             warehouse_service.record_movement(line['item_id'], wh_id, 'purchase_return_out', -abs(line['quantity_in_base']), line['unit_cost'], 'purchase_return', rid, 'مرتجع مشتريات من المستودع')
+            inventory_service.record_ledger_entry(
+                item_id=line['item_id'], warehouse_id=wh_id, movement_type='purchase_return_out',
+                direction='out', quantity=line['quantity_in_base'], unit_cost=line['unit_cost'],
+                reference_type='purchase_return', reference_id=rid, source_table='purchase_returns',
+                source_id=rid, notes='دفتر مخزون مرتجع شراء'
+            )
         if inv.get('supplier_id') and credit > 0:
             self.db._update_supplier_balance(inv.get('supplier_id'), -credit)
         if refund > 0:
@@ -227,6 +252,14 @@ class LocalPurchaseReturnGateway(PurchaseReturnGateway):
             raise PurchaseReturnException('مرتجع المشتريات غير موجود')
         conn = self._conn()
         conn.execute("DELETE FROM inventory_movements WHERE reference_id=? AND movement_type='purchase_return'", (return_id,))
+        for line in ret.get('lines') or []:
+            inventory_service.record_ledger_entry(
+                item_id=line.get('item_id'), warehouse_id=ret.get('warehouse_id'), movement_type='purchase_return_reversal',
+                direction='in', quantity=line.get('quantity_in_base') or line.get('quantity') or 0,
+                unit_cost=line.get('unit_cost') or 0, reference_type='purchase_return',
+                reference_id=return_id, source_table='purchase_returns', source_id=return_id,
+                notes='عكس دفتر مخزون مرتجع شراء'
+            )
         warehouse_service.reverse_reference('purchase_return', return_id)
         credit = Decimal(str(ret.get('credit_amount') or 0))
         if ret.get('supplier_id') and credit > 0:

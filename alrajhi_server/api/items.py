@@ -444,6 +444,615 @@ def record_inventory_ledger_entry():
     return jsonify({'id': entry_id}), 201
 
 
+
+@items_bp.route('/inventory-ledger/reconciliation', methods=['GET'])
+@jwt_required()
+def get_inventory_ledger_reconciliation():
+    """Diagnostic-only comparison between operational stock and shadow ledger."""
+    user_id = get_jwt_identity()
+    db = get_db()
+    item_id = request.args.get('item_id')
+    warehouse_id = request.args.get('warehouse_id')
+    try:
+        tolerance = Decimal(str(request.args.get('tolerance', '0') or '0'))
+    except Exception:
+        return jsonify({'error': 'invalid tolerance'}), 400
+
+    def dec(value):
+        return Decimal(str(value if value not in (None, '') else '0'))
+
+    mismatches = []
+    checked = 0
+
+    item_sql = ["""
+        SELECT i.id AS item_id, i.name AS item_name,
+               CAST(COALESCE(i.quantity, '0') AS REAL) AS operational_quantity,
+               COALESCE(SUM(CASE
+                   WHEN l.direction='in' THEN CAST(l.quantity AS REAL)
+                   WHEN l.direction='out' THEN -CAST(l.quantity AS REAL)
+                   ELSE 0 END), 0) AS ledger_quantity
+        FROM items i
+        LEFT JOIN inventory_ledger l ON l.user_id=i.user_id AND l.item_id=i.id
+        WHERE i.user_id=? AND i.deleted_at IS NULL
+    """]
+    params = [user_id]
+    if item_id not in (None, ''):
+        item_sql.append('AND i.id=?')
+        params.append(item_id)
+    item_sql.append('GROUP BY i.id, i.name, i.quantity ORDER BY i.name')
+    for row in db.execute(' '.join(item_sql), tuple(params)).fetchall():
+        checked += 1
+        op = dec(row['operational_quantity'])
+        led = dec(row['ledger_quantity'])
+        diff = op - led
+        if abs(diff) > tolerance:
+            mismatches.append({
+                'scope': 'item',
+                'item_id': row['item_id'],
+                'item_name': row['item_name'],
+                'warehouse_id': None,
+                'warehouse_name': None,
+                'operational_quantity': str(op),
+                'ledger_quantity': str(led),
+                'difference': str(diff),
+            })
+
+    wh_sql = ["""
+        SELECT b.item_id, i.name AS item_name, b.warehouse_id, w.name AS warehouse_name,
+               CAST(COALESCE(b.quantity, '0') AS REAL) AS operational_quantity,
+               COALESCE(SUM(CASE
+                   WHEN l.direction='in' THEN CAST(l.quantity AS REAL)
+                   WHEN l.direction='out' THEN -CAST(l.quantity AS REAL)
+                   ELSE 0 END), 0) AS ledger_quantity
+        FROM item_warehouse_balances b
+        JOIN items i ON i.id=b.item_id AND i.user_id=b.user_id
+        JOIN warehouses w ON w.id=b.warehouse_id AND w.user_id=b.user_id
+        LEFT JOIN inventory_ledger l ON l.user_id=b.user_id AND l.item_id=b.item_id AND l.warehouse_id=b.warehouse_id
+        WHERE b.user_id=?
+    """]
+    params = [user_id]
+    if item_id not in (None, ''):
+        wh_sql.append('AND b.item_id=?')
+        params.append(item_id)
+    if warehouse_id not in (None, ''):
+        wh_sql.append('AND b.warehouse_id=?')
+        params.append(warehouse_id)
+    wh_sql.append('GROUP BY b.item_id, i.name, b.warehouse_id, w.name, b.quantity ORDER BY i.name, w.name')
+    for row in db.execute(' '.join(wh_sql), tuple(params)).fetchall():
+        checked += 1
+        op = dec(row['operational_quantity'])
+        led = dec(row['ledger_quantity'])
+        diff = op - led
+        if abs(diff) > tolerance:
+            mismatches.append({
+                'scope': 'warehouse',
+                'item_id': row['item_id'],
+                'item_name': row['item_name'],
+                'warehouse_id': row['warehouse_id'],
+                'warehouse_name': row['warehouse_name'],
+                'operational_quantity': str(op),
+                'ledger_quantity': str(led),
+                'difference': str(diff),
+            })
+
+    return jsonify({
+        'checked': checked,
+        'mismatch_count': len(mismatches),
+        'mismatches': mismatches,
+        'diagnostic_only': True,
+        'note': 'Phase 27 compares operational stock with the shadow ledger; it does not change stock.'
+    })
+
+
+@items_bp.route('/inventory-ledger/dual-read', methods=['GET'])
+@jwt_required()
+def get_inventory_ledger_dual_read():
+    """Dual-read operational stock and shadow ledger balances.
+
+    Phase 31 is diagnostic-only. Operational stock remains authoritative.
+    """
+    user_id = get_jwt_identity()
+    db = get_db()
+    item_id = request.args.get('item_id')
+    warehouse_id = request.args.get('warehouse_id')
+    include_matches = str(request.args.get('include_matches', '1')).lower() not in ('0', 'false', 'no')
+    try:
+        tolerance = Decimal(str(request.args.get('tolerance', '0') or '0'))
+    except Exception:
+        return jsonify({'error': 'invalid tolerance'}), 400
+
+    def dec(value):
+        return Decimal(str(value if value not in (None, '') else '0'))
+
+    rows = []
+    checked = matched = mismatched = 0
+
+    item_sql = ["""
+        SELECT i.id AS item_id, i.name AS item_name,
+               CAST(COALESCE(i.quantity, '0') AS REAL) AS operational_quantity,
+               COALESCE(SUM(CASE
+                   WHEN l.direction='in' THEN CAST(l.quantity AS REAL)
+                   WHEN l.direction='out' THEN -CAST(l.quantity AS REAL)
+                   ELSE 0 END), 0) AS ledger_quantity
+        FROM items i
+        LEFT JOIN inventory_ledger l ON l.user_id=i.user_id AND l.item_id=i.id
+        WHERE i.user_id=? AND i.deleted_at IS NULL
+    """]
+    params = [user_id]
+    if item_id not in (None, ''):
+        item_sql.append('AND i.id=?')
+        params.append(item_id)
+    item_sql.append('GROUP BY i.id, i.name, i.quantity ORDER BY i.name')
+    for row in db.execute(' '.join(item_sql), tuple(params)).fetchall():
+        checked += 1
+        op = dec(row['operational_quantity'])
+        led = dec(row['ledger_quantity'])
+        diff = op - led
+        ok = abs(diff) <= tolerance
+        matched += 1 if ok else 0
+        mismatched += 0 if ok else 1
+        if include_matches or not ok:
+            rows.append({
+                'scope': 'item',
+                'item_id': row['item_id'],
+                'item_name': row['item_name'],
+                'warehouse_id': None,
+                'warehouse_name': None,
+                'operational_quantity': str(op),
+                'ledger_quantity': str(led),
+                'difference': str(diff),
+                'matches': ok,
+                'read_source': 'dual',
+            })
+
+    wh_sql = ["""
+        SELECT b.item_id, i.name AS item_name, b.warehouse_id, w.name AS warehouse_name,
+               CAST(COALESCE(b.quantity, '0') AS REAL) AS operational_quantity,
+               COALESCE(SUM(CASE
+                   WHEN l.direction='in' THEN CAST(l.quantity AS REAL)
+                   WHEN l.direction='out' THEN -CAST(l.quantity AS REAL)
+                   ELSE 0 END), 0) AS ledger_quantity
+        FROM item_warehouse_balances b
+        JOIN items i ON i.id=b.item_id AND i.user_id=b.user_id
+        JOIN warehouses w ON w.id=b.warehouse_id AND w.user_id=b.user_id
+        LEFT JOIN inventory_ledger l ON l.user_id=b.user_id AND l.item_id=b.item_id AND l.warehouse_id=b.warehouse_id
+        WHERE b.user_id=?
+    """]
+    params = [user_id]
+    if item_id not in (None, ''):
+        wh_sql.append('AND b.item_id=?')
+        params.append(item_id)
+    if warehouse_id not in (None, ''):
+        wh_sql.append('AND b.warehouse_id=?')
+        params.append(warehouse_id)
+    wh_sql.append('GROUP BY b.item_id, i.name, b.warehouse_id, w.name, b.quantity ORDER BY i.name, w.name')
+    for row in db.execute(' '.join(wh_sql), tuple(params)).fetchall():
+        checked += 1
+        op = dec(row['operational_quantity'])
+        led = dec(row['ledger_quantity'])
+        diff = op - led
+        ok = abs(diff) <= tolerance
+        matched += 1 if ok else 0
+        mismatched += 0 if ok else 1
+        if include_matches or not ok:
+            rows.append({
+                'scope': 'warehouse',
+                'item_id': row['item_id'],
+                'item_name': row['item_name'],
+                'warehouse_id': row['warehouse_id'],
+                'warehouse_name': row['warehouse_name'],
+                'operational_quantity': str(op),
+                'ledger_quantity': str(led),
+                'difference': str(diff),
+                'matches': ok,
+                'read_source': 'dual',
+            })
+
+    return jsonify({
+        'mode': 'dual_read',
+        'authoritative_source': 'operational_stock',
+        'ledger_authoritative': False,
+        'checked': checked,
+        'matched': matched,
+        'mismatched': mismatched,
+        'rows': rows,
+        'diagnostic_only': True,
+        'note': 'Phase 31 reads operational stock and ledger balances side by side; it does not change stock.'
+    })
+
+
+@items_bp.route('/inventory-ledger/backfill', methods=['POST'])
+@jwt_required()
+def inventory_ledger_backfill():
+    """Backfill shadow ledger from legacy movement tables.
+
+    Phase 29 is migration-preparation only. It can create item-level rows from
+    inventory_movements and warehouse-level rows from warehouse_movements. It
+    never updates operational stock quantities. Warehouse transfers are covered
+    through their warehouse_movements rows to avoid duplicate posting.
+    """
+    user_id = get_jwt_identity()
+    db = get_db()
+    data = request.get_json() or {}
+    dry_run = bool(data.get('dry_run', True))
+    item_id = data.get('item_id')
+    warehouse_id = data.get('warehouse_id')
+    clear_existing = bool(data.get('clear_existing', False))
+    include_item_movements = bool(data.get('include_item_movements', True))
+    include_warehouse_movements = bool(data.get('include_warehouse_movements', True))
+
+    def _exists(source_table, source_id):
+        return db.execute(
+            """SELECT id FROM inventory_ledger
+               WHERE user_id=? AND source_table=? AND source_id=? LIMIT 1""",
+            (user_id, source_table, source_id)
+        ).fetchone()
+
+    def _insert(payload):
+        qty = str(payload['quantity'] or '0')
+        unit_cost = payload.get('unit_cost')
+        total_cost = None
+        if unit_cost is not None:
+            try:
+                total_cost = str(Decimal(str(qty)) * Decimal(str(unit_cost)))
+            except Exception:
+                total_cost = None
+        db.execute("""
+            INSERT INTO inventory_ledger (
+                user_id, item_id, warehouse_id, movement_type, direction, quantity,
+                unit_cost, total_cost, reference_type, reference_id, source_table,
+                source_id, notes, movement_date
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            user_id, payload['item_id'], payload.get('warehouse_id'), payload['movement_type'],
+            payload['direction'], qty, str(unit_cost) if unit_cost is not None else None,
+            total_cost, payload.get('reference_type'), payload.get('reference_id'),
+            payload.get('source_table'), payload.get('source_id'), payload.get('notes'),
+            payload.get('movement_date')
+        ))
+
+    results = []
+
+    if include_item_movements:
+        if clear_existing and not dry_run:
+            sql = "DELETE FROM inventory_ledger WHERE user_id=? AND source_table='inventory_movements'"
+            params = [user_id]
+            if item_id not in (None, ''):
+                sql += " AND item_id=?"
+                params.append(item_id)
+            db.execute(sql, tuple(params))
+        sql = ["""
+            SELECT id, item_id, movement_type, quantity, unit_cost, reference_id, movement_date
+            FROM inventory_movements
+            WHERE user_id=?
+        """]
+        params = [user_id]
+        if item_id not in (None, ''):
+            sql.append('AND item_id=?')
+            params.append(item_id)
+        sql.append('ORDER BY id')
+        scanned = inserted = skipped = 0
+        preview = []
+        for row in db.execute(' '.join(sql), tuple(params)).fetchall():
+            scanned += 1
+            source_id = row['id']
+            if _exists('inventory_movements', source_id):
+                skipped += 1
+                continue
+            mt = row['movement_type']
+            direction = 'in' if mt in ('opening', 'purchase', 'adjustment', 'production_out', 'sales_return', 'consumption_reverse') else 'out' if mt in ('sale', 'production_consume') else 'neutral'
+            payload = {
+                'item_id': row['item_id'],
+                'movement_type': f'legacy_{mt}',
+                'direction': direction,
+                'quantity': str(row['quantity'] or '0'),
+                'unit_cost': row['unit_cost'],
+                'warehouse_id': None,
+                'reference_type': mt,
+                'reference_id': row['reference_id'],
+                'source_table': 'inventory_movements',
+                'source_id': source_id,
+                'notes': 'Phase 29 legacy inventory movement backfill',
+                'movement_date': row['movement_date'],
+            }
+            if dry_run:
+                if len(preview) < 20:
+                    preview.append(payload)
+            else:
+                _insert(payload)
+            inserted += 1
+        results.append({'dry_run': dry_run, 'source': 'inventory_movements', 'scanned': scanned, 'inserted': inserted, 'skipped': skipped, 'preview': preview, 'destructive': False})
+
+    if include_warehouse_movements:
+        if clear_existing and not dry_run:
+            sql = "DELETE FROM inventory_ledger WHERE user_id=? AND source_table='warehouse_movements'"
+            params = [user_id]
+            if item_id not in (None, ''):
+                sql += " AND item_id=?"
+                params.append(item_id)
+            if warehouse_id not in (None, ''):
+                sql += " AND warehouse_id=?"
+                params.append(warehouse_id)
+            db.execute(sql, tuple(params))
+        sql = ["""
+            SELECT id, item_id, warehouse_id, movement_type, quantity, unit_cost,
+                   reference_type, reference_id, notes, movement_date
+            FROM warehouse_movements
+            WHERE user_id=?
+        """]
+        params = [user_id]
+        if item_id not in (None, ''):
+            sql.append('AND item_id=?')
+            params.append(item_id)
+        if warehouse_id not in (None, ''):
+            sql.append('AND warehouse_id=?')
+            params.append(warehouse_id)
+        sql.append('ORDER BY id')
+        scanned = inserted = skipped = 0
+        preview = []
+        for row in db.execute(' '.join(sql), tuple(params)).fetchall():
+            scanned += 1
+            source_id = row['id']
+            if _exists('warehouse_movements', source_id):
+                skipped += 1
+                continue
+            qty = Decimal(str(row['quantity'] or '0'))
+            if qty == 0:
+                skipped += 1
+                continue
+            direction = 'in' if qty > 0 else 'out'
+            mt = row['movement_type']
+            payload = {
+                'item_id': row['item_id'],
+                'movement_type': f'legacy_warehouse_{mt}',
+                'direction': direction,
+                'quantity': str(abs(qty)),
+                'unit_cost': row['unit_cost'],
+                'warehouse_id': row['warehouse_id'],
+                'reference_type': row['reference_type'] or mt,
+                'reference_id': row['reference_id'],
+                'source_table': 'warehouse_movements',
+                'source_id': source_id,
+                'notes': row['notes'] or 'Phase 29 legacy warehouse movement backfill',
+                'movement_date': row['movement_date'],
+            }
+            if dry_run:
+                if len(preview) < 20:
+                    preview.append(payload)
+            else:
+                _insert(payload)
+            inserted += 1
+        results.append({'dry_run': dry_run, 'source': 'warehouse_movements', 'scanned': scanned, 'inserted': inserted, 'skipped': skipped, 'preview': preview, 'destructive': False})
+
+    if not dry_run:
+        db.commit()
+        audit_log('POST', 'INVENTORY_LEDGER_BACKFILL', None,
+                  new_values={'results': results, 'item_id': item_id, 'warehouse_id': warehouse_id},
+                  details='تشغيل تعبئة دفتر المخزون من الحركات القديمة')
+        db.commit()
+
+    totals = {'scanned': 0, 'inserted': 0, 'skipped': 0}
+    for r in results:
+        for key in totals:
+            totals[key] += int(r.get(key) or 0)
+    return jsonify({
+        'dry_run': dry_run,
+        'sources': [r.get('source') for r in results],
+        'results': results,
+        **totals,
+        'destructive': False,
+        'note': 'Phase 29 backfills item-level and warehouse-level shadow ledger rows only. Transfers are covered through warehouse_movements; stock quantities are not changed.'
+    })
+
+
+
+
+@items_bp.route('/inventory-ledger/readiness', methods=['GET'])
+@jwt_required()
+def get_inventory_ledger_readiness():
+    """Phase 33 read-only gate for controlled ledger-read adoption."""
+    user_id = get_jwt_identity()
+    item_id = request.args.get('item_id', type=int)
+    warehouse_id = request.args.get('warehouse_id', type=int)
+    tolerance = Decimal(str(request.args.get('tolerance', '0') or '0'))
+    db = get_db()
+
+    # Re-use the same conservative conditions as health + dual-read.
+    filters = ['l.user_id=?']; params = [user_id]
+    if item_id is not None:
+        filters.append('l.item_id=?'); params.append(item_id)
+    if warehouse_id is not None:
+        filters.append('l.warehouse_id=?'); params.append(warehouse_id)
+    where = ' AND '.join(filters)
+
+    def count(sql, values=None):
+        row = db.execute(sql, tuple(values or params)).fetchone()
+        return int(row[0] or 0) if row else 0
+
+    issues = {
+        'invalid_direction': count(f"SELECT COUNT(*) FROM inventory_ledger l WHERE {where} AND COALESCE(l.direction,'') NOT IN ('in','out','neutral')"),
+        'negative_quantity_rows': count(f"SELECT COUNT(*) FROM inventory_ledger l WHERE {where} AND CAST(COALESCE(l.quantity,'0') AS REAL) < 0"),
+        'orphan_items': count(f"SELECT COUNT(*) FROM inventory_ledger l LEFT JOIN items i ON i.id=l.item_id AND i.user_id=l.user_id WHERE {where} AND i.id IS NULL"),
+        'orphan_warehouses': count(f"SELECT COUNT(*) FROM inventory_ledger l LEFT JOIN warehouses w ON w.id=l.warehouse_id AND w.user_id=l.user_id WHERE {where} AND l.warehouse_id IS NOT NULL AND w.id IS NULL"),
+        'duplicate_source_rows': count(f"SELECT COUNT(*) FROM (SELECT l.source_table,l.source_id,COUNT(*) cnt FROM inventory_ledger l WHERE {where} AND l.source_table IS NOT NULL AND l.source_id IS NOT NULL GROUP BY l.source_table,l.source_id HAVING cnt>1) x"),
+        'negative_ledger_balances': count(f"SELECT COUNT(*) FROM (SELECT l.item_id,l.warehouse_id,SUM(CASE WHEN l.direction='in' THEN CAST(l.quantity AS REAL) WHEN l.direction='out' THEN -CAST(l.quantity AS REAL) ELSE 0 END) bal FROM inventory_ledger l WHERE {where} GROUP BY l.item_id,l.warehouse_id HAVING bal<0) x"),
+    }
+    issue_count = sum(issues.values())
+
+    rec_sql = ["""
+        SELECT COUNT(*) FROM (
+            SELECT i.id,
+                   CAST(COALESCE(i.quantity,'0') AS REAL) - COALESCE(SUM(CASE WHEN l.direction='in' THEN CAST(l.quantity AS REAL) WHEN l.direction='out' THEN -CAST(l.quantity AS REAL) ELSE 0 END),0) AS diff
+            FROM items i
+            LEFT JOIN inventory_ledger l ON l.user_id=i.user_id AND l.item_id=i.id
+            WHERE i.user_id=? AND i.deleted_at IS NULL
+    """]
+    rec_params = [user_id]
+    if item_id is not None:
+        rec_sql.append('AND i.id=?'); rec_params.append(item_id)
+    rec_sql.append('GROUP BY i.id, i.quantity HAVING ABS(diff) > ? ) x')
+    rec_params.append(str(tolerance))
+    mismatch_count = int(db.execute(' '.join(rec_sql), tuple(rec_params)).fetchone()[0] or 0)
+
+    checked_sql = ["""
+        SELECT COUNT(*) FROM (
+            SELECT i.id
+            FROM items i
+            LEFT JOIN inventory_ledger l ON l.user_id=i.user_id AND l.item_id=i.id
+            WHERE i.user_id=? AND i.deleted_at IS NULL
+    """]
+    checked_params = [user_id]
+    if item_id is not None:
+        checked_sql.append('AND i.id=?'); checked_params.append(item_id)
+    checked_sql.append('GROUP BY i.id ) x')
+    checked = int(db.execute(' '.join(checked_sql), tuple(checked_params)).fetchone()[0] or 0)
+
+    snapshot_rows = count("SELECT COUNT(*) FROM (SELECT l.item_id,l.warehouse_id FROM inventory_ledger l WHERE " + where + " GROUP BY l.item_id,l.warehouse_id) x")
+
+    blockers = []
+    warnings = []
+    if issue_count:
+        blockers.append('ledger_integrity_issues')
+    if mismatch_count:
+        blockers.append('operational_vs_ledger_mismatches')
+    if checked == 0:
+        warnings.append('no_stock_rows_checked')
+    if snapshot_rows == 0:
+        warnings.append('empty_ledger_snapshot')
+
+    safe = issue_count == 0 and mismatch_count == 0 and checked > 0
+    return jsonify({
+        'mode': 'readiness_gate',
+        'phase': 33,
+        'authoritative_source': 'operational_stock',
+        'ledger_authoritative': False,
+        'safe_for_dual_read': issue_count == 0,
+        'safe_for_authoritative_read': safe,
+        'recommendation': 'eligible_for_controlled_ledger_read_trial' if safe else 'keep_operational_stock',
+        'blockers': blockers,
+        'warnings': warnings,
+        'summary': {
+            'integrity_issue_count': issue_count,
+            'reconciliation_mismatch_count': mismatch_count,
+            'dual_read_checked': checked,
+            'dual_read_mismatched': mismatch_count,
+            'snapshot_rows': snapshot_rows,
+        },
+        'integrity': {'ok': issue_count == 0, 'issue_count': issue_count, 'issues': issues},
+        'diagnostic_only': True,
+        'note': 'Phase 33 readiness gate is read-only. It does not switch inventory reads to ledger.'
+    })
+
+
+@items_bp.route('/inventory-ledger/controlled-read', methods=['GET'])
+@jwt_required()
+def get_inventory_ledger_controlled_read():
+    """Phase 34 controlled inventory read switch.
+
+    Default/fallback remains operational stock.  Ledger quantities are selected
+    only when requested mode is ledger_trial / ledger_authoritative and the
+    readiness criteria are clean for the requested scope.
+    """
+    user_id = get_jwt_identity()
+    item_id = request.args.get('item_id', type=int)
+    warehouse_id = request.args.get('warehouse_id', type=int)
+    requested_mode = (request.args.get('mode') or 'operational').strip().lower()
+    if requested_mode not in {'operational', 'dual', 'ledger_trial', 'ledger_authoritative'}:
+        requested_mode = 'operational'
+    tolerance = Decimal(str(request.args.get('tolerance', '0') or '0'))
+    db = get_db()
+
+    # Conservative readiness gate: integrity issues or mismatches block ledger reads.
+    filters = ['l.user_id=?']; params = [user_id]
+    if item_id is not None:
+        filters.append('l.item_id=?'); params.append(item_id)
+    if warehouse_id is not None:
+        filters.append('l.warehouse_id=?'); params.append(warehouse_id)
+    where = ' AND '.join(filters)
+    def count(sql):
+        row = db.execute(sql, tuple(params)).fetchone()
+        return int(row[0] or 0) if row else 0
+    issues = {
+        'invalid_direction': count(f"SELECT COUNT(*) FROM inventory_ledger l WHERE {where} AND COALESCE(l.direction,'') NOT IN ('in','out','neutral')"),
+        'negative_quantity_rows': count(f"SELECT COUNT(*) FROM inventory_ledger l WHERE {where} AND CAST(COALESCE(l.quantity,'0') AS REAL) < 0"),
+        'orphan_items': count(f"SELECT COUNT(*) FROM inventory_ledger l LEFT JOIN items i ON i.id=l.item_id AND i.user_id=l.user_id WHERE {where} AND i.id IS NULL"),
+        'orphan_warehouses': count(f"SELECT COUNT(*) FROM inventory_ledger l LEFT JOIN warehouses w ON w.id=l.warehouse_id AND w.user_id=l.user_id WHERE {where} AND l.warehouse_id IS NOT NULL AND w.id IS NULL"),
+        'duplicate_source_rows': count(f"SELECT COUNT(*) FROM (SELECT l.source_table,l.source_id,COUNT(*) cnt FROM inventory_ledger l WHERE {where} AND l.source_table IS NOT NULL AND l.source_id IS NOT NULL GROUP BY l.source_table,l.source_id HAVING cnt>1) x"),
+        'negative_ledger_balances': count(f"SELECT COUNT(*) FROM (SELECT l.item_id,l.warehouse_id,SUM(CASE WHEN l.direction='in' THEN CAST(l.quantity AS REAL) WHEN l.direction='out' THEN -CAST(l.quantity AS REAL) ELSE 0 END) bal FROM inventory_ledger l WHERE {where} GROUP BY l.item_id,l.warehouse_id HAVING bal<0) x"),
+    }
+    issue_count = sum(issues.values())
+
+    rows = []
+    checked = matched = mismatched = 0
+    if warehouse_id is None:
+        sql = ["""
+            SELECT 'item' AS scope, i.id AS item_id, i.name AS item_name,
+                   NULL AS warehouse_id, NULL AS warehouse_name,
+                   CAST(COALESCE(i.quantity,'0') AS REAL) AS operational_quantity,
+                   COALESCE(SUM(CASE WHEN l.direction='in' THEN CAST(l.quantity AS REAL)
+                                     WHEN l.direction='out' THEN -CAST(l.quantity AS REAL)
+                                     ELSE 0 END),0) AS ledger_quantity
+            FROM items i
+            LEFT JOIN inventory_ledger l ON l.user_id=i.user_id AND l.item_id=i.id
+            WHERE i.user_id=? AND i.deleted_at IS NULL
+        """]
+        row_params = [user_id]
+        if item_id is not None:
+            sql.append('AND i.id=?'); row_params.append(item_id)
+        sql.append('GROUP BY i.id, i.name, i.quantity ORDER BY i.name')
+        for r in db.execute(' '.join(sql), tuple(row_params)).fetchall():
+            op = Decimal(str(r['operational_quantity'] or 0)); led = Decimal(str(r['ledger_quantity'] or 0)); diff = op - led
+            ok = abs(diff) <= tolerance
+            checked += 1; matched += 1 if ok else 0; mismatched += 0 if ok else 1
+            rows.append({'scope': r['scope'], 'item_id': r['item_id'], 'item_name': r['item_name'], 'warehouse_id': None, 'warehouse_name': None, 'operational_quantity': str(op), 'ledger_quantity': str(led), 'difference': str(diff), 'matches': ok})
+
+    sql = ["""
+        SELECT 'warehouse' AS scope, b.item_id, i.name AS item_name, b.warehouse_id, w.name AS warehouse_name,
+               CAST(COALESCE(b.quantity,'0') AS REAL) AS operational_quantity,
+               COALESCE(SUM(CASE WHEN l.direction='in' THEN CAST(l.quantity AS REAL)
+                                 WHEN l.direction='out' THEN -CAST(l.quantity AS REAL)
+                                 ELSE 0 END),0) AS ledger_quantity
+        FROM item_warehouse_balances b
+        JOIN items i ON i.id=b.item_id AND i.user_id=b.user_id
+        JOIN warehouses w ON w.id=b.warehouse_id AND w.user_id=b.user_id
+        LEFT JOIN inventory_ledger l ON l.user_id=b.user_id AND l.item_id=b.item_id AND l.warehouse_id=b.warehouse_id
+        WHERE b.user_id=?
+    """]
+    row_params = [user_id]
+    if item_id is not None:
+        sql.append('AND b.item_id=?'); row_params.append(item_id)
+    if warehouse_id is not None:
+        sql.append('AND b.warehouse_id=?'); row_params.append(warehouse_id)
+    sql.append('GROUP BY b.item_id, i.name, b.warehouse_id, w.name, b.quantity ORDER BY i.name, w.name')
+    for r in db.execute(' '.join(sql), tuple(row_params)).fetchall():
+        op = Decimal(str(r['operational_quantity'] or 0)); led = Decimal(str(r['ledger_quantity'] or 0)); diff = op - led
+        ok = abs(diff) <= tolerance
+        checked += 1; matched += 1 if ok else 0; mismatched += 0 if ok else 1
+        rows.append({'scope': r['scope'], 'item_id': r['item_id'], 'item_name': r['item_name'], 'warehouse_id': r['warehouse_id'], 'warehouse_name': r['warehouse_name'], 'operational_quantity': str(op), 'ledger_quantity': str(led), 'difference': str(diff), 'matches': ok})
+
+    safe = issue_count == 0 and mismatched == 0 and checked > 0
+    selected_source = 'ledger' if requested_mode in {'ledger_trial','ledger_authoritative'} and safe else 'operational_stock'
+    for row in rows:
+        row['selected_source'] = selected_source
+        row['selected_quantity'] = row['ledger_quantity'] if selected_source == 'ledger' else row['operational_quantity']
+        row['requested_mode'] = requested_mode
+    return jsonify({
+        'mode': 'controlled_read',
+        'phase': 34,
+        'requested_mode': requested_mode,
+        'selected_source': selected_source,
+        'authoritative_source': selected_source,
+        'ledger_authoritative': selected_source == 'ledger',
+        'ledger_selected': selected_source == 'ledger',
+        'safe_for_ledger_read': safe,
+        'fallback_reason': None if selected_source == 'ledger' else ('requested_operational' if requested_mode == 'operational' else 'readiness_gate_blocked'),
+        'summary': {'integrity_issue_count': issue_count, 'dual_read_checked': checked, 'dual_read_matched': matched, 'dual_read_mismatched': mismatched},
+        'issues': issues,
+        'rows': rows,
+        'read_only': True,
+        'note': 'Phase 34 can select ledger for reads only when readiness allows it; operational stock remains the default fallback.'
+    })
+
 @items_bp.route('/inventory-ledger/balance', methods=['GET'])
 @jwt_required()
 def get_inventory_ledger_balance():
@@ -463,3 +1072,91 @@ def get_inventory_ledger_balance():
         params.append(warehouse_id)
     row = db.execute(' '.join(sql), tuple(params)).fetchone()
     return jsonify({'balance': str(row[0] if row and row[0] is not None else 0)})
+
+
+@items_bp.route('/inventory-ledger/snapshot', methods=['GET'])
+@jwt_required()
+def get_inventory_ledger_snapshot():
+    user_id = get_jwt_identity()
+    item_id = request.args.get('item_id', type=int)
+    warehouse_id = request.args.get('warehouse_id', type=int)
+    db = get_db()
+    sql = ["""
+        SELECT l.item_id, i.name AS item_name, l.warehouse_id, w.name AS warehouse_name,
+               SUM(CASE WHEN l.direction='in' THEN CAST(l.quantity AS REAL)
+                        WHEN l.direction='out' THEN -CAST(l.quantity AS REAL)
+                        ELSE 0 END) AS ledger_quantity,
+               COUNT(*) AS entry_count
+        FROM inventory_ledger l
+        LEFT JOIN items i ON i.id=l.item_id AND i.user_id=l.user_id
+        LEFT JOIN warehouses w ON w.id=l.warehouse_id AND w.user_id=l.user_id
+        WHERE l.user_id=?
+    """]
+    params = [user_id]
+    if item_id is not None:
+        sql.append('AND l.item_id=?'); params.append(item_id)
+    if warehouse_id is not None:
+        sql.append('AND l.warehouse_id=?'); params.append(warehouse_id)
+    sql.append('GROUP BY l.item_id, i.name, l.warehouse_id, w.name ORDER BY i.name, w.name')
+    rows = db.execute(' '.join(sql), tuple(params)).fetchall()
+    return jsonify({
+        'mode': 'snapshot',
+        'authoritative_source': 'operational_stock',
+        'ledger_authoritative': False,
+        'rows': [dict(r) for r in rows],
+        'diagnostic_only': True,
+        'note': 'Phase 30 ledger snapshot is read-only and does not change operational stock.'
+    })
+
+@items_bp.route('/inventory-ledger/health', methods=['GET'])
+@jwt_required()
+def get_inventory_ledger_health():
+    user_id = get_jwt_identity()
+    item_id = request.args.get('item_id', type=int)
+    warehouse_id = request.args.get('warehouse_id', type=int)
+    tolerance = Decimal(str(request.args.get('tolerance', '0') or '0'))
+    db = get_db()
+    filters = ['l.user_id=?']; params = [user_id]
+    if item_id is not None:
+        filters.append('l.item_id=?'); params.append(item_id)
+    if warehouse_id is not None:
+        filters.append('l.warehouse_id=?'); params.append(warehouse_id)
+    where = ' AND '.join(filters)
+    def count(sql):
+        row = db.execute(sql, tuple(params)).fetchone()
+        return int(row[0] or 0) if row else 0
+    issues = {
+        'invalid_direction': count(f"SELECT COUNT(*) FROM inventory_ledger l WHERE {where} AND COALESCE(l.direction,'') NOT IN ('in','out','neutral')"),
+        'negative_quantity_rows': count(f"SELECT COUNT(*) FROM inventory_ledger l WHERE {where} AND CAST(COALESCE(l.quantity,'0') AS REAL) < 0"),
+        'orphan_items': count(f"SELECT COUNT(*) FROM inventory_ledger l LEFT JOIN items i ON i.id=l.item_id AND i.user_id=l.user_id WHERE {where} AND i.id IS NULL"),
+        'orphan_warehouses': count(f"SELECT COUNT(*) FROM inventory_ledger l LEFT JOIN warehouses w ON w.id=l.warehouse_id AND w.user_id=l.user_id WHERE {where} AND l.warehouse_id IS NOT NULL AND w.id IS NULL"),
+        'duplicate_source_rows': count(f"SELECT COUNT(*) FROM (SELECT l.source_table,l.source_id,COUNT(*) cnt FROM inventory_ledger l WHERE {where} AND l.source_table IS NOT NULL AND l.source_id IS NOT NULL GROUP BY l.source_table,l.source_id HAVING cnt>1) x"),
+        'negative_ledger_balances': count(f"SELECT COUNT(*) FROM (SELECT l.item_id,l.warehouse_id,SUM(CASE WHEN l.direction='in' THEN CAST(l.quantity AS REAL) WHEN l.direction='out' THEN -CAST(l.quantity AS REAL) ELSE 0 END) bal FROM inventory_ledger l WHERE {where} GROUP BY l.item_id,l.warehouse_id HAVING bal<0) x"),
+    }
+    issue_count = sum(issues.values())
+    # Lightweight reconciliation summary only; full details remain available through /reconciliation.
+    rec_sql = ["""
+        SELECT COUNT(*) FROM (
+            SELECT i.id,
+                   CAST(COALESCE(i.quantity,'0') AS REAL) - COALESCE(SUM(CASE WHEN l.direction='in' THEN CAST(l.quantity AS REAL) WHEN l.direction='out' THEN -CAST(l.quantity AS REAL) ELSE 0 END),0) AS diff
+            FROM items i
+            LEFT JOIN inventory_ledger l ON l.user_id=i.user_id AND l.item_id=i.id
+            WHERE i.user_id=? AND i.deleted_at IS NULL
+    """]
+    rec_params = [user_id]
+    if item_id is not None:
+        rec_sql.append('AND i.id=?'); rec_params.append(item_id)
+    rec_sql.append('GROUP BY i.id, i.quantity HAVING ABS(diff) > ? ) x')
+    rec_params.append(str(tolerance))
+    mismatch_count = int(db.execute(' '.join(rec_sql), tuple(rec_params)).fetchone()[0] or 0)
+    ready = issue_count == 0 and mismatch_count == 0
+    return jsonify({
+        'mode': 'health',
+        'ready_for_authoritative_ledger': ready,
+        'ledger_authoritative': False,
+        'authoritative_source': 'operational_stock',
+        'integrity': {'ok': issue_count == 0, 'issue_count': issue_count, 'issues': issues, 'diagnostic_only': True},
+        'reconciliation_summary': {'mismatch_count': mismatch_count},
+        'diagnostic_only': True,
+        'note': 'Phase 30 health report is a read-only gate before any future authoritative-ledger switch.'
+    })

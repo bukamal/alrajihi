@@ -10,6 +10,7 @@ from core.services.audit_service import audit_service
 from core.services.branch_service import branch_service
 from core.services.cashbox_service import cashbox_service
 from core.services.invoice_service import invoice_service
+from core.services.inventory_service import inventory_service
 from core.services.warehouse_service import warehouse_service
 from database.connection import DatabaseConnection
 from gateways.sales_return_gateway import SalesReturnGateway, SalesReturnException
@@ -124,11 +125,24 @@ class LocalSalesReturnGateway(SalesReturnGateway):
             raise SalesReturnException('يجب اختيار فاتورة بيع صالحة')
         result = []
         for line in inv.get('lines') or []:
-            sold = Decimal(str(line.get('quantity_in_base') or line.get('quantity') or 0))
-            returned = self.returned_qty(invoice_id, line.get('id'), line.get('item_id'))
-            remaining = max(Decimal('0'), sold - returned)
+            factor = Decimal(str(line.get('conversion_factor') or 1))
+            if factor <= 0:
+                factor = Decimal('1')
+            sold_base = Decimal(str(line.get('quantity_in_base') or line.get('quantity') or 0))
+            returned_base = self.returned_qty(invoice_id, line.get('id'), line.get('item_id'))
+            remaining_base = max(Decimal('0'), sold_base - returned_base)
             row = dict(line)
-            row.update({'sold_qty': str(sold), 'returned_qty': str(returned), 'returnable_qty': str(remaining)})
+            # Expose quantities in the same invoice/display unit, because unit_price
+            # is also stored per invoice/display unit.  Keep *_base for validation.
+            row.update({
+                'sold_qty': str(sold_base / factor),
+                'returned_qty': str(returned_base / factor),
+                'returnable_qty': str(remaining_base / factor),
+                'sold_qty_base': str(sold_base),
+                'returned_qty_base': str(returned_base),
+                'returnable_qty_base': str(remaining_base),
+                'conversion_factor': str(factor),
+            })
             result.append(row)
         return result
 
@@ -155,24 +169,29 @@ class LocalSalesReturnGateway(SalesReturnGateway):
             qty = Decimal(str(line.get('quantity') or 0))
             if qty <= 0:
                 raise SalesReturnException('كمية المرتجع يجب أن تكون أكبر من صفر')
+            factor = Decimal(str(orig.get('conversion_factor') or 1))
+            if factor <= 0:
+                factor = Decimal('1')
+            base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * factor)) or 0))
             sold = Decimal(str(orig.get('quantity_in_base') or orig.get('quantity') or 0))
             already = self.returned_qty(invoice_id, orig_line_id, orig.get('item_id'))
-            if qty > (sold - already):
+            if base_qty > (sold - already):
                 raise SalesReturnException('كمية المرتجع أكبر من الكمية المتبقية القابلة للإرجاع')
             price = Decimal(str(orig.get('unit_price') or 0))
-            cost = Decimal(str(orig.get('unit_cost') or 0))
+            cost_per_display_unit = Decimal(str(orig.get('unit_cost') or price))
+            cost_per_base_unit = cost_per_display_unit / factor
             amount = qty * price
             total += amount
             prepared.append({
                 'original_invoice_line_id': orig_line_id,
                 'item_id': orig.get('item_id'),
                 'quantity': qty,
-                'quantity_in_base': qty,
+                'quantity_in_base': base_qty,
                 'unit_price': price,
-                'unit_cost': cost,
+                'unit_cost': cost_per_base_unit,
                 'total': amount,
                 'unit': orig.get('unit') or '',
-                'cost_amount': qty * cost,
+                'cost_amount': base_qty * cost_per_base_unit,
             })
         remaining_receivable = max(Decimal('0'), Decimal(str(inv.get('total') or 0)) - Decimal(str(inv.get('paid') or 0)))
         requested = data.get('refund_amount')
@@ -206,6 +225,12 @@ class LocalSalesReturnGateway(SalesReturnGateway):
                   str(line['total']), line['unit'], str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
             self.db._record_inventory_movement(line['item_id'], 'sales_return', line['quantity_in_base'], line['unit_cost'], rid)
             warehouse_service.record_movement(line['item_id'], wh_id, 'sales_return_in', line['quantity_in_base'], line['unit_cost'], 'sales_return', rid, 'إرجاع مبيعات إلى المستودع')
+            inventory_service.record_ledger_entry(
+                item_id=line['item_id'], warehouse_id=wh_id, movement_type='sales_return_in',
+                direction='in', quantity=line['quantity_in_base'], unit_cost=line['unit_cost'],
+                reference_type='sales_return', reference_id=rid, source_table='sales_returns',
+                source_id=rid, notes='دفتر مخزون مرتجع بيع'
+            )
         if inv.get('customer_id') and credit > 0:
             self.db._update_customer_balance(inv.get('customer_id'), -credit)
         if refund > 0:
@@ -236,6 +261,14 @@ class LocalSalesReturnGateway(SalesReturnGateway):
         for item_id in item_ids:
             self.db._update_item_quantity(item_id)
             self.db._recalculate_average_cost(item_id)
+        for line in ret.get('lines') or []:
+            inventory_service.record_ledger_entry(
+                item_id=line.get('item_id'), warehouse_id=ret.get('warehouse_id'), movement_type='sales_return_reversal',
+                direction='out', quantity=line.get('quantity_in_base') or line.get('quantity') or 0,
+                unit_cost=line.get('unit_cost') or 0, reference_type='sales_return',
+                reference_id=return_id, source_table='sales_returns', source_id=return_id,
+                notes='عكس دفتر مخزون مرتجع بيع'
+            )
         warehouse_service.reverse_reference('sales_return', return_id)
         if ret.get('customer_id') and Decimal(str(ret.get('credit_amount') or 0)) > 0:
             self.db._update_customer_balance(ret.get('customer_id'), Decimal(str(ret.get('credit_amount'))))

@@ -172,6 +172,11 @@ class OfflineQueueManager:
         conn = self._connect(); now = datetime.datetime.now().isoformat(timespec='seconds')
         conn.execute("UPDATE queue SET status='sent', sent_at=?, last_error=NULL WHERE id=?", (now, req_id))
         conn.commit(); conn.close()
+
+    def mark_failed(self, req_id, error=None):
+        conn = self._connect(); now = datetime.datetime.now().isoformat(timespec='seconds')
+        conn.execute("UPDATE queue SET status='failed', attempts=COALESCE(attempts,0)+1, last_attempt_at=?, last_error=? WHERE id=?", (now, str(error)[:500] if error else None, req_id))
+        conn.commit(); conn.close()
     
     def delete_request(self, req_id):
         conn = self._connect(); conn.execute('DELETE FROM queue WHERE id=?', (req_id,)); conn.commit(); conn.close()
@@ -691,11 +696,12 @@ class DatabaseConnection:
             ))
             invoice_id = cursor.lastrowid
             for line in data['lines']:
-                conv_factor = line.get('conversion_factor', Decimal('1'))
+                conv_factor = Decimal(str(line.get('conversion_factor', 1) or 1))
                 if conv_factor <= 0:
                     conv_factor = Decimal('1')
-                base_qty = line.get('base_qty', line['quantity'])
-                unit_cost = line['unit_price']
+                qty = Decimal(str(line.get('quantity', 0) or 0))
+                base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
+                unit_cost = Decimal(str(line['unit_price']))
                 cursor2 = conn.execute('''
                     INSERT INTO invoice_lines (invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
                     VALUES (?,?,?,?,?,?,?,?,?,?)
@@ -769,10 +775,11 @@ class DatabaseConnection:
 
             new_item_ids = []
             for line in data['lines']:
-                conv_factor = Decimal(str(line.get('conversion_factor', 1)))
+                conv_factor = Decimal(str(line.get('conversion_factor', 1) or 1))
                 if conv_factor <= 0:
                     conv_factor = Decimal('1')
-                base_qty = Decimal(str(line.get('base_qty', line['quantity'])))
+                qty = Decimal(str(line.get('quantity', 0) or 0))
+                base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
                 unit_cost = Decimal(str(line['unit_price']))
                 cursor2 = conn.execute('''
                     INSERT INTO invoice_lines (invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
@@ -852,6 +859,17 @@ class DatabaseConnection:
 
 
     # ------------------- Accounting integrity guards -------------------
+    def _invoice_has_returns(self, invoice_id: int) -> bool:
+        conn = self.get_connection()
+        row = conn.execute("""
+            SELECT (
+                SELECT COUNT(*) FROM sales_returns WHERE original_invoice_id=? AND deleted_at IS NULL
+            ) + (
+                SELECT COUNT(*) FROM purchase_returns WHERE original_invoice_id=? AND deleted_at IS NULL
+            ) AS cnt
+        """, (invoice_id, invoice_id)).fetchone()
+        return bool(row and row['cnt'])
+
     def _invoice_has_vouchers(self, invoice_id: int) -> bool:
         conn = self.get_connection()
         row = conn.execute("SELECT COUNT(*) AS cnt FROM vouchers WHERE invoice_id=?", (invoice_id,)).fetchone()
@@ -1094,7 +1112,7 @@ class DatabaseConnection:
                 CASE 
                     WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return') 
                     THEN CAST(quantity AS REAL)
-                    WHEN movement_type IN ('sale','production_consume') 
+                    WHEN movement_type IN ('sale','production_consume','purchase_return') 
                     THEN -CAST(quantity AS REAL)
                     ELSE 0
                 END

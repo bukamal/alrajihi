@@ -116,3 +116,6 @@ class LocalCategoryGateway(CategoryGateway):
 
     def restore(self, category_id: int):
         return category_dao.restore(category_id)
+
+    def is_remote(self) -> bool:
+        return False

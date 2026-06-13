@@ -22,3 +22,8 @@ jobs:
 
       - name: Check client data-access boundaries
         run: python tools/architecture_guard.py
+
+      - name: Phase 32 invoice/offline guard
+        run: python tools/phase32_invoice_flow_guard.py
+      - name: Reports widget contract check
+        run: python tools/reports_contract_check.py

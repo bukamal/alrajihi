@@ -72,19 +72,38 @@ class InvoiceService:
         invoice = self.gateway.get(invoice_id)
         return invoice if isinstance(invoice, dict) else None
 
+    def _client_side_movements_enabled(self) -> bool:
+        """Return True only when the client is the authoritative local store.
+
+        In remote/client mode the server invoice endpoint already creates and
+        reverses invoice stock movements inside the same transaction.  Repeating
+        those calls from the desktop caused duplicate remote stock effects and,
+        while offline, crashes because warehouse movement endpoints are not
+        safely queueable independently from their parent invoice.
+        """
+        try:
+            return not bool(self.gateway.is_remote())
+        except Exception:
+            return True
+
     def create(self, data: Dict) -> int:
         data = branch_service.ensure_branch_id(data)
         invoice_id = self.gateway.create(data)
-        warehouse_service.record_invoice_movements(invoice_id, data)
+        if self._client_side_movements_enabled():
+            warehouse_service.record_invoice_movements(invoice_id, data)
         audit_service.log('CREATE', 'SALE_INVOICE' if data.get('type') == 'sale' else 'PURCHASE_INVOICE', invoice_id, new_values=data, details='إنشاء فاتورة')
         return invoice_id
 
     def update(self, invoice_id: int, data: Dict):
         data = branch_service.ensure_branch_id(data)
         old = self.get(invoice_id)
-        warehouse_service.reverse_invoice_movements(invoice_id)
+        if self.has_linked_returns(invoice_id):
+            raise ValueError('لا يمكن تعديل فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.')
+        if self._client_side_movements_enabled():
+            warehouse_service.reverse_invoice_movements(invoice_id, old)
         result = self.gateway.update(invoice_id, data)
-        warehouse_service.record_invoice_movements(invoice_id, data)
+        if self._client_side_movements_enabled():
+            warehouse_service.record_invoice_movements(invoice_id, data)
         new = self.get(invoice_id)
         entity = 'SALE_INVOICE' if (old or data).get('type') == 'sale' else 'PURCHASE_INVOICE'
         audit_service.log('UPDATE', entity, invoice_id, old_values=old, new_values=new or data, details='تعديل فاتورة')
@@ -96,9 +115,18 @@ class InvoiceService:
         except Exception:
             return False
 
+    def has_linked_returns(self, invoice_id: int) -> bool:
+        try:
+            return bool(self.gateway.has_linked_returns(invoice_id))
+        except Exception:
+            return False
+
     def delete(self, invoice_id: int):
         old = self.get(invoice_id)
-        warehouse_service.reverse_invoice_movements(invoice_id)
+        if self.has_linked_returns(invoice_id):
+            raise ValueError('لا يمكن حذف فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.')
+        if self._client_side_movements_enabled():
+            warehouse_service.reverse_invoice_movements(invoice_id, old)
         result = self.gateway.delete(invoice_id)
         entity = 'SALE_INVOICE' if (old or {}).get('type') == 'sale' else 'PURCHASE_INVOICE'
         audit_service.log('SOFT_DELETE', entity, invoice_id, old_values=old, details='إلغاء/حذف فاتورة')

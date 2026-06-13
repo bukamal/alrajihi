@@ -587,6 +587,44 @@ class RestClient:
         if end_date: params['end_date'] = end_date
         return self._request('GET', '/api/reports/balance_sheet', params=params)
 
+    def get_customer_statement(self, customer_id: int, start_date=None, end_date=None) -> List[Dict]:
+        params = {}
+        if start_date: params['start_date'] = start_date
+        if end_date: params['end_date'] = end_date
+        result = self._request('GET', f'/api/reports/customers/{customer_id}/statement', params=params)
+        return result.get('rows', result if isinstance(result, list) else [])
+
+    def get_supplier_statement(self, supplier_id: int, start_date=None, end_date=None) -> List[Dict]:
+        params = {}
+        if start_date: params['start_date'] = start_date
+        if end_date: params['end_date'] = end_date
+        result = self._request('GET', f'/api/reports/suppliers/{supplier_id}/statement', params=params)
+        return result.get('rows', result if isinstance(result, list) else [])
+
+    def get_customer_balances(self) -> List[Dict]:
+        result = self._request('GET', '/api/reports/customers/balances')
+        return result.get('rows', result if isinstance(result, list) else [])
+
+    def get_supplier_balances(self) -> List[Dict]:
+        result = self._request('GET', '/api/reports/suppliers/balances')
+        return result.get('rows', result if isinstance(result, list) else [])
+
+    def get_customer_aging(self, as_of_date=None) -> List[Dict]:
+        params = {}
+        if as_of_date: params['as_of_date'] = as_of_date
+        result = self._request('GET', '/api/reports/customers/aging', params=params)
+        return result.get('rows', result if isinstance(result, list) else [])
+
+    def get_supplier_aging(self, as_of_date=None) -> List[Dict]:
+        params = {}
+        if as_of_date: params['as_of_date'] = as_of_date
+        result = self._request('GET', '/api/reports/suppliers/aging', params=params)
+        return result.get('rows', result if isinstance(result, list) else [])
+
+    def get_trial_balance(self) -> List[Dict]:
+        result = self._request('GET', '/api/reports/trial_balance')
+        return result.get('rows', result if isinstance(result, list) else [])
+
     # ------------------- الإعدادات -------------------
     def get_setting(self, key: str) -> Any:
         result = self._request('GET', f'/api/settings/{key}')
@@ -673,6 +711,12 @@ class RestClient:
 
 
     # ------------------- تشخيص وضع الشبكة -------------------
+
+
+    # ------------------- مراقبة التشغيل -------------------
+    def get_monitoring_health(self, tolerance='0') -> Dict:
+        return self._request('GET', '/api/monitoring/health', params={'tolerance': tolerance}, queue_on_failure=False)
+
     def debug_status(self) -> Dict:
         return self._request('GET', '/api/debug/status', queue_on_failure=False)
 
@@ -701,3 +745,64 @@ class RestClient:
             params['warehouse_id'] = warehouse_id
         result = self._request('GET', '/api/inventory-ledger/balance', params=params, queue_on_failure=False)
         return result.get('balance', '0') if isinstance(result, dict) else result
+
+    def get_inventory_ledger_reconciliation(self, item_id=None, warehouse_id=None, tolerance='0') -> Dict:
+        params = {'tolerance': tolerance}
+        if item_id is not None:
+            params['item_id'] = item_id
+        if warehouse_id is not None:
+            params['warehouse_id'] = warehouse_id
+        return self._request('GET', '/api/inventory-ledger/reconciliation', params=params, queue_on_failure=False) or {}
+
+    def get_inventory_ledger_snapshot(self, item_id=None, warehouse_id=None) -> Dict:
+        params = {}
+        if item_id is not None:
+            params['item_id'] = item_id
+        if warehouse_id is not None:
+            params['warehouse_id'] = warehouse_id
+        return self._request('GET', '/api/inventory-ledger/snapshot', params=params, queue_on_failure=False) or {}
+
+    def get_inventory_ledger_health(self, item_id=None, warehouse_id=None, tolerance='0') -> Dict:
+        params = {'tolerance': tolerance}
+        if item_id is not None:
+            params['item_id'] = item_id
+        if warehouse_id is not None:
+            params['warehouse_id'] = warehouse_id
+        return self._request('GET', '/api/inventory-ledger/health', params=params, queue_on_failure=False) or {}
+
+    def get_inventory_ledger_dual_read(self, item_id=None, warehouse_id=None, tolerance='0', include_matches=True) -> Dict:
+        params = {'tolerance': tolerance, 'include_matches': 1 if include_matches else 0}
+        if item_id is not None:
+            params['item_id'] = item_id
+        if warehouse_id is not None:
+            params['warehouse_id'] = warehouse_id
+        return self._request('GET', '/api/inventory-ledger/dual-read', params=params, queue_on_failure=False) or {}
+
+    def get_inventory_ledger_readiness(self, item_id=None, warehouse_id=None, tolerance='0') -> Dict:
+        params = {'tolerance': tolerance}
+        if item_id is not None:
+            params['item_id'] = item_id
+        if warehouse_id is not None:
+            params['warehouse_id'] = warehouse_id
+        return self._request('GET', '/api/inventory-ledger/readiness', params=params, queue_on_failure=False) or {}
+
+    def get_inventory_ledger_controlled_read(self, item_id=None, warehouse_id=None, mode='operational', tolerance='0') -> Dict:
+        params = {'mode': mode or 'operational', 'tolerance': tolerance}
+        if item_id is not None:
+            params['item_id'] = item_id
+        if warehouse_id is not None:
+            params['warehouse_id'] = warehouse_id
+        return self._request('GET', '/api/inventory-ledger/controlled-read', params=params, queue_on_failure=False) or {}
+
+    def inventory_ledger_backfill(self, dry_run=True, item_id=None, warehouse_id=None, clear_existing=False, include_item_movements=True, include_warehouse_movements=True) -> Dict:
+        payload = {
+            'dry_run': bool(dry_run),
+            'clear_existing': bool(clear_existing),
+            'include_item_movements': bool(include_item_movements),
+            'include_warehouse_movements': bool(include_warehouse_movements),
+        }
+        if item_id is not None:
+            payload['item_id'] = item_id
+        if warehouse_id is not None:
+            payload['warehouse_id'] = warehouse_id
+        return self._request('POST', '/api/inventory-ledger/backfill', payload, queue_on_failure=False) or {}

@@ -34,3 +34,6 @@ class LocalBranchGateway(BranchGateway):
 
     def archive(self, branch_id: int):
         return branch_dao.delete(branch_id)
+
+    def is_remote(self) -> bool:
+        return False

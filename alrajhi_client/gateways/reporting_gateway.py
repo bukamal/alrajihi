@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Reporting gateway contract and factory.
-
-Phase 8 moves financial/reporting reads behind a single application-facing
-contract.  ReportingService no longer imports ReportingDAO directly; local DAO
-and remote REST report endpoints are isolated in adapters.
-"""
+"""Reporting gateway contract and factory."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -25,11 +20,27 @@ class ReportingGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def customer_statement(self, customer_id: int) -> List[Dict[str, Any]]:
+    def customer_statement(self, customer_id: int, start_date: str | None = None, end_date: str | None = None) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
     @abstractmethod
-    def supplier_statement(self, supplier_id: int) -> List[Dict[str, Any]]:
+    def supplier_statement(self, supplier_id: int, start_date: str | None = None, end_date: str | None = None) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def customer_balances(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def supplier_balances(self) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def customer_aging(self, as_of_date: str | None = None) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def supplier_aging(self, as_of_date: str | None = None) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
     @abstractmethod
@@ -42,7 +53,6 @@ class ReportingGateway(ABC):
 
 
 def create_reporting_gateway() -> ReportingGateway:
-    """Return the active reporting gateway."""
     from database.connection import DatabaseConnection
 
     db = DatabaseConnection()

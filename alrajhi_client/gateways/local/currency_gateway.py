@@ -48,3 +48,6 @@ class LocalCurrencyGateway(CurrencyGateway):
             (currency_code, rate_to_usd, now),
         )
         conn.commit()
+
+    def is_remote(self) -> bool:
+        return False

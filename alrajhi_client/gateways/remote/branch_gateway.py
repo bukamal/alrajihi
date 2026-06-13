@@ -33,3 +33,6 @@ class RemoteBranchGateway(BranchGateway):
 
     def archive(self, branch_id: int):
         return self.rest_client.archive_branch(branch_id)
+
+    def is_remote(self) -> bool:
+        return True

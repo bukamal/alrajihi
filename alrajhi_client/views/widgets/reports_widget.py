@@ -6,6 +6,7 @@ from decimal import Decimal
 from core.services.reporting_service import reporting_service
 from core.services.settings_service import settings_service
 from core.services.warehouse_service import warehouse_service
+from core.services.entity_service import entity_service
 from currency import currency
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
@@ -68,6 +69,16 @@ class ReportsWidget(QWidget):
         self._load_banks()
         period_layout.addWidget(self.bank_filter)
 
+        period_layout.addWidget(QLabel("العميل:"))
+        self.customer_filter = QComboBox()
+        self._load_customers()
+        period_layout.addWidget(self.customer_filter)
+
+        period_layout.addWidget(QLabel("المورد:"))
+        self.supplier_filter = QComboBox()
+        self._load_suppliers()
+        period_layout.addWidget(self.supplier_filter)
+
         refresh_btn = QPushButton("تحديث")
         refresh_btn.clicked.connect(self.refresh_report)
         period_layout.addWidget(refresh_btn)
@@ -89,10 +100,23 @@ class ReportsWidget(QWidget):
         self.cash_movements_tab = QWidget()
         self.bank_movements_tab = QWidget()
         self.pos_shifts_tab = QWidget()
+        self.trial_balance_tab = QWidget()
+        self.customer_statement_tab = QWidget()
+        self.supplier_statement_tab = QWidget()
+        self.customer_balances_tab = QWidget()
+        self.supplier_balances_tab = QWidget()
+        self.customer_aging_tab = QWidget()
+        self.supplier_aging_tab = QWidget()
+        self.ledger_reconciliation_tab = QWidget()
+        self.ledger_dual_read_tab = QWidget()
+        self.ledger_readiness_tab = QWidget()
+        self.offline_queue_tab = QWidget()
+        self.unit_audit_tab = QWidget()
         self.setup_income_tab()
         self.setup_balance_tab()
         self.setup_warehouse_tabs()
         self.setup_cash_bank_tabs()
+        self.setup_phase36_tabs()
         self.tabs.addTab(self.income_tab, "قائمة الدخل")
         self.tabs.addTab(self.balance_tab, "الميزانية العمومية")
         self.tabs.addTab(self.wh_valuation_tab, "تقييم المستودعات")
@@ -103,7 +127,20 @@ class ReportsWidget(QWidget):
         self.tabs.addTab(self.cash_movements_tab, "حركات الصناديق")
         self.tabs.addTab(self.bank_movements_tab, "حركات البنوك")
         self.tabs.addTab(self.pos_shifts_tab, "ورديات POS")
+        self.tabs.addTab(self.trial_balance_tab, "ميزان المراجعة")
+        self.tabs.addTab(self.customer_statement_tab, "كشف حساب عميل")
+        self.tabs.addTab(self.supplier_statement_tab, "كشف حساب مورد")
+        self.tabs.addTab(self.customer_balances_tab, "أرصدة العملاء")
+        self.tabs.addTab(self.supplier_balances_tab, "أرصدة الموردين")
+        self.tabs.addTab(self.customer_aging_tab, "أعمار ديون العملاء")
+        self.tabs.addTab(self.supplier_aging_tab, "أعمار ديون الموردين")
+        self.tabs.addTab(self.ledger_reconciliation_tab, "مطابقة Ledger")
+        self.tabs.addTab(self.ledger_dual_read_tab, "Dual Read")
+        self.tabs.addTab(self.ledger_readiness_tab, "جاهزية Ledger")
+        self.tabs.addTab(self.offline_queue_tab, "Offline Queue")
+        self.tabs.addTab(self.unit_audit_tab, "فحص الوحدات")
         self._apply_pos_shift_report_visibility()
+        self.tabs.currentChanged.connect(lambda _idx: self.refresh_report())
         layout.addWidget(self.tabs)
 
         self.on_period_type_changed()
@@ -137,6 +174,26 @@ class ReportsWidget(QWidget):
                 if b.get('account_name'):
                     title += f" - {b.get('account_name')}"
                 self.bank_filter.addItem(title, b.get('id'))
+        except Exception:
+            pass
+
+    def _load_customers(self):
+        self.customer_filter.clear()
+        self.customer_filter.addItem("اختر عميل", None)
+        try:
+            rows, _ = entity_service.customers(limit=1000)
+            for c in rows:
+                self.customer_filter.addItem(c.get('name', ''), c.get('id'))
+        except Exception:
+            pass
+
+    def _load_suppliers(self):
+        self.supplier_filter.clear()
+        self.supplier_filter.addItem("اختر مورد", None)
+        try:
+            rows, _ = entity_service.suppliers(limit=1000)
+            for s in rows:
+                self.supplier_filter.addItem(s.get('name', ''), s.get('id'))
         except Exception:
             pass
 
@@ -214,6 +271,26 @@ class ReportsWidget(QWidget):
         self.pos_shifts_table = CustomTableView()
         shifts_layout.addWidget(self.pos_shifts_table)
 
+    def setup_phase36_tabs(self):
+        for attr, tab in [
+            ('trial_balance_table', self.trial_balance_tab),
+            ('customer_statement_table', self.customer_statement_tab),
+            ('supplier_statement_table', self.supplier_statement_tab),
+            ('customer_balances_table', self.customer_balances_tab),
+            ('supplier_balances_table', self.supplier_balances_tab),
+            ('customer_aging_table', self.customer_aging_tab),
+            ('supplier_aging_table', self.supplier_aging_tab),
+            ('ledger_reconciliation_table', self.ledger_reconciliation_tab),
+            ('ledger_dual_read_table', self.ledger_dual_read_tab),
+            ('ledger_readiness_table', self.ledger_readiness_tab),
+            ('offline_queue_table', self.offline_queue_tab),
+            ('unit_audit_table', self.unit_audit_tab),
+        ]:
+            layout = QVBoxLayout(tab)
+            table = CustomTableView()
+            setattr(self, attr, table)
+            layout.addWidget(table)
+
     def _set_table(self, table, rows, headers, keys):
         model = GenericTableModel(rows, headers, data_keys=keys)
         table.setModel(model)
@@ -231,12 +308,51 @@ class ReportsWidget(QWidget):
             pass
 
     def refresh_report(self):
+        """Refresh the active report tab only.
+
+        Phase 37 stabilization: older code refreshed every report during page
+        construction. That made ReportsWidget vulnerable to optional/remote
+        report failures and slow server responses. The page now opens with the
+        active tab only, while tab changes trigger this same method lazily.
+        """
         start, end = self.get_date_range()
         display_curr = currency.get_display_currency()
-        self._refresh_income(start, end, display_curr)
-        self._refresh_balance(start, end, display_curr)
-        self._refresh_warehouse_reports(display_curr)
-        self._refresh_cash_bank_reports(display_curr)
+        tab = self.tabs.currentWidget() if hasattr(self, 'tabs') else None
+        try:
+            if tab is self.income_tab:
+                self._refresh_income(start, end, display_curr)
+            elif tab is self.balance_tab:
+                self._refresh_balance(start, end, display_curr)
+            elif tab in (self.wh_valuation_tab, self.wh_balances_tab, self.wh_movements_tab, self.wh_transfers_tab):
+                self._refresh_warehouse_reports(display_curr)
+            elif tab in (self.cash_summary_tab, self.cash_movements_tab, self.bank_movements_tab, self.pos_shifts_tab):
+                self._refresh_cash_bank_reports(display_curr)
+            elif tab in (self.trial_balance_tab, self.customer_statement_tab, self.supplier_statement_tab,
+                         self.customer_balances_tab, self.supplier_balances_tab, self.customer_aging_tab,
+                         self.supplier_aging_tab, self.ledger_reconciliation_tab, self.ledger_dual_read_tab,
+                         self.ledger_readiness_tab, self.offline_queue_tab, self.unit_audit_tab):
+                self._refresh_phase36_reports(start, end, display_curr)
+            else:
+                self._refresh_income(start, end, display_curr)
+        except Exception as exc:
+            # Do not block opening the reports page because one optional report failed.
+            print(f"⚠️ تعذر تحديث التقرير الحالي: {exc}")
+
+    def refresh_all_reports(self):
+        """Developer/test helper to refresh every report group defensively."""
+        start, end = self.get_date_range()
+        display_curr = currency.get_display_currency()
+        for fn in (
+            lambda: self._refresh_income(start, end, display_curr),
+            lambda: self._refresh_balance(start, end, display_curr),
+            lambda: self._refresh_warehouse_reports(display_curr),
+            lambda: self._refresh_cash_bank_reports(display_curr),
+            lambda: self._refresh_phase36_reports(start, end, display_curr),
+        ):
+            try:
+                fn()
+            except Exception as exc:
+                print(f"⚠️ تعذر تحديث مجموعة تقارير: {exc}")
 
     def _refresh_income(self, start, end, display_curr):
         stmt = reporting_service.income_statement(start, end)
@@ -443,6 +559,235 @@ class ReportsWidget(QWidget):
             'adjustment': 'تسوية',
         }.get(mtype or '', mtype or '')
 
+
+    def _rows_from(self, data, *keys):
+        """Normalize service/reporting responses to a list of dictionaries."""
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            for key in keys:
+                value = data.get(key)
+                if isinstance(value, list):
+                    return value
+            for key in ('rows', 'data', 'items', 'ledger', 'entries', 'results', 'mismatches', 'differences', 'blockers', 'warnings'):
+                value = data.get(key)
+                if isinstance(value, list):
+                    return value
+        return []
+
+    def _refresh_phase36_reports(self, start, end, display_curr):
+        """Refresh Phase 36 extended reports.
+
+        This method is intentionally defensive: one optional diagnostic report
+        should not prevent the Reports page from opening.  Critical business
+        reports are still populated when their service/API is available, while
+        unavailable diagnostics show an empty table instead of raising.
+        """
+        customer_id = self.customer_filter.currentData() if hasattr(self, 'customer_filter') else None
+        supplier_id = self.supplier_filter.currentData() if hasattr(self, 'supplier_filter') else None
+        wh_id = self.warehouse_filter.currentData() if hasattr(self, 'warehouse_filter') else None
+
+        # Trial balance
+        try:
+            rows = []
+            for r in reporting_service.trial_balance():
+                debit = Decimal(str(r.get('debit') or r.get('debit_total') or 0))
+                credit = Decimal(str(r.get('credit') or r.get('credit_total') or 0))
+                rows.append({
+                    'account': r.get('account_name') or r.get('name') or r.get('account') or '',
+                    'code': r.get('code') or r.get('account_code') or '',
+                    'debit': currency.format_amount(currency.convert(debit, 'USD', display_curr)),
+                    'credit': currency.format_amount(currency.convert(credit, 'USD', display_curr)),
+                    'balance': currency.format_amount(currency.convert(debit - credit, 'USD', display_curr)),
+                })
+            self._set_table(self.trial_balance_table, rows, ['الحساب', 'الكود', 'مدين', 'دائن', 'الرصيد'], ['account', 'code', 'debit', 'credit', 'balance'])
+        except Exception:
+            self._set_table(self.trial_balance_table, [], ['الحساب', 'الكود', 'مدين', 'دائن', 'الرصيد'], ['account', 'code', 'debit', 'credit', 'balance'])
+
+        # Customer statement
+        try:
+            rows = []
+            if customer_id:
+                for r in reporting_service.customer_statement(customer_id, start, end):
+                    debit = Decimal(str(r.get('debit') or 0))
+                    credit = Decimal(str(r.get('credit') or 0))
+                    balance = Decimal(str(r.get('balance') if r.get('balance') is not None else debit - credit))
+                    rows.append({
+                        'date': r.get('date') or r.get('created_at') or r.get('invoice_date') or '',
+                        'type': r.get('type') or r.get('source') or r.get('movement_type') or '',
+                        'ref': r.get('reference') or r.get('reference_no') or r.get('invoice_no') or r.get('voucher_no') or '',
+                        'desc': r.get('description') or r.get('notes') or '',
+                        'debit': currency.format_amount(currency.convert(debit, 'USD', display_curr)),
+                        'credit': currency.format_amount(currency.convert(credit, 'USD', display_curr)),
+                        'balance': currency.format_amount(currency.convert(balance, 'USD', display_curr)),
+                    })
+            self._set_table(self.customer_statement_table, rows, ['التاريخ', 'النوع', 'المرجع', 'البيان', 'مدين', 'دائن', 'الرصيد'], ['date','type','ref','desc','debit','credit','balance'])
+        except Exception:
+            self._set_table(self.customer_statement_table, [], ['التاريخ', 'النوع', 'المرجع', 'البيان', 'مدين', 'دائن', 'الرصيد'], ['date','type','ref','desc','debit','credit','balance'])
+
+        # Supplier statement
+        try:
+            rows = []
+            if supplier_id:
+                for r in reporting_service.supplier_statement(supplier_id, start, end):
+                    debit = Decimal(str(r.get('debit') or 0))
+                    credit = Decimal(str(r.get('credit') or 0))
+                    balance = Decimal(str(r.get('balance') if r.get('balance') is not None else credit - debit))
+                    rows.append({
+                        'date': r.get('date') or r.get('created_at') or r.get('invoice_date') or '',
+                        'type': r.get('type') or r.get('source') or r.get('movement_type') or '',
+                        'ref': r.get('reference') or r.get('reference_no') or r.get('invoice_no') or r.get('voucher_no') or '',
+                        'desc': r.get('description') or r.get('notes') or '',
+                        'debit': currency.format_amount(currency.convert(debit, 'USD', display_curr)),
+                        'credit': currency.format_amount(currency.convert(credit, 'USD', display_curr)),
+                        'balance': currency.format_amount(currency.convert(balance, 'USD', display_curr)),
+                    })
+            self._set_table(self.supplier_statement_table, rows, ['التاريخ', 'النوع', 'المرجع', 'البيان', 'مدين', 'دائن', 'الرصيد'], ['date','type','ref','desc','debit','credit','balance'])
+        except Exception:
+            self._set_table(self.supplier_statement_table, [], ['التاريخ', 'النوع', 'المرجع', 'البيان', 'مدين', 'دائن', 'الرصيد'], ['date','type','ref','desc','debit','credit','balance'])
+
+        # Customer/Supplier balances
+        try:
+            rows = []
+            for r in reporting_service.customer_balances():
+                bal = Decimal(str(r.get('balance') or r.get('current_balance') or 0))
+                rows.append({'name': r.get('name') or r.get('customer_name') or '', 'phone': r.get('phone') or '', 'balance': currency.format_amount(currency.convert(bal, 'USD', display_curr))})
+            self._set_table(self.customer_balances_table, rows, ['العميل', 'الهاتف', 'الرصيد'], ['name','phone','balance'])
+        except Exception:
+            self._set_table(self.customer_balances_table, [], ['العميل', 'الهاتف', 'الرصيد'], ['name','phone','balance'])
+        try:
+            rows = []
+            for r in reporting_service.supplier_balances():
+                bal = Decimal(str(r.get('balance') or r.get('current_balance') or 0))
+                rows.append({'name': r.get('name') or r.get('supplier_name') or '', 'phone': r.get('phone') or '', 'balance': currency.format_amount(currency.convert(bal, 'USD', display_curr))})
+            self._set_table(self.supplier_balances_table, rows, ['المورد', 'الهاتف', 'الرصيد'], ['name','phone','balance'])
+        except Exception:
+            self._set_table(self.supplier_balances_table, [], ['المورد', 'الهاتف', 'الرصيد'], ['name','phone','balance'])
+
+        # Aging
+        try:
+            rows = []
+            for r in reporting_service.customer_aging(end):
+                rows.append({
+                    'name': r.get('name') or r.get('customer_name') or '',
+                    'current': currency.format_amount(currency.convert(Decimal(str(r.get('current') or r.get('not_due') or 0)), 'USD', display_curr)),
+                    'd30': currency.format_amount(currency.convert(Decimal(str(r.get('days_1_30') or r.get('d30') or 0)), 'USD', display_curr)),
+                    'd60': currency.format_amount(currency.convert(Decimal(str(r.get('days_31_60') or r.get('d60') or 0)), 'USD', display_curr)),
+                    'd90': currency.format_amount(currency.convert(Decimal(str(r.get('days_61_90') or r.get('d90') or 0)), 'USD', display_curr)),
+                    'over': currency.format_amount(currency.convert(Decimal(str(r.get('over_90') or r.get('older') or 0)), 'USD', display_curr)),
+                    'total': currency.format_amount(currency.convert(Decimal(str(r.get('total') or r.get('balance') or 0)), 'USD', display_curr)),
+                })
+            self._set_table(self.customer_aging_table, rows, ['العميل', 'حالي', '1-30', '31-60', '61-90', '+90', 'الإجمالي'], ['name','current','d30','d60','d90','over','total'])
+        except Exception:
+            self._set_table(self.customer_aging_table, [], ['العميل', 'حالي', '1-30', '31-60', '61-90', '+90', 'الإجمالي'], ['name','current','d30','d60','d90','over','total'])
+        try:
+            rows = []
+            for r in reporting_service.supplier_aging(end):
+                rows.append({
+                    'name': r.get('name') or r.get('supplier_name') or '',
+                    'current': currency.format_amount(currency.convert(Decimal(str(r.get('current') or r.get('not_due') or 0)), 'USD', display_curr)),
+                    'd30': currency.format_amount(currency.convert(Decimal(str(r.get('days_1_30') or r.get('d30') or 0)), 'USD', display_curr)),
+                    'd60': currency.format_amount(currency.convert(Decimal(str(r.get('days_31_60') or r.get('d60') or 0)), 'USD', display_curr)),
+                    'd90': currency.format_amount(currency.convert(Decimal(str(r.get('days_61_90') or r.get('d90') or 0)), 'USD', display_curr)),
+                    'over': currency.format_amount(currency.convert(Decimal(str(r.get('over_90') or r.get('older') or 0)), 'USD', display_curr)),
+                    'total': currency.format_amount(currency.convert(Decimal(str(r.get('total') or r.get('balance') or 0)), 'USD', display_curr)),
+                })
+            self._set_table(self.supplier_aging_table, rows, ['المورد', 'حالي', '1-30', '31-60', '61-90', '+90', 'الإجمالي'], ['name','current','d30','d60','d90','over','total'])
+        except Exception:
+            self._set_table(self.supplier_aging_table, [], ['المورد', 'حالي', '1-30', '31-60', '61-90', '+90', 'الإجمالي'], ['name','current','d30','d60','d90','over','total'])
+
+        # Ledger diagnostics
+        try:
+            from core.services.inventory_service import inventory_service
+            rec = inventory_service.ledger_reconciliation(warehouse_id=wh_id, tolerance='0')
+            rec_rows = self._rows_from(rec, 'mismatches', 'rows')
+            if not rec_rows and isinstance(rec, dict):
+                rec_rows = rec.get('item_differences') or rec.get('warehouse_differences') or []
+            rows = []
+            for r in rec_rows:
+                diff = Decimal(str(r.get('difference') or r.get('delta') or 0))
+                rows.append({
+                    'scope': r.get('scope') or r.get('level') or '',
+                    'item': r.get('item_name') or r.get('item_id') or '',
+                    'warehouse': r.get('warehouse_name') or r.get('warehouse_id') or '',
+                    'operational': r.get('operational_balance') or r.get('operational_qty') or r.get('quantity') or '0',
+                    'ledger': r.get('ledger_balance') or r.get('ledger_qty') or '0',
+                    'difference': str(diff),
+                })
+            self._set_table(self.ledger_reconciliation_table, rows, ['النطاق', 'المادة', 'المستودع', 'التشغيلي', 'Ledger', 'الفرق'], ['scope','item','warehouse','operational','ledger','difference'])
+
+            dual = inventory_service.ledger_dual_read(warehouse_id=wh_id, tolerance='0', include_matches=False)
+            dual_rows = self._rows_from(dual, 'rows', 'differences', 'mismatches')
+            rows = []
+            for r in dual_rows:
+                rows.append({
+                    'item': r.get('item_name') or r.get('item_id') or '',
+                    'warehouse': r.get('warehouse_name') or r.get('warehouse_id') or '',
+                    'operational': r.get('operational_balance') or r.get('operational_qty') or '0',
+                    'ledger': r.get('ledger_balance') or r.get('ledger_qty') or '0',
+                    'difference': r.get('difference') or r.get('delta') or '0',
+                    'status': r.get('status') or ('مطابق' if str(r.get('difference') or '0') == '0' else 'فرق'),
+                })
+            self._set_table(self.ledger_dual_read_table, rows, ['المادة', 'المستودع', 'التشغيلي', 'Ledger', 'الفرق', 'الحالة'], ['item','warehouse','operational','ledger','difference','status'])
+
+            ready = inventory_service.ledger_readiness(warehouse_id=wh_id, tolerance='0')
+            rows = []
+            for key in ('blockers', 'warnings'):
+                for value in ready.get(key, []) if isinstance(ready, dict) else []:
+                    rows.append({'type': 'مانع' if key == 'blockers' else 'تحذير', 'message': str(value)})
+            if isinstance(ready, dict):
+                rows.insert(0, {'type': 'القرار', 'message': ready.get('recommendation') or ('جاهز للقراءة المزدوجة' if ready.get('safe_for_dual_read') else 'غير جاهز')})
+            self._set_table(self.ledger_readiness_table, rows, ['النوع', 'الرسالة'], ['type','message'])
+        except Exception:
+            self._set_table(self.ledger_reconciliation_table, [], ['النطاق', 'المادة', 'المستودع', 'التشغيلي', 'Ledger', 'الفرق'], ['scope','item','warehouse','operational','ledger','difference'])
+            self._set_table(self.ledger_dual_read_table, [], ['المادة', 'المستودع', 'التشغيلي', 'Ledger', 'الفرق', 'الحالة'], ['item','warehouse','operational','ledger','difference','status'])
+            self._set_table(self.ledger_readiness_table, [], ['النوع', 'الرسالة'], ['type','message'])
+
+        # Offline queue diagnostics
+        try:
+            from core.services.offline_queue_service import offline_queue_service
+            rows = []
+            for r in offline_queue_service.recent(limit=300):
+                rows.append({
+                    'id': r.get('id'),
+                    'method': r.get('method') or '',
+                    'endpoint': r.get('endpoint') or '',
+                    'status': r.get('status') or '',
+                    'attempts': r.get('attempts') or 0,
+                    'error': r.get('last_error') or r.get('error') or '',
+                    'created': r.get('created_at') or '',
+                })
+            self._set_table(self.offline_queue_table, rows, ['#', 'الطريقة', 'المسار', 'الحالة', 'المحاولات', 'الخطأ', 'التاريخ'], ['id','method','endpoint','status','attempts','error','created'])
+        except Exception:
+            self._set_table(self.offline_queue_table, [], ['#', 'الطريقة', 'المسار', 'الحالة', 'المحاولات', 'الخطأ', 'التاريخ'], ['id','method','endpoint','status','attempts','error','created'])
+
+        # Unit conversion audit
+        try:
+            from core.services.product_service import product_service
+            rows = []
+            for item in product_service.items(limit=1000):
+                units = product_service.item_units(item.get('id')) if item.get('id') else []
+                base_unit = item.get('unit') or item.get('base_unit') or ''
+                if not units:
+                    rows.append({'item': item.get('name') or '', 'base': base_unit, 'unit': '—', 'factor': '1', 'status': 'لا توجد وحدات فرعية'})
+                    continue
+                seen = set()
+                for u in units:
+                    name = u.get('unit_name') or u.get('name') or ''
+                    factor = Decimal(str(u.get('conversion_factor') or 0))
+                    status = 'سليم'
+                    if not name:
+                        status = 'اسم وحدة فارغ'
+                    elif name in seen:
+                        status = 'وحدة مكررة'
+                    elif factor <= 0:
+                        status = 'معامل غير صالح'
+                    seen.add(name)
+                    rows.append({'item': item.get('name') or '', 'base': base_unit, 'unit': name, 'factor': str(factor), 'status': status})
+            self._set_table(self.unit_audit_table, rows, ['المادة', 'الوحدة الأساسية', 'الوحدة', 'المعامل', 'الحالة'], ['item','base','unit','factor','status'])
+        except Exception:
+            self._set_table(self.unit_audit_table, [], ['المادة', 'الوحدة الأساسية', 'الوحدة', 'المعامل', 'الحالة'], ['item','base','unit','factor','status'])
+
     def print_report(self):
         from printing.printing_service import printing_service
         start, end = self.get_date_range()
@@ -469,6 +814,30 @@ class ReportsWidget(QWidget):
             table = self.bank_movements_table
         elif tab is self.pos_shifts_tab:
             table = self.pos_shifts_table
+        elif tab is self.trial_balance_tab:
+            table = self.trial_balance_table
+        elif tab is self.customer_statement_tab:
+            table = self.customer_statement_table
+        elif tab is self.supplier_statement_tab:
+            table = self.supplier_statement_table
+        elif tab is self.customer_balances_tab:
+            table = self.customer_balances_table
+        elif tab is self.supplier_balances_tab:
+            table = self.supplier_balances_table
+        elif tab is self.customer_aging_tab:
+            table = self.customer_aging_table
+        elif tab is self.supplier_aging_tab:
+            table = self.supplier_aging_table
+        elif tab is self.ledger_reconciliation_tab:
+            table = self.ledger_reconciliation_table
+        elif tab is self.ledger_dual_read_tab:
+            table = self.ledger_dual_read_table
+        elif tab is self.ledger_readiness_tab:
+            table = self.ledger_readiness_table
+        elif tab is self.offline_queue_tab:
+            table = self.offline_queue_table
+        elif tab is self.unit_audit_tab:
+            table = self.unit_audit_table
         if not table or not table.model():
             return
         model = table.model()

@@ -44,5 +44,11 @@ class LocalInvoiceGateway(InvoiceGateway):
         except Exception:
             return False
 
+    def has_linked_returns(self, invoice_id: int) -> bool:
+        try:
+            return bool(invoice_dao.repo.db._invoice_has_returns(invoice_id))
+        except Exception:
+            return False
+
     def is_remote(self) -> bool:
         return False

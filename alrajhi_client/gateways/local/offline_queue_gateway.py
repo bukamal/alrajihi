@@ -65,6 +65,18 @@ class LocalOfflineQueueGateway(OfflineQueueGateway):
                 print(f"✅ تم إرسال الطلب المعلق: {req.get('title') or req['endpoint']}")
             except Exception as exc:
                 failed += 1
-                offline_queue.mark_attempt(req['id'], exc)
-                print(f"⚠️ فشل إرسال الطلب المعلق {req.get('title') or req['endpoint']}: {exc}")
+                message = str(exc)
+                # 4xx validation/auth/not-found/conflict errors are permanent for
+                # the current payload.  Keeping them pending causes endless replay
+                # loops such as repeatedly trying to change an opening quantity
+                # after stock movements already exist.
+                if any(f"API error {code}" in message for code in (400, 401, 403, 404, 409, 422)):
+                    offline_queue.mark_failed(req['id'], exc)
+                    print(f"⛔ تم تعليم الطلب المعلق كفاشل نهائياً {req.get('title') or req['endpoint']}: {exc}")
+                else:
+                    offline_queue.mark_attempt(req['id'], exc)
+                    print(f"⚠️ فشل إرسال الطلب المعلق {req.get('title') or req['endpoint']}: {exc}")
         return {'sent': sent, 'failed': failed, 'skipped': 0}
+
+    def is_remote(self) -> bool:
+        return False

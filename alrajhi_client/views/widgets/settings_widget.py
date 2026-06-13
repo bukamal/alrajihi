@@ -49,8 +49,33 @@ class SettingsWidget(QWidget):
         main.addWidget(self.tabs, 1)
 
         self._apply_local_style()
-        apply_modern_widget(self, '⚙️ الإعدادات', 'إعدادات النظام والطباعة والنسخ الاحتياطي والشبكة')
+        # Phase 41: keep exactly one settings header inside this page.
+        apply_modern_widget(self)
+        self._ensure_single_settings_header()
         self.load_rates_table()
+
+
+    def _ensure_single_settings_header(self):
+        """Keep exactly one visible settings header inside the settings page."""
+        layout = self.layout()
+        if layout is None:
+            return
+        seen_settings_header = False
+        for idx in reversed(range(layout.count())):
+            item = layout.itemAt(idx)
+            widget = item.widget() if item else None
+            if widget is None:
+                continue
+            name = widget.objectName() or ''
+            if name == 'ModernPageHeader':
+                layout.removeWidget(widget)
+                widget.deleteLater()
+            elif name == 'settingsHeader':
+                if seen_settings_header:
+                    layout.removeWidget(widget)
+                    widget.deleteLater()
+                else:
+                    seen_settings_header = True
 
     def _create_header(self):
         frame = QFrame()

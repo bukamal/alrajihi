@@ -155,7 +155,11 @@ class WarehouseRepository(BaseRepository):
                     WHERE user_id=? AND item_id=? AND warehouse_id=?
                 ''', (uid, item['id'], wh_id)).fetchone():
                     continue
-                qty = str(item['quantity'] or '0')
+                movement_count = conn.execute("SELECT COUNT(*) AS cnt FROM inventory_movements WHERE item_id=? AND user_id=?", (item['id'], uid)).fetchone()['cnt']
+                # If transactional inventory movements already exist, do not migrate
+                # item.quantity as an opening warehouse balance; doing so double-counts
+                # the first purchase/sale when warehouse rows are created lazily.
+                qty = '0' if movement_count else str(item['quantity'] or '0')
                 avg = str(item['average_cost'] or '0')
                 conn.execute('''
                     INSERT INTO item_warehouse_balances
@@ -413,14 +417,27 @@ class WarehouseRepository(BaseRepository):
         self.bootstrap_defaults()
         uid = self._uid()
         conn = self.db.get_connection()
+        # Reverse only the current net effect for a reference.  Older code
+        # reversed every original movement even if a prior update had already
+        # posted reverse_* rows, which over-reversed invoices edited before
+        # deletion.  We aggregate originals and their reversals by base movement
+        # type/item/warehouse/unit_cost and post a reversal only for non-zero net.
         rows = conn.execute("""
             SELECT * FROM warehouse_movements
-            WHERE user_id=? AND reference_type=? AND reference_id=?
-            ORDER BY id DESC
-        """, (uid, reference_type, reference_id)).fetchall()
+            WHERE user_id=? AND reference_id=? AND reference_type IN (?, ?)
+            ORDER BY id ASC
+        """, (uid, reference_id, reference_type, 'reverse_' + str(reference_type))).fetchall()
+        nets = {}
         for r in rows:
-            reverse_type = 'reverse_' + str(r['movement_type'])
-            self.record_movement(r['item_id'], r['warehouse_id'], reverse_type, -Decimal(str(r['quantity'])), r['unit_cost'] or '0', 'reverse_' + str(reference_type), reference_id, 'عكس حركة مستودعية')
+            mt = str(r['movement_type'] or '')
+            base_mt = mt[8:] if mt.startswith('reverse_') else mt
+            key = (r['item_id'], r['warehouse_id'], base_mt, str(r['unit_cost'] or '0'))
+            nets[key] = nets.get(key, Decimal('0')) + Decimal(str(r['quantity'] or 0))
+        for (item_id, warehouse_id, base_mt, unit_cost), net_qty in nets.items():
+            if net_qty == 0:
+                continue
+            reverse_type = 'reverse_' + str(base_mt)
+            self.record_movement(item_id, warehouse_id, reverse_type, -net_qty, unit_cost, 'reverse_' + str(reference_type), reference_id, 'عكس حركة مستودعية')
 
     def _next_transfer_no(self) -> str:
         uid = self._uid()
