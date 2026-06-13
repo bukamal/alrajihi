@@ -267,24 +267,60 @@ class InvoicesWidget(QWidget):
         pagination.addStretch()
         layout.addLayout(pagination)
 
+    def _is_offline_read_error(self, exc):
+        text = str(exc)
+        return (
+            'No connection and this operation cannot be queued safely' in text
+            or 'Connection refused' in text
+            or 'Max retries exceeded' in text
+            or 'Failed to establish a new connection' in text
+        )
+
+    def _notify_offline_read(self, context=''):
+        msg = 'تعذر تحديث بيانات الفواتير لأن الخادم غير متصل. العملية المحفوظة Offline ستبقى في قائمة المزامنة.'
+        if context:
+            msg = f'{context}: {msg}'
+        try:
+            show_toast(msg, 'warning', self)
+        except Exception:
+            pass
+
     def load_customers(self):
-        customers = catalog_service.customers(limit=1000)  # جلب أول 1000 عميل فقط للقائمة
+        try:
+            customers = catalog_service.customers(limit=1000)  # جلب أول 1000 عميل فقط للقائمة
+        except Exception as exc:
+            if self._is_offline_read_error(exc):
+                self._notify_offline_read('قائمة العملاء')
+                return
+            raise
         for c in customers:
             self.sales_customer_combo.addItem(c.get('name', ''), c.get('id'))
 
     def load_suppliers(self):
-        suppliers = catalog_service.suppliers(limit=1000)
+        try:
+            suppliers = catalog_service.suppliers(limit=1000)
+        except Exception as exc:
+            if self._is_offline_read_error(exc):
+                self._notify_offline_read('قائمة الموردين')
+                return
+            raise
         for s in suppliers:
             self.purchases_supplier_combo.addItem(s.get('name', ''), s.get('id'))
 
     def refresh_all(self):
-        if self.invoice_scope == 'sale':
-            self.refresh_tab('sale', reset_page=True)
-        elif self.invoice_scope == 'purchase':
-            self.refresh_tab('purchase', reset_page=True)
-        else:
-            self.refresh_tab('sale', reset_page=True)
-            self.refresh_tab('purchase', reset_page=True)
+        try:
+            if self.invoice_scope == 'sale':
+                self.refresh_tab('sale', reset_page=True)
+            elif self.invoice_scope == 'purchase':
+                self.refresh_tab('purchase', reset_page=True)
+            else:
+                self.refresh_tab('sale', reset_page=True)
+                self.refresh_tab('purchase', reset_page=True)
+        except Exception as exc:
+            if self._is_offline_read_error(exc):
+                self._notify_offline_read()
+                return
+            raise
 
     def refresh_tab(self, inv_type, reset_page=False):
         if inv_type == 'sale':
@@ -294,10 +330,16 @@ class InvoicesWidget(QWidget):
             start_date = self.sales_start_date.date().toString("yyyy-MM-dd")
             end_date = self.sales_end_date.date().toString("yyyy-MM-dd")
             customer_id = self.sales_customer_combo.currentData()
-            invoices, total = invoice_service.list_invoices(
-                search=search, inv_type='sale', start_date=start_date, end_date=end_date,
-                customer_id=customer_id, limit=self.page_size, offset=self.sales_page * self.page_size
-            )
+            try:
+                invoices, total = invoice_service.list_invoices(
+                    search=search, inv_type='sale', start_date=start_date, end_date=end_date,
+                    customer_id=customer_id, limit=self.page_size, offset=self.sales_page * self.page_size
+                )
+            except Exception as exc:
+                if self._is_offline_read_error(exc):
+                    self._notify_offline_read('فواتير البيع')
+                    return
+                raise
             data = []
             for inv in invoices:
                 remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0)))
@@ -333,10 +375,16 @@ class InvoicesWidget(QWidget):
             start_date = self.purchases_start_date.date().toString("yyyy-MM-dd")
             end_date = self.purchases_end_date.date().toString("yyyy-MM-dd")
             supplier_id = self.purchases_supplier_combo.currentData()
-            invoices, total = invoice_service.list_invoices(
-                search=search, inv_type='purchase', start_date=start_date, end_date=end_date,
-                supplier_id=supplier_id, limit=self.page_size, offset=self.purchases_page * self.page_size
-            )
+            try:
+                invoices, total = invoice_service.list_invoices(
+                    search=search, inv_type='purchase', start_date=start_date, end_date=end_date,
+                    supplier_id=supplier_id, limit=self.page_size, offset=self.purchases_page * self.page_size
+                )
+            except Exception as exc:
+                if self._is_offline_read_error(exc):
+                    self._notify_offline_read('فواتير الشراء')
+                    return
+                raise
             data = []
             for inv in invoices:
                 remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0)))

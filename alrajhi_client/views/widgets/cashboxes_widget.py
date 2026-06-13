@@ -11,6 +11,7 @@ from currency import currency
 from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
 from utils import show_toast
+from core.offline_guard import is_offline_read_error, offline_read_message
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 class CashboxDialog(QDialog):
@@ -18,7 +19,15 @@ class CashboxDialog(QDialog):
         super().__init__(parent); self.data=data or {}; self.setWindowTitle('صندوق جديد' if not data else 'تعديل صندوق'); self.setLayoutDirection(Qt.RightToLeft); self.resize(430,300)
         layout=QVBoxLayout(self); form=QFormLayout()
         self.branch_combo=QComboBox()
-        for b in branch_service.branches(): self.branch_combo.addItem(b.get('name',''), b.get('id'))
+        try:
+            branches = branch_service.branches()
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('الفروع'), 'warning', self)
+                branches = []
+            else:
+                raise
+        for b in branches: self.branch_combo.addItem(b.get('name',''), b.get('id'))
         if self.data.get('branch_id'):
             i=self.branch_combo.findData(self.data.get('branch_id'))
             if i>=0: self.branch_combo.setCurrentIndex(i)
@@ -33,7 +42,15 @@ class BankDialog(QDialog):
     def __init__(self, parent=None, data=None):
         super().__init__(parent); self.data=data or {}; self.setWindowTitle('حساب بنكي جديد' if not data else 'تعديل حساب بنكي'); self.setLayoutDirection(Qt.RightToLeft); self.resize(460,360)
         layout=QVBoxLayout(self); form=QFormLayout(); self.branch_combo=QComboBox()
-        for b in branch_service.branches(): self.branch_combo.addItem(b.get('name',''), b.get('id'))
+        try:
+            branches = branch_service.branches()
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('الفروع'), 'warning', self)
+                branches = []
+            else:
+                raise
+        for b in branches: self.branch_combo.addItem(b.get('name',''), b.get('id'))
         if self.data.get('branch_id'):
             i=self.branch_combo.findData(self.data.get('branch_id'))
             if i>=0: self.branch_combo.setCurrentIndex(i)
@@ -72,33 +89,67 @@ class CashboxesWidget(QWidget):
     def _mov_ui(self):
         layout=QVBoxLayout(self.mov_tab); bar=QHBoxLayout(); refresh=QPushButton('تحديث'); refresh.clicked.connect(self.refresh_movements); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.mov_table=CustomTableView(); self.mov_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.mov_table)
     def refresh(self):
-        cashbox_service.bootstrap(); self.refresh_cashboxes(); self.refresh_banks();
-        if settings_service.pos_shifts_enabled(): self.refresh_shifts()
-        self.refresh_movements()
+        try:
+            cashbox_service.bootstrap(); self.refresh_cashboxes(); self.refresh_banks();
+            if settings_service.pos_shifts_enabled(): self.refresh_shifts()
+            self.refresh_movements()
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('الصناديق والبنوك'), 'warning', self)
+                return
+            raise
     def refresh_cashboxes(self):
         text=self.cash_search.text().strip().lower() if hasattr(self,'cash_search') else ''; rows=[]
-        for c in cashbox_service.cashboxes(True):
+        try:
+            cashboxes = cashbox_service.cashboxes(True)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('الصناديق'), 'warning', self)
+                return
+            raise
+        for c in cashboxes:
             if text and text not in str(c.get('name','')).lower() and text not in str(c.get('code','')).lower(): continue
             bal=currency.format_amount(currency.convert(Decimal(str(c.get('balance') or 0)),'USD',currency.get_display_currency()))
             rows.append({'id':c.get('id'),'branch':c.get('branch_name',''),'name':c.get('name',''),'code':c.get('code') or '—','balance':bal,'default':'نعم' if int(c.get('is_default') or 0)==1 else 'لا','status':'مؤرشف' if c.get('deleted_at') or int(c.get('is_active') or 0)==0 else 'نشط'})
         self.cash_model=GenericTableModel(rows,['الفرع','الصندوق','الكود','الرصيد','رئيسي','الحالة'],key_fields=['id'],data_keys=['branch','name','code','balance','default','status']); self.cash_table.setModel(self.cash_model); self.cash_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
     def refresh_banks(self):
         text=self.bank_search.text().strip().lower() if hasattr(self,'bank_search') else ''; rows=[]
-        for b in cashbox_service.bank_accounts(True):
+        try:
+            bank_accounts = cashbox_service.bank_accounts(True)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('الحسابات البنكية'), 'warning', self)
+                return
+            raise
+        for b in bank_accounts:
             if text and text not in str(b.get('bank_name','')).lower() and text not in str(b.get('account_name','')).lower(): continue
             bal=currency.format_amount(currency.convert(Decimal(str(b.get('balance') or 0)),'USD',currency.get_display_currency()))
             rows.append({'id':b.get('id'),'branch':b.get('branch_name',''),'bank':b.get('bank_name',''),'account':b.get('account_name') or '—','number':b.get('account_number') or '—','balance':bal,'status':'مؤرشف' if b.get('deleted_at') or int(b.get('is_active') or 0)==0 else 'نشط'})
         self.bank_model=GenericTableModel(rows,['الفرع','البنك','الحساب','رقم الحساب','الرصيد','الحالة'],key_fields=['id'],data_keys=['branch','bank','account','number','balance','status']); self.bank_table.setModel(self.bank_model); self.bank_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
     def refresh_shifts(self):
         rows=[]
-        for sh in cashbox_service.shifts(limit=200):
+        try:
+            shifts = cashbox_service.shifts(limit=200)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('ورديات POS'), 'warning', self)
+                return
+            raise
+        for sh in shifts:
             diff=currency.format_amount(currency.convert(Decimal(str(sh.get('difference_amount') or 0)),'USD',currency.get_display_currency())) if sh.get('difference_amount') not in (None,'') else '—'
             rows.append({'id':sh.get('id'),'branch':sh.get('branch_name',''),'cashbox':sh.get('cashbox_name',''),'opened':sh.get('opened_at',''),'closed':sh.get('closed_at') or '—','status':'مفتوحة' if sh.get('status')=='open' else 'مغلقة','sales':currency.format_amount(currency.convert(Decimal(str(sh.get('total_sales') or 0)),'USD',currency.get_display_currency())),'diff':diff})
         self.shift_model=GenericTableModel(rows,['#','الفرع','الصندوق','الفتح','الإغلاق','الحالة','المبيعات','الفرق'],data_keys=['id','branch','cashbox','opened','closed','status','sales','diff']); self.shift_table.setModel(self.shift_model); self.shift_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
 
     def refresh_movements(self):
         rows=[]
-        for m in cashbox_service.movements(limit=300):
+        try:
+            movements = cashbox_service.movements(limit=300)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('حركات الصناديق والبنوك'), 'warning', self)
+                return
+            raise
+        for m in movements:
             amount=currency.format_amount(currency.convert(Decimal(str(m.get('amount') or 0)),'USD',currency.get_display_currency())); account=m.get('cashbox_name') or f"{m.get('bank_name') or ''} {m.get('account_name') or ''}".strip()
             rows.append({'date':m.get('movement_date',''),'branch':m.get('branch_name',''),'account':account,'type':m.get('movement_type',''),'amount':amount,'ref':f"{m.get('reference_type') or ''} #{m.get('reference_id') or ''}",'desc':m.get('description','')})
         self.mov_model=GenericTableModel(rows,['التاريخ','الفرع','الحساب','النوع','المبلغ','المرجع','الوصف'],data_keys=['date','branch','account','type','amount','ref','desc']); self.mov_table.setModel(self.mov_model); self.mov_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
@@ -113,7 +164,14 @@ class CashboxesWidget(QWidget):
     def edit_cashbox(self):
         cid=self._selected(self.cash_table,'cash_model')
         if not cid: QMessageBox.information(self,'تعديل','اختر صندوقاً'); return
-        data=next((c for c in cashbox_service.cashboxes(True) if int(c.get('id'))==int(cid)),None); d=CashboxDialog(self,data)
+        try:
+            data=next((c for c in cashbox_service.cashboxes(True) if int(c.get('id'))==int(cid)),None)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('الصندوق'), 'warning', self)
+                return
+            raise
+        d=CashboxDialog(self,data)
         if d.exec_():
             try: cashbox_service.update_cashbox(cid,d.payload()); show_toast(self,'تم التعديل','success'); self.refresh()
             except Exception as e: QMessageBox.warning(self,'خطأ',str(e))
@@ -131,7 +189,14 @@ class CashboxesWidget(QWidget):
     def edit_bank(self):
         bid=self._selected(self.bank_table,'bank_model')
         if not bid: QMessageBox.information(self,'تعديل','اختر حساباً'); return
-        data=next((b for b in cashbox_service.bank_accounts(True) if int(b.get('id'))==int(bid)),None); d=BankDialog(self,data)
+        try:
+            data=next((b for b in cashbox_service.bank_accounts(True) if int(b.get('id'))==int(bid)),None)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('الحساب البنكي'), 'warning', self)
+                return
+            raise
+        d=BankDialog(self,data)
         if d.exec_():
             try: cashbox_service.update_bank_account(bid,d.payload()); show_toast(self,'تم التعديل','success'); self.refresh()
             except Exception as e: QMessageBox.warning(self,'خطأ',str(e))

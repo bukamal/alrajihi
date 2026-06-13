@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBo
                              QDateEdit, QTextEdit, QFormLayout, QMessageBox, QShortcut, QLineEdit,
                              QApplication, QTableView, QHeaderView, QAbstractItemView, QWidget,
                              QStyledItemDelegate, QCompleter, QPushButton, QSpinBox, QCheckBox, QFrame,
-                             QSplitter, QSizePolicy)
+                             QSplitter, QSizePolicy, QMenu, QAction)
 from PyQt5.QtCore import Qt, QDate, QAbstractTableModel, QModelIndex, QStringListModel, QEvent, QTimer
 from PyQt5.QtGui import QKeySequence, QFont
 from decimal import Decimal
@@ -15,8 +15,26 @@ from core.services.warehouse_service import warehouse_service
 from currency import currency
 from views.centered_dialog import CenteredDialog
 from utils import show_toast
+from core.offline_guard import is_offline_read_error, offline_read_message
 from ui.form_validation import FormValidator, make_error_label
 import qtawesome as qta
+
+
+def _money_decimal(value):
+    """Convert UI/API monetary values safely to Decimal.
+
+    Qt spin boxes return float while invoice totals are Decimal. Mixing them
+    raises TypeError during print-preview payload construction, especially when
+    editing existing invoices.
+    """
+    if isinstance(value, Decimal):
+        return value
+    try:
+        if value is None or value == '':
+            return Decimal('0')
+        return Decimal(str(value))
+    except Exception:
+        return Decimal('0')
 
 class LinesModel(QAbstractTableModel):
     COL_ROW = 0
@@ -512,6 +530,17 @@ class InvoiceDialog(CenteredDialog):
         self.save_btn.setObjectName("primary")
         self.print_btn = QPushButton("طباعة F6")
         self.print_btn.setObjectName("softAction")
+        self.print_menu = QMenu(self.print_btn)
+        self.print_preview_action = QAction("معاينة داخل البرنامج", self)
+        self.print_browser_action = QAction("معاينة HTML في المتصفح", self)
+        self.print_direct_action = QAction("طباعة مباشرة", self)
+        self.print_pdf_action = QAction("تصدير PDF", self)
+        self.print_menu.addAction(self.print_preview_action)
+        self.print_menu.addAction(self.print_browser_action)
+        self.print_menu.addSeparator()
+        self.print_menu.addAction(self.print_direct_action)
+        self.print_menu.addAction(self.print_pdf_action)
+        self.print_btn.setMenu(self.print_menu)
         self.cancel_btn = QPushButton("إلغاء Esc")
         for btn in (self.new_btn, self.save_btn, self.print_btn, self.cancel_btn):
             btn.setMinimumWidth(96)
@@ -731,7 +760,10 @@ class InvoiceDialog(CenteredDialog):
         self.full_payment_btn.clicked.connect(self.set_paid_full)
         self.no_payment_btn.clicked.connect(self.set_paid_zero)
         self.save_btn.clicked.connect(self.on_save)
-        self.print_btn.clicked.connect(self.print_invoice_professional)
+        self.print_preview_action.triggered.connect(self.print_invoice_professional)
+        self.print_browser_action.triggered.connect(self.open_invoice_html_in_browser)
+        self.print_direct_action.triggered.connect(self.direct_print_invoice)
+        self.print_pdf_action.triggered.connect(self.save_invoice_pdf)
         self.cancel_btn.clicked.connect(self.reject)
         self.new_btn.clicked.connect(self._clear_invoice_form)
         QTimer.singleShot(0, self.focus_barcode_input)
@@ -887,7 +919,14 @@ class InvoiceDialog(CenteredDialog):
         self.warehouse_availability_label.setText("المتاح في المستودع: " + " | ".join(parts) if parts else "سيتم استخدام المستودع المحدد لهذه الفاتورة")
 
     def _stock_available_for_item(self, item_id):
-        item = product_service.item_by_id(item_id)
+        try:
+            item = product_service.item_by_id(item_id)
+        except Exception as exc:
+            # In client/server offline mode this is a remote read.  Do not block
+            # a queueable invoice just because the stock pre-check could not be
+            # refreshed.  The server validates stock when the queue is replayed.
+            print(f"⚠️ تعذر فحص رصيد المادة قبل الحفظ؛ سيتم تخطي الفحص المحلي: {exc}")
+            return None
         if not item or item.get('item_type') == 'خدمة':
             return None
         try:
@@ -940,12 +979,21 @@ class InvoiceDialog(CenteredDialog):
         self.update_total_display()
 
     def load_entities(self):
-        if self.inv_type == 'sale':
-            self.customers = catalog_service.customers()
-            names = ["نقدي"] + [c.get('name', '') for c in self.customers if c.get('name')]
-        else:
-            self.suppliers = catalog_service.suppliers()
-            names = ["نقدي"] + [s.get('name', '') for s in self.suppliers if s.get('name')]
+        try:
+            if self.inv_type == 'sale':
+                self.customers = catalog_service.customers()
+                names = ["نقدي"] + [c.get('name', '') for c in self.customers if c.get('name')]
+            else:
+                self.suppliers = catalog_service.suppliers()
+                names = ["نقدي"] + [s.get('name', '') for s in self.suppliers if s.get('name')]
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('الأطراف'), 'warning', self)
+                self.customers = getattr(self, 'customers', [])
+                self.suppliers = getattr(self, 'suppliers', [])
+                names = ["نقدي"]
+            else:
+                raise
         self.entity_completer.setModel(QStringListModel(names))
 
     def on_entity_text_changed(self, text):
@@ -983,7 +1031,14 @@ class InvoiceDialog(CenteredDialog):
             self.on_entity_text_changed(dialog.entity_name)
 
     def load_items_for_combo(self):
-        items = catalog_service.items()
+        try:
+            items = catalog_service.items()
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('المواد'), 'warning', self)
+                items = []
+            else:
+                raise
         self.items_for_combo = []
         for it in items:
             price = it.get('selling_price', 0) if self.inv_type == 'sale' else it.get('purchase_price', 0)
@@ -1219,8 +1274,7 @@ class InvoiceDialog(CenteredDialog):
         except Exception as e:
             show_toast(str(e), "error", self)
 
-    def print_invoice_professional(self):
-        from printing.printing_service import printing_service
+    def _build_invoice_print_payload(self):
         inv_ref = self.ref_edit.text() or "جديدة"
         inv_date = self.date_edit.date().toString("yyyy-MM-dd")
         if self.selected_entity_id:
@@ -1246,10 +1300,10 @@ class InvoiceDialog(CenteredDialog):
                     'tax_percent': str(line.get('tax_percent', 0)),
                     'total': currency.format_amount(line.get('total', 0)),
                 })
-        total_before = self.total_before_discount if hasattr(self, 'total_before_discount') else 0
-        discount_amt = self.discount_amount if hasattr(self, 'discount_amount') else 0
-        total_after = self.total_after_discount if hasattr(self, 'total_after_discount') else 0
-        paid = self.paid_spin.value()
+        total_before = _money_decimal(self.total_before_discount if hasattr(self, 'total_before_discount') else 0)
+        discount_amt = _money_decimal(self.discount_amount if hasattr(self, 'discount_amount') else 0)
+        total_after = _money_decimal(self.total_after_discount if hasattr(self, 'total_after_discount') else 0)
+        paid = _money_decimal(self.paid_spin.value())
         remaining = total_after - paid
         invoice_payload = {
             'type': self.inv_type,
@@ -1264,5 +1318,91 @@ class InvoiceDialog(CenteredDialog):
             'remaining': currency.format_amount(remaining),
             'notes': self.notes_edit.toPlainText().strip(),
         }
-        printing_service.invoice_preview(invoice_payload, self, paper='default')
+        return invoice_payload
 
+
+    def _setup_print_menu(self):
+        """Attach unified print options to the existing print button."""
+        try:
+            menu = QMenu(self)
+            menu.addAction("معاينة داخل البرنامج", self.print_invoice_professional)
+            menu.addAction("فتح HTML في المتصفح", self.open_invoice_html_in_browser)
+            menu.addAction("حفظ PDF", self.save_invoice_pdf)
+            menu.addAction("طباعة مباشرة", self.direct_print_invoice)
+            self.print_btn.setMenu(menu)
+            self.print_btn.setText("🖨️ طباعة")
+            self.print_btn.setToolTip("طباعة مباشرة، معاينة HTML، أو حفظ PDF")
+        except Exception:
+            pass
+
+    def _invoice_print_payload(self):
+        inv_ref = self.ref_edit.text() or "جديدة"
+        inv_date = self.date_edit.date().toString("yyyy-MM-dd")
+        if self.selected_entity_id:
+            if self.inv_type == 'sale':
+                cust = next((c for c in self.customers if c.get('id') == self.selected_entity_id), None)
+                entity_name = cust.get('name', 'نقدي') if cust else "نقدي"
+            else:
+                supp = next((s for s in self.suppliers if s.get('id') == self.selected_entity_id), None)
+                entity_name = supp.get('name', 'نقدي') if supp else "نقدي"
+        else:
+            entity_name = "نقدي"
+
+        lines = []
+        for line in self.lines_model.lines:
+            if line.get('item_id'):
+                lines.append({
+                    'barcode': line.get('barcode', ''),
+                    'item_name': line.get('item_name', ''),
+                    'quantity': str(line.get('qty', '')),
+                    'unit': line.get('unit_display', ''),
+                    'unit_price': currency.format_amount(line.get('price', 0)),
+                    'discount_percent': str(line.get('discount_percent', 0)),
+                    'tax_percent': str(line.get('tax_percent', 0)),
+                    'total': currency.format_amount(line.get('total', 0)),
+                })
+        total_before = _money_decimal(self.total_before_discount if hasattr(self, 'total_before_discount') else 0)
+        discount_amt = _money_decimal(self.discount_amount if hasattr(self, 'discount_amount') else 0)
+        total_after = _money_decimal(self.total_after_discount if hasattr(self, 'total_after_discount') else 0)
+        paid = _money_decimal(self.paid_spin.value())
+        remaining = total_after - paid
+        return {
+            'type': self.inv_type,
+            'reference': inv_ref,
+            'date': inv_date,
+            'entity_name': entity_name,
+            'lines': lines,
+            'total_before_discount': currency.format_amount(total_before),
+            'discount': currency.format_amount(discount_amt),
+            'total': currency.format_amount(total_after),
+            'paid_amount': currency.format_amount(paid),
+            'remaining': currency.format_amount(remaining),
+            'notes': self.notes_edit.toPlainText().strip(),
+            'currency': self.display_curr,
+        }
+
+    def print_invoice_professional(self):
+        from printing.printing_service import printing_service
+        printing_service.invoice_preview(self._invoice_print_payload(), self, paper='default')
+
+    def open_invoice_html_in_browser(self):
+        from printing.printing_service import printing_service
+        printing_service.invoice_browser(self._invoice_print_payload(), self, paper='default')
+
+    def save_invoice_pdf(self):
+        from printing.printing_service import printing_service
+        printing_service.invoice_pdf(self._invoice_print_payload(), self, paper='default')
+
+    def direct_print_invoice(self):
+        from printing.printing_service import printing_service
+        printing_service.invoice_print(self._invoice_print_payload(), self, paper='default')
+
+    # Backward-compatible method names used by older QAction wiring.
+    def print_invoice_html_browser(self):
+        return self.open_invoice_html_in_browser()
+
+    def print_invoice_direct(self):
+        return self.direct_print_invoice()
+
+    def export_invoice_pdf(self):
+        return self.save_invoice_pdf()

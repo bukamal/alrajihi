@@ -10,6 +10,7 @@ from models.table_models import GenericTableModel
 from views.centered_dialog import CenteredDialog
 from views.dialogs.add_entity_dialog import AddEntityDialog
 from utils import show_toast
+from core.offline_guard import is_offline_read_error, offline_read_message
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 class CustomersWidget(QWidget):
@@ -69,7 +70,13 @@ class CustomersWidget(QWidget):
     def refresh(self):
         search = self.search_edit.text().strip() or None
         offset = self.current_page * self.page_size
-        customers, self.total_count = entity_service.customers(search=search, limit=self.page_size, offset=offset)
+        try:
+            customers, self.total_count = entity_service.customers(search=search, limit=self.page_size, offset=offset)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('العملاء'), 'warning', self)
+                return
+            raise
         display_curr = currency.get_display_currency()
         data = []
         for c in customers:

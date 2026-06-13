@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
                              QDateEdit, QComboBox, QLabel, QHeaderView, QMessageBox, QFormLayout,
-                             QDoubleSpinBox, QDialog, QDialogButtonBox)
+                             QDoubleSpinBox, QDialog, QDialogButtonBox, QMenu)
 from PyQt5.QtCore import Qt, QDate
 from decimal import Decimal
 from core.services.voucher_service import voucher_service
@@ -12,6 +12,8 @@ from currency import currency
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
+from offline_read import is_offline_read_error, notify_offline_read
+from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 class VouchersWidget(QWidget):
@@ -42,6 +44,15 @@ class VouchersWidget(QWidget):
         self.add_btn.setObjectName("primary")
         self.add_btn.clicked.connect(self.add_voucher)
         top_layout.addWidget(self.add_btn)
+
+        self.print_btn = QPushButton("🖨️ طباعة")
+        print_menu = QMenu(self.print_btn)
+        print_menu.addAction("معاينة داخل البرنامج", lambda: self.print_selected('preview'))
+        print_menu.addAction("فتح HTML في المتصفح", lambda: self.print_selected('browser'))
+        print_menu.addAction("طباعة مباشرة", lambda: self.print_selected('direct'))
+        print_menu.addAction("تصدير PDF", lambda: self.print_selected('pdf'))
+        self.print_btn.setMenu(print_menu)
+        top_layout.addWidget(self.print_btn)
 
         layout.addLayout(top_layout)
 
@@ -76,7 +87,13 @@ class VouchersWidget(QWidget):
             vtype = 'expense'
         search = self.search_edit.text().strip().lower() or None
         offset = self.current_page * self.page_size
-        vouchers, self.total_count = voucher_service.list_vouchers(search=search, vtype=vtype, limit=self.page_size, offset=offset)
+        try:
+            vouchers, self.total_count = voucher_service.list_vouchers(search=search, vtype=vtype, limit=self.page_size, offset=offset)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'السندات')
+                return
+            raise
 
         data = []
         display_curr = currency.get_display_currency()
@@ -106,6 +123,33 @@ class VouchersWidget(QWidget):
         self.page_label.setText(f"الصفحة {self.current_page + 1} من {total_pages}")
         self.prev_btn.setEnabled(self.current_page > 0)
         self.next_btn.setEnabled(self.current_page + 1 < total_pages)
+
+    def _selected_id(self):
+        rows = self.table.selectionModel().selectedRows() if self.table.selectionModel() else []
+        if not rows or not hasattr(self, 'model'):
+            return None
+        return self.model.get_id(rows[0].row())
+
+    def print_selected(self, mode='preview'):
+        vid = self._selected_id()
+        if not vid:
+            QMessageBox.information(self, "طباعة", "اختر سنداً أولاً")
+            return
+        voucher = voucher_service.get(vid)
+        if not voucher:
+            QMessageBox.warning(self, "طباعة", "تعذر تحميل بيانات السند")
+            return
+        voucher = dict(voucher)
+        voucher['party_name'] = voucher_service.party_name(voucher)
+        from printing.printing_service import printing_service
+        if mode == 'browser':
+            printing_service.voucher_browser(voucher, self)
+        elif mode == 'direct':
+            printing_service.voucher_print(voucher, self)
+        elif mode == 'pdf':
+            printing_service.voucher_pdf(voucher, self)
+        else:
+            printing_service.voucher_preview(voucher, self)
 
     def add_voucher(self):
         dialog = VoucherDialog(self)
@@ -150,13 +194,29 @@ class VoucherDialog(QDialog):
 
         self.customer_combo = QComboBox()
         self.customer_combo.addItem("بدون عميل", None)
-        for c in catalog_service.customers(limit=1000):
+        try:
+            customers = catalog_service.customers(limit=1000)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'قائمة العملاء للسندات')
+                customers = []
+            else:
+                raise
+        for c in customers:
             self.customer_combo.addItem(c.get('name', ''), c.get('id'))
         form.addRow("العميل:", self.customer_combo)
 
         self.supplier_combo = QComboBox()
         self.supplier_combo.addItem("بدون مورد", None)
-        for s in catalog_service.suppliers(limit=1000):
+        try:
+            suppliers = catalog_service.suppliers(limit=1000)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'قائمة الموردين للسندات')
+                suppliers = []
+            else:
+                raise
+        for s in suppliers:
             self.supplier_combo.addItem(s.get('name', ''), s.get('id'))
         form.addRow("المورد:", self.supplier_combo)
 

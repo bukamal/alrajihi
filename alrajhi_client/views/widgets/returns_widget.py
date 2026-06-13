@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from decimal import Decimal
 from PyQt5.QtCore import Qt, QDate
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QDateEdit, QDoubleSpinBox, QTextEdit, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView, QDialogButtonBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QDateEdit, QDoubleSpinBox, QTextEdit, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView, QDialogButtonBox, QMenu
 from views.centered_dialog import CenteredDialog
 from views.custom_table_view import CustomTableView
 from views.widgets.components.table_toolbar import TableToolbar
@@ -12,6 +12,7 @@ from core.services.warehouse_service import warehouse_service
 from core.services.cashbox_service import cashbox_service
 from currency import currency
 from utils import show_toast
+from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 
@@ -82,9 +83,9 @@ class SalesReturnDialog(CenteredDialog):
         self.summary_label = QLabel('الإجمالي: 0 | تخفيض الرصيد: 0 | رد نقدي/بنك: 0')
         layout.addWidget(self.summary_label)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        buttons.button(QDialogButtonBox.Save).setText('حفظ المرتجع')
-        buttons.button(QDialogButtonBox.Cancel).setText('إلغاء')
+        buttons = QDialogButtonBox, QMenu(QDialogButtonBox, QMenu.Save | QDialogButtonBox, QMenu.Cancel)
+        buttons.button(QDialogButtonBox, QMenu.Save).setText('حفظ المرتجع')
+        buttons.button(QDialogButtonBox, QMenu.Cancel).setText('إلغاء')
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -94,7 +95,14 @@ class SalesReturnDialog(CenteredDialog):
     def load_invoices(self):
         self.invoice_combo.clear()
         self.invoice_map = {}
-        for inv in sales_return_service.sale_invoices(limit=500):
+        try:
+            invoices = sales_return_service.sale_invoices(limit=500)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'فواتير البيع للمرتجع')
+                return
+            raise
+        for inv in invoices:
             txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('customer_name') or 'نقدي'} - {currency.format_amount(currency.convert(inv.get('total',0),'USD',currency.get_display_currency()))}"
             self.invoice_combo.addItem(txt, inv.get('id'))
             self.invoice_map[inv.get('id')] = inv
@@ -190,7 +198,7 @@ class ReturnsWidget(QWidget):
         self.toolbar.deleteRequested.connect(self.cancel_selected)
         self.toolbar.edit_btn.setVisible(False)
         self.toolbar.exportRequested.connect(lambda: self.table.export_to_excel())
-        self.toolbar.printRequested.connect(lambda: self.table.print_table())
+        self.toolbar.printRequested.connect(lambda: self.print_selected_return('preview'))
         self.toolbar.refreshRequested.connect(self.refresh)
         self.toolbar.searchChanged.connect(lambda _t: self.refresh(True))
         layout.addWidget(self.toolbar)
@@ -198,6 +206,7 @@ class ReturnsWidget(QWidget):
         self.table.set_table_identity('ReturnsWidget.sales_returns')
         self.table.setSelectionBehavior(CustomTableView.SelectRows)
         self.toolbar.set_table(self.table)
+        self._install_print_menu()
         layout.addWidget(self.table)
         pager = QHBoxLayout()
         self.prev_btn = QPushButton('السابق')
@@ -214,7 +223,13 @@ class ReturnsWidget(QWidget):
     def refresh(self, reset_page=False):
         if reset_page:
             self.page = 0
-        rows, self.total = sales_return_service.list_returns(search=self.toolbar.search_edit.text().strip() or None, limit=self.page_size, offset=self.page*self.page_size)
+        try:
+            rows, self.total = sales_return_service.list_returns(search=self.toolbar.search_edit.text().strip() or None, limit=self.page_size, offset=self.page*self.page_size)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'مرتجعات المبيعات')
+                return
+            raise
         data = []
         for r in rows:
             data.append({
@@ -238,6 +253,38 @@ class ReturnsWidget(QWidget):
         start = 0 if self.total == 0 else self.page*self.page_size + 1
         end = min(self.total, self.page*self.page_size + len(data))
         self.toolbar.set_counter(f'عرض {start}-{end} من أصل {self.total} سجل')
+
+    def _install_print_menu(self):
+        if not hasattr(self.toolbar, 'print_btn'):
+            return
+        menu = QMenu(self.toolbar.print_btn)
+        menu.addAction('معاينة داخل البرنامج', lambda: self.print_selected_return('preview'))
+        menu.addAction('فتح HTML في المتصفح', lambda: self.print_selected_return('browser'))
+        menu.addAction('طباعة مباشرة', lambda: self.print_selected_return('direct'))
+        menu.addAction('تصدير PDF', lambda: self.print_selected_return('pdf'))
+        self.toolbar.print_btn.setMenu(menu)
+
+    def print_selected_return(self, mode='preview'):
+        rid = self._selected_id()
+        if not rid:
+            QMessageBox.information(self, 'طباعة', 'اختر مرتجعاً أولاً')
+            return
+        data = sales_return_service.get(rid) or {}
+        if not data:
+            QMessageBox.warning(self, 'طباعة', 'تعذر تحميل بيانات المرتجع')
+            return
+        data = dict(data)
+        data.setdefault('return_type', 'sale_return')
+        data.setdefault('customer_name', data.get('customer') or data.get('party_name') or 'نقدي')
+        from printing.printing_service import printing_service
+        if mode == 'browser':
+            printing_service.return_browser(data, self)
+        elif mode == 'direct':
+            printing_service.return_print(data, self)
+        elif mode == 'pdf':
+            printing_service.return_pdf(data, self)
+        else:
+            printing_service.return_preview(data, self)
 
     def add_return(self):
         dlg = SalesReturnDialog(self)
@@ -340,9 +387,9 @@ class PurchaseReturnDialog(CenteredDialog):
         self.summary_label = QLabel('الإجمالي: 0 | تخفيض الرصيد: 0 | استرداد نقدي/بنك: 0')
         layout.addWidget(self.summary_label)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        buttons.button(QDialogButtonBox.Save).setText('حفظ المرتجع')
-        buttons.button(QDialogButtonBox.Cancel).setText('إلغاء')
+        buttons = QDialogButtonBox, QMenu(QDialogButtonBox, QMenu.Save | QDialogButtonBox, QMenu.Cancel)
+        buttons.button(QDialogButtonBox, QMenu.Save).setText('حفظ المرتجع')
+        buttons.button(QDialogButtonBox, QMenu.Cancel).setText('إلغاء')
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -352,7 +399,14 @@ class PurchaseReturnDialog(CenteredDialog):
     def load_invoices(self):
         self.invoice_combo.clear()
         self.invoice_map = {}
-        for inv in purchase_return_service.purchase_invoices(limit=500):
+        try:
+            invoices = purchase_return_service.purchase_invoices(limit=500)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'فواتير الشراء للمرتجع')
+                return
+            raise
+        for inv in invoices:
             txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('supplier_name') or 'نقدي'} - {currency.format_amount(currency.convert(inv.get('total',0),'USD',currency.get_display_currency()))}"
             self.invoice_combo.addItem(txt, inv.get('id'))
             self.invoice_map[inv.get('id')] = inv
@@ -449,7 +503,7 @@ class PurchaseReturnsWidget(QWidget):
         self.toolbar.deleteRequested.connect(self.cancel_selected)
         self.toolbar.edit_btn.setVisible(False)
         self.toolbar.exportRequested.connect(lambda: self.table.export_to_excel())
-        self.toolbar.printRequested.connect(lambda: self.table.print_table())
+        self.toolbar.printRequested.connect(lambda: self.print_selected_return('preview'))
         self.toolbar.refreshRequested.connect(self.refresh)
         self.toolbar.searchChanged.connect(lambda _t: self.refresh(True))
         layout.addWidget(self.toolbar)
@@ -457,6 +511,7 @@ class PurchaseReturnsWidget(QWidget):
         self.table.set_table_identity('PurchaseReturnsWidget.purchase_returns')
         self.table.setSelectionBehavior(CustomTableView.SelectRows)
         self.toolbar.set_table(self.table)
+        self._install_print_menu()
         layout.addWidget(self.table)
         pager = QHBoxLayout()
         self.prev_btn = QPushButton('السابق')
@@ -473,7 +528,13 @@ class PurchaseReturnsWidget(QWidget):
     def refresh(self, reset_page=False):
         if reset_page:
             self.page = 0
-        rows, self.total = purchase_return_service.list_returns(search=self.toolbar.search_edit.text().strip() or None, limit=self.page_size, offset=self.page*self.page_size)
+        try:
+            rows, self.total = purchase_return_service.list_returns(search=self.toolbar.search_edit.text().strip() or None, limit=self.page_size, offset=self.page*self.page_size)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'مرتجعات المشتريات')
+                return
+            raise
         data = []
         for r in rows:
             data.append({
@@ -497,6 +558,38 @@ class PurchaseReturnsWidget(QWidget):
         start = 0 if self.total == 0 else self.page*self.page_size + 1
         end = min(self.total, self.page*self.page_size + len(data))
         self.toolbar.set_counter(f'عرض {start}-{end} من أصل {self.total} سجل')
+
+    def _install_print_menu(self):
+        if not hasattr(self.toolbar, 'print_btn'):
+            return
+        menu = QMenu(self.toolbar.print_btn)
+        menu.addAction('معاينة داخل البرنامج', lambda: self.print_selected_return('preview'))
+        menu.addAction('فتح HTML في المتصفح', lambda: self.print_selected_return('browser'))
+        menu.addAction('طباعة مباشرة', lambda: self.print_selected_return('direct'))
+        menu.addAction('تصدير PDF', lambda: self.print_selected_return('pdf'))
+        self.toolbar.print_btn.setMenu(menu)
+
+    def print_selected_return(self, mode='preview'):
+        rid = self._selected_id()
+        if not rid:
+            QMessageBox.information(self, 'طباعة', 'اختر مرتجعاً أولاً')
+            return
+        data = purchase_return_service.get(rid) or {}
+        if not data:
+            QMessageBox.warning(self, 'طباعة', 'تعذر تحميل بيانات المرتجع')
+            return
+        data = dict(data)
+        data.setdefault('return_type', 'purchase_return')
+        data.setdefault('supplier_name', data.get('supplier') or data.get('party_name') or 'نقدي')
+        from printing.printing_service import printing_service
+        if mode == 'browser':
+            printing_service.return_browser(data, self)
+        elif mode == 'direct':
+            printing_service.return_print(data, self)
+        elif mode == 'pdf':
+            printing_service.return_pdf(data, self)
+        else:
+            printing_service.return_preview(data, self)
 
     def add_return(self):
         dlg = PurchaseReturnDialog(self)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
-                             QDateEdit, QLabel, QTabWidget, QHeaderView)
+                             QDateEdit, QLabel, QTabWidget, QHeaderView, QMenu)
 from PyQt5.QtCore import Qt, QDate
 from decimal import Decimal
 from core.services.reporting_service import reporting_service
@@ -84,7 +84,12 @@ class ReportsWidget(QWidget):
         period_layout.addWidget(refresh_btn)
 
         print_btn = QPushButton("طباعة")
-        print_btn.clicked.connect(self.print_report)
+        print_menu = QMenu(print_btn)
+        print_menu.addAction("معاينة داخل البرنامج", lambda: self.print_report('preview'))
+        print_menu.addAction("فتح HTML في المتصفح", lambda: self.print_report('browser'))
+        print_menu.addAction("طباعة مباشرة", lambda: self.print_report('direct'))
+        print_menu.addAction("تصدير PDF", lambda: self.print_report('pdf'))
+        print_btn.setMenu(print_menu)
         period_layout.addWidget(print_btn)
 
         layout.addLayout(period_layout)
@@ -788,7 +793,7 @@ class ReportsWidget(QWidget):
         except Exception:
             self._set_table(self.unit_audit_table, [], ['المادة', 'الوحدة الأساسية', 'الوحدة', 'المعامل', 'الحالة'], ['item','base','unit','factor','status'])
 
-    def print_report(self):
+    def print_report(self, mode='preview'):
         from printing.printing_service import printing_service
         start, end = self.get_date_range()
         tab = self.tabs.currentWidget()
@@ -845,4 +850,12 @@ class ReportsWidget(QWidget):
         rows = []
         for r in range(model.rowCount()):
             rows.append([model.data(model.index(r, c), Qt.DisplayRole) or '' for c in range(model.columnCount())])
-        printing_service.report_preview(title, rows, headers, self, subtitle=f'الفترة: {start} إلى {end}')
+        subtitle = f'الفترة: {start} إلى {end}'
+        if mode == 'browser':
+            printing_service.report_browser(title, rows, headers, self, subtitle=subtitle)
+        elif mode == 'direct':
+            printing_service.report_print(title, rows, headers, self, subtitle=subtitle)
+        elif mode == 'pdf':
+            printing_service.report_pdf(title, rows, headers, self, subtitle=subtitle)
+        else:
+            printing_service.report_preview(title, rows, headers, self, subtitle=subtitle)

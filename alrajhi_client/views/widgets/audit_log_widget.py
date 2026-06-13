@@ -6,6 +6,7 @@ from core.services.audit_service import audit_service
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
+from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
 class AuditLogWidget(QWidget):
@@ -105,10 +106,16 @@ class AuditLogWidget(QWidget):
         start = self.start_date.date().toString("yyyy-MM-dd")
         end = self.end_date.date().toString("yyyy-MM-dd")
         offset = self.current_page * self.page_size
-        logs, self.total_count = self.audit_service.list_logs(
-            limit=self.page_size, offset=offset,
-            user_id=user_id, action=action, table_name=entity_type, start_date=start, end_date=end
-        )
+        try:
+            logs, self.total_count = self.audit_service.list_logs(
+                limit=self.page_size, offset=offset,
+                user_id=user_id, action=action, table_name=entity_type, start_date=start, end_date=end
+            )
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'سجل التدقيق')
+                return
+            raise
         if search_text:
             needle = search_text.lower()
             logs = [l for l in logs if needle in str(l.get('entity_id') or l.get('record_id') or '').lower()

@@ -22,6 +22,68 @@ def _item_avg_cost(db, item_id):
     row = db.execute("SELECT CAST(average_cost AS TEXT) as avg_cost FROM items WHERE id=?", (item_id,)).fetchone()
     return _dec(row['avg_cost']) if row else Decimal('0')
 
+def _default_warehouse_id(db, user_id):
+    row = db.execute("SELECT id FROM warehouses WHERE user_id=? AND is_default=1 AND deleted_at IS NULL AND COALESCE(is_active,1)=1 LIMIT 1", (user_id,)).fetchone()
+    if row:
+        return row['id']
+    row = db.execute("SELECT id FROM warehouses WHERE user_id=? AND deleted_at IS NULL AND COALESCE(is_active,1)=1 ORDER BY id LIMIT 1", (user_id,)).fetchone()
+    if row:
+        return row['id']
+    return None
+
+
+def _warehouse_available_qty(db, user_id, item_id, warehouse_id=None):
+    warehouse_id = warehouse_id or _default_warehouse_id(db, user_id)
+    if not warehouse_id:
+        return _item_qty(db, item_id)
+    row = db.execute("""
+        SELECT quantity FROM item_warehouse_balances
+        WHERE user_id=? AND item_id=? AND warehouse_id=?
+    """, (user_id, item_id, warehouse_id)).fetchone()
+    return _dec(row['quantity']) if row and row['quantity'] is not None else Decimal('0')
+
+
+def _ensure_warehouse_balance(db, user_id, item_id, warehouse_id, unit_cost='0'):
+    if not warehouse_id:
+        raise ValueError('يجب تحديد المستودع')
+    row = db.execute("SELECT id FROM item_warehouse_balances WHERE user_id=? AND item_id=? AND warehouse_id=?", (user_id, item_id, warehouse_id)).fetchone()
+    if row:
+        return
+    now = datetime.datetime.now().isoformat()
+    db.execute("""
+        INSERT INTO item_warehouse_balances (user_id, item_id, warehouse_id, quantity, average_cost, updated_at)
+        VALUES (?, ?, ?, '0', ?, ?)
+    """, (user_id, item_id, warehouse_id, str(unit_cost or '0'), now))
+
+
+def _record_warehouse_movement(db, user_id, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type='production_order', reference_id=None, notes=''):
+    warehouse_id = warehouse_id or _default_warehouse_id(db, user_id)
+    if not warehouse_id:
+        raise ValueError('لا يوجد مستودع صالح لتسجيل حركة التصنيع')
+    qty = _dec(quantity)
+    cost = _dec(unit_cost)
+    if qty == 0:
+        return None
+    wh = db.execute("SELECT id FROM warehouses WHERE id=? AND user_id=? AND deleted_at IS NULL AND COALESCE(is_active,1)=1", (warehouse_id, user_id)).fetchone()
+    if not wh:
+        raise ValueError('المستودع غير نشط أو غير موجود')
+    _ensure_warehouse_balance(db, user_id, item_id, warehouse_id, cost)
+    current = _warehouse_available_qty(db, user_id, item_id, warehouse_id)
+    new_qty = current + qty
+    if new_qty < 0:
+        raise ValueError(f'الرصيد غير كافٍ في المستودع المحدد. المتوفر {current}، المطلوب {abs(qty)}')
+    now = datetime.datetime.now().isoformat()
+    db.execute("""
+        UPDATE item_warehouse_balances SET quantity=?, average_cost=?, updated_at=?
+        WHERE user_id=? AND item_id=? AND warehouse_id=?
+    """, (str(new_qty), str(cost), now, user_id, item_id, warehouse_id))
+    cur = db.execute("""
+        INSERT INTO warehouse_movements
+        (user_id, item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes, movement_date, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (user_id, item_id, warehouse_id, movement_type, str(qty), str(cost), reference_type, reference_id, notes or '', now, now))
+    return getattr(cur, 'lastrowid', None)
+
 def _validate_positive(value, label):
     qty = _dec(value)
     if qty <= 0:
@@ -156,7 +218,15 @@ def _get_bom_for_product(db, product_id, user_id):
     if row:
         bom_id = row['id']
         bom = db.execute("SELECT * FROM bom WHERE id=?", (bom_id,)).fetchone()
-        lines = db.execute("SELECT * FROM bom_lines WHERE bom_id=?", (bom_id,)).fetchall()
+        lines = db.execute('''
+            SELECT bl.*, i.name AS item_name, u.unit_name,
+                   CAST(COALESCE(u.conversion_factor, 1) AS TEXT) AS conversion_factor
+            FROM bom_lines bl
+            JOIN items i ON i.id = bl.item_id
+            LEFT JOIN item_units u ON u.id = bl.unit_id
+            WHERE bl.bom_id=?
+            ORDER BY bl.id
+        ''', (bom_id,)).fetchall()
         return {'id': bom_id, 'product_id': bom['product_id'], 'quantity': bom['quantity'], 'lines': [dict(l) for l in lines]}
     return None
 
@@ -184,13 +254,13 @@ def _expand_bom(db, product_id, quantity, user_id, multiplier=Decimal('1'), visi
                 'required_qty': required_qty,
                 'waste_percent': Decimal(str(line.get('waste_percent', 0))),
                 'unit_id': line.get('unit_id'),
-                'unit_name': '',
-                'conversion_factor': Decimal('1')
+                'unit_name': line.get('unit_name', ''),
+                'conversion_factor': Decimal(str(line.get('conversion_factor') or '1'))
             })
     visited.remove(product_id)
     return result
 
-def get_required_materials_recursive(db, product_id, planned_qty, user_id):
+def get_required_materials_recursive(db, product_id, planned_qty, user_id, warehouse_id=None):
     raw_materials = _expand_bom(db, product_id, planned_qty, user_id)
     merged = {}
     for mat in raw_materials:
@@ -201,8 +271,7 @@ def get_required_materials_recursive(db, product_id, planned_qty, user_id):
             merged[key] = mat
     result = []
     for mat in merged.values():
-        item = db.execute("SELECT CAST(quantity AS REAL) as qty FROM items WHERE id=?", (mat['item_id'],)).fetchone()
-        available = Decimal(str(item['qty'])) if item else Decimal('0')
+        available = _warehouse_available_qty(db, user_id, mat['item_id'], warehouse_id)
         mat['available_qty'] = available
         mat['is_sufficient'] = available >= mat['required_qty']
         result.append(mat)
@@ -235,7 +304,15 @@ def get_bom(bom_id):
     bom = db.execute("SELECT * FROM bom WHERE id=? AND user_id=?", (bom_id, user_id)).fetchone()
     if not bom:
         return jsonify({'error': 'Not found'}), 404
-    lines = db.execute("SELECT * FROM bom_lines WHERE bom_id=?", (bom_id,)).fetchall()
+    lines = db.execute('''
+        SELECT bl.*, i.name AS item_name, u.unit_name,
+               CAST(COALESCE(u.conversion_factor, 1) AS TEXT) AS conversion_factor
+        FROM bom_lines bl
+        JOIN items i ON i.id = bl.item_id
+        LEFT JOIN item_units u ON u.id = bl.unit_id
+        WHERE bl.bom_id=?
+        ORDER BY bl.id
+    ''', (bom_id,)).fetchall()
     result = dict(bom)
     result['lines'] = [dict(line) for line in lines]
     return jsonify(result)
@@ -312,12 +389,38 @@ def get_orders():
 def get_order(order_id):
     user_id = get_jwt_identity()
     db = get_db()
-    order = db.execute("SELECT * FROM production_orders WHERE id=? AND user_id=?", (order_id, user_id)).fetchone()
+    order = db.execute('''
+        SELECT po.*, i.name AS product_name,
+               rw.name AS raw_warehouse_name, ow.name AS output_warehouse_name
+        FROM production_orders po
+        JOIN items i ON i.id = po.product_id
+        LEFT JOIN warehouses rw ON rw.id = po.raw_warehouse_id
+        LEFT JOIN warehouses ow ON ow.id = po.output_warehouse_id
+        WHERE po.id=? AND po.user_id=?
+    ''', (order_id, user_id)).fetchone()
     if not order:
         return jsonify({'error': 'Not found'}), 404
-    consumptions = db.execute("SELECT * FROM production_consumptions WHERE order_id=?", (order_id,)).fetchall()
-    outputs = db.execute("SELECT * FROM production_outputs WHERE order_id=?", (order_id,)).fetchall()
-    reservations = db.execute("SELECT * FROM material_reservations WHERE order_id=?", (order_id,)).fetchall()
+    consumptions = db.execute('''
+        SELECT pc.*, i.name AS item_name
+        FROM production_consumptions pc
+        JOIN items i ON i.id = pc.item_id
+        WHERE pc.order_id=?
+        ORDER BY pc.id
+    ''', (order_id,)).fetchall()
+    outputs = db.execute('''
+        SELECT po2.*, i.name AS item_name
+        FROM production_outputs po2
+        JOIN items i ON i.id = po2.item_id
+        WHERE po2.order_id=?
+        ORDER BY po2.id
+    ''', (order_id,)).fetchall()
+    reservations = db.execute('''
+        SELECT mr.*, i.name AS item_name
+        FROM material_reservations mr
+        JOIN items i ON i.id = mr.item_id
+        WHERE mr.order_id=?
+        ORDER BY mr.id
+    ''', (order_id,)).fetchall()
     result = dict(order)
     result['consumptions'] = [dict(c) for c in consumptions]
     result['outputs'] = [dict(o) for o in outputs]
@@ -336,7 +439,11 @@ def create_order():
         bom = _get_bom_for_product(db, product_id, user_id)
         if not bom or not bom.get('lines'):
             return jsonify({'error': 'لا يمكن إنشاء أمر إنتاج دون BOM صالح يحتوي على مكونات'}), 400
-        required = get_required_materials_recursive(db, product_id, planned_qty, user_id)
+        raw_warehouse_id = data.get('raw_warehouse_id') or _default_warehouse_id(db, user_id)
+        output_warehouse_id = data.get('output_warehouse_id') or _default_warehouse_id(db, user_id)
+        if not raw_warehouse_id or not output_warehouse_id:
+            return jsonify({'error': 'يجب تحديد مستودع مواد خام ومستودع منتج نهائي'}), 400
+        required = get_required_materials_recursive(db, product_id, planned_qty, user_id, raw_warehouse_id)
         insufficient = [m for m in required if not m.get('is_sufficient')]
         if insufficient:
             details = '\n'.join(f"{m.get('item_name','')}: المطلوب {m.get('required_qty')}، المتوفر {m.get('available_qty')}" for m in insufficient)
@@ -356,7 +463,7 @@ def create_order():
     cursor = db.execute("""
         INSERT INTO production_orders (order_number, product_id, planned_qty, status, user_id, created_at, notes, raw_warehouse_id, output_warehouse_id)
         VALUES (?,?,?,?,?,?,?,?,?)
-    """, (order_number, product_id, str(planned_qty), 'planned', user_id, now, data.get('notes', ''), data.get('raw_warehouse_id'), data.get('output_warehouse_id')))
+    """, (order_number, product_id, str(planned_qty), 'planned', user_id, now, data.get('notes', ''), raw_warehouse_id, output_warehouse_id))
     order_id = cursor.lastrowid
     for mat in required:
         db.execute("""
@@ -383,7 +490,7 @@ def start_order(order_id):
     insufficient = []
     for r in reservations:
         required_qty = _dec(r['reserved_qty']) - _dec(r['consumed_qty'])
-        available = _item_qty(db, r['item_id'])
+        available = _warehouse_available_qty(db, user_id, r['item_id'], order['raw_warehouse_id'])
         if available < required_qty:
             insufficient.append(f"{r['item_id']}: المطلوب {required_qty}، المتوفر {available}")
     if insufficient:
@@ -424,7 +531,7 @@ def consume_material(order_id):
     remaining = _dec(reservation['reserved_qty']) - _dec(reservation['consumed_qty'])
     if consumed_qty > remaining:
         return jsonify({'error': f'الكمية المستهلكة ({consumed_qty}) تتجاوز المتبقي من الحجز ({remaining})'}), 400
-    available = _item_qty(db, item_id)
+    available = _warehouse_available_qty(db, user_id, item_id, order['raw_warehouse_id'])
     if available < consumed_qty:
         return jsonify({'error': f'المخزون غير كافٍ. المطلوب {consumed_qty}، المتوفر {available}'}), 400
     db.execute("""
@@ -439,6 +546,7 @@ def consume_material(order_id):
     """, (order_id, item_id, str(consumed_qty), str(unit_cost), now))
     consumption_id = cur.lastrowid
     _record_movement(db, user_id, item_id, 'production_consume', consumed_qty, unit_cost, order_id)
+    _record_warehouse_movement(db, user_id, item_id, order['raw_warehouse_id'], 'production_consume_out', -consumed_qty, unit_cost, 'production_order', order_id, 'استهلاك مواد أمر إنتاج')
     _post_manufacturing_consumption_ledger(db, user_id, order, item_id, consumed_qty, unit_cost, consumption_id)
     audit_log('POST', 'PRODUCTION_ORDER', order_id if 'order_id' in locals() else None, new_values=data if 'data' in locals() else None, details='عملية إنتاج')
     audit_log('POST', 'PRODUCTION_ORDER', order_id if 'order_id' in locals() else None, details='عملية إنتاج')
@@ -480,6 +588,7 @@ def complete_order(order_id):
     """, (order_id, order['product_id'], str(produced_qty), str(unit_cost), now))
     output_id = cur.lastrowid
     _record_movement(db, user_id, order['product_id'], 'production_out', produced_qty, unit_cost, order_id)
+    _record_warehouse_movement(db, user_id, order['product_id'], order['output_warehouse_id'], 'production_output_in', produced_qty, unit_cost, 'production_order', order_id, 'إدخال منتج نهائي من أمر إنتاج')
     _post_manufacturing_output_ledger(db, user_id, order, order['product_id'], produced_qty, unit_cost, output_id)
     db.execute("""
         UPDATE production_orders 
@@ -503,17 +612,21 @@ def reverse_order(order_id):
         return jsonify({'error': f"لا يمكن التراجع عن أمر بحالة {order['status']}"}), 400
     outputs = db.execute("SELECT * FROM production_outputs WHERE order_id=?", (order_id,)).fetchall()
     for o in outputs:
-        available = _item_qty(db, o['item_id'])
+        available = _warehouse_available_qty(db, user_id, o['item_id'], order['output_warehouse_id'])
         produced_qty = _dec(o['produced_qty'])
         if available < produced_qty:
             return jsonify({'error': f'لا يمكن التراجع لأن مخزون المنتج سيصبح سالباً. المتوفر {available}، المطلوب عكسه {produced_qty}'}), 400
     consumptions = db.execute("SELECT * FROM production_consumptions WHERE order_id=?", (order_id,)).fetchall()
     for c in consumptions:
-        _record_movement(db, user_id, c['item_id'], 'adjustment', _dec(c['consumed_qty']), _dec(c['unit_cost']), None)
-        _post_manufacturing_consumption_reversal_ledger(db, user_id, order, c['item_id'], _dec(c['consumed_qty']), _dec(c['unit_cost']), c['id'])
+        qty = _dec(c['consumed_qty']); cost = _dec(c['unit_cost'])
+        _record_movement(db, user_id, c['item_id'], 'adjustment', qty, cost, None)
+        _record_warehouse_movement(db, user_id, c['item_id'], order['raw_warehouse_id'], 'production_consume_reverse_in', qty, cost, 'production_order', order_id, 'عكس استهلاك أمر إنتاج')
+        _post_manufacturing_consumption_reversal_ledger(db, user_id, order, c['item_id'], qty, cost, c['id'])
     for o in outputs:
-        _record_movement(db, user_id, o['item_id'], 'adjustment', -_dec(o['produced_qty']), _dec(o['unit_cost']), None)
-        _post_manufacturing_output_reversal_ledger(db, user_id, order, o['item_id'], _dec(o['produced_qty']), _dec(o['unit_cost']), o['id'])
+        qty = _dec(o['produced_qty']); cost = _dec(o['unit_cost'])
+        _record_movement(db, user_id, o['item_id'], 'adjustment', -qty, cost, None)
+        _record_warehouse_movement(db, user_id, o['item_id'], order['output_warehouse_id'], 'production_output_reverse_out', -qty, cost, 'production_order', order_id, 'عكس مخرج أمر إنتاج')
+        _post_manufacturing_output_reversal_ledger(db, user_id, order, o['item_id'], qty, cost, o['id'])
     db.execute("DELETE FROM production_consumptions WHERE order_id=?", (order_id,))
     db.execute("DELETE FROM production_outputs WHERE order_id=?", (order_id,))
     db.execute("DELETE FROM material_reservations WHERE order_id=?", (order_id,))
@@ -581,7 +694,7 @@ def required_materials_endpoint(bom_id):
     if not bom:
         return jsonify({'materials': []})
     try:
-        materials = get_required_materials_recursive(db, bom['product_id'], planned_qty, user_id)
+        materials = get_required_materials_recursive(db, bom['product_id'], planned_qty, user_id, request.args.get('warehouse_id', type=int))
         return jsonify({'materials': _json_safe(materials)})
     except Exception as exc:
         return jsonify({'error': str(exc)}), 400
@@ -596,7 +709,7 @@ def availability_endpoint(bom_id):
     if not bom:
         return jsonify({'sufficient': False, 'materials': []})
     try:
-        materials = get_required_materials_recursive(db, bom['product_id'], planned_qty, user_id)
+        materials = get_required_materials_recursive(db, bom['product_id'], planned_qty, user_id, request.args.get('warehouse_id', type=int))
         sufficient = all(bool(m.get('is_sufficient')) for m in materials)
         return jsonify({'sufficient': sufficient, 'materials': _json_safe(materials)})
     except Exception as exc:
@@ -705,6 +818,7 @@ def delete_consumption_endpoint(consumption_id):
     qty = _dec(row['consumed_qty']); cost = _dec(row['unit_cost'])
     db.execute('UPDATE material_reservations SET consumed_qty = CAST(consumed_qty AS REAL) - ? WHERE order_id=? AND item_id=?', (str(qty), row['order_id'], row['item_id']))
     _record_movement(db, user_id, row['item_id'], 'consumption_reverse', qty, cost, None)
+    _record_warehouse_movement(db, user_id, row['item_id'], row['raw_warehouse_id'], 'production_consume_reverse_in', qty, cost, 'production_order', row['order_id'], 'عكس استهلاك مادة إنتاج')
     order_ctx = {'id': row['order_id'], 'raw_warehouse_id': row['raw_warehouse_id'], 'output_warehouse_id': row['output_warehouse_id']}
     _post_manufacturing_consumption_reversal_ledger(db, user_id, order_ctx, row['item_id'], qty, cost, consumption_id, 'عكس دفتر مخزون حذف استهلاك إنتاج')
     db.execute('DELETE FROM production_consumptions WHERE id=?', (consumption_id,))
@@ -727,10 +841,11 @@ def delete_output_endpoint(output_id):
     if row['status'] == 'completed':
         return jsonify({'error': 'لا يمكن حذف مخرج من أمر مكتمل؛ استخدم العكس'}), 400
     qty = _dec(row['produced_qty']); cost = _dec(row['unit_cost'])
-    available = _item_qty(db, row['item_id'])
+    available = _warehouse_available_qty(db, user_id, row['item_id'], row['output_warehouse_id'])
     if available < qty:
         return jsonify({'error': f'لا يمكن حذف المخرج لأن المخزون غير كاف. المتوفر {available}'}), 400
     _record_movement(db, user_id, row['item_id'], 'adjustment', -qty, cost, None)
+    _record_warehouse_movement(db, user_id, row['item_id'], row['output_warehouse_id'], 'production_output_reverse_out', -qty, cost, 'production_order', row['order_id'], 'عكس مخرج إنتاج')
     order_ctx = {'id': row['order_id'], 'raw_warehouse_id': row['raw_warehouse_id'], 'output_warehouse_id': row['output_warehouse_id']}
     _post_manufacturing_output_reversal_ledger(db, user_id, order_ctx, row['item_id'], qty, cost, output_id, 'عكس دفتر مخزون حذف مخرج إنتاج')
     db.execute('DELETE FROM production_outputs WHERE id=?', (output_id,))

@@ -23,6 +23,7 @@ from auth.session import UserSession
 from utils import enable_auto_select_all, install_non_blocking_message_boxes
 from theme_manager import ThemeManager
 from brand_assets import app_icon
+from offline_read import install_offline_exception_hook
 
 
 _backup_stop_event = None
@@ -248,6 +249,7 @@ def main():
         return
 
     app = QApplication(sys.argv)
+    install_offline_exception_hook(app)
     app.setWindowIcon(QIcon(app_icon()))
     install_non_blocking_message_boxes(app)
     app.setFont(QFont("Tajawal", 10))

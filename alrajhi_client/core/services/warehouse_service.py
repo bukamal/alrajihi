@@ -49,13 +49,25 @@ class WarehouseService:
         return self.gateway.movements(item_id=item_id, warehouse_id=warehouse_id, limit=limit)
 
     def default_warehouse_id(self) -> int | None:
-        return self.gateway.default_warehouse_id()
+        try:
+            return self.gateway.default_warehouse_id()
+        except Exception as exc:
+            print(f"⚠️ تعذر جلب المستودع الافتراضي من الخادم: {exc}")
+            return None
 
     def default_warehouse(self) -> Optional[Dict]:
-        return self.gateway.default_warehouse()
+        try:
+            return self.gateway.default_warehouse()
+        except Exception as exc:
+            print(f"⚠️ تعذر جلب بيانات المستودع الافتراضي من الخادم: {exc}")
+            return None
 
     def available_qty(self, item_id: int, warehouse_id: int | None = None):
-        return self.gateway.available_qty(item_id, warehouse_id)
+        try:
+            return self.gateway.available_qty(item_id, warehouse_id)
+        except Exception as exc:
+            print(f"⚠️ تعذر جلب الرصيد المتاح من الخادم: {exc}")
+            return None
 
 
     def record_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type=None, reference_id=None, notes=''):

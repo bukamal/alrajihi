@@ -142,7 +142,11 @@ class CashboxService:
     def current_open_shift(self, cashbox_id=None):
         if not self.pos_shifts_enabled():
             return None
-        return self.gateway.current_open_shift(cashbox_id)
+        try:
+            return self.gateway.current_open_shift(cashbox_id)
+        except Exception as exc:
+            print(f"⚠️ تعذر التحقق من الوردية المفتوحة من الخادم: {exc}")
+            return None
 
     def shifts(self, limit=100, status=None):
         return self.gateway.shifts(limit=limit, status=status)
@@ -171,9 +175,19 @@ class CashboxService:
         signed = Decimal(str(amount or 0))
         if signed <= 0:
             return None
+        # Queued invoices are returned as negative ids by RestClient.  Do not
+        # send a standalone cash movement while offline; the queued invoice
+        # payload contains payment data and must be replayed atomically by the
+        # server.
+        try:
+            if int(invoice_id or 0) < 0:
+                return None
+        except Exception:
+            pass
         method = payment_method or 'cash'
         movement_type = 'pos_sale_card' if method == 'card' else 'pos_sale_cash'
-        return self.gateway.record_movement({
+        try:
+            return self.gateway.record_movement({
             'branch_id': branch_id,
             'cashbox_id': cashbox_id,
             'bank_account_id': None,
@@ -186,6 +200,9 @@ class CashboxService:
             'description': 'بيع سريع POS',
             'movement_date': None,
         })
+        except Exception as exc:
+            print(f"⚠️ تعذر تسجيل حركة POS النقدية؛ لن يتم إسقاط عملية البيع: {exc}")
+            return None
 
 
 cashbox_service = CashboxService()

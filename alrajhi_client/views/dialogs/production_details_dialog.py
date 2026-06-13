@@ -12,6 +12,24 @@ from core.services.product_service import product_service
 from currency import currency
 from utils import show_toast
 from auth import can_manage_production, can_reverse_production
+from decimal import Decimal
+
+def _num(value, default=0):
+    try:
+        if value is None or value == '':
+            return float(default)
+        return float(Decimal(str(value)))
+    except Exception:
+        return float(default)
+
+
+def _item_label(row, fallback_prefix='مادة'):
+    name = (row.get('item_name') or row.get('product_name') or row.get('name') or '').strip()
+    if name:
+        return name
+    item_id = row.get('item_id') or row.get('product_id') or row.get('id')
+    return f"{fallback_prefix} #{item_id}" if item_id else '-'
+
 
 class ProductionDetailsDialog(CenteredDialog):
     def __init__(self, parent, order_id):
@@ -27,7 +45,7 @@ class ProductionDetailsDialog(CenteredDialog):
             self.reject()
             return
 
-        layout = QVBoxLayout(self)
+        layout = QVBoxLayout(self.content_widget)
         status_map = {'planned': 'مخطط', 'in_progress': 'قيد التنفيذ', 'completed': 'مكتمل', 'cancelled': 'ملغي'}
         info = QLabel(f"""
             <b>رقم الأمر:</b> {order.get('order_number', '')}<br>
@@ -65,6 +83,15 @@ class ProductionDetailsDialog(CenteredDialog):
             reverse_btn.clicked.connect(self.reverse_production)
             btn_layout.addWidget(reverse_btn)
 
+        print_btn = QPushButton("🖨️ طباعة")
+        print_menu = QMenu(print_btn)
+        print_menu.addAction("معاينة داخل البرنامج", lambda: self.print_order('preview'))
+        print_menu.addAction("فتح HTML في المتصفح", lambda: self.print_order('browser'))
+        print_menu.addAction("طباعة مباشرة", lambda: self.print_order('direct'))
+        print_menu.addAction("تصدير PDF", lambda: self.print_order('pdf'))
+        print_btn.setMenu(print_menu)
+        btn_layout.addWidget(print_btn)
+
         close_btn = QPushButton("إغلاق")
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
@@ -98,9 +125,9 @@ class ProductionDetailsDialog(CenteredDialog):
         for c in cons:
             data.append({
                 'id': c['id'],
-                'item': c.get('item_name', ''),
-                'quantity': f"{float(c['consumed_qty']):.2f}",
-                'cost': currency.format_amount(currency.convert(float(c['unit_cost']), 'USD', currency.get_display_currency())),
+                'item': _item_label(c),
+                'quantity': f"{_num(c.get('consumed_qty')):.2f}",
+                'cost': currency.format_amount(currency.convert(_num(c.get('unit_cost')), 'USD', currency.get_display_currency())),
                 'date': c.get('movement_date', '')
             })
         headers = ['item', 'quantity', 'cost', 'date']
@@ -117,9 +144,9 @@ class ProductionDetailsDialog(CenteredDialog):
         for o in outs:
             data.append({
                 'id': o['id'],
-                'item': o.get('item_name', ''),
-                'quantity': f"{float(o['produced_qty']):.2f}",
-                'cost': currency.format_amount(currency.convert(float(o['unit_cost']), 'USD', currency.get_display_currency())),
+                'item': _item_label(o, 'منتج'),
+                'quantity': f"{_num(o.get('produced_qty')):.2f}",
+                'cost': currency.format_amount(currency.convert(_num(o.get('unit_cost')), 'USD', currency.get_display_currency())),
                 'date': o.get('output_date', '')
             })
         headers = ['item', 'quantity', 'cost', 'date']
@@ -134,12 +161,12 @@ class ProductionDetailsDialog(CenteredDialog):
         reservations = self.service.get_reservations(self.order_id)
         data = []
         for r in reservations:
-            reserved = float(r['reserved_qty'])
-            consumed = float(r['consumed_qty'])
+            reserved = _num(r.get('reserved_qty'))
+            consumed = _num(r.get('consumed_qty'))
             remaining = reserved - consumed
             data.append({
                 'id': r['id'],
-                'item': r.get('item_name', ''),
+                'item': _item_label(r),
                 'reserved': f"{reserved:.2f}",
                 'consumed': f"{consumed:.2f}",
                 'remaining': f"{remaining:.2f}"
@@ -151,6 +178,26 @@ class ProductionDetailsDialog(CenteredDialog):
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
         self.res_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.res_table.refresh_style()
+
+    def _print_payload(self):
+        return {
+            'order': self.service.get_production_order(self.order_id) or {},
+            'consumptions': self.service.get_consumptions(self.order_id) or [],
+            'outputs': self.service.get_outputs(self.order_id) or [],
+            'reservations': self.service.get_reservations(self.order_id) or [],
+        }
+
+    def print_order(self, mode='preview'):
+        from printing.printing_service import printing_service
+        data = self._print_payload()
+        if mode == 'browser':
+            printing_service.production_browser(data, self)
+        elif mode == 'direct':
+            printing_service.production_print(data, self)
+        elif mode == 'pdf':
+            printing_service.production_pdf(data, self)
+        else:
+            printing_service.production_preview(data, self)
 
     def start_production(self):
         success, msg = self.service.start_production(self.order_id)
@@ -175,12 +222,12 @@ class ProductionDetailsDialog(CenteredDialog):
         reservations = self.service.get_reservations(self.order_id)
         remaining_items = {}
         for r in reservations:
-            reserved = float(r['reserved_qty'])
-            consumed = float(r['consumed_qty'])
+            reserved = _num(r.get('reserved_qty'))
+            consumed = _num(r.get('consumed_qty'))
             remaining = reserved - consumed
             if remaining > 0:
                 remaining_items[r['item_id']] = {
-                    'name': r.get('item_name', ''),
+                    'name': _item_label(r),
                     'remaining': remaining,
                     'unit_cost': 0
                 }
@@ -204,7 +251,7 @@ class ProductionDetailsDialog(CenteredDialog):
         def update_max():
             item_id = item_combo.currentData()
             if item_id in remaining_items:
-                max_qty = float(remaining_items[item_id]['remaining'])
+                max_qty = _num(remaining_items[item_id].get('remaining'))
                 qty_spin.setMaximum(max_qty)
                 qty_spin.setValue(min(qty_spin.value(), max_qty))
         item_combo.currentIndexChanged.connect(update_max)
@@ -219,9 +266,11 @@ class ProductionDetailsDialog(CenteredDialog):
             if item_id:
                 it = product_service.item_by_id(item_id)
                 if it:
-                    price = it.get('average_cost', 0) if it.get('average_cost', 0) > 0 else it.get('purchase_price', 0)
+                    average_cost = _num(it.get('average_cost'), 0)
+                    purchase_price = _num(it.get('purchase_price'), 0)
+                    price = average_cost if average_cost > 0 else purchase_price
                     price_display = currency.convert(price, 'USD', currency.get_display_currency())
-                    cost_spin.setValue(float(price_display))
+                    cost_spin.setValue(_num(price_display, 0))
         item_combo.currentIndexChanged.connect(update_cost)
         update_cost()
         btn_layout = QHBoxLayout()
@@ -255,16 +304,16 @@ class ProductionDetailsDialog(CenteredDialog):
         reservations = self.service.get_reservations(self.order_id)
         max_producible = None
         for r in reservations:
-            reserved = float(r['reserved_qty'])
-            consumed = float(r['consumed_qty'])
+            reserved = _num(r.get('reserved_qty'))
+            consumed = _num(r.get('consumed_qty'))
             remaining = reserved - consumed
             # المطلوب استهلاكه بالكامل، لذا إذا بقي شيء لا يمكن إتمام الإنتاج
             if remaining > 0.001:
-                QMessageBox.warning(self, "استهلاك ناقص", f"لم يتم استهلاك كامل كمية المادة {r.get('item_name', '')}. المتبقي: {remaining:.2f}")
+                QMessageBox.warning(self, "استهلاك ناقص", f"لم يتم استهلاك كامل كمية المادة {_item_label(r)}. المتبقي: {remaining:.2f}")
                 return
             # يمكننا أيضاً حساب الكمية القصوى بناءً على أقل نسبة (لكن بما أن الاستهلاك كامل، كل شيء جيد)
         # السماح بإنتاج الكمية المخططة فقط (أو أقل إذا كان هناك قيود أخرى)
-        max_producible = float(order['planned_qty']) - float(order.get('produced_qty', 0))
+        max_producible = _num(order.get('planned_qty')) - _num(order.get('produced_qty', 0))
         if max_producible <= 0:
             QMessageBox.warning(self, "تنبيه", "تم إنتاج الكمية المخططة بالكامل")
             return

@@ -7,6 +7,7 @@ from models.table_models import GenericTableModel
 from utils import show_toast
 from views.widgets.components.table_toolbar import TableToolbar
 from views.widgets.modern_ui import apply_modern_widget
+from core.offline_guard import is_offline_read_error, offline_read_message
 
 class BaseWidget(QWidget, BaseActionHandler):
     entity_name = "العنصر"
@@ -139,21 +140,34 @@ class BaseWidget(QWidget, BaseActionHandler):
 
     def refresh(self):
         search = self.search_edit.text().strip().lower() or None
-        if self.has_pagination:
-            self.total_count = self.get_total_count(search)
-            offset = self.current_page * self.page_size
-            items = self.fetch_data(search, limit=self.page_size, offset=offset)
-            total_pages = max(1, (self.total_count + self.page_size - 1) // self.page_size)
-            if self.current_page >= total_pages:
-                self.current_page = max(0, total_pages - 1)
-            if hasattr(self, 'page_label'):
-                self.page_label.setText(f"الصفحة {self.current_page + 1} من {total_pages}")
-            if hasattr(self, 'prev_btn'):
-                self.prev_btn.setEnabled(self.current_page > 0)
-            if hasattr(self, 'next_btn'):
-                self.next_btn.setEnabled(self.current_page + 1 < total_pages)
-        else:
-            items = self.fetch_data(search)
+        try:
+            if self.has_pagination:
+                self.total_count = self.get_total_count(search)
+                offset = self.current_page * self.page_size
+                items = self.fetch_data(search, limit=self.page_size, offset=offset)
+                total_pages = max(1, (self.total_count + self.page_size - 1) // self.page_size)
+                if self.current_page >= total_pages:
+                    self.current_page = max(0, total_pages - 1)
+                if hasattr(self, 'page_label'):
+                    self.page_label.setText(f"الصفحة {self.current_page + 1} من {total_pages}")
+                if hasattr(self, 'prev_btn'):
+                    self.prev_btn.setEnabled(self.current_page > 0)
+                if hasattr(self, 'next_btn'):
+                    self.next_btn.setEnabled(self.current_page + 1 < total_pages)
+            else:
+                items = self.fetch_data(search)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                if hasattr(self, 'toolbar'):
+                    self.toolbar.set_counter('تعذر التحديث: الخادم غير متصل')
+                if hasattr(self, 'status_label'):
+                    self.status_label.setText('تعذر التحديث: الخادم غير متصل')
+                try:
+                    show_toast(offline_read_message(self.entity_name), 'warning', self)
+                except Exception:
+                    pass
+                return
+            raise
         if items is None:
             items = []
         data = self.prepare_table_data(items)
@@ -177,7 +191,6 @@ class BaseWidget(QWidget, BaseActionHandler):
         self.status_label.setText(counter_text)
         if hasattr(self, 'toolbar'):
             self.toolbar.set_counter(counter_text)
-        # ربط إشارة التحديد بعد تعيين النموذج
         sm = self.table.selectionModel()
         if sm is not None:
             try:

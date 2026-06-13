@@ -8,6 +8,7 @@ from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from utils import show_toast
+from offline_read import is_offline_read_error, notify_offline_read
 from core.services.branch_service import branch_service
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 
@@ -53,7 +54,13 @@ class UsersWidget(QWidget):
 
     def refresh(self):
         offset = self.current_page * self.page_size
-        users = user_service.list_users()
+        try:
+            users = user_service.list_users()
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'المستخدمون')
+                return
+            raise
         self.total_count = len(users)
         users = users[offset:offset + self.page_size]
         data = []
@@ -128,7 +135,15 @@ class UserDialog(QDialog):
         form.addRow("الصلاحية:", self.role_combo)
 
         self.branch_combo = QComboBox()
-        for br in branch_service.branches():
+        try:
+            branches = branch_service.branches()
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                notify_offline_read(self, 'الفروع')
+                branches = []
+            else:
+                raise
+        for br in branches:
             self.branch_combo.addItem(br.get('name', f"#{br.get('id')}"), br.get('id'))
         form.addRow("الفرع:", self.branch_combo)
 

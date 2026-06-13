@@ -14,7 +14,10 @@ class RemoteCurrencyGateway(CurrencyGateway):
     def get_all_currencies(self) -> List[Dict]:
         if self.client is None or getattr(self.client, "token", None) is None:
             return []
-        return self.client.get_all_currencies()
+        try:
+            return self.client.get_all_currencies()
+        except Exception:
+            return []
 
     def get_current_rate(self, currency_code: str) -> Optional[float]:
         for row in self.get_all_currencies():
@@ -25,7 +28,10 @@ class RemoteCurrencyGateway(CurrencyGateway):
     def get_historical_rate(self, currency_code: str, date: str) -> Optional[float]:
         if self.client is None:
             return None
-        return float(self.client.get_historical_rate(currency_code, date))
+        try:
+            return float(self.client.get_historical_rate(currency_code, date))
+        except Exception:
+            return None
 
     def update_rate(self, currency_code: str, rate_to_usd: float) -> None:
         if self.client is not None:

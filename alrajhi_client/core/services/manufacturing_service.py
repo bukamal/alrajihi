@@ -139,7 +139,7 @@ class ManufacturingService:
         return records(self.gateway.get_required_materials(*args), 'materials')
 
     def check_materials_availability(self, *args):
-        return self.gateway.check_materials_availability(order_id)
+        return self.gateway.check_materials_availability(*args)
 
     def get_reservations(self, order_id: int) -> List[Dict]:
         return records(self.gateway.get_reservations(order_id), 'reservations')

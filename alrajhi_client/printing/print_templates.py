@@ -467,3 +467,50 @@ def report_html(title: str, rows: List[List[Any]], headers: List[str], subtitle:
     {_footer(settings, "تم إنشاء التقرير بواسطة نظام الراجحي")}
     """
     return base_document(title, body, paper, settings)
+
+
+def production_order_html(data: Dict[str, Any], paper: str = "default") -> str:
+    """Professional HTML for production order details.
+
+    Data accepts: order, consumptions, outputs, reservations or flat keys.
+    """
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "report")
+    payload = dict(data or {})
+    order = payload.get("order") or payload
+    consumptions = payload.get("consumptions") or []
+    outputs = payload.get("outputs") or []
+    reservations = payload.get("reservations") or []
+    status_map = {'planned': 'مخطط', 'in_progress': 'قيد التنفيذ', 'completed': 'مكتمل', 'cancelled': 'ملغي'}
+    title = "أمر إنتاج"
+    meta = _meta_table([
+        [("رقم الأمر", order.get("order_number") or order.get("id") or ""), ("المنتج", order.get("product_name") or order.get("item_name") or ""), ("الحالة", status_map.get(order.get("status"), order.get("status", "")))],
+        [("الكمية المخططة", order.get("planned_qty", "")), ("الكمية المنتجة", order.get("produced_qty", "")), ("تاريخ البدء", order.get("start_date", ""))],
+        [("مستودع الخام", order.get("raw_warehouse_name") or ""), ("مستودع المنتج", order.get("output_warehouse_name") or ""), ("ملاحظات", order.get("notes", ""))],
+    ])
+    cons_rows = []
+    for i, c in enumerate(consumptions, 1):
+        cons_rows.append([i, c.get('item_name') or c.get('name') or c.get('item') or c.get('item_id') or '', c.get('consumed_qty') or c.get('quantity') or '', c.get('unit_cost') or c.get('cost') or '', c.get('movement_date') or c.get('date') or ''])
+    out_rows = []
+    for i, o in enumerate(outputs, 1):
+        out_rows.append([i, o.get('product_name') or o.get('item_name') or o.get('item') or o.get('product_id') or '', o.get('produced_qty') or o.get('quantity') or '', o.get('unit_cost') or o.get('cost') or '', o.get('output_date') or o.get('date') or ''])
+    res_rows = []
+    for i, r in enumerate(reservations, 1):
+        reserved = r.get('reserved_qty') or r.get('reserved') or ''
+        consumed = r.get('consumed_qty') or r.get('consumed') or ''
+        remaining = r.get('remaining_qty') or r.get('remaining') or ''
+        res_rows.append([i, r.get('item_name') or r.get('name') or r.get('item') or r.get('item_id') or '', reserved, consumed, remaining])
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {meta}
+    <h3>المواد المستهلكة</h3>
+    {_table(['#','المادة','الكمية','تكلفة الوحدة','التاريخ'], cons_rows, 'لا توجد مواد مستهلكة')}
+    <h3>المنتج النهائي</h3>
+    {_table(['#','المنتج','الكمية','تكلفة الوحدة','التاريخ'], out_rows, 'لا توجد مخرجات إنتاج')}
+    <h3>الحجوزات والمتبقي</h3>
+    {_table(['#','المادة','المحجوز','المستهلك','المتبقي'], res_rows, 'لا توجد حجوزات')}
+    <table class='signatures hide-thermal'><tr><td>مسؤول الإنتاج</td><td>المحاسبة</td></tr></table>
+    {_footer(settings, 'تم إنشاء أمر الإنتاج بواسطة نظام الراجحي')}
+    """
+    return base_document(title, body, paper, settings)

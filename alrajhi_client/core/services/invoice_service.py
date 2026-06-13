@@ -58,7 +58,14 @@ class InvoiceService:
     def reference_exists(self, reference: str, exclude_invoice_id: int | None = None) -> bool:
         if not reference:
             return False
-        for inv in self.list_records():
+        try:
+            invoices = self.list_records()
+        except Exception as exc:
+            # Offline save path: duplicate reference pre-check is a convenience
+            # only.  The queued server replay remains authoritative.
+            print(f"⚠️ تعذر فحص تكرار مرجع الفاتورة؛ سيتم الاعتماد على الخادم عند المزامنة: {exc}")
+            return False
+        for inv in invoices:
             if exclude_invoice_id is not None and inv.get('id') == exclude_invoice_id:
                 continue
             if inv.get('reference') == reference:
@@ -133,7 +140,17 @@ class InvoiceService:
         return result
 
     def next_reference(self, inv_type: str) -> str:
-        return self.gateway.next_reference(inv_type)
+        try:
+            return self.gateway.next_reference(inv_type)
+        except Exception as exc:
+            # Remote offline fallback.  The reference must be stable enough for
+            # the local queued payload, while the server can still validate it
+            # when replaying the queue.
+            from datetime import datetime
+            prefix = 'SOFF' if inv_type == 'sale' else 'POFF'
+            ref = f"{prefix}-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+            print(f"⚠️ تعذر جلب رقم الفاتورة من الخادم؛ تم توليد رقم مؤقت {ref}: {exc}")
+            return ref
 
 
 invoice_service = InvoiceService()

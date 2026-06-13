@@ -2,14 +2,22 @@
 from gateways.currency_gateway import create_currency_gateway
 from core.services.settings_service import settings_service
 from decimal import Decimal
+import json
+from PyQt5.QtCore import QSettings
 
 class CurrencyManager:
     _instance = None
+    DEFAULT_RATES = {
+        'USD': Decimal('1.0'), 'SAR': Decimal('3.75'), 'SYP': Decimal('14000.0'),
+        'EUR': Decimal('0.92'), 'GBP': Decimal('0.79'), 'AED': Decimal('3.67'),
+        'QAR': Decimal('3.64'), 'KWD': Decimal('0.31'), 'OMR': Decimal('0.38'),
+    }
     
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.gateway = create_currency_gateway()
+            cls._instance._settings = QSettings("Alrajhi", "Accounting")
         return cls._instance
     
     def get_base_currency(self) -> str:
@@ -36,17 +44,65 @@ class CurrencyManager:
     def abbreviate_numbers(self) -> bool:
         return settings_service.get('abbreviate_numbers', 'false').lower() == 'true'
     
+    def _load_rate_cache(self) -> dict:
+        raw = self._settings.value('currency/rate_cache_json', '{}')
+        try:
+            data = json.loads(raw or '{}') if isinstance(raw, str) else {}
+        except Exception:
+            data = {}
+        return data if isinstance(data, dict) else {}
+
+    def _save_rate_cache(self, rates: dict) -> None:
+        try:
+            self._settings.setValue('currency/rate_cache_json', json.dumps(rates, ensure_ascii=False))
+        except Exception:
+            pass
+
+    def _cache_rate(self, currency_code: str, rate) -> None:
+        if rate is None:
+            return
+        try:
+            rates = self._load_rate_cache()
+            rates[str(currency_code)] = str(rate)
+            self._save_rate_cache(rates)
+        except Exception:
+            pass
+
+    def _cached_or_default_rate(self, currency_code: str) -> Decimal:
+        code = str(currency_code or 'USD')
+        rates = self._load_rate_cache()
+        if code in rates:
+            try:
+                return Decimal(str(rates[code]))
+            except Exception:
+                pass
+        return self.DEFAULT_RATES.get(code, Decimal('1.0'))
+
     def get_current_rate(self, currency_code: str) -> Decimal:
-        if currency_code == 'USD':
+        code = str(currency_code or 'USD')
+        if code == 'USD':
             return Decimal('1.0')
-        rate = self.gateway.get_current_rate(currency_code)
-        return Decimal(str(rate)) if rate is not None else Decimal('1.0')
+        try:
+            rate = self.gateway.get_current_rate(code)
+            if rate is not None:
+                self._cache_rate(code, rate)
+                return Decimal(str(rate))
+        except Exception as exc:
+            print(f"⚠️ تعذر جلب سعر الصرف من الخادم؛ سيتم استخدام آخر سعر محفوظ لـ {code}: {exc}")
+        return self._cached_or_default_rate(code)
     
     def get_historical_rate(self, currency_code: str, date: str) -> Decimal:
-        if currency_code == 'USD':
+        code = str(currency_code or 'USD')
+        if code == 'USD':
             return Decimal('1.0')
-        rate = self.gateway.get_historical_rate(currency_code, date)
-        return Decimal(str(rate)) if rate is not None else Decimal('1.0')
+        try:
+            rate = self.gateway.get_historical_rate(code, date)
+            if rate is not None:
+                self._cache_rate(code, rate)
+                return Decimal(str(rate))
+        except Exception as exc:
+            print(f"⚠️ تعذر جلب سعر الصرف التاريخي من الخادم؛ سيتم استخدام آخر سعر محفوظ لـ {code}: {exc}")
+        return self._cached_or_default_rate(code)
     
     def convert(self, amount, from_currency: str, to_currency: str, date: str = None):
         if not isinstance(amount, Decimal):
@@ -102,7 +158,21 @@ class CurrencyManager:
         return f"{formatted} {symbol}"
     
     def get_all_currencies(self) -> list:
-        return self.gateway.get_all_currencies()
+        try:
+            rows = self.gateway.get_all_currencies()
+            for row in rows or []:
+                code = row.get('currency_code')
+                rate = row.get('rate_to_usd')
+                if code and rate is not None:
+                    self._cache_rate(code, rate)
+            if rows:
+                return rows
+        except Exception as exc:
+            print(f"⚠️ تعذر جلب قائمة العملات من الخادم؛ سيتم استخدام الكاش المحلي: {exc}")
+        cached = self._load_rate_cache()
+        if not cached:
+            cached = {code: str(rate) for code, rate in self.DEFAULT_RATES.items()}
+        return [{'currency_code': code, 'rate_to_usd': str(rate), 'updated_at': None, 'cached': True} for code, rate in sorted(cached.items())]
 
 currency = CurrencyManager()
 

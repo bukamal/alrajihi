@@ -14,6 +14,7 @@ from currency import currency
 from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
 from utils import show_toast
+from core.offline_guard import is_offline_read_error, offline_read_message
 from views.widgets.modern_ui import apply_modern_widget
 
 
@@ -197,7 +198,13 @@ class WarehousesWidget(QWidget):
     def refresh_balances(self):
         search = self.balance_search.text().strip() if hasattr(self, 'balance_search') else None
         wh_id = self.warehouse_filter.currentData() if hasattr(self, 'warehouse_filter') else None
-        balances = warehouse_service.balances(search=search, warehouse_id=wh_id)
+        try:
+            balances = warehouse_service.balances(search=search, warehouse_id=wh_id)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('أرصدة المستودعات'), 'warning', self)
+                return
+            raise
         rows = []
         total_value = Decimal('0')
         for b in balances:
@@ -227,7 +234,14 @@ class WarehousesWidget(QWidget):
     def refresh_movements(self):
         wh_id = self.mov_warehouse_filter.currentData() if hasattr(self, 'mov_warehouse_filter') else None
         rows = []
-        for m in warehouse_service.movements(warehouse_id=wh_id, limit=200):
+        try:
+            movements = warehouse_service.movements(warehouse_id=wh_id, limit=200)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('حركات المستودعات'), 'warning', self)
+                return
+            raise
+        for m in movements:
             rows.append({
                 'id': m.get('id'),
                 'date': m.get('movement_date') or m.get('created_at') or '',
@@ -265,7 +279,14 @@ class WarehousesWidget(QWidget):
 
     def refresh_transfers(self):
         rows = []
-        for t in warehouse_service.transfers(limit=300):
+        try:
+            transfers = warehouse_service.transfers(limit=300)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('تحويلات المستودعات'), 'warning', self)
+                return
+            raise
+        for t in transfers:
             rows.append({
                 'id': t.get('id'),
                 'transfer_no': t.get('transfer_no') or '',

@@ -9,6 +9,7 @@ from views.dialogs.bom_dialog import BOMDialog
 from views.dialogs.production_order_dialog import ProductionOrderDialog
 from views.dialogs.production_details_dialog import ProductionDetailsDialog
 from utils import show_toast
+from core.offline_guard import is_offline_read_error, offline_read_message
 from views.widgets.modern_ui import apply_modern_widget
 
 class ManufacturingWidget(QWidget):
@@ -102,7 +103,13 @@ class ManufacturingWidget(QWidget):
         if reset_page:
             self.bom_page = 0
         offset = self.bom_page * self.page_size
-        boms, total = self.service.boms_pair(limit=self.page_size, offset=offset)
+        try:
+            boms, total = self.service.boms_pair(limit=self.page_size, offset=offset)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('قوائم مواد التصنيع'), 'warning', self)
+                return
+            raise
         data = []
         for b in boms:
             data.append({
@@ -128,7 +135,13 @@ class ManufacturingWidget(QWidget):
         if reset_page:
             self.orders_page = 0
         offset = self.orders_page * self.page_size
-        orders, total = self.service.production_orders_pair(limit=self.page_size, offset=offset)
+        try:
+            orders, total = self.service.production_orders_pair(limit=self.page_size, offset=offset)
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('أوامر التصنيع'), 'warning', self)
+                return
+            raise
         status_map = {'planned': 'مخطط', 'in_progress': 'قيد التنفيذ', 'completed': 'مكتمل', 'cancelled': 'ملغي'}
         data = []
         for o in orders:

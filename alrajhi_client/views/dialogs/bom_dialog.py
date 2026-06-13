@@ -8,6 +8,7 @@ from core.services.catalog_service import catalog_service
 from core.services.manufacturing_service import manufacturing_service
 from currency import currency
 from utils import show_toast
+from core.offline_guard import is_offline_read_error, offline_read_message
 from ui.form_validation import FormValidator, make_error_label
 from views.widgets.modern_ui import apply_modern_dialog
 
@@ -26,7 +27,14 @@ class BOMDialog(CenteredDialog):
         main_layout.addLayout(form)
         
         self.product_combo = QComboBox()
-        items = catalog_service.items()
+        try:
+            items = catalog_service.items()
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('مواد التصنيع'), 'warning', self)
+                items = []
+            else:
+                raise
         self.product_map = {}
         for it in items:
             if it.get('item_type') == 'منتج نهائي':
@@ -41,6 +49,8 @@ class BOMDialog(CenteredDialog):
         self.qty_spin.setRange(0.01, 999999)
         self.qty_spin.setValue(1)
         form.addRow("الكمية (لكل وحدة):", self.qty_spin)
+        self.qty_error = make_error_label()
+        form.addRow("", self.qty_error)
 
         group = QGroupBox("المكونات (مواد خام / نصف مصنعة)")
         group_layout = QVBoxLayout(group)
@@ -83,7 +93,14 @@ class BOMDialog(CenteredDialog):
         sub_layout = QFormLayout(dialog)
 
         item_combo = QComboBox()
-        items = catalog_service.items()
+        try:
+            items = catalog_service.items()
+        except Exception as exc:
+            if is_offline_read_error(exc):
+                show_toast(offline_read_message('مواد التصنيع'), 'warning', self)
+                items = []
+            else:
+                raise
         for it in items:
             if it.get('item_type') in ('مخزون', 'منتج نهائي') and it['id'] != self.product_combo.currentData():
                 item_combo.addItem(f"{it['name']} ({currency.format_amount(currency.convert(it.get('selling_price', 0), 'USD', currency.get_display_currency()))})", it['id'])

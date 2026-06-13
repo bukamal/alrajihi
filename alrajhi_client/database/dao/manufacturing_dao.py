@@ -16,6 +16,13 @@ class ManufacturingDAO:
         except Exception:
             return Decimal(str(default))
 
+    def _table_exists(self, table_name: str) -> bool:
+        try:
+            row = self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table_name,)).fetchone()
+            return bool(row)
+        except Exception:
+            return False
+
     def _get_item_qty(self, item_id: int) -> Decimal:
         row = self.db.execute("SELECT CAST(quantity AS REAL) as qty FROM items WHERE id=?", (item_id,)).fetchone()
         return self._to_decimal(row['qty']) if row else Decimal('0')
@@ -84,6 +91,43 @@ class ManufacturingDAO:
             warehouse_service.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, 'production_order', reference_id, notes)
         except Exception as exc:
             raise ValueError(str(exc))
+
+    def _record_ledger_entry(self, item_id, warehouse_id, movement_type, direction, quantity, unit_cost, reference_type, reference_id, source_table=None, source_id=None, notes=''):
+        """Shadow-post local manufacturing effects to Inventory Ledger."""
+        try:
+            from database.dao.inventory_ledger_dao import inventory_ledger_dao
+            return inventory_ledger_dao.record_entry(
+                item_id=item_id, movement_type=movement_type, direction=direction,
+                quantity=abs(self._to_decimal(quantity)), unit_cost=self._to_decimal(unit_cost),
+                warehouse_id=warehouse_id, reference_type=reference_type, reference_id=reference_id,
+                source_table=source_table, source_id=source_id, notes=notes
+            )
+        except Exception as exc:
+            raise ValueError(f"فشل تسجيل دفتر المخزون للتصنيع: {exc}")
+
+    def _post_consumption_ledger(self, order, item_id, qty, unit_cost, source_id=None, notes='دفتر مخزون استهلاك إنتاج'):
+        return self._record_ledger_entry(
+            item_id, order.get('raw_warehouse_id'), 'production_consume', 'out',
+            qty, unit_cost, 'production_order', order.get('id'), 'production_consumptions', source_id, notes
+        )
+
+    def _post_output_ledger(self, order, item_id, qty, unit_cost, source_id=None, notes='دفتر مخزون إنتاج منتج نهائي'):
+        return self._record_ledger_entry(
+            item_id, order.get('output_warehouse_id'), 'production_out', 'in',
+            qty, unit_cost, 'production_order', order.get('id'), 'production_outputs', source_id, notes
+        )
+
+    def _post_consumption_reversal_ledger(self, order, item_id, qty, unit_cost, source_id=None, notes='عكس دفتر مخزون استهلاك إنتاج'):
+        return self._record_ledger_entry(
+            item_id, order.get('raw_warehouse_id'), 'production_consume_reversal', 'in',
+            qty, unit_cost, 'production_order_reversal', order.get('id'), 'production_consumptions', source_id, notes
+        )
+
+    def _post_output_reversal_ledger(self, order, item_id, qty, unit_cost, source_id=None, notes='عكس دفتر مخزون إنتاج منتج نهائي'):
+        return self._record_ledger_entry(
+            item_id, order.get('output_warehouse_id'), 'production_out_reversal', 'out',
+            qty, unit_cost, 'production_order_reversal', order.get('id'), 'production_outputs', source_id, notes
+        )
 
     # ========== BOM ==========
     def get_all_boms(self, limit: int = None, offset: int = None) -> Tuple[List[Dict], int]:
@@ -213,7 +257,7 @@ class ManufacturingDAO:
                     'waste_percent': Decimal(str(line.get('waste_percent', 0))),
                     'unit_id': line.get('unit_id'),
                     'unit_name': line.get('unit_name', ''),
-                    'conversion_factor': Decimal(str(line.get('conversion_factor', '1')))
+                    'conversion_factor': Decimal(str(line.get('conversion_factor') or '1'))
                 })
         visited.remove(product_id)
         return result
@@ -354,7 +398,7 @@ class ManufacturingDAO:
             self.db.execute("""
                 INSERT INTO bom_snapshot_lines (snapshot_id, item_id, item_name, quantity, unit_name, conversion_factor, waste_percent)
                 VALUES (?,?,?,?,?,?,?)
-            """, (snapshot_id, line['item_id'], line.get('item_name', ''), str(line['quantity']), line.get('unit_name', ''), str(line.get('conversion_factor', '1')), str(line.get('waste_percent', 0))))
+            """, (snapshot_id, line['item_id'], line.get('item_name', ''), str(line['quantity']), line.get('unit_name', ''), str(line.get('conversion_factor') or '1'), str(line.get('waste_percent', 0))))
         cur = self.db.execute("""
             INSERT INTO production_orders (order_number, product_id, planned_qty, status, user_id, created_at, notes, bom_snapshot_id, raw_warehouse_id, output_warehouse_id)
             VALUES (?,?,?,?,?,?,?,?,?,?)
@@ -442,10 +486,11 @@ class ManufacturingDAO:
             WHERE order_id = ? AND item_id = ?
         """, (str(consumed_qty), order_id, item_id))
         now = datetime.datetime.now().isoformat()
-        self.db.execute("""
+        cur = self.db.execute("""
             INSERT INTO production_consumptions (order_id, item_id, consumed_qty, unit_cost, movement_date)
             VALUES (?,?,?,?,?)
         """, (order_id, item_id, str(consumed_qty), str(unit_cost), now))
+        consumption_id = getattr(cur, 'lastrowid', None)
         self._record_inventory_movement(item_id, 'production_consume', consumed_qty, unit_cost, order_id)
         self._record_warehouse_movement(item_id, order.get('raw_warehouse_id'), 'production_consume_out', -consumed_qty, unit_cost, order_id, 'استهلاك مواد أمر إنتاج')
         self.db.commit()
@@ -478,10 +523,11 @@ class ManufacturingDAO:
             return False, "تكلفة الإنتاج يجب أن تكون أكبر من صفر"
         unit_cost = total_cost / produced_qty
         now = datetime.datetime.now().isoformat()
-        self.db.execute("""
+        cur = self.db.execute("""
             INSERT INTO production_outputs (order_id, item_id, produced_qty, unit_cost, output_date)
             VALUES (?,?,?,?,?)
         """, (order_id, order['product_id'], str(produced_qty), str(unit_cost), now))
+        output_id = getattr(cur, 'lastrowid', None)
         self._record_inventory_movement(order['product_id'], 'production_out', produced_qty, unit_cost, order_id)
         self._record_warehouse_movement(order['product_id'], order.get('output_warehouse_id'), 'production_output_in', produced_qty, unit_cost, order_id, 'إدخال منتج نهائي من أمر إنتاج')
         new_produced = self._to_decimal(order.get('produced_qty', 0)) + produced_qty
@@ -566,6 +612,10 @@ class ManufacturingDAO:
         self.db.commit()
 
     def _create_journal_entry(self, date, description, ref_type, ref_id, lines):
+        # بعض نسخ قاعدة البيانات لا تحتوي بعد على جدول القيود المحاسبية.
+        # لا يجوز أن يفشل إتمام الإنتاج بسبب قيد محاسبي اختياري؛ المخزون والدفتر المخزني يبقيان المصدر التشغيلي هنا.
+        if not (self._table_exists('journal_entries') and self._table_exists('journal_lines')):
+            return None
         cur = self.db.execute("""
             INSERT INTO journal_entries (date, description, reference_type, reference_id, created_at)
             VALUES (?,?,?,?,?)
@@ -580,6 +630,8 @@ class ManufacturingDAO:
         return entry_id
 
     def _reverse_journal_entry(self, entry_id):
+        if not entry_id or not (self._table_exists('journal_entries') and self._table_exists('journal_lines')):
+            return
         lines = self.db.execute("SELECT account_code, debit, credit FROM journal_lines WHERE entry_id=?", (entry_id,)).fetchall()
         if not lines:
             return
@@ -682,7 +734,10 @@ class ManufacturingDAO:
             SET consumed_qty = CAST(consumed_qty AS REAL) - ?
             WHERE order_id = ? AND item_id = ?
         """, (consumption['consumed_qty'], consumption['order_id'], consumption['item_id']))
-        self._record_inventory_movement(consumption['item_id'], 'consumption_reverse', Decimal(str(consumption['consumed_qty'])), Decimal(str(consumption['unit_cost'])), None)
+        qty = self._to_decimal(consumption['consumed_qty'])
+        cost = self._to_decimal(consumption['unit_cost'])
+        self._record_inventory_movement(consumption['item_id'], 'consumption_reverse', qty, cost, None)
+        self._record_warehouse_movement(consumption['item_id'], order.get('raw_warehouse_id'), 'production_consume_reverse_in', qty, cost, order['id'], 'عكس استهلاك مادة إنتاج')
         self.db.execute("DELETE FROM production_consumptions WHERE id=?", (consumption_id,))
         self.db.commit()
         return True, ""
@@ -698,13 +753,17 @@ class ManufacturingDAO:
         order = self.get_production_order(output['order_id'])
         if not order:
             return False, "أمر الإنتاج غير موجود"
-        if order['status'] not in ('in_progress', 'completed'):
+        if order['status'] == 'completed':
+            return False, "لا يمكن حذف مخرج من أمر مكتمل؛ استخدم التراجع عن الإنتاج بالكامل"
+        if order['status'] != 'in_progress':
             return False, f"لا يمكن حذف إنتاج من أمر {order['status']}"
         produced_qty = Decimal(str(output['produced_qty']))
         available = self._get_item_qty(output['item_id'])
         if available < produced_qty:
             return False, f"لا يمكن حذف الإنتاج لأن مخزون المنتج سيصبح سالباً. المتوفر {available}، المطلوب عكسه {produced_qty}"
-        self._record_inventory_movement(output['item_id'], 'adjustment', -produced_qty, Decimal(str(output['unit_cost'])), None)
+        cost = self._to_decimal(output['unit_cost'])
+        self._record_inventory_movement(output['item_id'], 'adjustment', -produced_qty, cost, None)
+        self._record_warehouse_movement(output['item_id'], order.get('output_warehouse_id'), 'production_output_reverse_out', -produced_qty, cost, order['id'], 'عكس مخرج إنتاج')
         self.db.execute("DELETE FROM production_outputs WHERE id=?", (output_id,))
         new_produced = Decimal(str(order['produced_qty'])) - Decimal(str(output['produced_qty']))
         self.db.execute("UPDATE production_orders SET produced_qty=? WHERE id=?", (str(new_produced), order['id']))
@@ -732,10 +791,16 @@ class ManufacturingDAO:
                 self._reverse_journal_entry(order['linked_entry_id'])
             consumptions = self.get_consumptions(order_id)
             for c in consumptions:
-                self._record_inventory_movement(c['item_id'], 'adjustment', Decimal(str(c['consumed_qty'])), Decimal(str(c['unit_cost'])), None)
+                qty = self._to_decimal(c['consumed_qty'])
+                cost = self._to_decimal(c['unit_cost'])
+                self._record_inventory_movement(c['item_id'], 'adjustment', qty, cost, None)
+                self._record_warehouse_movement(c['item_id'], order.get('raw_warehouse_id'), 'production_consume_reverse_in', qty, cost, order_id, 'عكس استهلاك أمر إنتاج')
             outputs = self.get_outputs(order_id)
             for o in outputs:
-                self._record_inventory_movement(o['item_id'], 'adjustment', -Decimal(str(o['produced_qty'])), Decimal(str(o['unit_cost'])), None)
+                qty = self._to_decimal(o['produced_qty'])
+                cost = self._to_decimal(o['unit_cost'])
+                self._record_inventory_movement(o['item_id'], 'adjustment', -qty, cost, None)
+                self._record_warehouse_movement(o['item_id'], order.get('output_warehouse_id'), 'production_output_reverse_out', -qty, cost, order_id, 'عكس مخرج أمر إنتاج')
             self.db.execute("DELETE FROM production_consumptions WHERE order_id=?", (order_id,))
             self.db.execute("DELETE FROM production_outputs WHERE order_id=?", (order_id,))
             self.db.execute("DELETE FROM material_reservations WHERE order_id=?", (order_id,))

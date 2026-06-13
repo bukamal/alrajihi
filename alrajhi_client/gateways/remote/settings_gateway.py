@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict
+from PyQt5.QtCore import QSettings
 
 from gateways.settings_gateway import SettingsGateway
 
@@ -11,6 +12,7 @@ class RemoteSettingsGateway(SettingsGateway):
     def __init__(self, client):
         self.client = client
         self._cache: Dict[str, Any] = {}
+        self._settings = QSettings("Alrajhi", "Accounting")
 
     def is_remote(self) -> bool:
         return True
@@ -19,12 +21,19 @@ class RemoteSettingsGateway(SettingsGateway):
         if key in self._cache:
             value = self._cache[key]
         else:
-            value = self.client.get_setting(key)
-            self._cache[key] = value
+            try:
+                value = self.client.get_setting(key)
+                self._cache[key] = value
+                if value is not None:
+                    self._settings.setValue(f'settings_cache/{key}', str(value))
+            except Exception as exc:
+                print(f"⚠️ تعذر جلب الإعداد من الخادم؛ سيتم استخدام آخر قيمة محفوظة لـ {key}: {exc}")
+                value = self._settings.value(f'settings_cache/{key}', default)
         return default if value is None else value
 
     def set(self, key: str, value: str) -> None:
         self.client.set_setting(key, value)
+        self._settings.setValue(f'settings_cache/{key}', str(value))
         self._cache.pop(key, None)
 
     def clear_cache(self) -> None:
