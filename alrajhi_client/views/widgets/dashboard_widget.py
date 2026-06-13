@@ -4,7 +4,6 @@ from __future__ import annotations
 from decimal import Decimal
 
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
-from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QPushButton,
     QComboBox, QHeaderView, QScrollArea, QSizePolicy
@@ -19,7 +18,7 @@ from currency import currency
 from models.table_models import GenericTableModel
 from utils import show_toast
 from views.custom_table_view import CustomTableView
-from brand_assets import logo_png, APP_DISPLAY_NAME_AR, APP_DESCRIPTION_AR
+# Branding assets are used in login/splash/application icon.
 
 
 class KPIStatCard(QFrame):
@@ -318,32 +317,8 @@ class DashboardWidget(QWidget):
         return panel
 
     def _create_project_panel(self):
-        panel = DashboardPanel('بطاقة المشروع والصندوق', 'store')
+        panel = DashboardPanel('الصندوق', 'cash-register')
         panel.setMinimumHeight(220)
-
-        header = QFrame()
-        header.setStyleSheet('''
-            QFrame { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; }
-            QLabel { border: none; }
-        ''')
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(14, 12, 14, 12)
-        logo = QLabel()
-        logo.setAlignment(Qt.AlignCenter)
-        logo.setFixedSize(64, 64)
-        logo.setPixmap(QPixmap(logo_png(128)).scaled(58, 58, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        title_box = QVBoxLayout()
-        project_title = QLabel(APP_DISPLAY_NAME_AR)
-        project_title.setStyleSheet('font-size: 18px; font-weight: 900; color: #0f172a;')
-        project_title.setAlignment(Qt.AlignRight)
-        project_sub = QLabel(APP_DESCRIPTION_AR)
-        project_sub.setStyleSheet('font-size: 12px; font-weight: 700; color: #64748b;')
-        project_sub.setAlignment(Qt.AlignRight)
-        title_box.addWidget(project_title)
-        title_box.addWidget(project_sub)
-        header_layout.addWidget(logo)
-        header_layout.addLayout(title_box, 1)
-        panel.layout.addWidget(header)
 
         self.project_labels = {}
         grid = QGridLayout()
@@ -355,10 +330,10 @@ class DashboardWidget(QWidget):
             ('daily_net', 'صافي الحركة اليومية', 'exchange-alt'),
         )):
             card = QFrame()
-            card.setStyleSheet('''
+            card.setStyleSheet("""
                 QFrame { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; }
                 QLabel { border: none; }
-            ''')
+            """)
             lay = QHBoxLayout(card)
             lay.setContentsMargins(10, 8, 10, 8)
             icon = QLabel()
@@ -376,7 +351,54 @@ class DashboardWidget(QWidget):
             grid.addWidget(card, i // 2, i % 2)
             self.project_labels[key] = value
         panel.layout.addLayout(grid)
+
+        currency_box = QFrame()
+        currency_box.setObjectName('CashCurrencyBox')
+        currency_box.setStyleSheet("""
+            QFrame#CashCurrencyBox {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 14px;
+            }
+            QLabel#CashCurrencyTitle {
+                color: #334155;
+                font-size: 12px;
+                font-weight: 900;
+            }
+            QLabel#CashExchangeRate {
+                color: #0f172a;
+                font-size: 12px;
+                font-weight: 800;
+            }
+        """)
+        currency_layout = QGridLayout(currency_box)
+        currency_layout.setContentsMargins(10, 8, 10, 8)
+        currency_layout.setHorizontalSpacing(8)
+        currency_layout.setVerticalSpacing(6)
+
+        currency_title = QLabel('العملة المعروضة')
+        currency_title.setObjectName('CashCurrencyTitle')
+        currency_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.currency_combo = QComboBox()
+        self.currency_combo.setObjectName('CashCurrencyCombo')
+        self.currency_combo.setMinimumHeight(32)
+        self.currency_combo.currentIndexChanged.connect(self.on_currency_changed)
+
+        exchange_title = QLabel('سعر الصرف')
+        exchange_title.setObjectName('CashCurrencyTitle')
+        exchange_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.exchange_rate_label = QLabel('—')
+        self.exchange_rate_label.setObjectName('CashExchangeRate')
+        self.exchange_rate_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+        currency_layout.addWidget(self.currency_combo, 0, 0)
+        currency_layout.addWidget(currency_title, 0, 1)
+        currency_layout.addWidget(self.exchange_rate_label, 1, 0)
+        currency_layout.addWidget(exchange_title, 1, 1)
+        currency_layout.setColumnStretch(0, 1)
+        panel.layout.addWidget(currency_box)
         panel.layout.addStretch()
+        self.load_currencies()
         return panel
 
     def _create_health_panel(self):
@@ -496,6 +518,27 @@ class DashboardWidget(QWidget):
         for key, amount in values.items():
             converted = currency.convert(amount, 'USD', display_curr)
             self.project_labels[key].setText(currency.format_amount(converted))
+        self._refresh_cash_currency_info(display_curr)
+
+    def _refresh_cash_currency_info(self, display_curr):
+        if not hasattr(self, 'exchange_rate_label'):
+            return
+        try:
+            syp_rate = currency.get_current_rate('SYP')
+            syp_text = currency.format_amount(syp_rate, 'SYP', decimals=2)
+            self.exchange_rate_label.setText(f'1 USD = {syp_text}')
+        except Exception as exc:
+            self.exchange_rate_label.setText('غير متوفر')
+            print(f'⚠️ تعذر تحميل سعر صرف الليرة السورية: {exc}')
+
+        if hasattr(self, 'currency_combo') and not self._loading_currencies:
+            for i in range(self.currency_combo.count()):
+                if self.currency_combo.itemData(i) == display_curr:
+                    if self.currency_combo.currentIndex() != i:
+                        self.currency_combo.blockSignals(True)
+                        self.currency_combo.setCurrentIndex(i)
+                        self.currency_combo.blockSignals(False)
+                    break
 
     def _refresh_health(self):
         try:
