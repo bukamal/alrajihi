@@ -48,6 +48,10 @@ jobs:
           if (!(Test-Path "alrajhi_client\main.py")) {
             throw "Missing alrajhi_client\main.py"
           }
+          if (!(Test-Path "alrajhi_client\assets\brand\app.ico")) {
+            throw "Missing branded app icon"
+          }
+          python tools\verify_branding_assets.py
 
       - name: Copy pyzbar DLLs
         shell: pwsh
@@ -79,6 +83,7 @@ jobs:
       - name: Build executable
         shell: pwsh
         run: |
+          $iconPath = Resolve-Path "alrajhi_client\assets\brand\app.ico"
           $extra = @()
 
           if (Test-Path "libiconv.dll") {
@@ -102,7 +107,7 @@ jobs:
             --onedir `
             --windowed `
             --name AlrajhiAccounting `
-            --icon alrajhi_client\assets\brand\app.ico `
+            --icon "$iconPath" `
             --paths alrajhi_client `
             --paths . `
             --collect-all PyQt5 `
@@ -145,15 +150,18 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path output | Out-Null
+          $iconPath = (Resolve-Path "alrajhi_client\assets\brand\app.ico").Path
 
           $iss = @"
+          #define MyIcon "$iconPath"
+
           [Setup]
           AppName=Alrajhi Accounting
           AppVersion=1.0
           DefaultDirName={pf}\AlrajhiAccounting
           DefaultGroupName=Alrajhi Accounting
           UninstallDisplayIcon={app}\AlrajhiAccounting.exe
-          SetupIconFile=alrajhi_client\assets\brand\app.ico
+          SetupIconFile={#MyIcon}
           Compression=lzma2
           SolidCompression=yes
           OutputDir=output
@@ -173,9 +181,9 @@ jobs:
           Name: "desktopicon"; Description: "Create desktop shortcut"; Flags: unchecked
 
           [Icons]
-          Name: "{group}\Alrajhi Accounting"; Filename: "{app}\AlrajhiAccounting.exe"
+          Name: "{group}\Alrajhi Accounting"; Filename: "{app}\AlrajhiAccounting.exe"; IconFilename: "{app}\AlrajhiAccounting.exe"
           Name: "{group}\Uninstall"; Filename: "{uninstallexe}"
-          Name: "{userdesktop}\Alrajhi Accounting"; Filename: "{app}\AlrajhiAccounting.exe"; Tasks: desktopicon
+          Name: "{userdesktop}\Alrajhi Accounting"; Filename: "{app}\AlrajhiAccounting.exe"; IconFilename: "{app}\AlrajhiAccounting.exe"; Tasks: desktopicon
 
           [Run]
           Filename: "{app}\AlrajhiAccounting.exe"; Description: "Run Alrajhi Accounting"; Flags: postinstall nowait skipifsilent
