@@ -499,7 +499,16 @@ class SettingsWidget(QWidget):
 
     def save_company_info(self):
         from config import save_company_info
-        info = {'name': self.company_name_edit.text().strip(), 'address': self.company_address_edit.text().strip(), 'phone': self.company_phone_edit.text().strip(), 'email': self.company_email_edit.text().strip(), 'tax_number': self.company_tax_number_edit.text().strip(), 'logo_path': self.company_logo_path_edit.text().strip()}
+        
+        try:
+            from brand_assets import logo_png
+            default_logo = logo_png(512)
+        except Exception:
+            default_logo = ''
+        info = {'name': self.company_name_edit.text().strip(), 'address': self.company_address_edit.text().strip(), 'phone': self.company_phone_edit.text().strip(), 'email': self.company_email_edit.text().strip(), 'tax_number': self.company_tax_number_edit.text().strip(), 'logo_path': self.company_logo_path_edit.text().strip() or default_logo}
+        if not self.company_logo_path_edit.text().strip() and default_logo:
+            self.company_logo_path_edit.setText(default_logo)
+        
         audit_service.log('UPDATE', 'SETTINGS_COMPANY', None, new_values=info, details='تعديل معلومات الشركة')
         save_company_info(info); show_toast('تم حفظ معلومات الشركة', 'success', self)
 

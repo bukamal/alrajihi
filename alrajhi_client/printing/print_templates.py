@@ -157,13 +157,20 @@ def _human_title(title: Any, fallback: str = "تقرير") -> str:
 
 def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
     info = get_company_info() or {}
+    logo_path = _value(info.get("logo_path") or settings.get("logo_path"))
+    if not logo_path:
+        try:
+            from brand_assets import logo_png
+            logo_path = logo_png(512)
+        except Exception:
+            logo_path = ""
     return {
         "name": _value(info.get("name") or settings.get("company_name"), "نظام الراجحي"),
         "address": _value(info.get("address") or settings.get("company_address")),
         "phone": _value(info.get("phone") or settings.get("company_phone")),
         "email": _value(info.get("email") or settings.get("company_email")),
         "tax_number": _value(info.get("tax_number") or settings.get("tax_number")),
-        "logo_path": _value(info.get("logo_path") or settings.get("logo_path")),
+        "logo_path": logo_path,
     }
 
 
@@ -243,7 +250,7 @@ def _table(headers: List[str], rows: List[List[Any]], empty_text: str = "لا ت
     """
     settings = _settings()
     if reverse_columns is None:
-        reverse_columns = _bool_setting(settings, "reverse_print_table_columns", True)
+        reverse_columns = _bool_setting(settings, "reverse_print_table_columns", False)
 
     safe_headers = list(headers or [])
     safe_rows = [list(row or []) for row in (rows or [])]
@@ -262,7 +269,7 @@ def _table(headers: List[str], rows: List[List[Any]], empty_text: str = "لا ت
         body.append("<tr>" + "".join(f"<td>{_s(c)}</td>" for c in row) + "</tr>")
     if not body:
         body.append(f"<tr><td colspan='{max(1, len(safe_headers))}' class='empty-cell'>{_s(empty_text)}</td></tr>")
-    return f"<table class='data-table' dir='rtl'><thead><tr>{head}</tr></thead><tbody>{''.join(body)}</tbody></table>"
+    return f"<table class='data-table' dir='ltr'><thead><tr>{head}</tr></thead><tbody>{''.join(body)}</tbody></table>"
 
 
 def _summary_cards(summary: Optional[Dict[str, Any]]) -> str:
@@ -289,14 +296,14 @@ def base_document(title: str, body_html: str, paper: str = "a4", settings: Optio
 
     # Use table-based layout because Qt QTextDocument renders it more reliably than flex/grid in PDF.
     return f"""<!DOCTYPE html>
-<html dir='rtl' lang='ar'>
+<html dir='ltr' lang='ar'>
 <head>
 <meta charset='utf-8'>
 <title>{_s(title)}</title>
 <style>
 @page {{ size: {spec['page']}; margin: {spec['margin']}; }}
 * {{ box-sizing: border-box; }}
-html, body {{ margin: 0; padding: 0; background: #ffffff; color: #111827; direction: rtl; }}
+html, body {{ margin: 0; padding: 0; background: #ffffff; color: #111827; direction: ltr; }}
 body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45; }}
 .sheet {{ width: {spec['width']}; margin: 0 auto; }}
 .brand-table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; border-bottom: 3px solid {accent}; }}
@@ -304,7 +311,7 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 .brand-logo {{ width: 90px; text-align: center; }}
 .brand-logo img {{ max-width: 78px; max-height: 70px; }}
 .brand-logo.placeholder {{ border: 1px dashed #d1d5db; border-radius: 8px; }}
-.brand-main {{ text-align: right; }}
+.brand-main {{ text-align: left; }}
 .company-name {{ font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }}
 .brand-meta {{ width: 155px; text-align: center; border-right: 1px solid #e5e7eb !important; }}
 .document-badge {{ display: inline-block; background: {accent}; color: #ffffff; padding: 7px 12px; border-radius: 999px; font-weight: 800; margin-bottom: 5px; }}
@@ -315,22 +322,22 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 .meta-table td {{ border: 1px solid #dbe3ef; background: #f8fafc; padding: 7px 9px; width: 33.33%; }}
 .meta-label {{ display: block; color: #64748b; font-size: 88%; margin-bottom: 2px; }}
 .meta-value {{ display: block; font-weight: 800; color: #0f172a; }}
-.data-table {{ width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; direction: rtl; }}
+.data-table {{ width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; direction: ltr; }}
 .data-table th {{ background: {accent}; color: #ffffff; border: 1px solid {accent}; padding: 8px 5px; font-weight: 800; text-align: center; white-space: normal; }}
 .data-table td {{ border: 1px solid #dbe3ef; padding: 7px 5px; text-align: center; vertical-align: middle; word-wrap: break-word; overflow-wrap: anywhere; }}
 .data-table tbody tr:nth-child(even) td {{ background: #f8fafc; }}
 .data-table thead {{ display: table-header-group; }}
 .data-table tr {{ page-break-inside: avoid; }}
-.data-table .text-cell {{ text-align: right; }}
+.data-table .text-cell {{ text-align: left; }}
 .empty-cell {{ color: #64748b; padding: 20px !important; }}
 .summary-table {{ width: 100%; border-collapse: separate; border-spacing: 6px; margin: 9px 0; }}
 .summary-card {{ border: 1px solid #dbe3ef; background: #f8fafc; border-radius: 10px; padding: 8px; text-align: center; }}
 .summary-label {{ color: #64748b; font-size: 88%; }}
 .summary-value {{ color: #0f172a; font-size: 115%; font-weight: 900; margin-top: 2px; }}
-.totals-table {{ width: 42%; min-width: 260px; margin-right: auto; margin-top: 10px; border-collapse: collapse; }}
+.totals-table {{ width: 42%; min-width: 260px; margin-left: auto; margin-top: 10px; border-collapse: collapse; }}
 .totals-table td {{ border: 1px solid #dbe3ef; padding: 7px 9px; }}
 .totals-table td:first-child {{ background: #f8fafc; color: #334155; font-weight: 700; }}
-.totals-table td:last-child {{ text-align: left; font-weight: 800; }}
+.totals-table td:last-child {{ text-align: right; font-weight: 800; }}
 .totals-table tr.final td {{ background: #eaf2ff; color: #0f172a; font-size: 110%; }}
 .totals-table tr.due td:last-child {{ color: #dc2626; }}
 .notes-box {{ margin-top: 10px; border: 1px dashed #cbd5e1; background: #fcfdff; padding: 8px; min-height: 34px; }}
@@ -339,8 +346,8 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 .qr-table img {{ width: 88px; height: 88px; }}
 .signatures {{ width: 100%; border-collapse: collapse; margin-top: 28px; }}
 .signatures td {{ width: 50%; text-align: center; padding-top: 22px; border-top: 1px solid #475569; color: #334155; }}
-.signatures td:first-child {{ padding-left: 30px; }}
-.signatures td:last-child {{ padding-right: 30px; }}
+.signatures td:first-child {{ padding-right: 30px; }}
+.signatures td:last-child {{ padding-left: 30px; }}
 .print-footer {{ margin-top: 18px; padding-top: 8px; border-top: 1px solid #e5e7eb; text-align: center; color: #64748b; font-size: 90%; }}
 .compact .data-table th, .compact .data-table td, .compact .meta-table td, .compact .totals-table td {{ padding: 4px 3px; }}
 .thermal80 .sheet, .thermal58 .sheet {{ width: {spec['width']}; }}

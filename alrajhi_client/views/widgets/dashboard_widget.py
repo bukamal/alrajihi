@@ -4,6 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QPushButton,
     QComboBox, QHeaderView, QScrollArea, QSizePolicy
@@ -17,6 +18,7 @@ from core.services.monitoring_service import monitoring_service
 from currency import currency
 from models.table_models import GenericTableModel
 from utils import show_toast
+from brand_assets import logo_png
 from views.custom_table_view import CustomTableView
 # Branding assets are used in login/splash/application icon.
 
@@ -266,8 +268,10 @@ class DashboardWidget(QWidget):
         row = QHBoxLayout()
         row.setSpacing(16)
         self.quick_panel = self._create_quick_actions_panel()
+        self.company_panel = self._create_company_info_panel()
         self.project_panel = self._create_project_panel()
         row.addWidget(self.quick_panel, 1)
+        row.addWidget(self.company_panel, 1)
         row.addWidget(self.project_panel, 2)
         self.main_layout.addLayout(row)
 
@@ -315,6 +319,75 @@ class DashboardWidget(QWidget):
         self.alerts_table.setMaximumHeight(82)
         panel.layout.addWidget(self.alerts_table)
         return panel
+
+    def _create_company_info_panel(self):
+        panel = DashboardPanel('معلومات الشركة', 'building')
+        panel.setMinimumHeight(245)
+        panel.setStyleSheet(panel.styleSheet() + '''
+            QLabel#CompanyLogoBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 8px; }
+            QLabel#CompanyName { color: #0f172a; font-size: 17px; font-weight: 900; border: none; }
+            QLabel#CompanyLine { color: #475569; font-size: 12px; font-weight: 700; border: none; }
+        ''')
+
+        self.company_logo_label = QLabel()
+        self.company_logo_label.setObjectName('CompanyLogoBox')
+        self.company_logo_label.setAlignment(Qt.AlignCenter)
+        self.company_logo_label.setFixedHeight(82)
+        panel.layout.addWidget(self.company_logo_label)
+
+        self.company_name_label = QLabel('—')
+        self.company_name_label.setObjectName('CompanyName')
+        self.company_name_label.setAlignment(Qt.AlignCenter)
+        self.company_name_label.setWordWrap(True)
+        panel.layout.addWidget(self.company_name_label)
+
+        self.company_address_label = QLabel('—')
+        self.company_address_label.setObjectName('CompanyLine')
+        self.company_address_label.setAlignment(Qt.AlignCenter)
+        self.company_address_label.setWordWrap(True)
+        panel.layout.addWidget(self.company_address_label)
+
+        self.company_contact_label = QLabel('—')
+        self.company_contact_label.setObjectName('CompanyLine')
+        self.company_contact_label.setAlignment(Qt.AlignCenter)
+        self.company_contact_label.setWordWrap(True)
+        panel.layout.addWidget(self.company_contact_label)
+
+        self.company_tax_label = QLabel('—')
+        self.company_tax_label.setObjectName('CompanyLine')
+        self.company_tax_label.setAlignment(Qt.AlignCenter)
+        self.company_tax_label.setWordWrap(True)
+        panel.layout.addWidget(self.company_tax_label)
+        panel.layout.addStretch()
+        self._refresh_company_info_panel()
+        return panel
+
+    def _refresh_company_info_panel(self):
+        if not hasattr(self, 'company_name_label'):
+            return
+        try:
+            from config import get_company_info
+            info = get_company_info() or {}
+        except Exception as exc:
+            print(f'⚠️ تعذر تحميل معلومات الشركة: {exc}')
+            info = {}
+        name = info.get('name') or 'الراجحي ERP'
+        address = info.get('address') or 'العنوان غير محدد'
+        phone = info.get('phone') or ''
+        email = info.get('email') or ''
+        tax_number = info.get('tax_number') or ''
+        logo_path = info.get('logo_path') or logo_png(512)
+
+        self.company_name_label.setText(str(name))
+        self.company_address_label.setText(str(address))
+        contact_parts = [str(v) for v in (phone, email) if v]
+        self.company_contact_label.setText(' | '.join(contact_parts) if contact_parts else 'بيانات التواصل غير محددة')
+        self.company_tax_label.setText(f'الرقم الضريبي: {tax_number}' if tax_number else 'الرقم الضريبي غير محدد')
+        pix = QPixmap(str(logo_path))
+        if pix.isNull():
+            pix = QPixmap(logo_png(256))
+        if not pix.isNull():
+            self.company_logo_label.setPixmap(pix.scaled(QSize(72, 72), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _create_project_panel(self):
         panel = DashboardPanel('الصندوق', 'cash-register')
@@ -543,6 +616,7 @@ class DashboardWidget(QWidget):
         self._refresh_kpis(display_curr)
         self._refresh_alerts()
         self._refresh_project_card(display_curr)
+        self._refresh_company_info_panel()
         self._refresh_health()
 
     def _refresh_kpis(self, display_curr):
