@@ -10,7 +10,7 @@ import threading
 import socket
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtCore import QTimer, QSettings, Qt
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QIcon
 from core.services.warehouse_service import warehouse_service
 from core.services.system_service import system_service
 from core.services.user_service import user_service
@@ -22,6 +22,7 @@ from views.main_window import MainWindow
 from auth.session import UserSession
 from utils import enable_auto_select_all, install_non_blocking_message_boxes
 from theme_manager import ThemeManager
+from brand_assets import app_icon
 
 
 _backup_stop_event = None
@@ -247,6 +248,7 @@ def main():
         return
 
     app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(app_icon()))
     install_non_blocking_message_boxes(app)
     app.setFont(QFont("Tajawal", 10))
     enable_auto_select_all(app)

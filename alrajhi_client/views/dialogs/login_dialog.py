@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QCheckBox, QComboBox, QFrame
 from PyQt5.QtCore import Qt, QSettings
+from PyQt5.QtGui import QPixmap
 import qtawesome as qta
 from views.frameless_dialog import FramelessDialog
 from core.services.user_service import user_service
@@ -9,6 +10,7 @@ from i18n.translator import translate, set_language
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from utils import focus_first_input
+from brand_assets import logo_png, APP_DISPLAY_NAME_AR, APP_DESCRIPTION_AR
 
 
 class LoginDialog(FramelessDialog):
@@ -31,13 +33,18 @@ class LoginDialog(FramelessDialog):
         layout.setSpacing(14)
         layout.setContentsMargins(34, 24, 34, 30)
 
-        logo = QLabel("🏢 الراجحي للمحاسبة")
+        logo = QLabel()
         logo.setAlignment(Qt.AlignCenter)
-        logo.setObjectName("heroTitle")
-        logo.setStyleSheet(f"font-size: 31px; font-weight: 800; color: {ThemeManager.get('primary')};")
+        logo.setPixmap(QPixmap(logo_png(128)).scaled(94, 94, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         layout.addWidget(logo)
 
-        subtitle = QLabel("تسجيل دخول آمن إلى النظام")
+        app_title = QLabel(APP_DISPLAY_NAME_AR)
+        app_title.setAlignment(Qt.AlignCenter)
+        app_title.setObjectName("heroTitle")
+        app_title.setStyleSheet(f"font-size: 30px; font-weight: 900; color: {ThemeManager.get('primary')};")
+        layout.addWidget(app_title)
+
+        subtitle = QLabel(f"{APP_DESCRIPTION_AR} — تسجيل دخول آمن")
         subtitle.setAlignment(Qt.AlignCenter)
         subtitle.setObjectName('muted')
         layout.addWidget(subtitle)
@@ -111,7 +118,7 @@ class LoginDialog(FramelessDialog):
         layout.addWidget(switch_btn)
 
         self._load_saved_user()
-        login_footer = QLabel("© Alrajhi Accounting — Secure Desktop Edition")
+        login_footer = QLabel("© AlRajhi ERP — Secure Desktop Edition")
         login_footer.setAlignment(Qt.AlignCenter)
         login_footer.setStyleSheet(f"color: {ThemeManager.get('text_muted')}; font-size: 10px;")
         layout.addWidget(login_footer)

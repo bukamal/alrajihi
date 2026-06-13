@@ -102,6 +102,7 @@ jobs:
             --onedir `
             --windowed `
             --name AlrajhiAccounting `
+            --icon alrajhi_client\assets\brand\app.ico `
             --paths alrajhi_client `
             --paths . `
             --collect-all PyQt5 `
@@ -125,6 +126,7 @@ jobs:
             --hidden-import flask `
             --hidden-import flask_jwt_extended `
             --add-data "${{ steps.qtpath.outputs.platforms_path }};platforms" `
+            --add-data "alrajhi_client\assets\brand;assets\brand" `
             @extra `
             alrajhi_client\main.py
 
@@ -151,6 +153,7 @@ jobs:
           DefaultDirName={pf}\AlrajhiAccounting
           DefaultGroupName=Alrajhi Accounting
           UninstallDisplayIcon={app}\AlrajhiAccounting.exe
+          SetupIconFile=alrajhi_client\assets\brand\app.ico
           Compression=lzma2
           SolidCompression=yes
           OutputDir=output

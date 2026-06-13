@@ -31,6 +31,7 @@ from i18n.translator import translate, set_language
 from core.services.settings_service import settings_service
 from core.services.system_service import system_service
 from core.services.offline_queue_service import offline_queue_service
+from brand_assets import app_icon, logo_png, APP_DISPLAY_NAME_AR
 
 PAGE_META = {
     'dashboard': ('لوحة التحكم', 'الرئيسية'),
@@ -85,7 +86,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         # Phase 41: use the native OS title bar again so the window can be moved
         # normally and the minimize/maximize/close buttons remain available.
-        self.setWindowTitle("الراجحي للمحاسبة")
+        self.setWindowTitle(APP_DISPLAY_NAME_AR)
+        self.setWindowIcon(QIcon(app_icon()))
         self.setLayoutDirection(Qt.RightToLeft)
         self.setMinimumSize(1200, 700)
         self.resize(1400, 900)
@@ -116,10 +118,11 @@ class MainWindow(QMainWindow):
         title_layout = QHBoxLayout(self.title_bar)
         title_layout.setContentsMargins(15, 0, 10, 0)
 
-        icon_label = QLabel("🏢")
+        icon_label = QLabel()
         icon_label.setFixedSize(24, 24)
+        icon_label.setPixmap(QIcon(app_icon()).pixmap(24, 24))
         title_layout.addWidget(icon_label)
-        self.title_label = QLabel("الراجحي للمحاسبة")
+        self.title_label = QLabel(APP_DISPLAY_NAME_AR)
         title_layout.addWidget(self.title_label)
         title_layout.addStretch()
 

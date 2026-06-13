@@ -4,6 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QPushButton,
     QComboBox, QHeaderView, QScrollArea, QSizePolicy
@@ -18,6 +19,7 @@ from currency import currency
 from models.table_models import GenericTableModel
 from utils import show_toast
 from views.custom_table_view import CustomTableView
+from brand_assets import logo_png, APP_DISPLAY_NAME_AR, APP_DESCRIPTION_AR
 
 
 class KPIStatCard(QFrame):
@@ -328,14 +330,13 @@ class DashboardWidget(QWidget):
         header_layout.setContentsMargins(14, 12, 14, 12)
         logo = QLabel()
         logo.setAlignment(Qt.AlignCenter)
-        logo.setFixedSize(58, 58)
-        logo.setStyleSheet('background: #2563eb; border-radius: 18px;')
-        logo.setPixmap(qta.icon('fa5s.warehouse', color='white').pixmap(QSize(30, 30)))
+        logo.setFixedSize(64, 64)
+        logo.setPixmap(QPixmap(logo_png(128)).scaled(58, 58, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         title_box = QVBoxLayout()
-        project_title = QLabel('نظام الراجحي للمستودعات')
+        project_title = QLabel(APP_DISPLAY_NAME_AR)
         project_title.setStyleSheet('font-size: 18px; font-weight: 900; color: #0f172a;')
         project_title.setAlignment(Qt.AlignRight)
-        project_sub = QLabel('لوحة متابعة تشغيلية مختصرة')
+        project_sub = QLabel(APP_DESCRIPTION_AR)
         project_sub.setStyleSheet('font-size: 12px; font-weight: 700; color: #64748b;')
         project_sub.setAlignment(Qt.AlignRight)
         title_box.addWidget(project_title)

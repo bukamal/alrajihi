@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, QPropertyAnimation
 from PyQt5.QtGui import QPixmap
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
+from brand_assets import logo_png, APP_DISPLAY_NAME_AR, APP_DESCRIPTION_AR
 
 
 class ModernSplashScreen(QSplashScreen):
@@ -27,12 +28,17 @@ class ModernSplashScreen(QSplashScreen):
         layout.setSpacing(14)
         layout.setContentsMargins(46, 38, 46, 34)
 
-        self.logo = QLabel("🏢 الراجحي للمحاسبة")
+        self.logo = QLabel()
         self.logo.setAlignment(Qt.AlignCenter)
-        self.logo.setStyleSheet("font-size: 34px; font-weight: bold; color: white;")
+        self.logo.setPixmap(QPixmap(logo_png(256)).scaled(118, 118, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         layout.addWidget(self.logo)
 
-        self.subtitle = QLabel("نظام محاسبة ومخزون وتصنيع")
+        self.app_title = QLabel(APP_DISPLAY_NAME_AR)
+        self.app_title.setAlignment(Qt.AlignCenter)
+        self.app_title.setStyleSheet("font-size: 32px; font-weight: 900; color: white;")
+        layout.addWidget(self.app_title)
+
+        self.subtitle = QLabel(APP_DESCRIPTION_AR)
         self.subtitle.setAlignment(Qt.AlignCenter)
         self.subtitle.setStyleSheet("font-size: 14px; color: rgba(255,255,255,0.86);")
         layout.addWidget(self.subtitle)
