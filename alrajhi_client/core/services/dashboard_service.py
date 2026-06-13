@@ -8,7 +8,7 @@ and later caching/optimization can be implemented in one place.
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from decimal import Decimal
 from typing import Dict, List
 
@@ -39,6 +39,7 @@ class DashboardService:
             'summary': self._safe_call(self.summary, {}),
             'monthly_trend': self._safe_call(self.monthly_trend, []),
             'recent_entries': self._safe_call(lambda: self.recent_entries(limit=5), []),
+            'cashbox_movement': self._safe_call(self.cashbox_movement, {}),
         }
         self._cache = data
         self._cache_time = datetime.now()
@@ -60,8 +61,29 @@ class DashboardService:
         if not isinstance(summary, dict):
             summary = {}
         keys = ('cash_balance', 'total_sales', 'total_purchases', 'total_expenses',
-                'receivables', 'payables', 'net_profit')
+                'receivables', 'payables', 'net_profit', 'total_incoming',
+                'total_outgoing', 'cash_received', 'cash_paid', 'cash_net_movement')
         return {k: self._decimal(summary.get(k, 0)) for k in keys}
+
+    def cashbox_movement(self) -> Dict:
+        """Return today and all-time cash movement summaries.
+
+        Amounts are kept in the system base currency. The dashboard converts
+        them to the selected display currency, keeping exchange-rate edits in
+        settings only.
+        """
+        today = date.today().isoformat()
+        today_summary = self._normalize_cash_movement(reporting_service.summary(today, today))
+        total_summary = self._normalize_cash_movement(reporting_service.summary())
+        return {'today': today_summary, 'general': total_summary}
+
+    def _normalize_cash_movement(self, summary: Dict) -> Dict:
+        if not isinstance(summary, dict):
+            summary = {}
+        received = self._decimal(summary.get('cash_received', summary.get('total_incoming', summary.get('total_sales', 0))))
+        paid = self._decimal(summary.get('cash_paid', summary.get('total_outgoing', 0)))
+        net = self._decimal(summary.get('cash_net_movement', received - paid))
+        return {'received': received, 'paid': paid, 'net': net}
 
     def monthly_trend(self, months_count: int = 6) -> List[Dict]:
         expenses = expense_service.all()

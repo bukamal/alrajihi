@@ -26,6 +26,41 @@ def get_summary():
         (user_id,), 'date'
     )
 
+    purchases = safe_sum(
+        "SELECT SUM(CAST(total AS REAL)) FROM invoices WHERE type='purchase' AND user_id=? AND deleted_at IS NULL",
+        (user_id,), 'date'
+    )
+    sale_paid = safe_sum(
+        "SELECT SUM(CAST(paid AS REAL)) FROM invoices WHERE type='sale' AND user_id=? AND deleted_at IS NULL",
+        (user_id,), 'date'
+    )
+    purchase_paid = safe_sum(
+        "SELECT SUM(CAST(paid AS REAL)) FROM invoices WHERE type='purchase' AND user_id=? AND deleted_at IS NULL",
+        (user_id,), 'date'
+    )
+    receipt_vouchers = safe_sum(
+        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='receipt' AND user_id=?",
+        (user_id,), 'date'
+    )
+    payment_vouchers = safe_sum(
+        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='payment' AND user_id=?",
+        (user_id,), 'date'
+    )
+    expense_vouchers = safe_sum(
+        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='expense' AND user_id=?",
+        (user_id,), 'date'
+    )
+    sales_return_refunds = safe_sum(
+        "SELECT SUM(CAST(refund_amount AS REAL)) FROM sales_returns WHERE user_id=? AND deleted_at IS NULL",
+        (user_id,), 'date'
+    )
+    purchase_return_refunds = safe_sum(
+        "SELECT SUM(CAST(refund_amount AS REAL)) FROM purchase_returns WHERE user_id=? AND deleted_at IS NULL",
+        (user_id,), 'date'
+    )
+    cash_received = sale_paid + receipt_vouchers + purchase_return_refunds
+    cash_paid = purchase_paid + payment_vouchers + expense_vouchers + sales_return_refunds
+
     cogs = safe_sum(
         """SELECT SUM(CAST(cost_amount AS REAL)) FROM invoice_lines il
            JOIN invoices i ON il.invoice_id = i.id
@@ -53,7 +88,13 @@ def get_summary():
         'net_profit': float(net_profit),
         'cash_balance': float(cash),
         'receivables': float(receivables),
-        'payables': float(payables)
+        'payables': float(payables),
+        'total_purchases': float(purchases),
+        'total_incoming': float(cash_received),
+        'total_outgoing': float(cash_paid),
+        'cash_received': float(cash_received),
+        'cash_paid': float(cash_paid),
+        'cash_net_movement': float(cash_received - cash_paid)
     })
 
 @reports_bp.route('/income_statement', methods=['GET'])

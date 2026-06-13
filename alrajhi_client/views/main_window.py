@@ -217,84 +217,132 @@ class MainWindow(QMainWindow):
             self.stack.addWidget(self.pages[key])
 
     def setup_menus(self):
-        file_menu = self.menu_bar.addMenu(qta.icon('fa5s.file-alt'), " ملف")
-        logout_action = QAction(qta.icon('fa5s.sign-out-alt'), "تسجيل الخروج", self)
-        logout_action.setShortcut(QKeySequence("Ctrl+Q"))
-        logout_action.triggered.connect(self.logout)
-        file_menu.addAction(logout_action)
-        file_menu.addSeparator()
-        exit_action = QAction(qta.icon('fa5s.times-circle'), "خروج", self)
-        exit_action.setShortcut(QKeySequence("Alt+F4"))
-        exit_action.triggered.connect(self.close_app)
-        file_menu.addAction(exit_action)
+        """Build the primary ERP navigation menu.
 
-        view_menu = self.menu_bar.addMenu(qta.icon('fa5s.eye'), " عرض")
-        # Phase 41: native title bar is restored; no custom-title toggle is needed.
-        touch_action = QAction(qta.icon('fa5s.hand-peace'), "الوضع اللمسي", self)
-        touch_action.setCheckable(True)
-        touch_action.setChecked(False)
-        touch_action.triggered.connect(self.toggle_touch_mode)
-        view_menu.addAction(touch_action)
+        Phase 46 replaces the legacy File/View/Theme/Help menu with business
+        navigation grouped by actual ERP workflows. The utility strip below it
+        remains dedicated to search, alerts, theme and user identity.
+        """
+        self.menu_bar.clear()
+        self.menu_bar.setLayoutDirection(Qt.RightToLeft)
+        self.menu_bar.setFixedHeight(42)
+        self.menu_bar.setStyleSheet("""
+            QMenuBar {
+                background-color: palette(window);
+                border-bottom: 1px solid palette(mid);
+                padding: 3px 10px;
+                spacing: 4px;
+                font-weight: 700;
+            }
+            QMenuBar::item {
+                padding: 8px 13px;
+                border-radius: 10px;
+                background: transparent;
+            }
+            QMenuBar::item:selected {
+                background: palette(alternate-base);
+            }
+            QMenu {
+                padding: 5px;
+                border: 1px solid palette(mid);
+                border-radius: 8px;
+            }
+            QMenu::item {
+                padding: 8px 34px 8px 20px;
+                border-radius: 6px;
+                min-width: 190px;
+            }
+            QMenu::item:selected {
+                background: palette(highlight);
+                color: palette(highlighted-text);
+            }
+        """)
 
-        theme_menu = self.menu_bar.addMenu(qta.icon('fa5s.palette'), " الثيمات")
-        themes = [("فاتح", "light"), ("داكن", "dark")]
-        for name, theme_id in themes:
-            action = QAction(name, self)
-            action.triggered.connect(lambda checked, t=theme_id: self.change_theme(t))
-            theme_menu.addAction(action)
+        def add_action(menu, text, icon_name, page=None, callback=None, shortcut=None):
+            action = QAction(qta.icon(f'fa5s.{icon_name}'), text, self)
+            if shortcut:
+                action.setShortcut(QKeySequence(shortcut))
+            if callback is not None:
+                action.triggered.connect(callback)
+            elif page:
+                action.triggered.connect(lambda checked=False, p=page: self.switch_page(p))
+            menu.addAction(action)
+            return action
 
-        help_menu = self.menu_bar.addMenu(qta.icon('fa5s.question-circle'), " مساعدة")
-        about_action = QAction(qta.icon('fa5s.info-circle'), "حول البرنامج", self)
-        about_action.setShortcut(QKeySequence("F1"))
-        about_action.triggered.connect(self.show_about)
-        help_menu.addAction(about_action)
+        home_menu = self.menu_bar.addMenu(qta.icon('fa5s.home'), ' الرئيسية')
+        add_action(home_menu, 'لوحة التحكم', 'tachometer-alt', 'dashboard', shortcut='F1')
+        add_action(home_menu, 'نقطة البيع POS', 'barcode', 'pos', shortcut='F2')
+        home_menu.addSeparator()
+        add_action(home_menu, 'مراقبة التشغيل', 'heartbeat', 'monitoring')
+
+        sales_menu = self.menu_bar.addMenu(qta.icon('fa5s.shopping-cart'), ' المبيعات')
+        add_action(sales_menu, 'بيع سريع POS', 'barcode', 'pos', shortcut='F2')
+        add_action(sales_menu, 'فواتير البيع', 'file-invoice-dollar', 'sales_invoices', shortcut='F3')
+        add_action(sales_menu, 'مرتجعات المبيعات', 'undo', 'returns')
+        sales_menu.addSeparator()
+        add_action(sales_menu, 'سند قبض', 'hand-holding-usd', 'vouchers')
+
+        purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), ' المشتريات')
+        add_action(purchase_menu, 'فواتير الشراء', 'file-invoice', 'purchase_invoices')
+        add_action(purchase_menu, 'مرتجعات المشتريات', 'undo-alt', 'purchase_returns')
+        purchase_menu.addSeparator()
+        add_action(purchase_menu, 'سند دفع', 'money-bill-wave', 'vouchers')
+
+        inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), ' المخزون')
+        add_action(inventory_menu, 'المواد', 'box', 'items', shortcut='F4')
+        add_action(inventory_menu, 'التصنيفات', 'folder', 'categories')
+        add_action(inventory_menu, 'المستودعات', 'warehouse', 'warehouses', shortcut='F5')
+
+        manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), ' التصنيع')
+        add_action(manufacturing_menu, 'التصنيع وأوامر الإنتاج', 'industry', 'manufacturing')
+
+        parties_menu = self.menu_bar.addMenu(qta.icon('fa5s.users'), ' الأطراف')
+        add_action(parties_menu, 'العملاء', 'user-friends', 'customers')
+        add_action(parties_menu, 'الموردون', 'truck-loading', 'suppliers')
+
+        finance_menu = self.menu_bar.addMenu(qta.icon('fa5s.wallet'), ' المالية')
+        add_action(finance_menu, 'الصناديق والبنوك', 'cash-register', 'cashboxes')
+        add_action(finance_menu, 'السندات', 'receipt', 'vouchers')
+
+        reports_menu = self.menu_bar.addMenu(qta.icon('fa5s.chart-line'), ' التقارير')
+        add_action(reports_menu, 'مركز التقارير', 'chart-line', 'reports')
+        add_action(reports_menu, 'كشف حساب عميل', 'user', 'reports')
+        add_action(reports_menu, 'كشف حساب مورد', 'truck', 'reports')
+        add_action(reports_menu, 'مطابقة Ledger', 'balance-scale', 'reports')
+
+        admin_menu = self.menu_bar.addMenu(qta.icon('fa5s.cog'), ' الإدارة')
+        add_action(admin_menu, 'الإعدادات', 'sliders-h', 'settings')
+        add_action(admin_menu, 'الفروع', 'code-branch', 'branches')
+        add_action(admin_menu, 'الطلبات المعلقة', 'cloud-upload-alt', 'offline_queue')
+        add_action(admin_menu, 'مراقبة التشغيل', 'heartbeat', 'monitoring')
+        admin_menu.addSeparator()
+        add_action(admin_menu, 'طباعة احترافية', 'print', callback=self.show_print_dialog)
+        add_action(admin_menu, 'تغيير كلمة المرور', 'key', callback=self.change_password)
+        admin_menu.addSeparator()
+        add_action(admin_menu, 'حول البرنامج', 'info-circle', callback=self.show_about, shortcut='F12')
+        add_action(admin_menu, 'تسجيل الخروج', 'sign-out-alt', callback=self.logout, shortcut='Ctrl+Q')
+        add_action(admin_menu, 'خروج', 'times-circle', callback=self.close_app, shortcut='Alt+F4')
+
+        if UserSession.is_admin():
+            users_menu = self.menu_bar.addMenu(qta.icon('fa5s.user-shield'), ' المستخدمون')
+            add_action(users_menu, 'إدارة المستخدمين', 'users-cog', 'users')
+            add_action(users_menu, 'سجل التدقيق', 'history', 'audit_log')
+
+        quick_menu = self.menu_bar.addMenu(qta.icon('fa5s.bolt'), ' إجراءات سريعة')
+        add_action(quick_menu, 'فاتورة بيع جديدة', 'file-invoice-dollar', 'sales_invoices', shortcut='Ctrl+N')
+        add_action(quick_menu, 'فاتورة شراء جديدة', 'file-invoice', 'purchase_invoices')
+        add_action(quick_menu, 'سند قبض', 'hand-holding-usd', 'vouchers')
+        add_action(quick_menu, 'سند دفع', 'money-bill-wave', 'vouchers')
+        quick_menu.addSeparator()
+        add_action(quick_menu, 'عميل جديد', 'user-plus', 'customers')
+        add_action(quick_menu, 'مادة جديدة', 'box-open', 'items')
 
     def setup_topbar_buttons(self):
-        self.top_bar.add_button("الرئيسية", "tachometer-alt", lambda: self.switch_page('dashboard'), show_text=False)
-        self.top_bar.add_menu_button("المبيعات", "shopping-cart", [
-            ("بيع سريع POS", "barcode", lambda: self.switch_page('pos'), None),
-            ("فواتير البيع", "file-invoice", lambda: self.switch_page('sales_invoices'), None),
-            ("العملاء", "user-friends", lambda: self.switch_page('customers'), None),
-            ("سندات قبض", "hand-holding-usd", lambda: self.switch_page('vouchers'), None),
-            ("مرتجعات المبيعات", "undo", lambda: self.switch_page('returns'), None),
-            ("الصناديق والبنوك", "cash-register", lambda: self.switch_page('cashboxes'), None),
-        ])
-        self.top_bar.add_menu_button("المشتريات", "truck", [
-            ("فواتير الشراء", "file-invoice", lambda: self.switch_page('purchase_invoices'), None),
-            ("الموردين", "users", lambda: self.switch_page('suppliers'), None),
-            ("سندات دفع", "money-bill", lambda: self.switch_page('vouchers'), None),
-            ("مرتجعات المشتريات", "undo-alt", lambda: self.switch_page('purchase_returns'), None),
-        ])
-        self.top_bar.add_menu_button("المخزون", "boxes", [
-            ("المواد", "box", lambda: self.switch_page('items'), None),
-            ("التصنيفات", "folder", lambda: self.switch_page('categories'), None),
-            ("المستودعات", "warehouse", lambda: self.switch_page('warehouses'), None),
-        ])
-        self.top_bar.add_menu_button("التصنيع", "industry", [
-            ("قوائم المواد", "list", lambda: self.switch_page('manufacturing'), None),
-            ("أوامر الإنتاج", "tasks", lambda: self.switch_page('manufacturing'), None),
-        ])
-        self.top_bar.add_menu_button("التقارير", "chart-line", [
-            ("قائمة الدخل", "chart-line", lambda: self.switch_page('reports'), None),
-            ("الميزانية العمومية", "building", lambda: self.switch_page('reports'), None),
-            ("كشف حساب عميل", "user", lambda: self.switch_page('reports'), None),
-            ("كشف حساب مورد", "truck", lambda: self.switch_page('reports'), None),
-        ])
-        self.top_bar.add_menu_button("الإدارة", "cog", [
-            ("الإعدادات", "sliders-h", lambda: self.switch_page('settings'), None),
-            ("الفروع", "code-branch", lambda: self.switch_page('branches'), None),
-            ("طباعة احترافية", "print", lambda: self.show_print_dialog(), None),
-            ("تغيير كلمة المرور", "key", lambda: self.change_password(), None),
-            ("الطلبات المعلقة", "cloud-upload-alt", lambda: self.switch_page('offline_queue'), None),
-            ("مراقبة التشغيل", "heartbeat", lambda: self.switch_page('monitoring'), None),
-        ])
-        if UserSession.is_admin():
-            self.top_bar.add_menu_button("المستخدمين", "user-cog", [
-                ("إدارة المستخدمين", "users", lambda: self.switch_page('users'), None),
-                ("سجل التدقيق", "history", lambda: self.switch_page('audit_log'), None),
-            ])
-        self.top_bar.add_button("مساعدة", "question-circle", self.show_about, show_text=True)
+        """Wire utility-strip actions only.
 
+        Primary navigation is now in setup_menus(). This avoids duplicated menu
+        rows and keeps the shell visually clean.
+        """
         self.top_bar.search_box.returnPressed.connect(self.global_search)
         self.top_bar.theme_btn.clicked.connect(self.toggle_theme)
         self.top_bar.alert_btn.clicked.connect(self.show_alerts_menu)

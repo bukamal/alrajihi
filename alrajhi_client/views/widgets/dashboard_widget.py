@@ -318,43 +318,109 @@ class DashboardWidget(QWidget):
 
     def _create_project_panel(self):
         panel = DashboardPanel('الصندوق', 'cash-register')
-        panel.setMinimumHeight(220)
+        panel.setMinimumHeight(245)
 
-        self.project_labels = {}
-        grid = QGridLayout()
-        grid.setSpacing(8)
-        for i, (key, label, icon_name) in enumerate((
-            ('cash_balance', 'رصيد الصندوق', 'money-bill-wave'),
-            ('daily_sales', 'حركة البيع اليوم', 'chart-line'),
-            ('daily_purchases', 'حركة الشراء اليوم', 'shopping-cart'),
-            ('daily_net', 'صافي الحركة اليومية', 'exchange-alt'),
-        )):
+        self.cash_labels = {}
+        self._cash_view_mode = 'today'
+        self._cash_balances_hidden = False
+        self._cash_raw_values = {}
+
+        header = QHBoxLayout()
+        header.setContentsMargins(0, 0, 0, 0)
+        header.setSpacing(8)
+        self.cash_visibility_btn = QPushButton()
+        self.cash_visibility_btn.setToolTip('إخفاء/إظهار الأرصدة')
+        self.cash_visibility_btn.setFixedSize(30, 30)
+        self.cash_visibility_btn.setCursor(Qt.PointingHandCursor)
+        self.cash_visibility_btn.setIcon(qta.icon('fa5s.eye', color='#334155'))
+        self.cash_visibility_btn.clicked.connect(self._toggle_cash_visibility)
+        self.cash_visibility_btn.setStyleSheet('''
+            QPushButton { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; }
+            QPushButton:hover { background: #e2e8f0; }
+        ''')
+        self.cash_mode_btn = QPushButton('حركة اليوم')
+        self.cash_mode_btn.setCursor(Qt.PointingHandCursor)
+        self.cash_mode_btn.setMinimumHeight(30)
+        self.cash_mode_btn.clicked.connect(self._toggle_cash_movement_mode)
+        self.cash_mode_btn.setStyleSheet('''
+            QPushButton { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 15px; color: #1d4ed8; font-weight: 900; padding: 4px 14px; }
+            QPushButton:hover { background: #dbeafe; }
+        ''')
+        header.addWidget(self.cash_visibility_btn)
+        header.addStretch()
+        header.addWidget(self.cash_mode_btn)
+        panel.layout.addLayout(header)
+
+        def make_amount_card(key, title, icon_name, accent='#2563eb'):
             card = QFrame()
-            card.setStyleSheet("""
-                QFrame { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; }
-                QLabel { border: none; }
-            """)
+            card.setStyleSheet(f'''
+                QFrame {{ background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; }}
+                QLabel {{ border: none; }}
+                QLabel#CashMetricTitle {{ font-size: 11px; font-weight: 800; color: #64748b; }}
+                QLabel#CashMetricValue {{ font-size: 14px; font-weight: 900; color: #0f172a; }}
+            ''')
             lay = QHBoxLayout(card)
-            lay.setContentsMargins(10, 8, 10, 8)
+            lay.setContentsMargins(10, 7, 10, 7)
             icon = QLabel()
-            icon.setPixmap(qta.icon(f'fa5s.{icon_name}', color='#2563eb').pixmap(QSize(18, 18)))
-            value = QLabel('—')
-            value.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            value.setStyleSheet('font-size: 13px; font-weight: 900; color: #0f172a;')
-            title = QLabel(label)
-            title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            title.setStyleSheet('font-size: 12px; font-weight: 800; color: #475569;')
-            lay.addWidget(value)
-            lay.addStretch()
-            lay.addWidget(title)
+            icon.setPixmap(qta.icon(f'fa5s.{icon_name}', color=accent).pixmap(QSize(17, 17)))
+            text_col = QVBoxLayout()
+            text_col.setSpacing(1)
+            title_label = QLabel(title)
+            title_label.setObjectName('CashMetricTitle')
+            title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_label = QLabel('—')
+            value_label.setObjectName('CashMetricValue')
+            value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            text_col.addWidget(title_label)
+            text_col.addWidget(value_label)
+            lay.addLayout(text_col, 1)
             lay.addWidget(icon)
-            grid.addWidget(card, i // 2, i % 2)
-            self.project_labels[key] = value
-        panel.layout.addLayout(grid)
+            self.cash_labels[key] = value_label
+            return card
+
+        movement_box = QFrame()
+        movement_box.setObjectName('CashMovementBox')
+        movement_box.setStyleSheet('''
+            QFrame#CashMovementBox { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 16px; }
+            QLabel#CashSectionTitle { color: #1d4ed8; font-size: 13px; font-weight: 900; border: none; }
+        ''')
+        movement_layout = QVBoxLayout(movement_box)
+        movement_layout.setContentsMargins(10, 8, 10, 10)
+        movement_layout.setSpacing(7)
+        self.cash_section_title = QLabel('حركة اليوم')
+        self.cash_section_title.setObjectName('CashSectionTitle')
+        self.cash_section_title.setAlignment(Qt.AlignRight)
+        movement_layout.addWidget(self.cash_section_title)
+        movement_grid = QGridLayout()
+        movement_grid.setSpacing(7)
+        movement_grid.addWidget(make_amount_card('received', 'المقبوض', 'arrow-down', '#059669'), 0, 0)
+        movement_grid.addWidget(make_amount_card('paid', 'المدفوع', 'arrow-up', '#dc2626'), 0, 1)
+        movement_grid.addWidget(make_amount_card('net', 'الصافي', 'balance-scale', '#2563eb'), 0, 2)
+        movement_layout.addLayout(movement_grid)
+        panel.layout.addWidget(movement_box)
+
+        balance_box = QFrame()
+        balance_box.setStyleSheet('''
+            QFrame { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
+            QLabel { border: none; }
+        ''')
+        balance_layout = QHBoxLayout(balance_box)
+        balance_layout.setContentsMargins(10, 7, 10, 7)
+        balance_title = QLabel('رصيد الصندوق الحالي')
+        balance_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        balance_title.setStyleSheet('font-size: 12px; font-weight: 900; color: #475569;')
+        balance_value = QLabel('—')
+        balance_value.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        balance_value.setStyleSheet('font-size: 14px; font-weight: 900; color: #0f172a;')
+        balance_layout.addWidget(balance_value)
+        balance_layout.addStretch()
+        balance_layout.addWidget(balance_title)
+        self.cash_labels['cash_balance'] = balance_value
+        panel.layout.addWidget(balance_box)
 
         currency_box = QFrame()
         currency_box.setObjectName('CashCurrencyBox')
-        currency_box.setStyleSheet("""
+        currency_box.setStyleSheet('''
             QFrame#CashCurrencyBox {
                 background: #f8fafc;
                 border: 1px solid #e2e8f0;
@@ -370,7 +436,7 @@ class DashboardWidget(QWidget):
                 font-size: 12px;
                 font-weight: 800;
             }
-        """)
+        ''')
         currency_layout = QGridLayout(currency_box)
         currency_layout.setContentsMargins(10, 8, 10, 8)
         currency_layout.setHorizontalSpacing(8)
@@ -500,24 +566,122 @@ class DashboardWidget(QWidget):
             data = [{'severity': '✅', 'title': 'لا توجد تنبيهات', 'message': 'كل المؤشرات التشغيلية ضمن الحدود الحالية'}]
         self._set_table(self.alerts_table, data, ['severity', 'title', 'message'], ['الحالة', 'التنبيه', 'التفاصيل'])
 
+    def _toggle_cash_movement_mode(self):
+        self._cash_view_mode = 'general' if getattr(self, '_cash_view_mode', 'today') == 'today' else 'today'
+        self._render_cash_amounts(currency.get_display_currency())
+
+    def _toggle_cash_visibility(self):
+        self._cash_balances_hidden = not getattr(self, '_cash_balances_hidden', False)
+        if hasattr(self, 'cash_visibility_btn'):
+            icon_name = 'eye-slash' if self._cash_balances_hidden else 'eye'
+            self.cash_visibility_btn.setIcon(qta.icon(f'fa5s.{icon_name}', color='#334155'))
+        self._render_cash_amounts(currency.get_display_currency())
+
+    def _masked_amount(self):
+        return '••••••'
+
+    def _render_cash_amounts(self, display_curr):
+        if not hasattr(self, 'cash_labels'):
+            return
+        mode = getattr(self, '_cash_view_mode', 'today')
+        raw_values = getattr(self, '_cash_raw_values', {}) or {}
+        selected = raw_values.get(mode, {})
+        section_title = 'الحركة العامة' if mode == 'general' else 'حركة اليوم'
+        if hasattr(self, 'cash_section_title'):
+            self.cash_section_title.setText(section_title)
+        if hasattr(self, 'cash_mode_btn'):
+            self.cash_mode_btn.setText(section_title)
+
+        hidden = getattr(self, '_cash_balances_hidden', False)
+        for key in ('received', 'paid', 'net'):
+            label = self.cash_labels.get(key)
+            if not label:
+                continue
+            if hidden:
+                label.setText(self._masked_amount())
+            else:
+                amount = Decimal(str(selected.get(key, 0) or 0))
+                converted = currency.convert(amount, 'USD', display_curr)
+                label.setText(currency.format_amount(converted))
+
+        balance_label = self.cash_labels.get('cash_balance')
+        if balance_label:
+            if hidden:
+                balance_label.setText(self._masked_amount())
+            else:
+                amount = Decimal(str(raw_values.get('cash_balance', 0) or 0))
+                converted = currency.convert(amount, 'USD', display_curr)
+                balance_label.setText(currency.format_amount(converted))
+
+    def _toggle_cash_movement_mode(self):
+        self._cash_view_mode = 'general' if getattr(self, '_cash_view_mode', 'today') == 'today' else 'today'
+        self._render_cash_amounts(currency.get_display_currency())
+
+    def _toggle_cash_visibility(self):
+        self._cash_balances_hidden = not getattr(self, '_cash_balances_hidden', False)
+        if hasattr(self, 'cash_visibility_btn'):
+            icon_name = 'eye-slash' if self._cash_balances_hidden else 'eye'
+            self.cash_visibility_btn.setIcon(qta.icon(f'fa5s.{icon_name}', color='#334155'))
+        self._render_cash_amounts(currency.get_display_currency())
+
+    def _masked_amount(self):
+        return '••••••'
+
+    def _render_cash_amounts(self, display_curr):
+        if not hasattr(self, 'cash_labels'):
+            return
+        mode = getattr(self, '_cash_view_mode', 'today')
+        raw_values = getattr(self, '_cash_raw_values', {}) or {}
+        selected = raw_values.get(mode, {})
+        section_title = 'الحركة العامة' if mode == 'general' else 'حركة اليوم'
+        if hasattr(self, 'cash_section_title'):
+            self.cash_section_title.setText(section_title)
+        if hasattr(self, 'cash_mode_btn'):
+            self.cash_mode_btn.setText(section_title)
+
+        hidden = getattr(self, '_cash_balances_hidden', False)
+        for key in ('received', 'paid', 'net'):
+            label = self.cash_labels.get(key)
+            if not label:
+                continue
+            if hidden:
+                label.setText(self._masked_amount())
+            else:
+                amount = Decimal(str(selected.get(key, 0) or 0))
+                converted = currency.convert(amount, 'USD', display_curr)
+                label.setText(currency.format_amount(converted))
+
+        balance_label = self.cash_labels.get('cash_balance')
+        if balance_label:
+            if hidden:
+                balance_label.setText(self._masked_amount())
+            else:
+                amount = Decimal(str(raw_values.get('cash_balance', 0) or 0))
+                converted = currency.convert(amount, 'USD', display_curr)
+                balance_label.setText(currency.format_amount(converted))
+
     def _refresh_project_card(self, display_curr):
-        if not hasattr(self, 'project_labels'):
+        if not hasattr(self, 'cash_labels'):
             return
         summary = self._snapshot.get('summary', {}) if isinstance(self._snapshot, dict) else {}
-        sales = Decimal(str(summary.get('total_sales', 0) or 0))
-        purchases = Decimal(str(summary.get('total_purchases', 0) or 0))
-        expenses = Decimal(str(summary.get('total_expenses', 0) or 0))
-        cash_balance = Decimal(str(summary.get('cash_balance', 0) or 0))
-        daily_net = sales - purchases - expenses
-        values = {
-            'cash_balance': cash_balance,
-            'daily_sales': sales,
-            'daily_purchases': purchases,
-            'daily_net': daily_net,
+        cashbox_movement = self._snapshot.get('cashbox_movement', {}) if isinstance(self._snapshot, dict) else {}
+        today = cashbox_movement.get('today', {}) if isinstance(cashbox_movement, dict) else {}
+        general = cashbox_movement.get('general', {}) if isinstance(cashbox_movement, dict) else {}
+
+        self._cash_raw_values = {
+            'today': {
+                'received': Decimal(str(today.get('received', 0) or 0)),
+                'paid': Decimal(str(today.get('paid', 0) or 0)),
+                'net': Decimal(str(today.get('net', 0) or 0)),
+            },
+            'general': {
+                'received': Decimal(str(general.get('received', 0) or 0)),
+                'paid': Decimal(str(general.get('paid', 0) or 0)),
+                'net': Decimal(str(general.get('net', 0) or 0)),
+            },
+            'cash_balance': Decimal(str(summary.get('cash_balance', 0) or 0)),
         }
-        for key, amount in values.items():
-            converted = currency.convert(amount, 'USD', display_curr)
-            self.project_labels[key].setText(currency.format_amount(converted))
+        self._render_cash_amounts(display_curr)
         self._refresh_cash_currency_info(display_curr)
 
     def _refresh_cash_currency_info(self, display_curr):

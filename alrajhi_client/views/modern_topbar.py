@@ -43,73 +43,33 @@ class ModernTopBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("ModernTopBar")
-        self.setMinimumHeight(138)
+        self.setMinimumHeight(58)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.buttons = {}
         self.menus = {}
         self.init_ui()
 
     def init_ui(self):
-        """Build a compact professional shell.
+        """Build the utility strip below the ERP navigation menu.
 
-        Phase 41 keeps the navigation/menu row first, then places the global
-        search, notifications, theme toggle and user identity below it.
+        Phase 46 moves ERP navigation to the native QMenuBar and keeps this
+        widget focused on global search, notifications, theme and user identity.
         """
         outer = QVBoxLayout(self)
         outer.setContentsMargins(18, 8, 18, 10)
-        outer.setSpacing(8)
+        outer.setSpacing(0)
 
-        # Navigation row.
-        nav_frame = QFrame()
-        nav_frame.setObjectName("ShellNavFrame")
-        nav_frame.setMinimumHeight(58)
-        nav_layout = QHBoxLayout(nav_frame)
-        nav_layout.setContentsMargins(0, 0, 0, 0)
-        nav_layout.setSpacing(8)
-
-        self.nav_scroll = QScrollArea()
-        self.nav_scroll.setObjectName("ShellNavScroll")
-        self.nav_scroll.setWidgetResizable(True)
-        self.nav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.nav_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.nav_scroll.setFrameShape(QFrame.NoFrame)
-        self.nav_scroll.setFixedHeight(58)
-
-        self.nav_content = QWidget()
-        self.nav_content.setObjectName("ShellNavContent")
-        self.buttons_container = QHBoxLayout(self.nav_content)
-        self.buttons_container.setContentsMargins(0, 0, 0, 0)
-        self.buttons_container.setSpacing(8)
-        self.buttons_container.addStretch(1)
-        self.nav_scroll.setWidget(self.nav_content)
-        nav_layout.addWidget(self.nav_scroll, 1)
-
-        self.more_menu = QMenu(self)
-        self.more_btn = QToolButton()
-        self.more_btn.setObjectName("ShellMoreButton")
-        self.more_btn.setIcon(qta.icon('fa5s.ellipsis-h'))
-        self.more_btn.setIconSize(QSize(22, 22))
-        self.more_btn.setMenu(self.more_menu)
-        self.more_btn.setPopupMode(QToolButton.InstantPopup)
-        self.more_btn.setToolTip("المزيد")
-        self.more_btn.setFixedSize(48, 46)
-        self.more_btn.setVisible(True)
-        nav_layout.addWidget(self.more_btn)
-
-        outer.addWidget(nav_frame)
-
-        # Utility row: search + notifications + theme + user identity.
         utility_frame = QFrame()
         utility_frame.setObjectName("ShellUtilityFrame")
         utility_layout = QHBoxLayout(utility_frame)
-        utility_layout.setContentsMargins(10, 8, 10, 8)
+        utility_layout.setContentsMargins(12, 8, 12, 8)
         utility_layout.setSpacing(10)
 
         self.search_box = QLineEdit()
         self.search_box.setObjectName("GlobalSearchBox")
         self.search_box.setPlaceholderText("بحث عام: مادة، عميل، فاتورة...")
-        self.search_box.setMinimumWidth(320)
-        self.search_box.setMaximumWidth(560)
+        self.search_box.setMinimumWidth(360)
+        self.search_box.setMaximumWidth(620)
         self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         utility_layout.addWidget(self.search_box, 2)
 
@@ -141,40 +101,30 @@ class ModernTopBar(QWidget):
         outer.addWidget(utility_frame)
 
     def add_menu_button(self, name, icon_name, menu_items):
-        btn = QToolButton()
-        btn.setIcon(qta.icon(f'fa5s.{icon_name}'))
-        btn.setIconSize(QSize(24, 24))
-        btn.setText(name)
-        btn.setToolTip(name)
-        btn.setLayoutDirection(Qt.RightToLeft)
-        btn.setCursor(Qt.PointingHandCursor)
-        btn.setFixedHeight(48)
-        btn.setMinimumWidth(132)
-        btn.setObjectName("TopBarButton")
-        btn.setPopupMode(QToolButton.InstantPopup)
-        btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        """Backward-compatible no-op navigation hook.
 
-        menu = QMenu()
+        ERP navigation now lives in MainWindow.setup_menus(). Older code may
+        still call this method, so it returns a lightweight action-less button
+        object without adding visual duplication to the utility strip.
+        """
+        btn = QToolButton(self)
+        btn.setObjectName("TopBarButton")
+        btn.setText(name)
+        btn.setIcon(qta.icon(f'fa5s.{icon_name}'))
+        menu = QMenu(btn)
         for item_text, item_icon, callback, shortcut in menu_items:
             action = menu.addAction(qta.icon(f'fa5s.{item_icon}'), item_text)
             if shortcut:
                 action.setShortcut(shortcut)
             action.triggered.connect(callback)
         btn.setMenu(menu)
-
-        self.buttons_container.insertWidget(max(0, self.buttons_container.count() - 1), btn)
-        action = self.more_menu.addAction(qta.icon(f'fa5s.{icon_name}'), name)
-        action.triggered.connect(lambda checked=False, b=btn: b.showMenu())
         self.menus[name] = btn
         return btn
 
     def add_button(self, name, icon_name, callback, badge_count=0, show_text=True):
         btn = TopBarButton(name, icon_name, badge_count, self, show_text)
         btn.clicked.connect(callback)
-        self.buttons_container.insertWidget(max(0, self.buttons_container.count() - 1), btn)
         self.buttons[name] = btn
-        action = self.more_menu.addAction(qta.icon(f'fa5s.{icon_name}'), name)
-        action.triggered.connect(callback)
         return btn
 
     def set_page_context(self, title: str, breadcrumb: str = ''):

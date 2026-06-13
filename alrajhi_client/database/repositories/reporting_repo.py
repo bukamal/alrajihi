@@ -18,7 +18,43 @@ class ReportingRepository(BaseRepository):
                 "SELECT SUM(CAST(total AS REAL)) FROM invoices WHERE type='sale' AND user_id=? AND deleted_at IS NULL",
                 (uid,), start_date, end_date, 'date'
             )
-            
+
+            # إجمالي المشتريات
+            purchases = self._safe_sum(
+                "SELECT SUM(CAST(total AS REAL)) FROM invoices WHERE type='purchase' AND user_id=? AND deleted_at IS NULL",
+                (uid,), start_date, end_date, 'date'
+            )
+
+            # الحركة النقدية الفعلية: المقبوض والمدفوع من الفواتير والسندات والمرتجعات
+            sale_paid = self._safe_sum(
+                "SELECT SUM(CAST(paid AS REAL)) FROM invoices WHERE type='sale' AND user_id=? AND deleted_at IS NULL",
+                (uid,), start_date, end_date, 'date'
+            )
+            purchase_paid = self._safe_sum(
+                "SELECT SUM(CAST(paid AS REAL)) FROM invoices WHERE type='purchase' AND user_id=? AND deleted_at IS NULL",
+                (uid,), start_date, end_date, 'date'
+            )
+            receipt_vouchers = self._safe_sum(
+                "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='receipt' AND user_id=?",
+                (uid,), start_date, end_date, 'date'
+            )
+            payment_vouchers = self._safe_sum(
+                "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='payment' AND user_id=?",
+                (uid,), start_date, end_date, 'date'
+            )
+            expense_vouchers = self._safe_sum(
+                "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='expense' AND user_id=?",
+                (uid,), start_date, end_date, 'date'
+            )
+            sales_return_refunds = self._safe_sum(
+                "SELECT SUM(CAST(refund_amount AS REAL)) FROM sales_returns WHERE user_id=? AND deleted_at IS NULL",
+                (uid,), start_date, end_date, 'date'
+            )
+            purchase_return_refunds = self._safe_sum(
+                "SELECT SUM(CAST(refund_amount AS REAL)) FROM purchase_returns WHERE user_id=? AND deleted_at IS NULL",
+                (uid,), start_date, end_date, 'date'
+            )
+
             # تكلفة البضاعة المباعة (COGS) من cost_amount في سطور فواتير البيع
             cogs = self._safe_sum(
                 """SELECT SUM(CAST(cost_amount AS REAL)) FROM invoice_lines il
@@ -60,8 +96,12 @@ class ReportingRepository(BaseRepository):
                 'cash_balance': cash,
                 'receivables': receivables,
                 'payables': payables,
-                'total_incoming': sales,
-                'total_outgoing': cogs + expenses
+                'total_purchases': purchases,
+                'total_incoming': sale_paid + receipt_vouchers + purchase_return_refunds,
+                'total_outgoing': purchase_paid + payment_vouchers + expense_vouchers + sales_return_refunds,
+                'cash_received': sale_paid + receipt_vouchers + purchase_return_refunds,
+                'cash_paid': purchase_paid + payment_vouchers + expense_vouchers + sales_return_refunds,
+                'cash_net_movement': (sale_paid + receipt_vouchers + purchase_return_refunds) - (purchase_paid + payment_vouchers + expense_vouchers + sales_return_refunds)
             }
     
     def _empty_summary(self) -> Dict:
@@ -73,8 +113,12 @@ class ReportingRepository(BaseRepository):
             'cash_balance': Decimal('0'),
             'receivables': Decimal('0'),
             'payables': Decimal('0'),
+            'total_purchases': Decimal('0'),
             'total_incoming': Decimal('0'),
-            'total_outgoing': Decimal('0')
+            'total_outgoing': Decimal('0'),
+            'cash_received': Decimal('0'),
+            'cash_paid': Decimal('0'),
+            'cash_net_movement': Decimal('0')
         }
     
     def _safe_sum(self, sql: str, params: tuple, start_date: str, end_date: str, date_column: str) -> Decimal:
