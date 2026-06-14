@@ -97,6 +97,15 @@ class SettingsService:
             'accent_color': self.get('printing/accent_color', '#1d4ed8'),
             'zebra_rows': self.get('printing/zebra_rows', 'true').lower() == 'true',
             'compact_tables': self.get('printing/compact_tables', 'false').lower() == 'true',
+            'barcode_default_printer': self.get('printing/barcode/default_printer', 'pdf:default'),
+            'barcode_label_size': self.get('printing/barcode/label_size', '50x30'),
+            'barcode_symbology': self.get('printing/barcode/symbology', 'AUTO'),
+            'barcode_copies': int(self.get('printing/barcode/copies', '1') or 1),
+            'barcode_columns': int(self.get('printing/barcode/columns', '2') or 2),
+            'barcode_show_company': self.get('printing/barcode/show_company', 'true').lower() == 'true',
+            'barcode_show_name': self.get('printing/barcode/show_name', 'true').lower() == 'true',
+            'barcode_show_price': self.get('printing/barcode/show_price', 'true').lower() == 'true',
+            'barcode_show_text': self.get('printing/barcode/show_text', 'true').lower() == 'true',
         }
 
     def save_printing_settings(self, invoice_template: str = 'a4', show_logo: bool = True,
@@ -105,7 +114,12 @@ class SettingsService:
                                report_template: str = 'a4', voucher_template: str = 'a4',
                                return_template: str = 'a4', font_family: str = '',
                                font_size: str = '10.5pt', accent_color: str = '#1d4ed8',
-                               zebra_rows: bool = True, compact_tables: bool = False):
+                               zebra_rows: bool = True, compact_tables: bool = False,
+                               barcode_default_printer: str = 'pdf:default', barcode_label_size: str = '50x30',
+                               barcode_symbology: str = 'AUTO', barcode_copies: int = 1,
+                               barcode_columns: int = 2, barcode_show_company: bool = True,
+                               barcode_show_name: bool = True, barcode_show_price: bool = True,
+                               barcode_show_text: bool = True):
         old = self.get_printing_settings()
         new = {
             'invoice_template': invoice_template or 'a4',
@@ -123,6 +137,15 @@ class SettingsService:
             'accent_color': accent_color or '#1d4ed8',
             'zebra_rows': bool(zebra_rows),
             'compact_tables': bool(compact_tables),
+            'barcode_default_printer': barcode_default_printer or 'pdf:default',
+            'barcode_label_size': barcode_label_size or '50x30',
+            'barcode_symbology': (barcode_symbology or 'AUTO').upper(),
+            'barcode_copies': max(1, int(barcode_copies or 1)),
+            'barcode_columns': min(max(1, int(barcode_columns or 2)), 4),
+            'barcode_show_company': bool(barcode_show_company),
+            'barcode_show_name': bool(barcode_show_name),
+            'barcode_show_price': bool(barcode_show_price),
+            'barcode_show_text': bool(barcode_show_text),
         }
         self.set('printing/invoice_template', new['invoice_template'])
         self.set('printing/report_template', new['report_template'])
@@ -139,6 +162,15 @@ class SettingsService:
         self.set('printing/accent_color', new['accent_color'])
         self.set('printing/zebra_rows', 'true' if zebra_rows else 'false')
         self.set('printing/compact_tables', 'true' if compact_tables else 'false')
+        self.set('printing/barcode/default_printer', new['barcode_default_printer'])
+        self.set('printing/barcode/label_size', new['barcode_label_size'])
+        self.set('printing/barcode/symbology', new['barcode_symbology'])
+        self.set('printing/barcode/copies', str(new['barcode_copies']))
+        self.set('printing/barcode/columns', str(new['barcode_columns']))
+        self.set('printing/barcode/show_company', 'true' if new['barcode_show_company'] else 'false')
+        self.set('printing/barcode/show_name', 'true' if new['barcode_show_name'] else 'false')
+        self.set('printing/barcode/show_price', 'true' if new['barcode_show_price'] else 'false')
+        self.set('printing/barcode/show_text', 'true' if new['barcode_show_text'] else 'false')
         self.clear_cache()
         audit_service.log('UPDATE', 'SETTINGS_PRINTING', None, old_values=old, new_values=new, details='تعديل إعدادات الطباعة')
 

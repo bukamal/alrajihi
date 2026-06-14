@@ -165,10 +165,10 @@ class ItemsWidget(BaseWidget):
         if not item or not item.get('barcode'):
             show_toast(translate("item_has_no_barcode"), "error", self)
             return
-        from printing.thermal_printer import PDFPrinter
-        pdf_printer = PDFPrinter(self)
-        price_display = currency.format_amount(currency.convert(item.get('selling_price', 0), 'USD', currency.get_display_currency()))
-        pdf_printer.print_label(item.get('barcode'), item['name'], price_display, 1, {'label_size': '50x30', 'columns': 1})
+        # Single barcode printing now uses the same unified dialog/service path
+        # as batch barcode printing, with defaults loaded from Printing Settings.
+        dialog = BatchPrintDialog(self, selected_items=[item])
+        dialog.exec()
 
     def batch_print(self):
         dialog = BatchPrintDialog(self)

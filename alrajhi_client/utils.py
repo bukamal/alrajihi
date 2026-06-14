@@ -2,6 +2,10 @@
 from core.services.settings_service import settings_service
 from PyQt5.QtCore import QObject, QTimer, Qt
 from PyQt5.QtWidgets import QApplication, QLineEdit, QTextEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QAbstractSpinBox
+try:
+    from PyQt5 import sip
+except Exception:  # pragma: no cover - depends on PyQt packaging
+    sip = None
 import re
 
 _currency_symbol = None
@@ -93,18 +97,35 @@ def focus_first_input(widget, delay=120):
                 if not child.isVisible() or not child.isEnabled():
                     continue
                 child.setFocus(Qt.OtherFocusReason)
-                if isinstance(child, QLineEdit):
+                if isinstance(child, QLineEdit) and _is_qobject_alive(child):
                     child.selectAll()
-                elif isinstance(child, QComboBox) and child.isEditable() and child.lineEdit():
+                elif isinstance(child, QComboBox) and child.isEditable() and child.lineEdit() and _is_qobject_alive(child.lineEdit()):
                     child.lineEdit().selectAll()
                 elif isinstance(child, (QSpinBox, QDoubleSpinBox)):
                     le = child.findChild(QLineEdit)
-                    if le:
+                    if le and _is_qobject_alive(le):
                         le.selectAll()
                 return
         except Exception:
             pass
     QTimer.singleShot(delay, _focus)
+
+
+def _is_qobject_alive(obj):
+    """Return False when a PyQt wrapper points to a deleted C++ QObject."""
+    if obj is None:
+        return False
+    try:
+        if sip is not None and sip.isdeleted(obj):
+            return False
+        # Touch a harmless QObject method so deleted wrappers raise RuntimeError here, not later.
+        obj.objectName()
+        return True
+    except RuntimeError:
+        return False
+    except Exception:
+        # Non-QObject or unusual widgets should not break focus handling.
+        return True
 
 # ========== تحديد النص تلقائياً ==========
 class AutoSelectManager(QObject):
@@ -117,8 +138,8 @@ class AutoSelectManager(QObject):
         if new is None:
             return
         line_edit = self._get_line_edit(new)
-        if line_edit:
-            QTimer.singleShot(100, lambda: self._select_all(line_edit))
+        if line_edit and _is_qobject_alive(line_edit):
+            QTimer.singleShot(100, lambda le=line_edit: self._select_all(le))
 
     def _get_line_edit(self, widget):
         if isinstance(widget, QLineEdit):
@@ -134,8 +155,14 @@ class AutoSelectManager(QObject):
         return None
 
     def _select_all(self, line_edit):
-        if line_edit and hasattr(line_edit, 'selectAll'):
-            line_edit.selectAll()
+        if not _is_qobject_alive(line_edit):
+            return
+        try:
+            if hasattr(line_edit, 'selectAll'):
+                line_edit.selectAll()
+        except RuntimeError:
+            # The widget may be destroyed between the timer check and execution.
+            return
 
 def enable_auto_select_all(app):
     manager = AutoSelectManager(app)

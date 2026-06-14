@@ -2598,3 +2598,44 @@ _translations['en'].update({
     'settlement_cash_refund_purchase': 'Cash received from supplier',
     'settlement_bank_refund_purchase': 'Bank received from supplier',
 })
+
+# Phase 98: unified barcode printing settings.
+_translations['ar'].update({
+    'settings_barcode_print_title': 'إعدادات طباعة الباركود',
+    'settings_barcode_print_help': 'تستخدم طباعة الباركود المفردة والمتعددة نفس نظام الطباعة الموحد وهذه الإعدادات الافتراضية.',
+    'settings_barcode_default_printer_label': 'طابعة الباركود الافتراضية:',
+    'settings_barcode_label_size_label': 'حجم اللصاقة:',
+    'settings_barcode_symbology_label': 'نوع الباركود:',
+    'settings_barcode_copies_label': 'عدد النسخ الافتراضي:',
+    'settings_barcode_columns_label': 'عدد الأعمدة في PDF:',
+    'settings_barcode_show_company': 'إظهار اسم الشركة على اللصاقة',
+    'settings_barcode_show_name': 'إظهار اسم المادة',
+    'settings_barcode_show_price': 'إظهار السعر',
+    'settings_barcode_show_text': 'إظهار رقم الباركود',
+})
+_translations['de'].update({
+    'settings_barcode_print_title': 'Barcode-Druckeinstellungen',
+    'settings_barcode_print_help': 'Einzel- und Mehrfach-Barcode-Druck verwenden denselben einheitlichen Druckdienst und diese Standardwerte.',
+    'settings_barcode_default_printer_label': 'Standard-Barcode-Drucker:',
+    'settings_barcode_label_size_label': 'Etikettengröße:',
+    'settings_barcode_symbology_label': 'Barcode-Typ:',
+    'settings_barcode_copies_label': 'Standardkopien:',
+    'settings_barcode_columns_label': 'PDF-Spalten:',
+    'settings_barcode_show_company': 'Firmenname auf Etikett anzeigen',
+    'settings_barcode_show_name': 'Artikelname anzeigen',
+    'settings_barcode_show_price': 'Preis anzeigen',
+    'settings_barcode_show_text': 'Barcode-Nummer anzeigen',
+})
+_translations['en'].update({
+    'settings_barcode_print_title': 'Barcode Printing Settings',
+    'settings_barcode_print_help': 'Single and batch barcode printing use the same unified printing service and these defaults.',
+    'settings_barcode_default_printer_label': 'Default barcode printer:',
+    'settings_barcode_label_size_label': 'Label size:',
+    'settings_barcode_symbology_label': 'Barcode type:',
+    'settings_barcode_copies_label': 'Default copies:',
+    'settings_barcode_columns_label': 'PDF columns:',
+    'settings_barcode_show_company': 'Show company name on label',
+    'settings_barcode_show_name': 'Show item name',
+    'settings_barcode_show_price': 'Show price',
+    'settings_barcode_show_text': 'Show barcode text',
+})

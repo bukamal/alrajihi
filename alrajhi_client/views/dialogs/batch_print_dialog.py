@@ -9,17 +9,20 @@ from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from core.services.catalog_service import catalog_service
 from utils import show_toast
-from printing.thermal_printer import ThermalPrinter, PDFPrinter, ImagePrinter
+from printing.thermal_printer import ThermalPrinter, ImagePrinter
+from printing.printing_service import printing_service
 from printer_manager import PrinterManager
+from core.services.settings_service import settings_service
 
 class BatchPrintDialog(CenteredDialog):
     def __init__(self, parent=None, selected_items=None):
         super().__init__(parent)
-        self.setWindowTitle("طباعة باركودات متعددة")
+        self.setWindowTitle("طباعة الباركود")
         self.resize(750, 550)
         self.selected_items = selected_items or []
         self.printer_manager = PrinterManager()
         self.printer_manager.load_default_printer()
+        self.print_cfg = settings_service.get_printing_settings()
         self.items_data = []
 
         # التأكد من وجود layout في content_widget
@@ -29,37 +32,42 @@ class BatchPrintDialog(CenteredDialog):
         toolbar = QHBoxLayout()
         toolbar.addWidget(QLabel("الطابعة:"))
         self.printer_combo = QComboBox()
+        default_printer = self.print_cfg.get('barcode_default_printer', 'pdf:default')
         for p in self.printer_manager.printers:
             self.printer_combo.addItem(p.name, p.id)
+        idx = self.printer_combo.findData(default_printer)
+        if idx >= 0:
+            self.printer_combo.setCurrentIndex(idx)
         toolbar.addWidget(self.printer_combo)
 
         self.copies_spin = QSpinBox()
         self.copies_spin.setRange(1, 10)
-        self.copies_spin.setValue(1)
+        self.copies_spin.setValue(int(self.print_cfg.get('barcode_copies', 1) or 1))
         toolbar.addWidget(QLabel("عدد النسخ:"))
         toolbar.addWidget(self.copies_spin)
 
         self.label_size_combo = QComboBox()
         self.label_size_combo.addItems(["40x30", "50x30", "60x40", "80mm"])
-        self.label_size_combo.setCurrentText("50x30")
+        self.label_size_combo.setCurrentText(self.print_cfg.get('barcode_label_size', '50x30'))
         toolbar.addWidget(QLabel("حجم الملصق:"))
         toolbar.addWidget(self.label_size_combo)
 
         self.symbology_combo = QComboBox()
         self.symbology_combo.addItems(["AUTO", "EAN13", "CODE128"])
+        self.symbology_combo.setCurrentText(self.print_cfg.get('barcode_symbology', 'AUTO'))
         toolbar.addWidget(QLabel("النوع:"))
         toolbar.addWidget(self.symbology_combo)
         self.content_widget.layout().addLayout(toolbar)
 
         options_row = QHBoxLayout()
         self.show_company_check = QCheckBox("اسم الشركة")
-        self.show_company_check.setChecked(True)
+        self.show_company_check.setChecked(bool(self.print_cfg.get('barcode_show_company', True)))
         self.show_name_check = QCheckBox("اسم المادة")
-        self.show_name_check.setChecked(True)
+        self.show_name_check.setChecked(bool(self.print_cfg.get('barcode_show_name', True)))
         self.show_price_check = QCheckBox("السعر")
-        self.show_price_check.setChecked(True)
+        self.show_price_check.setChecked(bool(self.print_cfg.get('barcode_show_price', True)))
         self.show_text_check = QCheckBox("رقم الباركود")
-        self.show_text_check.setChecked(True)
+        self.show_text_check.setChecked(bool(self.print_cfg.get('barcode_show_text', True)))
         for chk in (self.show_company_check, self.show_name_check, self.show_price_check, self.show_text_check):
             options_row.addWidget(chk)
         options_row.addStretch()
@@ -182,7 +190,7 @@ class BatchPrintDialog(CenteredDialog):
             'show_name': self.show_name_check.isChecked(),
             'show_price': self.show_price_check.isChecked(),
             'show_barcode_text': self.show_text_check.isChecked(),
-            'columns': 1 if self.label_size_combo.currentText() == '80mm' else 2,
+            'columns': int(self.print_cfg.get('barcode_columns', 1 if self.label_size_combo.currentText() == '80mm' else 2) or 2),
         }
 
     def do_print(self):
@@ -209,8 +217,7 @@ class BatchPrintDialog(CenteredDialog):
                 if not tp.print_label(item['barcode'], item['name'], item['price'], item.get('copies', 1)):
                     success = False
         elif printer_info.type.value == 'pdf':
-            pdf_printer = PDFPrinter(self)
-            if pdf_printer.print_labels_batch(items_for_print, self._print_options()):
+            if printing_service.barcode_labels_pdf(items_for_print, self, 'barcodes_batch.pdf', self._print_options()):
                 show_toast("تم حفظ PDF بنجاح", "success", self)
                 self.accept()
             else:
@@ -223,12 +230,11 @@ class BatchPrintDialog(CenteredDialog):
                     if not img_printer.print_label(item['barcode'], item['name'], item['price'], 1):
                         success = False
         else:
-            pdf_printer = PDFPrinter(self)
-            if pdf_printer.print_labels_batch(items_for_print, self._print_options()):
-                show_toast("تم حفظ PDF بنجاح", "success", self)
+            if printing_service.barcode_labels_print(items_for_print, self, self._print_options(), printer_info.connection_string):
+                show_toast("تمت الطباعة بنجاح", "success", self)
                 self.accept()
             else:
-                show_toast("فشل حفظ PDF", "error", self)
+                show_toast("فشل طباعة الباركود", "error", self)
             return
         if success:
             show_toast("تمت الطباعة بنجاح", "success", self)

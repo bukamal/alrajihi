@@ -19,6 +19,8 @@ from PyQt5.QtGui import QTextDocument
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintDialog
 
 from printing.print_templates import invoice_html, voucher_html, report_html, return_html, production_order_html
+from core.services.barcode_label_service import barcode_label_service
+from core.services.settings_service import settings_service
 
 
 class PrintingService:
@@ -89,6 +91,50 @@ class PrintingService:
         printer.setOutputFileName(filename)
         doc.print(printer)
         return True
+
+
+    # ========== Unified barcode label printing ==========
+    def barcode_label_options(self, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Return barcode label options from printing settings plus optional overrides."""
+        cfg = settings_service.get_printing_settings()
+        opts = {
+            'label_size': cfg.get('barcode_label_size', '50x30'),
+            'symbology': cfg.get('barcode_symbology', 'AUTO'),
+            'show_company': bool(cfg.get('barcode_show_company', True)),
+            'show_name': bool(cfg.get('barcode_show_name', True)),
+            'show_price': bool(cfg.get('barcode_show_price', True)),
+            'show_barcode_text': bool(cfg.get('barcode_show_text', True)),
+            'columns': int(cfg.get('barcode_columns', 2) or 2),
+        }
+        if overrides:
+            opts.update({k: v for k, v in overrides.items() if v is not None})
+        return opts
+
+    def barcode_labels_html(self, items: List[Dict[str, Any]], options: Optional[Dict[str, Any]] = None) -> str:
+        return barcode_label_service.labels_document_html(items or [], self.barcode_label_options(options))
+
+    def barcode_labels_preview(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None) -> None:
+        self.preview_html(self.barcode_labels_html(items, options), parent, "معاينة الباركود")
+
+    def barcode_labels_print(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None, printer_name: str = '') -> bool:
+        html = self.barcode_labels_html(items, options)
+        if not html:
+            QMessageBox.warning(parent, "تنبيه", "لا يوجد محتوى للطباعة")
+            return False
+        doc = self._make_document(html)
+        printer = QPrinter(QPrinter.HighResolution)
+        if printer_name:
+            printer.setPrinterName(printer_name)
+        if not printer_name:
+            dialog = QPrintDialog(printer, parent)
+            dialog.setWindowTitle("طباعة الباركود")
+            if dialog.exec() != QPrintDialog.Accepted:
+                return False
+        doc.print(printer)
+        return True
+
+    def barcode_labels_pdf(self, items: List[Dict[str, Any]], parent=None, default_name: str = "barcodes.pdf", options: Optional[Dict[str, Any]] = None) -> bool:
+        return self.save_pdf(self.barcode_labels_html(items, options), parent, default_name)
 
     def invoice_html(self, invoice: Dict[str, Any], paper: str = 'default') -> str:
         return invoice_html(invoice, paper)

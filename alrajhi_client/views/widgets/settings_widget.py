@@ -285,6 +285,52 @@ class SettingsWidget(QWidget):
         form.addRow(translate('settings_print_thermal_size_label'), self.print_thermal_size)
         layout.addWidget(templates_group)
 
+        barcode_group, barcode_form = self._form_card(translate('settings_barcode_print_title'), translate('settings_barcode_print_help'))
+        from printer_manager import PrinterManager
+        self.barcode_printer_manager = PrinterManager()
+        self.barcode_printer_manager.load_default_printer()
+        self.barcode_default_printer = QComboBox()
+        for printer in self.barcode_printer_manager.printers:
+            self.barcode_default_printer.addItem(printer.name, printer.id)
+        idx = self.barcode_default_printer.findData(cfg.get('barcode_default_printer', 'pdf:default'))
+        if idx >= 0:
+            self.barcode_default_printer.setCurrentIndex(idx)
+        barcode_form.addRow(translate('settings_barcode_default_printer_label'), self.barcode_default_printer)
+
+        self.barcode_label_size = QComboBox()
+        self.barcode_label_size.addItems(['40x30', '50x30', '60x40', '80mm'])
+        self.barcode_label_size.setCurrentText(cfg.get('barcode_label_size', '50x30'))
+        barcode_form.addRow(translate('settings_barcode_label_size_label'), self.barcode_label_size)
+
+        self.barcode_symbology = QComboBox()
+        self.barcode_symbology.addItems(['AUTO', 'EAN13', 'CODE128'])
+        self.barcode_symbology.setCurrentText(cfg.get('barcode_symbology', 'AUTO'))
+        barcode_form.addRow(translate('settings_barcode_symbology_label'), self.barcode_symbology)
+
+        self.barcode_copies = QSpinBox()
+        self.barcode_copies.setRange(1, 100)
+        self.barcode_copies.setValue(int(cfg.get('barcode_copies', 1) or 1))
+        barcode_form.addRow(translate('settings_barcode_copies_label'), self.barcode_copies)
+
+        self.barcode_columns = QSpinBox()
+        self.barcode_columns.setRange(1, 4)
+        self.barcode_columns.setValue(int(cfg.get('barcode_columns', 2) or 2))
+        barcode_form.addRow(translate('settings_barcode_columns_label'), self.barcode_columns)
+
+        self.barcode_show_company = QCheckBox(translate('settings_barcode_show_company'))
+        self.barcode_show_company.setChecked(bool(cfg.get('barcode_show_company', True)))
+        barcode_form.addRow(self.barcode_show_company)
+        self.barcode_show_name = QCheckBox(translate('settings_barcode_show_name'))
+        self.barcode_show_name.setChecked(bool(cfg.get('barcode_show_name', True)))
+        barcode_form.addRow(self.barcode_show_name)
+        self.barcode_show_price = QCheckBox(translate('settings_barcode_show_price'))
+        self.barcode_show_price.setChecked(bool(cfg.get('barcode_show_price', True)))
+        barcode_form.addRow(self.barcode_show_price)
+        self.barcode_show_text = QCheckBox(translate('settings_barcode_show_text'))
+        self.barcode_show_text.setChecked(bool(cfg.get('barcode_show_text', True)))
+        barcode_form.addRow(self.barcode_show_text)
+        layout.addWidget(barcode_group)
+
         identity_group, identity_form = self._form_card(translate('settings_print_identity_title'), translate('settings_print_identity_help'))
         self.print_show_logo = QCheckBox(translate('settings_print_show_logo'))
         self.print_show_logo.setChecked(bool(cfg.get('show_logo', True)))
@@ -545,6 +591,15 @@ class SettingsWidget(QWidget):
             accent_color=self.print_accent_color.text().strip(),
             zebra_rows=self.print_zebra_rows.isChecked(),
             compact_tables=self.print_compact_tables.isChecked(),
+            barcode_default_printer=self.barcode_default_printer.currentData() or 'pdf:default',
+            barcode_label_size=self.barcode_label_size.currentText(),
+            barcode_symbology=self.barcode_symbology.currentText(),
+            barcode_copies=self.barcode_copies.value(),
+            barcode_columns=self.barcode_columns.value(),
+            barcode_show_company=self.barcode_show_company.isChecked(),
+            barcode_show_name=self.barcode_show_name.isChecked(),
+            barcode_show_price=self.barcode_show_price.isChecked(),
+            barcode_show_text=self.barcode_show_text.isChecked(),
         )
         show_toast(translate('settings_print_saved'), 'success', self)
 
