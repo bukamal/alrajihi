@@ -16,19 +16,36 @@ class ItemsWidget(BaseWidget):
     entity_name = translate("item")
     search_placeholder = translate("items_search_placeholder")
     headers = ['name', 'quantity', 'unit', 'sold_quantity', 'available_quantity', 'available_total', 'unit_cost']
-    display_headers = [translate('item_name_header'), translate('quantity'), translate('default_unit_header'), translate('sold_quantity'), translate('available_quantity'), translate('available_total'), translate('unit_cost')]
+
+    def _display_headers(self):
+        return [
+            translate('item_name_header'),
+            translate('quantity'),
+            translate('default_unit_header'),
+            translate('sold_quantity'),
+            translate('available_quantity'),
+            translate('available_total'),
+            translate('unit_cost'),
+        ]
     has_delete = True
     has_add = True
     has_export = True
     has_print = True
     has_pagination = True
     page_size = 50
-    extra_buttons = [
-        (translate("print_barcode"), "print_barcode", "print_barcode_btn"),
-        (translate("batch_print"), "batch_print", "batch_print_btn"),
-    ]
+    extra_buttons = []
+
+    def _extra_buttons(self):
+        return [
+            (translate("print_barcode"), "print_barcode", "print_barcode_btn"),
+            (translate("batch_print"), "batch_print", "batch_print_btn"),
+        ]
 
     def __init__(self, parent=None):
+        self.entity_name = translate('item')
+        self.search_placeholder = translate('items_search_placeholder')
+        self.display_headers = self._display_headers()
+        self.extra_buttons = self._extra_buttons()
         self.category_filter = QComboBox()
         self.type_filter = QComboBox()
         super().__init__(parent)
@@ -179,6 +196,7 @@ class ItemsWidget(BaseWidget):
                 continue
             filtered.append(it)
         data = self.prepare_table_data(filtered)
+        self.display_headers = self._display_headers()
         self.model = GenericTableModel(data, self.display_headers, key_fields=['id'], data_keys=self.get_data_keys())
         self.table.setModel(self.model)
         # لا نخفي العمود الأول هنا؛ id ليس ضمن أعمدة العرض أصلاً.

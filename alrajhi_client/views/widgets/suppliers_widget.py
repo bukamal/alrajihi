@@ -121,14 +121,18 @@ class SuppliersWidget(QWidget):
         if not supp:
             return
         dialog = CenteredDialog(self)
+        dialog.setLayoutDirection(qt_layout_direction())
         dialog.setWindowTitle(tr("edit_supplier"))
         dialog.resize(400, 300)
         layout = QFormLayout(dialog.content_widget)
         name_edit = QLineEdit()
+        name_edit.setPlaceholderText(tr('name'))
         name_edit.setText(supp.get('name', ''))
         phone_edit = QLineEdit()
+        phone_edit.setPlaceholderText(tr('phone_optional'))
         phone_edit.setText(supp.get('phone', ''))
         address_edit = QLineEdit()
+        address_edit.setPlaceholderText(tr('address_optional'))
         address_edit.setText(supp.get('address', ''))
         layout.addRow(tr("name_label"), name_edit)
         layout.addRow(tr("phone_label"), phone_edit)

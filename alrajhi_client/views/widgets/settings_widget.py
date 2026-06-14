@@ -512,10 +512,13 @@ class SettingsWidget(QWidget):
         if hasattr(main_window, 'top_bar') and hasattr(main_window.top_bar, 'apply_styles'):
             try:
                 main_window.top_bar.search_box.setPlaceholderText(translate('global_search_placeholder'))
-                main_window.top_bar.alert_btn.setText(translate('alerts'))
+                main_window.top_bar.alert_btn.setText('')
                 main_window.top_bar.alert_btn.setToolTip(translate('alerts'))
-                main_window.top_bar.theme_btn.setText(translate('theme'))
+                main_window.top_bar.theme_btn.setText('')
                 main_window.top_bar.theme_btn.setToolTip(translate('toggle_theme'))
+                if hasattr(main_window.top_bar, 'screenshot_btn'):
+                    main_window.top_bar.screenshot_btn.setText('')
+                    main_window.top_bar.screenshot_btn.setToolTip(translate('export_screenshot'))
             except Exception:
                 pass
             main_window.top_bar.apply_styles()

@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt
 from views.frameless_dialog import FramelessDialog
 from core.services.user_service import user_service
 from auth.session import UserSession
-from i18n.translator import translate
+from i18n import translate, qt_layout_direction
 from theme_manager import ThemeManager
 from views.widgets.modern_ui import apply_modern_dialog
 
@@ -12,7 +12,7 @@ from views.widgets.modern_ui import apply_modern_dialog
 class ChangePasswordDialog(FramelessDialog):
     def __init__(self, parent=None, user_id=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self.user_id = user_id or (UserSession.get_current()['id'] if UserSession.get_current() else None)
         self.setWindowTitle(translate('change_password'))
         self.resize(470, 430)
@@ -20,7 +20,7 @@ class ChangePasswordDialog(FramelessDialog):
         layout.setSpacing(14)
         layout.setContentsMargins(24, 22, 24, 24)
 
-        title = QLabel("تغيير كلمة المرور")
+        title = QLabel(translate('change_password'))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {ThemeManager.get('primary')};")
         layout.addWidget(title)
@@ -40,16 +40,16 @@ class ChangePasswordDialog(FramelessDialog):
         form.addRow(translate('confirm_password') + ":", self.confirm_edit)
         layout.addLayout(form)
 
-        self.show_passwords = QCheckBox("إظهار كلمات المرور")
+        self.show_passwords = QCheckBox(translate('show_passwords'))
         self.show_passwords.toggled.connect(self._toggle_passwords)
         layout.addWidget(self.show_passwords)
 
-        self.strength_label = QLabel("قوة كلمة المرور: —")
+        self.strength_label = QLabel(translate('password_strength_empty'))
         self.strength_label.setAlignment(Qt.AlignCenter)
         self.strength_label.setStyleSheet(f"color: {ThemeManager.get('text_muted')};")
         layout.addWidget(self.strength_label)
 
-        hint = QLabel("استخدم 8 أحرف على الأقل مع أرقام وحروف. تجنب admin123 وكلمات المرور الشائعة.")
+        hint = QLabel(translate('password_hint'))
         hint.setWordWrap(True)
         hint.setAlignment(Qt.AlignCenter)
         hint.setStyleSheet(f"color: {ThemeManager.get('text_muted')}; font-size: 12px;")
@@ -92,14 +92,14 @@ class ChangePasswordDialog(FramelessDialog):
     def _update_strength(self, text):
         score = self._score_password(text)
         labels = {
-            0: ("ضعيفة جدًا", 'danger'),
-            1: ("ضعيفة", 'danger'),
-            2: ("متوسطة", 'warning'),
-            3: ("جيدة", 'info'),
-            4: ("قوية", 'success'),
+            0: (translate('password_strength_very_weak'), 'danger'),
+            1: (translate('password_strength_weak'), 'danger'),
+            2: (translate('password_strength_medium'), 'warning'),
+            3: (translate('password_strength_good'), 'info'),
+            4: (translate('password_strength_strong'), 'success'),
         }
         label, color = labels.get(score, labels[0])
-        self.strength_label.setText(f"قوة كلمة المرور: {label}")
+        self.strength_label.setText(translate('password_strength_value', value=label))
         self.strength_label.setStyleSheet(f"color: {ThemeManager.get(color)};")
 
     def save(self):
@@ -107,16 +107,16 @@ class ChangePasswordDialog(FramelessDialog):
         new = self.new_edit.text()
         confirm = self.confirm_edit.text()
         if not old or not new or not confirm:
-            QMessageBox.warning(self, translate('error'), "جميع الحقول مطلوبة")
+            QMessageBox.warning(self, translate('error'), translate('all_fields_required'))
             return
         if new != confirm:
-            QMessageBox.warning(self, translate('error'), "كلمتا المرور غير متطابقتين")
+            QMessageBox.warning(self, translate('error'), translate('passwords_do_not_match'))
             return
         if self._score_password(new) < 2:
-            QMessageBox.warning(self, translate('error'), "كلمة المرور ضعيفة جدًا")
+            QMessageBox.warning(self, translate('error'), translate('password_too_weak'))
             return
         if user_service.change_password(self.user_id, old, new):
-            QMessageBox.information(self, translate('success'), "تم تغيير كلمة المرور")
+            QMessageBox.information(self, translate('success'), translate('password_changed'))
             self.accept()
         else:
-            QMessageBox.warning(self, translate('error'), "كلمة المرور الحالية غير صحيحة")
+            QMessageBox.warning(self, translate('error'), translate('current_password_incorrect'))

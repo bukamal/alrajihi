@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu
-from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer
+from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog
+from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer, QDateTime
 from PyQt5.QtGui import QIcon, QKeySequence
 import qtawesome as qta
 from auth.session import UserSession
@@ -363,6 +363,8 @@ class MainWindow(QMainWindow):
         self.top_bar.search_box.returnPressed.connect(self.global_search)
         self.top_bar.theme_btn.clicked.connect(self.toggle_theme)
         self.top_bar.alert_btn.clicked.connect(self.show_alerts_menu)
+        if hasattr(self.top_bar, 'screenshot_btn'):
+            self.top_bar.screenshot_btn.clicked.connect(self.export_screenshot)
         self.update_badges()
 
 
@@ -376,6 +378,34 @@ class MainWindow(QMainWindow):
         current = settings_service.get_theme() or 'light'
         next_theme = 'dark' if current != 'dark' else 'light'
         self.change_theme(next_theme)
+
+
+    def export_screenshot(self):
+        """Capture the current application window and export it as an image."""
+        try:
+            default_name = f"alrajhi_screenshot_{QDateTime.currentDateTime().toString('yyyyMMdd_HHmmss')}.png"
+            path, selected_filter = QFileDialog.getSaveFileName(
+                self,
+                translate('export_screenshot'),
+                default_name,
+                f"{translate('png_image')} (*.png);;{translate('jpeg_image')} (*.jpg *.jpeg)"
+            )
+            if not path:
+                return
+            suffix = path.lower().rsplit('.', 1)[-1] if '.' in path else ''
+            if suffix not in {'png', 'jpg', 'jpeg'}:
+                path += '.png'
+            screen = QApplication.primaryScreen()
+            if screen is None:
+                QMessageBox.warning(self, translate('warning'), translate('screenshot_failed'))
+                return
+            pixmap = screen.grabWindow(self.winId())
+            if pixmap.isNull() or not pixmap.save(path):
+                QMessageBox.warning(self, translate('warning'), translate('screenshot_failed'))
+                return
+            QMessageBox.information(self, translate('success'), translate('screenshot_saved').format(path=path))
+        except Exception as exc:
+            QMessageBox.warning(self, translate('warning'), f"{translate('screenshot_failed')}: {exc}")
 
     def show_alerts_menu(self):
         menu = QMenu(self)
@@ -393,6 +423,10 @@ class MainWindow(QMainWindow):
                 menu.addAction(qta.icon('fa5s.exclamation-triangle'), title)
             menu.addSeparator()
             menu.addAction(qta.icon('fa5s.tachometer-alt'), translate('open_dashboard')).triggered.connect(lambda: self.switch_page('dashboard'))
+        try:
+            self.update_badges()
+        except Exception:
+            pass
         menu.exec_(self.top_bar.alert_btn.mapToGlobal(self.top_bar.alert_btn.rect().bottomLeft()))
 
     def _set_page_context(self, pid):
@@ -424,13 +458,25 @@ class MainWindow(QMainWindow):
             from core.services.invoice_service import invoice_service
             pending = invoice_service.pending_count()
             self.top_bar.set_badge("فواتير البيع", pending)
-        except:
+        except Exception:
             pass
         try:
             pending_offline = offline_queue_service.count_pending()
             self.top_bar.set_badge(translate('offline_queue'), pending_offline)
         except Exception:
             pass
+        try:
+            from core.services.alert_service import alert_service
+            alerts = alert_service.dashboard_alerts(limit=99) if hasattr(alert_service, 'dashboard_alerts') else []
+            count = len(alerts or [])
+            if hasattr(self.top_bar, 'set_alert_badge'):
+                self.top_bar.set_alert_badge(count)
+            if hasattr(self.top_bar, 'alert_btn'):
+                base = translate('alerts')
+                self.top_bar.alert_btn.setToolTip(f"{base} ({count})" if count else base)
+        except Exception:
+            if hasattr(self.top_bar, 'set_alert_badge'):
+                self.top_bar.set_alert_badge(0)
 
     def global_search(self):
         text = self.top_bar.search_box.text().strip()
@@ -552,6 +598,10 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
         if show_messages:
-            QMessageBox.information(self, translate('offline_queue'), f'تم الإرسال: {sent}\nفشل: {failed}')
+            try:
+                from utils import show_toast
+                show_toast(f"{translate('sent') if False else 'تم الإرسال'}: {sent}\n{'فشل'}: {failed}", 'success' if failed == 0 else 'warning', self)
+            except Exception:
+                QMessageBox.information(self, translate('offline_queue'), f'تم الإرسال: {sent}\nفشل: {failed}')
 
 

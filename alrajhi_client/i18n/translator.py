@@ -2338,6 +2338,44 @@ def load_translations():
     de.update({'pos_hint_shortcuts': 'Barcode direkt scannen. F2 Bar, F3 Karte, F10 Abschluss, Strg+L zurück zum Scanfeld.', 'pos_cash_full_btn': 'F2 komplett bar', 'pos_card_btn': 'F3 Karte', 'pos_suspend_btn': 'F4 Parken', 'pos_resume_btn': 'F5 Wiederaufnehmen', 'pos_delete_line_btn': 'Delete Zeile löschen', 'pos_clear_cart_btn': 'Esc Warenkorb leeren', 'pos_checkout_btn': 'F10 Verkauf abschließen', 'resume_suspended_sale': 'Geparkten Verkauf wiederaufnehmen'})
     en.update({'pos_hint_shortcuts': 'Scan barcode directly. F2 cash, F3 card, F10 checkout, Ctrl+L back to scan field.', 'pos_cash_full_btn': 'F2 full cash', 'pos_card_btn': 'F3 card', 'pos_suspend_btn': 'F4 suspend', 'pos_resume_btn': 'F5 resume', 'pos_delete_line_btn': 'Delete remove line', 'pos_clear_cart_btn': 'Esc clear cart', 'pos_checkout_btn': 'F10 checkout', 'resume_suspended_sale': 'Resume suspended sale'})
 
+    # Phase 95: explicit return settlement workflow labels inside base loader.
+    ar.update({
+        'return_settlement': 'تسوية المرتجع:',
+        'return_paid_now': 'المبلغ المسدد الآن:',
+        'return_paid_now_tooltip': 'قيمة المرتجع تُحسب من الكميات والأسعار الأصلية. هنا أدخل فقط المبلغ الذي سيتم رده أو استلامه الآن.',
+        'return_settlement_hint': 'قيمة المرتجع تُحسب تلقائيًا من البنود. اختر تخفيض الرصيد فقط إذا لم يتم رد نقد/بنك الآن، أو اختر نقد/بنك عند رد مبلغ فعلي للعميل.',
+        'return_settlement_hint_purchase': 'قيمة المرتجع تُحسب تلقائيًا من البنود. اختر تخفيض الرصيد فقط إذا لم تستلم مبلغًا الآن، أو اختر نقد/بنك عند استلام مبلغ فعلي من المورد.',
+        'settlement_credit_only': 'تخفيض الرصيد فقط',
+        'settlement_cash_refund': 'رد نقدي للعميل',
+        'settlement_bank_refund': 'رد بنكي للعميل',
+        'settlement_cash_refund_purchase': 'استلام نقدي من المورد',
+        'settlement_bank_refund_purchase': 'استلام بنكي من المورد',
+    })
+    de.update({
+        'return_settlement': 'Rückgabeausgleich:',
+        'return_paid_now': 'Jetzt ausgezahlter/erhaltener Betrag:',
+        'return_paid_now_tooltip': 'Der Rückgabewert wird aus Mengen und ursprünglichen Preisen berechnet. Hier nur den Betrag erfassen, der jetzt bar oder per Bank ausgeglichen wird.',
+        'return_settlement_hint': 'Der Rückgabewert wird automatisch aus den Positionen berechnet. Wählen Sie nur Saldo-Minderung, wenn jetzt keine Bar-/Bankerstattung an den Kunden erfolgt.',
+        'return_settlement_hint_purchase': 'Der Rückgabewert wird automatisch aus den Positionen berechnet. Wählen Sie nur Saldo-Minderung, wenn Sie jetzt keinen Betrag vom Lieferanten erhalten.',
+        'settlement_credit_only': 'Nur Saldo mindern',
+        'settlement_cash_refund': 'Barerstattung an Kunden',
+        'settlement_bank_refund': 'Bankerstattung an Kunden',
+        'settlement_cash_refund_purchase': 'Bar erhalten vom Lieferanten',
+        'settlement_bank_refund_purchase': 'Bankzahlung erhalten vom Lieferanten',
+    })
+    en.update({
+        'return_settlement': 'Return settlement:',
+        'return_paid_now': 'Amount paid/received now:',
+        'return_paid_now_tooltip': 'The return value is calculated from quantities and original prices. Enter only the amount actually paid or received now.',
+        'return_settlement_hint': 'The return value is calculated automatically from the lines. Choose credit reduction only if no cash/bank refund is paid to the customer now.',
+        'return_settlement_hint_purchase': 'The return value is calculated automatically from the lines. Choose credit reduction only if no cash/bank amount is received from the supplier now.',
+        'settlement_credit_only': 'Credit reduction only',
+        'settlement_cash_refund': 'Cash refund to customer',
+        'settlement_bank_refund': 'Bank refund to customer',
+        'settlement_cash_refund_purchase': 'Cash received from supplier',
+        'settlement_bank_refund_purchase': 'Bank received from supplier',
+    })
+
     _translations = {'ar': ar, 'de': de, 'en': en}
 
 
@@ -2400,4 +2438,163 @@ _translations['en'].update({
     'audit_log_title_icon':'🛡️ Audit Log','audit_log_title':'Audit Log','audit_log_subtitle':'Track sensitive operations and data changes','all':'All','all_entities':'All entities','action_create':'Create','action_soft_delete':'Delete/Archive','action_update_units':'Update units','action_post':'Post','action_reverse':'Reverse','action_login':'Login','action_logout':'Logout','audit_search_placeholder':'Search details or record number','apply':'Apply','user_label':'User:','operation_label':'Operation:','entity_label':'Entity:','search_label':'Search:','from_date_label':'From date:','to_date_label':'To date:','export_excel':'📊 Export to Excel','delete_old_logs':'🗑 Delete old logs (older than 90 days)','record_id':'Record ID','details':'Details','source':'Source','ip_address':'IP address','date_time':'Date and time','audit_log_details':'Audit log details','delete_old_logs_confirm':'Are you sure you want to delete all logs older than 90 days? This cannot be undone.','old_logs_deleted':'Old logs deleted',
     'branches_title_icon':'🏬 Branches','branches_title':'Branches','branches_subtitle':'Manage company branches and warehouse linking','branches_manage_title':'🏬 Branch Management','new_branch':'New branch','edit_branch':'Edit branch','new_branch_btn':'➕ New branch','edit_btn':'✏️ Edit','archive_btn':'🗑️ Archive','branches_search_placeholder':'Search by branch name or code...','branch_name_label':'Branch name:','code_label':'Code:','address_label':'Address:','phone_label':'Phone:','notes_label':'Notes:','warehouse_count':'Warehouse count','is_default':'Default','branches_count':'Branches: {count}','branch_created':'Branch created','branch_updated':'Branch updated','branch_archived':'Branch archived','select_branch_first':'Select a branch first','branch_not_found':'Branch not found','archive_branch_confirm':'Archive this branch?',
     'categories_title_icon':'🏷️ Categories','categories_subtitle':'Organize items into clear groups','categories_search_placeholder':'Search categories...','new_category_btn':'➕ New category','categories_hint':'Note: A category can contain subcategories. Archiving is blocked if linked to active items or subcategories.','path':'Path','parent':'Parent','items_count':'Item count','child_categories':'Children','category_name':'Category name','no_parent':'No parent','optional_short_description':'Optional short description','name_label':'Name:','parent_category_label':'Parent category:','description_label':'Description:','category_name_required':'Category name is required','add_category':'Add category','edit_category':'Edit category','category_added':'Category added','select_category_first':'Select a category first','category_not_found':'Category not found','category_updated':'Category updated','confirm_archive':'Confirm archive','archive_category_confirm':'Archive this category?','category_archived':'Category archived','category_restored':'Category restored','restore':'Restore',
+})
+
+# Phase 92: toolbar and remaining sales/purchases/returns/items controls.
+
+_translations['ar'].update({
+    'add_entity': '➕ إضافة {entity}',
+    'columns': '🧩 الأعمدة',
+    'excel': '📊 Excel',
+    'print': '🖨️ طباعة',
+    'refresh': '🔄 تحديث',
+    'records_count': '{count} سجل',
+    'column_number': 'عمود {number}',
+    'reset_columns': '↩️ إعادة ضبط الأعمدة',
+})
+_translations['de'].update({
+    'add_entity': '➕ {entity} hinzufügen',
+    'columns': '🧩 Spalten',
+    'excel': '📊 Excel',
+    'print': '🖨️ Drucken',
+    'refresh': '🔄 Aktualisieren',
+    'records_count': '{count} Datensätze',
+    'column_number': 'Spalte {number}',
+    'reset_columns': '↩️ Spalten zurücksetzen',
+})
+_translations['en'].update({
+    'add_entity': '➕ Add {entity}',
+    'columns': '🧩 Columns',
+    'excel': '📊 Excel',
+    'print': '🖨️ Print',
+    'refresh': '🔄 Refresh',
+    'records_count': '{count} records',
+    'column_number': 'Column {number}',
+    'reset_columns': '↩️ Reset columns',
+})
+
+
+# Phase 93: customer/supplier/password dialog localization.
+_translations['ar'].update({
+    'add_entity_title': 'إضافة {entity} جديد',
+    'add_entity_dialog_title': 'إضافة عميل/مورد',
+    'phone_optional': 'الهاتف (اختياري)',
+    'address_optional': 'العنوان (اختياري)',
+    'add_done': 'تمت الإضافة',
+    'show_passwords': 'إظهار كلمات المرور',
+    'password_strength_empty': 'قوة كلمة المرور: —',
+    'password_strength_value': 'قوة كلمة المرور: {value}',
+    'password_hint': 'استخدم 8 أحرف على الأقل مع أرقام وحروف. تجنب admin123 وكلمات المرور الشائعة.',
+    'password_strength_very_weak': 'ضعيفة جدًا',
+    'password_strength_weak': 'ضعيفة',
+    'password_strength_medium': 'متوسطة',
+    'password_strength_good': 'جيدة',
+    'password_strength_strong': 'قوية',
+    'all_fields_required': 'جميع الحقول مطلوبة',
+    'password_too_weak': 'كلمة المرور ضعيفة جدًا',
+    'current_password_incorrect': 'كلمة المرور الحالية غير صحيحة',
+})
+_translations['de'].update({
+    'add_entity_title': 'Neuen {entity} hinzufügen',
+    'add_entity_dialog_title': 'Kunde/Lieferant hinzufügen',
+    'phone_optional': 'Telefon (optional)',
+    'address_optional': 'Adresse (optional)',
+    'add_done': 'Hinzugefügt',
+    'show_passwords': 'Passwörter anzeigen',
+    'password_strength_empty': 'Passwortstärke: —',
+    'password_strength_value': 'Passwortstärke: {value}',
+    'password_hint': 'Verwenden Sie mindestens 8 Zeichen mit Zahlen und Buchstaben. Vermeiden Sie admin123 und häufige Passwörter.',
+    'password_strength_very_weak': 'Sehr schwach',
+    'password_strength_weak': 'Schwach',
+    'password_strength_medium': 'Mittel',
+    'password_strength_good': 'Gut',
+    'password_strength_strong': 'Stark',
+    'all_fields_required': 'Alle Felder sind erforderlich',
+    'password_too_weak': 'Das Passwort ist sehr schwach',
+    'current_password_incorrect': 'Das aktuelle Passwort ist falsch',
+})
+_translations['en'].update({
+    'add_entity_title': 'Add new {entity}',
+    'add_entity_dialog_title': 'Add Customer/Supplier',
+    'phone_optional': 'Phone (optional)',
+    'address_optional': 'Address (optional)',
+    'add_done': 'Added successfully',
+    'show_passwords': 'Show passwords',
+    'password_strength_empty': 'Password strength: —',
+    'password_strength_value': 'Password strength: {value}',
+    'password_hint': 'Use at least 8 characters with numbers and letters. Avoid admin123 and common passwords.',
+    'password_strength_very_weak': 'Very weak',
+    'password_strength_weak': 'Weak',
+    'password_strength_medium': 'Medium',
+    'password_strength_good': 'Good',
+    'password_strength_strong': 'Strong',
+    'all_fields_required': 'All fields are required',
+    'password_too_weak': 'The password is too weak',
+    'current_password_incorrect': 'The current password is incorrect',
+})
+
+_translations['ar'].update({'add_customer_title': 'إضافة عميل جديد', 'add_supplier_title': 'إضافة مورد جديد'})
+_translations['de'].update({'add_customer_title': 'Neuen Kunden hinzufügen', 'add_supplier_title': 'Neuen Lieferanten hinzufügen'})
+_translations['en'].update({'add_customer_title': 'Add new customer', 'add_supplier_title': 'Add new supplier'})
+
+
+# Phase 94: shell screenshot export button and icon-only alert/theme buttons.
+_translations['ar'].update({
+    'export_screenshot': 'تصدير لقطة شاشة',
+    'png_image': 'صورة PNG',
+    'jpeg_image': 'صورة JPEG',
+    'screenshot_saved': 'تم حفظ لقطة الشاشة في: {path}',
+    'screenshot_failed': 'تعذر حفظ لقطة الشاشة',
+})
+_translations['de'].update({
+    'export_screenshot': 'Bildschirmfoto exportieren',
+    'png_image': 'PNG-Bild',
+    'jpeg_image': 'JPEG-Bild',
+    'screenshot_saved': 'Bildschirmfoto gespeichert unter: {path}',
+    'screenshot_failed': 'Bildschirmfoto konnte nicht gespeichert werden',
+})
+_translations['en'].update({
+    'export_screenshot': 'Export screenshot',
+    'png_image': 'PNG image',
+    'jpeg_image': 'JPEG image',
+    'screenshot_saved': 'Screenshot saved to: {path}',
+    'screenshot_failed': 'Could not save screenshot',
+})
+
+# Phase 95: explicit return settlement workflow labels.
+_translations['ar'].update({
+    'return_settlement': 'تسوية المرتجع:',
+    'return_paid_now': 'المبلغ المسدد الآن:',
+    'return_paid_now_tooltip': 'قيمة المرتجع تُحسب من الكميات والأسعار الأصلية. هنا أدخل فقط المبلغ الذي سيتم رده أو استلامه الآن.',
+    'return_settlement_hint': 'قيمة المرتجع تُحسب تلقائيًا من البنود. اختر تخفيض الرصيد فقط إذا لم يتم رد نقد/بنك الآن، أو اختر نقد/بنك عند رد مبلغ فعلي للعميل.',
+    'return_settlement_hint_purchase': 'قيمة المرتجع تُحسب تلقائيًا من البنود. اختر تخفيض الرصيد فقط إذا لم تستلم مبلغًا الآن، أو اختر نقد/بنك عند استلام مبلغ فعلي من المورد.',
+    'settlement_credit_only': 'تخفيض الرصيد فقط',
+    'settlement_cash_refund': 'رد نقدي للعميل',
+    'settlement_bank_refund': 'رد بنكي للعميل',
+    'settlement_cash_refund_purchase': 'استلام نقدي من المورد',
+    'settlement_bank_refund_purchase': 'استلام بنكي من المورد',
+})
+_translations['de'].update({
+    'return_settlement': 'Rückgabeausgleich:',
+    'return_paid_now': 'Jetzt ausgezahlter/erhaltener Betrag:',
+    'return_paid_now_tooltip': 'Der Rückgabewert wird aus Mengen und ursprünglichen Preisen berechnet. Hier nur den Betrag erfassen, der jetzt bar oder per Bank ausgeglichen wird.',
+    'return_settlement_hint': 'Der Rückgabewert wird automatisch aus den Positionen berechnet. Wählen Sie nur Saldo-Minderung, wenn jetzt keine Bar-/Bankerstattung an den Kunden erfolgt.',
+    'return_settlement_hint_purchase': 'Der Rückgabewert wird automatisch aus den Positionen berechnet. Wählen Sie nur Saldo-Minderung, wenn Sie jetzt keinen Betrag vom Lieferanten erhalten.',
+    'settlement_credit_only': 'Nur Saldo mindern',
+    'settlement_cash_refund': 'Barerstattung an Kunden',
+    'settlement_bank_refund': 'Bankerstattung an Kunden',
+    'settlement_cash_refund_purchase': 'Bar erhalten vom Lieferanten',
+    'settlement_bank_refund_purchase': 'Bankzahlung erhalten vom Lieferanten',
+})
+_translations['en'].update({
+    'return_settlement': 'Return settlement:',
+    'return_paid_now': 'Amount paid/received now:',
+    'return_paid_now_tooltip': 'The return value is calculated from quantities and original prices. Enter only the amount actually paid or received now.',
+    'return_settlement_hint': 'The return value is calculated automatically from the lines. Choose credit reduction only if no cash/bank refund is paid to the customer now.',
+    'return_settlement_hint_purchase': 'The return value is calculated automatically from the lines. Choose credit reduction only if no cash/bank amount is received from the supplier now.',
+    'settlement_credit_only': 'Credit reduction only',
+    'settlement_cash_refund': 'Cash refund to customer',
+    'settlement_bank_refund': 'Bank refund to customer',
+    'settlement_cash_refund_purchase': 'Cash received from supplier',
+    'settlement_bank_refund_purchase': 'Bank received from supplier',
 })

@@ -53,15 +53,22 @@ class SalesReturnDialog(CenteredDialog):
         self.refund_spin = QDoubleSpinBox()
         self.refund_spin.setMaximum(999999999)
         self.refund_spin.setDecimals(2)
+        self.refund_spin.setToolTip(translate('return_paid_now_tooltip'))
         self.refund_spin.valueChanged.connect(lambda *_: self.recalculate())
-        pay.addWidget(QLabel(translate('refund_amount')))
+        pay.addWidget(QLabel(translate('return_paid_now')))
         pay.addWidget(self.refund_spin)
         self.payment_method_combo = QComboBox()
-        self.payment_method_combo.addItem(translate('cash'), 'cash')
-        self.payment_method_combo.addItem(translate('bank'), 'bank')
-        pay.addWidget(QLabel(translate('refund_method')))
+        self.payment_method_combo.addItem(translate('settlement_credit_only'), 'credit_only')
+        self.payment_method_combo.addItem(translate('settlement_cash_refund'), 'cash')
+        self.payment_method_combo.addItem(translate('settlement_bank_refund'), 'bank')
+        self.payment_method_combo.currentIndexChanged.connect(self._update_settlement_controls)
+        pay.addWidget(QLabel(translate('return_settlement')))
         pay.addWidget(self.payment_method_combo)
         layout.addLayout(pay)
+
+        self.settlement_hint_label = QLabel(translate('return_settlement_hint'))
+        self.settlement_hint_label.setWordWrap(True)
+        layout.addWidget(self.settlement_hint_label)
 
         cash = QHBoxLayout()
         self.cashbox_combo = QComboBox()
@@ -90,8 +97,23 @@ class SalesReturnDialog(CenteredDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        self._update_settlement_controls()
         self.load_invoices()
         self.install_form_shortcuts(save_handler=self.accept)
+
+    def _update_settlement_controls(self):
+        method = self.payment_method_combo.currentData()
+        is_cash = method == 'cash'
+        is_bank = method == 'bank'
+        is_credit_only = method == 'credit_only'
+        self.refund_spin.setEnabled(not is_credit_only)
+        self.cashbox_combo.setEnabled(is_cash)
+        self.bank_combo.setEnabled(is_bank)
+        if is_credit_only and self.refund_spin.value() != 0:
+            self.refund_spin.blockSignals(True)
+            self.refund_spin.setValue(0)
+            self.refund_spin.blockSignals(False)
+        self.recalculate()
 
     def load_invoices(self):
         self.invoice_combo.clear()
@@ -148,6 +170,11 @@ class SalesReturnDialog(CenteredDialog):
                 total += max(Decimal('0'), qty) * Decimal(str(line.get('unit_price') or 0))
             except Exception:
                 pass
+        self.refund_spin.setMaximum(float(total))
+        if self.payment_method_combo.currentData() == 'credit_only':
+            self.refund_spin.blockSignals(True)
+            self.refund_spin.setValue(0)
+            self.refund_spin.blockSignals(False)
         refund = Decimal(str(self.refund_spin.value()))
         if refund > total:
             self.refund_spin.blockSignals(True)
@@ -170,8 +197,8 @@ class SalesReturnDialog(CenteredDialog):
                 'original_invoice_id': self.invoice_combo.currentData(),
                 'date': self.date_edit.date().toString('yyyy-MM-dd'),
                 'warehouse_id': self.warehouse_combo.currentData(),
-                'refund_amount': str(self.refund_spin.value()),
-                'payment_method': self.payment_method_combo.currentData(),
+                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(self.refund_spin.value()),
+                'payment_method': 'cash' if self.payment_method_combo.currentData() == 'credit_only' else self.payment_method_combo.currentData(),
                 'cashbox_id': self.cashbox_combo.currentData(),
                 'bank_account_id': self.bank_combo.currentData(),
                 'notes': self.notes_edit.toPlainText().strip(),
@@ -357,15 +384,22 @@ class PurchaseReturnDialog(CenteredDialog):
         self.refund_spin = QDoubleSpinBox()
         self.refund_spin.setMaximum(999999999)
         self.refund_spin.setDecimals(2)
+        self.refund_spin.setToolTip(translate('return_paid_now_tooltip'))
         self.refund_spin.valueChanged.connect(lambda *_: self.recalculate())
-        pay.addWidget(QLabel(translate('returned_amount')))
+        pay.addWidget(QLabel(translate('return_paid_now')))
         pay.addWidget(self.refund_spin)
         self.payment_method_combo = QComboBox()
-        self.payment_method_combo.addItem(translate('cash'), 'cash')
-        self.payment_method_combo.addItem(translate('bank'), 'bank')
-        pay.addWidget(QLabel(translate('return_method')))
+        self.payment_method_combo.addItem(translate('settlement_credit_only'), 'credit_only')
+        self.payment_method_combo.addItem(translate('settlement_cash_refund_purchase'), 'cash')
+        self.payment_method_combo.addItem(translate('settlement_bank_refund_purchase'), 'bank')
+        self.payment_method_combo.currentIndexChanged.connect(self._update_settlement_controls)
+        pay.addWidget(QLabel(translate('return_settlement')))
         pay.addWidget(self.payment_method_combo)
         layout.addLayout(pay)
+
+        self.settlement_hint_label = QLabel(translate('return_settlement_hint_purchase'))
+        self.settlement_hint_label.setWordWrap(True)
+        layout.addWidget(self.settlement_hint_label)
 
         cash = QHBoxLayout()
         self.cashbox_combo = QComboBox()
@@ -394,8 +428,23 @@ class PurchaseReturnDialog(CenteredDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        self._update_settlement_controls()
         self.load_invoices()
         self.install_form_shortcuts(save_handler=self.accept)
+
+    def _update_settlement_controls(self):
+        method = self.payment_method_combo.currentData()
+        is_cash = method == 'cash'
+        is_bank = method == 'bank'
+        is_credit_only = method == 'credit_only'
+        self.refund_spin.setEnabled(not is_credit_only)
+        self.cashbox_combo.setEnabled(is_cash)
+        self.bank_combo.setEnabled(is_bank)
+        if is_credit_only and self.refund_spin.value() != 0:
+            self.refund_spin.blockSignals(True)
+            self.refund_spin.setValue(0)
+            self.refund_spin.blockSignals(False)
+        self.recalculate()
 
     def load_invoices(self):
         self.invoice_combo.clear()
@@ -452,6 +501,11 @@ class PurchaseReturnDialog(CenteredDialog):
                 total += max(Decimal('0'), qty) * Decimal(str(line.get('unit_price') or 0))
             except Exception:
                 pass
+        self.refund_spin.setMaximum(float(total))
+        if self.payment_method_combo.currentData() == 'credit_only':
+            self.refund_spin.blockSignals(True)
+            self.refund_spin.setValue(0)
+            self.refund_spin.blockSignals(False)
         refund = Decimal(str(self.refund_spin.value()))
         if refund > total:
             self.refund_spin.blockSignals(True)
@@ -474,8 +528,8 @@ class PurchaseReturnDialog(CenteredDialog):
                 'original_invoice_id': self.invoice_combo.currentData(),
                 'date': self.date_edit.date().toString('yyyy-MM-dd'),
                 'warehouse_id': self.warehouse_combo.currentData(),
-                'refund_amount': str(self.refund_spin.value()),
-                'payment_method': self.payment_method_combo.currentData(),
+                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(self.refund_spin.value()),
+                'payment_method': 'cash' if self.payment_method_combo.currentData() == 'credit_only' else self.payment_method_combo.currentData(),
                 'cashbox_id': self.cashbox_combo.currentData(),
                 'bank_account_id': self.bank_combo.currentData(),
                 'notes': self.notes_edit.toPlainText().strip(),

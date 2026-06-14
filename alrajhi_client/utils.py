@@ -51,11 +51,6 @@ def show_toast(message, msg_type='info', parent=None, duration=2600):
         target = parent or QApplication.activeWindow()
         toast = ToastNotification(message, msg_type, target, duration=duration)
         toast.show_toast()
-        app = QApplication.instance()
-        if app is not None:
-            refs = getattr(app, '_toast_refs', [])
-            refs.append(toast)
-            app._toast_refs = refs[-8:]
     except Exception:
         print(f"[{msg_type}] {message}")
 
