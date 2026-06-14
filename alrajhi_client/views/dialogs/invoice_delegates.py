@@ -3,6 +3,21 @@ from PyQt5.QtWidgets import QStyledItemDelegate, QComboBox, QDoubleSpinBox, QLin
 from PyQt5.QtCore import Qt, QStringListModel
 from decimal import Decimal
 
+def _decimal_value(value, default='0'):
+    try:
+        if isinstance(value, Decimal):
+            return value
+        if value is None or value == '':
+            return Decimal(str(default))
+        return Decimal(str(value))
+    except Exception:
+        return Decimal(str(default))
+
+def _positive_decimal(value, default='1'):
+    result = _decimal_value(value, default)
+    return result if result > 0 else Decimal(str(default))
+
+
 class ItemComboDelegate(QStyledItemDelegate):
     def __init__(self, items_list, parent=None):
         super().__init__(parent)
@@ -68,17 +83,19 @@ class UnitComboBoxDelegate(QStyledItemDelegate):
         selected_data = editor.currentData()
         if selected_data:
             row = index.row()
-            old_factor = model.lines[row].get('conversion_factor', Decimal('1'))
-            new_factor = selected_data[2]
-            # تحديث الوحدة وعامل التحويل في النموذج
-            model.setData(index, selected_data, Qt.EditRole)
-            # تعديل السعر بناءً على نسبة معاملات التحويل (عمود السعر هو index 4)
+            old_factor = _positive_decimal(model.lines[row].get('conversion_factor', Decimal('1')), '1')
+            new_factor = _positive_decimal(selected_data[2], '1')
+            old_price = _decimal_value(model.lines[row].get('price', 0), '0')
+            # تحديث الوحدة وعامل التحويل في النموذج أولاً.
+            model.setData(index, (selected_data[0], selected_data[1], new_factor), Qt.EditRole)
+            # سعر السطر هو سعر الوحدة المعروضة، لذلك عند التحويل من قطعة إلى كرتون
+            # يجب أن يتغير السعر والإجمالي بنسبة عامل التحويل.
             if old_factor != new_factor and old_factor > 0:
-                old_price = model.lines[row]['price']
                 new_price = old_price * (new_factor / old_factor)
-                # استخدام رقم العمود 4 (السعر) مباشرة لتجنب الحاجة إلى استيراد LinesModel
-                model.setData(model.index(row, 4), new_price, Qt.EditRole)
-            model.update_row_total(row)
+                price_col = getattr(model, 'COL_PRICE', 5)
+                model.setData(model.index(row, price_col), new_price, Qt.EditRole)
+            else:
+                model.update_row_total(row)
 
 class DoubleSpinDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):

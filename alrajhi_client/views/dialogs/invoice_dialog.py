@@ -36,6 +36,22 @@ def _money_decimal(value):
     except Exception:
         return Decimal('0')
 
+def _decimal_value(value, default='0'):
+    """Safely normalize DB/API/UI numeric values to Decimal."""
+    try:
+        if isinstance(value, Decimal):
+            return value
+        if value is None or value == '':
+            return Decimal(str(default))
+        return Decimal(str(value))
+    except Exception:
+        return Decimal(str(default))
+
+
+def _positive_decimal(value, default='1'):
+    result = _decimal_value(value, default)
+    return result if result > 0 else Decimal(str(default))
+
 class LinesModel(QAbstractTableModel):
     COL_ROW = 0
     COL_BARCODE = 1
@@ -117,9 +133,9 @@ class LinesModel(QAbstractTableModel):
                 if isinstance(value, tuple) and len(value) == 3:
                     line['unit_id'] = value[0]
                     line['unit_display'] = value[1]
-                    line['conversion_factor'] = value[2]
+                    line['conversion_factor'] = _positive_decimal(value[2], '1')
                 else:
-                    line['unit_display'] = value
+                    line['unit_display'] = str(value or '')
             elif col == self.COL_PRICE:
                 price = Decimal(str(value))
                 if price < 0:
@@ -195,12 +211,12 @@ class LinesModel(QAbstractTableModel):
                 first = units_data[0]
                 self.lines[row]['unit_id'] = first.get('id')
                 self.lines[row]['unit_display'] = first.get('unit_name', '')
-                self.lines[row]['conversion_factor'] = first.get('conversion_factor', Decimal('1'))
+                self.lines[row]['conversion_factor'] = _positive_decimal(first.get('conversion_factor', Decimal('1')), '1')
             else:
                 self.lines[row]['unit_id'] = None
                 self.lines[row]['unit_display'] = ''
                 self.lines[row]['conversion_factor'] = Decimal('1')
-            self.lines[row]['price'] = default_price
+            self.lines[row]['price'] = _decimal_value(default_price, '0')
             self.update_row_total(row)
             self.dataChanged.emit(self.index(row, 0), self.index(row, self.columnCount()-1))
 
@@ -214,46 +230,62 @@ class LinesModel(QAbstractTableModel):
         self.lines.clear()
         for line in lines or []:
             item_id = val(line, 'item_id')
-            item = product_service.item_by_id(item_id) if item_id else None
-            units = product_service.item_units(item_id)
-            base_unit = val(line, 'unit', 'قطعة') or 'قطعة'
-            units_list = [{'id': None, 'unit_name': base_unit, 'conversion_factor': Decimal('1')}]
+            try:
+                item = product_service.item_by_id(item_id) if item_id else None
+            except Exception:
+                item = None
+            try:
+                units = product_service.item_units(item_id) if item_id else []
+            except Exception:
+                units = []
+            item_name = (
+                val(line, 'item_name') or val(line, 'name') or val(line, 'product_name')
+                or val(line, 'itemName') or val(line, 'productName')
+                or (item or {}).get('name', '') or (f"#{item_id}" if item_id else '')
+            )
+            base_unit = (
+                (item or {}).get('unit') or val(line, 'base_unit') or val(line, 'unit_name')
+                or val(line, 'unit') or 'قطعة'
+            )
+            current_unit = val(line, 'unit') or val(line, 'unit_name') or base_unit or 'قطعة'
+            units_list = [{'id': None, 'unit_name': base_unit or 'قطعة', 'conversion_factor': Decimal('1')}]
             for u in units:
                 if not isinstance(u, dict):
                     continue
-                factor = Decimal(str(u.get('conversion_factor', 1)))
-                if factor == 0:
-                    factor = Decimal('1')
-                units_list.append({'id': u.get('id'), 'unit_name': u.get('unit_name', ''), 'conversion_factor': factor})
-            current_unit = base_unit
+                unit_name = u.get('unit_name') or u.get('name') or ''
+                if not unit_name:
+                    continue
+                factor = _positive_decimal(u.get('conversion_factor', 1), '1')
+                units_list.append({'id': u.get('id'), 'unit_name': unit_name, 'conversion_factor': factor})
             current_factor = Decimal('1')
-            current_unit_id = None
+            current_unit_id = val(line, 'unit_id')
             for u in units_list:
-                if u.get('unit_name') == current_unit:
-                    current_factor = u.get('conversion_factor', Decimal('1'))
+                if u.get('unit_name') == current_unit or (current_unit_id is not None and u.get('id') == current_unit_id):
+                    current_unit = u.get('unit_name') or current_unit
+                    current_factor = _positive_decimal(u.get('conversion_factor', Decimal('1')), '1')
                     current_unit_id = u.get('id')
                     break
-            stored_factor = val(line, 'conversion_factor')
-            if stored_factor is not None and Decimal(str(stored_factor)) > 0:
-                current_factor = Decimal(str(stored_factor))
-            quantity = Decimal(str(val(line, 'quantity', 0) or 0))
-            unit_price = Decimal(str(val(line, 'unit_price', 0) or 0))
-            total = Decimal(str(val(line, 'total', 0) or 0))
-            price_display = currency.convert(unit_price, 'USD', self.display_curr)
-            total_display = currency.convert(total, 'USD', self.display_curr)
+            stored_factor = val(line, 'conversion_factor') or val(line, 'factor')
+            if stored_factor is not None:
+                current_factor = _positive_decimal(stored_factor, '1')
+            quantity = _decimal_value(val(line, 'quantity', val(line, 'qty', 0)), '0')
+            unit_price = _decimal_value(val(line, 'unit_price', val(line, 'price', 0)), '0')
+            total = _decimal_value(val(line, 'total', 0), '0')
+            price_display = _decimal_value(currency.convert(unit_price, 'USD', self.display_curr), '0')
+            total_display = _decimal_value(currency.convert(total, 'USD', self.display_curr), '0')
             self.lines.append({
                 'item_id': item_id,
-                'barcode': (item or {}).get('barcode', '') or (item or {}).get('code', '') or '',
-                'item_name': val(line, 'item_name', '') or '',
+                'barcode': val(line, 'barcode', '') or (item or {}).get('barcode', '') or (item or {}).get('code', '') or '',
+                'item_name': item_name,
                 'qty': quantity,
                 'unit_id': current_unit_id,
                 'unit_display': current_unit,
                 'conversion_factor': current_factor,
                 'price': price_display,
-                'discount_percent': Decimal(str(val(line, 'discount_percent', 0) or 0)),
-                'tax_percent': Decimal(str(val(line, 'tax_percent', 0) or 0)),
+                'discount_percent': _decimal_value(val(line, 'discount_percent', 0), '0'),
+                'tax_percent': _decimal_value(val(line, 'tax_percent', 0), '0'),
                 'total': total_display,
-                'notes': val(line, 'description', '') or '',
+                'notes': val(line, 'description', '') or val(line, 'notes', '') or '',
                 'units_data': units_list
             })
         self.endResetModel()
@@ -272,6 +304,7 @@ class LinesModel(QAbstractTableModel):
             total_usd = currency.convert(line['total'], self.display_curr, 'USD')
             result.append({
                 'item_id': line['item_id'],
+                'item_name': line.get('item_name', ''),
                 'quantity': line['qty'],
                 'unit': line.get('unit_display', ''),
                 'conversion_factor': line.get('conversion_factor', Decimal('1')),
@@ -287,9 +320,9 @@ class LinesModel(QAbstractTableModel):
     def update_row_total(self, row):
         if 0 <= row < self.rowCount():
             line = self.lines[row]
-            subtotal = Decimal(str(line.get('qty', 0))) * Decimal(str(line.get('price', 0)))
-            discount_percent = Decimal(str(line.get('discount_percent', 0)))
-            tax_percent = Decimal(str(line.get('tax_percent', 0)))
+            subtotal = _decimal_value(line.get('qty', 0), '0') * _decimal_value(line.get('price', 0), '0')
+            discount_percent = _decimal_value(line.get('discount_percent', 0), '0')
+            tax_percent = _decimal_value(line.get('tax_percent', 0), '0')
             after_discount = subtotal - (subtotal * discount_percent / Decimal('100'))
             line['total'] = after_discount + (after_discount * tax_percent / Decimal('100'))
             self.dataChanged.emit(self.index(row, self.COL_TOTAL), self.index(row, self.COL_TOTAL))
@@ -1046,9 +1079,7 @@ class InvoiceDialog(CenteredDialog):
             units = catalog_service.item_units(it['id'])
             units_list = [{'id': None, 'unit_name': it.get('unit', 'قطعة'), 'conversion_factor': Decimal('1')}]
             for u in units:
-                factor = Decimal(str(u.get('conversion_factor', 1)))
-                if factor == 0:
-                    factor = Decimal('1')
+                factor = _positive_decimal(u.get('conversion_factor', 1), '1')
                 units_list.append({'id': u['id'], 'unit_name': u['unit_name'], 'conversion_factor': factor})
             self.items_for_combo.append({
                 'id': it['id'],
