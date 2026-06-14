@@ -11,7 +11,7 @@ ISS = ROOT / "build" / "setup.iss"
 
 
 def fail(msg: str) -> None:
-    print(f"❌ {msg}")
+    print(f"ERROR: {msg}")
     raise SystemExit(1)
 
 
@@ -48,7 +48,7 @@ def main() -> None:
         if missing:
             fail(f"Inno setup script missing icon wiring: {missing}")
 
-    print("✅ branding assets and build icon wiring look valid")
+    print("OK: branding assets and build icon wiring look valid")
 
 
 if __name__ == "__main__":

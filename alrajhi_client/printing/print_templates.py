@@ -158,12 +158,13 @@ def _human_title(title: Any, fallback: str = "تقرير") -> str:
 def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
     info = get_company_info() or {}
     logo_path = _value(info.get("logo_path") or settings.get("logo_path"))
-    if not logo_path:
-        try:
+    try:
+        from pathlib import Path as _Path
+        if not logo_path or not _Path(logo_path).exists():
             from brand_assets import logo_png
             logo_path = logo_png(512)
-        except Exception:
-            logo_path = ""
+    except Exception:
+        logo_path = logo_path if logo_path else ""
     return {
         "name": _value(info.get("name") or settings.get("company_name"), "نظام الراجحي"),
         "address": _value(info.get("address") or settings.get("company_address")),

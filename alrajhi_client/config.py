@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtCore import QSettings
+from pathlib import Path
 
 
 def _default_logo_path():
@@ -9,15 +10,22 @@ def _default_logo_path():
     except Exception:
         return ""
 
+def _valid_logo_path(value):
+    candidate = str(value or "").strip()
+    if candidate and Path(candidate).exists():
+        return candidate
+    return _default_logo_path()
+
+
 def get_company_info():
     settings = QSettings("Alrajhi", "Accounting")
     return {
-        'name': settings.value("company/name", "الراجحي للمحاسبة"),
+        'name': settings.value("company/name", "الراجحي للمحاسبة والمستودعات"),
         'address': settings.value("company/address", "المملكة العربية السعودية - الرياض"),
         'phone': settings.value("company/phone", "+966 12 3456789"),
         'email': settings.value("company/email", "info@alrajhi.com"),
         'tax_number': settings.value("company/tax_number", ""),
-        'logo_path': settings.value("company/logo_path", _default_logo_path()) or _default_logo_path(),
+        'logo_path': _valid_logo_path(settings.value("company/logo_path", _default_logo_path())),
     }
 
 def save_company_info(info):

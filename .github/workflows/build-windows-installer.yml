@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
 
     steps:
       - name: Checkout
@@ -165,6 +168,7 @@ jobs:
             --hidden-import flask_jwt_extended `
             --add-data "${{ steps.qtpath.outputs.platforms_path }};platforms" `
             --add-data "alrajhi_client\assets\brand;assets\brand" `
+            --add-data "alrajhi_client\assets\brand;alrajhi_client\assets\brand" `
             @extra `
             alrajhi_client\main.py
 
