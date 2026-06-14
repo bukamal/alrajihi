@@ -43,7 +43,7 @@ class ModernTopBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("ModernTopBar")
-        self.setMinimumHeight(58)
+        self.setMinimumHeight(72)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.buttons = {}
         self.menus = {}
@@ -62,7 +62,7 @@ class ModernTopBar(QWidget):
         utility_frame = QFrame()
         utility_frame.setObjectName("ShellUtilityFrame")
         utility_layout = QHBoxLayout(utility_frame)
-        utility_layout.setContentsMargins(12, 8, 12, 8)
+        utility_layout.setContentsMargins(12, 6, 12, 6)
         utility_layout.setSpacing(10)
 
         self.search_box = QLineEdit()
@@ -79,16 +79,20 @@ class ModernTopBar(QWidget):
         self.alert_btn.setObjectName("ShellIconButton")
         self.alert_btn.setIcon(qta.icon('fa5s.bell'))
         self.alert_btn.setIconSize(QSize(20, 20))
+        self.alert_btn.setText("التنبيهات")
+        self.alert_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.alert_btn.setToolTip("التنبيهات")
-        self.alert_btn.setFixedSize(40, 36)
+        self.alert_btn.setFixedSize(72, 52)
         utility_layout.addWidget(self.alert_btn)
 
         self.theme_btn = QToolButton()
         self.theme_btn.setObjectName("ShellIconButton")
         self.theme_btn.setIcon(qta.icon('fa5s.adjust'))
         self.theme_btn.setIconSize(QSize(20, 20))
+        self.theme_btn.setText("الثيم")
+        self.theme_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.theme_btn.setToolTip("تبديل الثيم")
-        self.theme_btn.setFixedSize(40, 36)
+        self.theme_btn.setFixedSize(72, 52)
         utility_layout.addWidget(self.theme_btn)
 
         self.user_label = QLabel("")
@@ -220,6 +224,7 @@ class ModernTopBar(QWidget):
                 border-radius: 14px;
                 padding: 5px 10px;
                 font-weight: bold;
+                font-size: 11px;
             }}
             #ShellIconButton, #ShellMoreButton {{
                 background-color: {c['card_bg']};

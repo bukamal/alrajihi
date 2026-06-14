@@ -225,7 +225,7 @@ class MainWindow(QMainWindow):
         """
         self.menu_bar.clear()
         self.menu_bar.setLayoutDirection(Qt.RightToLeft)
-        self.menu_bar.setFixedHeight(42)
+        self.menu_bar.setFixedHeight(62)
         self.menu_bar.setStyleSheet("""
             QMenuBar {
                 background-color: palette(window);
@@ -235,7 +235,8 @@ class MainWindow(QMainWindow):
                 font-weight: 700;
             }
             QMenuBar::item {
-                padding: 8px 13px;
+                padding: 6px 14px;
+                min-width: 74px;
                 border-radius: 10px;
                 background: transparent;
             }
@@ -269,48 +270,48 @@ class MainWindow(QMainWindow):
             menu.addAction(action)
             return action
 
-        home_menu = self.menu_bar.addMenu(qta.icon('fa5s.home'), ' الرئيسية')
+        home_menu = self.menu_bar.addMenu(qta.icon('fa5s.home'), '\nالرئيسية')
         add_action(home_menu, 'لوحة التحكم', 'tachometer-alt', 'dashboard', shortcut='F1')
         add_action(home_menu, 'نقطة البيع POS', 'barcode', 'pos', shortcut='F2')
         home_menu.addSeparator()
         add_action(home_menu, 'مراقبة التشغيل', 'heartbeat', 'monitoring')
 
-        sales_menu = self.menu_bar.addMenu(qta.icon('fa5s.shopping-cart'), ' المبيعات')
+        sales_menu = self.menu_bar.addMenu(qta.icon('fa5s.shopping-cart'), '\nالمبيعات')
         add_action(sales_menu, 'بيع سريع POS', 'barcode', 'pos', shortcut='F2')
         add_action(sales_menu, 'فواتير البيع', 'file-invoice-dollar', 'sales_invoices', shortcut='F3')
         add_action(sales_menu, 'مرتجعات المبيعات', 'undo', 'returns')
         sales_menu.addSeparator()
         add_action(sales_menu, 'سند قبض', 'hand-holding-usd', 'vouchers')
 
-        purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), ' المشتريات')
+        purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), '\nالمشتريات')
         add_action(purchase_menu, 'فواتير الشراء', 'file-invoice', 'purchase_invoices')
         add_action(purchase_menu, 'مرتجعات المشتريات', 'undo-alt', 'purchase_returns')
         purchase_menu.addSeparator()
         add_action(purchase_menu, 'سند دفع', 'money-bill-wave', 'vouchers')
 
-        inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), ' المخزون')
+        inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), '\nالمخزون')
         add_action(inventory_menu, 'المواد', 'box', 'items', shortcut='F4')
         add_action(inventory_menu, 'التصنيفات', 'folder', 'categories')
         add_action(inventory_menu, 'المستودعات', 'warehouse', 'warehouses', shortcut='F5')
 
-        manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), ' التصنيع')
+        manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), '\nالتصنيع')
         add_action(manufacturing_menu, 'التصنيع وأوامر الإنتاج', 'industry', 'manufacturing')
 
-        parties_menu = self.menu_bar.addMenu(qta.icon('fa5s.users'), ' الأطراف')
+        parties_menu = self.menu_bar.addMenu(qta.icon('fa5s.users'), '\nالأطراف')
         add_action(parties_menu, 'العملاء', 'user-friends', 'customers')
         add_action(parties_menu, 'الموردون', 'truck-loading', 'suppliers')
 
-        finance_menu = self.menu_bar.addMenu(qta.icon('fa5s.wallet'), ' المالية')
+        finance_menu = self.menu_bar.addMenu(qta.icon('fa5s.wallet'), '\nالمالية')
         add_action(finance_menu, 'الصناديق والبنوك', 'cash-register', 'cashboxes')
         add_action(finance_menu, 'السندات', 'receipt', 'vouchers')
 
-        reports_menu = self.menu_bar.addMenu(qta.icon('fa5s.chart-line'), ' التقارير')
+        reports_menu = self.menu_bar.addMenu(qta.icon('fa5s.chart-line'), '\nالتقارير')
         add_action(reports_menu, 'مركز التقارير', 'chart-line', 'reports')
         add_action(reports_menu, 'كشف حساب عميل', 'user', 'reports')
         add_action(reports_menu, 'كشف حساب مورد', 'truck', 'reports')
         add_action(reports_menu, 'مطابقة Ledger', 'balance-scale', 'reports')
 
-        admin_menu = self.menu_bar.addMenu(qta.icon('fa5s.cog'), ' الإدارة')
+        admin_menu = self.menu_bar.addMenu(qta.icon('fa5s.cog'), '\nالإدارة')
         add_action(admin_menu, 'الإعدادات', 'sliders-h', 'settings')
         add_action(admin_menu, 'الفروع', 'code-branch', 'branches')
         add_action(admin_menu, 'الطلبات المعلقة', 'cloud-upload-alt', 'offline_queue')
@@ -324,11 +325,11 @@ class MainWindow(QMainWindow):
         add_action(admin_menu, 'خروج', 'times-circle', callback=self.close_app, shortcut='Alt+F4')
 
         if UserSession.is_admin():
-            users_menu = self.menu_bar.addMenu(qta.icon('fa5s.user-shield'), ' المستخدمون')
+            users_menu = self.menu_bar.addMenu(qta.icon('fa5s.user-shield'), '\nالمستخدمون')
             add_action(users_menu, 'إدارة المستخدمين', 'users-cog', 'users')
             add_action(users_menu, 'سجل التدقيق', 'history', 'audit_log')
 
-        quick_menu = self.menu_bar.addMenu(qta.icon('fa5s.bolt'), ' إجراءات سريعة')
+        quick_menu = self.menu_bar.addMenu(qta.icon('fa5s.bolt'), '\nإجراءات سريعة')
         add_action(quick_menu, 'فاتورة بيع جديدة', 'file-invoice-dollar', 'sales_invoices', shortcut='Ctrl+N')
         add_action(quick_menu, 'فاتورة شراء جديدة', 'file-invoice', 'purchase_invoices')
         add_action(quick_menu, 'سند قبض', 'hand-holding-usd', 'vouchers')

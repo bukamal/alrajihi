@@ -279,9 +279,9 @@ class DashboardWidget(QWidget):
         row = QHBoxLayout()
         row.setSpacing(16)
         self.alerts_panel = self._create_alerts_panel()
-        self.health_panel = self._create_health_panel()
+        self.brand_panel = self._create_brand_panel()
         row.addWidget(self.alerts_panel, 2)
-        row.addWidget(self.health_panel, 1)
+        row.addWidget(self.brand_panel, 1)
         self.main_layout.addLayout(row)
 
     def _create_quick_actions_panel(self):
@@ -540,6 +540,35 @@ class DashboardWidget(QWidget):
         self.load_currencies()
         return panel
 
+
+    def _create_brand_panel(self):
+        """Dashboard brand card replacing the old runtime-health card."""
+        panel = DashboardPanel('', 'building')
+        panel.setMinimumHeight(245)
+        panel.layout.setAlignment(Qt.AlignCenter)
+
+        logo = QLabel()
+        logo.setAlignment(Qt.AlignCenter)
+        logo.setFixedHeight(118)
+        pix = QPixmap(logo_png(512))
+        if not pix.isNull():
+            logo.setPixmap(pix.scaled(QSize(112, 112), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        panel.layout.addStretch(1)
+        panel.layout.addWidget(logo)
+
+        title = QLabel('الراجحي للمحاسبة والمستودعات والتصنيع')
+        title.setAlignment(Qt.AlignCenter)
+        title.setWordWrap(True)
+        title.setStyleSheet('font-size: 19px; font-weight: 900; color: #0f172a; border: none;')
+        panel.layout.addWidget(title)
+
+        subtitle = QLabel('نظام إدارة متكامل')
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setStyleSheet('font-size: 12px; font-weight: 800; color: #64748b; border: none;')
+        panel.layout.addWidget(subtitle)
+        panel.layout.addStretch(1)
+        return panel
+
     def _create_health_panel(self):
         panel = DashboardPanel('حالة التشغيل', 'heartbeat')
         self.health_labels = {}
@@ -779,6 +808,8 @@ class DashboardWidget(QWidget):
                     break
 
     def _refresh_health(self):
+        if not hasattr(self, 'health_labels'):
+            return
         try:
             overview = monitoring_service.overview(tolerance='0')
         except Exception as exc:

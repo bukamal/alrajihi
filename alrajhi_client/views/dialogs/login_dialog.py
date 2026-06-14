@@ -38,13 +38,13 @@ class LoginDialog(FramelessDialog):
         logo.setPixmap(QPixmap(logo_png(128)).scaled(94, 94, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         layout.addWidget(logo)
 
-        app_title = QLabel(APP_DISPLAY_NAME_AR)
+        app_title = QLabel('الراجحي للمحاسبة')
         app_title.setAlignment(Qt.AlignCenter)
         app_title.setObjectName("heroTitle")
         app_title.setStyleSheet(f"font-size: 30px; font-weight: 900; color: {ThemeManager.get('primary')};")
         layout.addWidget(app_title)
 
-        subtitle = QLabel(f"{APP_DESCRIPTION_AR} — تسجيل دخول آمن")
+        subtitle = QLabel('نظام الراجحي للمحاسبة — تسجيل دخول آمن')
         subtitle.setAlignment(Qt.AlignCenter)
         subtitle.setObjectName('muted')
         layout.addWidget(subtitle)
