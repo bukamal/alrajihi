@@ -2639,3 +2639,26 @@ _translations['en'].update({
     'settings_barcode_show_price': 'Show price',
     'settings_barcode_show_text': 'Show barcode text',
 })
+
+# Phase 99: HTML/PNG barcode label rendering settings.
+_translations['ar'].update({
+    'settings_barcode_show_logo': 'إظهار الشعار على اللصاقة',
+    'settings_barcode_show_qr': 'إظهار QR على اللصاقة',
+    'barcode_required_for_print': 'الباركود مطلوب للطباعة',
+    'barcode_invalid_ean13_print': 'لا يمكن طباعة هذا الرمز كـ EAN-13 لأنه غير صالح',
+    'barcode_python_packages_required': 'حزم python-barcode و Pillow مطلوبة لطباعة الباركود',
+})
+_translations['de'].update({
+    'settings_barcode_show_logo': 'Logo auf Etikett anzeigen',
+    'settings_barcode_show_qr': 'QR-Code auf Etikett anzeigen',
+    'barcode_required_for_print': 'Barcode ist für den Druck erforderlich',
+    'barcode_invalid_ean13_print': 'Dieser Code kann nicht als EAN-13 gedruckt werden, da er ungültig ist',
+    'barcode_python_packages_required': 'python-barcode und Pillow werden für den Barcode-Druck benötigt',
+})
+_translations['en'].update({
+    'settings_barcode_show_logo': 'Show logo on label',
+    'settings_barcode_show_qr': 'Show QR on label',
+    'barcode_required_for_print': 'Barcode is required for printing',
+    'barcode_invalid_ean13_print': 'This code cannot be printed as EAN-13 because it is invalid',
+    'barcode_python_packages_required': 'python-barcode and Pillow are required for barcode printing',
+})

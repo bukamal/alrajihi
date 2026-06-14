@@ -320,6 +320,12 @@ class SettingsWidget(QWidget):
         self.barcode_show_company = QCheckBox(translate('settings_barcode_show_company'))
         self.barcode_show_company.setChecked(bool(cfg.get('barcode_show_company', True)))
         barcode_form.addRow(self.barcode_show_company)
+        self.barcode_show_logo = QCheckBox(translate('settings_barcode_show_logo'))
+        self.barcode_show_logo.setChecked(bool(cfg.get('barcode_show_logo', cfg.get('show_logo', True))))
+        barcode_form.addRow(self.barcode_show_logo)
+        self.barcode_show_qr = QCheckBox(translate('settings_barcode_show_qr'))
+        self.barcode_show_qr.setChecked(bool(cfg.get('barcode_show_qr', True)))
+        barcode_form.addRow(self.barcode_show_qr)
         self.barcode_show_name = QCheckBox(translate('settings_barcode_show_name'))
         self.barcode_show_name.setChecked(bool(cfg.get('barcode_show_name', True)))
         barcode_form.addRow(self.barcode_show_name)
@@ -597,6 +603,8 @@ class SettingsWidget(QWidget):
             barcode_copies=self.barcode_copies.value(),
             barcode_columns=self.barcode_columns.value(),
             barcode_show_company=self.barcode_show_company.isChecked(),
+            barcode_show_logo=self.barcode_show_logo.isChecked(),
+            barcode_show_qr=self.barcode_show_qr.isChecked(),
             barcode_show_name=self.barcode_show_name.isChecked(),
             barcode_show_price=self.barcode_show_price.isChecked(),
             barcode_show_text=self.barcode_show_text.isChecked(),

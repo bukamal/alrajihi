@@ -13,9 +13,9 @@ import tempfile
 import webbrowser
 
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
-from PyQt5.QtCore import QUrl
+from PyQt5.QtCore import QUrl, Qt
 from PyQt5.QtGui import QDesktopServices
-from PyQt5.QtGui import QTextDocument
+from PyQt5.QtGui import QTextDocument, QImage, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintDialog
 
 from printing.print_templates import invoice_html, voucher_html, report_html, return_html, production_order_html
@@ -93,6 +93,35 @@ class PrintingService:
         return True
 
 
+    def save_html_png(self, html: str, parent=None, default_name: str = "document.png") -> bool:
+        """Render printable HTML to a PNG image using Qt's text engine.
+
+        This path is used for barcode labels when a consistent visual output is
+        needed on label printers that handle images more reliably than raw text.
+        """
+        if not html:
+            QMessageBox.warning(parent, "تنبيه", "لا يوجد محتوى للحفظ")
+            return False
+        filename, _ = QFileDialog.getSaveFileName(parent, "حفظ PNG", default_name, "PNG (*.png);;JPEG (*.jpg *.jpeg)")
+        if not filename:
+            return False
+        if not filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            filename += '.png'
+        doc = self._make_document(html)
+        # A practical sheet width for label grids; QTextDocument then computes height.
+        doc.setTextWidth(920)
+        size = doc.size().toSize()
+        width = max(420, size.width() + 24)
+        height = max(220, size.height() + 24)
+        image = QImage(width, height, QImage.Format_ARGB32)
+        image.fill(Qt.white)
+        painter = QPainter(image)
+        painter.translate(12, 12)
+        doc.drawContents(painter)
+        painter.end()
+        return bool(image.save(filename))
+
+
     # ========== Unified barcode label printing ==========
     def barcode_label_options(self, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Return barcode label options from printing settings plus optional overrides."""
@@ -101,6 +130,8 @@ class PrintingService:
             'label_size': cfg.get('barcode_label_size', '50x30'),
             'symbology': cfg.get('barcode_symbology', 'AUTO'),
             'show_company': bool(cfg.get('barcode_show_company', True)),
+            'show_logo': bool(cfg.get('barcode_show_logo', cfg.get('show_logo', True))),
+            'show_qr': bool(cfg.get('barcode_show_qr', True)),
             'show_name': bool(cfg.get('barcode_show_name', True)),
             'show_price': bool(cfg.get('barcode_show_price', True)),
             'show_barcode_text': bool(cfg.get('barcode_show_text', True)),
@@ -135,6 +166,9 @@ class PrintingService:
 
     def barcode_labels_pdf(self, items: List[Dict[str, Any]], parent=None, default_name: str = "barcodes.pdf", options: Optional[Dict[str, Any]] = None) -> bool:
         return self.save_pdf(self.barcode_labels_html(items, options), parent, default_name)
+
+    def barcode_labels_png(self, items: List[Dict[str, Any]], parent=None, default_name: str = "barcodes.png", options: Optional[Dict[str, Any]] = None) -> bool:
+        return self.save_html_png(self.barcode_labels_html(items, options), parent, default_name)
 
     def invoice_html(self, invoice: Dict[str, Any], paper: str = 'default') -> str:
         return invoice_html(invoice, paper)

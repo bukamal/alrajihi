@@ -103,6 +103,8 @@ class SettingsService:
             'barcode_copies': int(self.get('printing/barcode/copies', '1') or 1),
             'barcode_columns': int(self.get('printing/barcode/columns', '2') or 2),
             'barcode_show_company': self.get('printing/barcode/show_company', 'true').lower() == 'true',
+            'barcode_show_logo': self.get('printing/barcode/show_logo', self.get('printing/show_logo', 'true')).lower() == 'true',
+            'barcode_show_qr': self.get('printing/barcode/show_qr', 'true').lower() == 'true',
             'barcode_show_name': self.get('printing/barcode/show_name', 'true').lower() == 'true',
             'barcode_show_price': self.get('printing/barcode/show_price', 'true').lower() == 'true',
             'barcode_show_text': self.get('printing/barcode/show_text', 'true').lower() == 'true',
@@ -118,6 +120,7 @@ class SettingsService:
                                barcode_default_printer: str = 'pdf:default', barcode_label_size: str = '50x30',
                                barcode_symbology: str = 'AUTO', barcode_copies: int = 1,
                                barcode_columns: int = 2, barcode_show_company: bool = True,
+                               barcode_show_logo: bool = True, barcode_show_qr: bool = True,
                                barcode_show_name: bool = True, barcode_show_price: bool = True,
                                barcode_show_text: bool = True):
         old = self.get_printing_settings()
@@ -143,6 +146,8 @@ class SettingsService:
             'barcode_copies': max(1, int(barcode_copies or 1)),
             'barcode_columns': min(max(1, int(barcode_columns or 2)), 4),
             'barcode_show_company': bool(barcode_show_company),
+            'barcode_show_logo': bool(barcode_show_logo),
+            'barcode_show_qr': bool(barcode_show_qr),
             'barcode_show_name': bool(barcode_show_name),
             'barcode_show_price': bool(barcode_show_price),
             'barcode_show_text': bool(barcode_show_text),
@@ -168,6 +173,8 @@ class SettingsService:
         self.set('printing/barcode/copies', str(new['barcode_copies']))
         self.set('printing/barcode/columns', str(new['barcode_columns']))
         self.set('printing/barcode/show_company', 'true' if new['barcode_show_company'] else 'false')
+        self.set('printing/barcode/show_logo', 'true' if new['barcode_show_logo'] else 'false')
+        self.set('printing/barcode/show_qr', 'true' if new['barcode_show_qr'] else 'false')
         self.set('printing/barcode/show_name', 'true' if new['barcode_show_name'] else 'false')
         self.set('printing/barcode/show_price', 'true' if new['barcode_show_price'] else 'false')
         self.set('printing/barcode/show_text', 'true' if new['barcode_show_text'] else 'false')

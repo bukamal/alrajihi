@@ -9,7 +9,6 @@ from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from core.services.catalog_service import catalog_service
 from utils import show_toast
-from printing.thermal_printer import ThermalPrinter, ImagePrinter
 from printing.printing_service import printing_service
 from printer_manager import PrinterManager
 from core.services.settings_service import settings_service
@@ -62,13 +61,17 @@ class BatchPrintDialog(CenteredDialog):
         options_row = QHBoxLayout()
         self.show_company_check = QCheckBox("اسم الشركة")
         self.show_company_check.setChecked(bool(self.print_cfg.get('barcode_show_company', True)))
+        self.show_logo_check = QCheckBox("الشعار")
+        self.show_logo_check.setChecked(bool(self.print_cfg.get('barcode_show_logo', self.print_cfg.get('show_logo', True))))
+        self.show_qr_check = QCheckBox("QR")
+        self.show_qr_check.setChecked(bool(self.print_cfg.get('barcode_show_qr', True)))
         self.show_name_check = QCheckBox("اسم المادة")
         self.show_name_check.setChecked(bool(self.print_cfg.get('barcode_show_name', True)))
         self.show_price_check = QCheckBox("السعر")
         self.show_price_check.setChecked(bool(self.print_cfg.get('barcode_show_price', True)))
         self.show_text_check = QCheckBox("رقم الباركود")
         self.show_text_check.setChecked(bool(self.print_cfg.get('barcode_show_text', True)))
-        for chk in (self.show_company_check, self.show_name_check, self.show_price_check, self.show_text_check):
+        for chk in (self.show_company_check, self.show_logo_check, self.show_qr_check, self.show_name_check, self.show_price_check, self.show_text_check):
             options_row.addWidget(chk)
         options_row.addStretch()
         self.content_widget.layout().addLayout(options_row)
@@ -187,6 +190,8 @@ class BatchPrintDialog(CenteredDialog):
             'label_size': self.label_size_combo.currentText(),
             'symbology': self.symbology_combo.currentText(),
             'show_company': self.show_company_check.isChecked(),
+            'show_logo': self.show_logo_check.isChecked(),
+            'show_qr': self.show_qr_check.isChecked(),
             'show_name': self.show_name_check.isChecked(),
             'show_price': self.show_price_check.isChecked(),
             'show_barcode_text': self.show_text_check.isChecked(),
@@ -210,36 +215,27 @@ class BatchPrintDialog(CenteredDialog):
                 'price': it['price'],
                 'copies': it.get('copies', self.copies_spin.value())
             })
-        success = True
-        if printer_info.type.value == 'serial':
-            tp = ThermalPrinter(printer_info.connection_string, baudrate=9600)
-            for item in items_for_print:
-                if not tp.print_label(item['barcode'], item['name'], item['price'], item.get('copies', 1)):
-                    success = False
-        elif printer_info.type.value == 'pdf':
+        # Phase 99: all barcode outputs now use the same HTML renderer.
+        # PDF keeps selectable/printable HTML; PNG renders the exact same HTML sheet
+        # to an image so Arabic/German/English, logo, QR and barcode stay identical.
+        if printer_info.type.value == 'pdf':
             if printing_service.barcode_labels_pdf(items_for_print, self, 'barcodes_batch.pdf', self._print_options()):
                 show_toast("تم حفظ PDF بنجاح", "success", self)
                 self.accept()
             else:
                 show_toast("فشل حفظ PDF", "error", self)
             return
-        elif printer_info.type.value == 'image':
-            img_printer = ImagePrinter(self)
-            for item in items_for_print:
-                for _ in range(item['copies']):
-                    if not img_printer.print_label(item['barcode'], item['name'], item['price'], 1):
-                        success = False
-        else:
-            if printing_service.barcode_labels_print(items_for_print, self, self._print_options(), printer_info.connection_string):
-                show_toast("تمت الطباعة بنجاح", "success", self)
+        if printer_info.type.value == 'image':
+            if printing_service.barcode_labels_png(items_for_print, self, 'barcodes_batch.png', self._print_options()):
+                show_toast("تم حفظ PNG بنجاح", "success", self)
                 self.accept()
             else:
-                show_toast("فشل طباعة الباركود", "error", self)
+                show_toast("فشل حفظ PNG", "error", self)
             return
-        if success:
+        if printing_service.barcode_labels_print(items_for_print, self, self._print_options(), printer_info.connection_string):
             show_toast("تمت الطباعة بنجاح", "success", self)
             self.accept()
         else:
-            show_toast("حدثت بعض الأخطاء أثناء الطباعة", "error", self)
+            show_toast("فشل طباعة الباركود", "error", self)
 
 
