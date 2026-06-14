@@ -11,6 +11,7 @@ from models.table_models import GenericTableModel
 from views.dialogs.invoice_dialog import InvoiceDialog
 from utils import show_toast
 from views.widgets.components.table_toolbar import TableToolbar
+from theme_manager import ThemeManager
 
 class InvoicesWidget(QWidget):
     def __init__(self, parent=None, invoice_scope=None):
@@ -54,61 +55,95 @@ class InvoicesWidget(QWidget):
         self.refresh_all()
 
     def _apply_page_style(self):
-        self.setStyleSheet("""
-            QWidget {
-                background: #f8fafc;
-            }
-            QFrame#InvoicePageCard {
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
+        c = ThemeManager.colors()
+        self.setStyleSheet(f"""
+            QWidget {{
+                background: {c['bg_window']};
+                color: {c['text_primary']};
+            }}
+            QFrame#InvoicePageCard {{
+                background: {c['card_bg']};
+                border: 1px solid {c['border']};
                 border-radius: 14px;
-            }
-            QLabel#PageTitle {
-                color: #0f172a;
+            }}
+            QLabel#PageTitle {{
+                color: {c['primary']};
                 font-size: 22px;
-                font-weight: 800;
-            }
-            QLabel#PageSubtitle {
-                color: #64748b;
+                font-weight: 900;
+            }}
+            QLabel#PageSubtitle {{
+                color: {c['text_secondary']};
                 font-size: 12px;
-            }
-            QLabel#FilterLabel {
-                color: #475569;
-                font-weight: 700;
-            }
-            QLineEdit, QComboBox, QDateEdit {
+            }}
+            QLabel#FilterLabel {{
+                color: {c['text_secondary']};
+                font-weight: 800;
+            }}
+            QLineEdit, QComboBox, QDateEdit {{
                 min-height: 34px;
-                border: 1px solid #cbd5e1;
+                border: 1px solid {c['border']};
                 border-radius: 9px;
                 padding: 5px 9px;
-                background: #ffffff;
-            }
-            QTableView {
-                background: #ffffff;
-                alternate-background-color: #f8fafc;
-                gridline-color: #e2e8f0;
-                border: 1px solid #e2e8f0;
+                background: {c['input_bg']};
+                color: {c['text_primary']};
+                selection-background-color: {c['selection_bg']};
+                selection-color: {c['selection_text']};
+            }}
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {{
+                border: 1px solid {c['border_focus']};
+            }}
+            QTableView, QTableWidget {{
+                background: {c['bg_table']};
+                color: {c['text_primary']};
+                alternate-background-color: {c['bg_table_alt']};
+                gridline-color: {c['border']};
+                border: 1px solid {c['border']};
                 border-radius: 12px;
-                selection-background-color: #dbeafe;
-                selection-color: #0f172a;
-            }
-            QHeaderView::section {
-                background: #f1f5f9;
-                color: #0f172a;
-                font-weight: 700;
+                selection-background-color: {c['selection_bg']};
+                selection-color: {c['selection_text']};
+                outline: 0;
+            }}
+            QTableView::item, QTableWidget::item {{
+                padding: 6px;
+                border-bottom: 1px solid {c['border']};
+            }}
+            QHeaderView::section {{
+                background: {c['header_bg']};
+                color: {c['header_text']};
+                font-weight: 800;
                 padding: 8px;
                 border: none;
-                border-left: 1px solid #e2e8f0;
-            }
-            QPushButton {
+                border-left: 1px solid {c['border']};
+            }}
+            QTabWidget::pane {{
+                border: 1px solid {c['border']};
+                background: {c['bg_window']};
+                border-radius: 12px;
+            }}
+            QTabBar::tab {{
+                background: {c['bg_panel']};
+                color: {c['text_secondary']};
+                border: 1px solid {c['border']};
+                padding: 8px 14px;
+                margin-left: 3px;
+                border-top-left-radius: 9px;
+                border-top-right-radius: 9px;
+                font-weight: 800;
+            }}
+            QTabBar::tab:selected {{
+                background: {c['primary']};
+                color: white;
+            }}
+            QPushButton {{
                 min-height: 32px;
                 border-radius: 8px;
                 padding: 5px 12px;
-                background: #ffffff;
-                border: 1px solid #cbd5e1;
-                font-weight: 600;
-            }
-            QPushButton:hover { background: #f1f5f9; }
+                background: {c['bg_panel']};
+                color: {c['text_primary']};
+                border: 1px solid {c['border']};
+                font-weight: 700;
+            }}
+            QPushButton:hover {{ background: {c['brand_soft']}; border-color: {c['primary']}; }}
         """)
 
     def _make_page_header(self, title, subtitle):

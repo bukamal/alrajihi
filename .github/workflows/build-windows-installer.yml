@@ -34,6 +34,11 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: Verify requirements file
+        shell: pwsh
+        run: |
+          python tools\verify_requirements_file.py
+
       - name: Validate imports
         shell: pwsh
         run: |

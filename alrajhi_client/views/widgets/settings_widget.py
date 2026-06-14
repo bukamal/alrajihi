@@ -144,18 +144,22 @@ class SettingsWidget(QWidget):
         return lbl
 
     def _apply_local_style(self):
-        self.setStyleSheet(self.styleSheet() + '''
-            QFrame#settingsHeader { background-color: rgba(99,102,241,0.10); border: 1px solid rgba(99,102,241,0.20); border-radius: 16px; }
-            QLabel#settingsTitle { font-size: 24px; font-weight: 800; }
-            QLabel#settingsSubtitle, QLabel#settingsHelp { color: #64748b; font-size: 12px; }
-            QTabWidget#settingsTabs::pane { border: 1px solid #e2e8f0; border-radius: 14px; background: rgba(255,255,255,0.72); }
-            QTabBar::tab { min-height: 34px; padding: 8px 14px; margin: 2px; border-radius: 10px; }
-            QTabBar::tab:selected { background: #4f46e5; color: white; font-weight: bold; }
-            QGroupBox#settingsCard { border: 1px solid #e2e8f0; border-radius: 14px; margin-top: 12px; padding-top: 12px; background: rgba(255,255,255,0.90); font-weight: bold; }
-            QGroupBox#settingsCard::title { subcontrol-origin: margin; right: 14px; padding: 0 8px; }
-            QLabel#note_warning { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #92400e; border-radius: 10px; padding: 10px; }
-            QLabel#note_info { background: rgba(59,130,246,0.10); border: 1px solid rgba(59,130,246,0.30); color: #1d4ed8; border-radius: 10px; padding: 10px; }
-        ''')
+        c = ThemeManager.colors()
+        self.setStyleSheet(self.styleSheet() + f"""
+            QFrame#settingsHeader {{ background-color: {c['brand_soft']}; border: 1px solid {c['border']}; border-radius: 16px; }}
+            QLabel#settingsTitle {{ font-size: 24px; font-weight: 900; color: {c['primary']}; }}
+            QLabel#settingsSubtitle, QLabel#settingsHelp {{ color: {c['text_secondary']}; font-size: 12px; }}
+            QTabWidget#settingsTabs::pane {{ border: 1px solid {c['border']}; border-radius: 14px; background: {c['bg_window']}; }}
+            QTabWidget#settingsTabs QWidget {{ background: {c['bg_window']}; color: {c['text_primary']}; }}
+            QTabBar::tab {{ min-height: 34px; padding: 8px 14px; margin: 2px; border-radius: 10px; background: {c['bg_panel']}; color: {c['text_secondary']}; border: 1px solid {c['border']}; font-weight: 700; }}
+            QTabBar::tab:selected {{ background: {c['primary']}; color: white; font-weight: 900; }}
+            QTableWidget, QTableView {{ background: {c['bg_table']}; alternate-background-color: {c['bg_table_alt']}; color: {c['text_primary']}; border: 1px solid {c['border']}; border-radius: 12px; selection-background-color: {c['selection_bg']}; selection-color: {c['selection_text']}; }}
+            QHeaderView::section {{ background: {c['header_bg']}; color: {c['header_text']}; padding: 8px; border: none; font-weight: 800; }}
+            QGroupBox#settingsCard {{ border: 1px solid {c['border']}; border-radius: 14px; margin-top: 12px; padding-top: 12px; background: {c['card_bg']}; color: {c['text_primary']}; font-weight: bold; }}
+            QGroupBox#settingsCard::title {{ subcontrol-origin: margin; right: 14px; padding: 0 8px; color: {c['primary']}; background: {c['card_bg']}; }}
+            QLabel#note_warning {{ background: {c['warning_soft']}; border: 1px solid {c['warning']}; color: {c['warning']}; border-radius: 10px; padding: 10px; }}
+            QLabel#note_info {{ background: {c['info_soft']}; border: 1px solid {c['info']}; color: {c['primary']}; border-radius: 10px; padding: 10px; }}
+        """)
 
     def create_appearance_tab(self):
         scroll, layout = self._scroll_tab()

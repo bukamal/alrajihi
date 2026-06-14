@@ -11,6 +11,7 @@ from core.services.barcode_service import barcode_service, BarcodeError
 from currency import currency
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
+from theme_manager import ThemeManager
 
 class ItemDialog(CenteredDialog):
     def __init__(self, parent=None, item_id=None):
@@ -260,104 +261,115 @@ class ItemDialog(CenteredDialog):
 
 
     def apply_modern_item_style(self):
-        accent = "#2563eb"
+        c = ThemeManager.colors()
+        accent = c['primary']
         self.setStyleSheet(self.styleSheet() + f"""
             QDialog {{
-                background: #f8fafc;
+                background: {c['bg_window']};
+                color: {c['text_primary']};
             }}
             QLabel#DialogTitle {{
-                color: #0f172a;
+                color: {c['primary']};
                 font-size: 21px;
-                font-weight: 800;
+                font-weight: 900;
             }}
             QLabel#DialogSubtitle {{
-                color: #64748b;
+                color: {c['text_secondary']};
                 font-size: 12px;
             }}
             QLabel#muted {{
-                color: #64748b;
+                color: {c['text_secondary']};
                 font-size: 11px;
             }}
             QFrame#HeaderCard, QFrame#ActionCard, QFrame#ContentCard {{
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
+                background: {c['card_bg']};
+                border: 1px solid {c['border']};
                 border-radius: 14px;
             }}
             QGroupBox#FormCard {{
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
+                background: {c['card_bg']};
+                border: 1px solid {c['border']};
                 border-radius: 14px;
                 margin-top: 14px;
                 padding: 18px 14px 14px 14px;
                 font-weight: 800;
-                color: #0f172a;
+                color: {c['text_primary']};
             }}
             QGroupBox#FormCard::title {{
                 subcontrol-origin: margin;
                 right: 16px;
                 padding: 0 8px;
-                color: #0f172a;
-                background: #ffffff;
+                color: {c['primary']};
+                background: {c['card_bg']};
             }}
             QLineEdit, QComboBox, QDoubleSpinBox {{
                 min-height: 34px;
-                border: 1px solid #cbd5e1;
+                border: 1px solid {c['border']};
                 border-radius: 9px;
                 padding: 5px 9px;
-                background: #ffffff;
+                background: {c['input_bg']};
+                color: {c['text_primary']};
                 font-size: 13px;
+                selection-background-color: {c['selection_bg']};
+                selection-color: {c['selection_text']};
             }}
             QLineEdit:focus, QComboBox:focus, QDoubleSpinBox:focus {{
-                border: 1px solid {accent};
-                background: #f8fbff;
+                border: 1px solid {c['border_focus']};
+                background: {c['input_bg']};
             }}
             QPushButton {{
                 min-height: 34px;
                 border-radius: 9px;
                 padding: 6px 12px;
-                border: 1px solid #cbd5e1;
-                background: #ffffff;
-                color: #0f172a;
-                font-weight: 600;
+                border: 1px solid {c['border']};
+                background: {c['bg_panel']};
+                color: {c['text_primary']};
+                font-weight: 700;
             }}
-            QPushButton:hover {{ background: #f1f5f9; }}
+            QPushButton:hover {{ background: {c['brand_soft']}; border-color: {c['primary']}; }}
             QPushButton#primary {{
                 background: {accent};
                 color: white;
                 border: 1px solid {accent};
-                font-weight: 800;
+                font-weight: 900;
             }}
             QPushButton#softAction {{
-                background: #f8fafc;
+                background: {c['bg_window']};
             }}
             QFrame#StockStatusFrame {{
-                border: 1px solid #dbeafe;
+                border: 1px solid {c['border']};
                 border-radius: 12px;
-                background: #eff6ff;
+                background: {c['info_soft']};
             }}
             QLabel#StockValueLabel {{
-                font-weight: 800;
-                color: #1e3a8a;
+                font-weight: 900;
+                color: {c['primary']};
             }}
             QLabel#StockWarningLabel, QLabel#InfoLabel {{
-                color: #4b5563;
+                color: {c['text_secondary']};
             }}
-            QTableWidget {{
-                background: #ffffff;
-                alternate-background-color: #f8fafc;
-                gridline-color: #e2e8f0;
-                border: 1px solid #e2e8f0;
+            QTableWidget, QTableView {{
+                background: {c['bg_table']};
+                color: {c['text_primary']};
+                alternate-background-color: {c['bg_table_alt']};
+                gridline-color: {c['border']};
+                border: 1px solid {c['border']};
                 border-radius: 12px;
-                selection-background-color: #dbeafe;
-                selection-color: #0f172a;
+                selection-background-color: {c['selection_bg']};
+                selection-color: {c['selection_text']};
+                outline: 0;
+            }}
+            QTableWidget::item, QTableView::item {{
+                padding: 6px;
+                border-bottom: 1px solid {c['border']};
             }}
             QHeaderView::section {{
-                background: #f1f5f9;
-                color: #0f172a;
-                font-weight: 700;
+                background: {c['header_bg']};
+                color: {c['header_text']};
+                font-weight: 800;
                 padding: 8px;
                 border: none;
-                border-left: 1px solid #e2e8f0;
+                border-left: 1px solid {c['border']};
             }}
         """)
 

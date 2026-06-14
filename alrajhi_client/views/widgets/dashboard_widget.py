@@ -20,40 +20,61 @@ from models.table_models import GenericTableModel
 from utils import show_toast
 from brand_assets import logo_png
 from views.custom_table_view import CustomTableView
+
+try:
+    from theme_manager import ThemeManager
+    from theme.brand import BRAND
+except Exception:  # Defensive fallback for early imports/tests.
+    ThemeManager = None
+    BRAND = {'developer_card_name_ar': 'الراجحي للمحاسبة والمستودعات والتصنيع'}
+
+
+def _dc(key, fallback):
+    try:
+        if ThemeManager:
+            return ThemeManager.get(key) or fallback
+    except Exception:
+        pass
+    return fallback
+
+
+def _dashboard_product_name():
+    return BRAND.get('developer_card_name_ar', 'الراجحي للمحاسبة والمستودعات والتصنيع')
 # Branding assets are used in login/splash/application icon.
 
 
 class KPIStatCard(QFrame):
     clicked = pyqtSignal()
 
-    def __init__(self, title, value='0', icon_name='chart-line', color='#2563eb', hint='', parent=None):
+    def __init__(self, title, value='0', icon_name='chart-line', color=None, hint='', parent=None):
         super().__init__(parent)
+        color = color or _dc('primary', '#0F3D75')
         self.color = color
         self.setObjectName('KPIStatCard')
         self.setCursor(Qt.PointingHandCursor)
         self.setMinimumHeight(116)
         self.setStyleSheet(f'''
             QFrame#KPIStatCard {{
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
+                background: {_dc('card_bg', '#FFFFFF')};
+                border: 1px solid {_dc('border', '#E2E8F0')};
                 border-radius: 18px;
             }}
             QFrame#KPIStatCard:hover {{
                 border: 1px solid {color};
-                background: #f8fafc;
+                background: {_dc('brand_soft', '#EAF1F8')};
             }}
             QLabel#KpiTitle {{
-                color: #64748b;
+                color: {_dc('text_secondary', '#4A5568')};
                 font-size: 13px;
                 font-weight: 700;
             }}
             QLabel#KpiValue {{
-                color: #0f172a;
+                color: {_dc('text_primary', '#1A202C')};
                 font-size: 24px;
                 font-weight: 900;
             }}
             QLabel#KpiHint {{
-                color: #94a3b8;
+                color: {_dc('text_muted', '#718096')};
                 font-size: 11px;
             }}
             QLabel#KpiIcon {{
@@ -116,7 +137,7 @@ class QuickActionButton(QPushButton):
                 font-weight: 800;
                 text-align: right;
             }}
-            QPushButton:hover {{ background: #0f172a; }}
+            QPushButton:hover {{ background: {_dc('primary_hover', '#1E5AA8')}; }}
         ''')
 
 
@@ -124,24 +145,24 @@ class DashboardPanel(QFrame):
     def __init__(self, title, icon_name='circle', parent=None):
         super().__init__(parent)
         self.setObjectName('DashboardPanel')
-        self.setStyleSheet('''
-            QFrame#DashboardPanel {
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
+        self.setStyleSheet(f'''
+            QFrame#DashboardPanel {{
+                background: {_dc('card_bg', '#FFFFFF')};
+                border: 1px solid {_dc('border', '#E2E8F0')};
                 border-radius: 18px;
-            }
-            QLabel#PanelTitle {
-                color: #0f172a;
+            }}
+            QLabel#PanelTitle {{
+                color: {_dc('text_primary', '#1A202C')};
                 font-size: 16px;
                 font-weight: 900;
-            }
+            }}
         ''')
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(16, 14, 16, 16)
         self.layout.setSpacing(12)
         header = QHBoxLayout()
         icon = QLabel()
-        icon.setPixmap(qta.icon(f'fa5s.{icon_name}', color='#2563eb').pixmap(QSize(18, 18)))
+        icon.setPixmap(qta.icon(f'fa5s.{icon_name}', color=_dc('primary', '#0F3D75')).pixmap(QSize(18, 18)))
         title_label = QLabel(title)
         title_label.setObjectName('PanelTitle')
         title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -166,12 +187,12 @@ class DashboardWidget(QWidget):
         QTimer.singleShot(100, self.refresh_all)
 
     def _build_ui(self):
-        self.setStyleSheet('''
-            QWidget#DashboardWidget { background: #f1f5f9; }
-            QLabel#HeroTitle { color: white; font-size: 25px; font-weight: 900; }
-            QLabel#HeroSubtitle { color: #dbeafe; font-size: 13px; font-weight: 600; }
-            QLabel#StatusPill { color: white; background: rgba(255,255,255,0.18); border-radius: 12px; padding: 7px 12px; font-weight: 800; }
-            QComboBox { min-height: 34px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 4px 8px; background: white; }
+        self.setStyleSheet(f'''
+            QWidget#DashboardWidget {{ background: {_dc('bg_window', '#F5F7FA')}; }}
+            QLabel#HeroTitle {{ color: white; font-size: 25px; font-weight: 900; }}
+            QLabel#HeroSubtitle {{ color: #EAF3FF; font-size: 13px; font-weight: 600; }}
+            QLabel#StatusPill {{ color: white; background: rgba(255,255,255,0.18); border-radius: 12px; padding: 7px 12px; font-weight: 800; }}
+            QComboBox {{ min-height: 34px; border: 1px solid {_dc('border', '#E2E8F0')}; border-radius: 10px; padding: 4px 8px; background: {_dc('input_bg', '#FFFFFF')}; }}
         ''')
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -197,30 +218,30 @@ class DashboardWidget(QWidget):
         hero = QFrame()
         hero.setObjectName('DashboardHero')
         hero.setMinimumHeight(128)
-        hero.setStyleSheet('''
-            QFrame#DashboardHero {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0f172a, stop:0.55 #1d4ed8, stop:1 #0ea5e9);
+        hero.setStyleSheet(f'''
+            QFrame#DashboardHero {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {_dc('primary', '#0F3D75')}, stop:0.58 {_dc('primary_2', '#1E5AA8')}, stop:1 {_dc('accent', '#2D7FF9')});
                 border-radius: 22px;
-            }
-            QPushButton#HeroButton {
+            }}
+            QPushButton#HeroButton {{
                 background: white;
-                color: #0f172a;
+                color: {_dc('primary', '#0F3D75')};
                 border: none;
                 border-radius: 14px;
                 padding: 10px 16px;
                 font-weight: 900;
-            }
-            QPushButton#HeroButton:hover { background: #e0f2fe; }
+            }}
+            QPushButton#HeroButton:hover {{ background: {_dc('brand_soft', '#EAF1F8')}; }}
         ''')
         layout = QHBoxLayout(hero)
         layout.setContentsMargins(20, 16, 20, 16)
         layout.setSpacing(16)
 
         text_col = QVBoxLayout()
-        title = QLabel('لوحة التحكم التشغيلية')
+        title = QLabel('لوحة تحكم الراجحي')
         title.setObjectName('HeroTitle')
         title.setAlignment(Qt.AlignRight)
-        subtitle = QLabel('ملخص سريع للمبيعات، المشتريات، النقدية، التنبيهات، والتزامن')
+        subtitle = QLabel('نظرة تشغيلية موحدة للمحاسبة، المستودعات، التصنيع، والتنبيهات')
         subtitle.setObjectName('HeroSubtitle')
         subtitle.setAlignment(Qt.AlignRight)
         text_col.addWidget(title)
@@ -556,15 +577,15 @@ class DashboardWidget(QWidget):
         panel.layout.addStretch(1)
         panel.layout.addWidget(logo)
 
-        title = QLabel('الراجحي للمحاسبة والمستودعات والتصنيع')
+        title = QLabel(_dashboard_product_name())
         title.setAlignment(Qt.AlignCenter)
         title.setWordWrap(True)
-        title.setStyleSheet('font-size: 19px; font-weight: 900; color: #0f172a; border: none;')
+        title.setStyleSheet(f"font-size: 19px; font-weight: 900; color: {_dc('text_primary', '#1A202C')}; border: none;")
         panel.layout.addWidget(title)
 
         subtitle = QLabel('نظام إدارة متكامل')
         subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet('font-size: 12px; font-weight: 800; color: #64748b; border: none;')
+        subtitle.setStyleSheet(f"font-size: 12px; font-weight: 800; color: {_dc('text_secondary', '#4A5568')}; border: none;")
         panel.layout.addWidget(subtitle)
         panel.layout.addStretch(1)
         return panel

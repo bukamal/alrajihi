@@ -18,6 +18,7 @@ from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
 from ui.form_validation import FormValidator, make_error_label
 import qtawesome as qta
+from theme_manager import ThemeManager
 
 
 def _money_decimal(value):
@@ -412,116 +413,49 @@ class InvoiceDialog(CenteredDialog):
                 self.update_total_display()
 
     def _invoice_accent(self):
-        return "#2563eb" if self.inv_type == 'sale' else "#7c3aed"
+        c = ThemeManager.colors()
+        return c['primary'] if self.inv_type == 'sale' else c.get('primary_2', c['primary'])
 
     def _apply_modern_invoice_style(self):
+        c = ThemeManager.colors()
         accent = self._invoice_accent()
         self.setStyleSheet(f"""
-            QDialog {{
-                background: #f8fafc;
+            QDialog {{ background: {c['bg_window']}; color: {c['text_primary']}; }}
+            QLabel#DialogTitle {{ color: {c['primary']}; font-size: 21px; font-weight: 900; }}
+            QLabel#DialogSubtitle {{ color: {c['text_secondary']}; font-size: 12px; }}
+            QFrame#HeaderCard, QFrame#TotalsCard, QFrame#ActionCard, QFrame#RightPanel {{
+                background: {c['card_bg']}; border: 1px solid {c['border']}; border-radius: 14px;
             }}
-            QLabel#DialogTitle {{
-                color: #0f172a;
-                font-size: 21px;
-                font-weight: 800;
+            QLabel#SectionTitle {{ color: {c['text_primary']}; font-size: 14px; font-weight: 800; }}
+            QLabel#muted {{ color: {c['text_secondary']}; font-size: 11px; }}
+            QLineEdit, QComboBox, QDateEdit, QDoubleSpinBox, QTextEdit {{
+                min-height: 34px; border: 1px solid {c['border']}; border-radius: 9px; padding: 5px 9px;
+                background: {c['input_bg']}; color: {c['text_primary']}; font-size: 13px;
+                selection-background-color: {c['selection_bg']}; selection-color: {c['selection_text']};
             }}
-            QLabel#DialogSubtitle {{
-                color: #64748b;
-                font-size: 12px;
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QDoubleSpinBox:focus, QTextEdit:focus {{
+                border: 1px solid {c['border_focus']}; background: {c['input_bg']};
             }}
-            QFrame#HeaderCard, QFrame#TotalsCard, QFrame#ActionCard {{
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-radius: 14px;
+            QTableView, QTableWidget {{
+                background: {c['bg_table']}; color: {c['text_primary']}; alternate-background-color: {c['bg_table_alt']};
+                gridline-color: {c['border']}; border: 1px solid {c['border']}; border-radius: 12px;
+                selection-background-color: {c['selection_bg']}; selection-color: {c['selection_text']}; outline: 0;
             }}
-            QFrame#RightPanel {{
-                background: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-radius: 14px;
-            }}
-            QLabel#SectionTitle {{
-                color: #0f172a;
-                font-size: 14px;
-                font-weight: 700;
-            }}
-            QLabel#muted {{
-                color: #64748b;
-                font-size: 11px;
-            }}
-            QLineEdit, QComboBox, QDateEdit, QDoubleSpinBox {{
-                min-height: 34px;
-                border: 1px solid #cbd5e1;
-                border-radius: 9px;
-                padding: 5px 9px;
-                background: #ffffff;
-                font-size: 13px;
-            }}
-            QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QDoubleSpinBox:focus {{
-                border: 1px solid {accent};
-                background: #f8fbff;
-            }}
-            QTextEdit {{
-                border: 1px solid #cbd5e1;
-                border-radius: 9px;
-                padding: 7px;
-                background: #ffffff;
-            }}
-            QTableView {{
-                background: #ffffff;
-                alternate-background-color: #f8fafc;
-                gridline-color: #e2e8f0;
-                border: 1px solid #e2e8f0;
-                border-radius: 12px;
-                selection-background-color: #dbeafe;
-                selection-color: #0f172a;
-            }}
+            QTableView::item, QTableWidget::item {{ padding: 6px; border-bottom: 1px solid {c['border']}; }}
+            QTableView::item:hover, QTableWidget::item:hover {{ background: {c['brand_soft']}; }}
             QHeaderView::section {{
-                background: #f1f5f9;
-                color: #0f172a;
-                font-weight: 700;
-                padding: 8px;
-                border: none;
-                border-left: 1px solid #e2e8f0;
+                background: {c['header_bg']}; color: {c['header_text']}; font-weight: 800; padding: 8px;
+                border: none; border-left: 1px solid {c['border']};
             }}
             QPushButton {{
-                min-height: 34px;
-                border-radius: 9px;
-                padding: 6px 12px;
-                border: 1px solid #cbd5e1;
-                background: #ffffff;
-                color: #0f172a;
-                font-weight: 600;
+                min-height: 34px; border-radius: 9px; padding: 6px 12px; border: 1px solid {c['border']};
+                background: {c['bg_panel']}; color: {c['text_primary']}; font-weight: 700;
             }}
-            QPushButton:hover {{ background: #f1f5f9; }}
-            QPushButton#primary {{
-                background: {accent};
-                color: white;
-                border: 1px solid {accent};
-            }}
-            QPushButton#danger {{
-                color: #b91c1c;
-                border-color: #fecaca;
-                background: #fff1f2;
-            }}
-            QPushButton#softAction {{
-                background: #f8fafc;
-            }}
-            QLabel#TotalMain {{
-                color: {accent};
-                font-size: 18px;
-                font-weight: 800;
-            }}
-            QLabel#TotalPaid {{
-                color: #15803d;
-                font-size: 14px;
-                font-weight: 800;
-            }}
-            QLabel#TotalRemaining {{
-                color: #b91c1c;
-                font-size: 14px;
-                font-weight: 800;
-            }}
+            QPushButton:hover {{ background: {c['brand_soft']}; border-color: {c['primary']}; }}
+            QPushButton#primary {{ background: {accent}; color: white; border: 1px solid {accent}; }}
+            QPushButton#danger {{ background: {c['danger_soft']}; color: {c['danger']}; border: 1px solid {c['danger']}; }}
         """)
+
 
     def _make_field_block(self, label_text, widget, stretch=1):
         box = QWidget()

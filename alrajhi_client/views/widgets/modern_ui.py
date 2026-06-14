@@ -7,123 +7,151 @@ match the invoice/material visual language without a risky rewrite.
 """
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QLabel, QFrame, QHBoxLayout, QVBoxLayout, QLayout, QTableView, QTableWidget, QPushButton, QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QTextEdit, QGroupBox, QTabWidget, QDialogButtonBox
+from theme_manager import ThemeManager
 
 
-_MODERN_WIDGET_STYLE = """
-QWidget {
-    background: #f6f8fb;
-    color: #172033;
+def _modern_widget_style() -> str:
+    """Return page/dialog QSS from the active Al Rajhi Design System tokens.
+
+    This replaces the former hard-coded blue/gray stylesheet while keeping the
+    same safe per-page application model: no global event filter and no runtime
+    mutation of newly created widgets.
+    """
+    c = ThemeManager.colors()
+    return f"""
+QWidget {{
+    background: {c['bg_window']};
+    color: {c['text_primary']};
     font-size: 13px;
-}
-QFrame#ModernPageHeader, QFrame#ModernSectionCard {
-    background: #ffffff;
-    border: 1px solid #dfe5ef;
+}}
+QFrame#ModernPageHeader, QFrame#ModernSectionCard {{
+    background: {c['card_bg']};
+    border: 1px solid {c['border']};
     border-radius: 12px;
-}
-QLabel#ModernPageTitle {
+}}
+QLabel#ModernPageTitle {{
     font-size: 20px;
-    font-weight: 700;
-    color: #0f172a;
+    font-weight: 800;
+    color: {c['primary']};
     background: transparent;
-}
-QLabel#ModernPageSubtitle, QLabel#muted, QLabel[muted="true"] {
-    color: #64748b;
+}}
+QLabel#ModernPageSubtitle, QLabel#muted, QLabel[muted="true"] {{
+    color: {c['text_secondary']};
     background: transparent;
-}
-QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QTextEdit {
-    background: #ffffff;
-    border: 1px solid #cfd8e6;
+}}
+QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QTextEdit {{
+    background: {c['input_bg']};
+    color: {c['text_primary']};
+    border: 1px solid {c['border']};
     border-radius: 9px;
     padding: 7px 10px;
     min-height: 30px;
-    selection-background-color: #2563eb;
-}
-QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QTextEdit:focus {
-    border: 1px solid #2563eb;
-}
-QPushButton {
-    background: #ffffff;
-    border: 1px solid #cfd8e6;
+    selection-background-color: {c['selection_bg']};
+    selection-color: {c['selection_text']};
+}}
+QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QTextEdit:focus {{
+    border: 1px solid {c['border_focus']};
+}}
+QPushButton {{
+    background: {c['bg_panel']};
+    color: {c['text_primary']};
+    border: 1px solid {c['border']};
     border-radius: 9px;
     padding: 7px 14px;
     min-height: 30px;
-    font-weight: 600;
-}
-QPushButton:hover { background: #f1f5f9; }
-QPushButton:disabled { color: #94a3b8; background: #f8fafc; }
-QPushButton#primary {
-    background: #2563eb;
-    border-color: #2563eb;
+    font-weight: 700;
+}}
+QPushButton:hover {{ background: {c['brand_soft']}; border-color: {c['primary']}; }}
+QPushButton:disabled {{ color: {c['text_muted']}; background: {c['bg_window']}; }}
+QPushButton#primary {{
+    background: {c['primary']};
+    border-color: {c['primary']};
     color: #ffffff;
-}
-QPushButton#primary:hover { background: #1d4ed8; }
-QPushButton#danger {
-    background: #fee2e2;
-    border-color: #fecaca;
-    color: #b91c1c;
-}
-QTableView, QTableWidget {
-    background: #ffffff;
-    border: 1px solid #dfe5ef;
+}}
+QPushButton#primary:hover {{ background: {c['primary_hover']}; }}
+QPushButton#danger {{
+    background: {c['danger_soft']};
+    border-color: {c['danger']};
+    color: {c['danger']};
+}}
+QTableView, QTableWidget, QTreeView, QTreeWidget {{
+    background: {c['bg_table']};
+    color: {c['text_primary']};
+    border: 1px solid {c['border']};
     border-radius: 12px;
-    gridline-color: #e5e7eb;
-    alternate-background-color: #f8fafc;
-    selection-background-color: #dbeafe;
-    selection-color: #0f172a;
-}
-QHeaderView::section {
-    background: #eef2f7;
-    color: #172033;
+    gridline-color: {c['border']};
+    alternate-background-color: {c['bg_table_alt']};
+    selection-background-color: {c['selection_bg']};
+    selection-color: {c['selection_text']};
+    outline: 0;
+}}
+QTableView::item, QTableWidget::item, QTreeView::item, QTreeWidget::item {{
+    padding: 6px;
+    border-bottom: 1px solid {c['border']};
+}}
+QTableView::item:hover, QTableWidget::item:hover, QTreeView::item:hover, QTreeWidget::item:hover {{
+    background: {c['brand_soft']};
+}}
+QHeaderView::section {{
+    background: {c['header_bg']};
+    color: {c['header_text']};
     padding: 8px;
     border: 0;
-    border-left: 1px solid #dfe5ef;
-    font-weight: 700;
-}
-QTabWidget::pane {
-    border: 1px solid #dfe5ef;
+    border-left: 1px solid {c['border']};
+    font-weight: 800;
+}}
+QTabWidget::pane {{
+    border: 1px solid {c['border']};
     border-radius: 12px;
-    background: #ffffff;
+    background: {c['bg_window']};
     top: -1px;
-}
-QTabBar::tab {
-    background: #eef2f7;
-    border: 1px solid #dfe5ef;
+}}
+QTabWidget QWidget {{
+    background: {c['bg_window']};
+    color: {c['text_primary']};
+}}
+QTabBar::tab {{
+    background: {c['bg_panel']};
+    color: {c['text_secondary']};
+    border: 1px solid {c['border']};
     padding: 9px 18px;
     margin-left: 4px;
     border-top-left-radius: 9px;
     border-top-right-radius: 9px;
-    font-weight: 600;
-}
-QTabBar::tab:selected {
-    background: #ffffff;
-    color: #2563eb;
-}
-QGroupBox {
-    background: #ffffff;
-    border: 1px solid #dfe5ef;
+    font-weight: 700;
+}}
+QTabBar::tab:hover {{ background: {c['brand_soft']}; color: {c['primary']}; }}
+QTabBar::tab:selected {{
+    background: {c['primary']};
+    color: #ffffff;
+}}
+QGroupBox {{
+    background: {c['card_bg']};
+    border: 1px solid {c['border']};
     border-radius: 12px;
     margin-top: 12px;
     padding: 12px;
-    font-weight: 700;
-}
-QGroupBox::title {
+    font-weight: 800;
+}}
+QGroupBox::title {{
     subcontrol-origin: margin;
     right: 14px;
     padding: 0 6px;
-    color: #0f172a;
-}
-QFrame#ModernToolbar, QFrame#ModernActionBar {
-    background: #ffffff;
-    border: 1px solid #dfe5ef;
+    color: {c['primary']};
+    background: {c['card_bg']};
+}}
+QFrame#ModernToolbar, QFrame#ModernActionBar {{
+    background: {c['card_bg']};
+    border: 1px solid {c['border']};
     border-radius: 12px;
-}
-QDialogButtonBox QPushButton {
+}}
+QDialogButtonBox QPushButton {{
     min-width: 92px;
-}
-QScrollArea {
+}}
+QScrollArea {{
     border: none;
     background: transparent;
-}
+}}
 """
 
 
@@ -197,7 +225,7 @@ def apply_modern_widget(widget, title: str = '', subtitle: str = ''):
     widget.setLayoutDirection(Qt.RightToLeft)
     current = widget.styleSheet() or ''
     if 'ModernPageHeader' not in current:
-        widget.setStyleSheet(current + '\n' + _MODERN_WIDGET_STYLE)
+        widget.setStyleSheet(current + '\n' + _modern_widget_style())
     layout = widget.layout()
     _normalize_layout(layout)
     if title and layout is not None:
@@ -231,7 +259,7 @@ def apply_modern_dialog(dialog, title: str = ''):
     dialog.setLayoutDirection(Qt.RightToLeft)
     current = dialog.styleSheet() or ''
     if 'ModernPageHeader' not in current:
-        dialog.setStyleSheet(current + '\n' + _MODERN_WIDGET_STYLE)
+        dialog.setStyleSheet(current + '\n' + _modern_widget_style())
     try:
         dialog.resize(max(dialog.width(), 520), max(dialog.height(), 360))
     except Exception:

@@ -30,8 +30,8 @@ class DesignSystem:
             return f"""
                 QFrame#startupCard {{
                     background-color: qlineargradient(x1:0,y1:0,x2:1,y2:1,
-                        stop:0 {DesignSystem.color('primary', '#4f46e5')},
-                        stop:1 {DesignSystem.color('primary_2', '#7c3aed')});
+                        stop:0 {DesignSystem.color('primary', '#0F3D75')},
+                        stop:1 {DesignSystem.color('primary_2', '#1E5AA8')});
                     border-radius: {DesignSystem.RADIUS_LG}px;
                     border: 1px solid rgba(255,255,255,0.22);
                 }}
@@ -57,7 +57,7 @@ class DesignSystem:
         label = QLabel(text)
         label.setObjectName('heroTitle')
         label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet(f"font-size: {size}px; font-weight: 800; color: {DesignSystem.color('text_primary', '#111827')};")
+        label.setStyleSheet(f"font-size: {size}px; font-weight: 800; color: {DesignSystem.color('text_primary', '#1A202C')};")
         return label
 
     @staticmethod
@@ -66,7 +66,7 @@ class DesignSystem:
         label.setObjectName('heroSubtitle')
         label.setAlignment(Qt.AlignCenter)
         label.setWordWrap(True)
-        label.setStyleSheet(f"font-size: 13px; color: {DesignSystem.color('text_secondary', '#475569')};")
+        label.setStyleSheet(f"font-size: 13px; color: {DesignSystem.color('text_secondary', '#4A5568')};")
         return label
 
     @staticmethod
