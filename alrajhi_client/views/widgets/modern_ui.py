@@ -39,6 +39,15 @@ QLabel#ModernPageSubtitle, QLabel#muted, QLabel[muted="true"] {{
     color: {c['text_secondary']};
     background: transparent;
 }}
+
+QLabel#ModernInfoBox, QLabel#ModernSummaryBox {{
+    background: {c['brand_soft']};
+    color: {c['text_secondary']};
+    border: 1px solid {c['border']};
+    border-radius: 10px;
+    padding: 10px;
+    font-weight: 700;
+}}
 QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QTextEdit {{
     background: {c['input_bg']};
     color: {c['text_primary']};

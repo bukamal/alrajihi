@@ -16,6 +16,7 @@ from auth.activation import activate_network, check_network_activation
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from utils import show_toast
+from i18n.translator import translate, set_language, available_languages, normalize_language, qt_layout_direction
 import requests
 import os
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
@@ -26,7 +27,9 @@ class SettingsWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self._current_language = normalize_language(settings_service.get_language())
+        set_language(self._current_language)
+        self.setLayoutDirection(qt_layout_direction(self._current_language))
         self.settings = settings_service
         self.setObjectName('settingsWidget')
 
@@ -38,14 +41,14 @@ class SettingsWidget(QWidget):
         self.tabs = QTabWidget()
         self.tabs.setObjectName('settingsTabs')
         self.tabs.setDocumentMode(True)
-        self.tabs.addTab(self.create_appearance_tab(), '🎨 المظهر')
-        self.tabs.addTab(self.create_company_tab(), '🏢 الشركة')
-        self.tabs.addTab(self.create_printing_tab(), '🖨️ الطباعة')
-        self.tabs.addTab(self.create_pos_tab(), '🧾 نقطة البيع')
-        self.tabs.addTab(self.create_currency_tab(), '💰 العملات')
-        self.tabs.addTab(self.create_rates_tab(), '💱 أسعار الصرف')
-        self.tabs.addTab(self.create_network_tab(), '🌐 الشبكة')
-        self.tabs.addTab(self.create_backup_tab(), '💾 النسخ والبيانات')
+        self.tabs.addTab(self.create_appearance_tab(), '🎨 ' + translate('appearance'))
+        self.tabs.addTab(self.create_company_tab(), '🏢 ' + translate('company'))
+        self.tabs.addTab(self.create_printing_tab(), '🖨️ ' + translate('printing_tab'))
+        self.tabs.addTab(self.create_pos_tab(), '🧾 ' + translate('pos_tab'))
+        self.tabs.addTab(self.create_currency_tab(), '💰 ' + translate('currencies'))
+        self.tabs.addTab(self.create_rates_tab(), '💱 ' + translate('exchange_rates'))
+        self.tabs.addTab(self.create_network_tab(), '🌐 ' + translate('network'))
+        self.tabs.addTab(self.create_backup_tab(), '💾 ' + translate('backup_data'))
         main.addWidget(self.tabs, 1)
 
         self._apply_local_style()
@@ -84,15 +87,15 @@ class SettingsWidget(QWidget):
         layout.setContentsMargins(18, 16, 18, 16)
         layout.setSpacing(12)
         texts = QVBoxLayout()
-        title = QLabel('الإعدادات')
+        title = QLabel(translate('settings_header_title'))
         title.setObjectName('settingsTitle')
-        subtitle = QLabel('إدارة المظهر، الشركة، الطباعة، العملات، الشبكة، والنسخ الاحتياطي من مكان واحد.')
+        subtitle = QLabel(translate('settings_header_subtitle'))
         subtitle.setObjectName('settingsSubtitle')
         subtitle.setWordWrap(True)
         texts.addWidget(title)
         texts.addWidget(subtitle)
         layout.addLayout(texts, 1)
-        self.settings_status = DesignSystem.status_pill('جاهز', 'success')
+        self.settings_status = DesignSystem.status_pill(translate('ready'), 'success')
         layout.addWidget(self.settings_status, 0, Qt.AlignVCenter)
         return frame
 
@@ -163,15 +166,22 @@ class SettingsWidget(QWidget):
 
     def create_appearance_tab(self):
         scroll, layout = self._scroll_tab()
-        group, form = self._form_card('إعدادات المظهر', 'تغيير شكل التطبيق وحفظه للتشغيل القادم.')
+        group, form = self._form_card(translate('appearance_settings'), translate('appearance_help'))
         self.theme_combo = QComboBox()
-        self.theme_combo.addItem('فاتح', 'light')
-        self.theme_combo.addItem('داكن', 'dark')
+        self.theme_combo.addItem(translate('light_theme'), 'light')
+        self.theme_combo.addItem(translate('dark_theme'), 'dark')
         current_theme = settings_service.get_theme()
         self.theme_combo.setCurrentIndex(1 if current_theme == 'dark' else 0)
-        form.addRow('الثيم:', self.theme_combo)
-        form.addRow(self._note('سيتم تطبيق الثيم فورًا على النافذة الحالية، ويُحفظ تلقائيًا للمرة القادمة.', 'info'))
-        apply_btn = QPushButton('تطبيق وحفظ المظهر')
+        form.addRow(translate('theme_label'), self.theme_combo)
+        self.language_combo = QComboBox()
+        for code, label in available_languages():
+            self.language_combo.addItem(label, code)
+        lang_index = self.language_combo.findData(self._current_language)
+        if lang_index >= 0:
+            self.language_combo.setCurrentIndex(lang_index)
+        form.addRow(translate('language_label'), self.language_combo)
+        form.addRow(self._note(translate('language_settings_note'), 'info'))
+        apply_btn = QPushButton(translate('apply_save_appearance'))
         apply_btn.setObjectName('primary')
         apply_btn.clicked.connect(self.save_appearance_settings)
         form.addRow(self._button_row(apply_btn))
@@ -182,12 +192,12 @@ class SettingsWidget(QWidget):
 
     def create_pos_tab(self):
         scroll, layout = self._scroll_tab()
-        group, form = self._form_card('إعدادات نقطة البيع', 'الورديات اختيارية. عند تعطيلها يسجل POS البيع مباشرة على الصندوق الافتراضي دون فتح أو إغلاق وردية.')
-        self.pos_use_shifts_check = QCheckBox('تفعيل ورديات الكاشير في POS')
+        group, form = self._form_card(translate('settings_pos_title'), translate('settings_pos_help'))
+        self.pos_use_shifts_check = QCheckBox(translate('settings_pos_enable_shifts'))
         self.pos_use_shifts_check.setChecked(settings_service.pos_shifts_enabled())
         form.addRow('', self.pos_use_shifts_check)
-        form.addRow(self._note('افتراضيًا الورديات معطلة. لا تُحذف بيانات الورديات القديمة، وتبقى للتقارير والأرشفة.', 'info'))
-        save_btn = QPushButton('حفظ إعدادات نقطة البيع')
+        form.addRow(self._note(translate('settings_pos_default_note'), 'info'))
+        save_btn = QPushButton(translate('settings_pos_save'))
         save_btn.setObjectName('primary')
         save_btn.clicked.connect(self.save_pos_settings)
         form.addRow(self._button_row(save_btn))
@@ -198,33 +208,33 @@ class SettingsWidget(QWidget):
     def save_pos_settings(self):
         try:
             settings_service.save_pos_settings(self.pos_use_shifts_check.isChecked())
-            show_toast('تم حفظ إعدادات نقطة البيع', 'success', self)
+            show_toast(translate('settings_pos_saved'), 'success', self)
         except Exception as e:
-            QMessageBox.warning(self, 'خطأ', str(e))
+            QMessageBox.warning(self, translate('error'), str(e))
 
     def create_company_tab(self):
         scroll, layout = self._scroll_tab()
-        group, form = self._form_card('معلومات الشركة', 'تظهر هذه البيانات في الفواتير والسندات والتقارير المطبوعة.')
+        group, form = self._form_card(translate('settings_company_title'), translate('settings_company_help'))
         from config import get_company_info
         info = get_company_info()
         self.company_name_edit = QLineEdit(info.get('name', ''))
-        form.addRow('اسم الشركة:', self.company_name_edit)
+        form.addRow(translate('settings_company_name_label'), self.company_name_edit)
         self.company_address_edit = QLineEdit(info.get('address', ''))
-        form.addRow('العنوان:', self.company_address_edit)
+        form.addRow(translate('settings_company_address_label'), self.company_address_edit)
         self.company_phone_edit = QLineEdit(info.get('phone', ''))
-        form.addRow('الهاتف:', self.company_phone_edit)
+        form.addRow(translate('settings_company_phone_label'), self.company_phone_edit)
         self.company_email_edit = QLineEdit(info.get('email', ''))
-        form.addRow('البريد الإلكتروني:', self.company_email_edit)
+        form.addRow(translate('settings_company_email_label'), self.company_email_edit)
         self.company_tax_number_edit = QLineEdit(info.get('tax_number', ''))
-        form.addRow('الرقم الضريبي:', self.company_tax_number_edit)
+        form.addRow(translate('settings_company_tax_label'), self.company_tax_number_edit)
         self.company_logo_path_edit = QLineEdit(info.get('logo_path', ''))
-        logo_btn = QPushButton('اختيار شعار')
+        logo_btn = QPushButton(translate('settings_company_choose_logo'))
         logo_btn.clicked.connect(self.browse_logo)
         logo_row = QHBoxLayout()
         logo_row.addWidget(self.company_logo_path_edit, 1)
         logo_row.addWidget(logo_btn)
-        form.addRow('شعار الشركة:', logo_row)
-        save_company_btn = QPushButton('حفظ معلومات الشركة')
+        form.addRow(translate('settings_company_logo_label'), logo_row)
+        save_company_btn = QPushButton(translate('settings_company_save'))
         save_company_btn.setObjectName('primary')
         save_company_btn.clicked.connect(self.save_company_info)
         form.addRow(self._button_row(save_company_btn))
@@ -236,85 +246,85 @@ class SettingsWidget(QWidget):
         scroll, layout = self._scroll_tab()
         cfg = settings_service.get_printing_settings()
 
-        templates_group, form = self._form_card('قوالب HTML الموحدة', 'هذه الإعدادات تغذي قالب HTML واحد للفواتير، السندات، المرتجعات، الجداول، التقارير وملفات PDF.')
+        templates_group, form = self._form_card(translate('settings_print_templates_title'), translate('settings_print_templates_help'))
         self.print_invoice_template = QComboBox()
-        self.print_invoice_template.addItem('A4 احترافي', 'a4')
-        self.print_invoice_template.addItem('حراري 80mm', 'thermal80')
-        self.print_invoice_template.addItem('حراري 58mm', 'thermal58')
+        self.print_invoice_template.addItem(translate('settings_print_template_a4'), 'a4')
+        self.print_invoice_template.addItem(translate('settings_print_template_thermal80'), 'thermal80')
+        self.print_invoice_template.addItem(translate('settings_print_template_thermal58'), 'thermal58')
         idx = self.print_invoice_template.findData(cfg.get('invoice_template', 'a4'))
         self.print_invoice_template.setCurrentIndex(max(0, idx))
-        form.addRow('قالب الفاتورة:', self.print_invoice_template)
+        form.addRow(translate('settings_print_invoice_template_label'), self.print_invoice_template)
 
         self.print_report_template = QComboBox()
-        self.print_report_template.addItem('A4 احترافي', 'a4')
-        self.print_report_template.addItem('حراري 80mm', 'thermal80')
-        self.print_report_template.addItem('حراري 58mm', 'thermal58')
+        self.print_report_template.addItem(translate('settings_print_template_a4'), 'a4')
+        self.print_report_template.addItem(translate('settings_print_template_thermal80'), 'thermal80')
+        self.print_report_template.addItem(translate('settings_print_template_thermal58'), 'thermal58')
         idx = self.print_report_template.findData(cfg.get('report_template', 'a4'))
         self.print_report_template.setCurrentIndex(max(0, idx))
-        form.addRow('قالب التقارير والجداول:', self.print_report_template)
+        form.addRow(translate('settings_print_report_template_label'), self.print_report_template)
 
         self.print_voucher_template = QComboBox()
-        self.print_voucher_template.addItem('A4 احترافي', 'a4')
-        self.print_voucher_template.addItem('حراري 80mm', 'thermal80')
-        self.print_voucher_template.addItem('حراري 58mm', 'thermal58')
+        self.print_voucher_template.addItem(translate('settings_print_template_a4'), 'a4')
+        self.print_voucher_template.addItem(translate('settings_print_template_thermal80'), 'thermal80')
+        self.print_voucher_template.addItem(translate('settings_print_template_thermal58'), 'thermal58')
         idx = self.print_voucher_template.findData(cfg.get('voucher_template', 'a4'))
         self.print_voucher_template.setCurrentIndex(max(0, idx))
-        form.addRow('قالب السندات:', self.print_voucher_template)
+        form.addRow(translate('settings_print_voucher_template_label'), self.print_voucher_template)
 
         self.print_return_template = QComboBox()
-        self.print_return_template.addItem('A4 احترافي', 'a4')
-        self.print_return_template.addItem('حراري 80mm', 'thermal80')
-        self.print_return_template.addItem('حراري 58mm', 'thermal58')
+        self.print_return_template.addItem(translate('settings_print_template_a4'), 'a4')
+        self.print_return_template.addItem(translate('settings_print_template_thermal80'), 'thermal80')
+        self.print_return_template.addItem(translate('settings_print_template_thermal58'), 'thermal58')
         idx = self.print_return_template.findData(cfg.get('return_template', cfg.get('invoice_template', 'a4')))
         self.print_return_template.setCurrentIndex(max(0, idx))
-        form.addRow('قالب المرتجعات:', self.print_return_template)
+        form.addRow(translate('settings_print_return_template_label'), self.print_return_template)
 
         self.print_thermal_size = QComboBox()
         self.print_thermal_size.addItems(['80mm', '58mm'])
         self.print_thermal_size.setCurrentText(cfg.get('thermal_size', '80mm'))
-        form.addRow('حجم الطابعة الحرارية الافتراضي:', self.print_thermal_size)
+        form.addRow(translate('settings_print_thermal_size_label'), self.print_thermal_size)
         layout.addWidget(templates_group)
 
-        identity_group, identity_form = self._form_card('هوية الطباعة', 'ضبط الرأس، الألوان، الخط، الشعار، QR والتذييل لكل مستند مطبوع أو محفوظ كـ PDF.')
-        self.print_show_logo = QCheckBox('إظهار شعار الشركة في رأس المستند')
+        identity_group, identity_form = self._form_card(translate('settings_print_identity_title'), translate('settings_print_identity_help'))
+        self.print_show_logo = QCheckBox(translate('settings_print_show_logo'))
         self.print_show_logo.setChecked(bool(cfg.get('show_logo', True)))
         identity_form.addRow(self.print_show_logo)
 
-        self.print_show_tax = QCheckBox('إظهار الرقم الضريبي')
+        self.print_show_tax = QCheckBox(translate('settings_print_show_tax'))
         self.print_show_tax.setChecked(bool(cfg.get('show_tax_number', True)))
         identity_form.addRow(self.print_show_tax)
 
-        self.print_show_qr = QCheckBox('إظهار QR في الفواتير والمرتجعات')
+        self.print_show_qr = QCheckBox(translate('settings_print_show_qr'))
         self.print_show_qr.setChecked(bool(cfg.get('show_qr', True)))
         identity_form.addRow(self.print_show_qr)
 
         self.print_accent_color = QLineEdit(cfg.get('accent_color', '#1d4ed8'))
         self.print_accent_color.setPlaceholderText('#1d4ed8')
-        identity_form.addRow('لون العنوان والجداول:', self.print_accent_color)
+        identity_form.addRow(translate('settings_print_accent_color_label'), self.print_accent_color)
 
         self.print_font_family = QLineEdit(cfg.get('font_family', 'Tajawal, Arial, DejaVu Sans, sans-serif'))
-        identity_form.addRow('خط الطباعة:', self.print_font_family)
+        identity_form.addRow(translate('settings_print_font_label'), self.print_font_family)
 
         self.print_font_size = QComboBox()
         self.print_font_size.addItems(['9.5pt', '10pt', '10.5pt', '11pt', '12pt'])
         self.print_font_size.setCurrentText(cfg.get('print_font_size', '10.5pt'))
-        identity_form.addRow('حجم خط A4:', self.print_font_size)
+        identity_form.addRow(translate('settings_print_font_size_label'), self.print_font_size)
 
-        self.print_zebra_rows = QCheckBox('تظليل الصفوف بالتناوب في الجداول')
+        self.print_zebra_rows = QCheckBox(translate('settings_print_zebra_rows'))
         self.print_zebra_rows.setChecked(bool(cfg.get('zebra_rows', True)))
         identity_form.addRow(self.print_zebra_rows)
 
-        self.print_compact_tables = QCheckBox('جداول مضغوطة للكميات الكبيرة')
+        self.print_compact_tables = QCheckBox(translate('settings_print_compact_tables'))
         self.print_compact_tables.setChecked(bool(cfg.get('compact_tables', False)))
         identity_form.addRow(self.print_compact_tables)
 
         self.print_footer = QLineEdit(cfg.get('footer_text', ''))
-        self.print_footer.setPlaceholderText('مثال: شكراً لتعاملكم معنا')
-        identity_form.addRow('تذييل المستندات:', self.print_footer)
+        self.print_footer.setPlaceholderText(translate('settings_print_footer_placeholder'))
+        identity_form.addRow(translate('settings_print_footer_label'), self.print_footer)
         layout.addWidget(identity_group)
 
-        actions_group, actions_box = self._card('الحفظ والتطبيق', 'بعد الحفظ ستستخدم جميع مسارات الطباعة القالب HTML الموحد تلقائياً: Preview، Direct Print، PDF.')
-        save_btn = QPushButton('حفظ إعدادات الطباعة الموحدة')
+        actions_group, actions_box = self._card(translate('settings_print_actions_title'), translate('settings_print_actions_help'))
+        save_btn = QPushButton(translate('settings_print_save'))
         save_btn.setObjectName('primary')
         save_btn.clicked.connect(self.save_printing_settings)
         actions_box.addLayout(self._button_row(save_btn))
@@ -324,65 +334,65 @@ class SettingsWidget(QWidget):
 
     def create_currency_tab(self):
         scroll, layout = self._scroll_tab()
-        group, form = self._form_card('إعدادات العملات', 'اختيار العملة الأساسية والمعروضة وطريقة عرض الأرقام في الواجهة والتقارير.')
+        group, form = self._form_card(translate('settings_currency_title'), translate('settings_currency_help'))
         self.base_curr = QComboBox(); self.base_curr.addItems(['USD', 'SAR', 'SYP', 'EUR', 'GBP', 'AED', 'QAR', 'KWD', 'OMR']); self.base_curr.setCurrentText(currency.get_base_currency())
-        form.addRow('العملة الأساسية:', self.base_curr)
+        form.addRow(translate('settings_currency_base_label'), self.base_curr)
         self.display_curr = QComboBox(); self.display_curr.addItems(['USD', 'SAR', 'SYP', 'EUR', 'GBP', 'AED', 'QAR', 'KWD', 'OMR']); self.display_curr.setCurrentText(currency.get_display_currency())
-        form.addRow('العملة المعروضة:', self.display_curr)
+        form.addRow(translate('settings_currency_display_label'), self.display_curr)
         self.decimals = QSpinBox(); self.decimals.setRange(0, 2); self.decimals.setValue(currency.get_currency_decimals())
-        form.addRow('الخانات العشرية:', self.decimals)
-        self.format_combo = QComboBox(); self.format_combo.addItems(['غربية', 'شرقية'])
+        form.addRow(translate('settings_currency_decimals_label'), self.decimals)
+        self.format_combo = QComboBox(); self.format_combo.addItems([translate('settings_currency_format_western'), translate('settings_currency_format_eastern')])
         current = self.settings.get('number_format', 'western')
         self.format_combo.setCurrentIndex(0 if current == 'western' else 1)
-        form.addRow('تنسيق الأرقام:', self.format_combo)
-        self.abbreviate_check = QCheckBox('اختصار الأعداد الكبيرة (K, M)'); self.abbreviate_check.setChecked(currency.abbreviate_numbers())
+        form.addRow(translate('settings_currency_number_format_label'), self.format_combo)
+        self.abbreviate_check = QCheckBox(translate('settings_currency_abbreviate')); self.abbreviate_check.setChecked(currency.abbreviate_numbers())
         form.addRow(self.abbreviate_check)
-        save_btn = QPushButton('حفظ إعدادات العملة'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_currency_settings)
+        save_btn = QPushButton(translate('settings_currency_save')); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_currency_settings)
         form.addRow(self._button_row(save_btn))
         layout.addWidget(group); layout.addStretch(); return scroll
 
     def create_rates_tab(self):
         scroll, layout = self._scroll_tab()
-        group, box = self._card('أسعار الصرف', 'السعر هنا بصيغة: 1 دولار = قيمة العملة المختارة. يمكن تعديل السعر يدويًا أو جلبه من الإنترنت.')
-        self.rates_table = QTableWidget(); self.rates_table.setColumnCount(3); self.rates_table.setHorizontalHeaderLabels(['العملة', 'السعر', 'آخر تحديث'])
+        group, box = self._card(translate('settings_rates_title'), translate('settings_rates_help'))
+        self.rates_table = QTableWidget(); self.rates_table.setColumnCount(3); self.rates_table.setHorizontalHeaderLabels([translate('settings_rates_currency_col'), translate('settings_rates_rate_col'), translate('settings_rates_updated_col')])
         self.rates_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.rates_table.setAlternatingRowColors(True); self.rates_table.setMinimumHeight(320)
         box.addWidget(self.rates_table)
-        refresh_btn = QPushButton('تحديث الأسعار من الإنترنت'); refresh_btn.clicked.connect(self.fetch_online_rates)
-        save_btn = QPushButton('حفظ إعدادات العملة والأسعار'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_currency_settings)
+        refresh_btn = QPushButton(translate('settings_rates_fetch_online')); refresh_btn.clicked.connect(self.fetch_online_rates)
+        save_btn = QPushButton(translate('settings_rates_save')); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_currency_settings)
         box.addLayout(self._button_row(refresh_btn, save_btn))
         layout.addWidget(group); layout.addStretch(); return scroll
 
     def create_network_tab(self):
         scroll, layout = self._scroll_tab()
         group, form = self._form_card(
-            'إعدادات الشبكة',
-            'تم فصل وضع الاتصال عن تشغيل الخادم. اختر هل يعمل البرنامج محلياً، كعميل يتصل بخادم، أو كجهاز خادم، ثم شغّل خدمة الخادم يدوياً عند الحاجة.'
+            translate('settings_network_title'),
+            translate('settings_network_help')
         )
-        self.mode_combo = QComboBox(); self.mode_combo.addItems(['محلي (بدون شبكة)', 'عميل (اتصال بخادم)', 'خادم / قاعدة محلية مع خدمة اختيارية'])
+        self.mode_combo = QComboBox(); self.mode_combo.addItems([translate('settings_network_mode_local'), translate('settings_network_mode_client'), translate('settings_network_mode_server')])
         settings = QSettings('Alrajhi', 'Accounting')
         current_mode = settings.value('network/mode', 'local')
         self.mode_combo.setCurrentIndex({'local': 0, 'client': 1, 'server': 2}.get(current_mode, 0))
-        form.addRow('وضع الاتصال:', self.mode_combo)
+        form.addRow(translate('settings_network_mode_label'), self.mode_combo)
 
         self.server_url_edit = QLineEdit(settings.value('network/server_url', 'http://localhost:8000'))
-        self.server_url_edit.setPlaceholderText('10.98.199.132 أو http://10.98.199.132:8000')
-        form.addRow('عنوان الخادم للاتصال:', self.server_url_edit)
+        self.server_url_edit.setPlaceholderText(translate('settings_network_server_placeholder'))
+        form.addRow(translate('settings_network_server_url_label'), self.server_url_edit)
 
         self.server_port_spin = QSpinBox(); self.server_port_spin.setRange(1024, 65535); self.server_port_spin.setValue(int(settings.value('server/port', 8000)))
-        form.addRow('منفذ الخادم المحلي:', self.server_port_spin)
+        form.addRow(translate('settings_network_server_port_label'), self.server_port_spin)
 
-        self.server_auto_start_check = QCheckBox('تشغيل الخادم المحلي تلقائياً عند بدء التطبيق')
+        self.server_auto_start_check = QCheckBox(translate('settings_network_autostart_server'))
         self.server_auto_start_check.setChecked(settings.value('server/auto_start', False, type=bool))
         form.addRow(self.server_auto_start_check)
 
         self.server_status_label = QLabel('')
         self.server_status_label.setWordWrap(True)
-        form.addRow('حالة الخادم:', self.server_status_label)
+        form.addRow(translate('settings_network_server_status_label'), self.server_status_label)
 
         server_group, server_box = self._card(
-            'إدارة الخادم المحلي',
-            'تشغيل وإيقاف خدمة API المحلية من مكان واحد، مع معلومات PID ومدة التشغيل ونسخ احتياطي آمن لقاعدة الخادم.'
+            translate('settings_network_server_admin_title'),
+            translate('settings_network_server_admin_help')
         )
         server_grid = QFormLayout()
         self.server_pid_label = QLabel('-')
@@ -392,24 +402,24 @@ class SettingsWidget(QWidget):
         for lbl in (self.server_pid_label, self.server_uptime_label, self.server_db_path_label, self.server_backup_path_label):
             lbl.setWordWrap(True)
         server_grid.addRow('PID:', self.server_pid_label)
-        server_grid.addRow('مدة التشغيل:', self.server_uptime_label)
-        server_grid.addRow('قاعدة الخادم:', self.server_db_path_label)
-        server_grid.addRow('مجلد النسخ:', self.server_backup_path_label)
+        server_grid.addRow(translate('settings_network_uptime_label'), self.server_uptime_label)
+        server_grid.addRow(translate('settings_network_server_db_label'), self.server_db_path_label)
+        server_grid.addRow(translate('settings_network_backup_dir_label'), self.server_backup_path_label)
         server_box.addLayout(server_grid)
-        start_btn = QPushButton('▶ تشغيل الخادم الآن'); start_btn.clicked.connect(self.start_local_server_now)
-        stop_btn = QPushButton('■ إيقاف الخادم'); stop_btn.clicked.connect(self.stop_local_server_now)
-        restart_btn = QPushButton('↻ إعادة تشغيل الخادم'); restart_btn.clicked.connect(self.restart_local_server_now)
-        refresh_btn = QPushButton('🔄 تحديث الحالة'); refresh_btn.clicked.connect(self.refresh_server_status)
-        backup_btn = QPushButton('💾 نسخ احتياطي لقاعدة الخادم'); backup_btn.clicked.connect(self.backup_local_server_database)
-        open_dir_btn = QPushButton('📂 فتح مجلد البيانات'); open_dir_btn.clicked.connect(self.open_local_server_data_dir)
-        test_btn = QPushButton('اختبار الاتصال'); test_btn.clicked.connect(self.test_network_connection)
+        start_btn = QPushButton(translate('settings_network_start_server')); start_btn.clicked.connect(self.start_local_server_now)
+        stop_btn = QPushButton(translate('settings_network_stop_server')); stop_btn.clicked.connect(self.stop_local_server_now)
+        restart_btn = QPushButton(translate('settings_network_restart_server')); restart_btn.clicked.connect(self.restart_local_server_now)
+        refresh_btn = QPushButton(translate('settings_network_refresh_status')); refresh_btn.clicked.connect(self.refresh_server_status)
+        backup_btn = QPushButton(translate('settings_network_backup_server_db')); backup_btn.clicked.connect(self.backup_local_server_database)
+        open_dir_btn = QPushButton(translate('settings_network_open_data_dir')); open_dir_btn.clicked.connect(self.open_local_server_data_dir)
+        test_btn = QPushButton(translate('settings_network_test_connection')); test_btn.clicked.connect(self.test_network_connection)
         server_box.addLayout(self._button_row(start_btn, stop_btn, restart_btn, refresh_btn))
         server_box.addLayout(self._button_row(backup_btn, open_dir_btn, test_btn))
         layout.addWidget(server_group)
 
-        center_group, center_layout = self._card('مركز حالة الشبكة', 'تشخيص مباشر للاتصال، توافق API، ومصدر قاعدة البيانات الفعلي.')
+        center_group, center_layout = self._card(translate('settings_network_center_title'), translate('settings_network_center_help'))
         grid = QFormLayout()
-        self.net_connection_label = QLabel('غير مفحوص')
+        self.net_connection_label = QLabel(translate('settings_network_not_checked'))
         self.net_latency_label = QLabel('-')
         self.net_api_label = QLabel('-')
         self.net_routes_label = QLabel('-')
@@ -418,65 +428,103 @@ class SettingsWidget(QWidget):
         self.net_missing_label = QLabel('-')
         for lbl in (self.net_connection_label, self.net_latency_label, self.net_api_label, self.net_routes_label, self.net_db_label, self.net_counts_label, self.net_missing_label):
             lbl.setWordWrap(True)
-        grid.addRow('حالة الاتصال:', self.net_connection_label)
-        grid.addRow('زمن الاستجابة:', self.net_latency_label)
-        grid.addRow('نسخة API:', self.net_api_label)
-        grid.addRow('عدد المسارات:', self.net_routes_label)
-        grid.addRow('قاعدة البيانات:', self.net_db_label)
-        grid.addRow('عدادات سريعة:', self.net_counts_label)
-        grid.addRow('نواقص التوافق:', self.net_missing_label)
+        grid.addRow(translate('settings_network_connection_status_label'), self.net_connection_label)
+        grid.addRow(translate('settings_network_latency_label'), self.net_latency_label)
+        grid.addRow(translate('settings_network_api_version_label'), self.net_api_label)
+        grid.addRow(translate('settings_network_route_count_label'), self.net_routes_label)
+        grid.addRow(translate('settings_network_database_label'), self.net_db_label)
+        grid.addRow(translate('settings_network_quick_counts_label'), self.net_counts_label)
+        grid.addRow(translate('settings_network_missing_routes_label'), self.net_missing_label)
         center_layout.addLayout(grid)
-        refresh_center_btn = QPushButton('🔎 فحص حالة الشبكة الآن'); refresh_center_btn.clicked.connect(self.refresh_network_center)
-        log_btn = QPushButton('📋 عرض سجل طلبات REST'); log_btn.clicked.connect(self.show_network_request_log)
+        refresh_center_btn = QPushButton(translate('settings_network_check_now')); refresh_center_btn.clicked.connect(self.refresh_network_center)
+        log_btn = QPushButton(translate('settings_network_show_request_log')); log_btn.clicked.connect(self.show_network_request_log)
         center_layout.addLayout(self._button_row(refresh_center_btn, log_btn))
         layout.addWidget(center_group)
 
         form.addRow(self._note(
-            'ملاحظة: وضع “خادم” لا يعني تشغيل الخدمة تلقائياً. تشغيل الخدمة وإيقافها يتمان من هذه الأزرار أو عبر خيار التشغيل التلقائي.',
+            translate('settings_network_server_note'),
             'info'
         ))
 
         network_ok, network_msg = check_network_activation()
         if not network_ok:
-            form.addRow(self._note(f'⚠️ {network_msg}. يلزم تفعيل ميزة الشبكة لاستخدام وضع العميل/الخادم.', 'warning'))
-            activate_btn = QPushButton('🔓 تفعيل الشبكة'); activate_btn.clicked.connect(self.activate_network_dialog)
+            form.addRow(self._note(translate('settings_network_activation_required_warning', message=network_msg), 'warning'))
+            activate_btn = QPushButton(translate('settings_network_activate')); activate_btn.clicked.connect(self.activate_network_dialog)
             form.addRow(self._button_row(activate_btn))
-        save_btn = QPushButton('حفظ إعدادات الشبكة'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_network_settings)
+        save_btn = QPushButton(translate('settings_network_save')); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_network_settings)
         form.addRow(self._button_row(save_btn))
         layout.addWidget(group); layout.addStretch(); self.refresh_server_status(); self.refresh_network_center(); return scroll
 
     def create_backup_tab(self):
         scroll, layout = self._scroll_tab()
-        group, form = self._form_card('النسخ الاحتياطي الدوري', 'تحديد مكان النسخ وجدولة النسخ التلقائي لقواعد البيانات المحلية.')
-        self.backup_enabled = QCheckBox('تفعيل النسخ التلقائي'); form.addRow(self.backup_enabled)
-        self.backup_interval = QSpinBox(); self.backup_interval.setRange(1, 24); self.backup_interval.setSuffix(' ساعة')
-        form.addRow('كل:', self.backup_interval)
-        self.backup_folder = QLineEdit(); self.backup_folder.setPlaceholderText('اختر مجلد النسخ الاحتياطي')
-        browse_btn = QPushButton('استعراض'); browse_btn.clicked.connect(self.browse_backup_folder)
+        group, form = self._form_card(translate('settings_backup_title'), translate('settings_backup_help'))
+        self.backup_enabled = QCheckBox(translate('settings_backup_enable_auto')); form.addRow(self.backup_enabled)
+        self.backup_interval = QSpinBox(); self.backup_interval.setRange(1, 24); self.backup_interval.setSuffix(' ' + translate('hour'))
+        form.addRow(translate('settings_backup_every_label'), self.backup_interval)
+        self.backup_folder = QLineEdit(); self.backup_folder.setPlaceholderText(translate('settings_backup_folder_placeholder'))
+        browse_btn = QPushButton(translate('browse')); browse_btn.clicked.connect(self.browse_backup_folder)
         row = QHBoxLayout(); row.addWidget(self.backup_folder, 1); row.addWidget(browse_btn)
-        form.addRow('مجلد الوجهة:', row)
-        save_backup_btn = QPushButton('حفظ إعدادات النسخ الاحتياطي'); save_backup_btn.setObjectName('primary'); save_backup_btn.clicked.connect(self.save_backup_settings)
+        form.addRow(translate('settings_backup_target_folder_label'), row)
+        save_backup_btn = QPushButton(translate('settings_backup_save')); save_backup_btn.setObjectName('primary'); save_backup_btn.clicked.connect(self.save_backup_settings)
         form.addRow(self._button_row(save_backup_btn)); layout.addWidget(group)
-        instant_group, instant_box = self._card('نسخ احتياطي فوري', 'إنشاء نسخة آمنة الآن باستخدام SQLite online backup مع فحص سلامة الملف.')
-        backup_now_btn = QPushButton('📀 إنشاء نسخة احتياطية الآن'); backup_now_btn.setObjectName('primary'); backup_now_btn.clicked.connect(self.create_backup_now)
+        instant_group, instant_box = self._card(translate('settings_backup_instant_title'), translate('settings_backup_instant_help'))
+        backup_now_btn = QPushButton(translate('settings_backup_create_now')); backup_now_btn.setObjectName('primary'); backup_now_btn.clicked.connect(self.create_backup_now)
         instant_box.addLayout(self._button_row(backup_now_btn)); layout.addWidget(instant_group)
-        manage_group, manage_box = self._card('إدارة قاعدة البيانات', 'التصدير والاستيراد وإعادة التهيئة عمليات حساسة. يتم إنشاء نسخة وقائية قبل الاستعادة أو إعادة التهيئة.')
+        manage_group, manage_box = self._card(translate('settings_database_admin_title'), translate('settings_database_admin_help'))
         manage_layout = QHBoxLayout()
-        self.export_btn = QPushButton('📤 تصدير قاعدة البيانات'); self.export_btn.clicked.connect(self.export_database)
-        self.import_btn = QPushButton('📥 استيراد قاعدة البيانات'); self.import_btn.clicked.connect(self.import_database)
-        self.reset_btn = QPushButton('⚠️ إعادة تهيئة قاعدة البيانات'); self.reset_btn.setObjectName('danger'); self.reset_btn.clicked.connect(self.reset_database)
+        self.export_btn = QPushButton(translate('settings_database_export')); self.export_btn.clicked.connect(self.export_database)
+        self.import_btn = QPushButton(translate('settings_database_import')); self.import_btn.clicked.connect(self.import_database)
+        self.reset_btn = QPushButton(translate('settings_database_reset')); self.reset_btn.setObjectName('danger'); self.reset_btn.clicked.connect(self.reset_database)
         manage_layout.addWidget(self.export_btn); manage_layout.addWidget(self.import_btn); manage_layout.addWidget(self.reset_btn)
         manage_box.addLayout(manage_layout); layout.addWidget(manage_group)
         layout.addStretch(); self.load_backup_settings(); return scroll
 
+
+    def _refresh_language_texts(self):
+        self.setLayoutDirection(qt_layout_direction(self._current_language))
+        try:
+            self.tabs.setTabText(0, '🎨 ' + translate('appearance'))
+            self.tabs.setTabText(1, '🏢 ' + translate('company'))
+            self.tabs.setTabText(2, '🖨️ ' + translate('printing_tab'))
+            self.tabs.setTabText(3, '🧾 ' + translate('pos_tab'))
+            self.tabs.setTabText(4, '💰 ' + translate('currencies'))
+            self.tabs.setTabText(5, '💱 ' + translate('exchange_rates'))
+            self.tabs.setTabText(6, '🌐 ' + translate('network'))
+            self.tabs.setTabText(7, '💾 ' + translate('backup_data'))
+        except Exception:
+            pass
+
     def save_appearance_settings(self):
         theme = self.theme_combo.currentData() or 'light'
-        settings_service.set_theme(theme); ThemeManager.apply_theme(theme, persist=True)
+        lang = normalize_language(self.language_combo.currentData() if hasattr(self, 'language_combo') else self._current_language)
+        settings_service.set_theme(theme)
+        settings_service.set_language(lang)
+        set_language(lang)
+        self._current_language = lang
+        self.setLayoutDirection(qt_layout_direction(lang))
+        ThemeManager.apply_theme(theme, persist=True)
+        self._refresh_language_texts()
         main_window = self.window()
-        if hasattr(main_window, 'top_bar') and hasattr(main_window.top_bar, 'apply_styles'): main_window.top_bar.apply_styles()
+        if hasattr(main_window, 'setLayoutDirection'):
+            main_window.setLayoutDirection(qt_layout_direction(lang))
+        if hasattr(main_window, 'setup_menus'):
+            main_window.setup_menus()
+        if hasattr(main_window, 'top_bar') and hasattr(main_window.top_bar, 'apply_styles'):
+            try:
+                main_window.top_bar.search_box.setPlaceholderText(translate('global_search_placeholder'))
+                main_window.top_bar.alert_btn.setText(translate('alerts'))
+                main_window.top_bar.alert_btn.setToolTip(translate('alerts'))
+                main_window.top_bar.theme_btn.setText(translate('theme'))
+                main_window.top_bar.theme_btn.setToolTip(translate('toggle_theme'))
+            except Exception:
+                pass
+            main_window.top_bar.apply_styles()
         for page in getattr(main_window, 'pages', {}).values():
-            if hasattr(page, 'apply_theme_colors'): page.apply_theme_colors()
-        show_toast('تم تطبيق المظهر', 'success', self)
+            if hasattr(page, 'setLayoutDirection'):
+                page.setLayoutDirection(qt_layout_direction(lang))
+            if hasattr(page, 'apply_theme_colors'):
+                page.apply_theme_colors()
+        show_toast(translate('language_saved'), 'success', self)
 
     def save_printing_settings(self):
         settings_service.save_printing_settings(
@@ -495,10 +543,10 @@ class SettingsWidget(QWidget):
             zebra_rows=self.print_zebra_rows.isChecked(),
             compact_tables=self.print_compact_tables.isChecked(),
         )
-        show_toast('تم حفظ إعدادات الطباعة الموحدة', 'success', self)
+        show_toast(translate('settings_print_saved'), 'success', self)
 
     def browse_logo(self):
-        filename, _ = QFileDialog.getOpenFileName(self, 'اختر شعار الشركة', '', 'Images (*.png *.jpg *.jpeg *.bmp)')
+        filename, _ = QFileDialog.getOpenFileName(self, translate('settings_company_choose_logo_dialog'), '', 'Images (*.png *.jpg *.jpeg *.bmp)')
         if filename: self.company_logo_path_edit.setText(filename)
 
     def save_company_info(self):
@@ -513,15 +561,15 @@ class SettingsWidget(QWidget):
         if not self.company_logo_path_edit.text().strip() and default_logo:
             self.company_logo_path_edit.setText(default_logo)
         
-        audit_service.log('UPDATE', 'SETTINGS_COMPANY', None, new_values=info, details='تعديل معلومات الشركة')
-        save_company_info(info); show_toast('تم حفظ معلومات الشركة', 'success', self)
+        audit_service.log('UPDATE', 'SETTINGS_COMPANY', None, new_values=info, details=translate('settings_company_audit_update'))
+        save_company_info(info); show_toast(translate('settings_company_saved'), 'success', self)
 
     def browse_backup_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, 'اختر مجلد النسخ الاحتياطي')
+        folder = QFileDialog.getExistingDirectory(self, translate('settings_backup_folder_placeholder'))
         if folder: self.backup_folder.setText(folder)
 
     def save_backup_settings(self):
-        if backup_service.is_remote(): QMessageBox.warning(self, 'تنبيه', 'لا يمكن حفظ إعدادات النسخ الاحتياطي في وضع العميل.'); return
+        if backup_service.is_remote(): QMessageBox.warning(self, translate('warning'), translate('settings_backup_remote_save_blocked')); return
         settings = QSettings('Alrajhi', 'Accounting')
         old = {
             'backup/enabled': settings.value('backup/enabled', False, type=bool),
@@ -534,55 +582,55 @@ class SettingsWidget(QWidget):
             'backup/folder': self.backup_folder.text(),
         }
         settings.setValue('backup/enabled', new['backup/enabled']); settings.setValue('backup/interval_hours', new['backup/interval_hours']); settings.setValue('backup/folder', new['backup/folder'])
-        audit_service.log('UPDATE', 'SETTINGS_BACKUP', None, old_values=old, new_values=new, details='تعديل إعدادات النسخ الاحتياطي')
-        show_toast('تم حفظ إعدادات النسخ الاحتياطي', 'success', self)
+        audit_service.log('UPDATE', 'SETTINGS_BACKUP', None, old_values=old, new_values=new, details=translate('settings_backup_audit_update'))
+        show_toast(translate('settings_backup_saved'), 'success', self)
 
     def load_backup_settings(self):
         settings = QSettings('Alrajhi', 'Accounting')
         self.backup_enabled.setChecked(settings.value('backup/enabled', False, type=bool)); self.backup_interval.setValue(settings.value('backup/interval_hours', 6, type=int)); self.backup_folder.setText(settings.value('backup/folder', ''))
 
     def create_backup_now(self):
-        if backup_service.is_remote(): QMessageBox.warning(self, 'تنبيه', 'لا يمكن إنشاء نسخة احتياطية من جهاز عميل.'); return
+        if backup_service.is_remote(): QMessageBox.warning(self, translate('warning'), translate('settings_backup_remote_create_blocked')); return
         folder = self.backup_folder.text().strip()
-        if not folder: QMessageBox.warning(self, 'خطأ', 'يرجى تحديد مجلد النسخ الاحتياطي أولاً'); return
+        if not folder: QMessageBox.warning(self, translate('error'), translate('settings_backup_folder_required')); return
         try:
             result = backup_service.create_backup(folder); sep = chr(10)
-            QMessageBox.information(self, 'نجاح', f"تم إنشاء النسخة الاحتياطية وفحص سلامتها:{sep}{result['backup_path']}{sep}{sep}SHA256:{sep}{result['sha256']}")
-        except Exception as e: QMessageBox.critical(self, 'خطأ', f'فشل النسخ الاحتياطي: {str(e)}')
+            QMessageBox.information(self, translate('success'), translate('settings_backup_created_integrity', sep=sep, path=result['backup_path'], sha256=result['sha256']))
+        except Exception as e: QMessageBox.critical(self, translate('error'), translate('settings_backup_failed', error=str(e)))
 
     def export_database(self):
-        if backup_service.is_remote(): QMessageBox.warning(self, 'تنبيه', 'لا يمكن تصدير قاعدة البيانات في وضع العميل.'); return
-        filename, _ = QFileDialog.getSaveFileName(self, 'تصدير قاعدة البيانات', 'alrajhi_backup.db', 'SQLite (*.db)')
+        if backup_service.is_remote(): QMessageBox.warning(self, translate('warning'), translate('settings_db_remote_export_blocked')); return
+        filename, _ = QFileDialog.getSaveFileName(self, translate('settings_database_export'), 'alrajhi_backup.db', 'SQLite (*.db)')
         if filename:
             try:
-                result = backup_service.export_database(filename); QMessageBox.information(self, 'نجاح', f"تم التصدير وفحص سلامة الملف:{chr(10)}{result['backup_path']}")
-            except Exception as e: QMessageBox.critical(self, 'خطأ', f'فشل التصدير: {str(e)}')
+                result = backup_service.export_database(filename); QMessageBox.information(self, translate('success'), translate('settings_export_success_integrity', path=result['backup_path']))
+            except Exception as e: QMessageBox.critical(self, translate('error'), translate('settings_export_failed', error=str(e)))
 
     def import_database(self):
-        if backup_service.is_remote(): QMessageBox.warning(self, 'تنبيه', 'لا يمكن استيراد قاعدة البيانات في وضع العميل.'); return
-        filename, _ = QFileDialog.getOpenFileName(self, 'استيراد قاعدة البيانات', '', 'SQLite (*.db)')
+        if backup_service.is_remote(): QMessageBox.warning(self, translate('warning'), translate('settings_db_remote_import_blocked')); return
+        filename, _ = QFileDialog.getOpenFileName(self, translate('settings_database_import'), '', 'SQLite (*.db)')
         if filename:
             try: backup_service.validate_backup(filename)
-            except Exception as e: QMessageBox.critical(self, 'خطأ', f'ملف النسخة غير صالح أو تالف:{chr(10)}{str(e)}'); return
-            reply = QMessageBox.question(self, 'تأكيد', 'سيتم استبدال قاعدة البيانات المحلية الحالية بعد إنشاء نسخة احتياطية وقائية. استمرار؟', QMessageBox.Yes | QMessageBox.No)
+            except Exception as e: QMessageBox.critical(self, translate('error'), translate('settings_invalid_backup_file', error=str(e))); return
+            reply = QMessageBox.question(self, translate('confirm'), translate('settings_db_import_confirm'), QMessageBox.Yes | QMessageBox.No)
             if reply == QMessageBox.Yes:
                 try:
-                    result = backup_service.restore_backup(filename, create_pre_restore_backup=True); sep = chr(10); msg = 'تم الاستيراد. يرجى إعادة تشغيل التطبيق.'
-                    if result.get('pre_restore_backup'): msg += f"{sep}{sep}نسخة وقائية قبل الاستعادة:{sep}{result['pre_restore_backup']}"
-                    QMessageBox.information(self, 'نجاح', msg)
-                except Exception as e: QMessageBox.critical(self, 'خطأ', f'فشل الاستيراد: {str(e)}')
+                    result = backup_service.restore_backup(filename, create_pre_restore_backup=True); sep = chr(10); msg = translate('settings_import_success_restart')
+                    if result.get('pre_restore_backup'): msg += translate('settings_pre_restore_backup_line', sep=sep, path=result['pre_restore_backup'])
+                    QMessageBox.information(self, translate('success'), msg)
+                except Exception as e: QMessageBox.critical(self, translate('error'), translate('settings_import_failed', error=str(e)))
 
     def reset_database(self):
-        if backup_service.is_remote(): QMessageBox.warning(self, 'تنبيه', 'لا يمكن إعادة تهيئة قاعدة البيانات في وضع العميل.'); return
-        reply = QMessageBox.question(self, 'تأكيد خطير', 'سيتم حذف كل البيانات وإعادة تهيئة قاعدة البيانات. سيتم إنشاء نسخة وقائية قبل الحذف. متابعة؟', QMessageBox.Yes | QMessageBox.No)
+        if backup_service.is_remote(): QMessageBox.warning(self, translate('warning'), translate('settings_db_remote_reset_blocked')); return
+        reply = QMessageBox.question(self, translate('danger_confirm'), translate('settings_db_reset_confirm'), QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
                 result = backup_service.reset_database()
-                msg = 'تم إعادة تهيئة قاعدة البيانات. يرجى إعادة تشغيل التطبيق.'
+                msg = translate('settings_database_reset_done')
                 pre_reset = result.get('pre_reset_backup')
-                if pre_reset: msg += f"{chr(10)}{chr(10)}نسخة وقائية قبل التهيئة:{chr(10)}{pre_reset}"
-                QMessageBox.information(self, 'نجاح', msg)
-            except Exception as e: QMessageBox.critical(self, 'خطأ', f'فشل إعادة التهيئة: {str(e)}')
+                if pre_reset: msg += translate('settings_pre_reset_backup_line', path=pre_reset)
+                QMessageBox.information(self, translate('success'), msg)
+            except Exception as e: QMessageBox.critical(self, translate('error'), translate('settings_reset_failed', error=str(e)))
 
     def load_rates_table(self):
         rates = currency.get_all_currencies(); self.rates_table.setRowCount(len(rates))
@@ -599,15 +647,15 @@ class SettingsWidget(QWidget):
             if not code_item or not rate_item: continue
             code = code_item.text(); rate_text = rate_item.text(); clean_rate_text = rate_text.replace(',', '').replace(' ', '').strip()
             try: currency.update_rate(code, float(clean_rate_text))
-            except ValueError: QMessageBox.warning(self, 'خطأ', f'سعر غير صالح للعملة {code}: {rate_text}'); return
+            except ValueError: QMessageBox.warning(self, translate('error'), translate('settings_invalid_currency_rate', code=code, rate=rate_text)); return
         rates_payload = []
         for row in range(self.rates_table.rowCount()):
             code_item = self.rates_table.item(row, 0); rate_item = self.rates_table.item(row, 1)
             if code_item and rate_item:
                 rates_payload.append({'currency_code': code_item.text(), 'rate': rate_item.text()})
         self.settings.save_currency_settings(base_curr, display_curr, decimals, fmt, abbrev_bool)
-        audit_service.log('UPDATE', 'CURRENCY_RATES', None, old_values=old_currency, new_values={'rates': rates_payload}, details='تعديل أسعار الصرف')
-        QMessageBox.information(self, 'نجاح', 'تم حفظ إعدادات العملة وأسعار الصرف'); self.currency_settings_changed.emit()
+        audit_service.log('UPDATE', 'CURRENCY_RATES', None, old_values=old_currency, new_values={'rates': rates_payload}, details=translate('settings_rates_audit_update'))
+        QMessageBox.information(self, translate('success'), translate('settings_currency_rates_saved')); self.currency_settings_changed.emit()
         main_window = self.window()
         if hasattr(main_window, 'pages') and 'dashboard' in main_window.pages and hasattr(main_window.pages['dashboard'], 'reload_from_settings'): main_window.pages['dashboard'].reload_from_settings()
 
@@ -619,26 +667,26 @@ class SettingsWidget(QWidget):
                 for row in range(self.rates_table.rowCount()):
                     code = self.rates_table.item(row, 0).text()
                     if code in rates: self.rates_table.item(row, 1).setText(f"{rates[code]:.4f}")
-                QMessageBox.information(self, 'نجاح', 'تم تحديث الأسعار من الإنترنت')
-            else: QMessageBox.warning(self, 'خطأ', 'فشل الاتصال بالخادم')
-        except Exception as e: QMessageBox.warning(self, 'خطأ', f'حدث خطأ: {str(e)}')
+                QMessageBox.information(self, translate('success'), translate('settings_rates_updated_online'))
+            else: QMessageBox.warning(self, translate('error'), translate('server_connection_failed'))
+        except Exception as e: QMessageBox.warning(self, translate('error'), translate('error_with_message', error=str(e)))
 
     def activate_network_dialog(self):
-        dialog = QDialog(self); dialog.setWindowTitle('تفعيل الشبكة'); dialog.setLayoutDirection(Qt.RightToLeft); dialog.resize(460, 220)
-        layout = QVBoxLayout(dialog); layout.addWidget(self._note('أدخل مفتاح تفعيل ميزة الشبكة. بعد التفعيل أعد تشغيل التطبيق لتحديث وضع التشغيل.', 'info'))
-        key_edit = QLineEdit(); key_edit.setEchoMode(QLineEdit.Password); key_edit.setPlaceholderText('مفتاح التفعيل'); layout.addWidget(key_edit)
-        status_label = QLabel(); status_label.setStyleSheet('color: red;'); layout.addWidget(status_label)
+        dialog = QDialog(self); dialog.setWindowTitle(translate('settings_network_activation_title')); dialog.setLayoutDirection(Qt.RightToLeft); dialog.resize(460, 220)
+        layout = QVBoxLayout(dialog); layout.addWidget(self._note(translate('settings_network_activation_help'), 'info'))
+        key_edit = QLineEdit(); key_edit.setEchoMode(QLineEdit.Password); key_edit.setPlaceholderText(translate('settings_network_activation_key')); layout.addWidget(key_edit)
+        status_label = QLabel(); status_label.setStyleSheet(f"color: {ThemeManager.get('danger')};"); layout.addWidget(status_label)
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         button_box.accepted.connect(lambda: self._do_activate_network(key_edit.text().strip(), status_label, dialog)); button_box.rejected.connect(dialog.reject)
         layout.addWidget(button_box); dialog.exec()
 
     def _do_activate_network(self, key, status_label, dialog):
-        if not key: status_label.setText('يرجى إدخال مفتاح التفعيل'); return
+        if not key: status_label.setText(translate('settings_network_activation_required')); return
         success, msg = activate_network(key)
         if success:
-            audit_service.log('ACTIVATE', 'NETWORK', None, new_values={'activated': True}, details='تفعيل ميزة الشبكة')
-            QMessageBox.information(self, 'نجاح', 'تم تفعيل الشبكة. يرجى إعادة تشغيل التطبيق.'); dialog.accept()
-        else: status_label.setText(f'فشل: {msg}')
+            audit_service.log('ACTIVATE', 'NETWORK', None, new_values={'activated': True}, details=translate('settings_network_activation_audit'))
+            QMessageBox.information(self, translate('success'), translate('settings_network_activated')); dialog.accept()
+        else: status_label.setText(translate('failed_with_message', message=msg))
 
     def refresh_server_status(self):
         if not hasattr(self, 'server_status_label'):
@@ -647,7 +695,7 @@ class SettingsWidget(QWidget):
         running = bool(info.get('running'))
         msg = str(info.get('message') or '')
         self.server_status_label.setText(('✅ ' if running else '⚪ ') + msg)
-        self.server_status_label.setStyleSheet('color:#15803d;' if running else 'color:#475569;')
+        self.server_status_label.setStyleSheet(f"color: {ThemeManager.get('success') if running else ThemeManager.get('text_secondary')};")
         if hasattr(self, 'server_pid_label'):
             self.server_pid_label.setText(str(info.get('pid') or '-'))
             self.server_uptime_label.setText(str(info.get('uptime') or '-'))
@@ -659,28 +707,28 @@ class SettingsWidget(QWidget):
         settings.setValue('server/port', self.server_port_spin.value())
         settings.sync()
         ok, msg = system_service.start_server_process(port=self.server_port_spin.value())
-        QMessageBox.information(self, 'تشغيل الخادم' if ok else 'تعذر تشغيل الخادم', msg)
+        QMessageBox.information(self, translate('settings_network_start_server_title') if ok else translate('settings_network_start_server_failed'), msg)
         self.refresh_server_status()
 
     def stop_local_server_now(self):
         ok, msg = system_service.stop_server_process()
-        QMessageBox.information(self, 'إيقاف الخادم' if ok else 'تعذر إيقاف الخادم', msg)
+        QMessageBox.information(self, translate('settings_network_stop_server_title') if ok else translate('settings_network_stop_server_failed'), msg)
         self.refresh_server_status()
 
     def restart_local_server_now(self):
         ok, msg = system_service.restart_server_process(port=self.server_port_spin.value())
-        QMessageBox.information(self, 'إعادة تشغيل الخادم' if ok else 'تعذر إعادة تشغيل الخادم', msg)
+        QMessageBox.information(self, translate('settings_network_restart_server_title') if ok else translate('settings_network_restart_server_failed'), msg)
         self.refresh_server_status()
 
     def backup_local_server_database(self):
         ok, msg = system_service.backup_server_database()
-        QMessageBox.information(self, 'نسخ احتياطي للخادم' if ok else 'تعذر النسخ الاحتياطي', msg)
+        QMessageBox.information(self, translate('settings_network_backup_server_db') if ok else translate('settings_network_backup_failed'), msg)
         self.refresh_server_status()
 
     def open_local_server_data_dir(self):
         ok, msg = system_service.open_server_data_dir()
         if not ok:
-            QMessageBox.warning(self, 'فتح مجلد البيانات', msg)
+            QMessageBox.warning(self, translate('settings_network_open_data_dir_title'), msg)
         self.refresh_server_status()
 
     def test_network_connection(self):
@@ -689,13 +737,13 @@ class SettingsWidget(QWidget):
         url = system_service.normalize_server_url(raw, port)
         ok, message, info = system_service.server_diagnostics(url, timeout=4, require_routes=True)
         self.server_url_edit.setText(url)
-        details = f"العنوان المستخدم:\n{url}\n\n{message}"
+        details = translate('settings_network_test_details', url=url, message=message)
         if hasattr(self, 'refresh_network_center'):
             self.refresh_network_center()
         if ok:
-            QMessageBox.information(self, 'اختبار الاتصال', f'✅ الاتصال ناجح ومتوافق.\n\n{details}')
+            QMessageBox.information(self, translate('settings_network_test_connection'), translate('settings_network_test_success', details=details))
         else:
-            QMessageBox.warning(self, 'اختبار الاتصال', f'❌ فشل اختبار الاتصال.\n\n{details}')
+            QMessageBox.warning(self, translate('settings_network_test_connection'), translate('settings_network_test_failed', details=details))
 
 
     def refresh_network_center(self):
@@ -706,8 +754,8 @@ class SettingsWidget(QWidget):
         port = self.server_port_spin.value() if hasattr(self, 'server_port_spin') else 8000
         url = system_service.normalize_server_url(raw, port)
         ok, message, info = system_service.server_diagnostics(url, timeout=4, require_routes=True)
-        self.net_connection_label.setText(('🟢 متصل ومتوافق' if ok else '🔴 غير متوافق/غير متصل') + f"\n{message}")
-        self.net_connection_label.setStyleSheet('color:#15803d;' if ok else 'color:#b91c1c;')
+        self.net_connection_label.setText((translate('settings_network_connected') if ok else translate('settings_network_not_compatible')) + f"\n{message}")
+        self.net_connection_label.setStyleSheet(f"color: {ThemeManager.get('success') if ok else ThemeManager.get('danger')};")
         latency = info.get('latency_ms')
         routes_latency = info.get('routes_latency_ms')
         latency_text = f"/health: {latency} ms" if latency is not None else '-'
@@ -717,7 +765,7 @@ class SettingsWidget(QWidget):
         self.net_api_label.setText(str(info.get('api_version') or '-'))
         self.net_routes_label.setText(str(info.get('route_count') or '-'))
         missing = info.get('missing_routes') or []
-        self.net_missing_label.setText('لا يوجد' if not missing else '\n'.join(missing))
+        self.net_missing_label.setText(translate('none') if not missing else '\n'.join(missing))
         # Authenticated database/source diagnostics.  It may fail before login or
         # if the saved token is invalid; this must never break the settings page.
         try:
@@ -727,25 +775,25 @@ class SettingsWidget(QWidget):
                 self.net_db_label.setText(status.get('db_path') or '-')
                 counts = status.get('counts') or {}
                 quick = []
-                for key, label in [('items', 'مواد'), ('customers', 'عملاء'), ('invoices', 'فواتير'), ('users', 'مستخدمون')]:
+                for key, label in [('items', translate('items')), ('customers', translate('customers')), ('invoices', translate('invoices')), ('users', translate('users'))]:
                     value = counts.get(key, '-')
                     if isinstance(value, dict):
-                        value = 'خطأ'
+                        value = translate('error')
                     quick.append(f"{label}: {value}")
                 self.net_counts_label.setText(' | '.join(quick))
             elif mode == 'remote':
-                self.net_db_label.setText('وضع عميل، لكن لا يوجد RestClient مهيأ')
+                self.net_db_label.setText(translate('settings_network_remote_no_client'))
                 self.net_counts_label.setText('-')
             else:
-                self.net_db_label.setText('محلي SQLite')
+                self.net_db_label.setText(translate('settings_network_local_sqlite'))
                 self.net_counts_label.setText('-')
         except Exception as exc:
-            self.net_db_label.setText(f'تعذر قراءة تشخيص قاعدة البيانات: {exc}')
+            self.net_db_label.setText(translate('settings_network_db_diagnostics_failed', error=exc))
             self.net_counts_label.setText('-')
 
     def show_network_request_log(self):
         dialog = QDialog(self)
-        dialog.setWindowTitle('سجل طلبات REST')
+        dialog.setWindowTitle(translate('settings_network_request_log_title'))
         dialog.setLayoutDirection(Qt.RightToLeft)
         dialog.resize(780, 520)
         layout = QVBoxLayout(dialog)
@@ -754,7 +802,7 @@ class SettingsWidget(QWidget):
         try:
             rows = system_service.request_log()
             if not rows:
-                content = 'لا توجد طلبات REST مسجلة بعد.'
+                content = translate('settings_network_no_requests')
             else:
                 lines = []
                 for r in rows[-120:]:
@@ -767,7 +815,7 @@ class SettingsWidget(QWidget):
                     lines.append(line)
                 content = '\n'.join(lines)
         except Exception as exc:
-            content = f'تعذر قراءة سجل الطلبات: {exc}'
+            content = translate('settings_network_request_log_read_failed', error=exc)
         text.setPlainText(content)
         layout.addWidget(text)
         buttons = QDialogButtonBox(QDialogButtonBox.Close)
@@ -798,6 +846,6 @@ class SettingsWidget(QWidget):
         settings.setValue('server/port', port)
         settings.setValue('server/auto_start', new['server/auto_start'])
         settings.sync()
-        audit_service.log('UPDATE', 'SETTINGS_NETWORK', None, old_values=old, new_values=new, details='تعديل إعدادات الشبكة والخادم')
-        QMessageBox.information(self, 'تم الحفظ', 'تم حفظ إعدادات الشبكة. قد تحتاج لإعادة تشغيل التطبيق لتغيير وضع الاتصال.')
+        audit_service.log('UPDATE', 'SETTINGS_NETWORK', None, old_values=old, new_values=new, details=translate('settings_network_audit_update'))
+        QMessageBox.information(self, translate('saved'), translate('settings_network_saved'))
         self.refresh_server_status()

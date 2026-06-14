@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QHeaderView, QLabel, QComboBox
 from PyQt5.QtCore import Qt
+from i18n import translate
 from action_handler import BaseActionHandler
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
@@ -10,8 +11,8 @@ from views.widgets.modern_ui import apply_modern_widget
 from core.offline_guard import is_offline_read_error, offline_read_message
 
 class BaseWidget(QWidget, BaseActionHandler):
-    entity_name = "العنصر"
-    search_placeholder = "بحث..."
+    entity_name = translate("item")
+    search_placeholder = translate("search_placeholder")
     headers = []
     has_delete = True
     has_edit = True
@@ -91,9 +92,9 @@ class BaseWidget(QWidget, BaseActionHandler):
 
         if self.has_pagination:
             self.pagination_layout = QHBoxLayout()
-            self.prev_btn = QPushButton("السابق")
+            self.prev_btn = QPushButton(translate("previous"))
             self.prev_btn.clicked.connect(self.prev_page)
-            self.next_btn = QPushButton("التالي")
+            self.next_btn = QPushButton(translate("next"))
             self.next_btn.clicked.connect(self.next_page)
             self.page_label = QLabel()
             self.pagination_layout.addWidget(self.prev_btn)
@@ -127,7 +128,7 @@ class BaseWidget(QWidget, BaseActionHandler):
     def get_item_name_from_row(self, row):
         if self.model and row < len(self.model._data):
             return str(self.model._data[row][1])
-        return "العنصر"
+        return translate("item")
 
     def add_item(self):
         self.open_dialog(is_edit=False)
@@ -149,7 +150,7 @@ class BaseWidget(QWidget, BaseActionHandler):
                 if self.current_page >= total_pages:
                     self.current_page = max(0, total_pages - 1)
                 if hasattr(self, 'page_label'):
-                    self.page_label.setText(f"الصفحة {self.current_page + 1} من {total_pages}")
+                    self.page_label.setText(translate("page_of", page=self.current_page + 1, pages=total_pages))
                 if hasattr(self, 'prev_btn'):
                     self.prev_btn.setEnabled(self.current_page > 0)
                 if hasattr(self, 'next_btn'):
@@ -159,9 +160,9 @@ class BaseWidget(QWidget, BaseActionHandler):
         except Exception as exc:
             if is_offline_read_error(exc):
                 if hasattr(self, 'toolbar'):
-                    self.toolbar.set_counter('تعذر التحديث: الخادم غير متصل')
+                    self.toolbar.set_counter(translate('offline_refresh_failed'))
                 if hasattr(self, 'status_label'):
-                    self.status_label.setText('تعذر التحديث: الخادم غير متصل')
+                    self.status_label.setText(translate('offline_refresh_failed'))
                 try:
                     show_toast(offline_read_message(self.entity_name), 'warning', self)
                 except Exception:
@@ -185,9 +186,9 @@ class BaseWidget(QWidget, BaseActionHandler):
         if self.has_pagination:
             start = 0 if total_records == 0 else self.current_page * self.page_size + 1
             end = min(total_records, self.current_page * self.page_size + visible_count)
-            counter_text = f"عرض {start}-{end} من أصل {total_records} سجل"
+            counter_text = translate("showing_records", start=start, end=end, total=total_records)
         else:
-            counter_text = f"عرض {visible_count} من أصل {total_records} سجل"
+            counter_text = translate("showing_records_simple", count=visible_count, total=total_records)
         self.status_label.setText(counter_text)
         if hasattr(self, 'toolbar'):
             self.toolbar.set_counter(counter_text)
@@ -210,13 +211,13 @@ class BaseWidget(QWidget, BaseActionHandler):
         if hasattr(self.table, 'export_to_excel'):
             self.table.export_to_excel()
         else:
-            show_toast("هذه الميزة غير متوفرة حالياً", "error", self)
+            show_toast(translate("feature_not_available"), "error", self)
 
     def print_table(self):
         if hasattr(self.table, 'print_table'):
             self.table.print_table()
         else:
-            show_toast("هذه الميزة غير متوفرة حالياً", "error", self)
+            show_toast(translate("feature_not_available"), "error", self)
 
     def prev_page(self):
         if self.current_page > 0:

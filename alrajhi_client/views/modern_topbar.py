@@ -3,6 +3,8 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLab
 from PyQt5.QtCore import Qt, QSize, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon
 import qtawesome as qta
+from i18n.translator import translate, qt_layout_direction
+from core.services.settings_service import settings_service
 
 class TopBarButton(QPushButton):
     def __init__(self, text, icon_name, badge_count=0, parent=None, show_text=True):
@@ -44,6 +46,10 @@ class ModernTopBar(QWidget):
         super().__init__(parent)
         self.setObjectName("ModernTopBar")
         self.setMinimumHeight(72)
+        try:
+            self.setLayoutDirection(qt_layout_direction(settings_service.get_language()))
+        except Exception:
+            pass
         self.setAttribute(Qt.WA_StyledBackground, True)
         self.buttons = {}
         self.menus = {}
@@ -67,7 +73,7 @@ class ModernTopBar(QWidget):
 
         self.search_box = QLineEdit()
         self.search_box.setObjectName("GlobalSearchBox")
-        self.search_box.setPlaceholderText("بحث عام: مادة، عميل، فاتورة...")
+        self.search_box.setPlaceholderText(translate('global_search_placeholder'))
         self.search_box.setMinimumWidth(360)
         self.search_box.setMaximumWidth(620)
         self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -79,9 +85,9 @@ class ModernTopBar(QWidget):
         self.alert_btn.setObjectName("ShellIconButton")
         self.alert_btn.setIcon(qta.icon('fa5s.bell'))
         self.alert_btn.setIconSize(QSize(20, 20))
-        self.alert_btn.setText("التنبيهات")
+        self.alert_btn.setText(translate('alerts'))
         self.alert_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.alert_btn.setToolTip("التنبيهات")
+        self.alert_btn.setToolTip(translate('alerts'))
         self.alert_btn.setFixedSize(72, 52)
         utility_layout.addWidget(self.alert_btn)
 
@@ -89,9 +95,9 @@ class ModernTopBar(QWidget):
         self.theme_btn.setObjectName("ShellIconButton")
         self.theme_btn.setIcon(qta.icon('fa5s.adjust'))
         self.theme_btn.setIconSize(QSize(20, 20))
-        self.theme_btn.setText("الثيم")
+        self.theme_btn.setText(translate('theme'))
         self.theme_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.theme_btn.setToolTip("تبديل الثيم")
+        self.theme_btn.setToolTip(translate('toggle_theme'))
         self.theme_btn.setFixedSize(72, 52)
         utility_layout.addWidget(self.theme_btn)
 
@@ -99,7 +105,7 @@ class ModernTopBar(QWidget):
         self.user_label.setObjectName("ShellUserLabel")
         self.user_label.setMinimumHeight(34)
         self.user_label.setMaximumWidth(280)
-        self.user_label.setToolTip("المستخدم الحالي")
+        self.user_label.setToolTip(translate('current_user'))
         utility_layout.addWidget(self.user_label)
 
         outer.addWidget(utility_frame)
@@ -136,7 +142,7 @@ class ModernTopBar(QWidget):
         return
 
     def set_user(self, username: str, role: str = ''):
-        label = username or 'مستخدم'
+        label = username or translate('user')
         display = f'👤 {label}'
         if role:
             display += f' · {role}'

@@ -3,14 +3,17 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt
 import json
 from core.services.offline_queue_service import offline_queue_service
+from views.widgets.modern_ui import apply_modern_widget
+from i18n import translate, qt_layout_direction
 
 
 class OfflineQueueWidget(QWidget):
     """Pending offline write operations created while the client was disconnected."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self._build_ui()
+        apply_modern_widget(self, translate('offline_queue_title_icon'), translate('offline_queue_subtitle'))
         self.refresh()
 
     def _build_ui(self):
@@ -18,27 +21,27 @@ class OfflineQueueWidget(QWidget):
         layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(10)
         header = QHBoxLayout()
-        title = QLabel('الطلبات المعلقة')
+        title = QLabel(translate('offline_queue_title'))
         title.setStyleSheet('font-size:20px;font-weight:700;')
         header.addWidget(title)
         header.addStretch()
-        self.refresh_btn = QPushButton('تحديث')
-        self.retry_btn = QPushButton('إعادة إرسال الآن')
-        self.delete_btn = QPushButton('حذف المحدد')
-        self.clear_sent_btn = QPushButton('تنظيف المرسلة')
+        self.refresh_btn = QPushButton(translate('refresh'))
+        self.retry_btn = QPushButton(translate('retry_now'))
+        self.delete_btn = QPushButton(translate('delete_selected'))
+        self.clear_sent_btn = QPushButton(translate('clear_sent'))
         header.addWidget(self.refresh_btn)
         header.addWidget(self.retry_btn)
         header.addWidget(self.delete_btn)
         header.addWidget(self.clear_sent_btn)
         layout.addLayout(header)
 
-        self.info_label = QLabel('تُحفظ هنا عمليات الإنشاء/التعديل/الحذف عند انقطاع الاتصال. يتم إرسالها تلقائياً عند رجوع الخادم.')
+        self.info_label = QLabel(translate('offline_queue_help'))
         self.info_label.setWordWrap(True)
-        self.info_label.setStyleSheet('color:#475569; padding:8px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;')
+        self.info_label.setObjectName('ModernInfoBox')
         layout.addWidget(self.info_label)
 
         self.table = QTableWidget(0, 8, self)
-        self.table.setHorizontalHeaderLabels(['#', 'الحالة', 'العملية', 'الكيان', 'المسار', 'المحاولات', 'وقت الإنشاء', 'آخر خطأ'])
+        self.table.setHorizontalHeaderLabels(['#', translate('status'), translate('operation'), translate('entity'), translate('endpoint'), translate('attempts'), translate('created_at'), translate('last_error')])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(self.table.SelectRows)
         self.table.setEditTriggers(self.table.NoEditTriggers)
@@ -64,7 +67,7 @@ class OfflineQueueWidget(QWidget):
                     item.setData(Qt.UserRole, int(row.get('id')))
                 self.table.setItem(r, c, item)
         self.table.resizeColumnsToContents()
-        self.info_label.setText(f'عدد الطلبات المعلقة: {offline_queue_service.count_pending()}')
+        self.info_label.setText(translate('pending_requests_count', count=offline_queue_service.count_pending()))
 
     def _selected_id(self):
         indexes = self.table.selectionModel().selectedRows()
@@ -82,9 +85,9 @@ class OfflineQueueWidget(QWidget):
     def delete_selected(self):
         req_id = self._selected_id()
         if not req_id:
-            QMessageBox.information(self, 'الطلبات المعلقة', 'اختر طلباً أولاً.')
+            QMessageBox.information(self, translate('offline_queue_title'), translate('select_request_first'))
             return
-        if QMessageBox.question(self, 'حذف', 'حذف الطلب المحدد من الطابور؟') == QMessageBox.Yes:
+        if QMessageBox.question(self, translate('delete'), translate('delete_queue_request_confirm')) == QMessageBox.Yes:
             offline_queue_service.delete(req_id)
             self.refresh()
 

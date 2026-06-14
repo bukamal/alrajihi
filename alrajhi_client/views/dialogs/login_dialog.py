@@ -5,8 +5,9 @@ from PyQt5.QtGui import QPixmap
 import qtawesome as qta
 from views.frameless_dialog import FramelessDialog
 from core.services.user_service import user_service
+from core.services.settings_service import settings_service
 from auth.session import UserSession
-from i18n.translator import translate, set_language
+from i18n.translator import translate, set_language, available_languages, qt_layout_direction, normalize_language
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from utils import focus_first_input
@@ -16,7 +17,9 @@ from brand_assets import logo_png, APP_DISPLAY_NAME_AR, APP_DESCRIPTION_AR
 class LoginDialog(FramelessDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self._current_language = normalize_language(settings_service.get_language())
+        set_language(self._current_language)
+        self.setLayoutDirection(qt_layout_direction(self._current_language))
         self.setWindowTitle(translate('login'))
         self.resize(500, 620)
         self.setMinimumSize(430, 540)
@@ -38,19 +41,19 @@ class LoginDialog(FramelessDialog):
         logo.setPixmap(QPixmap(logo_png(128)).scaled(94, 94, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         layout.addWidget(logo)
 
-        app_title = QLabel('الراجحي للمحاسبة')
-        app_title.setAlignment(Qt.AlignCenter)
-        app_title.setObjectName("heroTitle")
-        app_title.setStyleSheet(f"font-size: 30px; font-weight: 900; color: {ThemeManager.get('primary')};")
-        layout.addWidget(app_title)
+        self.app_title_label = QLabel(translate('app_title'))
+        self.app_title_label.setAlignment(Qt.AlignCenter)
+        self.app_title_label.setObjectName("heroTitle")
+        self.app_title_label.setStyleSheet(f"font-size: 30px; font-weight: 900; color: {ThemeManager.get('primary')};")
+        layout.addWidget(self.app_title_label)
 
-        subtitle = QLabel('نظام الراجحي للمحاسبة — تسجيل دخول آمن')
-        subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setObjectName('muted')
-        layout.addWidget(subtitle)
+        self.subtitle_label = QLabel(translate('login_subtitle'))
+        self.subtitle_label.setAlignment(Qt.AlignCenter)
+        self.subtitle_label.setObjectName('muted')
+        layout.addWidget(self.subtitle_label)
 
-        mode = "متصل بخادم" if user_service.is_remote() else "محلي"
-        self.connection_label = DesignSystem.status_pill(f"وضع التشغيل: {mode}", 'info')
+        mode_key = 'mode_remote' if user_service.is_remote() else 'mode_local'
+        self.connection_label = DesignSystem.status_pill(translate('login_mode', mode=translate(mode_key)), 'info')
         layout.addWidget(self.connection_label)
 
         separator = QFrame()
@@ -73,7 +76,7 @@ class LoginDialog(FramelessDialog):
         self.show_pwd_btn = QPushButton()
         self.show_pwd_btn.setIcon(qta.icon('fa5s.eye'))
         self.show_pwd_btn.setFixedSize(42, 42)
-        self.show_pwd_btn.setToolTip("إظهار/إخفاء كلمة المرور")
+        self.show_pwd_btn.setToolTip(translate('show_hide_password'))
         self.show_pwd_btn.setCheckable(True)
         self.show_pwd_btn.toggled.connect(self._toggle_password)
         pwd_layout.addWidget(self.password_edit)
@@ -81,19 +84,26 @@ class LoginDialog(FramelessDialog):
         layout.addLayout(pwd_layout)
 
         options_layout = QHBoxLayout()
-        self.remember_check = QCheckBox("تذكر المستخدم")
+        self.remember_check = QCheckBox(translate('remember_user'))
         self.remember_check.setStyleSheet(f"color: {ThemeManager.get('text_secondary')};")
         options_layout.addWidget(self.remember_check)
         options_layout.addStretch()
         self.lang_combo = QComboBox()
-        self.lang_combo.addItems(["العربية", "English", "Français"])
-        self.lang_combo.setFixedWidth(112)
+        self.lang_combo.setFixedWidth(128)
+        self._language_codes = []
+        for code, label in available_languages():
+            self.lang_combo.addItem(label, code)
+            self._language_codes.append(code)
+        lang_index = self.lang_combo.findData(self._current_language)
+        if lang_index >= 0:
+            self.lang_combo.setCurrentIndex(lang_index)
         self.lang_combo.currentIndexChanged.connect(self._change_lang)
-        options_layout.addWidget(QLabel("اللغة:"))
+        self.language_label = QLabel(translate('language') + ':')
+        options_layout.addWidget(self.language_label)
         options_layout.addWidget(self.lang_combo)
         layout.addLayout(options_layout)
 
-        self.admin_warning = QLabel("⚠️ عند أول تشغيل: غيّر كلمة مرور admin الافتراضية فورًا.")
+        self.admin_warning = QLabel(translate('admin_password_warning'))
         self.admin_warning.setWordWrap(True)
         self.admin_warning.setAlignment(Qt.AlignCenter)
         self.admin_warning.setStyleSheet(f"color: {ThemeManager.get('warning')}; font-size: 12px;")
@@ -113,15 +123,15 @@ class LoginDialog(FramelessDialog):
         self.login_btn.clicked.connect(self._do_login)
         layout.addWidget(self.login_btn)
 
-        switch_btn = DesignSystem.secondary_button("🔄 تبديل الحساب / مسح المستخدم المحفوظ")
-        switch_btn.clicked.connect(self._switch_account)
-        layout.addWidget(switch_btn)
+        self.switch_btn = DesignSystem.secondary_button(translate('switch_account'))
+        self.switch_btn.clicked.connect(self._switch_account)
+        layout.addWidget(self.switch_btn)
 
         self._load_saved_user()
-        login_footer = QLabel("© AlRajhi ERP — Secure Desktop Edition")
-        login_footer.setAlignment(Qt.AlignCenter)
-        login_footer.setStyleSheet(f"color: {ThemeManager.get('text_muted')}; font-size: 10px;")
-        layout.addWidget(login_footer)
+        self.login_footer = QLabel("© AlRajhi ERP — Secure Desktop Edition")
+        self.login_footer.setAlignment(Qt.AlignCenter)
+        self.login_footer.setStyleSheet(f"color: {ThemeManager.get('text_muted')}; font-size: 10px;")
+        layout.addWidget(self.login_footer)
 
         self.fade_in()
 
@@ -164,20 +174,35 @@ class LoginDialog(FramelessDialog):
         self.username_combo.setEditText("")
         self.password_edit.clear()
         self.remember_check.setChecked(False)
-        self.error_label.setText("تم مسح اسم المستخدم المخزن")
+        self.error_label.setText(translate('stored_user_cleared'))
         self.error_label.setObjectName('success')
         self.error_label.setStyleSheet(f"color: {ThemeManager.get('success')};")
         self._populate_users()
         self.username_combo.setFocus()
 
     def _change_lang(self, index):
-        lang_map = {0: 'ar', 1: 'en', 2: 'fr'}
-        set_language(lang_map[index])
+        lang = normalize_language(self.lang_combo.itemData(index))
+        self._current_language = lang
+        set_language(lang)
+        try:
+            settings_service.set_language(lang)
+        except Exception:
+            pass
+        self.setLayoutDirection(qt_layout_direction(lang))
         self.setWindowTitle(translate('login'))
+        self.app_title_label.setText(translate('app_title'))
+        self.subtitle_label.setText(translate('login_subtitle'))
+        mode_key = 'mode_remote' if user_service.is_remote() else 'mode_local'
+        self.connection_label.setText(translate('login_mode', mode=translate(mode_key)))
         self.username_combo.setPlaceholderText(translate('username'))
         self.password_edit.setPlaceholderText(translate('password'))
-        self.remember_check.setText("تذكر المستخدم")
+        self.remember_check.setText(translate('remember_user'))
+        self.language_label.setText(translate('language') + ':')
         self.login_btn.setText(translate('login'))
+        self.show_pwd_btn.setToolTip(translate('show_hide_password'))
+        self.admin_warning.setText(translate('admin_password_warning'))
+        self.switch_btn.setText(translate('switch_account'))
+
 
     def _set_error(self, text):
         self.error_label.setStyleSheet(f"color: {ThemeManager.get('danger')};")
@@ -187,10 +212,10 @@ class LoginDialog(FramelessDialog):
         username = self.username_combo.currentText().strip()
         password = self.password_edit.text()
         if not username or not password:
-            self._set_error("يرجى إدخال اسم المستخدم وكلمة المرور")
+            self._set_error(translate('login_required'))
             return
         self.login_btn.setEnabled(False)
-        self.login_btn.setText("جاري التحقق...")
+        self.login_btn.setText(translate('checking_login'))
         try:
             user = user_service.authenticate(username, password)
             if user:
@@ -198,11 +223,11 @@ class LoginDialog(FramelessDialog):
                 self._save_user(username)
                 self.accept()
             else:
-                self._set_error("اسم المستخدم أو كلمة المرور غير صحيحة")
+                self._set_error(translate('invalid_login'))
                 self.password_edit.clear()
                 self.password_edit.setFocus()
         except Exception as e:
-            self._set_error(f"فشل تسجيل الدخول: {str(e)}")
+            self._set_error(translate('login_failed', error=str(e)))
             self.password_edit.clear()
             self.password_edit.setFocus()
         finally:

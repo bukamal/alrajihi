@@ -11,14 +11,15 @@ from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
 from utils import show_toast
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
+from i18n import translate, qt_layout_direction
 
 
 class BranchDialog(QDialog):
     def __init__(self, parent=None, data=None):
         super().__init__(parent)
         self.data = data or {}
-        self.setWindowTitle('فرع جديد' if not data else 'تعديل فرع')
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setWindowTitle(translate('new_branch') if not data else translate('edit_branch'))
+        self.setLayoutDirection(qt_layout_direction())
         self.resize(460, 360)
         layout = QVBoxLayout(self)
         form = QFormLayout()
@@ -28,22 +29,22 @@ class BranchDialog(QDialog):
         self.phone_edit = QLineEdit(self.data.get('phone', ''))
         self.notes_edit = QTextEdit(self.data.get('notes', ''))
         self.notes_edit.setMaximumHeight(90)
-        self.active_check = QCheckBox('نشط')
+        self.active_check = QCheckBox(translate('active'))
         self.active_check.setChecked(bool(int(self.data.get('is_active', 1) or 0)))
-        form.addRow('اسم الفرع:', self.name_edit)
-        form.addRow('الكود:', self.code_edit)
-        form.addRow('العنوان:', self.address_edit)
-        form.addRow('الهاتف:', self.phone_edit)
-        form.addRow('ملاحظات:', self.notes_edit)
+        form.addRow(translate('branch_name_label'), self.name_edit)
+        form.addRow(translate('code_label'), self.code_edit)
+        form.addRow(translate('address_label'), self.address_edit)
+        form.addRow(translate('phone_label'), self.phone_edit)
+        form.addRow(translate('notes_label'), self.notes_edit)
         form.addRow('', self.active_check)
         layout.addLayout(form)
         buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        buttons.button(QDialogButtonBox.Save).setText('حفظ')
-        buttons.button(QDialogButtonBox.Cancel).setText('إلغاء')
+        buttons.button(QDialogButtonBox.Save).setText(translate('save'))
+        buttons.button(QDialogButtonBox.Cancel).setText(translate('cancel'))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
-        apply_modern_dialog(self, 'فرع جديد' if not data else 'تعديل فرع')
+        apply_modern_dialog(self, translate('new_branch') if not data else translate('edit_branch'))
         self.name_edit.setFocus()
 
     def payload(self):
@@ -60,29 +61,29 @@ class BranchDialog(QDialog):
 class BranchesWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self._setup_ui()
-        apply_modern_widget(self, '🏬 الفروع', 'إدارة فروع الشركة والربط مع المستودعات')
+        apply_modern_widget(self, translate('branches_title_icon'), translate('branches_subtitle'))
         self.refresh()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
         header = QHBoxLayout()
-        title = QLabel('🏬 إدارة الفروع')
+        title = QLabel(translate('branches_manage_title'))
         title.setObjectName('sectionTitle')
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText('بحث باسم الفرع أو الكود...')
+        self.search_edit.setPlaceholderText(translate('branches_search_placeholder'))
         self.search_edit.textChanged.connect(self.refresh)
-        self.show_archived = QCheckBox('إظهار المؤرشفة')
+        self.show_archived = QCheckBox(translate('show_archived'))
         self.show_archived.toggled.connect(self.refresh)
-        add_btn = QPushButton('➕ فرع جديد')
+        add_btn = QPushButton(translate('new_branch_btn'))
         add_btn.setObjectName('primary')
         add_btn.clicked.connect(self.add_branch)
-        edit_btn = QPushButton('✏️ تعديل')
+        edit_btn = QPushButton(translate('edit_btn'))
         edit_btn.clicked.connect(self.edit_branch)
-        archive_btn = QPushButton('🗑️ أرشفة')
+        archive_btn = QPushButton(translate('archive_btn'))
         archive_btn.clicked.connect(self.archive_branch)
-        refresh_btn = QPushButton('تحديث')
+        refresh_btn = QPushButton(translate('refresh'))
         refresh_btn.clicked.connect(self.refresh)
         header.addWidget(title)
         header.addWidget(self.search_edit, 1)
@@ -116,17 +117,17 @@ class BranchesWidget(QWidget):
                 'address': branch.get('address') or '—',
                 'phone': branch.get('phone') or '—',
                 'warehouse_count': int(branch.get('warehouse_count') or 0),
-                'is_default': 'نعم' if int(branch.get('is_default') or 0) == 1 else 'لا',
-                'status': 'مؤرشف' if archived else 'نشط',
+                'is_default': translate('yes') if int(branch.get('is_default') or 0) == 1 else translate('no'),
+                'status': translate('archived') if archived else translate('active'),
                 'notes': branch.get('notes') or '',
             })
-        headers = ['الفرع', 'الكود', 'العنوان', 'الهاتف', 'عدد المستودعات', 'رئيسي', 'الحالة', 'ملاحظات']
+        headers = [translate('branch'), translate('code'), translate('address'), translate('phone'), translate('warehouse_count'), translate('is_default'), translate('status'), translate('notes')]
         keys = ['name', 'code', 'address', 'phone', 'warehouse_count', 'is_default', 'status', 'notes']
         self.model = GenericTableModel(rows, headers, key_fields=['id'], data_keys=keys)
         self.table.setModel(self.model)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
-        self.status.setText(f'عدد الفروع: {len(rows)}')
+        self.status.setText(translate('branches_count', count=len(rows)))
 
     def _selected_id(self):
         if not hasattr(self, 'model'):
@@ -145,39 +146,39 @@ class BranchesWidget(QWidget):
         if dlg.exec_():
             try:
                 branch_service.add_branch(dlg.payload())
-                show_toast(self, 'تم إنشاء الفرع', 'success')
+                show_toast(self, translate('branch_created'), 'success')
                 self.refresh()
             except Exception as e:
-                QMessageBox.warning(self, 'خطأ', str(e))
+                QMessageBox.warning(self, translate('error'), str(e))
 
     def edit_branch(self):
         branch_id = self._selected_id()
         if not branch_id:
-            QMessageBox.information(self, 'تعديل', 'اختر فرعاً أولاً')
+            QMessageBox.information(self, translate('edit'), translate('select_branch_first'))
             return
         data = branch_service.branch_by_id(branch_id)
         if not data:
-            QMessageBox.warning(self, 'خطأ', 'الفرع غير موجود')
+            QMessageBox.warning(self, translate('error'), translate('branch_not_found'))
             return
         dlg = BranchDialog(self, data)
         if dlg.exec_():
             try:
                 branch_service.update_branch(branch_id, dlg.payload())
-                show_toast(self, 'تم تعديل الفرع', 'success')
+                show_toast(self, translate('branch_updated'), 'success')
                 self.refresh()
             except Exception as e:
-                QMessageBox.warning(self, 'خطأ', str(e))
+                QMessageBox.warning(self, translate('error'), str(e))
 
     def archive_branch(self):
         branch_id = self._selected_id()
         if not branch_id:
-            QMessageBox.information(self, 'أرشفة', 'اختر فرعاً أولاً')
+            QMessageBox.information(self, translate('archive'), translate('select_branch_first'))
             return
-        if QMessageBox.question(self, 'تأكيد', 'هل تريد أرشفة هذا الفرع؟') != QMessageBox.Yes:
+        if QMessageBox.question(self, translate('confirm'), translate('archive_branch_confirm')) != QMessageBox.Yes:
             return
         try:
             branch_service.archive_branch(branch_id)
-            show_toast(self, 'تمت أرشفة الفرع', 'success')
+            show_toast(self, translate('branch_archived'), 'success')
             self.refresh()
         except Exception as e:
-            QMessageBox.warning(self, 'خطأ', str(e))
+            QMessageBox.warning(self, translate('error'), str(e))

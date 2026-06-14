@@ -12,11 +12,12 @@ from views.dialogs.add_entity_dialog import AddEntityDialog
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
+from i18n import translate as tr, qt_layout_direction
 
 class SuppliersWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self.current_page = 0
         self.page_size = 50
         self.total_count = 0
@@ -27,17 +28,17 @@ class SuppliersWidget(QWidget):
 
         top_layout = QHBoxLayout()
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("بحث عن مورد...")
+        self.search_edit.setPlaceholderText(tr("search_supplier"))
         self.search_edit.textChanged.connect(self.refresh)
         top_layout.addWidget(self.search_edit)
 
         self.balance_filter = QComboBox()
-        self.balance_filter.addItems(["الكل", "رصيد موجب", "رصيد سالب", "رصيد صفر"])
+        self.balance_filter.addItems([tr("all"), tr("positive_balance"), tr("negative_balance"), tr("zero_balance")])
         self.balance_filter.currentIndexChanged.connect(self.refresh)
-        top_layout.addWidget(QLabel("فلتر الرصيد:"))
+        top_layout.addWidget(QLabel(tr("balance_filter_label")))
         top_layout.addWidget(self.balance_filter)
 
-        self.add_btn = QPushButton("➕ إضافة مورد")
+        self.add_btn = QPushButton(tr("add_supplier"))
         self.add_btn.setObjectName("primary")
         self.add_btn.clicked.connect(self.add_supplier)
         top_layout.addWidget(self.add_btn)
@@ -50,9 +51,9 @@ class SuppliersWidget(QWidget):
         layout.addWidget(self.table)
 
         pagination_layout = QHBoxLayout()
-        self.prev_btn = QPushButton("السابق")
+        self.prev_btn = QPushButton(tr("previous"))
         self.prev_btn.clicked.connect(self.prev_page)
-        self.next_btn = QPushButton("التالي")
+        self.next_btn = QPushButton(tr("next"))
         self.next_btn.clicked.connect(self.next_page)
         self.page_label = QLabel()
         pagination_layout.addWidget(self.prev_btn)
@@ -61,7 +62,7 @@ class SuppliersWidget(QWidget):
         pagination_layout.addStretch()
         layout.addLayout(pagination_layout)
 
-        apply_modern_widget(self, '🏢 الموردون', 'إدارة الموردين، البحث، الفلترة، والأرصدة')
+        apply_modern_widget(self, tr('suppliers_title'), tr('suppliers_subtitle'))
         self.refresh()
 
     def refresh(self):
@@ -71,7 +72,7 @@ class SuppliersWidget(QWidget):
             suppliers, self.total_count = entity_service.suppliers(search=search, limit=self.page_size, offset=offset)
         except Exception as exc:
             if is_offline_read_error(exc):
-                show_toast(offline_read_message('الموردين'), 'warning', self)
+                show_toast(offline_read_message(tr('suppliers')), 'warning', self)
                 return
             raise
         display_curr = currency.get_display_currency()
@@ -93,7 +94,7 @@ class SuppliersWidget(QWidget):
                 'balance': currency.format_amount(balance_display)
             })
         headers = ['name', 'phone', 'address', 'balance']
-        display_headers = ['الاسم', 'الهاتف', 'العنوان', 'الرصيد']
+        display_headers = [tr('name'), tr('phone'), tr('address'), tr('balance')]
         self.model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.table.setModel(self.model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض؛ لا نخفي العمود الأول الحقيقي.
@@ -102,7 +103,7 @@ class SuppliersWidget(QWidget):
         self.table.refresh_style()
 
         total_pages = (self.total_count + self.page_size - 1) // self.page_size
-        self.page_label.setText(f"الصفحة {self.current_page + 1} من {total_pages}")
+        self.page_label.setText(tr("page_of", page=self.current_page + 1, pages=total_pages))
         self.prev_btn.setEnabled(self.current_page > 0)
         self.next_btn.setEnabled(self.current_page + 1 < total_pages)
 
@@ -120,7 +121,7 @@ class SuppliersWidget(QWidget):
         if not supp:
             return
         dialog = CenteredDialog(self)
-        dialog.setWindowTitle("تعديل مورد")
+        dialog.setWindowTitle(tr("edit_supplier"))
         dialog.resize(400, 300)
         layout = QFormLayout(dialog.content_widget)
         name_edit = QLineEdit()
@@ -129,26 +130,26 @@ class SuppliersWidget(QWidget):
         phone_edit.setText(supp.get('phone', ''))
         address_edit = QLineEdit()
         address_edit.setText(supp.get('address', ''))
-        layout.addRow("الاسم:", name_edit)
-        layout.addRow("الهاتف:", phone_edit)
-        layout.addRow("العنوان:", address_edit)
+        layout.addRow(tr("name_label"), name_edit)
+        layout.addRow(tr("phone_label"), phone_edit)
+        layout.addRow(tr("address_label"), address_edit)
         btn_layout = QHBoxLayout()
-        save_btn = QPushButton("حفظ")
-        cancel_btn = QPushButton("إلغاء")
+        save_btn = QPushButton(tr("save"))
+        cancel_btn = QPushButton(tr("cancel"))
         btn_layout.addWidget(save_btn)
         btn_layout.addWidget(cancel_btn)
         layout.addRow(btn_layout)
         def save():
             try:
                 entity_service.update_supplier(supp_id, name_edit.text().strip(), phone_edit.text().strip(), address_edit.text().strip())
-                show_toast("تم التحديث", "success", dialog)
+                show_toast(tr("update_done"), "success", dialog)
                 dialog.accept()
                 self.refresh()
             except Exception as e:
                 show_toast(str(e), "error", dialog)
         save_btn.clicked.connect(save)
         cancel_btn.clicked.connect(dialog.reject)
-        apply_modern_dialog(dialog, 'تعديل مورد')
+        apply_modern_dialog(dialog, tr('edit_supplier'))
         dialog.exec()
 
     def prev_page(self):

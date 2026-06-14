@@ -6,14 +6,17 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt5.QtCore import Qt, QTimer
 
 from core.services.monitoring_service import monitoring_service
+from views.widgets.modern_ui import apply_modern_widget
+from i18n import translate, qt_layout_direction
 
 
 class MonitoringWidget(QWidget):
     """Read-only operations dashboard: API, Offline Queue, Ledger, request log."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self._build_ui()
+        apply_modern_widget(self, translate('monitoring_title_icon'), translate('monitoring_subtitle'))
         QTimer.singleShot(150, self.refresh)
 
     def _build_ui(self):
@@ -22,22 +25,22 @@ class MonitoringWidget(QWidget):
         layout.setSpacing(10)
 
         header = QHBoxLayout()
-        title = QLabel('مراقبة التشغيل')
+        title = QLabel(translate('monitoring_title'))
         title.setStyleSheet('font-size:20px;font-weight:700;')
         header.addWidget(title)
         header.addStretch()
-        self.refresh_btn = QPushButton('تحديث')
+        self.refresh_btn = QPushButton(translate('refresh'))
         self.refresh_btn.clicked.connect(self.refresh)
         header.addWidget(self.refresh_btn)
         layout.addLayout(header)
 
         self.summary = QLabel('')
         self.summary.setWordWrap(True)
-        self.summary.setStyleSheet('padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px;')
+        self.summary.setObjectName('ModernSummaryBox')
         layout.addWidget(self.summary)
 
         self.table = QTableWidget(0, 4, self)
-        self.table.setHorizontalHeaderLabels(['المؤشر', 'الحالة', 'القيمة', 'ملاحظات'])
+        self.table.setHorizontalHeaderLabels([translate('metric'), translate('status'), translate('value'), translate('notes')])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setEditTriggers(self.table.NoEditTriggers)
         layout.addWidget(self.table, 1)
@@ -64,17 +67,14 @@ class MonitoringWidget(QWidget):
         try:
             data = monitoring_service.overview()
         except Exception as exc:
-            self.summary.setText(f'فشل تحميل مراقبة التشغيل: {exc}')
+            self.summary.setText(translate('monitoring_load_failed', error=exc))
             return
 
         status = data.get('status') or 'unknown'
-        critical = ', '.join(data.get('critical') or []) or 'لا يوجد'
-        warnings = ', '.join(data.get('warnings') or []) or 'لا يوجد'
+        critical = ', '.join(data.get('critical') or []) or translate('none')
+        warnings = ', '.join(data.get('warnings') or []) or translate('none')
         self.summary.setText(
-            f"الحالة العامة: {status}\n"
-            f"مصدر البيانات: {data.get('data_source','')}\n"
-            f"تحذيرات: {warnings}\n"
-            f"حرج: {critical}"
+            translate('monitoring_summary', status=status, data_source=data.get('data_source',''), warnings=warnings, critical=critical)
         )
 
         self.table.setRowCount(0)

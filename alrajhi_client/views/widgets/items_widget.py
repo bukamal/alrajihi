@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QComboBox, QLabel, QHeaderView
 from PyQt5.QtCore import Qt
+from i18n import translate, qt_layout_direction
 from decimal import Decimal
 from core.services.product_service import product_service
 from currency import currency
@@ -12,10 +13,10 @@ from utils import show_toast
 from views.widgets.base_widget import BaseWidget
 
 class ItemsWidget(BaseWidget):
-    entity_name = "المادة"
-    search_placeholder = "بحث عن مادة (اسم أو باركود)..."
+    entity_name = translate("item")
+    search_placeholder = translate("items_search_placeholder")
     headers = ['name', 'quantity', 'unit', 'sold_quantity', 'available_quantity', 'available_total', 'unit_cost']
-    display_headers = ['اسم المادة', 'الكمية', 'الوحدة الافتراضية', 'الكمية المباعة', 'الكمية المتوفرة', 'مجموع المتوفر', 'تكلفة الوحدة']
+    display_headers = [translate('item_name_header'), translate('quantity'), translate('default_unit_header'), translate('sold_quantity'), translate('available_quantity'), translate('available_total'), translate('unit_cost')]
     has_delete = True
     has_add = True
     has_export = True
@@ -23,14 +24,15 @@ class ItemsWidget(BaseWidget):
     has_pagination = True
     page_size = 50
     extra_buttons = [
-        ("🖨️ طباعة باركود", "print_barcode", "print_barcode_btn"),
-        ("📑 طباعة متعددة", "batch_print", "batch_print_btn"),
+        (translate("print_barcode"), "print_barcode", "print_barcode_btn"),
+        (translate("batch_print"), "batch_print", "batch_print_btn"),
     ]
 
     def __init__(self, parent=None):
         self.category_filter = QComboBox()
         self.type_filter = QComboBox()
         super().__init__(parent)
+        self.setLayoutDirection(qt_layout_direction())
         self.load_categories()
         self.load_filters()
         # Extra buttons are already created by BaseWidget from extra_buttons.
@@ -49,7 +51,7 @@ class ItemsWidget(BaseWidget):
 
     def load_categories(self):
         categories = product_service.categories()
-        self.category_filter.addItem("جميع التصنيفات", None)
+        self.category_filter.addItem(translate("all_categories"), None)
         for c in categories:
             self.category_filter.addItem(c['name'], c['id'])
 
@@ -57,14 +59,14 @@ class ItemsWidget(BaseWidget):
         """إضافة فلاتر المواد فوق الجدول مع استخدام بحث الشريط الموحد."""
         filter_layout = QHBoxLayout()
         filter_layout.setContentsMargins(0, 0, 0, 0)
-        filter_layout.addWidget(QLabel("التصنيف:"))
+        filter_layout.addWidget(QLabel(translate("category_label")))
         filter_layout.addWidget(self.category_filter)
-        filter_layout.addWidget(QLabel("النوع:"))
+        filter_layout.addWidget(QLabel(translate("item_type_label")))
         if self.type_filter.count() == 0:
-            self.type_filter.addItem("جميع الأنواع", None)
-            self.type_filter.addItem("مخزون", "مخزون")
-            self.type_filter.addItem("منتج نهائي", "منتج نهائي")
-            self.type_filter.addItem("خدمة", "خدمة")
+            self.type_filter.addItem(translate("all_types"), None)
+            self.type_filter.addItem(translate("stock_item_type"), "مخزون")
+            self.type_filter.addItem(translate("finished_product_type"), "منتج نهائي")
+            self.type_filter.addItem(translate("service_item_type"), "خدمة")
         filter_layout.addWidget(self.type_filter)
         filter_layout.addStretch()
         self.layout().insertLayout(1, filter_layout)
@@ -88,16 +90,16 @@ class ItemsWidget(BaseWidget):
         """إرجاع اسم المادة من الصف المحدد (لرسالة تأكيد الحذف)"""
         if self.model and row < self.model.rowCount():
             row_data = self.model.get_row(row)
-            return row_data.get('name', 'المادة')
-        return "المادة"
+            return row_data.get('name', translate('item'))
+        return translate("item")
 
 
     def _stock_status(self, available_qty, reorder_level):
         if available_qty <= 0:
-            return '🔴 نافد', 'out'
+            return translate('stock_empty'), 'out'
         if reorder_level > 0 and available_qty <= reorder_level:
-            return '🟠 منخفض', 'low'
-        return '🟢 جيد', 'ok'
+            return translate('stock_low'), 'low'
+        return translate('stock_ok'), 'ok'
 
     def prepare_table_data(self, items):
         data = []
@@ -119,7 +121,7 @@ class ItemsWidget(BaseWidget):
                 'id': it['id'],
                 'name': it.get('name', ''),
                 'quantity': f"{opening_qty:.2f}",
-                'unit': it.get('unit') or 'قطعة',
+                'unit': it.get('unit') or translate('unit_piece'),
                 'sold_quantity': f"{sold_qty:.2f}",
                 'available_quantity': f"{available_qty:.2f}",
                 'available_total': currency.format_amount(total_value_display),
@@ -136,7 +138,7 @@ class ItemsWidget(BaseWidget):
     def print_barcode(self):
         selected = self.table.selectionModel().selectedRows()
         if not selected:
-            show_toast("اختر مادة أولاً", "warning", self)
+            show_toast(translate("select_item_first"), "warning", self)
             return
         row = selected[0].row()
         item_id = self.model.get_id(row)
@@ -144,7 +146,7 @@ class ItemsWidget(BaseWidget):
             return
         item = product_service.item_by_id(item_id)
         if not item or not item.get('barcode'):
-            show_toast("هذه المادة ليس لها باركود", "error", self)
+            show_toast(translate("item_has_no_barcode"), "error", self)
             return
         from printing.thermal_printer import PDFPrinter
         pdf_printer = PDFPrinter(self)
@@ -186,13 +188,13 @@ class ItemsWidget(BaseWidget):
             total_pages = max(1, (self.total_count + self.page_size - 1) // self.page_size)
             if self.current_page >= total_pages:
                 self.current_page = max(0, total_pages - 1)
-            self.page_label.setText(f"الصفحة {self.current_page + 1} من {total_pages}")
+            self.page_label.setText(translate("page_of", page=self.current_page + 1, pages=total_pages))
             self.prev_btn.setEnabled(self.current_page > 0)
             self.next_btn.setEnabled(self.current_page + 1 < total_pages)
         visible_count = len(data)
         start_row = 0 if self.total_count == 0 else self.current_page * self.page_size + 1
         end_row = min(self.total_count, self.current_page * self.page_size + visible_count)
-        counter_text = f"عرض {start_row}-{end_row} من أصل {self.total_count} سجل"
+        counter_text = translate("showing_records", start=start_row, end=end_row, total=self.total_count)
         self.status_label.setText(counter_text)
         if hasattr(self, 'toolbar'):
             self.toolbar.set_counter(counter_text)

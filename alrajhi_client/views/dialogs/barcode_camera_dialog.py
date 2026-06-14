@@ -6,6 +6,8 @@ from PyQt5.QtGui import QImage, QPixmap
 from views.centered_dialog import CenteredDialog
 from core.services.barcode_scanner_service import barcode_scanner_service
 from utils import show_toast
+from i18n import translate, qt_layout_direction
+from core.services.settings_service import settings_service
 
 
 class BarcodeCameraDialog(CenteredDialog):
@@ -19,21 +21,21 @@ class BarcodeCameraDialog(CenteredDialog):
 
     def __init__(self, parent=None, camera_index: int = 0, auto_close: bool = True):
         super().__init__(parent)
-        self.setWindowTitle("مسح باركود/QR بالكاميرا")
+        self.setWindowTitle(translate("barcode_camera_title"))
         self.resize(720, 560)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction(settings_service.get_language()))
         self.camera_index = camera_index
         self.auto_close = auto_close
         self.capture = None
         self.last_value = None
 
         layout = QVBoxLayout(self.content_widget)
-        self.status_label = QLabel("جاهز")
+        self.status_label = QLabel(translate("ready"))
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
 
-        self.video_label = QLabel("اضغط تشغيل الكاميرا")
+        self.video_label = QLabel(translate("press_start_camera"))
         self.video_label.setAlignment(Qt.AlignCenter)
         self.video_label.setMinimumHeight(360)
         self.video_label.setStyleSheet("border: 1px solid #aaa; background: #111; color: white;")
@@ -42,9 +44,9 @@ class BarcodeCameraDialog(CenteredDialog):
         controls = QHBoxLayout()
         self.camera_combo = QComboBox()
         self.camera_combo.addItems(["Camera 0", "Camera 1", "Camera 2"])
-        self.start_btn = QPushButton("تشغيل الكاميرا")
-        self.stop_btn = QPushButton("إيقاف")
-        self.close_btn = QPushButton("إغلاق")
+        self.start_btn = QPushButton(translate("start_camera"))
+        self.stop_btn = QPushButton(translate("stop"))
+        self.close_btn = QPushButton(translate("close"))
         controls.addWidget(self.camera_combo)
         controls.addWidget(self.start_btn)
         controls.addWidget(self.stop_btn)
@@ -59,8 +61,7 @@ class BarcodeCameraDialog(CenteredDialog):
 
         if not barcode_scanner_service.is_available():
             self.status_label.setText(
-                "الكاميرا غير متاحة: " + barcode_scanner_service.unavailable_reason() +
-                "\nيمكنك استخدام قارئ USB أو الإدخال اليدوي."
+                translate("camera_unavailable_msg", reason=barcode_scanner_service.unavailable_reason())
             )
             self.start_btn.setEnabled(False)
 
@@ -70,10 +71,10 @@ class BarcodeCameraDialog(CenteredDialog):
         self.capture = barcode_scanner_service.open_camera(self.camera_index)
         if not self.capture or not self.capture.isOpened():
             self.capture = None
-            show_toast("تعذر فتح الكاميرا. تحقق من الصلاحيات أو استخدم قارئ USB.", "error", self)
-            self.status_label.setText("تعذر فتح الكاميرا")
+            show_toast(translate("camera_open_failed_help"), "error", self)
+            self.status_label.setText(translate("camera_open_failed"))
             return
-        self.status_label.setText("وجّه الكاميرا نحو الباركود أو QR")
+        self.status_label.setText(translate("point_camera_to_barcode"))
         self.timer.start(80)
 
     def stop_camera(self):
@@ -96,7 +97,7 @@ class BarcodeCameraDialog(CenteredDialog):
         result = barcode_scanner_service.first_result(frame)
         if result and result.value != self.last_value:
             self.last_value = result.value
-            self.status_label.setText(f"تم التعرف: {result.value} ({result.symbology})")
+            self.status_label.setText(translate("barcode_detected", value=result.value, symbology=result.symbology))
             self.barcode_scanned.emit(result.value, result.symbology)
             if self.auto_close:
                 self.accept()

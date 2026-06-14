@@ -2,6 +2,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget,
                              QHeaderView, QMessageBox, QMenu, QAction, QLabel)
 from PyQt5.QtCore import Qt
+from i18n import translate, qt_layout_direction
 from core.services.manufacturing_service import manufacturing_service
 from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
@@ -16,7 +17,7 @@ class ManufacturingWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.service = manufacturing_service
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self.bom_page = 0
         self.orders_page = 0
         self.page_size = 30
@@ -30,10 +31,10 @@ class ManufacturingWidget(QWidget):
         self.orders_tab = QWidget()
         self.setup_bom_tab()
         self.setup_orders_tab()
-        self.tabs.addTab(self.bom_tab, "قوائم المواد (BOM)")
-        self.tabs.addTab(self.orders_tab, "أوامر الإنتاج")
+        self.tabs.addTab(self.bom_tab, translate("bom_lists"))
+        self.tabs.addTab(self.orders_tab, translate("production_orders"))
         layout.addWidget(self.tabs)
-        apply_modern_widget(self, '🏭 التصنيع', 'وصفات الإنتاج، أوامر التصنيع، والاستهلاك')
+        apply_modern_widget(self, '🏭 ' + translate('manufacturing_title'), translate('manufacturing_subtitle'))
 
         self.refresh_bom()
         self.refresh_orders()
@@ -41,9 +42,9 @@ class ManufacturingWidget(QWidget):
     def setup_bom_tab(self):
         layout = QVBoxLayout(self.bom_tab)
         btn_layout = QHBoxLayout()
-        add_btn = QPushButton("➕ إضافة قائمة مواد")
+        add_btn = QPushButton(translate("add_bom"))
         add_btn.clicked.connect(self.add_bom)
-        refresh_btn = QPushButton("🔄 تحديث")
+        refresh_btn = QPushButton(translate("refresh"))
         refresh_btn.clicked.connect(self.refresh_bom)
         btn_layout.addWidget(add_btn)
         btn_layout.addWidget(refresh_btn)
@@ -58,9 +59,9 @@ class ManufacturingWidget(QWidget):
 
         # Pagination for BOM
         pagination = QHBoxLayout()
-        self.bom_prev = QPushButton("السابق")
+        self.bom_prev = QPushButton(translate("previous"))
         self.bom_prev.clicked.connect(lambda: self.prev_page('bom'))
-        self.bom_next = QPushButton("التالي")
+        self.bom_next = QPushButton(translate("next"))
         self.bom_next.clicked.connect(lambda: self.next_page('bom'))
         self.bom_page_label = QLabel()
         pagination.addWidget(self.bom_prev)
@@ -72,9 +73,9 @@ class ManufacturingWidget(QWidget):
     def setup_orders_tab(self):
         layout = QVBoxLayout(self.orders_tab)
         btn_layout = QHBoxLayout()
-        add_btn = QPushButton("➕ أمر إنتاج جديد")
+        add_btn = QPushButton(translate("new_production_order"))
         add_btn.clicked.connect(self.add_order)
-        refresh_btn = QPushButton("🔄 تحديث")
+        refresh_btn = QPushButton(translate("refresh"))
         refresh_btn.clicked.connect(self.refresh_orders)
         btn_layout.addWidget(add_btn)
         btn_layout.addWidget(refresh_btn)
@@ -88,9 +89,9 @@ class ManufacturingWidget(QWidget):
         layout.addWidget(self.orders_table)
 
         pagination = QHBoxLayout()
-        self.orders_prev = QPushButton("السابق")
+        self.orders_prev = QPushButton(translate("previous"))
         self.orders_prev.clicked.connect(lambda: self.prev_page('orders'))
-        self.orders_next = QPushButton("التالي")
+        self.orders_next = QPushButton(translate("next"))
         self.orders_next.clicked.connect(lambda: self.next_page('orders'))
         self.orders_page_label = QLabel()
         pagination.addWidget(self.orders_prev)
@@ -107,7 +108,7 @@ class ManufacturingWidget(QWidget):
             boms, total = self.service.boms_pair(limit=self.page_size, offset=offset)
         except Exception as exc:
             if is_offline_read_error(exc):
-                show_toast(offline_read_message('قوائم مواد التصنيع'), 'warning', self)
+                show_toast(offline_read_message(translate('manufacturing_bom_offline')), 'warning', self)
                 return
             raise
         data = []
@@ -119,7 +120,7 @@ class ManufacturingWidget(QWidget):
                 'created_at': b.get('created_at', '')[:10] if b.get('created_at') else ''
             })
         headers = ['product', 'quantity', 'created_at']
-        display_headers = ['المنتج', 'الكمية', 'تاريخ الإنشاء']
+        display_headers = [translate('product'), translate('quantity'), translate('created_at')]
         self.bom_model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.bom_table.setModel(self.bom_model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
@@ -127,7 +128,7 @@ class ManufacturingWidget(QWidget):
         self.bom_table.refresh_style()
 
         total_pages = (total + self.page_size - 1) // self.page_size
-        self.bom_page_label.setText(f"الصفحة {self.bom_page + 1} من {total_pages}")
+        self.bom_page_label.setText(translate('page_of', page=self.bom_page + 1, pages=total_pages))
         self.bom_prev.setEnabled(self.bom_page > 0)
         self.bom_next.setEnabled(self.bom_page + 1 < total_pages)
 
@@ -139,10 +140,10 @@ class ManufacturingWidget(QWidget):
             orders, total = self.service.production_orders_pair(limit=self.page_size, offset=offset)
         except Exception as exc:
             if is_offline_read_error(exc):
-                show_toast(offline_read_message('أوامر التصنيع'), 'warning', self)
+                show_toast(offline_read_message(translate('manufacturing_orders_offline')), 'warning', self)
                 return
             raise
-        status_map = {'planned': 'مخطط', 'in_progress': 'قيد التنفيذ', 'completed': 'مكتمل', 'cancelled': 'ملغي'}
+        status_map = {'planned': translate('status_planned'), 'in_progress': translate('status_in_progress'), 'completed': translate('status_completed'), 'cancelled': translate('status_cancelled')}
         data = []
         for o in orders:
             data.append({
@@ -151,13 +152,13 @@ class ManufacturingWidget(QWidget):
                 'product': o.get('product_name', ''),
                 'planned_qty': str(o.get('planned_qty', 0)),
                 'produced_qty': str(o.get('produced_qty', 0)),
-                'status': status_map.get(o.get('status', 'planned'), 'مخطط'),
+                'status': status_map.get(o.get('status', 'planned'), translate('status_planned')),
                 'raw_warehouse': o.get('raw_warehouse_name') or '-',
                 'output_warehouse': o.get('output_warehouse_name') or '-',
                 'start_date': o.get('start_date', '-')[:10] if o.get('start_date') else '-'
             })
         headers = ['order_number', 'product', 'planned_qty', 'produced_qty', 'status', 'raw_warehouse', 'output_warehouse', 'start_date']
-        display_headers = ['رقم الأمر', 'المنتج', 'الكمية المخططة', 'الكمية المنتجة', 'الحالة', 'مستودع الخام', 'مستودع المنتج', 'تاريخ البدء']
+        display_headers = [translate('order_number'), translate('product'), translate('planned_qty'), translate('produced_qty'), translate('status'), translate('raw_warehouse'), translate('output_warehouse'), translate('start_date')]
         self.orders_model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.orders_table.setModel(self.orders_model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
@@ -165,7 +166,7 @@ class ManufacturingWidget(QWidget):
         self.orders_table.refresh_style()
 
         total_pages = (total + self.page_size - 1) // self.page_size
-        self.orders_page_label.setText(f"الصفحة {self.orders_page + 1} من {total_pages}")
+        self.orders_page_label.setText(translate('page_of', page=self.orders_page + 1, pages=total_pages))
         self.orders_prev.setEnabled(self.orders_page > 0)
         self.orders_next.setEnabled(self.orders_page + 1 < total_pages)
 
@@ -178,9 +179,9 @@ class ManufacturingWidget(QWidget):
         if not bom_id:
             return
         menu = QMenu()
-        edit_action = QAction("✏️ تعديل", self)
+        edit_action = QAction("✏️ " + translate("edit"), self)
         edit_action.triggered.connect(lambda: self.edit_bom_by_id(bom_id))
-        delete_action = QAction("🗑 حذف", self)
+        delete_action = QAction("🗑 " + translate("delete"), self)
         delete_action.triggered.connect(lambda: self.delete_bom_by_id(bom_id))
         menu.addAction(edit_action)
         menu.addAction(delete_action)
@@ -196,11 +197,11 @@ class ManufacturingWidget(QWidget):
             return
         order_status = self.orders_model.get_row(row).get('status', '')
         menu = QMenu()
-        view_action = QAction("👁️ عرض التفاصيل", self)
+        view_action = QAction(translate("view_details"), self)
         view_action.triggered.connect(lambda: self.view_order_by_id(order_id))
         menu.addAction(view_action)
-        if order_status in ('مخطط', 'ملغي'):
-            delete_action = QAction("🗑 حذف الأمر", self)
+        if order_status in (translate('status_planned'), translate('status_cancelled')):
+            delete_action = QAction(translate("delete_order"), self)
             delete_action.triggered.connect(lambda: self.delete_order_by_id(order_id))
             menu.addAction(delete_action)
         menu.exec(self.orders_table.viewport().mapToGlobal(pos))
@@ -218,21 +219,21 @@ class ManufacturingWidget(QWidget):
     def edit_bom_by_id(self, bom_id):
         can_edit, msg = self.service.can_edit_bom(bom_id)
         if not can_edit:
-            QMessageBox.warning(self, "تحذير", msg)
+            QMessageBox.warning(self, translate("warning"), msg)
             return
         dialog = BOMDialog(self, bom_id=bom_id)
         if dialog.exec():
             self.refresh_bom()
 
     def delete_bom_by_id(self, bom_id):
-        reply = QMessageBox.question(self, "تأكيد الحذف", "هل تريد حذف قائمة المواد هذه؟", QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(self, translate("confirm_delete"), translate("confirm_delete_bom"), QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             success, msg = self.service.delete_bom(bom_id)
             if success:
-                show_toast("تم حذف قائمة المواد", "success", self)
+                show_toast(translate("bom_deleted"), "success", self)
                 self.refresh_bom()
             else:
-                QMessageBox.critical(self, "خطأ", msg)
+                QMessageBox.critical(self, translate("error"), msg)
 
     def add_order(self):
         dialog = ProductionOrderDialog(self)
@@ -250,14 +251,14 @@ class ManufacturingWidget(QWidget):
         self.refresh_orders()
 
     def delete_order_by_id(self, order_id):
-        reply = QMessageBox.question(self, "تأكيد الحذف", "هل تريد حذف أمر الإنتاج هذا؟", QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(self, translate("confirm_delete"), translate("confirm_delete_order"), QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             success, msg = self.service.delete_production_order(order_id)
             if success:
-                show_toast("تم حذف أمر الإنتاج", "success", self)
+                show_toast(translate("production_order_deleted"), "success", self)
                 self.refresh_orders()
             else:
-                QMessageBox.critical(self, "خطأ", msg)
+                QMessageBox.critical(self, translate("error"), msg)
 
     def prev_page(self, target):
         if target == 'bom' and self.bom_page > 0:

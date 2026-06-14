@@ -1,0 +1,231 @@
+{
+  "languages": [
+    "ar",
+    "de",
+    "en"
+  ],
+  "total_keys": 1165,
+  "used_keys_count": 1076,
+  "unused_keys_count": 89,
+  "missing_used_keys": [],
+  "missing_by_lang": {
+    "ar": [],
+    "de": [],
+    "en": []
+  },
+  "empty_by_lang": {
+    "ar": [],
+    "de": [],
+    "en": []
+  },
+  "ftranslate_refs": [],
+  "parse_errors": [],
+  "top_files": [
+    [
+      "alrajhi_client/views/widgets/reports_widget.py",
+      220
+    ],
+    [
+      "alrajhi_client/theme/qss.py",
+      126
+    ],
+    [
+      "alrajhi_client/printing/print_templates.py",
+      88
+    ],
+    [
+      "alrajhi_client/database/dao/manufacturing_dao.py",
+      87
+    ],
+    [
+      "alrajhi_client/database/connection.py",
+      74
+    ],
+    [
+      "alrajhi_client/views/widgets/modern_ui.py",
+      70
+    ],
+    [
+      "alrajhi_client/views/dialogs/item_dialog.py",
+      60
+    ],
+    [
+      "alrajhi_client/views/widgets/dashboard_widget.py",
+      60
+    ],
+    [
+      "alrajhi_client/views/widgets/settings_widget.py",
+      57
+    ],
+    [
+      "alrajhi_client/database/dao/inventory_ledger_dao.py",
+      57
+    ],
+    [
+      "alrajhi_client/main.py",
+      46
+    ],
+    [
+      "alrajhi_client/views/main_window.py",
+      46
+    ],
+    [
+      "alrajhi_client/views/widgets/invoices_widget.py",
+      44
+    ],
+    [
+      "alrajhi_client/views/dialogs/invoice_dialog.py",
+      43
+    ],
+    [
+      "alrajhi_client/core/server_control.py",
+      40
+    ],
+    [
+      "alrajhi_client/views/modern_topbar.py",
+      36
+    ],
+    [
+      "alrajhi_client/database/repositories/warehouse_repo.py",
+      34
+    ],
+    [
+      "alrajhi_client/printing/printing_service.py",
+      31
+    ],
+    [
+      "alrajhi_client/database/schema_manager.py",
+      28
+    ],
+    [
+      "alrajhi_client/views/dialogs/batch_print_dialog.py",
+      27
+    ],
+    [
+      "alrajhi_client/views/dialogs/activation_dialog.py",
+      26
+    ],
+    [
+      "alrajhi_client/database/repositories/cashbox_repo.py",
+      25
+    ],
+    [
+      "alrajhi_client/printing/label_designer.py",
+      22
+    ],
+    [
+      "alrajhi_client/core/services/barcode_label_service.py",
+      22
+    ],
+    [
+      "alrajhi_client/gateways/local/purchase_return_gateway.py",
+      21
+    ],
+    [
+      "alrajhi_client/core/services/pos_service.py",
+      21
+    ],
+    [
+      "alrajhi_client/core/services/warehouse_service.py",
+      21
+    ],
+    [
+      "alrajhi_client/views/splash_screen.py",
+      20
+    ],
+    [
+      "alrajhi_client/views/custom_table_view.py",
+      19
+    ],
+    [
+      "alrajhi_client/gateways/local/sales_return_gateway.py",
+      19
+    ],
+    [
+      "alrajhi_client/views/dialogs/production_details_dialog.py",
+      18
+    ],
+    [
+      "alrajhi_client/core/services/cashbox_service.py",
+      17
+    ],
+    [
+      "alrajhi_client/views/dialogs/change_password_dialog.py",
+      17
+    ],
+    [
+      "alrajhi_client/printing/print_manager.py",
+      16
+    ],
+    [
+      "alrajhi_client/database/repositories/audit_repo.py",
+      16
+    ],
+    [
+      "alrajhi_client/gateways/local/audit_gateway.py",
+      15
+    ],
+    [
+      "alrajhi_client/core/services/product_service.py",
+      15
+    ],
+    [
+      "alrajhi_client/core/services/manufacturing_service.py",
+      15
+    ],
+    [
+      "alrajhi_client/views/dialogs/add_entity_dialog.py",
+      15
+    ],
+    [
+      "alrajhi_client/database/dao/category_dao.py",
+      15
+    ],
+    [
+      "alrajhi_client/printing/thermal_printer.py",
+      14
+    ],
+    [
+      "alrajhi_client/ui/design_system.py",
+      14
+    ],
+    [
+      "alrajhi_client/action_handler.py",
+      13
+    ],
+    [
+      "alrajhi_client/views/widgets/components/table_toolbar.py",
+      13
+    ],
+    [
+      "alrajhi_client/database/migrations.py",
+      12
+    ],
+    [
+      "alrajhi_client/core/services/reporting_service.py",
+      12
+    ],
+    [
+      "alrajhi_client/core/services/settings_service.py",
+      12
+    ],
+    [
+      "alrajhi_client/database/dao/reporting_dao.py",
+      12
+    ],
+    [
+      "alrajhi_client/offline_read.py",
+      10
+    ],
+    [
+      "alrajhi_client/core/offline_guard.py",
+      10
+    ]
+  ],
+  "class_counts": {
+    "arabic_literal": 867,
+    "other_literal": 330,
+    "likely_ui": 229,
+    "possible_ui_or_message": 1020
+  }
+}

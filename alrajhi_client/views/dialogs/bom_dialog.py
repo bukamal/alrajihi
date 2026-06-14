@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import (QFormLayout, QVBoxLayout, QHBoxLayout, QLabel, QLin
                              QComboBox, QDoubleSpinBox, QPushButton, QListWidget,
                              QListWidgetItem, QGroupBox, QMessageBox, QDialog)
 from PyQt5.QtCore import Qt
+from i18n import translate, qt_layout_direction
 from views.centered_dialog import CenteredDialog
 from core.services.catalog_service import catalog_service
 from core.services.manufacturing_service import manufacturing_service
@@ -18,7 +19,7 @@ class BOMDialog(CenteredDialog):
         self.bom_id = bom_id
         self.service = manufacturing_service
         self.is_edit = bom_id is not None
-        self.setWindowTitle("إضافة قائمة مواد" if not self.is_edit else "تعديل قائمة مواد")
+        self.setWindowTitle(translate("add_bom_title") if not self.is_edit else translate("edit_bom_title"))
         self.resize(600, 500)
 
         # تخطيط رئيسي
@@ -31,7 +32,7 @@ class BOMDialog(CenteredDialog):
             items = catalog_service.items()
         except Exception as exc:
             if is_offline_read_error(exc):
-                show_toast(offline_read_message('مواد التصنيع'), 'warning', self)
+                show_toast(offline_read_message(translate('manufacturing_items_offline')), 'warning', self)
                 items = []
             else:
                 raise
@@ -41,31 +42,31 @@ class BOMDialog(CenteredDialog):
                 price_display = currency.format_amount(currency.convert(it.get('selling_price', 0), 'USD', currency.get_display_currency()))
                 self.product_combo.addItem(f"{it['name']} ({price_display})", it['id'])
                 self.product_map[it['id']] = it
-        form.addRow("المنتج النهائي:", self.product_combo)
+        form.addRow(translate("finished_product"), self.product_combo)
         self.product_error = make_error_label()
         form.addRow("", self.product_error)
 
         self.qty_spin = QDoubleSpinBox()
         self.qty_spin.setRange(0.01, 999999)
         self.qty_spin.setValue(1)
-        form.addRow("الكمية (لكل وحدة):", self.qty_spin)
+        form.addRow(translate("quantity_per_unit"), self.qty_spin)
         self.qty_error = make_error_label()
         form.addRow("", self.qty_error)
 
-        group = QGroupBox("المكونات (مواد خام / نصف مصنعة)")
+        group = QGroupBox(translate("bom_components_group"))
         group_layout = QVBoxLayout(group)
         self.lines_list = QListWidget()
         group_layout.addWidget(self.lines_list)
-        btn_add_line = QPushButton("➕ إضافة مكون")
-        btn_remove_line = QPushButton("🗑 حذف المكون المحدد")
+        btn_add_line = QPushButton(translate("add_component"))
+        btn_remove_line = QPushButton(translate("delete_selected_component"))
         group_layout.addWidget(btn_add_line)
         group_layout.addWidget(btn_remove_line)
         main_layout.addWidget(group)
 
         btn_layout = QHBoxLayout()
-        save_btn = QPushButton("حفظ (Ctrl+S)")
+        save_btn = QPushButton(translate("save_ctrl_s"))
         save_btn.setObjectName("primary")
-        cancel_btn = QPushButton("إلغاء (Esc)")
+        cancel_btn = QPushButton(translate("cancel_esc"))
         btn_layout.addWidget(save_btn)
         btn_layout.addWidget(cancel_btn)
         main_layout.addLayout(btn_layout)
@@ -80,15 +81,15 @@ class BOMDialog(CenteredDialog):
         if self.is_edit:
             self.load_bom_data()
         self.install_form_shortcuts(self.save)
-        apply_modern_dialog(self, 'وصفة التصنيع')
+        apply_modern_dialog(self, translate('bom_recipe'))
         self.watch_dirty_widgets([self.product_combo, self.qty_spin], reset=True)
 
     def add_line(self):
         # ... (نفس الكود السابق) ...
         from PyQt5.QtWidgets import QDialog, QFormLayout, QDoubleSpinBox, QComboBox
         dialog = QDialog(self)
-        dialog.setWindowTitle("إضافة مكون")
-        dialog.setLayoutDirection(Qt.RightToLeft)
+        dialog.setWindowTitle(translate("add_component_title"))
+        dialog.setLayoutDirection(qt_layout_direction())
         dialog.resize(450, 320)
         sub_layout = QFormLayout(dialog)
 
@@ -97,32 +98,32 @@ class BOMDialog(CenteredDialog):
             items = catalog_service.items()
         except Exception as exc:
             if is_offline_read_error(exc):
-                show_toast(offline_read_message('مواد التصنيع'), 'warning', self)
+                show_toast(offline_read_message(translate('manufacturing_items_offline')), 'warning', self)
                 items = []
             else:
                 raise
         for it in items:
             if it.get('item_type') in ('مخزون', 'منتج نهائي') and it['id'] != self.product_combo.currentData():
                 item_combo.addItem(f"{it['name']} ({currency.format_amount(currency.convert(it.get('selling_price', 0), 'USD', currency.get_display_currency()))})", it['id'])
-        sub_layout.addRow("المادة:", item_combo)
+        sub_layout.addRow(translate("material_label"), item_combo)
 
         qty_edit = QDoubleSpinBox()
         qty_edit.setRange(0.01, 999999)
         qty_edit.setValue(1)
-        sub_layout.addRow("الكمية:", qty_edit)
+        sub_layout.addRow(translate("quantity") + ":", qty_edit)
 
         waste_spin = QDoubleSpinBox()
         waste_spin.setRange(0, 100)
         waste_spin.setSuffix("%")
-        sub_layout.addRow("نسبة الهالك:", waste_spin)
+        sub_layout.addRow(translate("waste_percent"), waste_spin)
 
         unit_combo = QComboBox()
-        unit_combo.addItem("الوحدة الأساسية", None)
-        sub_layout.addRow("الوحدة:", unit_combo)
+        unit_combo.addItem(translate("base_unit"), None)
+        sub_layout.addRow(translate("unit_label"), unit_combo)
 
         sub_btn_layout = QHBoxLayout()
-        sub_save = QPushButton("إضافة")
-        sub_cancel = QPushButton("إلغاء")
+        sub_save = QPushButton(translate("add"))
+        sub_cancel = QPushButton(translate("cancel"))
         sub_btn_layout.addWidget(sub_save)
         sub_btn_layout.addWidget(sub_cancel)
         sub_layout.addRow(sub_btn_layout)
@@ -130,7 +131,7 @@ class BOMDialog(CenteredDialog):
         def update_units():
             item_id = item_combo.currentData()
             unit_combo.clear()
-            unit_combo.addItem("الوحدة الأساسية", None)
+            unit_combo.addItem(translate("base_unit"), None)
             if item_id:
                 for u in catalog_service.item_units(item_id):
                     unit_combo.addItem(u['unit_name'], u['id'])
@@ -140,7 +141,7 @@ class BOMDialog(CenteredDialog):
         def on_add():
             item_id = item_combo.currentData()
             if not item_id:
-                show_toast("اختر مادة", "error", dialog)
+                show_toast(translate("select_item"), "error", dialog)
                 return
             qty = qty_edit.value()
             waste = waste_spin.value() / 100
@@ -153,7 +154,7 @@ class BOMDialog(CenteredDialog):
                 'waste_percent': waste,
                 'unit_id': unit_id
             })
-            self.lines_list.addItem(f"{item_name} - الكمية: {qty} {'(هالك ' + str(waste_spin.value()) + '%)' if waste > 0 else ''}")
+            self.lines_list.addItem(translate('component_line', item=item_name, qty=qty, waste=(translate('waste_suffix', waste=waste_spin.value()) if waste > 0 else '')))
             self.mark_dirty()
             dialog.accept()
 
@@ -171,7 +172,7 @@ class BOMDialog(CenteredDialog):
     def load_bom_data(self):
         bom = self.service.get_bom(self.bom_id)
         if not bom:
-            show_toast("قائمة المواد غير موجودة", "error", self)
+            show_toast(translate("bom_not_found"), "error", self)
             self.reject()
             return
         idx = self.product_combo.findData(bom['product_id'])
@@ -186,25 +187,25 @@ class BOMDialog(CenteredDialog):
                 'waste_percent': float(line.get('waste_percent', 0)),
                 'unit_id': line.get('unit_id')
             })
-            self.lines_list.addItem(f"{line.get('item_name', '')} - الكمية: {float(line['quantity'])} {'(هالك ' + str(float(line.get('waste_percent', 0))*100) + '%)' if float(line.get('waste_percent', 0)) > 0 else ''}")
+            self.lines_list.addItem(translate('component_line', item=line.get('item_name', ''), qty=float(line['quantity']), waste=(translate('waste_suffix', waste=float(line.get('waste_percent', 0))*100) if float(line.get('waste_percent', 0)) > 0 else '')))
 
     def save(self):
         validator = FormValidator()
         product_id = self.product_combo.currentData()
-        validator.custom(bool(product_id), self.product_combo, self.product_error, "اختر المنتج النهائي")
-        validator.positive(self.qty_spin, self.qty_error, "كمية الإنتاج")
+        validator.custom(bool(product_id), self.product_combo, self.product_error, translate("select_finished_product"))
+        validator.positive(self.qty_spin, self.qty_error, translate("production_quantity"))
         if not validator.is_valid:
             validator.focus_first_invalid()
             return
         if not self.lines:
-            show_toast("أضف مكوناً واحداً على الأقل", "error", self)
+            show_toast(translate("component_required"), "error", self)
             return
         for l in self.lines:
             if l.get('item_id') == product_id:
-                show_toast("لا يمكن أن يكون المنتج النهائي مكوناً لنفسه", "error", self)
+                show_toast(translate("bom_self_component_error"), "error", self)
                 return
             if float(l.get('quantity', 0)) <= 0:
-                show_toast("كمية المكون يجب أن تكون أكبر من صفر", "error", self)
+                show_toast(translate("component_quantity_positive"), "error", self)
                 return
         bom_data = {
             'id': self.bom_id or 0,
@@ -221,7 +222,7 @@ class BOMDialog(CenteredDialog):
             })
         try:
             self.service.save_bom(bom_data)
-            show_toast("تم حفظ قائمة المواد", "success", self)
+            show_toast(translate("bom_saved"), "success", self)
             self.accept()
         except Exception as e:
             show_toast(str(e), "error", self)

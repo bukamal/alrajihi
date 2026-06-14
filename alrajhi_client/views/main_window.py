@@ -27,35 +27,49 @@ from views.widgets.monitoring_widget import MonitoringWidget
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from views.dialogs.login_dialog import LoginDialog
 from views.modern_topbar import ModernTopBar
-from i18n.translator import translate, set_language
+from i18n.translator import translate, set_language, normalize_language, qt_layout_direction
 from core.services.settings_service import settings_service
 from core.services.system_service import system_service
 from core.services.offline_queue_service import offline_queue_service
 from brand_assets import app_icon, logo_png, APP_DISPLAY_NAME_AR
 
-PAGE_META = {
-    'dashboard': ('لوحة التحكم', 'الرئيسية'),
-    'pos': ('نقطة البيع POS', 'الرئيسية > المبيعات > نقطة البيع'),
-    'sales_invoices': ('فواتير البيع', 'الرئيسية > المبيعات > فواتير البيع'),
-    'purchase_invoices': ('فواتير الشراء', 'الرئيسية > المشتريات > فواتير الشراء'),
-    'items': ('المواد والمخزون', 'الرئيسية > المخزون > المواد'),
-    'categories': ('التصنيفات', 'الرئيسية > المخزون > التصنيفات'),
-    'warehouses': ('المستودعات', 'الرئيسية > المخزون > المستودعات'),
-    'branches': ('الفروع', 'الرئيسية > الإدارة > الفروع'),
-    'cashboxes': ('الصناديق والبنوك', 'الرئيسية > المالية > الصناديق والبنوك'),
-    'customers': ('العملاء', 'الرئيسية > المبيعات > العملاء'),
-    'suppliers': ('الموردون', 'الرئيسية > المشتريات > الموردون'),
-    'vouchers': ('السندات', 'الرئيسية > المالية > السندات'),
-    'returns': ('مرتجعات المبيعات', 'الرئيسية > المبيعات > مرتجعات المبيعات'),
-    'purchase_returns': ('مرتجعات المشتريات', 'الرئيسية > المشتريات > مرتجعات المشتريات'),
-    'manufacturing': ('التصنيع', 'الرئيسية > التصنيع'),
-    'reports': ('التقارير', 'الرئيسية > التقارير'),
-    'settings': ('الإعدادات', 'الرئيسية > النظام > الإعدادات'),
-    'users': ('المستخدمون', 'الرئيسية > النظام > المستخدمون'),
-    'audit_log': ('سجل التدقيق', 'الرئيسية > النظام > سجل التدقيق'),
-    'offline_queue': ('الطلبات المعلقة', 'الرئيسية > الشبكة > الطلبات المعلقة'),
-    'monitoring': ('مراقبة التشغيل', 'الرئيسية > النظام > مراقبة التشغيل'),
+PAGE_META_KEYS = {
+    'dashboard': ('dashboard', 'home_breadcrumb'),
+    'pos': ('pos', 'nav_sales'),
+    'sales_invoices': ('sales_invoices', 'nav_sales'),
+    'purchase_invoices': ('purchase_invoices', 'nav_purchases'),
+    'items': ('items_inventory', 'nav_inventory'),
+    'categories': ('categories', 'nav_inventory'),
+    'warehouses': ('warehouses', 'nav_inventory'),
+    'branches': ('branches', 'nav_admin'),
+    'cashboxes': ('cashboxes', 'nav_finance'),
+    'customers': ('customers', 'nav_parties'),
+    'suppliers': ('suppliers', 'nav_parties'),
+    'vouchers': ('vouchers', 'nav_finance'),
+    'returns': ('sales_returns', 'nav_sales'),
+    'purchase_returns': ('purchase_returns', 'nav_purchases'),
+    'manufacturing': ('nav_manufacturing', 'nav_manufacturing'),
+    'reports': ('reports', 'reports'),
+    'settings': ('settings', 'nav_admin'),
+    'users': ('users', 'nav_users'),
+    'audit_log': ('audit_log', 'nav_users'),
+    'offline_queue': ('offline_queue', 'nav_admin'),
+    'monitoring': ('monitoring', 'nav_admin'),
 }
+
+
+def page_title(pid):
+    title_key, _ = PAGE_META_KEYS.get(pid, (pid, 'home_breadcrumb'))
+    return translate(title_key)
+
+
+def page_breadcrumb(pid):
+    title_key, group_key = PAGE_META_KEYS.get(pid, (pid, 'home_breadcrumb'))
+    home = translate('home_breadcrumb')
+    group = translate(group_key)
+    title = translate(title_key)
+    return f"{home} > {group} > {title}" if group != home and title != group else f"{home} > {title}"
+
 
 NAV_GROUP_BY_PAGE = {
     'dashboard': 'الرئيسية',
@@ -86,14 +100,16 @@ class MainWindow(QMainWindow):
         super().__init__()
         # Phase 41: use the native OS title bar again so the window can be moved
         # normally and the minimize/maximize/close buttons remain available.
-        self.setWindowTitle(APP_DISPLAY_NAME_AR)
+        self.setWindowTitle(translate('app_title'))
         self.setWindowIcon(QIcon(app_icon()))
-        self.setLayoutDirection(Qt.RightToLeft)
+        self._current_language = normalize_language(settings_service.get_language())
+        set_language(self._current_language)
+        self.setLayoutDirection(qt_layout_direction(self._current_language))
         self.setMinimumSize(1200, 700)
         self.resize(1400, 900)
         self.drag_pos = None
 
-        set_language(settings_service.get_language())
+        set_language(self._current_language)
         theme = settings_service.get_theme()
         ThemeManager.apply_theme(theme)
 
@@ -166,7 +182,7 @@ class MainWindow(QMainWindow):
         self.title_bar.mouseReleaseEvent = self._mouse_release
 
     def _remote_error_page(self, page_key: str, exc: Exception):
-        title = PAGE_META.get(page_key, (page_key, ''))[0]
+        title = page_title(page_key)
         w = QWidget(self)
         layout = QVBoxLayout(w)
         layout.setContentsMargins(36, 36, 36, 36)
@@ -185,7 +201,7 @@ class MainWindow(QMainWindow):
         try:
             return factory(self)
         except Exception as exc:
-            print(f"⚠️ تعذر تحميل الصفحة {page_key}: {exc}")
+            print(f"WARNING: failed to load page {page_key}: {exc}")
             return self._remote_error_page(page_key, exc)
 
     def init_pages(self):
@@ -224,7 +240,7 @@ class MainWindow(QMainWindow):
         remains dedicated to search, alerts, theme and user identity.
         """
         self.menu_bar.clear()
-        self.menu_bar.setLayoutDirection(Qt.RightToLeft)
+        self.menu_bar.setLayoutDirection(qt_layout_direction(self._current_language))
         self.menu_bar.setFixedHeight(62)
         self.menu_bar.setStyleSheet("""
             QMenuBar {
@@ -271,72 +287,72 @@ class MainWindow(QMainWindow):
             return action
 
         home_menu = self.menu_bar.addMenu(qta.icon('fa5s.home'), '\nالرئيسية')
-        add_action(home_menu, 'لوحة التحكم', 'tachometer-alt', 'dashboard', shortcut='F1')
-        add_action(home_menu, 'نقطة البيع POS', 'barcode', 'pos', shortcut='F2')
+        add_action(home_menu, translate('dashboard'), 'tachometer-alt', 'dashboard', shortcut='F1')
+        add_action(home_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
         home_menu.addSeparator()
-        add_action(home_menu, 'مراقبة التشغيل', 'heartbeat', 'monitoring')
+        add_action(home_menu, translate('monitoring'), 'heartbeat', 'monitoring')
 
         sales_menu = self.menu_bar.addMenu(qta.icon('fa5s.shopping-cart'), '\nالمبيعات')
-        add_action(sales_menu, 'بيع سريع POS', 'barcode', 'pos', shortcut='F2')
-        add_action(sales_menu, 'فواتير البيع', 'file-invoice-dollar', 'sales_invoices', shortcut='F3')
-        add_action(sales_menu, 'مرتجعات المبيعات', 'undo', 'returns')
+        add_action(sales_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
+        add_action(sales_menu, translate('sales_invoices'), 'file-invoice-dollar', 'sales_invoices', shortcut='F3')
+        add_action(sales_menu, translate('sales_returns'), 'undo', 'returns')
         sales_menu.addSeparator()
-        add_action(sales_menu, 'سند قبض', 'hand-holding-usd', 'vouchers')
+        add_action(sales_menu, translate('receipt_voucher'), 'hand-holding-usd', 'vouchers')
 
         purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), '\nالمشتريات')
-        add_action(purchase_menu, 'فواتير الشراء', 'file-invoice', 'purchase_invoices')
-        add_action(purchase_menu, 'مرتجعات المشتريات', 'undo-alt', 'purchase_returns')
+        add_action(purchase_menu, translate('purchase_invoices'), 'file-invoice', 'purchase_invoices')
+        add_action(purchase_menu, translate('purchase_returns'), 'undo-alt', 'purchase_returns')
         purchase_menu.addSeparator()
-        add_action(purchase_menu, 'سند دفع', 'money-bill-wave', 'vouchers')
+        add_action(purchase_menu, translate('payment_voucher'), 'money-bill-wave', 'vouchers')
 
         inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), '\nالمخزون')
-        add_action(inventory_menu, 'المواد', 'box', 'items', shortcut='F4')
-        add_action(inventory_menu, 'التصنيفات', 'folder', 'categories')
-        add_action(inventory_menu, 'المستودعات', 'warehouse', 'warehouses', shortcut='F5')
+        add_action(inventory_menu, translate('items'), 'box', 'items', shortcut='F4')
+        add_action(inventory_menu, translate('categories'), 'folder', 'categories')
+        add_action(inventory_menu, translate('warehouses'), 'warehouse', 'warehouses', shortcut='F5')
 
         manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), '\nالتصنيع')
-        add_action(manufacturing_menu, 'التصنيع وأوامر الإنتاج', 'industry', 'manufacturing')
+        add_action(manufacturing_menu, translate('nav_manufacturing'), 'industry', 'manufacturing')
 
         parties_menu = self.menu_bar.addMenu(qta.icon('fa5s.users'), '\nالأطراف')
-        add_action(parties_menu, 'العملاء', 'user-friends', 'customers')
-        add_action(parties_menu, 'الموردون', 'truck-loading', 'suppliers')
+        add_action(parties_menu, translate('customers'), 'user-friends', 'customers')
+        add_action(parties_menu, translate('suppliers'), 'truck-loading', 'suppliers')
 
         finance_menu = self.menu_bar.addMenu(qta.icon('fa5s.wallet'), '\nالمالية')
-        add_action(finance_menu, 'الصناديق والبنوك', 'cash-register', 'cashboxes')
-        add_action(finance_menu, 'السندات', 'receipt', 'vouchers')
+        add_action(finance_menu, translate('cashboxes'), 'cash-register', 'cashboxes')
+        add_action(finance_menu, translate('vouchers'), 'receipt', 'vouchers')
 
         reports_menu = self.menu_bar.addMenu(qta.icon('fa5s.chart-line'), '\nالتقارير')
-        add_action(reports_menu, 'مركز التقارير', 'chart-line', 'reports')
-        add_action(reports_menu, 'كشف حساب عميل', 'user', 'reports')
-        add_action(reports_menu, 'كشف حساب مورد', 'truck', 'reports')
-        add_action(reports_menu, 'مطابقة Ledger', 'balance-scale', 'reports')
+        add_action(reports_menu, translate('reports'), 'chart-line', 'reports')
+        add_action(reports_menu, translate('customer_statement'), 'user', 'reports')
+        add_action(reports_menu, translate('supplier_statement'), 'truck', 'reports')
+        add_action(reports_menu, translate('ledger_reconciliation'), 'balance-scale', 'reports')
 
         admin_menu = self.menu_bar.addMenu(qta.icon('fa5s.cog'), '\nالإدارة')
-        add_action(admin_menu, 'الإعدادات', 'sliders-h', 'settings')
-        add_action(admin_menu, 'الفروع', 'code-branch', 'branches')
-        add_action(admin_menu, 'الطلبات المعلقة', 'cloud-upload-alt', 'offline_queue')
-        add_action(admin_menu, 'مراقبة التشغيل', 'heartbeat', 'monitoring')
+        add_action(admin_menu, translate('settings'), 'sliders-h', 'settings')
+        add_action(admin_menu, translate('branches'), 'code-branch', 'branches')
+        add_action(admin_menu, translate('offline_queue'), 'cloud-upload-alt', 'offline_queue')
+        add_action(admin_menu, translate('monitoring'), 'heartbeat', 'monitoring')
         admin_menu.addSeparator()
-        add_action(admin_menu, 'طباعة احترافية', 'print', callback=self.show_print_dialog)
-        add_action(admin_menu, 'تغيير كلمة المرور', 'key', callback=self.change_password)
+        add_action(admin_menu, translate('professional_printing'), 'print', callback=self.show_print_dialog)
+        add_action(admin_menu, translate('change_password'), 'key', callback=self.change_password)
         admin_menu.addSeparator()
-        add_action(admin_menu, 'حول البرنامج', 'info-circle', callback=self.show_about, shortcut='F12')
-        add_action(admin_menu, 'تسجيل الخروج', 'sign-out-alt', callback=self.logout, shortcut='Ctrl+Q')
-        add_action(admin_menu, 'خروج', 'times-circle', callback=self.close_app, shortcut='Alt+F4')
+        add_action(admin_menu, translate('about_app'), 'info-circle', callback=self.show_about, shortcut='F12')
+        add_action(admin_menu, translate('logout'), 'sign-out-alt', callback=self.logout, shortcut='Ctrl+Q')
+        add_action(admin_menu, translate('exit'), 'times-circle', callback=self.close_app, shortcut='Alt+F4')
 
         if UserSession.is_admin():
             users_menu = self.menu_bar.addMenu(qta.icon('fa5s.user-shield'), '\nالمستخدمون')
-            add_action(users_menu, 'إدارة المستخدمين', 'users-cog', 'users')
-            add_action(users_menu, 'سجل التدقيق', 'history', 'audit_log')
+            add_action(users_menu, translate('users'), 'users-cog', 'users')
+            add_action(users_menu, translate('audit_log'), 'history', 'audit_log')
 
         quick_menu = self.menu_bar.addMenu(qta.icon('fa5s.bolt'), '\nإجراءات سريعة')
-        add_action(quick_menu, 'فاتورة بيع جديدة', 'file-invoice-dollar', 'sales_invoices', shortcut='Ctrl+N')
-        add_action(quick_menu, 'فاتورة شراء جديدة', 'file-invoice', 'purchase_invoices')
-        add_action(quick_menu, 'سند قبض', 'hand-holding-usd', 'vouchers')
-        add_action(quick_menu, 'سند دفع', 'money-bill-wave', 'vouchers')
+        add_action(quick_menu, translate('new_sales_invoice'), 'file-invoice-dollar', 'sales_invoices', shortcut='Ctrl+N')
+        add_action(quick_menu, translate('new_purchase_invoice'), 'file-invoice', 'purchase_invoices')
+        add_action(quick_menu, translate('receipt_voucher'), 'hand-holding-usd', 'vouchers')
+        add_action(quick_menu, translate('payment_voucher'), 'money-bill-wave', 'vouchers')
         quick_menu.addSeparator()
-        add_action(quick_menu, 'عميل جديد', 'user-plus', 'customers')
-        add_action(quick_menu, 'مادة جديدة', 'box-open', 'items')
+        add_action(quick_menu, translate('new_customer'), 'user-plus', 'customers')
+        add_action(quick_menu, translate('new_item'), 'box-open', 'items')
 
     def setup_topbar_buttons(self):
         """Wire utility-strip actions only.
@@ -369,23 +385,23 @@ class MainWindow(QMainWindow):
         except Exception:
             alerts = []
         if not alerts:
-            action = menu.addAction(qta.icon('fa5s.check-circle'), 'لا توجد تنبيهات حرجة')
+            action = menu.addAction(qta.icon('fa5s.check-circle'), translate('no_critical_alerts'))
             action.setEnabled(False)
         else:
             for alert in alerts[:8]:
                 title = alert.get('title') or alert.get('message') or str(alert)
                 menu.addAction(qta.icon('fa5s.exclamation-triangle'), title)
             menu.addSeparator()
-            menu.addAction(qta.icon('fa5s.tachometer-alt'), 'فتح لوحة التحكم').triggered.connect(lambda: self.switch_page('dashboard'))
+            menu.addAction(qta.icon('fa5s.tachometer-alt'), translate('open_dashboard')).triggered.connect(lambda: self.switch_page('dashboard'))
         menu.exec_(self.top_bar.alert_btn.mapToGlobal(self.top_bar.alert_btn.rect().bottomLeft()))
 
     def _set_page_context(self, pid):
-        title, breadcrumb = PAGE_META.get(pid, (pid, pid))
+        title, breadcrumb = page_title(pid), page_breadcrumb(pid)
         if hasattr(self, 'top_bar'):
             self.top_bar.set_page_context(title, breadcrumb)
             self.top_bar.set_active(NAV_GROUP_BY_PAGE.get(pid, pid))
         if hasattr(self, 'title_label'):
-            self.title_label.setText(f"الراجحي للمحاسبة — {title}")
+            self.title_label.setText(f"{translate('app_title')} — {title}")
 
     def setup_shortcuts(self):
         self.esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
@@ -412,7 +428,7 @@ class MainWindow(QMainWindow):
             pass
         try:
             pending_offline = offline_queue_service.count_pending()
-            self.top_bar.set_badge('الطلبات المعلقة', pending_offline)
+            self.top_bar.set_badge(translate('offline_queue'), pending_offline)
         except Exception:
             pass
 
@@ -434,18 +450,15 @@ class MainWindow(QMainWindow):
                 if hasattr(page, 'refresh'):
                     page.refresh()
             else:
-                QMessageBox.information(self, "بحث", f"تم البحث عن: {text}")
+                QMessageBox.information(self, translate('search_title'), translate('search_done', text=text))
 
     def show_print_dialog(self):
         from PyQt5.QtWidgets import QMessageBox
-        QMessageBox.information(self, "طباعة", "سيتم فتح نافذة الطباعة قريباً")
+        QMessageBox.information(self, translate('printing'), translate('printing_soon'))
 
     def show_about(self):
         from PyQt5.QtWidgets import QMessageBox
-        QMessageBox.about(self, "حول البرنامج",
-            "<h3>الراجحي للمحاسبة</h3>"
-            "<p>الإصدار 2.0</p>"
-            "<p>نظام متكامل لإدارة المحاسبة والمخزون والتصنيع</p>")
+        QMessageBox.about(self, translate('about_app'), translate('about_html'))
 
     def toggle_title_bar(self, checked):
         # Kept for backward compatibility with older shortcuts/plugins.
@@ -497,10 +510,10 @@ class MainWindow(QMainWindow):
     def change_password(self):
         dlg = ChangePasswordDialog(self)
         if dlg.exec():
-            QMessageBox.information(self, "نجاح", "تم تغيير كلمة المرور")
+            QMessageBox.information(self, translate('success'), translate('password_changed'))
 
     def logout(self):
-        reply = QMessageBox.question(self, "تسجيل الخروج", "هل تريد تسجيل الخروج؟",
+        reply = QMessageBox.question(self, translate('logout'), translate('logout_confirm'),
                                      QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
@@ -539,6 +552,6 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
         if show_messages:
-            QMessageBox.information(self, 'الطلبات المعلقة', f'تم الإرسال: {sent}\nفشل: {failed}')
+            QMessageBox.information(self, translate('offline_queue'), f'تم الإرسال: {sent}\nفشل: {failed}')
 
 

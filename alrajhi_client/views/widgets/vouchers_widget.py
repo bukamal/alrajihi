@@ -15,11 +15,12 @@ from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
 from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
+from i18n import translate as tr, qt_layout_direction
 
 class VouchersWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self.current_page = 0
         self.page_size = 50
         self.total_count = 0
@@ -30,27 +31,31 @@ class VouchersWidget(QWidget):
 
         top_layout = QHBoxLayout()
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText("بحث عن سند...")
+        self.search_edit.setPlaceholderText(tr("search_voucher"))
         self.search_edit.textChanged.connect(self.refresh)
         top_layout.addWidget(self.search_edit)
 
         self.type_filter = QComboBox()
-        self.type_filter.addItems(["الكل", "قبض", "دفع", "مصروف"])
+        
+        self.type_filter.addItem(tr("all"), "all")
+        self.type_filter.addItem(tr("receipt"), "receipt")
+        self.type_filter.addItem(tr("payment"), "payment")
+        self.type_filter.addItem(tr("expense"), "expense")
         self.type_filter.currentIndexChanged.connect(self.refresh)
-        top_layout.addWidget(QLabel("النوع:"))
+        top_layout.addWidget(QLabel(tr("type") + ":"))
         top_layout.addWidget(self.type_filter)
 
-        self.add_btn = QPushButton("➕ إضافة سند")
+        self.add_btn = QPushButton(tr("add_voucher"))
         self.add_btn.setObjectName("primary")
         self.add_btn.clicked.connect(self.add_voucher)
         top_layout.addWidget(self.add_btn)
 
-        self.print_btn = QPushButton("🖨️ طباعة")
+        self.print_btn = QPushButton(tr("print_button"))
         print_menu = QMenu(self.print_btn)
-        print_menu.addAction("معاينة داخل البرنامج", lambda: self.print_selected('preview'))
-        print_menu.addAction("فتح HTML في المتصفح", lambda: self.print_selected('browser'))
-        print_menu.addAction("طباعة مباشرة", lambda: self.print_selected('direct'))
-        print_menu.addAction("تصدير PDF", lambda: self.print_selected('pdf'))
+        print_menu.addAction(tr("preview_inside_app"), lambda: self.print_selected('preview'))
+        print_menu.addAction(tr("open_html_browser"), lambda: self.print_selected('browser'))
+        print_menu.addAction(tr("direct_print"), lambda: self.print_selected('direct'))
+        print_menu.addAction(tr("export_pdf"), lambda: self.print_selected('pdf'))
         self.print_btn.setMenu(print_menu)
         top_layout.addWidget(self.print_btn)
 
@@ -62,9 +67,9 @@ class VouchersWidget(QWidget):
         layout.addWidget(self.table)
 
         pagination_layout = QHBoxLayout()
-        self.prev_btn = QPushButton("السابق")
+        self.prev_btn = QPushButton(tr("previous"))
         self.prev_btn.clicked.connect(self.prev_page)
-        self.next_btn = QPushButton("التالي")
+        self.next_btn = QPushButton(tr("next"))
         self.next_btn.clicked.connect(self.next_page)
         self.page_label = QLabel()
         pagination_layout.addWidget(self.prev_btn)
@@ -73,17 +78,17 @@ class VouchersWidget(QWidget):
         pagination_layout.addStretch()
         layout.addLayout(pagination_layout)
 
-        apply_modern_widget(self, '🧾 السندات', 'إدارة سندات القبض والصرف والبحث السريع')
+        apply_modern_widget(self, tr('vouchers_title'), tr('vouchers_subtitle'))
         self.refresh()
 
     def refresh(self):
-        filter_type = self.type_filter.currentText()
+        filter_type = self.type_filter.currentData() or "all"
         vtype = None
-        if filter_type == "قبض":
+        if filter_type == "receipt":
             vtype = 'receipt'
-        elif filter_type == "دفع":
+        elif filter_type == "payment":
             vtype = 'payment'
-        elif filter_type == "مصروف":
+        elif filter_type == "expense":
             vtype = 'expense'
         search = self.search_edit.text().strip().lower() or None
         offset = self.current_page * self.page_size
@@ -91,7 +96,7 @@ class VouchersWidget(QWidget):
             vouchers, self.total_count = voucher_service.list_vouchers(search=search, vtype=vtype, limit=self.page_size, offset=offset)
         except Exception as exc:
             if is_offline_read_error(exc):
-                notify_offline_read(self, 'السندات')
+                notify_offline_read(self, tr('vouchers_title'))
                 return
             raise
 
@@ -99,7 +104,7 @@ class VouchersWidget(QWidget):
         display_curr = currency.get_display_currency()
         for v in vouchers:
             amount_display = currency.convert(Decimal(str(v['amount'])), 'USD', display_curr)
-            type_text = "قبض" if v['type'] == 'receipt' else "دفع" if v['type'] == 'payment' else "مصروف"
+            type_text = tr("receipt") if v['type'] == 'receipt' else tr("payment") if v['type'] == 'payment' else tr("expense")
             party = voucher_service.party_name(v)
             data.append({
                 'id': v['id'],
@@ -111,7 +116,7 @@ class VouchersWidget(QWidget):
                 'description': v.get('description', '')
             })
         headers = ['date', 'type', 'party', 'amount', 'account', 'description']
-        display_headers = ['التاريخ', 'النوع', 'الجهة', 'المبلغ', 'الحساب', 'الوصف']
+        display_headers = [tr('date'), tr('type'), tr('party'), tr('amount'), tr('account'), tr('description')]
         self.model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.table.setModel(self.model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض؛ لا نخفي العمود الأول الحقيقي.
@@ -120,7 +125,7 @@ class VouchersWidget(QWidget):
         self.table.refresh_style()
 
         total_pages = (self.total_count + self.page_size - 1) // self.page_size
-        self.page_label.setText(f"الصفحة {self.current_page + 1} من {total_pages}")
+        self.page_label.setText(tr("page_of", page=self.current_page + 1, pages=total_pages))
         self.prev_btn.setEnabled(self.current_page > 0)
         self.next_btn.setEnabled(self.current_page + 1 < total_pages)
 
@@ -133,11 +138,11 @@ class VouchersWidget(QWidget):
     def print_selected(self, mode='preview'):
         vid = self._selected_id()
         if not vid:
-            QMessageBox.information(self, "طباعة", "اختر سنداً أولاً")
+            QMessageBox.information(self, tr("print_button"), tr("select_voucher_first"))
             return
         voucher = voucher_service.get(vid)
         if not voucher:
-            QMessageBox.warning(self, "طباعة", "تعذر تحميل بيانات السند")
+            QMessageBox.warning(self, tr("print_button"), tr("voucher_load_failed"))
             return
         voucher = dict(voucher)
         voucher['party_name'] = voucher_service.party_name(voucher)
@@ -182,80 +187,82 @@ class VoucherDialog(QDialog):
         super().__init__(parent)
         self.voucher = voucher
         self.is_edit = voucher is not None
-        self.setWindowTitle("تعديل سند" if self.is_edit else "إضافة سند جديد")
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setWindowTitle(tr("edit_voucher") if self.is_edit else tr("new_voucher"))
+        self.setLayoutDirection(qt_layout_direction())
         self.resize(450, 500)
         layout = QVBoxLayout(self)
 
         form = QFormLayout()
         self.type_combo = QComboBox()
-        self.type_combo.addItems(["قبض", "دفع", "مصروف"])
-        form.addRow("النوع:", self.type_combo)
+        self.type_combo.addItem(tr("receipt"), "receipt")
+        self.type_combo.addItem(tr("payment"), "payment")
+        self.type_combo.addItem(tr("expense"), "expense")
+        form.addRow(tr("type") + ":", self.type_combo)
 
         self.customer_combo = QComboBox()
-        self.customer_combo.addItem("بدون عميل", None)
+        self.customer_combo.addItem(tr("no_customer"), None)
         try:
             customers = catalog_service.customers(limit=1000)
         except Exception as exc:
             if is_offline_read_error(exc):
-                notify_offline_read(self, 'قائمة العملاء للسندات')
+                notify_offline_read(self, tr('customer_voucher_list'))
                 customers = []
             else:
                 raise
         for c in customers:
             self.customer_combo.addItem(c.get('name', ''), c.get('id'))
-        form.addRow("العميل:", self.customer_combo)
+        form.addRow(tr("customer_label"), self.customer_combo)
 
         self.supplier_combo = QComboBox()
-        self.supplier_combo.addItem("بدون مورد", None)
+        self.supplier_combo.addItem(tr("no_supplier"), None)
         try:
             suppliers = catalog_service.suppliers(limit=1000)
         except Exception as exc:
             if is_offline_read_error(exc):
-                notify_offline_read(self, 'قائمة الموردين للسندات')
+                notify_offline_read(self, tr('supplier_voucher_list'))
                 suppliers = []
             else:
                 raise
         for s in suppliers:
             self.supplier_combo.addItem(s.get('name', ''), s.get('id'))
-        form.addRow("المورد:", self.supplier_combo)
+        form.addRow(tr("supplier_label"), self.supplier_combo)
 
         self.amount_spin = QDoubleSpinBox()
         self.amount_spin.setRange(0, 99999999)
         self.amount_spin.setDecimals(2)
-        form.addRow("المبلغ:", self.amount_spin)
+        form.addRow(tr("amount_label"), self.amount_spin)
 
         self.payment_method_combo = QComboBox()
-        self.payment_method_combo.addItem("نقدي", 'cash')
-        self.payment_method_combo.addItem("بنك", 'bank')
-        form.addRow("طريقة الدفع:", self.payment_method_combo)
+        self.payment_method_combo.addItem(tr("cash"), 'cash')
+        self.payment_method_combo.addItem(tr("bank_payment"), 'bank')
+        form.addRow(tr("payment_method_label"), self.payment_method_combo)
 
         self.cashbox_combo = QComboBox()
         for c in cashbox_service.cashboxes():
             label = f"{c.get('branch_name','')} - {c.get('name','')}"
             self.cashbox_combo.addItem(label, c.get('id'))
-        form.addRow("الصندوق:", self.cashbox_combo)
+        form.addRow(tr("cashbox") + ":", self.cashbox_combo)
 
         self.bank_combo = QComboBox()
-        self.bank_combo.addItem("اختر حساباً بنكياً", None)
+        self.bank_combo.addItem(tr("select_bank_account_placeholder"), None)
         for b in cashbox_service.bank_accounts():
             label = f"{b.get('branch_name','')} - {b.get('bank_name','')} {b.get('account_name') or ''}"
             self.bank_combo.addItem(label, b.get('id'))
-        form.addRow("الحساب البنكي:", self.bank_combo)
+        form.addRow(tr("bank_account") + ":", self.bank_combo)
 
         self.date_edit = QDateEdit()
         self.date_edit.setDate(QDate.currentDate())
-        form.addRow("التاريخ:", self.date_edit)
+        form.addRow(tr("date_label"), self.date_edit)
 
         self.desc_edit = QLineEdit()
-        form.addRow("الوصف:", self.desc_edit)
+        form.addRow(tr("description_label"), self.desc_edit)
 
         self.ref_edit = QLineEdit()
-        form.addRow("المرجع:", self.ref_edit)
+        form.addRow(tr("reference_label"), self.ref_edit)
 
         self.invoice_combo = QComboBox()
-        self.invoice_combo.addItem("بدون فاتورة", None)
-        form.addRow("الفاتورة:", self.invoice_combo)
+        self.invoice_combo.addItem(tr("no_invoice"), None)
+        form.addRow(tr("invoice_label"), self.invoice_combo)
 
         layout.addLayout(form)
 
@@ -263,13 +270,13 @@ class VoucherDialog(QDialog):
         btn_box.accepted.connect(self.save)
         btn_box.rejected.connect(self.reject)
         layout.addWidget(btn_box)
-        apply_modern_dialog(self, 'سند قبض/صرف')
+        apply_modern_dialog(self, tr('voucher_dialog_title'))
 
         def update_visibility():
-            typ = self.type_combo.currentText()
-            is_cash = typ in ("قبض", "دفع")
-            self.customer_combo.setVisible(typ == "قبض")
-            self.supplier_combo.setVisible(typ == "دفع")
+            typ = self.type_combo.currentData() or "expense"
+            is_cash = typ in ("receipt", "payment")
+            self.customer_combo.setVisible(typ == "receipt")
+            self.supplier_combo.setVisible(typ == "payment")
             self.invoice_combo.setVisible(is_cash)
             self.update_invoice_list()
         self.type_combo.currentTextChanged.connect(update_visibility)
@@ -289,8 +296,8 @@ class VoucherDialog(QDialog):
 
     def load_voucher_data(self):
         v = self.voucher
-        type_map = {"receipt": "قبض", "payment": "دفع", "expense": "مصروف"}
-        self.type_combo.setCurrentText(type_map.get(v['type'], "مصروف"))
+        type_map = {"receipt": 0, "payment": 1, "expense": 2}
+        self.type_combo.setCurrentIndex(type_map.get(v['type'], 2))
         if v.get('customer_id'):
             idx = self.customer_combo.findData(v['customer_id'])
             if idx >= 0:
@@ -324,57 +331,57 @@ class VoucherDialog(QDialog):
                 self.invoice_combo.setCurrentIndex(idx)
 
     def update_invoice_list(self):
-        typ = self.type_combo.currentText()
+        typ = self.type_combo.currentData() or "expense"
         entity_id = None
-        if typ == "قبض":
+        if typ == "receipt":
             entity_id = self.customer_combo.currentData()
-        elif typ == "دفع":
+        elif typ == "payment":
             entity_id = self.supplier_combo.currentData()
         if not entity_id:
             self.invoice_combo.clear()
-            self.invoice_combo.addItem("بدون فاتورة", None)
+            self.invoice_combo.addItem(tr("no_invoice"), None)
             return
         # جلب الفواتير غير المسددة بالكامل (محدودة للعرض)
         invoices = invoice_service.unpaid_invoices(
-            inv_type='sale' if typ == "قبض" else 'purchase',
-            customer_id=entity_id if typ == "قبض" else None,
-            supplier_id=entity_id if typ == "دفع" else None,
+            inv_type='sale' if typ == "receipt" else 'purchase',
+            customer_id=entity_id if typ == "receipt" else None,
+            supplier_id=entity_id if typ == "payment" else None,
             limit=100
         )
         self.invoice_combo.clear()
-        self.invoice_combo.addItem("بدون فاتورة", None)
+        self.invoice_combo.addItem(tr("no_invoice"), None)
         for inv in invoices:
             remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0)))
             if remaining > 0:
-                self.invoice_combo.addItem(f"{inv['reference']} - متبقي: {currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))}", inv['id'])
+                self.invoice_combo.addItem(tr("remaining_invoice_amount", reference=inv['reference'], amount=currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))), inv['id'])
 
     def save(self):
-        typ = self.type_combo.currentText()
-        if typ == "قبض" and not self.customer_combo.currentData():
-            show_toast("اختر عميلاً", "error", self)
+        typ = self.type_combo.currentData() or "expense"
+        if typ == "receipt" and not self.customer_combo.currentData():
+            show_toast(tr("select_customer"), "error", self)
             return
-        if typ == "دفع" and not self.supplier_combo.currentData():
-            show_toast("اختر مورداً", "error", self)
+        if typ == "payment" and not self.supplier_combo.currentData():
+            show_toast(tr("select_supplier"), "error", self)
             return
         if self.payment_method_combo.currentData() == 'cash' and not self.cashbox_combo.currentData():
-            show_toast("اختر صندوقاً", "error", self)
+            show_toast(tr("select_cashbox_required"), "error", self)
             return
         if self.payment_method_combo.currentData() == 'bank' and not self.bank_combo.currentData():
-            show_toast("اختر حساباً بنكياً", "error", self)
+            show_toast(tr("select_bank_required"), "error", self)
             return
         amount_display = self.amount_spin.value()
         if amount_display <= 0:
-            show_toast("المبلغ يجب أن يكون أكبر من صفر", "error", self)
+            show_toast(tr("amount_positive_required"), "error", self)
             return
         amount_usd = currency.convert(Decimal(str(amount_display)), currency.get_display_currency(), 'USD')
         data = {
-            'type': 'receipt' if typ == "قبض" else ('payment' if typ == "دفع" else 'expense'),
+            'type': typ,
             'amount': amount_usd,
             'date': self.date_edit.date().toString("yyyy-MM-dd"),
             'description': self.desc_edit.text().strip(),
             'reference': self.ref_edit.text().strip(),
-            'customer_id': self.customer_combo.currentData() if typ == "قبض" else None,
-            'supplier_id': self.supplier_combo.currentData() if typ == "دفع" else None,
+            'customer_id': self.customer_combo.currentData() if typ == "receipt" else None,
+            'supplier_id': self.supplier_combo.currentData() if typ == "payment" else None,
             'invoice_id': self.invoice_combo.currentData() or None,
             'exchange_rate_to_usd': float(currency.get_current_rate(currency.get_display_currency())),
             'original_currency': currency.get_display_currency(),
@@ -385,10 +392,10 @@ class VoucherDialog(QDialog):
         try:
             if self.is_edit:
                 voucher_service.update(self.voucher['id'], data)
-                show_toast("تم تعديل السند", "success", self)
+                show_toast(tr("voucher_updated"), "success", self)
             else:
                 voucher_service.add(data)
-                show_toast("تمت الإضافة", "success", self)
+                show_toast(tr("voucher_added"), "success", self)
             self.accept()
         except Exception as e:
             show_toast(str(e), "error", self)

@@ -2,6 +2,7 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
                              QDateEdit, QLabel, QTabWidget, QHeaderView, QMenu)
 from PyQt5.QtCore import Qt, QDate
+from i18n import translate as tr, qt_layout_direction
 from decimal import Decimal
 from core.services.reporting_service import reporting_service
 from core.services.settings_service import settings_service
@@ -22,13 +23,13 @@ class ReportsWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         layout = QVBoxLayout(self)
 
         period_layout = QHBoxLayout()
-        period_layout.addWidget(QLabel("الفترة:"))
+        period_layout.addWidget(QLabel(tr("period_label")))
         self.period_type = QComboBox()
-        self.period_type.addItems(["شهر محدد", "سنة محددة", "فترة مخصصة"])
+        self.period_type.addItems([tr("period_month"), tr("period_year"), tr("period_custom")])
         self.period_type.currentIndexChanged.connect(self.on_period_type_changed)
         period_layout.addWidget(self.period_type)
 
@@ -40,8 +41,8 @@ class ReportsWidget(QWidget):
         period_layout.addWidget(self.year_combo)
 
         self.month_combo = QComboBox()
-        self.month_combo.addItems(["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-                                   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"])
+        self.month_combo.addItems([tr("month_january"), tr("month_february"), tr("month_march"), tr("month_april"), tr("month_may"), tr("month_june"),
+                                   tr("month_july"), tr("month_august"), tr("month_september"), tr("month_october"), tr("month_november"), tr("month_december")])
         period_layout.addWidget(self.month_combo)
 
         self.start_date = QDateEdit()
@@ -54,41 +55,41 @@ class ReportsWidget(QWidget):
         self.end_date.setCalendarPopup(True)
         period_layout.addWidget(self.end_date)
 
-        period_layout.addWidget(QLabel("المستودع:"))
+        period_layout.addWidget(QLabel(tr("warehouse_label")))
         self.warehouse_filter = QComboBox()
         self._load_warehouses()
         period_layout.addWidget(self.warehouse_filter)
 
-        period_layout.addWidget(QLabel("الصندوق:"))
+        period_layout.addWidget(QLabel(tr("cashbox_label")))
         self.cashbox_filter = QComboBox()
         self._load_cashboxes()
         period_layout.addWidget(self.cashbox_filter)
 
-        period_layout.addWidget(QLabel("البنك:"))
+        period_layout.addWidget(QLabel(tr("bank_label")))
         self.bank_filter = QComboBox()
         self._load_banks()
         period_layout.addWidget(self.bank_filter)
 
-        period_layout.addWidget(QLabel("العميل:"))
+        period_layout.addWidget(QLabel(tr("customer_label")))
         self.customer_filter = QComboBox()
         self._load_customers()
         period_layout.addWidget(self.customer_filter)
 
-        period_layout.addWidget(QLabel("المورد:"))
+        period_layout.addWidget(QLabel(tr("supplier_label")))
         self.supplier_filter = QComboBox()
         self._load_suppliers()
         period_layout.addWidget(self.supplier_filter)
 
-        refresh_btn = QPushButton("تحديث")
+        refresh_btn = QPushButton(tr("refresh_report"))
         refresh_btn.clicked.connect(self.refresh_report)
         period_layout.addWidget(refresh_btn)
 
-        print_btn = QPushButton("طباعة")
+        print_btn = QPushButton(tr("printing"))
         print_menu = QMenu(print_btn)
-        print_menu.addAction("معاينة داخل البرنامج", lambda: self.print_report('preview'))
-        print_menu.addAction("فتح HTML في المتصفح", lambda: self.print_report('browser'))
-        print_menu.addAction("طباعة مباشرة", lambda: self.print_report('direct'))
-        print_menu.addAction("تصدير PDF", lambda: self.print_report('pdf'))
+        print_menu.addAction(tr("preview_in_app"), lambda: self.print_report('preview'))
+        print_menu.addAction(tr("open_html_browser"), lambda: self.print_report('browser'))
+        print_menu.addAction(tr("direct_print"), lambda: self.print_report('direct'))
+        print_menu.addAction(tr("export_pdf"), lambda: self.print_report('pdf'))
         print_btn.setMenu(print_menu)
         period_layout.addWidget(print_btn)
 
@@ -122,39 +123,39 @@ class ReportsWidget(QWidget):
         self.setup_warehouse_tabs()
         self.setup_cash_bank_tabs()
         self.setup_phase36_tabs()
-        self.tabs.addTab(self.income_tab, "قائمة الدخل")
-        self.tabs.addTab(self.balance_tab, "الميزانية العمومية")
-        self.tabs.addTab(self.wh_valuation_tab, "تقييم المستودعات")
-        self.tabs.addTab(self.wh_balances_tab, "أرصدة المستودعات")
-        self.tabs.addTab(self.wh_movements_tab, "حركات المستودعات")
-        self.tabs.addTab(self.wh_transfers_tab, "تحويلات المستودعات")
-        self.tabs.addTab(self.cash_summary_tab, "ملخص الصناديق والبنوك")
-        self.tabs.addTab(self.cash_movements_tab, "حركات الصناديق")
-        self.tabs.addTab(self.bank_movements_tab, "حركات البنوك")
-        self.tabs.addTab(self.pos_shifts_tab, "ورديات POS")
-        self.tabs.addTab(self.trial_balance_tab, "ميزان المراجعة")
-        self.tabs.addTab(self.customer_statement_tab, "كشف حساب عميل")
-        self.tabs.addTab(self.supplier_statement_tab, "كشف حساب مورد")
-        self.tabs.addTab(self.customer_balances_tab, "أرصدة العملاء")
-        self.tabs.addTab(self.supplier_balances_tab, "أرصدة الموردين")
-        self.tabs.addTab(self.customer_aging_tab, "أعمار ديون العملاء")
-        self.tabs.addTab(self.supplier_aging_tab, "أعمار ديون الموردين")
-        self.tabs.addTab(self.ledger_reconciliation_tab, "مطابقة Ledger")
-        self.tabs.addTab(self.ledger_dual_read_tab, "Dual Read")
-        self.tabs.addTab(self.ledger_readiness_tab, "جاهزية Ledger")
-        self.tabs.addTab(self.offline_queue_tab, "Offline Queue")
-        self.tabs.addTab(self.unit_audit_tab, "فحص الوحدات")
+        self.tabs.addTab(self.income_tab, tr("report_income_statement"))
+        self.tabs.addTab(self.balance_tab, tr("report_balance_sheet"))
+        self.tabs.addTab(self.wh_valuation_tab, tr("report_warehouse_valuation"))
+        self.tabs.addTab(self.wh_balances_tab, tr("report_warehouse_balances"))
+        self.tabs.addTab(self.wh_movements_tab, tr("report_warehouse_movements"))
+        self.tabs.addTab(self.wh_transfers_tab, tr("report_warehouse_transfers"))
+        self.tabs.addTab(self.cash_summary_tab, tr("report_cash_bank_summary"))
+        self.tabs.addTab(self.cash_movements_tab, tr("report_cash_movements"))
+        self.tabs.addTab(self.bank_movements_tab, tr("report_bank_movements"))
+        self.tabs.addTab(self.pos_shifts_tab, tr("report_pos_shifts"))
+        self.tabs.addTab(self.trial_balance_tab, tr("report_trial_balance"))
+        self.tabs.addTab(self.customer_statement_tab, tr("report_customer_statement"))
+        self.tabs.addTab(self.supplier_statement_tab, tr("report_supplier_statement"))
+        self.tabs.addTab(self.customer_balances_tab, tr("report_customer_balances"))
+        self.tabs.addTab(self.supplier_balances_tab, tr("report_supplier_balances"))
+        self.tabs.addTab(self.customer_aging_tab, tr("report_customer_aging"))
+        self.tabs.addTab(self.supplier_aging_tab, tr("report_supplier_aging"))
+        self.tabs.addTab(self.ledger_reconciliation_tab, tr("report_ledger_reconciliation"))
+        self.tabs.addTab(self.ledger_dual_read_tab, tr("report_ledger_dual_read"))
+        self.tabs.addTab(self.ledger_readiness_tab, tr("report_ledger_readiness"))
+        self.tabs.addTab(self.offline_queue_tab, tr("report_offline_queue"))
+        self.tabs.addTab(self.unit_audit_tab, tr("report_unit_audit"))
         self._apply_pos_shift_report_visibility()
         self.tabs.currentChanged.connect(lambda _idx: self.refresh_report())
         layout.addWidget(self.tabs)
 
         self.on_period_type_changed()
-        apply_modern_widget(self, '📊 التقارير', 'تقارير مالية ومخزنية وصناديق وبنوك')
+        apply_modern_widget(self, tr('reports_page_title'), tr('reports_page_subtitle'))
         self.refresh_report()
 
     def _load_warehouses(self):
         self.warehouse_filter.clear()
-        self.warehouse_filter.addItem("كل المستودعات", None)
+        self.warehouse_filter.addItem(tr("all_warehouses"), None)
         try:
             for wh in warehouse_service.warehouses(include_archived=False):
                 self.warehouse_filter.addItem(wh.get('name', ''), wh.get('id'))
@@ -163,7 +164,7 @@ class ReportsWidget(QWidget):
 
     def _load_cashboxes(self):
         self.cashbox_filter.clear()
-        self.cashbox_filter.addItem("كل الصناديق", None)
+        self.cashbox_filter.addItem(tr("all_cashboxes"), None)
         try:
             for c in reporting_service.cashboxes_report():
                 self.cashbox_filter.addItem(c.get('name', ''), c.get('id'))
@@ -172,7 +173,7 @@ class ReportsWidget(QWidget):
 
     def _load_banks(self):
         self.bank_filter.clear()
-        self.bank_filter.addItem("كل البنوك", None)
+        self.bank_filter.addItem(tr("all_banks"), None)
         try:
             for b in reporting_service.bank_accounts_report():
                 title = b.get('bank_name') or ''
@@ -184,7 +185,7 @@ class ReportsWidget(QWidget):
 
     def _load_customers(self):
         self.customer_filter.clear()
-        self.customer_filter.addItem("اختر عميل", None)
+        self.customer_filter.addItem(tr("choose_customer"), None)
         try:
             rows, _ = entity_service.customers(limit=1000)
             for c in rows:
@@ -194,7 +195,7 @@ class ReportsWidget(QWidget):
 
     def _load_suppliers(self):
         self.supplier_filter.clear()
-        self.supplier_filter.addItem("اختر مورد", None)
+        self.supplier_filter.addItem(tr("choose_supplier"), None)
         try:
             rows, _ = entity_service.suppliers(limit=1000)
             for s in rows:
@@ -341,7 +342,7 @@ class ReportsWidget(QWidget):
                 self._refresh_income(start, end, display_curr)
         except Exception as exc:
             # Do not block opening the reports page because one optional report failed.
-            print(f"⚠️ تعذر تحديث التقرير الحالي: {exc}")
+            print('⚠️ ' + tr('reports_refresh_failed', error=str(exc)))
 
     def refresh_all_reports(self):
         """Developer/test helper to refresh every report group defensively."""
@@ -357,7 +358,7 @@ class ReportsWidget(QWidget):
             try:
                 fn()
             except Exception as exc:
-                print(f"⚠️ تعذر تحديث مجموعة تقارير: {exc}")
+                print('⚠️ ' + tr('reports_refresh_failed', error=str(exc)))
 
     def _refresh_income(self, start, end, display_curr):
         stmt = reporting_service.income_statement(start, end)
@@ -375,7 +376,7 @@ class ReportsWidget(QWidget):
         net_profit = currency.convert(Decimal(str(stmt.get('net_profit', 0))), 'USD', display_curr)
         income_list.append({'statement': 'إجمالي المصروفات', 'amount': currency.format_amount(total_expenses)})
         income_list.append({'statement': 'صافي الربح', 'amount': currency.format_amount(net_profit)})
-        self._set_table(self.income_table, income_list, ['البيان', 'المبلغ'], ['statement', 'amount'])
+        self._set_table(self.income_table, income_list, [tr('statement'), tr('amount')], ['statement', 'amount'])
 
     def _refresh_balance(self, start, end, display_curr):
         bs = reporting_service.balance_sheet(start, end)
@@ -789,9 +790,9 @@ class ReportsWidget(QWidget):
                         status = 'معامل غير صالح'
                     seen.add(name)
                     rows.append({'item': item.get('name') or '', 'base': base_unit, 'unit': name, 'factor': str(factor), 'status': status})
-            self._set_table(self.unit_audit_table, rows, ['المادة', 'الوحدة الأساسية', 'الوحدة', 'المعامل', 'الحالة'], ['item','base','unit','factor','status'])
+            self._set_table(self.unit_audit_table, rows, [tr('print_item'), tr('base_unit'), tr('print_unit'), tr('conversion_factor'), tr('status')], ['item','base','unit','factor','status'])
         except Exception:
-            self._set_table(self.unit_audit_table, [], ['المادة', 'الوحدة الأساسية', 'الوحدة', 'المعامل', 'الحالة'], ['item','base','unit','factor','status'])
+            self._set_table(self.unit_audit_table, [], [tr('print_item'), tr('base_unit'), tr('print_unit'), tr('conversion_factor'), tr('status')], ['item','base','unit','factor','status'])
 
     def print_report(self, mode='preview'):
         from printing.printing_service import printing_service
@@ -850,7 +851,7 @@ class ReportsWidget(QWidget):
         rows = []
         for r in range(model.rowCount()):
             rows.append([model.data(model.index(r, c), Qt.DisplayRole) or '' for c in range(model.columnCount())])
-        subtitle = f'الفترة: {start} إلى {end}'
+        subtitle = tr('period_subtitle', start=start, end=end)
         if mode == 'browser':
             printing_service.report_browser(title, rows, headers, self, subtitle=subtitle)
         elif mode == 'direct':

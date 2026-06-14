@@ -18,6 +18,14 @@ from config import get_company_info
 from core.services.settings_service import settings_service
 
 
+def _tr(key: str, **kwargs) -> str:
+    try:
+        from i18n.translator import translate
+        return translate(key, **kwargs)
+    except Exception:
+        return key
+
+
 def _s(value: Any) -> str:
     return escape("" if value is None else str(value))
 
@@ -111,34 +119,51 @@ def _font_family(settings: Dict[str, Any]) -> str:
 
 
 
+
+def _document_language() -> str:
+    try:
+        from i18n.translator import normalize_language
+        return normalize_language(settings_service.get_language())
+    except Exception:
+        return "ar"
+
+
+def _document_direction() -> str:
+    try:
+        from i18n.translator import language_direction
+        return language_direction(_document_language())
+    except Exception:
+        return "rtl"
+
+
 _TITLE_MAP = {
-    "invoices": "الفواتير",
-    "invoice": "الفواتير",
-    "sales_invoices": "فواتير المبيعات",
-    "sale_invoices": "فواتير المبيعات",
-    "purchase_invoices": "فواتير المشتريات",
-    "purchases_invoices": "فواتير المشتريات",
-    "items": "المواد",
-    "products": "المواد",
-    "customers": "العملاء",
-    "suppliers": "الموردون",
+    "invoices": _tr("invoices"),
+    "invoice": _tr("invoices"),
+    "sales_invoices": _tr("sales_invoices"),
+    "sale_invoices": _tr("sales_invoices"),
+    "purchase_invoices": _tr("purchase_invoices"),
+    "purchases_invoices": _tr("purchase_invoices"),
+    "items": _tr("items"),
+    "products": _tr("items"),
+    "customers": _tr("customers"),
+    "suppliers": _tr("suppliers"),
     "categories": "التصنيفات",
     "users": "المستخدمون",
-    "vouchers": "السندات",
-    "warehouses": "المستودعات",
-    "cashboxes": "الصناديق",
-    "banks": "البنوك",
-    "cash_bank": "الصناديق والبنوك",
-    "manufacturing": "التصنيع",
-    "reports": "التقارير",
-    "settings": "الإعدادات",
-    "audit_log": "سجل التدقيق",
-    "returns": "المرتجعات",
-    "sales_returns": "مرتجعات المبيعات",
-    "purchase_returns": "مرتجعات المشتريات",
+    "vouchers": _tr("vouchers"),
+    "warehouses": _tr("warehouses"),
+    "cashboxes": _tr("cashboxes"),
+    "banks": _tr("banks"),
+    "cash_bank": _tr("cashboxes"),
+    "manufacturing": _tr("manufacturing"),
+    "reports": _tr("reports"),
+    "settings": _tr("settings"),
+    "audit_log": _tr("audit_log"),
+    "returns": _tr("returns"),
+    "sales_returns": _tr("sales_returns"),
+    "purchase_returns": _tr("purchase_returns"),
 }
 
-def _human_title(title: Any, fallback: str = "تقرير") -> str:
+def _human_title(title: Any, fallback: str = _tr("print_report_default")) -> str:
     raw = str(title or "").strip()
     if not raw:
         return fallback
@@ -166,7 +191,7 @@ def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
     except Exception:
         logo_path = logo_path if logo_path else ""
     return {
-        "name": _value(info.get("name") or settings.get("company_name"), "نظام الراجحي"),
+        "name": _value(info.get("name") or settings.get("company_name"), _tr("app_title")),
         "address": _value(info.get("address") or settings.get("company_address")),
         "phone": _value(info.get("phone") or settings.get("company_phone")),
         "email": _value(info.get("email") or settings.get("company_email")),
@@ -176,7 +201,7 @@ def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
 
 
 def _company_header(settings: Dict[str, Any], title: str = "") -> str:
-    title = _human_title(title, "مستند")
+    title = _human_title(title, _tr("print_document"))
     data = _company_data(settings)
     logo_html = ""
     if data["logo_path"] and _bool_setting(settings, "show_logo", True):
@@ -190,9 +215,9 @@ def _company_header(settings: Dict[str, Any], title: str = "") -> str:
 
     contacts = []
     if data["phone"]:
-        contacts.append("هاتف: " + _s(data["phone"]))
+        contacts.append(_tr("print_phone") + ": " + _s(data["phone"]))
     if data["email"]:
-        contacts.append("بريد: " + _s(data["email"]))
+        contacts.append(_tr("print_email") + ": " + _s(data["email"]))
     contact_line = " | ".join(contacts)
 
     return f"""
@@ -241,7 +266,7 @@ def _line_value(line: Dict[str, Any], *keys: str, default: Any = "") -> Any:
     return default
 
 
-def _table(headers: List[str], rows: List[List[Any]], empty_text: str = "لا توجد بيانات", reverse_columns: Optional[bool] = None) -> str:
+def _table(headers: List[str], rows: List[List[Any]], empty_text: str = _tr("print_no_data"), reverse_columns: Optional[bool] = None) -> str:
     """Render a professional RTL-safe table.
 
     Qt QTextDocument sometimes mirrors RTL table visual order differently between
@@ -270,7 +295,8 @@ def _table(headers: List[str], rows: List[List[Any]], empty_text: str = "لا ت
         body.append("<tr>" + "".join(f"<td>{_s(c)}</td>" for c in row) + "</tr>")
     if not body:
         body.append(f"<tr><td colspan='{max(1, len(safe_headers))}' class='empty-cell'>{_s(empty_text)}</td></tr>")
-    return f"<table class='data-table' dir='ltr'><thead><tr>{head}</tr></thead><tbody>{''.join(body)}</tbody></table>"
+    table_dir = _document_direction()
+    return f"<table class='data-table' dir='{table_dir}'><thead><tr>{head}</tr></thead><tbody>{''.join(body)}</tbody></table>"
 
 
 def _summary_cards(summary: Optional[Dict[str, Any]]) -> str:
@@ -283,13 +309,17 @@ def _summary_cards(summary: Optional[Dict[str, Any]]) -> str:
 
 
 def _footer(settings: Dict[str, Any], default: str = "") -> str:
-    text = settings.get("footer_text") or default or "تم إنشاء المستند بواسطة نظام الراجحي"
+    text = settings.get("footer_text") or default or _tr("print_generated_by")
     return f"<div class='print-footer'>{_s(text)}</div>"
 
 
 def base_document(title: str, body_html: str, paper: str = "a4", settings: Optional[Dict[str, Any]] = None) -> str:
     settings = settings or _settings()
     spec = _paper_spec(paper, settings)
+    lang = _document_language()
+    doc_dir = _document_direction()
+    text_align = 'right' if doc_dir == 'rtl' else 'left'
+    opposite_align = 'left' if doc_dir == 'rtl' else 'right'
     accent = _accent(settings)
     font_family = _font_family(settings)
     compact = " compact" if _bool_setting(settings, "compact_tables", False) else ""
@@ -297,14 +327,14 @@ def base_document(title: str, body_html: str, paper: str = "a4", settings: Optio
 
     # Use table-based layout because Qt QTextDocument renders it more reliably than flex/grid in PDF.
     return f"""<!DOCTYPE html>
-<html dir='ltr' lang='ar'>
+<html dir='{doc_dir}' lang='{lang}'>
 <head>
 <meta charset='utf-8'>
 <title>{_s(title)}</title>
 <style>
 @page {{ size: {spec['page']}; margin: {spec['margin']}; }}
 * {{ box-sizing: border-box; }}
-html, body {{ margin: 0; padding: 0; background: #ffffff; color: #111827; direction: ltr; }}
+html, body {{ margin: 0; padding: 0; background: #ffffff; color: #111827; direction: {doc_dir}; }}
 body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45; }}
 .sheet {{ width: {spec['width']}; margin: 0 auto; }}
 .brand-table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; border-bottom: 3px solid {accent}; }}
@@ -312,7 +342,7 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 .brand-logo {{ width: 90px; text-align: center; }}
 .brand-logo img {{ max-width: 78px; max-height: 70px; }}
 .brand-logo.placeholder {{ border: 1px dashed #d1d5db; border-radius: 8px; }}
-.brand-main {{ text-align: left; }}
+.brand-main {{ text-align: {text_align}; }}
 .company-name {{ font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }}
 .brand-meta {{ width: 155px; text-align: center; border-right: 1px solid #e5e7eb !important; }}
 .document-badge {{ display: inline-block; background: {accent}; color: #ffffff; padding: 7px 12px; border-radius: 999px; font-weight: 800; margin-bottom: 5px; }}
@@ -323,22 +353,22 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 .meta-table td {{ border: 1px solid #dbe3ef; background: #f8fafc; padding: 7px 9px; width: 33.33%; }}
 .meta-label {{ display: block; color: #64748b; font-size: 88%; margin-bottom: 2px; }}
 .meta-value {{ display: block; font-weight: 800; color: #0f172a; }}
-.data-table {{ width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; direction: ltr; }}
+.data-table {{ width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; direction: {doc_dir}; }}
 .data-table th {{ background: {accent}; color: #ffffff; border: 1px solid {accent}; padding: 8px 5px; font-weight: 800; text-align: center; white-space: normal; }}
 .data-table td {{ border: 1px solid #dbe3ef; padding: 7px 5px; text-align: center; vertical-align: middle; word-wrap: break-word; overflow-wrap: anywhere; }}
 .data-table tbody tr:nth-child(even) td {{ background: #f8fafc; }}
 .data-table thead {{ display: table-header-group; }}
 .data-table tr {{ page-break-inside: avoid; }}
-.data-table .text-cell {{ text-align: left; }}
+.data-table .text-cell {{ text-align: {text_align}; }}
 .empty-cell {{ color: #64748b; padding: 20px !important; }}
 .summary-table {{ width: 100%; border-collapse: separate; border-spacing: 6px; margin: 9px 0; }}
 .summary-card {{ border: 1px solid #dbe3ef; background: #f8fafc; border-radius: 10px; padding: 8px; text-align: center; }}
 .summary-label {{ color: #64748b; font-size: 88%; }}
 .summary-value {{ color: #0f172a; font-size: 115%; font-weight: 900; margin-top: 2px; }}
-.totals-table {{ width: 42%; min-width: 260px; margin-left: auto; margin-top: 10px; border-collapse: collapse; }}
+.totals-table {{ width: 42%; min-width: 260px; margin-{opposite_align}: auto; margin-top: 10px; border-collapse: collapse; }}
 .totals-table td {{ border: 1px solid #dbe3ef; padding: 7px 9px; }}
 .totals-table td:first-child {{ background: #f8fafc; color: #334155; font-weight: 700; }}
-.totals-table td:last-child {{ text-align: right; font-weight: 800; }}
+.totals-table td:last-child {{ text-align: {text_align}; font-weight: 800; }}
 .totals-table tr.final td {{ background: #eaf2ff; color: #0f172a; font-size: 110%; }}
 .totals-table tr.due td:last-child {{ color: #dc2626; }}
 .notes-box {{ margin-top: 10px; border: 1px dashed #cbd5e1; background: #fcfdff; padding: 8px; min-height: 34px; }}
@@ -377,11 +407,11 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
     settings = _settings()
     paper = _normalize_paper(paper, settings, "invoice")
     inv_type = invoice.get("type") or invoice.get("inv_type") or "sale"
-    title = {"sale": "فاتورة بيع", "purchase": "فاتورة شراء"}.get(inv_type, "فاتورة")
+    title = {"sale": _tr("sales_invoice"), "purchase": _tr("purchase_invoice")}.get(inv_type, _tr("invoice"))
     ref = invoice.get("reference") or invoice.get("ref") or invoice.get("number") or invoice.get("id") or ""
     date = invoice.get("date") or invoice.get("created_at") or ""
-    party_label = "العميل" if inv_type == "sale" else "المورد"
-    party = invoice.get("party_name") or invoice.get("entity_name") or invoice.get("customer_name") or invoice.get("supplier_name") or "نقدي"
+    party_label = _tr("print_party_customer") if inv_type == "sale" else _tr("print_party_supplier")
+    party = invoice.get("party_name") or invoice.get("entity_name") or invoice.get("customer_name") or invoice.get("supplier_name") or _tr("print_cash_party")
     warehouse = invoice.get("warehouse_name") or invoice.get("warehouse") or ""
     payment_method = invoice.get("payment_method") or invoice.get("payment") or ""
     user_name = invoice.get("user_name") or invoice.get("seller_name") or invoice.get("created_by") or ""
@@ -413,22 +443,22 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
     {_company_header(settings, title)}
     <div class='document-title'>{_s(title)}</div>
     {_meta_table([
-        [("رقم المستند", ref), ("التاريخ", date), (party_label, party)],
-        [("المستودع", warehouse), ("طريقة الدفع", payment_method), ("المستخدم", user_name)],
+        [(_tr("print_document_number"), ref), (_tr("print_document_date"), date), (party_label, party)],
+        [(_tr("print_warehouse"), warehouse), (_tr("print_payment_method"), payment_method), (_tr("print_user"), user_name)],
     ])}
-    {_table(["#", "الباركود", "المادة", "الوحدة", "الكمية", "السعر", "خصم %", "ضريبة %", "الإجمالي"], rows, "لا توجد بنود")}
+    {_table(["#", _tr("print_barcode"), _tr("print_item"), _tr("print_unit"), _tr("print_quantity"), _tr("print_price"), _tr("print_discount_percent"), _tr("print_tax_percent"), _tr("print_total")], rows, _tr("print_no_lines"))}
     {_totals_table([
-        ("الإجمالي قبل الخصم", invoice.get("total_before_discount", invoice.get("subtotal", "")), ""),
-        ("الخصم", invoice.get("discount", invoice.get("discount_amount", 0)), ""),
-        ("الضريبة", invoice.get("tax_amount", invoice.get("tax", 0)), ""),
-        ("الإجمالي النهائي", invoice.get("total", ""), "final"),
-        ("المدفوع", invoice.get("paid") or invoice.get("paid_amount", 0), ""),
-        ("المتبقي", invoice.get("remaining", ""), "due"),
+        (_tr("print_subtotal"), invoice.get("total_before_discount", invoice.get("subtotal", "")), ""),
+        (_tr("print_discount"), invoice.get("discount", invoice.get("discount_amount", 0)), ""),
+        (_tr("print_tax"), invoice.get("tax_amount", invoice.get("tax", 0)), ""),
+        (_tr("print_grand_total"), invoice.get("total", ""), "final"),
+        (_tr("print_paid"), invoice.get("paid") or invoice.get("paid_amount", 0), ""),
+        (_tr("print_remaining"), invoice.get("remaining", ""), "due"),
     ])}
-    <div class='notes-box'><b>ملاحظات:</b> {_s(invoice.get('notes', ''))}</div>
+    <div class='notes-box'><b>{_s(_tr("print_notes"))}:</b> {_s(invoice.get('notes', ''))}</div>
     {qr_html}
     <table class='signatures hide-thermal'><tr><td>توقيع المستلم</td><td>المحاسب</td></tr></table>
-    {_footer(settings, "شكراً لتعاملكم معنا")}
+    {_footer(settings, _tr("print_thanks"))}
     """
     return base_document(f"{title} {ref}", body, paper, settings)
 
@@ -437,15 +467,15 @@ def voucher_html(voucher: Dict[str, Any], paper: str = "default") -> str:
     settings = _settings()
     paper = _normalize_paper(paper, settings, "voucher")
     vtype = voucher.get("type")
-    title = {"receipt": "سند قبض", "payment": "سند دفع", "expense": "سند مصروف"}.get(vtype, "سند")
+    title = {"receipt": _tr("receipt_voucher"), "payment": _tr("payment_voucher"), "expense": _tr("expense_voucher")}.get(vtype, _tr("voucher"))
     body = f"""
     {_company_header(settings, title)}
     <div class='document-title'>{_s(title)}</div>
     {_meta_table([
-        [("الرقم", voucher.get("id") or voucher.get("reference")), ("التاريخ", voucher.get("date")), ("المبلغ", voucher.get("amount"))],
-        [("الطرف", voucher.get("party_name", "")), ("الحساب", voucher.get("account_name", "")), ("المستخدم", voucher.get("user_name", ""))],
+        [(_tr("print_number"), voucher.get("id") or voucher.get("reference")), (_tr("print_document_date"), voucher.get("date")), (_tr("amount"), voucher.get("amount"))],
+        [(_tr("print_party"), voucher.get("party_name", "")), (_tr("print_account"), voucher.get("account_name", "")), (_tr("print_user"), voucher.get("user_name", ""))],
     ])}
-    <div class='notes-box'><b>البيان:</b> {_s(voucher.get('description', ''))}</div>
+    <div class='notes-box'><b>{_s(_tr("print_description"))}:</b> {_s(voucher.get('description', ''))}</div>
     <table class='signatures'><tr><td>المستلم</td><td>المحاسب</td></tr></table>
     {_footer(settings, title)}
     """
@@ -457,22 +487,22 @@ def return_html(data: Dict[str, Any], paper: str = "default") -> str:
     rtype = payload.get("type") or payload.get("return_type") or "sale_return"
     payload["type"] = "sale" if rtype in ("sale_return", "sale") else "purchase"
     payload["reference"] = payload.get("reference") or payload.get("return_number") or payload.get("id") or ""
-    title = "مرتجع مبيعات" if payload["type"] == "sale" else "مرتجع مشتريات"
+    title = _tr("sales_return") if payload["type"] == "sale" else _tr("purchase_return")
     html = invoice_html(payload, _normalize_paper(paper, _settings(), "return"))
-    return html.replace("فاتورة بيع", title).replace("فاتورة شراء", title)
+    return html.replace(_tr("sales_invoice"), title).replace(_tr("purchase_invoice"), title)
 
 
 def report_html(title: str, rows: List[List[Any]], headers: List[str], subtitle: str = "", summary: Optional[Dict[str, Any]] = None, paper: str = "default") -> str:
     settings = _settings()
-    title = _human_title(title, "تقرير")
+    title = _human_title(title, _tr("print_report_default"))
     paper = _normalize_paper(paper, settings, "report")
     body = f"""
     {_company_header(settings, title)}
     <div class='document-title'>{_s(title)}</div>
     <div class='muted' style='text-align:center;margin-bottom:8px;'>{_s(subtitle)}</div>
     {_summary_cards(summary)}
-    {_table(headers, rows, "لا توجد بيانات")}
-    {_footer(settings, "تم إنشاء التقرير بواسطة نظام الراجحي")}
+    {_table(headers, rows, _tr("print_no_data"))}
+    {_footer(settings, _tr("print_report_generated_by"))}
     """
     return base_document(title, body, paper, settings)
 
@@ -490,11 +520,11 @@ def production_order_html(data: Dict[str, Any], paper: str = "default") -> str:
     outputs = payload.get("outputs") or []
     reservations = payload.get("reservations") or []
     status_map = {'planned': 'مخطط', 'in_progress': 'قيد التنفيذ', 'completed': 'مكتمل', 'cancelled': 'ملغي'}
-    title = "أمر إنتاج"
+    title = _tr("production_order")
     meta = _meta_table([
-        [("رقم الأمر", order.get("order_number") or order.get("id") or ""), ("المنتج", order.get("product_name") or order.get("item_name") or ""), ("الحالة", status_map.get(order.get("status"), order.get("status", "")))],
-        [("الكمية المخططة", order.get("planned_qty", "")), ("الكمية المنتجة", order.get("produced_qty", "")), ("تاريخ البدء", order.get("start_date", ""))],
-        [("مستودع الخام", order.get("raw_warehouse_name") or ""), ("مستودع المنتج", order.get("output_warehouse_name") or ""), ("ملاحظات", order.get("notes", ""))],
+        [(_tr("order_number"), order.get("order_number") or order.get("id") or ""), (_tr("product"), order.get("product_name") or order.get("item_name") or ""), (_tr("status"), status_map.get(order.get("status"), order.get("status", "")))],
+        [(_tr("planned_quantity"), order.get("planned_qty", "")), (_tr("produced_quantity"), order.get("produced_qty", "")), (_tr("start_date"), order.get("start_date", ""))],
+        [(_tr("raw_warehouse"), order.get("raw_warehouse_name") or ""), (_tr("output_warehouse"), order.get("output_warehouse_name") or ""), (_tr("print_notes"), order.get("notes", ""))],
     ])
     cons_rows = []
     for i, c in enumerate(consumptions, 1):

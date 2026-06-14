@@ -19,6 +19,7 @@ from core.offline_guard import is_offline_read_error, offline_read_message
 from ui.form_validation import FormValidator, make_error_label
 import qtawesome as qta
 from theme_manager import ThemeManager
+from i18n import translate, qt_layout_direction
 
 
 def _money_decimal(value):
@@ -171,7 +172,7 @@ class LinesModel(QAbstractTableModel):
 
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            headers = ["#", "الباركود", "المادة", "الكمية", "الوحدة", "السعر", "خصم %", "ضريبة %", "الإجمالي", ""]
+            headers = [translate('line_no'), translate('barcode'), translate('item'), translate('quantity'), translate('unit'), translate('price'), translate('discount_percent'), translate('tax_percent'), translate('total'), '']
             return headers[section]
         return None
 
@@ -246,10 +247,10 @@ class LinesModel(QAbstractTableModel):
             )
             base_unit = (
                 (item or {}).get('unit') or val(line, 'base_unit') or val(line, 'unit_name')
-                or val(line, 'unit') or 'قطعة'
+                or val(line, 'unit') or translate('unit_piece')
             )
-            current_unit = val(line, 'unit') or val(line, 'unit_name') or base_unit or 'قطعة'
-            units_list = [{'id': None, 'unit_name': base_unit or 'قطعة', 'conversion_factor': Decimal('1')}]
+            current_unit = val(line, 'unit') or val(line, 'unit_name') or base_unit or translate('unit_piece')
+            units_list = [{'id': None, 'unit_name': base_unit or translate('unit_piece'), 'conversion_factor': Decimal('1')}]
             for u in units:
                 if not isinstance(u, dict):
                     continue
@@ -341,7 +342,8 @@ class InvoiceDialog(CenteredDialog):
         self.selected_entity_id = None
         self._updating_payment = False
         self._paid_manually_changed = False
-        self.setWindowTitle(f"تعديل فاتورة {'بيع' if inv_type=='sale' else 'شراء'}" if invoice_id else f"فاتورة {'بيع' if inv_type=='sale' else 'شراء'} جديدة")
+        invoice_type_label = translate('sale_type') if inv_type == 'sale' else translate('purchase_type')
+        self.setWindowTitle(translate('edit_invoice_window', type=invoice_type_label) if invoice_id else translate('new_invoice_window', type=invoice_type_label))
         self.setLayoutDirection(Qt.RightToLeft)
         self.resize(1280, 760)
         self.setMinimumSize(1120, 680)
@@ -357,7 +359,7 @@ class InvoiceDialog(CenteredDialog):
     def load_invoice_data(self, invoice_id):
         inv = invoice_service.get(invoice_id)
         if not inv:
-            show_toast("الفاتورة غير موجودة", "error", self)
+            show_toast(translate("invoice_not_found"), "error", self)
             self.reject()
             return
         # التحقق من اختلاف الأسعار
@@ -369,7 +371,7 @@ class InvoiceDialog(CenteredDialog):
                     self.entity_search.setText(cust.get('name', ''))
                     self.selected_entity_id = cust.get('id')
             else:
-                self.entity_search.setText("نقدي")
+                self.entity_search.setText(translate("cash_customer"))
                 self.selected_entity_id = None
         else:
             if inv.get('supplier_id'):
@@ -378,7 +380,7 @@ class InvoiceDialog(CenteredDialog):
                     self.entity_search.setText(supp.get('name', ''))
                     self.selected_entity_id = supp.get('id')
             else:
-                self.entity_search.setText("نقدي")
+                self.entity_search.setText(translate("cash_customer"))
                 self.selected_entity_id = None
         self.date_edit.setDate(QDate.fromString(inv['date'], "yyyy-MM-dd"))
         self.ref_edit.setText(inv.get('reference', ''))
@@ -387,7 +389,7 @@ class InvoiceDialog(CenteredDialog):
         self.update_total_display()
 
     def check_price_differences(self, invoice):
-        """التحقق من اختلاف أسعار المواد الحالية عن المسجلة في الفاتورة"""
+        """Check price differences between stored invoice lines and current item prices."""
         changes = []
         for line in invoice.get('lines', []):
             item = product_service.item_by_id(line.get('item_id') if isinstance(line, dict) else getattr(line, 'item_id', None))
@@ -398,10 +400,10 @@ class InvoiceDialog(CenteredDialog):
             old_price = line.get('unit_price') if isinstance(line, dict) else getattr(line, 'unit_price', 0)
             old_price_display = currency.convert(old_price, 'USD', self.display_curr)
             if abs(current_price_display - old_price_display) > 0.01:
-                changes.append(f"{item['name']}: كان {currency.format_amount(old_price_display)}، الآن {currency.format_amount(current_price_display)}")
+                changes.append(translate('was_now', item=item['name'], old=currency.format_amount(old_price_display), new=currency.format_amount(current_price_display)))
         if changes:
-            msg = "تغيرت أسعار بعض المواد منذ إنشاء الفاتورة:\n" + "\n".join(changes) + "\n\nهل تريد تحديث الأسعار إلى الأسعار الحالية؟"
-            reply = QMessageBox.question(self, "تحديث الأسعار", msg, QMessageBox.Yes | QMessageBox.No)
+            msg = translate('price_update_msg', intro=translate('price_update_intro'), changes='\n'.join(changes), question=translate('price_update_question'))
+            reply = QMessageBox.question(self, translate("price_update_title"), msg, QMessageBox.Yes | QMessageBox.No)
             if reply == QMessageBox.Yes:
                 for idx, line in enumerate(self.lines_model.lines):
                     if line['item_id']:
@@ -482,33 +484,33 @@ class InvoiceDialog(CenteredDialog):
         title_layout.setSpacing(12)
 
         title_box = QVBoxLayout()
-        title = QLabel("فاتورة بيع" if self.inv_type == 'sale' else "فاتورة شراء")
+        title = QLabel(translate('sales_invoice') if self.inv_type == 'sale' else translate('purchase_invoice'))
         title.setObjectName("DialogTitle")
-        subtitle = QLabel("إدخال سريع للمواد، المستودع، الدفع، والطباعة من نافذة واحدة")
+        subtitle = QLabel(translate('fast_invoice_subtitle'))
         subtitle.setObjectName("DialogSubtitle")
         title_box.addWidget(title)
         title_box.addWidget(subtitle)
         title_layout.addLayout(title_box)
         title_layout.addStretch()
 
-        self.new_btn = QPushButton("جديد")
+        self.new_btn = QPushButton(translate('new'))
         self.new_btn.setObjectName("softAction")
-        self.save_btn = QPushButton("حفظ Ctrl+S")
+        self.save_btn = QPushButton(translate('save_shortcut'))
         self.save_btn.setObjectName("primary")
-        self.print_btn = QPushButton("طباعة F6")
+        self.print_btn = QPushButton(translate('print_shortcut'))
         self.print_btn.setObjectName("softAction")
         self.print_menu = QMenu(self.print_btn)
-        self.print_preview_action = QAction("معاينة داخل البرنامج", self)
-        self.print_browser_action = QAction("معاينة HTML في المتصفح", self)
-        self.print_direct_action = QAction("طباعة مباشرة", self)
-        self.print_pdf_action = QAction("تصدير PDF", self)
+        self.print_preview_action = QAction(translate("preview_in_app"), self)
+        self.print_browser_action = QAction(translate("open_html_browser"), self)
+        self.print_direct_action = QAction(translate("direct_print"), self)
+        self.print_pdf_action = QAction(translate("export_pdf"), self)
         self.print_menu.addAction(self.print_preview_action)
         self.print_menu.addAction(self.print_browser_action)
         self.print_menu.addSeparator()
         self.print_menu.addAction(self.print_direct_action)
         self.print_menu.addAction(self.print_pdf_action)
         self.print_btn.setMenu(self.print_menu)
-        self.cancel_btn = QPushButton("إلغاء Esc")
+        self.cancel_btn = QPushButton(translate('cancel_shortcut'))
         for btn in (self.new_btn, self.save_btn, self.print_btn, self.cancel_btn):
             btn.setMinimumWidth(96)
             title_layout.addWidget(btn)
@@ -522,12 +524,12 @@ class InvoiceDialog(CenteredDialog):
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(14, 12, 14, 12)
         header_layout.setSpacing(10)
-        header_title = QLabel("بيانات الفاتورة")
+        header_title = QLabel(translate('invoice_details'))
         header_title.setObjectName("SectionTitle")
         header_layout.addWidget(header_title)
 
         self.entity_search = QLineEdit()
-        self.entity_search.setPlaceholderText("نقدي أو ابدأ بكتابة الاسم")
+        self.entity_search.setPlaceholderText(translate("entity_placeholder"))
         self.entity_search.textChanged.connect(self.on_entity_text_changed)
         self.entity_completer = QCompleter()
         self.entity_completer.setCaseSensitivity(Qt.CaseInsensitive)
@@ -543,7 +545,7 @@ class InvoiceDialog(CenteredDialog):
         self.warehouse_combo.currentIndexChanged.connect(lambda *_: self.update_warehouse_availability_label())
 
         self.ref_edit = QLineEdit()
-        self.ref_edit.setPlaceholderText("يُولد تلقائياً عند تركه فارغاً")
+        self.ref_edit.setPlaceholderText(translate("auto_reference_placeholder"))
 
         self.balance_label = QLabel()
         self.balance_label.setObjectName("muted")
@@ -551,18 +553,18 @@ class InvoiceDialog(CenteredDialog):
 
         row1 = QHBoxLayout()
         row1.setSpacing(10)
-        row1.addWidget(self._make_field_block("العميل" if self.inv_type == 'sale' else "المورد", self.entity_search), 2)
-        row1.addWidget(self._make_field_block("التاريخ", self.date_edit), 1)
-        row1.addWidget(self._make_field_block("المرجع", self.ref_edit), 1)
+        row1.addWidget(self._make_field_block(translate("customer") if self.inv_type == 'sale' else translate("supplier"), self.entity_search), 2)
+        row1.addWidget(self._make_field_block(translate("date"), self.date_edit), 1)
+        row1.addWidget(self._make_field_block(translate("reference"), self.ref_edit), 1)
         header_layout.addLayout(row1)
 
         row2 = QHBoxLayout()
         row2.setSpacing(10)
-        row2.addWidget(self._make_field_block("المستودع" if self.inv_type == 'sale' else "مستودع الاستلام", self.warehouse_combo), 2)
-        self.add_entity_btn = QPushButton("إضافة عميل" if self.inv_type == 'sale' else "إضافة مورد")
+        row2.addWidget(self._make_field_block(translate("warehouse") if self.inv_type == 'sale' else translate("warehouse_receive"), self.warehouse_combo), 2)
+        self.add_entity_btn = QPushButton(translate('add_customer') if self.inv_type == 'sale' else translate('add_supplier'))
         self.add_entity_btn.setObjectName("softAction")
         self.add_entity_btn.clicked.connect(self.add_new_entity)
-        row2.addWidget(self._make_field_block("إجراء سريع", self.add_entity_btn), 1)
+        row2.addWidget(self._make_field_block(translate("quick_action"), self.add_entity_btn), 1)
         row2.addStretch(1)
         header_layout.addLayout(row2)
 
@@ -582,11 +584,11 @@ class InvoiceDialog(CenteredDialog):
         search_layout = QHBoxLayout(search_frame)
         search_layout.setContentsMargins(12, 10, 12, 10)
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("حقل الباركود / بحث المادة — امسح الباركود ثم Enter")
+        self.search_input.setPlaceholderText(translate("barcode_search_placeholder"))
         self.search_input.returnPressed.connect(self.add_item_from_search)
-        self.camera_scan_btn = QPushButton("📷 مسح")
+        self.camera_scan_btn = QPushButton(translate('scan'))
         self.camera_scan_btn.setObjectName("softAction")
-        self.camera_scan_btn.setToolTip("مسح باركود أو QR بالكاميرا. يعمل قارئ USB أيضًا داخل حقل البحث مباشرة.")
+        self.camera_scan_btn.setToolTip(translate("barcode_scan_tooltip"))
         self.camera_scan_btn.clicked.connect(self.scan_barcode_with_camera)
         search_layout.addWidget(self.search_input, 1)
         search_layout.addWidget(self.camera_scan_btn)
@@ -634,10 +636,10 @@ class InvoiceDialog(CenteredDialog):
         left_layout.addWidget(self.lines_table, 1)
 
         btn_line_layout = QHBoxLayout()
-        self.add_line_btn = QPushButton("➕ إضافة بند Insert")
+        self.add_line_btn = QPushButton(translate('add_line'))
         self.add_line_btn.setObjectName("softAction")
         self.add_line_btn.clicked.connect(self.add_empty_line)
-        self.remove_line_btn = QPushButton("🗑 حذف البند Delete")
+        self.remove_line_btn = QPushButton(translate('remove_line'))
         self.remove_line_btn.setObjectName("danger")
         self.remove_line_btn.clicked.connect(self.remove_selected_line)
         btn_line_layout.addWidget(self.add_line_btn)
@@ -645,7 +647,7 @@ class InvoiceDialog(CenteredDialog):
         btn_line_layout.addStretch()
         left_layout.addLayout(btn_line_layout)
 
-        left_layout.addWidget(QLabel("ملاحظات عامة:"))
+        left_layout.addWidget(QLabel(translate('general_notes')))
         self.notes_edit = QTextEdit()
         self.notes_edit.setMaximumHeight(78)
         left_layout.addWidget(self.notes_edit)
@@ -657,17 +659,17 @@ class InvoiceDialog(CenteredDialog):
         right_layout.setContentsMargins(14, 14, 14, 14)
         right_layout.setSpacing(10)
 
-        totals_title = QLabel("ملخص الفاتورة")
+        totals_title = QLabel(translate('invoice_summary'))
         totals_title.setObjectName("SectionTitle")
         right_layout.addWidget(totals_title)
 
-        self.warehouse_availability_label = QLabel("اختر مستودعاً لعرض الرصيد المتاح")
+        self.warehouse_availability_label = QLabel(translate('select_warehouse_for_stock'))
         self.warehouse_availability_label.setObjectName("muted")
         self.warehouse_availability_label.setWordWrap(True)
         right_layout.addWidget(self.warehouse_availability_label)
 
         self.discount_type = QComboBox()
-        self.discount_type.addItems(["نسبة %", "مبلغ"])
+        self.discount_type.addItems([translate('percent_discount'), translate('amount_discount')])
         self.discount_value = QDoubleSpinBox()
         self.discount_value.setRange(0, 999999999)
         self.discount_value.setDecimals(2)
@@ -678,18 +680,18 @@ class InvoiceDialog(CenteredDialog):
         discount_layout.setSpacing(8)
         discount_layout.addWidget(self.discount_type, 1)
         discount_layout.addWidget(self.discount_value, 2)
-        right_layout.addWidget(self._make_field_block("الخصم", discount_container))
+        right_layout.addWidget(self._make_field_block(translate("discount_field"), discount_container))
 
         self.paid_spin = QDoubleSpinBox()
         self.paid_spin.setRange(0, 999999999)
         self.paid_spin.setDecimals(2)
         self.paid_spin.setPrefix(f"{self.symbol} ")
-        right_layout.addWidget(self._make_field_block("المدفوع", self.paid_spin))
+        right_layout.addWidget(self._make_field_block(translate("paid_field"), self.paid_spin))
 
         payment_tools = QHBoxLayout()
-        self.full_payment_btn = QPushButton("دفع كامل")
+        self.full_payment_btn = QPushButton(translate('full_payment'))
         self.full_payment_btn.setObjectName("softAction")
-        self.no_payment_btn = QPushButton("آجل")
+        self.no_payment_btn = QPushButton(translate('deferred_payment'))
         self.no_payment_btn.setObjectName("softAction")
         payment_tools.addWidget(self.full_payment_btn)
         payment_tools.addWidget(self.no_payment_btn)
@@ -700,10 +702,10 @@ class InvoiceDialog(CenteredDialog):
         separator.setStyleSheet("background-color: #e2e8f0;")
         right_layout.addWidget(separator)
 
-        self.total_before_label = QLabel("الإجمالي قبل الخصم: 0")
-        self.discount_amount_label = QLabel("الخصم: 0")
-        self.total_after_label = QLabel("الإجمالي بعد الخصم: 0")
-        self.remaining_label = QLabel("المتبقي: 0")
+        self.total_before_label = QLabel(translate('total_before_discount', amount='0'))
+        self.discount_amount_label = QLabel(translate('discount', amount='0'))
+        self.total_after_label = QLabel(translate('total_after_discount', amount='0'))
+        self.remaining_label = QLabel(translate('remaining_label', amount='0'))
         self.total_after_label.setObjectName("TotalMain")
         self.remaining_label.setObjectName("TotalRemaining")
         self.total_before_label.setObjectName("TotalPaid")
@@ -712,7 +714,7 @@ class InvoiceDialog(CenteredDialog):
             right_layout.addWidget(lbl)
 
         right_layout.addStretch()
-        hint = QLabel("اختصارات: Ctrl+S حفظ، F6 طباعة، Insert بند جديد، Delete حذف بند، Ctrl+L بحث المادة، Enter انتقال ذكي داخل الجدول.")
+        hint = QLabel(translate('invoice_shortcuts_hint'))
         hint.setObjectName("muted")
         hint.setWordWrap(True)
         right_layout.addWidget(hint)
@@ -744,7 +746,7 @@ class InvoiceDialog(CenteredDialog):
 
     def _clear_invoice_form(self):
         if self.invoice_id:
-            show_toast("زر جديد متاح عند إنشاء فاتورة جديدة فقط", "warning", self)
+            show_toast(translate("new_button_only_new_invoice"), "warning", self)
             return
         self.entity_search.clear()
         self.selected_entity_id = None
@@ -870,11 +872,11 @@ class InvoiceDialog(CenteredDialog):
             return
         wh_id = self._selected_warehouse_id()
         if not wh_id:
-            self.warehouse_availability_label.setText("لم يتم اختيار مستودع")
+            self.warehouse_availability_label.setText(translate("no_warehouse_selected"))
             return
         selected = [line for line in getattr(self.lines_model, 'lines', []) if line.get('item_id')]
         if not selected:
-            self.warehouse_availability_label.setText("سيتم استخدام المستودع المحدد لهذه الفاتورة")
+            self.warehouse_availability_label.setText(translate("warehouse_will_be_used"))
             return
         parts = []
         for line in selected[:3]:
@@ -883,7 +885,7 @@ class InvoiceDialog(CenteredDialog):
                 parts.append(f"{line.get('item_name','')}: {available}")
             except Exception:
                 pass
-        self.warehouse_availability_label.setText("المتاح في المستودع: " + " | ".join(parts) if parts else "سيتم استخدام المستودع المحدد لهذه الفاتورة")
+        self.warehouse_availability_label.setText(translate('available_in_warehouse', items=' | '.join(parts)) if parts else translate('warehouse_will_be_used'))
 
     def _stock_available_for_item(self, item_id):
         try:
@@ -892,9 +894,9 @@ class InvoiceDialog(CenteredDialog):
             # In client/server offline mode this is a remote read.  Do not block
             # a queueable invoice just because the stock pre-check could not be
             # refreshed.  The server validates stock when the queue is replayed.
-            print(f"⚠️ تعذر فحص رصيد المادة قبل الحفظ؛ سيتم تخطي الفحص المحلي: {exc}")
+            print(translate('stock_check_skipped', error=exc))
             return None
-        if not item or item.get('item_type') == 'خدمة':
+        if not item or item.get('item_type') == translate('service_item_type'):
             return None
         try:
             return Decimal(str(item.get('available', item.get('quantity', 0)) or 0))
@@ -917,9 +919,9 @@ class InvoiceDialog(CenteredDialog):
         for item_id, needed in totals.items():
             available = self._stock_available_for_item(item_id)
             if available is not None and needed > available:
-                shortages.append(f"{names.get(item_id, item_id)}: المطلوب {needed}، المتاح {available}")
+                shortages.append(translate('required_available', name=names.get(item_id, item_id), needed=needed, available=available))
         if shortages:
-            QMessageBox.warning(self, "المخزون غير كافٍ", "لا يمكن حفظ الفاتورة بسبب نقص المخزون:\n" + "\n".join(shortages))
+            QMessageBox.warning(self, translate('insufficient_stock_title'), translate('insufficient_stock_message', items='\n'.join(shortages)))
             return False
         return True
 
@@ -949,22 +951,22 @@ class InvoiceDialog(CenteredDialog):
         try:
             if self.inv_type == 'sale':
                 self.customers = catalog_service.customers()
-                names = ["نقدي"] + [c.get('name', '') for c in self.customers if c.get('name')]
+                names = [translate("cash_customer")] + [c.get('name', '') for c in self.customers if c.get('name')]
             else:
                 self.suppliers = catalog_service.suppliers()
-                names = ["نقدي"] + [s.get('name', '') for s in self.suppliers if s.get('name')]
+                names = [translate("cash_customer")] + [s.get('name', '') for s in self.suppliers if s.get('name')]
         except Exception as exc:
             if is_offline_read_error(exc):
-                show_toast(offline_read_message('الأطراف'), 'warning', self)
+                show_toast(offline_read_message(translate('parties')), 'warning', self)
                 self.customers = getattr(self, 'customers', [])
                 self.suppliers = getattr(self, 'suppliers', [])
-                names = ["نقدي"]
+                names = [translate("cash_customer")]
             else:
                 raise
         self.entity_completer.setModel(QStringListModel(names))
 
     def on_entity_text_changed(self, text):
-        if not text.strip() or text.strip() == "نقدي":
+        if not text.strip() or text.strip() == translate("cash_customer"):
             self.selected_entity_id = None
             self.balance_label.setText("")
             return
@@ -973,17 +975,17 @@ class InvoiceDialog(CenteredDialog):
                 if c['name'] == text.strip():
                     self.selected_entity_id = c['id']
                     balance_display = currency.convert(c['balance'], 'USD', self.display_curr)
-                    self.balance_label.setText(f"رصيد العميل: {currency.format_amount(balance_display)}")
+                    self.balance_label.setText(translate('customer_balance', amount=currency.format_amount(balance_display)))
                     return
         else:
             for s in self.suppliers:
                 if s['name'] == text.strip():
                     self.selected_entity_id = s['id']
                     balance_display = currency.convert(s['balance'], 'USD', self.display_curr)
-                    self.balance_label.setText(f"رصيد المورد: {currency.format_amount(balance_display)}")
+                    self.balance_label.setText(translate('supplier_balance', amount=currency.format_amount(balance_display)))
                     return
         self.selected_entity_id = None
-        self.balance_label.setText("⚠️ جهة غير مسجلة (سيتم التعامل كنقدي)")
+        self.balance_label.setText(translate('unregistered_party_cash'))
 
     def on_entity_selected(self, text):
         self.entity_search.setText(text)
@@ -1002,7 +1004,7 @@ class InvoiceDialog(CenteredDialog):
             items = catalog_service.items()
         except Exception as exc:
             if is_offline_read_error(exc):
-                show_toast(offline_read_message('المواد'), 'warning', self)
+                show_toast(offline_read_message(translate('materials')), 'warning', self)
                 items = []
             else:
                 raise
@@ -1011,7 +1013,7 @@ class InvoiceDialog(CenteredDialog):
             price = it.get('selling_price', 0) if self.inv_type == 'sale' else it.get('purchase_price', 0)
             price_display = currency.convert(price, 'USD', self.display_curr)
             units = catalog_service.item_units(it['id'])
-            units_list = [{'id': None, 'unit_name': it.get('unit', 'قطعة'), 'conversion_factor': Decimal('1')}]
+            units_list = [{'id': None, 'unit_name': it.get('unit', translate('unit_piece')), 'conversion_factor': Decimal('1')}]
             for u in units:
                 factor = _positive_decimal(u.get('conversion_factor', 1), '1')
                 units_list.append({'id': u['id'], 'unit_name': u['unit_name'], 'conversion_factor': factor})
@@ -1019,7 +1021,7 @@ class InvoiceDialog(CenteredDialog):
                 'id': it['id'],
                 'name': it['name'],
                 'barcode': it.get('barcode') or it.get('code') or '',
-                'unit': it.get('unit', 'قطعة'),
+                'unit': it.get('unit', translate('unit_piece')),
                 'price': price_display,
                 'units_list': units_list
             })
@@ -1078,22 +1080,22 @@ class InvoiceDialog(CenteredDialog):
             if line.get('item_id'):
                 total_before += line['total']
         discount = Decimal(str(self.discount_value.value()))
-        if self.discount_type.currentText() == "نسبة %":
+        if self.discount_type.currentIndex() == 0:
             discount_amount = total_before * discount / 100
         else:
             discount_amount = discount
         total_after = total_before - discount_amount
 
-        self.total_before_label.setText(f"الإجمالي قبل الخصم: {currency.format_amount(total_before)}")
-        self.discount_amount_label.setText(f"الخصم: {currency.format_amount(discount_amount)}")
-        self.total_after_label.setText(f"الإجمالي بعد الخصم: {currency.format_amount(total_after)}")
+        self.total_before_label.setText(translate('total_before_discount', amount=currency.format_amount(total_before)))
+        self.discount_amount_label.setText(translate('discount', amount=currency.format_amount(discount_amount)))
+        self.total_after_label.setText(translate('total_after_discount', amount=currency.format_amount(total_after)))
         if not self._paid_manually_changed and not self.invoice_id:
             self._set_paid_value(total_after, manual=False)
         paid = Decimal(str(self.paid_spin.value()))
         if paid > total_after:
             paid = total_after
         remaining = total_after - paid
-        self.remaining_label.setText(f"المتبقي: {currency.format_amount(remaining)}")
+        self.remaining_label.setText(translate('remaining_label', amount=currency.format_amount(remaining)))
 
         self.total_before_discount = total_before
         self.discount_amount = discount_amount
@@ -1106,7 +1108,7 @@ class InvoiceDialog(CenteredDialog):
             dialog.barcode_scanned.connect(self.on_camera_barcode_scanned)
             dialog.exec()
         except Exception as e:
-            show_toast(f"تعذر تشغيل مسح الكاميرا: {e}", "error", self)
+            show_toast(translate('camera_scan_failed', error=e), 'error', self)
 
     def on_camera_barcode_scanned(self, value, symbology=None):
         self.search_input.setText(str(value or '').strip())
@@ -1128,13 +1130,13 @@ class InvoiceDialog(CenteredDialog):
                     self._increment_existing_line(existing_row, Decimal('1'))
                     self.search_input.clear()
                     self.focus_barcode_input()
-                    show_toast("تمت زيادة كمية المادة الموجودة", "success", self)
+                    show_toast(translate("existing_item_incremented"), "success", self)
                     return
                 last_row = self._target_line_for_new_item()
                 price = item.get('selling_price', 0) if self.inv_type == 'sale' else item.get('purchase_price', 0)
                 price_display = currency.convert(price, 'USD', self.display_curr)
                 units = catalog_service.item_units(item['id'])
-                units_list = [{'id': None, 'unit_name': item.get('unit', 'قطعة'), 'conversion_factor': Decimal('1')}]
+                units_list = [{'id': None, 'unit_name': item.get('unit', translate('unit_piece')), 'conversion_factor': Decimal('1')}]
                 for u in units:
                     factor = Decimal(str(u.get('conversion_factor', 1)))
                     if factor == 0:
@@ -1147,12 +1149,12 @@ class InvoiceDialog(CenteredDialog):
                 self.focus_barcode_input()
                 self.update_total_display()
             else:
-                reply = QMessageBox.question(self, "مادة غير موجودة", f"لم يتم العثور على '{text}'. هل تريد إضافتها كمنتج جديد؟",
+                reply = QMessageBox.question(self, translate('item_not_found_title'), translate('item_not_found_message', text=text),
                                              QMessageBox.Yes | QMessageBox.No)
                 if reply == QMessageBox.Yes:
                     self.open_add_item_dialog(text)
         except Exception as e:
-            show_toast(f"حدث خطأ أثناء إضافة البند: {str(e)}", "error", self)
+            show_toast(translate('add_line_failed', error=str(e)), 'error', self)
 
     def open_add_item_dialog(self, prefill_name):
         from views.dialogs.item_dialog import ItemDialog
@@ -1188,15 +1190,15 @@ class InvoiceDialog(CenteredDialog):
             if line.get('item_id') and Decimal(str(line.get('qty', 0))) <= 0:
                 partial_rows.append(str(idx))
         if partial_rows:
-            validator.custom(False, self.search_input, self.form_error_label, "يوجد بند ناقص أو كمية غير صحيحة في السطر: " + ", ".join(partial_rows))
+            validator.custom(False, self.search_input, self.form_error_label, translate('missing_or_invalid_line', rows=', '.join(partial_rows)))
             validator.focus_first_invalid()
-            show_toast("يوجد بند ناقص داخل جدول الفاتورة", "error", self)
+            show_toast(translate("missing_line_toast"), "error", self)
             return
         lines = self.lines_model.get_lines_data()
         if not lines:
-            validator.custom(False, self.search_input, self.form_error_label, "أضف بنداً واحداً على الأقل قبل حفظ الفاتورة")
+            validator.custom(False, self.search_input, self.form_error_label, translate("add_one_line_before_save"))
             validator.focus_first_invalid()
-            show_toast("أضف بنداً واحداً على الأقل", "error", self)
+            show_toast(translate("add_one_line_toast"), "error", self)
             return
         FormValidator.clear(self.form_error_label, self.search_input)
         if not self._validate_stock_before_save():
@@ -1212,7 +1214,7 @@ class InvoiceDialog(CenteredDialog):
             reference = invoice_service.next_reference(self.inv_type)
         else:
             if invoice_service.reference_exists(reference, exclude_invoice_id=self.invoice_id):
-                show_toast("المرجع موجود مسبقاً", "error", self)
+                show_toast(translate("reference_exists"), "error", self)
                 return
         data = {
             'type': self.inv_type,
@@ -1231,26 +1233,26 @@ class InvoiceDialog(CenteredDialog):
         try:
             if self.invoice_id:
                 invoice_service.update(self.invoice_id, data)
-                show_toast("تم تعديل الفاتورة", "success", self)
+                show_toast(translate("invoice_updated"), "success", self)
             else:
                 invoice_id = invoice_service.create(data)
-                show_toast("تم حفظ الفاتورة", "success", self)
+                show_toast(translate("invoice_saved"), "success", self)
             self.accept()
         except Exception as e:
             show_toast(str(e), "error", self)
 
     def _build_invoice_print_payload(self):
-        inv_ref = self.ref_edit.text() or "جديدة"
+        inv_ref = self.ref_edit.text() or translate("new_reference")
         inv_date = self.date_edit.date().toString("yyyy-MM-dd")
         if self.selected_entity_id:
             if self.inv_type == 'sale':
                 cust = next((c for c in self.customers if c.get('id') == self.selected_entity_id), None)
-                entity_name = cust.get('name', 'نقدي') if cust else "نقدي"
+                entity_name = cust.get('name', translate('cash_customer')) if cust else translate("cash_customer")
             else:
                 supp = next((s for s in self.suppliers if s.get('id') == self.selected_entity_id), None)
-                entity_name = supp.get('name', 'نقدي') if supp else "نقدي"
+                entity_name = supp.get('name', translate('cash_customer')) if supp else translate("cash_customer")
         else:
-            entity_name = "نقدي"
+            entity_name = translate("cash_customer")
 
         lines = []
         for line in self.lines_model.lines:
@@ -1290,28 +1292,28 @@ class InvoiceDialog(CenteredDialog):
         """Attach unified print options to the existing print button."""
         try:
             menu = QMenu(self)
-            menu.addAction("معاينة داخل البرنامج", self.print_invoice_professional)
-            menu.addAction("فتح HTML في المتصفح", self.open_invoice_html_in_browser)
-            menu.addAction("حفظ PDF", self.save_invoice_pdf)
-            menu.addAction("طباعة مباشرة", self.direct_print_invoice)
+            menu.addAction(translate("preview_in_app"), self.print_invoice_professional)
+            menu.addAction(translate("open_html_browser"), self.open_invoice_html_in_browser)
+            menu.addAction(translate("save_pdf"), self.save_invoice_pdf)
+            menu.addAction(translate("direct_print"), self.direct_print_invoice)
             self.print_btn.setMenu(menu)
-            self.print_btn.setText("🖨️ طباعة")
-            self.print_btn.setToolTip("طباعة مباشرة، معاينة HTML، أو حفظ PDF")
+            self.print_btn.setText(translate("print_button"))
+            self.print_btn.setToolTip(translate("print_tooltip"))
         except Exception:
             pass
 
     def _invoice_print_payload(self):
-        inv_ref = self.ref_edit.text() or "جديدة"
+        inv_ref = self.ref_edit.text() or translate("new_reference")
         inv_date = self.date_edit.date().toString("yyyy-MM-dd")
         if self.selected_entity_id:
             if self.inv_type == 'sale':
                 cust = next((c for c in self.customers if c.get('id') == self.selected_entity_id), None)
-                entity_name = cust.get('name', 'نقدي') if cust else "نقدي"
+                entity_name = cust.get('name', translate('cash_customer')) if cust else translate("cash_customer")
             else:
                 supp = next((s for s in self.suppliers if s.get('id') == self.selected_entity_id), None)
-                entity_name = supp.get('name', 'نقدي') if supp else "نقدي"
+                entity_name = supp.get('name', translate('cash_customer')) if supp else translate("cash_customer")
         else:
-            entity_name = "نقدي"
+            entity_name = translate("cash_customer")
 
         lines = []
         for line in self.lines_model.lines:

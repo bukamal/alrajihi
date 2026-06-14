@@ -4,6 +4,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
+from i18n import translate, qt_layout_direction
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QPushButton,
@@ -26,7 +27,7 @@ try:
     from theme.brand import BRAND
 except Exception:  # Defensive fallback for early imports/tests.
     ThemeManager = None
-    BRAND = {'developer_card_name_ar': 'الراجحي للمحاسبة والمستودعات والتصنيع'}
+    BRAND = {'developer_card_name_ar': translate('app_full_title')}
 
 
 def _dc(key, fallback):
@@ -39,7 +40,7 @@ def _dc(key, fallback):
 
 
 def _dashboard_product_name():
-    return BRAND.get('developer_card_name_ar', 'الراجحي للمحاسبة والمستودعات والتصنيع')
+    return translate('app_full_title')
 # Branding assets are used in login/splash/application icon.
 
 
@@ -178,7 +179,7 @@ class DashboardWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self.setObjectName('DashboardWidget')
         self._loading_currencies = False
         self.cards = {}
@@ -238,10 +239,10 @@ class DashboardWidget(QWidget):
         layout.setSpacing(16)
 
         text_col = QVBoxLayout()
-        title = QLabel('لوحة تحكم الراجحي')
+        title = QLabel(translate('dashboard_hero_title'))
         title.setObjectName('HeroTitle')
         title.setAlignment(Qt.AlignRight)
-        subtitle = QLabel('نظرة تشغيلية موحدة للمحاسبة، المستودعات، التصنيع، والتنبيهات')
+        subtitle = QLabel(translate('dashboard_hero_subtitle'))
         subtitle.setObjectName('HeroSubtitle')
         subtitle.setAlignment(Qt.AlignRight)
         text_col.addWidget(title)
@@ -262,13 +263,13 @@ class DashboardWidget(QWidget):
         text_col.addLayout(pills)
 
         actions = QVBoxLayout()
-        refresh_btn = QPushButton(qta.icon('fa5s.sync-alt'), ' تحديث الآن')
+        refresh_btn = QPushButton(qta.icon('fa5s.sync-alt'), ' ' + translate('refresh_now'))
         refresh_btn.setObjectName('HeroButton')
         refresh_btn.clicked.connect(self.refresh_all)
-        monitor_btn = QPushButton(qta.icon('fa5s.heartbeat'), ' مراقبة التشغيل')
+        monitor_btn = QPushButton(qta.icon('fa5s.heartbeat'), ' ' + translate('monitoring'))
         monitor_btn.setObjectName('HeroButton')
         monitor_btn.clicked.connect(lambda: self._switch_page('monitoring'))
-        reports_btn = QPushButton(qta.icon('fa5s.chart-pie'), ' التقارير')
+        reports_btn = QPushButton(qta.icon('fa5s.chart-pie'), ' ' + translate('reports'))
         reports_btn.setObjectName('HeroButton')
         reports_btn.clicked.connect(lambda: self._switch_page('reports'))
         actions.addWidget(refresh_btn)
@@ -306,22 +307,22 @@ class DashboardWidget(QWidget):
         self.main_layout.addLayout(row)
 
     def _create_quick_actions_panel(self):
-        panel = DashboardPanel('اختصارات العمل اليومية', 'bolt')
-        pos = QuickActionButton('نقطة البيع POS  F9', 'barcode', '#059669')
+        panel = DashboardPanel(translate('dashboard_daily_shortcuts'), 'bolt')
+        pos = QuickActionButton(translate('dashboard_pos_f9'), 'barcode', '#059669')
         pos.setMinimumHeight(58)
         pos.clicked.connect(lambda: self._switch_page('pos'))
         panel.layout.addWidget(pos)
         grid = QGridLayout()
         grid.setSpacing(8)
         actions = [
-            ('فاتورة بيع', 'file-invoice-dollar', '#2563eb', lambda: self._open_invoice('sale')),
-            ('فاتورة شراء', 'shopping-cart', '#f59e0b', lambda: self._open_invoice('purchase')),
-            ('عميل جديد', 'user-plus', '#8b5cf6', self._open_add_customer),
-            ('مورد جديد', 'truck-loading', '#ec4899', self._open_add_supplier),
-            ('مادة جديدة', 'box', '#0ea5e9', self._open_add_item),
-            ('سند قبض', 'hand-holding-usd', '#10b981', lambda: self._open_voucher('receipt')),
-            ('سند دفع', 'money-bill-wave', '#ef4444', lambda: self._open_voucher('payment')),
-            ('مراقبة', 'heartbeat', '#64748b', lambda: self._switch_page('monitoring')),
+            (translate('sales_invoice'), 'file-invoice-dollar', '#2563eb', lambda: self._open_invoice('sale')),
+            (translate('purchase_invoice'), 'shopping-cart', '#f59e0b', lambda: self._open_invoice('purchase')),
+            (translate('new_customer'), 'user-plus', '#8b5cf6', self._open_add_customer),
+            (translate('new_supplier'), 'truck-loading', '#ec4899', self._open_add_supplier),
+            (translate('new_item'), 'box', '#0ea5e9', self._open_add_item),
+            (translate('receipt_voucher'), 'hand-holding-usd', '#10b981', lambda: self._open_voucher('receipt')),
+            (translate('payment_voucher'), 'money-bill-wave', '#ef4444', lambda: self._open_voucher('payment')),
+            (translate('monitoring_short'), 'heartbeat', '#64748b', lambda: self._switch_page('monitoring')),
         ]
         for i, (text, icon, color, callback) in enumerate(actions):
             btn = QuickActionButton(text, icon, color)
@@ -332,7 +333,7 @@ class DashboardWidget(QWidget):
         return panel
 
     def _create_alerts_panel(self):
-        panel = DashboardPanel('شريط التنبيهات', 'bell')
+        panel = DashboardPanel(translate('alerts_bar'), 'bell')
         panel.setMaximumHeight(150)
         panel.setMinimumHeight(118)
         self.alerts_table = CustomTableView()
@@ -342,7 +343,7 @@ class DashboardWidget(QWidget):
         return panel
 
     def _create_company_info_panel(self):
-        panel = DashboardPanel('معلومات الشركة', 'building')
+        panel = DashboardPanel(translate('company_info'), 'building')
         panel.setMinimumHeight(245)
         panel.setStyleSheet(panel.styleSheet() + '''
             QLabel#CompanyLogoBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 8px; }
@@ -392,8 +393,8 @@ class DashboardWidget(QWidget):
         except Exception as exc:
             print(f'⚠️ تعذر تحميل معلومات الشركة: {exc}')
             info = {}
-        name = info.get('name') or 'الراجحي ERP'
-        address = info.get('address') or 'العنوان غير محدد'
+        name = info.get('name') or translate('alrajhi_erp')
+        address = info.get('address') or translate('address_not_set')
         phone = info.get('phone') or ''
         email = info.get('email') or ''
         tax_number = info.get('tax_number') or ''
@@ -402,8 +403,8 @@ class DashboardWidget(QWidget):
         self.company_name_label.setText(str(name))
         self.company_address_label.setText(str(address))
         contact_parts = [str(v) for v in (phone, email) if v]
-        self.company_contact_label.setText(' | '.join(contact_parts) if contact_parts else 'بيانات التواصل غير محددة')
-        self.company_tax_label.setText(f'الرقم الضريبي: {tax_number}' if tax_number else 'الرقم الضريبي غير محدد')
+        self.company_contact_label.setText(' | '.join(contact_parts) if contact_parts else translate('contact_not_set'))
+        self.company_tax_label.setText(translate('tax_number_value', value=tax_number) if tax_number else translate('tax_number_not_set'))
         pix = QPixmap(str(logo_path))
         if pix.isNull():
             pix = QPixmap(logo_png(256))
@@ -411,7 +412,7 @@ class DashboardWidget(QWidget):
             self.company_logo_label.setPixmap(pix.scaled(QSize(72, 72), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _create_project_panel(self):
-        panel = DashboardPanel('الصندوق', 'cash-register')
+        panel = DashboardPanel(translate('cashbox'), 'cash-register')
         panel.setMinimumHeight(245)
 
         self.cash_labels = {}
@@ -423,7 +424,7 @@ class DashboardWidget(QWidget):
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(8)
         self.cash_visibility_btn = QPushButton()
-        self.cash_visibility_btn.setToolTip('إخفاء/إظهار الأرصدة')
+        self.cash_visibility_btn.setToolTip(translate('toggle_balances_visibility'))
         self.cash_visibility_btn.setFixedSize(30, 30)
         self.cash_visibility_btn.setCursor(Qt.PointingHandCursor)
         self.cash_visibility_btn.setIcon(qta.icon('fa5s.eye', color='#334155'))
@@ -432,7 +433,7 @@ class DashboardWidget(QWidget):
             QPushButton { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; }
             QPushButton:hover { background: #e2e8f0; }
         ''')
-        self.cash_mode_btn = QPushButton('حركة اليوم')
+        self.cash_mode_btn = QPushButton(translate('today_movement'))
         self.cash_mode_btn.setCursor(Qt.PointingHandCursor)
         self.cash_mode_btn.setMinimumHeight(30)
         self.cash_mode_btn.clicked.connect(self._toggle_cash_movement_mode)
@@ -481,15 +482,15 @@ class DashboardWidget(QWidget):
         movement_layout = QVBoxLayout(movement_box)
         movement_layout.setContentsMargins(10, 8, 10, 10)
         movement_layout.setSpacing(7)
-        self.cash_section_title = QLabel('حركة اليوم')
+        self.cash_section_title = QLabel(translate('today_movement'))
         self.cash_section_title.setObjectName('CashSectionTitle')
         self.cash_section_title.setAlignment(Qt.AlignRight)
         movement_layout.addWidget(self.cash_section_title)
         movement_grid = QGridLayout()
         movement_grid.setSpacing(7)
-        movement_grid.addWidget(make_amount_card('received', 'المقبوض', 'arrow-down', '#059669'), 0, 0)
-        movement_grid.addWidget(make_amount_card('paid', 'المدفوع', 'arrow-up', '#dc2626'), 0, 1)
-        movement_grid.addWidget(make_amount_card('net', 'الصافي', 'balance-scale', '#2563eb'), 0, 2)
+        movement_grid.addWidget(make_amount_card('received', translate('received'), 'arrow-down', '#059669'), 0, 0)
+        movement_grid.addWidget(make_amount_card('paid', translate('paid'), 'arrow-up', '#dc2626'), 0, 1)
+        movement_grid.addWidget(make_amount_card('net', translate('net'), 'balance-scale', '#2563eb'), 0, 2)
         movement_layout.addLayout(movement_grid)
         panel.layout.addWidget(movement_box)
 
@@ -500,7 +501,7 @@ class DashboardWidget(QWidget):
         ''')
         balance_layout = QHBoxLayout(balance_box)
         balance_layout.setContentsMargins(10, 7, 10, 7)
-        balance_title = QLabel('رصيد الصندوق الحالي')
+        balance_title = QLabel(translate('cashbox_current_balance'))
         balance_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         balance_title.setStyleSheet('font-size: 12px; font-weight: 900; color: #475569;')
         balance_value = QLabel('—')
@@ -536,7 +537,7 @@ class DashboardWidget(QWidget):
         currency_layout.setHorizontalSpacing(8)
         currency_layout.setVerticalSpacing(6)
 
-        currency_title = QLabel('العملة المعروضة')
+        currency_title = QLabel(translate('display_currency'))
         currency_title.setObjectName('CashCurrencyTitle')
         currency_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.currency_combo = QComboBox()
@@ -544,7 +545,7 @@ class DashboardWidget(QWidget):
         self.currency_combo.setMinimumHeight(32)
         self.currency_combo.currentIndexChanged.connect(self.on_currency_changed)
 
-        exchange_title = QLabel('سعر الصرف')
+        exchange_title = QLabel(translate('exchange_rate'))
         exchange_title.setObjectName('CashCurrencyTitle')
         exchange_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.exchange_rate_label = QLabel('—')
@@ -583,7 +584,7 @@ class DashboardWidget(QWidget):
         title.setStyleSheet(f"font-size: 19px; font-weight: 900; color: {_dc('text_primary', '#1A202C')}; border: none;")
         panel.layout.addWidget(title)
 
-        subtitle = QLabel('نظام إدارة متكامل')
+        subtitle = QLabel(translate('integrated_management_system'))
         subtitle.setAlignment(Qt.AlignCenter)
         subtitle.setStyleSheet(f"font-size: 12px; font-weight: 800; color: {_dc('text_secondary', '#4A5568')}; border: none;")
         panel.layout.addWidget(subtitle)
@@ -591,13 +592,13 @@ class DashboardWidget(QWidget):
         return panel
 
     def _create_health_panel(self):
-        panel = DashboardPanel('حالة التشغيل', 'heartbeat')
+        panel = DashboardPanel(translate('runtime_status'), 'heartbeat')
         self.health_labels = {}
         for key, title in (
-            ('api', 'اتصال الخادم'),
-            ('queue', 'طلبات المزامنة'),
-            ('ledger', 'مطابقة Ledger'),
-            ('errors', 'أخطاء حديثة'),
+            ('api', translate('server_connection')),
+            ('queue', translate('sync_requests')),
+            ('ledger', translate('ledger_reconciliation')),
+            ('errors', translate('recent_errors')),
         ):
             row = QFrame()
             row.setStyleSheet('QFrame { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; } QLabel { border: none; }')
@@ -648,7 +649,7 @@ class DashboardWidget(QWidget):
             return
         from core.services.settings_service import settings_service
         settings_service.set_display_currency(new_curr)
-        show_toast(f'تم تغيير العملة إلى {new_curr}', 'success', self)
+        show_toast(translate('currency_changed_to', currency=new_curr), 'success', self)
         self.currency_changed.emit(new_curr)
         self.refresh_all()
 
@@ -687,8 +688,8 @@ class DashboardWidget(QWidget):
                 'message': alert.get('message', ''),
             })
         if not data:
-            data = [{'severity': '✅', 'title': 'لا توجد تنبيهات', 'message': 'كل المؤشرات التشغيلية ضمن الحدود الحالية'}]
-        self._set_table(self.alerts_table, data, ['severity', 'title', 'message'], ['الحالة', 'التنبيه', 'التفاصيل'])
+            data = [{'severity': '✅', 'title': translate('no_alerts'), 'message': translate('dashboard_indicators_normal')}]
+        self._set_table(self.alerts_table, data, ['severity', 'title', 'message'], [translate('status'), translate('alert'), translate('details')])
 
     def _toggle_cash_movement_mode(self):
         self._cash_view_mode = 'general' if getattr(self, '_cash_view_mode', 'today') == 'today' else 'today'
@@ -710,7 +711,7 @@ class DashboardWidget(QWidget):
         mode = getattr(self, '_cash_view_mode', 'today')
         raw_values = getattr(self, '_cash_raw_values', {}) or {}
         selected = raw_values.get(mode, {})
-        section_title = 'الحركة العامة' if mode == 'general' else 'حركة اليوم'
+        section_title = translate('general_movement') if mode == 'general' else translate('today_movement')
         if hasattr(self, 'cash_section_title'):
             self.cash_section_title.setText(section_title)
         if hasattr(self, 'cash_mode_btn'):
@@ -757,7 +758,7 @@ class DashboardWidget(QWidget):
         mode = getattr(self, '_cash_view_mode', 'today')
         raw_values = getattr(self, '_cash_raw_values', {}) or {}
         selected = raw_values.get(mode, {})
-        section_title = 'الحركة العامة' if mode == 'general' else 'حركة اليوم'
+        section_title = translate('general_movement') if mode == 'general' else translate('today_movement')
         if hasattr(self, 'cash_section_title'):
             self.cash_section_title.setText(section_title)
         if hasattr(self, 'cash_mode_btn'):
@@ -816,7 +817,7 @@ class DashboardWidget(QWidget):
             syp_text = currency.format_amount(syp_rate, 'SYP', decimals=2)
             self.exchange_rate_label.setText(f'1 USD = {syp_text}')
         except Exception as exc:
-            self.exchange_rate_label.setText('غير متوفر')
+            self.exchange_rate_label.setText(translate('not_available'))
             print(f'⚠️ تعذر تحميل سعر صرف الليرة السورية: {exc}')
 
         if hasattr(self, 'currency_combo') and not self._loading_currencies:
@@ -847,12 +848,12 @@ class DashboardWidget(QWidget):
         ledger_blockers = ledger.get('blockers_count', ledger.get('blockers', 0)) or 0
         recent_errors = requests.get('errors', requests.get('recent_errors', 0)) or 0
 
-        self.api_status.setText('API: متصل' if api_ok else 'API: تحقق')
+        self.api_status.setText(translate('api_connected') if api_ok else translate('api_check'))
         self.queue_status.setText(f'Queue: {queue_pending}')
-        self.ledger_status.setText('Ledger: جاهز' if not ledger_blockers else f'Ledger: {ledger_blockers}')
-        self.health_labels['api'].setText('متصل' if api_ok else 'غير مؤكد')
-        self.health_labels['queue'].setText(f'{queue_pending} معلق / {queue_failed} فاشل')
-        self.health_labels['ledger'].setText('مطابق' if not ledger_blockers else f'{ledger_blockers} مانع')
+        self.ledger_status.setText(translate('ledger_ready') if not ledger_blockers else translate('ledger_blockers', count=ledger_blockers))
+        self.health_labels['api'].setText(translate('connected') if api_ok else translate('uncertain'))
+        self.health_labels['queue'].setText(translate('queue_pending_failed', pending=queue_pending, failed=queue_failed))
+        self.health_labels['ledger'].setText(translate('matched') if not ledger_blockers else translate('blocking_count', count=ledger_blockers))
         self.health_labels['errors'].setText(str(recent_errors))
         if 'ops' in self.cards:
             self.cards['ops'].set_hint(f'Queue {queue_pending} / Failed {queue_failed}')
@@ -875,13 +876,13 @@ class DashboardWidget(QWidget):
         if main_window and hasattr(main_window, 'switch_page'):
             main_window.switch_page(page_name)
         else:
-            show_toast('لا يمكن الانتقال إلى الصفحة المطلوبة', 'error', self)
+            show_toast(translate('cannot_navigate_to_page'), 'error', self)
 
     def _open_invoice(self, inv_type):
         page_key = 'sales_invoices' if inv_type == 'sale' else 'purchase_invoices'
         main_window = self._main_window()
         if not main_window:
-            show_toast('لا يمكن فتح الفاتورة من لوحة التحكم', 'error', self)
+            show_toast(translate('cannot_open_invoice_from_dashboard'), 'error', self)
             return
         page = main_window.pages.get(page_key)
         main_window.switch_page(page_key)

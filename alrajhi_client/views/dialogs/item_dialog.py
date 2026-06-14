@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QFormLayout, QLineEdit, QDoubleSpinBox, QComboBox, 
                              QHeaderView, QLabel, QWidget, QSplitter, QGroupBox, QApplication, QDialog,
                              QShortcut, QFrame)
 from PyQt5.QtCore import Qt
+from i18n import translate, qt_layout_direction
 from PyQt5.QtGui import QKeySequence
 from views.centered_dialog import CenteredDialog
 from core.services.product_service import product_service
@@ -18,14 +19,14 @@ class ItemDialog(CenteredDialog):
         super().__init__(parent)
         self.item_id = item_id
         self.is_edit = item_id is not None
-        self.setWindowTitle("تعديل مادة" if self.is_edit else "إضافة مادة جديدة")
+        self.setWindowTitle(translate("item_edit_title") if self.is_edit else translate("item_add_title"))
         self.resize(950, 600)
 
         self.display_curr = currency.get_display_currency()
         self.symbol = currency.get_currency_symbol(self.display_curr)
 
         self.categories = product_service.categories()
-        self.category_names = ["بدون تصنيف"] + [c.get('full_name') or c.get('name', '') for c in self.categories]
+        self.category_names = [translate("no_category")] + [c.get('full_name') or c.get('name', '') for c in self.categories]
 
         self.setup_ui()
         if self.is_edit:
@@ -33,6 +34,7 @@ class ItemDialog(CenteredDialog):
         self.setup_shortcuts()
 
     def setup_ui(self):
+        self.setLayoutDirection(qt_layout_direction())
         main_layout = QVBoxLayout(self.content_widget)
         main_layout.setSpacing(12)
         main_layout.setContentsMargins(14, 14, 14, 14)
@@ -45,21 +47,21 @@ class ItemDialog(CenteredDialog):
 
         title_box = QVBoxLayout()
         title_box.setSpacing(3)
-        title_label = QLabel("📦 بيانات المادة" if not self.is_edit else "📦 تعديل بيانات المادة")
+        title_label = QLabel(translate("item_data_title") if not self.is_edit else translate("item_edit_data_title"))
         title_label.setObjectName("DialogTitle")
-        subtitle_label = QLabel("واجهة موحدة بدون تبويبات: بيانات أساسية، أسعار، مخزون، ووحدات في أقسام واضحة مثل الفواتير.")
+        subtitle_label = QLabel(translate("item_dialog_subtitle"))
         subtitle_label.setObjectName("DialogSubtitle")
         title_box.addWidget(title_label)
         title_box.addWidget(subtitle_label)
         header_layout.addLayout(title_box, 1)
 
-        self.new_btn = QPushButton("جديد")
+        self.new_btn = QPushButton(translate("new"))
         self.new_btn.setObjectName("softAction")
         self.new_btn.clicked.connect(self.clear_for_new)
-        self.top_save_btn = QPushButton("حفظ")
+        self.top_save_btn = QPushButton(translate("save"))
         self.top_save_btn.setObjectName("primary")
         self.top_save_btn.clicked.connect(self.save)
-        self.top_cancel_btn = QPushButton("إلغاء")
+        self.top_cancel_btn = QPushButton(translate("cancel"))
         self.top_cancel_btn.clicked.connect(self.reject)
         header_layout.addWidget(self.new_btn)
         header_layout.addWidget(self.top_save_btn)
@@ -82,7 +84,7 @@ class ItemDialog(CenteredDialog):
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(12)
 
-        general_group = QGroupBox("البيانات الأساسية")
+        general_group = QGroupBox(translate("basic_data"))
         general_group.setObjectName("FormCard")
         general_form = QFormLayout(general_group)
         general_form.setLabelAlignment(Qt.AlignRight)
@@ -91,8 +93,8 @@ class ItemDialog(CenteredDialog):
         general_form.setVerticalSpacing(10)
 
         self.name_edit = QLineEdit()
-        self.name_edit.setPlaceholderText("اسم المادة (مطلوب)")
-        general_form.addRow("اسم المادة:", self.name_edit)
+        self.name_edit.setPlaceholderText(translate("item_name_required_placeholder"))
+        general_form.addRow(translate("item_name_label"), self.name_edit)
         self.name_error = make_error_label()
         general_form.addRow("", self.name_error)
 
@@ -101,21 +103,21 @@ class ItemDialog(CenteredDialog):
         barcode_layout.setContentsMargins(0, 0, 0, 0)
         barcode_layout.setSpacing(8)
         self.barcode_edit = QLineEdit()
-        self.barcode_edit.setPlaceholderText("EAN-13 أو Code128")
+        self.barcode_edit.setPlaceholderText(translate("barcode_placeholder"))
         self.barcode_type_combo = QComboBox()
         self.barcode_type_combo.addItems(["EAN13", "CODE128"])
         if not self.is_edit:
             self.barcode_edit.setText(product_service.generate_barcode('EAN13'))
-        generate_btn = QPushButton("إنشاء")
+        generate_btn = QPushButton(translate("generate"))
         generate_btn.clicked.connect(self.generate_barcode)
-        camera_btn = QPushButton("📷 مسح")
-        camera_btn.setToolTip("مسح باركود/QR بالكاميرا إن كانت متاحة")
+        camera_btn = QPushButton(translate("scan_camera"))
+        camera_btn.setToolTip(translate("barcode_scan_tooltip_short"))
         camera_btn.clicked.connect(self.scan_barcode_with_camera)
         barcode_layout.addWidget(self.barcode_edit, 1)
         barcode_layout.addWidget(self.barcode_type_combo)
         barcode_layout.addWidget(generate_btn)
         barcode_layout.addWidget(camera_btn)
-        general_form.addRow("الباركود:", barcode_widget)
+        general_form.addRow(translate("barcode_label"), barcode_widget)
         self.barcode_status_label = QLabel("")
         self.barcode_status_label.setStyleSheet("font-size: 11px; color: #666;")
         general_form.addRow("", self.barcode_status_label)
@@ -125,22 +127,24 @@ class ItemDialog(CenteredDialog):
 
         self.category_combo = QComboBox()
         self.category_combo.addItems(self.category_names)
-        general_form.addRow("التصنيف:", self.category_combo)
+        general_form.addRow(translate("category_label"), self.category_combo)
 
         self.type_combo = QComboBox()
-        self.type_combo.addItems(["مخزون", "منتج نهائي", "خدمة"])
-        general_form.addRow("نوع المادة:", self.type_combo)
+        self.type_combo.addItem(translate("stock_item_type"), "مخزون")
+        self.type_combo.addItem(translate("finished_product_type"), "منتج نهائي")
+        self.type_combo.addItem(translate("service_item_type"), "خدمة")
+        general_form.addRow(translate("item_type_field"), self.type_combo)
 
         self.unit_edit = QLineEdit()
-        self.unit_edit.setPlaceholderText("مثال: قطعة، كيلو، متر")
+        self.unit_edit.setPlaceholderText(translate("base_unit_placeholder"))
         if not self.is_edit:
-            self.unit_edit.setText("قطعة")
-        general_form.addRow("الوحدة الأساسية:", self.unit_edit)
+            self.unit_edit.setText(translate("unit_piece"))
+        general_form.addRow(translate("base_unit_label"), self.unit_edit)
         self.unit_error = make_error_label()
         general_form.addRow("", self.unit_error)
         left_layout.addWidget(general_group)
 
-        prices_group = QGroupBox("الأسعار")
+        prices_group = QGroupBox(translate("prices"))
         prices_group.setObjectName("FormCard")
         prices_form = QFormLayout(prices_group)
         prices_form.setLabelAlignment(Qt.AlignRight)
@@ -151,22 +155,22 @@ class ItemDialog(CenteredDialog):
         self.purchase_spin.setRange(0, 999999999)
         self.purchase_spin.setDecimals(2)
         self.purchase_spin.setPrefix(f"{self.symbol} ")
-        prices_form.addRow("سعر الشراء:", self.purchase_spin)
+        prices_form.addRow(translate("purchase_price"), self.purchase_spin)
 
         self.selling_spin = QDoubleSpinBox()
         self.selling_spin.setRange(0, 999999999)
         self.selling_spin.setDecimals(2)
         self.selling_spin.setPrefix(f"{self.symbol} ")
-        prices_form.addRow("سعر البيع:", self.selling_spin)
+        prices_form.addRow(translate("selling_price"), self.selling_spin)
 
-        self.margin_label = QLabel("هامش الربح: —")
+        self.margin_label = QLabel(translate("profit_margin", value="—"))
         self.margin_label.setObjectName("InfoLabel")
         prices_form.addRow("", self.margin_label)
         self.purchase_spin.valueChanged.connect(self.update_margin_preview)
         self.selling_spin.valueChanged.connect(self.update_margin_preview)
         left_layout.addWidget(prices_group)
 
-        stock_group = QGroupBox("المخزون")
+        stock_group = QGroupBox(translate("inventory"))
         stock_group.setObjectName("FormCard")
         stock_form = QFormLayout(stock_group)
         stock_form.setLabelAlignment(Qt.AlignRight)
@@ -176,15 +180,15 @@ class ItemDialog(CenteredDialog):
         self.qty_spin = QDoubleSpinBox()
         self.qty_spin.setRange(0, 999999)
         self.qty_spin.setDecimals(2)
-        stock_form.addRow("الكمية الافتتاحية:", self.qty_spin)
+        stock_form.addRow(translate("opening_quantity"), self.qty_spin)
         self.qty_error = make_error_label()
         stock_form.addRow("", self.qty_error)
 
         self.reorder_spin = QDoubleSpinBox()
         self.reorder_spin.setRange(0, 999999)
         self.reorder_spin.setDecimals(2)
-        self.reorder_spin.setToolTip("عند وصول الكمية الحالية إلى هذا الحد تظهر المادة كمخزون منخفض. اتركه 0 لتعطيل التنبيه لهذه المادة.")
-        stock_form.addRow("حد إعادة الطلب:", self.reorder_spin)
+        self.reorder_spin.setToolTip(translate("reorder_level_tooltip"))
+        stock_form.addRow(translate("reorder_level"), self.reorder_spin)
         self.reorder_error = make_error_label()
         stock_form.addRow("", self.reorder_error)
 
@@ -192,9 +196,9 @@ class ItemDialog(CenteredDialog):
         self.stock_status_frame.setObjectName("StockStatusFrame")
         stock_status_layout = QVBoxLayout(self.stock_status_frame)
         stock_status_layout.setContentsMargins(12, 10, 12, 10)
-        self.current_stock_label = QLabel("الرصيد الحالي: —")
+        self.current_stock_label = QLabel(translate("current_stock", qty="—"))
         self.current_stock_label.setObjectName("StockValueLabel")
-        self.stock_warning_label = QLabel("لا يوجد تنبيه مخزون حالياً")
+        self.stock_warning_label = QLabel(translate("stock_no_warning"))
         self.stock_warning_label.setObjectName("StockWarningLabel")
         stock_status_layout.addWidget(self.current_stock_label)
         stock_status_layout.addWidget(self.stock_warning_label)
@@ -204,12 +208,12 @@ class ItemDialog(CenteredDialog):
         self.reorder_spin.valueChanged.connect(self.update_stock_preview)
         right_layout.addWidget(stock_group)
 
-        units_group = QGroupBox("الوحدات الفرعية (للتحويل في الفواتير)")
+        units_group = QGroupBox(translate("sub_units_group"))
         units_group.setObjectName("FormCard")
         units_layout = QVBoxLayout(units_group)
         self.units_table = QTableWidget()
         self.units_table.setColumnCount(3)
-        self.units_table.setHorizontalHeaderLabels(["الوحدة", "عامل التحويل", ""])
+        self.units_table.setHorizontalHeaderLabels([translate("unit"), translate("conversion_factor"), ""])
         self.units_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
         self.units_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.units_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
@@ -219,9 +223,9 @@ class ItemDialog(CenteredDialog):
         units_layout.addWidget(self.units_table)
 
         btn_units_layout = QHBoxLayout()
-        add_unit_btn = QPushButton("➕ إضافة وحدة")
+        add_unit_btn = QPushButton(translate("add_unit"))
         add_unit_btn.clicked.connect(self.add_subunit)
-        remove_unit_btn = QPushButton("🗑 حذف المحددة")
+        remove_unit_btn = QPushButton(translate("remove_selected"))
         remove_unit_btn.clicked.connect(self.remove_subunit)
         btn_units_layout.addStretch()
         btn_units_layout.addWidget(add_unit_btn)
@@ -238,11 +242,11 @@ class ItemDialog(CenteredDialog):
         btn_layout = QHBoxLayout(action_card)
         btn_layout.setContentsMargins(12, 10, 12, 10)
         btn_layout.setSpacing(10)
-        hint_label = QLabel("Ctrl+S للحفظ — Esc للإلغاء")
+        hint_label = QLabel(translate("save_cancel_hint"))
         hint_label.setObjectName("muted")
-        self.save_btn = QPushButton("حفظ (Ctrl+S)")
+        self.save_btn = QPushButton(translate("save_ctrl_s"))
         self.save_btn.setObjectName("primary")
-        self.cancel_btn = QPushButton("إلغاء (Esc)")
+        self.cancel_btn = QPushButton(translate("cancel_esc"))
         btn_layout.addWidget(hint_label)
         btn_layout.addStretch()
         btn_layout.addWidget(self.save_btn)
@@ -379,7 +383,7 @@ class ItemDialog(CenteredDialog):
             self.barcode_edit.setText(product_service.generate_barcode(self.barcode_type_combo.currentText()))
             self.category_combo.setCurrentIndex(0)
             self.type_combo.setCurrentIndex(0)
-            self.unit_edit.setText("قطعة")
+            self.unit_edit.setText(translate("unit_piece"))
             self.purchase_spin.setValue(0)
             self.selling_spin.setValue(0)
             self.qty_spin.setValue(0)
@@ -390,7 +394,7 @@ class ItemDialog(CenteredDialog):
             self.update_stock_preview()
             self.name_edit.setFocus()
             return
-        show_toast("زر جديد متاح عند إضافة مادة جديدة فقط", "info", self)
+        show_toast(translate("new_item_only"), "info", self)
 
     def update_margin_preview(self):
         if not hasattr(self, 'margin_label'):
@@ -399,7 +403,7 @@ class ItemDialog(CenteredDialog):
         selling = float(self.selling_spin.value()) if hasattr(self, 'selling_spin') else 0.0
         profit = selling - purchase
         margin = (profit / selling * 100) if selling > 0 else 0.0
-        self.margin_label.setText(f"هامش الربح: {profit:.2f} {self.symbol} ({margin:.1f}%)")
+        self.margin_label.setText(translate("profit_margin", value=f"{profit:.2f} {self.symbol} ({margin:.1f}%)"))
         if profit < 0:
             self.margin_label.setStyleSheet("color: #b91c1c; font-weight: 700;")
         elif profit > 0:
@@ -412,13 +416,13 @@ class ItemDialog(CenteredDialog):
             return
         qty = float(self.qty_spin.value()) if hasattr(self, 'qty_spin') else 0.0
         reorder = float(self.reorder_spin.value()) if hasattr(self, 'reorder_spin') else 0.0
-        self.current_stock_label.setText(f"الرصيد الحالي: {qty:.2f}")
+        self.current_stock_label.setText(translate("current_stock", qty=f"{qty:.2f}"))
         if reorder > 0 and qty <= reorder:
-            self.stock_warning_label.setText("تنبيه: الرصيد الحالي أقل من أو يساوي حد إعادة الطلب")
+            self.stock_warning_label.setText(translate("stock_reorder_warning"))
             self.stock_warning_label.setStyleSheet("color: #b91c1c; font-weight: 700;")
             self.stock_status_frame.setStyleSheet("QFrame#StockStatusFrame { border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; }")
         else:
-            self.stock_warning_label.setText("لا يوجد تنبيه مخزون حالياً")
+            self.stock_warning_label.setText(translate("stock_no_warning"))
             self.stock_warning_label.setStyleSheet("color: #047857; font-weight: 700;")
             self.stock_status_frame.setStyleSheet("QFrame#StockStatusFrame { border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; }")
 
@@ -429,7 +433,7 @@ class ItemDialog(CenteredDialog):
             dialog.barcode_scanned.connect(self.on_camera_barcode_scanned)
             dialog.exec()
         except Exception as e:
-            show_toast(f"تعذر تشغيل مسح الكاميرا: {e}", "error", self)
+            show_toast(translate("camera_scan_failed", error=e), "error", self)
 
     def on_camera_barcode_scanned(self, value, symbology=None):
         self.barcode_edit.setText(str(value or '').strip())
@@ -446,12 +450,12 @@ class ItemDialog(CenteredDialog):
     def update_barcode_status(self):
         value = self.barcode_edit.text().strip()
         if not value:
-            self.barcode_status_label.setText("اختياري: اتركه فارغًا أو أنشئ باركودًا تلقائيًا")
+            self.barcode_status_label.setText(translate("barcode_optional_hint"))
             self.barcode_status_label.setStyleSheet("font-size: 11px; color: #666;")
             return
         try:
             info = barcode_service.validate(value, allow_empty=False)
-            self.barcode_status_label.setText(f"✓ باركود صالح ({info.symbology})")
+            self.barcode_status_label.setText(translate("barcode_valid", symbology=info.symbology))
             self.barcode_status_label.setStyleSheet("font-size: 11px; color: #2e7d32;")
         except BarcodeError as e:
             self.barcode_status_label.setText(f"✗ {e}")
@@ -460,23 +464,23 @@ class ItemDialog(CenteredDialog):
     def add_subunit(self):
         from PyQt5.QtWidgets import QDialog, QFormLayout, QLineEdit, QDoubleSpinBox
         dialog = QDialog(self)
-        dialog.setWindowTitle("إضافة وحدة فرعية")
-        dialog.setLayoutDirection(Qt.RightToLeft)
+        dialog.setWindowTitle(translate("add_subunit_title"))
+        dialog.setLayoutDirection(qt_layout_direction())
         dialog.resize(350, 180)
         layout = QFormLayout(dialog)
 
         unit_name_edit = QLineEdit()
-        unit_name_edit.setPlaceholderText("مثال: كرتونة، دستة")
-        layout.addRow("اسم الوحدة:", unit_name_edit)
+        unit_name_edit.setPlaceholderText(translate("subunit_placeholder"))
+        layout.addRow(translate("unit_name_label"), unit_name_edit)
 
         factor_spin = QDoubleSpinBox()
         factor_spin.setRange(0.001, 999999)
         factor_spin.setValue(1.0)
-        layout.addRow("عامل التحويل:", factor_spin)
+        layout.addRow(translate("conversion_factor_label"), factor_spin)
 
         btn_layout = QHBoxLayout()
-        add_btn = QPushButton("إضافة")
-        cancel_btn = QPushButton("إلغاء")
+        add_btn = QPushButton(translate("add"))
+        cancel_btn = QPushButton(translate("cancel"))
         btn_layout.addWidget(add_btn)
         btn_layout.addWidget(cancel_btn)
         layout.addRow(btn_layout)
@@ -484,11 +488,11 @@ class ItemDialog(CenteredDialog):
         def on_add():
             name = unit_name_edit.text().strip()
             if not name:
-                show_toast("اسم الوحدة مطلوب", "error", dialog)
+                show_toast(translate("unit_name_required"), "error", dialog)
                 return
             factor = factor_spin.value()
             if factor <= 0:
-                show_toast("عامل التحويل يجب أن يكون أكبر من صفر", "error", dialog)
+                show_toast(translate("conversion_factor_positive"), "error", dialog)
                 return
             row = self.units_table.rowCount()
             self.units_table.insertRow(row)
@@ -512,7 +516,7 @@ class ItemDialog(CenteredDialog):
     def load_item_data(self):
         item = product_service.item_by_id(self.item_id)
         if not item:
-            show_toast("المادة غير موجودة", "error", self)
+            show_toast(translate("item_not_found"), "error", self)
             self.reject()
             return
 
@@ -524,8 +528,10 @@ class ItemDialog(CenteredDialog):
                 idx = self.category_combo.findText(cat['name'])
                 if idx >= 0:
                     self.category_combo.setCurrentIndex(idx)
-        self.type_combo.setCurrentText(item.get('item_type', 'مخزون'))
-        self.unit_edit.setText(item.get('unit') or 'قطعة')
+        idx = self.type_combo.findData(item.get('item_type', 'مخزون'))
+        if idx >= 0:
+            self.type_combo.setCurrentIndex(idx)
+        self.unit_edit.setText(item.get('unit') or translate('unit_piece'))
 
         purchase_display = currency.convert(item.get('purchase_price', 0), 'USD', self.display_curr)
         selling_display = currency.convert(item.get('selling_price', 0), 'USD', self.display_curr)
@@ -553,10 +559,10 @@ class ItemDialog(CenteredDialog):
 
     def validate_form(self) -> bool:
         validator = FormValidator()
-        validator.required(self.name_edit, self.name_error, "اسم المادة")
-        validator.required(self.unit_edit, self.unit_error, "الوحدة الأساسية")
-        validator.positive(self.qty_spin, self.qty_error, "الكمية الافتتاحية", allow_zero=True)
-        validator.positive(self.reorder_spin, self.reorder_error, "حد إعادة الطلب", allow_zero=True)
+        validator.required(self.name_edit, self.name_error, translate('item'))
+        validator.required(self.unit_edit, self.unit_error, translate('base_unit_label').rstrip(':'))
+        validator.positive(self.qty_spin, self.qty_error, translate('opening_quantity').rstrip(':'), allow_zero=True)
+        validator.positive(self.reorder_spin, self.reorder_error, translate('reorder_level').rstrip(':'), allow_zero=True)
         barcode = self.barcode_edit.text().strip()
         if barcode:
             try:
@@ -568,7 +574,7 @@ class ItemDialog(CenteredDialog):
             FormValidator.clear(self.barcode_error, self.barcode_edit)
         if not validator.is_valid:
             validator.focus_first_invalid()
-            show_toast("يرجى تصحيح الحقول المحددة", "error", self)
+            show_toast(translate("fix_marked_fields"), "error", self)
         return validator.is_valid
 
     def save(self):
@@ -580,7 +586,7 @@ class ItemDialog(CenteredDialog):
 
         cat_name = self.category_combo.currentText()
         cat_id = None
-        if cat_name != "بدون تصنيف":
+        if cat_name != translate("no_category"):
             for c in self.categories:
                 if (c.get('full_name') or c.get('name', '')) == cat_name:
                     cat_id = c['id']
@@ -590,11 +596,11 @@ class ItemDialog(CenteredDialog):
                     cat_id = product_service.add_category(cat_name)
                     self.categories = product_service.categories()
                 except Exception as e:
-                    show_toast(f"فشل إنشاء التصنيف: {str(e)}", "error", self)
+                    show_toast(translate("category_create_failed", error=str(e)), "error", self)
                     return
 
-        item_type = self.type_combo.currentText()
-        unit = self.unit_edit.text().strip() or 'قطعة'
+        item_type = self.type_combo.currentData() or self.type_combo.currentText()
+        unit = self.unit_edit.text().strip() or translate('unit_piece')
 
         purchase_display = self.purchase_spin.value()
         selling_display = self.selling_spin.value()
@@ -631,11 +637,11 @@ class ItemDialog(CenteredDialog):
             if self.is_edit:
                 product_service.update_item(self.item_id, data)
                 product_service.replace_units(self.item_id, units_payload)
-                show_toast("تم التعديل", "success", self)
+                show_toast(translate("item_updated"), "success", self)
             else:
                 new_id = product_service.add_item(data)
                 product_service.replace_units(new_id, units_payload)
-                show_toast("تمت الإضافة", "success", self)
+                show_toast(translate("item_added"), "success", self)
             self.accept()
         except Exception as e:
             show_toast(str(e), "error", self)

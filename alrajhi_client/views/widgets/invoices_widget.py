@@ -12,6 +12,8 @@ from views.dialogs.invoice_dialog import InvoiceDialog
 from utils import show_toast
 from views.widgets.components.table_toolbar import TableToolbar
 from theme_manager import ThemeManager
+from views.widgets.modern_ui import apply_modern_widget
+from i18n import translate, qt_layout_direction
 
 class InvoicesWidget(QWidget):
     def __init__(self, parent=None, invoice_scope=None):
@@ -23,7 +25,7 @@ class InvoicesWidget(QWidget):
             'purchase' -> standalone purchase invoices page.
         """
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self._apply_page_style()
         self.invoice_scope = invoice_scope
         self.sales_page = 0
@@ -48,10 +50,11 @@ class InvoicesWidget(QWidget):
             self.purchases_tab = QWidget()
             self.setup_sales_tab()
             self.setup_purchases_tab()
-            self.tabs.addTab(self.sales_tab, "💰 فواتير البيع")
-            self.tabs.addTab(self.purchases_tab, "📦 فواتير الشراء")
+            self.tabs.addTab(self.sales_tab, "💰 " + translate("sales_invoices"))
+            self.tabs.addTab(self.purchases_tab, "📦 " + translate("purchase_invoices"))
             layout.addWidget(self.tabs)
 
+        apply_modern_widget(self, '💳 ' + translate('invoice_page_title'), translate('invoice_page_subtitle'))
         self.refresh_all()
 
     def _apply_page_style(self):
@@ -168,9 +171,9 @@ class InvoicesWidget(QWidget):
         layout = QVBoxLayout(self.sales_tab)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
-        layout.addWidget(self._make_page_header("فواتير المبيعات", "إدارة فواتير البيع بشكل مستقل مع بحث وفلاتر أسرع."))
+        layout.addWidget(self._make_page_header(translate("sales_invoices_title"), translate("sales_invoices_subtitle")))
 
-        self.sales_toolbar = TableToolbar("فاتورة بيع", "بحث في فواتير البيع...", self)
+        self.sales_toolbar = TableToolbar(translate("sales_invoice"), translate("search_sales_invoices"), self)
         self.sales_toolbar.addRequested.connect(lambda: self.create_invoice('sale'))
         self.sales_toolbar.editRequested.connect(lambda: self.edit_selected_invoice('sale'))
         self.sales_toolbar.deleteRequested.connect(lambda: self.delete_selected_invoice('sale'))
@@ -189,21 +192,21 @@ class InvoicesWidget(QWidget):
         self.sales_start_date.setDate(QDate.currentDate().addDays(-30))
         self.sales_start_date.setCalendarPopup(True)
         self.sales_start_date.dateChanged.connect(lambda: self.refresh_tab('sale', reset_page=True))
-        filter_layout.addWidget(self._label("من:"))
+        filter_layout.addWidget(self._label(translate("from_date")))
         filter_layout.addWidget(self.sales_start_date)
 
         self.sales_end_date = QDateEdit()
         self.sales_end_date.setDate(QDate.currentDate())
         self.sales_end_date.setCalendarPopup(True)
         self.sales_end_date.dateChanged.connect(lambda: self.refresh_tab('sale', reset_page=True))
-        filter_layout.addWidget(self._label("إلى:"))
+        filter_layout.addWidget(self._label(translate("to_date")))
         filter_layout.addWidget(self.sales_end_date)
 
         self.sales_customer_combo = QComboBox()
-        self.sales_customer_combo.addItem("الكل", None)
+        self.sales_customer_combo.addItem(translate("all"), None)
         self.load_customers()
         self.sales_customer_combo.currentIndexChanged.connect(lambda: self.refresh_tab('sale', reset_page=True))
-        filter_layout.addWidget(self._label("العميل:"))
+        filter_layout.addWidget(self._label(translate("customer_label")))
         filter_layout.addWidget(self.sales_customer_combo)
 
         filter_card = QFrame()
@@ -223,9 +226,9 @@ class InvoicesWidget(QWidget):
 
         # شريط التنقل
         pagination = QHBoxLayout()
-        self.sales_prev = QPushButton("السابق")
+        self.sales_prev = QPushButton(translate("previous"))
         self.sales_prev.clicked.connect(lambda: self.prev_page('sale'))
-        self.sales_next = QPushButton("التالي")
+        self.sales_next = QPushButton(translate("next"))
         self.sales_next.clicked.connect(lambda: self.next_page('sale'))
         self.sales_page_label = QLabel()
         pagination.addWidget(self.sales_prev)
@@ -238,9 +241,9 @@ class InvoicesWidget(QWidget):
         layout = QVBoxLayout(self.purchases_tab)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
-        layout.addWidget(self._make_page_header("فواتير المشتريات", "إدارة فواتير الشراء بشكل مستقل مع الموردين والمستودعات."))
+        layout.addWidget(self._make_page_header(translate("purchase_invoices_title"), translate("purchase_invoices_subtitle")))
 
-        self.purchases_toolbar = TableToolbar("فاتورة شراء", "بحث في فواتير الشراء...", self)
+        self.purchases_toolbar = TableToolbar(translate("purchase_invoice"), translate("search_purchase_invoices"), self)
         self.purchases_toolbar.addRequested.connect(lambda: self.create_invoice('purchase'))
         self.purchases_toolbar.editRequested.connect(lambda: self.edit_selected_invoice('purchase'))
         self.purchases_toolbar.deleteRequested.connect(lambda: self.delete_selected_invoice('purchase'))
@@ -258,21 +261,21 @@ class InvoicesWidget(QWidget):
         self.purchases_start_date.setDate(QDate.currentDate().addDays(-30))
         self.purchases_start_date.setCalendarPopup(True)
         self.purchases_start_date.dateChanged.connect(lambda: self.refresh_tab('purchase', reset_page=True))
-        filter_layout.addWidget(self._label("من:"))
+        filter_layout.addWidget(self._label(translate("from_date")))
         filter_layout.addWidget(self.purchases_start_date)
 
         self.purchases_end_date = QDateEdit()
         self.purchases_end_date.setDate(QDate.currentDate())
         self.purchases_end_date.setCalendarPopup(True)
         self.purchases_end_date.dateChanged.connect(lambda: self.refresh_tab('purchase', reset_page=True))
-        filter_layout.addWidget(self._label("إلى:"))
+        filter_layout.addWidget(self._label(translate("to_date")))
         filter_layout.addWidget(self.purchases_end_date)
 
         self.purchases_supplier_combo = QComboBox()
-        self.purchases_supplier_combo.addItem("الكل", None)
+        self.purchases_supplier_combo.addItem(translate("all"), None)
         self.load_suppliers()
         self.purchases_supplier_combo.currentIndexChanged.connect(lambda: self.refresh_tab('purchase', reset_page=True))
-        filter_layout.addWidget(self._label("المورد:"))
+        filter_layout.addWidget(self._label(translate("supplier_label")))
         filter_layout.addWidget(self.purchases_supplier_combo)
 
         filter_card = QFrame()
@@ -291,9 +294,9 @@ class InvoicesWidget(QWidget):
         layout.addWidget(self.purchases_table)
 
         pagination = QHBoxLayout()
-        self.purchases_prev = QPushButton("السابق")
+        self.purchases_prev = QPushButton(translate("previous"))
         self.purchases_prev.clicked.connect(lambda: self.prev_page('purchase'))
-        self.purchases_next = QPushButton("التالي")
+        self.purchases_next = QPushButton(translate("next"))
         self.purchases_next.clicked.connect(lambda: self.next_page('purchase'))
         self.purchases_page_label = QLabel()
         pagination.addWidget(self.purchases_prev)
@@ -312,7 +315,7 @@ class InvoicesWidget(QWidget):
         )
 
     def _notify_offline_read(self, context=''):
-        msg = 'تعذر تحديث بيانات الفواتير لأن الخادم غير متصل. العملية المحفوظة Offline ستبقى في قائمة المزامنة.'
+        msg = translate('server_offline_invoices')
         if context:
             msg = f'{context}: {msg}'
         try:
@@ -325,7 +328,7 @@ class InvoicesWidget(QWidget):
             customers = catalog_service.customers(limit=1000)  # جلب أول 1000 عميل فقط للقائمة
         except Exception as exc:
             if self._is_offline_read_error(exc):
-                self._notify_offline_read('قائمة العملاء')
+                self._notify_offline_read(translate('customer_list'))
                 return
             raise
         for c in customers:
@@ -336,7 +339,7 @@ class InvoicesWidget(QWidget):
             suppliers = catalog_service.suppliers(limit=1000)
         except Exception as exc:
             if self._is_offline_read_error(exc):
-                self._notify_offline_read('قائمة الموردين')
+                self._notify_offline_read(translate('supplier_list'))
                 return
             raise
         for s in suppliers:
@@ -372,7 +375,7 @@ class InvoicesWidget(QWidget):
                 )
             except Exception as exc:
                 if self._is_offline_read_error(exc):
-                    self._notify_offline_read('فواتير البيع')
+                    self._notify_offline_read(translate('sales_invoices'))
                     return
                 raise
             data = []
@@ -382,13 +385,13 @@ class InvoicesWidget(QWidget):
                     'id': inv['id'],
                     'reference': inv.get('reference', ''),
                     'date': inv.get('date', ''),
-                    'customer': inv.get('customer_name', 'نقدي'),
+                    'customer': inv.get('customer_name', translate('cash_customer')),
                     'total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
                     'paid': currency.format_amount(currency.convert(inv.get('paid', 0), 'USD', currency.get_display_currency())),
                     'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))
                 })
             headers = ['reference', 'date', 'customer', 'total', 'paid', 'remaining']
-            display_headers = ['المرجع', 'التاريخ', 'العميل', 'الإجمالي', 'المدفوع', 'المتبقي']
+            display_headers = [translate('reference'), translate('date'), translate('customer'), translate('total'), translate('paid'), translate('remaining')]
             model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
             self.sales_table.setModel(model)
             self._connect_table_selection('sale')
@@ -399,7 +402,7 @@ class InvoicesWidget(QWidget):
             self.sales_invoices = invoices
             total_pages = (total + self.page_size - 1) // self.page_size
             total_pages = max(1, total_pages)
-            self.sales_page_label.setText(f"الصفحة {self.sales_page + 1} من {total_pages}")
+            self.sales_page_label.setText(translate("page_of", page=self.sales_page + 1, pages=total_pages))
             self.sales_toolbar.set_counter(self._counter_text(self.sales_page, len(data), total))
             self.sales_prev.setEnabled(self.sales_page > 0)
             self.sales_next.setEnabled(self.sales_page + 1 < total_pages)
@@ -417,7 +420,7 @@ class InvoicesWidget(QWidget):
                 )
             except Exception as exc:
                 if self._is_offline_read_error(exc):
-                    self._notify_offline_read('فواتير الشراء')
+                    self._notify_offline_read(translate('purchase_invoices'))
                     return
                 raise
             data = []
@@ -427,13 +430,13 @@ class InvoicesWidget(QWidget):
                     'id': inv['id'],
                     'reference': inv.get('reference', ''),
                     'date': inv.get('date', ''),
-                    'supplier': inv.get('supplier_name', 'نقدي'),
+                    'supplier': inv.get('supplier_name', translate('cash_customer')),
                     'total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
                     'paid': currency.format_amount(currency.convert(inv.get('paid', 0), 'USD', currency.get_display_currency())),
                     'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))
                 })
             headers = ['reference', 'date', 'supplier', 'total', 'paid', 'remaining']
-            display_headers = ['المرجع', 'التاريخ', 'المورد', 'الإجمالي', 'المدفوع', 'المتبقي']
+            display_headers = [translate('reference'), translate('date'), translate('supplier'), translate('total'), translate('paid'), translate('remaining')]
             model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
             self.purchases_table.setModel(model)
             self._connect_table_selection('purchase')
@@ -444,7 +447,7 @@ class InvoicesWidget(QWidget):
             self.purchases_invoices = invoices
             total_pages = (total + self.page_size - 1) // self.page_size
             total_pages = max(1, total_pages)
-            self.purchases_page_label.setText(f"الصفحة {self.purchases_page + 1} من {total_pages}")
+            self.purchases_page_label.setText(translate("page_of", page=self.purchases_page + 1, pages=total_pages))
             self.purchases_toolbar.set_counter(self._counter_text(self.purchases_page, len(data), total))
             self.purchases_prev.setEnabled(self.purchases_page > 0)
             self.purchases_next.setEnabled(self.purchases_page + 1 < total_pages)
@@ -468,10 +471,10 @@ class InvoicesWidget(QWidget):
 
     def _counter_text(self, page, visible_count, total_count):
         if total_count <= 0:
-            return "لا توجد سجلات"
+            return translate("no_records")
         start = page * self.page_size + 1
         end = min(total_count, page * self.page_size + visible_count)
-        return f"عرض {start}-{end} من أصل {total_count} سجل"
+        return translate("showing_records", start=start, end=end, total=total_count)
 
     def _connect_table_selection(self, inv_type):
         table = self.sales_table if inv_type == 'sale' else self.purchases_table
@@ -512,7 +515,7 @@ class InvoicesWidget(QWidget):
     def edit_selected_invoice(self, inv_type):
         inv_id = self._selected_invoice_id(inv_type)
         if not inv_id:
-            show_toast("الرجاء تحديد فاتورة أولاً", "warning", self)
+            show_toast(translate("select_invoice_first"), "warning", self)
             return
         dialog = InvoiceDialog(inv_type, self, invoice_id=inv_id)
         if dialog.exec():
@@ -521,27 +524,27 @@ class InvoicesWidget(QWidget):
     def delete_selected_invoice(self, inv_type):
         inv_id = self._selected_invoice_id(inv_type)
         if not inv_id:
-            show_toast("الرجاء تحديد فاتورة للحذف", "warning", self)
+            show_toast(translate("select_invoice_delete"), "warning", self)
             return
         inv = invoice_service.get(inv_id) or {}
         reference = inv.get('reference', inv_id)
         if invoice_service.has_linked_vouchers(inv_id):
-            QMessageBox.warning(self, "لا يمكن الحذف", "لا يمكن حذف فاتورة مرتبطة بسندات قبض/دفع. احذف أو عكس السندات أولاً.")
+            QMessageBox.warning(self, translate("delete_invoice_blocked_title"), translate("delete_invoice_blocked_message"))
             return
         reply = QMessageBox.question(
             self,
-            "تأكيد حذف الفاتورة",
-            f"هل تريد حذف/إلغاء الفاتورة {reference}؟\nسيتم عكس أثرها المخزني والمحاسبي حسب قواعد النظام.",
+            translate("confirm_delete_invoice_title"),
+            translate("confirm_delete_invoice_message", reference=reference),
             QMessageBox.Yes | QMessageBox.No
         )
         if reply != QMessageBox.Yes:
             return
         try:
             invoice_service.delete(inv_id)
-            show_toast("تم حذف/إلغاء الفاتورة", "success", self)
+            show_toast(translate("invoice_deleted"), "success", self)
             self.refresh_all()
         except Exception as e:
-            QMessageBox.critical(self, "فشل الحذف", str(e))
+            QMessageBox.critical(self, translate("delete_failed"), str(e))
 
 
     def prev_page(self, inv_type):

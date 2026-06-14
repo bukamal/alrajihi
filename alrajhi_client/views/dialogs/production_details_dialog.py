@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
                              QTabWidget, QHeaderView, QMessageBox, QMenu, QAction,
                              QShortcut, QFormLayout, QComboBox, QDoubleSpinBox)
 from PyQt5.QtCore import Qt
+from i18n import translate, qt_layout_direction
 from PyQt5.QtGui import QKeySequence
 from views.centered_dialog import CenteredDialog
 from views.custom_table_view import CustomTableView
@@ -11,6 +12,7 @@ from core.services.manufacturing_service import manufacturing_service
 from core.services.product_service import product_service
 from currency import currency
 from utils import show_toast
+from views.widgets.modern_ui import apply_modern_dialog
 from auth import can_manage_production, can_reverse_production
 from decimal import Decimal
 
@@ -23,12 +25,12 @@ def _num(value, default=0):
         return float(default)
 
 
-def _item_label(row, fallback_prefix='مادة'):
+def _item_label(row, fallback_prefix=None):
     name = (row.get('item_name') or row.get('product_name') or row.get('name') or '').strip()
     if name:
         return name
     item_id = row.get('item_id') or row.get('product_id') or row.get('id')
-    return f"{fallback_prefix} #{item_id}" if item_id else '-'
+    return translate('material_id_fallback', id=item_id) if item_id else '-'
 
 
 class ProductionDetailsDialog(CenteredDialog):
@@ -36,27 +38,27 @@ class ProductionDetailsDialog(CenteredDialog):
         super().__init__(parent)
         self.order_id = order_id
         self.service = manufacturing_service
-        self.setWindowTitle(f"تفاصيل أمر إنتاج")
+        self.setWindowTitle(translate("production_details"))
         self.resize(850, 700)
 
         order = self.service.get_production_order(order_id)
         if not order:
-            show_toast("أمر الإنتاج غير موجود", "error", self)
+            show_toast(translate("production_order_not_found"), "error", self)
             self.reject()
             return
 
         layout = QVBoxLayout(self.content_widget)
-        status_map = {'planned': 'مخطط', 'in_progress': 'قيد التنفيذ', 'completed': 'مكتمل', 'cancelled': 'ملغي'}
+        status_map = {'planned': translate('status_planned'), 'in_progress': translate('status_in_progress'), 'completed': translate('status_completed'), 'cancelled': translate('status_cancelled')}
         info = QLabel(f"""
-            <b>رقم الأمر:</b> {order.get('order_number', '')}<br>
-            <b>المنتج:</b> {order.get('product_name', '')}<br>
-            <b>الكمية المخططة:</b> {order.get('planned_qty', 0)}<br>
-            <b>الكمية المنتجة:</b> {order.get('produced_qty', 0)}<br>
-            <b>الحالة:</b> {status_map.get(order.get('status', 'planned'), 'مخطط')}<br>
-            <b>مستودع المواد الخام:</b> {order.get('raw_warehouse_name') or '-'}<br>
-            <b>مستودع المنتج النهائي:</b> {order.get('output_warehouse_name') or '-'}<br>
-            <b>تاريخ البدء:</b> {order.get('start_date', '-')}<br>
-            <b>ملاحظات:</b> {order.get('notes', '')}
+            <b>{translate('order_number_label')}</b> {order.get('order_number', '')}<br>
+            <b>{translate('product_label')}</b> {order.get('product_name', '')}<br>
+            <b>{translate('planned_quantity_label')}</b> {order.get('planned_qty', 0)}<br>
+            <b>{translate('produced_quantity_label')}</b> {order.get('produced_qty', 0)}<br>
+            <b>{translate('status_label')}</b> {status_map.get(order.get('status', 'planned'), translate('status_planned'))}<br>
+            <b>{translate('raw_warehouse_long_label')}</b> {order.get('raw_warehouse_name') or '-'}<br>
+            <b>{translate('output_warehouse_long_label')}</b> {order.get('output_warehouse_name') or '-'}<br>
+            <b>{translate('start_date_label')}</b> {order.get('start_date', '-')}<br>
+            <b>{translate('notes_label')}</b> {order.get('notes', '')}
         """)
         info.setWordWrap(True)
         layout.addWidget(info)
@@ -64,35 +66,35 @@ class ProductionDetailsDialog(CenteredDialog):
         btn_layout = QHBoxLayout()
         if can_manage_production():
             if order.get('status') == 'planned':
-                start_btn = QPushButton("▶️ بدء الإنتاج")
+                start_btn = QPushButton(translate("start_production"))
                 start_btn.clicked.connect(self.start_production)
                 btn_layout.addWidget(start_btn)
-                cancel_order_btn = QPushButton("❌ إلغاء الأمر")
+                cancel_order_btn = QPushButton(translate("cancel_order"))
                 cancel_order_btn.clicked.connect(self.cancel_production)
                 btn_layout.addWidget(cancel_order_btn)
             elif order.get('status') == 'in_progress':
-                consume_btn = QPushButton("📦 استهلاك مواد")
+                consume_btn = QPushButton(translate("consume_materials"))
                 consume_btn.clicked.connect(self.add_consumption)
-                complete_btn = QPushButton("✅ إتمام الإنتاج")
+                complete_btn = QPushButton(translate("complete_production"))
                 complete_btn.clicked.connect(self.complete_production)
                 btn_layout.addWidget(consume_btn)
                 btn_layout.addWidget(complete_btn)
         if can_reverse_production() and order.get('status') in ('in_progress', 'completed'):
-            reverse_btn = QPushButton("🔄 التراجع عن الإنتاج بالكامل")
+            reverse_btn = QPushButton(translate("reverse_production"))
             reverse_btn.setObjectName("danger")
             reverse_btn.clicked.connect(self.reverse_production)
             btn_layout.addWidget(reverse_btn)
 
-        print_btn = QPushButton("🖨️ طباعة")
+        print_btn = QPushButton(translate("print"))
         print_menu = QMenu(print_btn)
-        print_menu.addAction("معاينة داخل البرنامج", lambda: self.print_order('preview'))
-        print_menu.addAction("فتح HTML في المتصفح", lambda: self.print_order('browser'))
-        print_menu.addAction("طباعة مباشرة", lambda: self.print_order('direct'))
-        print_menu.addAction("تصدير PDF", lambda: self.print_order('pdf'))
+        print_menu.addAction(translate("preview_inside_app"), lambda: self.print_order('preview'))
+        print_menu.addAction(translate("open_html_browser"), lambda: self.print_order('browser'))
+        print_menu.addAction(translate("direct_print"), lambda: self.print_order('direct'))
+        print_menu.addAction(translate("export_pdf"), lambda: self.print_order('pdf'))
         print_btn.setMenu(print_menu)
         btn_layout.addWidget(print_btn)
 
-        close_btn = QPushButton("إغلاق")
+        close_btn = QPushButton(translate("close"))
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(close_btn)
         layout.addLayout(btn_layout)
@@ -102,18 +104,19 @@ class ProductionDetailsDialog(CenteredDialog):
         self.cons_table = CustomTableView()
         self.cons_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.cons_table.customContextMenuRequested.connect(self.show_cons_menu)
-        tabs.addTab(self.cons_table, "المواد المستهلكة")
+        tabs.addTab(self.cons_table, translate("consumed_materials"))
         # تبويب المنتج النهائي
         self.out_table = CustomTableView()
         self.out_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.out_table.customContextMenuRequested.connect(self.show_out_menu)
-        tabs.addTab(self.out_table, "المنتج النهائي")
+        tabs.addTab(self.out_table, translate("finished_product_group"))
         # تبويب الحجوزات (يظهر فقط للأوامر المخطط لها أو قيد التنفيذ)
         if order.get('status') in ('planned', 'in_progress'):
             self.res_table = CustomTableView()
-            tabs.addTab(self.res_table, "الحجوزات والمواد المتبقية")
+            tabs.addTab(self.res_table, translate("reservations_remaining"))
         layout.addWidget(tabs)
 
+        apply_modern_dialog(self, translate('production_details'))
         self.refresh_consumptions()
         self.refresh_outputs()
         if order.get('status') in ('planned', 'in_progress'):
@@ -131,7 +134,7 @@ class ProductionDetailsDialog(CenteredDialog):
                 'date': c.get('movement_date', '')
             })
         headers = ['item', 'quantity', 'cost', 'date']
-        display_headers = ['المادة', 'الكمية', 'سعر الوحدة', 'التاريخ']
+        display_headers = [translate('item_header'), translate('quantity'), translate('unit_price'), translate('date')]
         model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.cons_table.setModel(model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
@@ -144,13 +147,13 @@ class ProductionDetailsDialog(CenteredDialog):
         for o in outs:
             data.append({
                 'id': o['id'],
-                'item': _item_label(o, 'منتج'),
+                'item': _item_label(o),
                 'quantity': f"{_num(o.get('produced_qty')):.2f}",
                 'cost': currency.format_amount(currency.convert(_num(o.get('unit_cost')), 'USD', currency.get_display_currency())),
                 'date': o.get('output_date', '')
             })
         headers = ['item', 'quantity', 'cost', 'date']
-        display_headers = ['المنتج', 'الكمية', 'تكلفة الوحدة', 'التاريخ']
+        display_headers = [translate('product'), translate('quantity'), translate('unit_price'), translate('date')]
         model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.out_table.setModel(model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
@@ -172,7 +175,7 @@ class ProductionDetailsDialog(CenteredDialog):
                 'remaining': f"{remaining:.2f}"
             })
         headers = ['item', 'reserved', 'consumed', 'remaining']
-        display_headers = ['المادة', 'المحجوز', 'المستهلك', 'المتبقي']
+        display_headers = [translate('item_header'), translate('reserved'), translate('consumed'), translate('remaining')]
         model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
         self.res_table.setModel(model)
         # id محفوظ داخلياً عبر key_fields ولا يوجد كعمود عرض.
@@ -202,16 +205,16 @@ class ProductionDetailsDialog(CenteredDialog):
     def start_production(self):
         success, msg = self.service.start_production(self.order_id)
         if success:
-            show_toast("تم بدء الإنتاج", "success", self)
+            show_toast(translate("production_started"), "success", self)
             self.accept()
         else:
-            QMessageBox.critical(self, "خطأ", msg)
+            QMessageBox.critical(self, translate("error"), msg)
 
     def cancel_production(self):
-        reply = QMessageBox.question(self, "تأكيد", "هل تريد إلغاء أمر الإنتاج؟", QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(self, translate("confirm_delete"), translate("confirm_cancel_production"), QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.service.cancel_production(self.order_id)
-            show_toast("تم إلغاء أمر الإنتاج", "success", self)
+            show_toast(translate("production_cancelled"), "success", self)
             self.accept()
 
     def add_consumption(self):
@@ -232,22 +235,22 @@ class ProductionDetailsDialog(CenteredDialog):
                     'unit_cost': 0
                 }
         if not remaining_items:
-            show_toast("تم استهلاك جميع المواد المطلوبة لهذا الأمر", "info", self)
+            show_toast(translate("all_materials_consumed"), "info", self)
             return
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("استهلاك مواد")
-        dlg.setLayoutDirection(Qt.RightToLeft)
+        dlg.setWindowTitle(translate("consume_materials"))
+        dlg.setLayoutDirection(qt_layout_direction())
         dlg.resize(500, 400)
         layout = QFormLayout(dlg)
         item_combo = QComboBox()
         for item_id, data in remaining_items.items():
-            item_combo.addItem(f"{data['name']} (المتبقي: {data['remaining']:.2f})", item_id)
-        layout.addRow("المادة:", item_combo)
+            item_combo.addItem(data['name'] + translate("material_remaining_suffix", remaining=data['remaining']), item_id)
+        layout.addRow(translate("material_label"), item_combo)
         qty_spin = QDoubleSpinBox()
         qty_spin.setRange(0.01, 999999)
         qty_spin.setValue(1)
-        layout.addRow("الكمية المستهلكة:", qty_spin)
+        layout.addRow(translate("consumed_quantity_label"), qty_spin)
         def update_max():
             item_id = item_combo.currentData()
             if item_id in remaining_items:
@@ -260,7 +263,7 @@ class ProductionDetailsDialog(CenteredDialog):
         cost_spin.setRange(0, 999999)
         cost_spin.setDecimals(2)
         cost_spin.setPrefix(f"{currency.get_currency_symbol()} ")
-        layout.addRow("سعر الوحدة:", cost_spin)
+        layout.addRow(translate("unit_price_label"), cost_spin)
         def update_cost():
             item_id = item_combo.currentData()
             if item_id:
@@ -274,8 +277,8 @@ class ProductionDetailsDialog(CenteredDialog):
         item_combo.currentIndexChanged.connect(update_cost)
         update_cost()
         btn_layout = QHBoxLayout()
-        save_btn = QPushButton("تسجيل")
-        cancel_btn = QPushButton("إلغاء")
+        save_btn = QPushButton(translate("register"))
+        cancel_btn = QPushButton(translate("cancel"))
         btn_layout.addWidget(save_btn)
         btn_layout.addWidget(cancel_btn)
         layout.addRow(btn_layout)
@@ -286,12 +289,12 @@ class ProductionDetailsDialog(CenteredDialog):
             cost_usd = currency.convert(cost_display, currency.get_display_currency(), 'USD')
             success, msg = self.service.consume_material(self.order_id, item_id, qty, cost_usd)
             if success:
-                show_toast("تم تسجيل الاستهلاك", "success", dlg)
+                show_toast(translate("consumption_registered"), "success", dlg)
                 dlg.accept()
                 self.refresh_consumptions()
                 self.refresh_reservations()
             else:
-                QMessageBox.critical(dlg, "خطأ", msg)
+                QMessageBox.critical(dlg, translate("error"), msg)
         save_btn.clicked.connect(do_consume)
         cancel_btn.clicked.connect(dlg.reject)
         dlg.exec()
@@ -309,51 +312,51 @@ class ProductionDetailsDialog(CenteredDialog):
             remaining = reserved - consumed
             # المطلوب استهلاكه بالكامل، لذا إذا بقي شيء لا يمكن إتمام الإنتاج
             if remaining > 0.001:
-                QMessageBox.warning(self, "استهلاك ناقص", f"لم يتم استهلاك كامل كمية المادة {_item_label(r)}. المتبقي: {remaining:.2f}")
+                QMessageBox.warning(self, translate("missing_consumption_title"), translate("missing_consumption_msg", item=_item_label(r), remaining=remaining))
                 return
             # يمكننا أيضاً حساب الكمية القصوى بناءً على أقل نسبة (لكن بما أن الاستهلاك كامل، كل شيء جيد)
         # السماح بإنتاج الكمية المخططة فقط (أو أقل إذا كان هناك قيود أخرى)
         max_producible = _num(order.get('planned_qty')) - _num(order.get('produced_qty', 0))
         if max_producible <= 0:
-            QMessageBox.warning(self, "تنبيه", "تم إنتاج الكمية المخططة بالكامل")
+            QMessageBox.warning(self, translate("warning"), translate("planned_quantity_completed"))
             return
 
         dlg = QDialog(self)
-        dlg.setWindowTitle("إتمام الإنتاج")
-        dlg.setLayoutDirection(Qt.RightToLeft)
+        dlg.setWindowTitle(translate("complete_production"))
+        dlg.setLayoutDirection(qt_layout_direction())
         dlg.resize(450, 250)
         layout = QFormLayout(dlg)
         qty_spin = QDoubleSpinBox()
         qty_spin.setRange(0.01, float(max_producible))
         qty_spin.setValue(float(max_producible))
-        layout.addRow("الكمية المنتجة فعلياً:", qty_spin)
+        layout.addRow(translate("actual_produced_quantity"), qty_spin)
         btn_layout = QHBoxLayout()
-        save_btn = QPushButton("إتمام")
-        cancel_btn = QPushButton("إلغاء")
+        save_btn = QPushButton(translate("complete"))
+        cancel_btn = QPushButton(translate("cancel"))
         btn_layout.addWidget(save_btn)
         btn_layout.addWidget(cancel_btn)
         layout.addRow(btn_layout)
         def do_complete():
             success, msg = self.service.complete_production(self.order_id, qty_spin.value())
             if success:
-                show_toast("تم إتمام الإنتاج", "success", dlg)
+                show_toast(translate("production_completed"), "success", dlg)
                 dlg.accept()
                 self.accept()
             else:
-                QMessageBox.critical(dlg, "خطأ", msg)
+                QMessageBox.critical(dlg, translate("error"), msg)
         save_btn.clicked.connect(do_complete)
         cancel_btn.clicked.connect(dlg.reject)
         dlg.exec()
 
     def reverse_production(self):
-        reply = QMessageBox.question(self, "تأكيد التراجع", "هل تريد التراجع عن أمر الإنتاج بالكامل؟ لا يمكن التراجع.", QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(self, translate("confirm_reverse_title"), translate("confirm_reverse_production"), QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             success, msg = self.service.reverse_production_order(self.order_id)
             if success:
                 show_toast(msg, "success", self)
                 self.accept()
             else:
-                QMessageBox.critical(self, "خطأ", msg)
+                QMessageBox.critical(self, translate("error"), msg)
 
     def show_cons_menu(self, pos):
         index = self.cons_table.indexAt(pos)
@@ -364,7 +367,7 @@ class ProductionDetailsDialog(CenteredDialog):
         if not cons_id:
             return
         menu = QMenu()
-        delete_action = QAction("🗑 حذف الاستهلاك", self)
+        delete_action = QAction(translate("delete_consumption"), self)
         delete_action.triggered.connect(lambda: self.delete_consumption(cons_id))
         menu.addAction(delete_action)
         menu.exec(self.cons_table.viewport().mapToGlobal(pos))
@@ -378,30 +381,30 @@ class ProductionDetailsDialog(CenteredDialog):
         if not out_id:
             return
         menu = QMenu()
-        delete_action = QAction("🗑 حذف الإنتاج", self)
+        delete_action = QAction(translate("delete_output"), self)
         delete_action.triggered.connect(lambda: self.delete_output(out_id))
         menu.addAction(delete_action)
         menu.exec(self.out_table.viewport().mapToGlobal(pos))
 
     def delete_consumption(self, cons_id):
-        reply = QMessageBox.question(self, "تأكيد", "حذف الاستهلاك؟ سيتم إعادة الكمية للمخزون وتحديث الحجز.", QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(self, translate("confirm_delete"), translate("confirm_delete_consumption"), QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             success, msg = self.service.delete_consumption(cons_id)
             if success:
-                show_toast("تم حذف الاستهلاك", "success", self)
+                show_toast(translate("consumption_deleted"), "success", self)
                 self.refresh_consumptions()
                 self.refresh_reservations()
             else:
-                QMessageBox.critical(self, "خطأ", msg)
+                QMessageBox.critical(self, translate("error"), msg)
 
     def delete_output(self, out_id):
-        reply = QMessageBox.question(self, "تأكيد", "حذف الإنتاج؟ سيتم خصم الكمية من المخزون.", QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(self, translate("confirm_delete"), translate("confirm_delete_output"), QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
             success, msg = self.service.delete_output(out_id)
             if success:
-                show_toast("تم حذف الإنتاج", "success", self)
+                show_toast(translate("output_deleted"), "success", self)
                 self.refresh_outputs()
             else:
-                QMessageBox.critical(self, "خطأ", msg)
+                QMessageBox.critical(self, translate("error"), msg)
 
 

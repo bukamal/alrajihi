@@ -14,12 +14,13 @@ from currency import currency
 from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
+from i18n import translate, qt_layout_direction
 
 
 class SalesReturnDialog(CenteredDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('مرتجع مبيعات')
+        self.setWindowTitle(translate('sales_return'))
         self.resize(900, 620)
         self.invoice_map = {}
         self.line_rows = []
@@ -29,16 +30,16 @@ class SalesReturnDialog(CenteredDialog):
         self.invoice_combo = QComboBox()
         self.invoice_combo.setMinimumWidth(360)
         self.invoice_combo.currentIndexChanged.connect(self.load_invoice_lines)
-        top.addWidget(QLabel('الفاتورة الأصلية:'))
+        top.addWidget(QLabel(translate('original_invoice')))
         top.addWidget(self.invoice_combo)
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
-        top.addWidget(QLabel('التاريخ:'))
+        top.addWidget(QLabel(translate('date')))
         top.addWidget(self.date_edit)
         layout.addLayout(top)
 
         self.lines_table = QTableWidget(0, 6)
-        self.lines_table.setHorizontalHeaderLabels(['المادة', 'المباع', 'مرتجع سابق', 'القابل للإرجاع', 'كمية المرتجع', 'السعر'])
+        self.lines_table.setHorizontalHeaderLabels([translate('return_item'), translate('sold_qty'), translate('previous_returned'), translate('returnable_qty'), translate('return_qty'), translate('price')])
         self.lines_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.lines_table.cellChanged.connect(lambda *_: self.recalculate())
         layout.addWidget(self.lines_table)
@@ -47,18 +48,18 @@ class SalesReturnDialog(CenteredDialog):
         self.warehouse_combo = QComboBox()
         for w in warehouse_service.warehouses():
             self.warehouse_combo.addItem(w.get('name',''), w.get('id'))
-        pay.addWidget(QLabel('مستودع الإرجاع:'))
+        pay.addWidget(QLabel(translate('return_warehouse')))
         pay.addWidget(self.warehouse_combo)
         self.refund_spin = QDoubleSpinBox()
         self.refund_spin.setMaximum(999999999)
         self.refund_spin.setDecimals(2)
         self.refund_spin.valueChanged.connect(lambda *_: self.recalculate())
-        pay.addWidget(QLabel('المبلغ المردود:'))
+        pay.addWidget(QLabel(translate('refund_amount')))
         pay.addWidget(self.refund_spin)
         self.payment_method_combo = QComboBox()
-        self.payment_method_combo.addItem('نقدي', 'cash')
-        self.payment_method_combo.addItem('بنك', 'bank')
-        pay.addWidget(QLabel('طريقة الرد:'))
+        self.payment_method_combo.addItem(translate('cash'), 'cash')
+        self.payment_method_combo.addItem(translate('bank'), 'bank')
+        pay.addWidget(QLabel(translate('refund_method')))
         pay.addWidget(self.payment_method_combo)
         layout.addLayout(pay)
 
@@ -67,25 +68,25 @@ class SalesReturnDialog(CenteredDialog):
         for c in cashbox_service.cashboxes():
             self.cashbox_combo.addItem(c.get('name',''), c.get('id'))
         self.bank_combo = QComboBox()
-        self.bank_combo.addItem('بدون', None)
+        self.bank_combo.addItem(translate('none'), None)
         for b in cashbox_service.bank_accounts():
             self.bank_combo.addItem(b.get('name',''), b.get('id'))
-        cash.addWidget(QLabel('الصندوق:'))
+        cash.addWidget(QLabel(translate('cashbox')))
         cash.addWidget(self.cashbox_combo)
-        cash.addWidget(QLabel('الحساب البنكي:'))
+        cash.addWidget(QLabel(translate('bank_account')))
         cash.addWidget(self.bank_combo)
         layout.addLayout(cash)
 
         self.notes_edit = QTextEdit()
         self.notes_edit.setMaximumHeight(70)
-        layout.addWidget(QLabel('ملاحظات:'))
+        layout.addWidget(QLabel(translate('notes')))
         layout.addWidget(self.notes_edit)
-        self.summary_label = QLabel('الإجمالي: 0 | تخفيض الرصيد: 0 | رد نقدي/بنك: 0')
+        self.summary_label = QLabel(translate('return_summary_sale', total='0', credit='0', refund='0'))
         layout.addWidget(self.summary_label)
 
-        buttons = QDialogButtonBox, QMenu(QDialogButtonBox, QMenu.Save | QDialogButtonBox, QMenu.Cancel)
-        buttons.button(QDialogButtonBox, QMenu.Save).setText('حفظ المرتجع')
-        buttons.button(QDialogButtonBox, QMenu.Cancel).setText('إلغاء')
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Save).setText(translate('save_return'))
+        buttons.button(QDialogButtonBox.Cancel).setText(translate('cancel'))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -99,11 +100,11 @@ class SalesReturnDialog(CenteredDialog):
             invoices = sales_return_service.sale_invoices(limit=500)
         except Exception as exc:
             if is_offline_read_error(exc):
-                notify_offline_read(self, 'فواتير البيع للمرتجع')
+                notify_offline_read(self, translate('sales_invoices_for_return'))
                 return
             raise
         for inv in invoices:
-            txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('customer_name') or 'نقدي'} - {currency.format_amount(currency.convert(inv.get('total',0),'USD',currency.get_display_currency()))}"
+            txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('customer_name') or translate('cash_customer')} - {currency.format_amount(currency.convert(inv.get('total',0),'USD',currency.get_display_currency()))}"
             self.invoice_combo.addItem(txt, inv.get('id'))
             self.invoice_map[inv.get('id')] = inv
 
@@ -118,7 +119,7 @@ class SalesReturnDialog(CenteredDialog):
         try:
             lines = sales_return_service.invoice_returnable_lines(invoice_id)
         except Exception as e:
-            QMessageBox.warning(self, 'خطأ', str(e))
+            QMessageBox.warning(self, translate('error'), str(e))
             lines = []
         for line in lines:
             row = self.lines_table.rowCount()
@@ -153,7 +154,7 @@ class SalesReturnDialog(CenteredDialog):
             self.refund_spin.setValue(float(total))
             self.refund_spin.blockSignals(False)
             refund = total
-        self.summary_label.setText(f"الإجمالي: {currency.format_amount(total)} | تخفيض الرصيد: {currency.format_amount(total-refund)} | رد نقدي/بنك: {currency.format_amount(refund)}")
+        self.summary_label.setText(translate('return_summary_sale', total=currency.format_amount(total), credit=currency.format_amount(total-refund), refund=currency.format_amount(refund)))
 
     def accept(self):
         lines = []
@@ -178,7 +179,7 @@ class SalesReturnDialog(CenteredDialog):
             })
             super().accept()
         except Exception as e:
-            QMessageBox.warning(self, 'تعذر حفظ المرتجع', str(e))
+            QMessageBox.warning(self, translate('return_save_failed'), str(e))
 
 
 class ReturnsWidget(QWidget):
@@ -188,12 +189,12 @@ class ReturnsWidget(QWidget):
         self.page_size = 50
         self.total = 0
         self._init_ui()
-        apply_modern_widget(self, '↩️ مرتجعات المبيعات', 'تسجيل ومراجعة مرتجعات البيع')
+        apply_modern_widget(self, '↩️ ' + translate('sales_returns_title'), translate('sales_returns_subtitle'))
         self.refresh()
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        self.toolbar = TableToolbar('مرتجع مبيعات', 'بحث في المرتجعات...', self)
+        self.toolbar = TableToolbar(translate('sales_return'), translate('search_returns'), self)
         self.toolbar.addRequested.connect(self.add_return)
         self.toolbar.deleteRequested.connect(self.cancel_selected)
         self.toolbar.edit_btn.setVisible(False)
@@ -209,9 +210,9 @@ class ReturnsWidget(QWidget):
         self._install_print_menu()
         layout.addWidget(self.table)
         pager = QHBoxLayout()
-        self.prev_btn = QPushButton('السابق')
+        self.prev_btn = QPushButton(translate('previous'))
         self.prev_btn.clicked.connect(self.prev_page)
-        self.next_btn = QPushButton('التالي')
+        self.next_btn = QPushButton(translate('next'))
         self.next_btn.clicked.connect(self.next_page)
         self.page_label = QLabel()
         pager.addWidget(self.prev_btn)
@@ -227,7 +228,7 @@ class ReturnsWidget(QWidget):
             rows, self.total = sales_return_service.list_returns(search=self.toolbar.search_edit.text().strip() or None, limit=self.page_size, offset=self.page*self.page_size)
         except Exception as exc:
             if is_offline_read_error(exc):
-                notify_offline_read(self, 'مرتجعات المبيعات')
+                notify_offline_read(self, translate('sales_returns'))
                 return
             raise
         data = []
@@ -237,45 +238,45 @@ class ReturnsWidget(QWidget):
                 'return_no': r.get('return_no',''),
                 'date': r.get('date',''),
                 'invoice': r.get('invoice_reference',''),
-                'customer': r.get('customer_name') or 'نقدي',
+                'customer': r.get('customer_name') or translate('cash_customer'),
                 'warehouse': r.get('warehouse_name',''),
                 'total': currency.format_amount(currency.convert(r.get('total',0),'USD',currency.get_display_currency())),
                 'refund': currency.format_amount(currency.convert(r.get('refund_amount',0),'USD',currency.get_display_currency())),
                 'credit': currency.format_amount(currency.convert(r.get('credit_amount',0),'USD',currency.get_display_currency())),
             })
-        self.model = GenericTableModel(data, ['رقم المرتجع','التاريخ','الفاتورة','العميل','المستودع','الإجمالي','المردود','تخفيض الرصيد'], key_fields=['id'], data_keys=['return_no','date','invoice','customer','warehouse','total','refund','credit'])
+        self.model = GenericTableModel(data, [translate('return_no'), translate('date'), translate('invoice'), translate('customer'), translate('warehouse'), translate('total'), translate('refunded'), translate('credit_reduction')], key_fields=['id'], data_keys=['return_no','date','invoice','customer','warehouse','total','refund','credit'])
         self.table.setModel(self.model)
         self.table.refresh_style()
         pages = max(1, (self.total + self.page_size - 1) // self.page_size)
-        self.page_label.setText(f'الصفحة {self.page+1} من {pages}')
+        self.page_label.setText(translate('page_of', page=self.page+1, pages=pages))
         self.prev_btn.setEnabled(self.page > 0)
         self.next_btn.setEnabled(self.page + 1 < pages)
         start = 0 if self.total == 0 else self.page*self.page_size + 1
         end = min(self.total, self.page*self.page_size + len(data))
-        self.toolbar.set_counter(f'عرض {start}-{end} من أصل {self.total} سجل')
+        self.toolbar.set_counter(translate('showing_records', start=start, end=end, total=self.total))
 
     def _install_print_menu(self):
         if not hasattr(self.toolbar, 'print_btn'):
             return
         menu = QMenu(self.toolbar.print_btn)
-        menu.addAction('معاينة داخل البرنامج', lambda: self.print_selected_return('preview'))
-        menu.addAction('فتح HTML في المتصفح', lambda: self.print_selected_return('browser'))
-        menu.addAction('طباعة مباشرة', lambda: self.print_selected_return('direct'))
-        menu.addAction('تصدير PDF', lambda: self.print_selected_return('pdf'))
+        menu.addAction(translate('preview_in_app'), lambda: self.print_selected_return('preview'))
+        menu.addAction(translate('open_html_browser'), lambda: self.print_selected_return('browser'))
+        menu.addAction(translate('direct_print'), lambda: self.print_selected_return('direct'))
+        menu.addAction(translate('export_pdf'), lambda: self.print_selected_return('pdf'))
         self.toolbar.print_btn.setMenu(menu)
 
     def print_selected_return(self, mode='preview'):
         rid = self._selected_id()
         if not rid:
-            QMessageBox.information(self, 'طباعة', 'اختر مرتجعاً أولاً')
+            QMessageBox.information(self, translate('printing'), translate('select_return_first'))
             return
         data = sales_return_service.get(rid) or {}
         if not data:
-            QMessageBox.warning(self, 'طباعة', 'تعذر تحميل بيانات المرتجع')
+            QMessageBox.warning(self, translate('printing'), translate('return_load_failed'))
             return
         data = dict(data)
         data.setdefault('return_type', 'sale_return')
-        data.setdefault('customer_name', data.get('customer') or data.get('party_name') or 'نقدي')
+        data.setdefault('customer_name', data.get('customer') or data.get('party_name') or translate('cash_customer'))
         from printing.printing_service import printing_service
         if mode == 'browser':
             printing_service.return_browser(data, self)
@@ -289,7 +290,7 @@ class ReturnsWidget(QWidget):
     def add_return(self):
         dlg = SalesReturnDialog(self)
         if dlg.exec():
-            show_toast('تم حفظ مرتجع المبيعات', 'success', self)
+            show_toast(translate('sales_return_saved'), 'success', self)
             self.refresh(True)
 
     def _selected_id(self):
@@ -300,14 +301,14 @@ class ReturnsWidget(QWidget):
         rid = self._selected_id()
         if not rid:
             return
-        if QMessageBox.question(self, 'تأكيد', 'هل تريد إلغاء مرتجع المبيعات المحدد؟') != QMessageBox.Yes:
+        if QMessageBox.question(self, translate('confirm'), translate('confirm_cancel_sales_return')) != QMessageBox.Yes:
             return
         try:
             sales_return_service.delete_return(rid)
-            show_toast('تم إلغاء المرتجع', 'success', self)
+            show_toast(translate('return_cancelled'), 'success', self)
             self.refresh()
         except Exception as e:
-            QMessageBox.warning(self, 'تعذر الإلغاء', str(e))
+            QMessageBox.warning(self, translate('cancel_failed'), str(e))
 
     def prev_page(self):
         if self.page > 0:
@@ -323,7 +324,7 @@ class ReturnsWidget(QWidget):
 class PurchaseReturnDialog(CenteredDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('مرتجع مشتريات')
+        self.setWindowTitle(translate('purchase_return'))
         self.resize(900, 620)
         self.invoice_map = {}
         self.line_rows = []
@@ -333,16 +334,16 @@ class PurchaseReturnDialog(CenteredDialog):
         self.invoice_combo = QComboBox()
         self.invoice_combo.setMinimumWidth(360)
         self.invoice_combo.currentIndexChanged.connect(self.load_invoice_lines)
-        top.addWidget(QLabel('فاتورة الشراء الأصلية:'))
+        top.addWidget(QLabel(translate('original_purchase_invoice')))
         top.addWidget(self.invoice_combo)
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
-        top.addWidget(QLabel('التاريخ:'))
+        top.addWidget(QLabel(translate('date')))
         top.addWidget(self.date_edit)
         layout.addLayout(top)
 
         self.lines_table = QTableWidget(0, 6)
-        self.lines_table.setHorizontalHeaderLabels(['المادة', 'المشترى', 'مرتجع سابق', 'القابل للإرجاع', 'كمية المرتجع', 'السعر'])
+        self.lines_table.setHorizontalHeaderLabels([translate('return_item'), translate('purchased_qty'), translate('previous_returned'), translate('returnable_qty'), translate('return_qty'), translate('price')])
         self.lines_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.lines_table.cellChanged.connect(lambda *_: self.recalculate())
         layout.addWidget(self.lines_table)
@@ -351,18 +352,18 @@ class PurchaseReturnDialog(CenteredDialog):
         self.warehouse_combo = QComboBox()
         for w in warehouse_service.warehouses():
             self.warehouse_combo.addItem(w.get('name',''), w.get('id'))
-        pay.addWidget(QLabel('مستودع الإخراج:'))
+        pay.addWidget(QLabel(translate('output_warehouse')))
         pay.addWidget(self.warehouse_combo)
         self.refund_spin = QDoubleSpinBox()
         self.refund_spin.setMaximum(999999999)
         self.refund_spin.setDecimals(2)
         self.refund_spin.valueChanged.connect(lambda *_: self.recalculate())
-        pay.addWidget(QLabel('المبلغ المسترد:'))
+        pay.addWidget(QLabel(translate('returned_amount')))
         pay.addWidget(self.refund_spin)
         self.payment_method_combo = QComboBox()
-        self.payment_method_combo.addItem('نقدي', 'cash')
-        self.payment_method_combo.addItem('بنك', 'bank')
-        pay.addWidget(QLabel('طريقة الاسترداد:'))
+        self.payment_method_combo.addItem(translate('cash'), 'cash')
+        self.payment_method_combo.addItem(translate('bank'), 'bank')
+        pay.addWidget(QLabel(translate('return_method')))
         pay.addWidget(self.payment_method_combo)
         layout.addLayout(pay)
 
@@ -371,25 +372,25 @@ class PurchaseReturnDialog(CenteredDialog):
         for c in cashbox_service.cashboxes():
             self.cashbox_combo.addItem(c.get('name',''), c.get('id'))
         self.bank_combo = QComboBox()
-        self.bank_combo.addItem('بدون', None)
+        self.bank_combo.addItem(translate('none'), None)
         for b in cashbox_service.bank_accounts():
             self.bank_combo.addItem(b.get('name',''), b.get('id'))
-        cash.addWidget(QLabel('الصندوق:'))
+        cash.addWidget(QLabel(translate('cashbox')))
         cash.addWidget(self.cashbox_combo)
-        cash.addWidget(QLabel('الحساب البنكي:'))
+        cash.addWidget(QLabel(translate('bank_account')))
         cash.addWidget(self.bank_combo)
         layout.addLayout(cash)
 
         self.notes_edit = QTextEdit()
         self.notes_edit.setMaximumHeight(70)
-        layout.addWidget(QLabel('ملاحظات:'))
+        layout.addWidget(QLabel(translate('notes')))
         layout.addWidget(self.notes_edit)
-        self.summary_label = QLabel('الإجمالي: 0 | تخفيض الرصيد: 0 | استرداد نقدي/بنك: 0')
+        self.summary_label = QLabel(translate('return_summary_purchase', total='0', credit='0', refund='0'))
         layout.addWidget(self.summary_label)
 
-        buttons = QDialogButtonBox, QMenu(QDialogButtonBox, QMenu.Save | QDialogButtonBox, QMenu.Cancel)
-        buttons.button(QDialogButtonBox, QMenu.Save).setText('حفظ المرتجع')
-        buttons.button(QDialogButtonBox, QMenu.Cancel).setText('إلغاء')
+        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttons.button(QDialogButtonBox.Save).setText(translate('save_return'))
+        buttons.button(QDialogButtonBox.Cancel).setText(translate('cancel'))
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -403,11 +404,11 @@ class PurchaseReturnDialog(CenteredDialog):
             invoices = purchase_return_service.purchase_invoices(limit=500)
         except Exception as exc:
             if is_offline_read_error(exc):
-                notify_offline_read(self, 'فواتير الشراء للمرتجع')
+                notify_offline_read(self, translate('purchase_invoices_for_return'))
                 return
             raise
         for inv in invoices:
-            txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('supplier_name') or 'نقدي'} - {currency.format_amount(currency.convert(inv.get('total',0),'USD',currency.get_display_currency()))}"
+            txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('supplier_name') or translate('cash_customer')} - {currency.format_amount(currency.convert(inv.get('total',0),'USD',currency.get_display_currency()))}"
             self.invoice_combo.addItem(txt, inv.get('id'))
             self.invoice_map[inv.get('id')] = inv
 
@@ -422,7 +423,7 @@ class PurchaseReturnDialog(CenteredDialog):
         try:
             lines = purchase_return_service.invoice_returnable_lines(invoice_id)
         except Exception as e:
-            QMessageBox.warning(self, 'خطأ', str(e))
+            QMessageBox.warning(self, translate('error'), str(e))
             lines = []
         for line in lines:
             row = self.lines_table.rowCount()
@@ -457,7 +458,7 @@ class PurchaseReturnDialog(CenteredDialog):
             self.refund_spin.setValue(float(total))
             self.refund_spin.blockSignals(False)
             refund = total
-        self.summary_label.setText(f"الإجمالي: {currency.format_amount(total)} | تخفيض الرصيد: {currency.format_amount(total-refund)} | استرداد نقدي/بنك: {currency.format_amount(refund)}")
+        self.summary_label.setText(translate('return_summary_purchase', total=currency.format_amount(total), credit=currency.format_amount(total-refund), refund=currency.format_amount(refund)))
 
     def accept(self):
         lines = []
@@ -482,7 +483,7 @@ class PurchaseReturnDialog(CenteredDialog):
             })
             super().accept()
         except Exception as e:
-            QMessageBox.warning(self, 'تعذر حفظ المرتجع', str(e))
+            QMessageBox.warning(self, translate('return_save_failed'), str(e))
 
 
 
@@ -493,12 +494,12 @@ class PurchaseReturnsWidget(QWidget):
         self.page_size = 50
         self.total = 0
         self._init_ui()
-        apply_modern_widget(self, '↩️ مرتجعات المشتريات', 'تسجيل ومراجعة مرتجعات الشراء')
+        apply_modern_widget(self, '↩️ ' + translate('purchase_returns_title'), translate('purchase_returns_subtitle'))
         self.refresh()
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        self.toolbar = TableToolbar('مرتجع مشتريات', 'بحث في المرتجعات...', self)
+        self.toolbar = TableToolbar(translate('purchase_return'), translate('search_returns'), self)
         self.toolbar.addRequested.connect(self.add_return)
         self.toolbar.deleteRequested.connect(self.cancel_selected)
         self.toolbar.edit_btn.setVisible(False)
@@ -514,9 +515,9 @@ class PurchaseReturnsWidget(QWidget):
         self._install_print_menu()
         layout.addWidget(self.table)
         pager = QHBoxLayout()
-        self.prev_btn = QPushButton('السابق')
+        self.prev_btn = QPushButton(translate('previous'))
         self.prev_btn.clicked.connect(self.prev_page)
-        self.next_btn = QPushButton('التالي')
+        self.next_btn = QPushButton(translate('next'))
         self.next_btn.clicked.connect(self.next_page)
         self.page_label = QLabel()
         pager.addWidget(self.prev_btn)
@@ -532,7 +533,7 @@ class PurchaseReturnsWidget(QWidget):
             rows, self.total = purchase_return_service.list_returns(search=self.toolbar.search_edit.text().strip() or None, limit=self.page_size, offset=self.page*self.page_size)
         except Exception as exc:
             if is_offline_read_error(exc):
-                notify_offline_read(self, 'مرتجعات المشتريات')
+                notify_offline_read(self, translate('purchase_returns'))
                 return
             raise
         data = []
@@ -542,45 +543,45 @@ class PurchaseReturnsWidget(QWidget):
                 'return_no': r.get('return_no',''),
                 'date': r.get('date',''),
                 'invoice': r.get('invoice_reference',''),
-                'supplier': r.get('supplier_name') or 'نقدي',
+                'supplier': r.get('supplier_name') or translate('cash_customer'),
                 'warehouse': r.get('warehouse_name',''),
                 'total': currency.format_amount(currency.convert(r.get('total',0),'USD',currency.get_display_currency())),
                 'refund': currency.format_amount(currency.convert(r.get('refund_amount',0),'USD',currency.get_display_currency())),
                 'credit': currency.format_amount(currency.convert(r.get('credit_amount',0),'USD',currency.get_display_currency())),
             })
-        self.model = GenericTableModel(data, ['رقم المرتجع','التاريخ','الفاتورة','المورد','المستودع','الإجمالي','المردود','تخفيض الرصيد'], key_fields=['id'], data_keys=['return_no','date','invoice','supplier','warehouse','total','refund','credit'])
+        self.model = GenericTableModel(data, [translate('return_no'), translate('date'), translate('invoice'), translate('supplier'), translate('warehouse'), translate('total'), translate('refunded'), translate('credit_reduction')], key_fields=['id'], data_keys=['return_no','date','invoice','supplier','warehouse','total','refund','credit'])
         self.table.setModel(self.model)
         self.table.refresh_style()
         pages = max(1, (self.total + self.page_size - 1) // self.page_size)
-        self.page_label.setText(f'الصفحة {self.page+1} من {pages}')
+        self.page_label.setText(translate('page_of', page=self.page+1, pages=pages))
         self.prev_btn.setEnabled(self.page > 0)
         self.next_btn.setEnabled(self.page + 1 < pages)
         start = 0 if self.total == 0 else self.page*self.page_size + 1
         end = min(self.total, self.page*self.page_size + len(data))
-        self.toolbar.set_counter(f'عرض {start}-{end} من أصل {self.total} سجل')
+        self.toolbar.set_counter(translate('showing_records', start=start, end=end, total=self.total))
 
     def _install_print_menu(self):
         if not hasattr(self.toolbar, 'print_btn'):
             return
         menu = QMenu(self.toolbar.print_btn)
-        menu.addAction('معاينة داخل البرنامج', lambda: self.print_selected_return('preview'))
-        menu.addAction('فتح HTML في المتصفح', lambda: self.print_selected_return('browser'))
-        menu.addAction('طباعة مباشرة', lambda: self.print_selected_return('direct'))
-        menu.addAction('تصدير PDF', lambda: self.print_selected_return('pdf'))
+        menu.addAction(translate('preview_in_app'), lambda: self.print_selected_return('preview'))
+        menu.addAction(translate('open_html_browser'), lambda: self.print_selected_return('browser'))
+        menu.addAction(translate('direct_print'), lambda: self.print_selected_return('direct'))
+        menu.addAction(translate('export_pdf'), lambda: self.print_selected_return('pdf'))
         self.toolbar.print_btn.setMenu(menu)
 
     def print_selected_return(self, mode='preview'):
         rid = self._selected_id()
         if not rid:
-            QMessageBox.information(self, 'طباعة', 'اختر مرتجعاً أولاً')
+            QMessageBox.information(self, translate('printing'), translate('select_return_first'))
             return
         data = purchase_return_service.get(rid) or {}
         if not data:
-            QMessageBox.warning(self, 'طباعة', 'تعذر تحميل بيانات المرتجع')
+            QMessageBox.warning(self, translate('printing'), translate('return_load_failed'))
             return
         data = dict(data)
         data.setdefault('return_type', 'purchase_return')
-        data.setdefault('supplier_name', data.get('supplier') or data.get('party_name') or 'نقدي')
+        data.setdefault('supplier_name', data.get('supplier') or data.get('party_name') or translate('cash_customer'))
         from printing.printing_service import printing_service
         if mode == 'browser':
             printing_service.return_browser(data, self)
@@ -594,7 +595,7 @@ class PurchaseReturnsWidget(QWidget):
     def add_return(self):
         dlg = PurchaseReturnDialog(self)
         if dlg.exec():
-            show_toast('تم حفظ مرتجع المشتريات', 'success', self)
+            show_toast(translate('purchase_return_saved'), 'success', self)
             self.refresh(True)
 
     def _selected_id(self):
@@ -605,14 +606,14 @@ class PurchaseReturnsWidget(QWidget):
         rid = self._selected_id()
         if not rid:
             return
-        if QMessageBox.question(self, 'تأكيد', 'هل تريد إلغاء مرتجع المشتريات المحدد؟') != QMessageBox.Yes:
+        if QMessageBox.question(self, translate('confirm'), translate('confirm_cancel_purchase_return')) != QMessageBox.Yes:
             return
         try:
             purchase_return_service.delete_return(rid)
-            show_toast('تم إلغاء المرتجع', 'success', self)
+            show_toast(translate('return_cancelled'), 'success', self)
             self.refresh()
         except Exception as e:
-            QMessageBox.warning(self, 'تعذر الإلغاء', str(e))
+            QMessageBox.warning(self, translate('cancel_failed'), str(e))
 
     def prev_page(self):
         if self.page > 0:

@@ -28,7 +28,16 @@ class SettingsService:
         self.gateway.clear_cache()
 
     def get_language(self) -> str:
-        return self.gateway.get_language()
+        from i18n.translator import normalize_language
+        return normalize_language(self.gateway.get_language())
+
+    def set_language(self, language: str):
+        from i18n.translator import normalize_language
+        language = normalize_language(language)
+        old = {'language': self.get_language()}
+        self.set('language', language)
+        self.clear_cache()
+        audit_service.log('UPDATE', 'SETTINGS_LANGUAGE', None, old_values=old, new_values={'language': language}, details='تعديل لغة البرنامج')
 
     def get_theme(self) -> str:
         theme = self.gateway.get_theme()

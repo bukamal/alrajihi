@@ -10,6 +10,7 @@ from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 from views.widgets.modern_ui import apply_modern_widget
+from i18n import translate, qt_layout_direction
 
 
 class CategoriesWidget(QWidget):
@@ -17,11 +18,11 @@ class CategoriesWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self._categories = []
         self.setObjectName('CategoriesWidget')
         self.setup_ui()
-        apply_modern_widget(self, '🏷️ التصنيفات', 'تنظيم المواد ضمن مجموعات واضحة')
+        apply_modern_widget(self, translate('categories_title_icon'), translate('categories_subtitle'))
         self.refresh()
 
     def setup_ui(self):
@@ -31,14 +32,14 @@ class CategoriesWidget(QWidget):
 
         toolbar = QHBoxLayout()
         self.search_edit = QLineEdit()
-        self.search_edit.setPlaceholderText('بحث في التصنيفات...')
+        self.search_edit.setPlaceholderText(translate('categories_search_placeholder'))
         self.search_edit.textChanged.connect(self.refresh)
-        self.show_archived = QCheckBox('إظهار المؤرشف')
+        self.show_archived = QCheckBox(translate('show_archived'))
         self.show_archived.stateChanged.connect(self.refresh)
-        add_btn = QPushButton('➕ تصنيف جديد')
+        add_btn = QPushButton(translate('new_category_btn'))
         add_btn.setObjectName('primary')
         add_btn.clicked.connect(self.add_category)
-        toolbar.addWidget(QLabel('التصنيفات'))
+        toolbar.addWidget(QLabel(translate('categories')))
         toolbar.addWidget(self.search_edit, 1)
         toolbar.addWidget(self.show_archived)
         toolbar.addWidget(add_btn)
@@ -51,7 +52,7 @@ class CategoriesWidget(QWidget):
         self.table.customContextMenuRequested.connect(self.show_context_menu)
         layout.addWidget(self.table)
 
-        hint = QLabel('ملاحظة: التصنيف يمكن أن يحتوي تصنيفات فرعية. الأرشفة ممنوعة إذا كان مرتبطاً بمواد أو بتصنيفات فرعية نشطة.')
+        hint = QLabel(translate('categories_hint'))
         hint.setObjectName('mutedLabel')
         layout.addWidget(hint)
 
@@ -74,10 +75,10 @@ class CategoriesWidget(QWidget):
                 'description': cat.get('description') or '',
                 'item_count': item_count,
                 'child_count': child_count,
-                'status': 'مؤرشف' if archived else 'نشط',
+                'status': translate('archived') if archived else translate('active'),
                 '_row_status': 'warning' if archived else '',
             })
-        headers = ['المسار', 'الأب', 'عدد المواد', 'فرعية', 'الحالة', 'الوصف']
+        headers = [translate('path'), translate('parent'), translate('items_count'), translate('child_categories'), translate('status'), translate('description')]
         keys = ['full_name', 'parent_name', 'item_count', 'child_count', 'status', 'description']
         self.model = GenericTableModel(data, headers, key_fields=['id'], data_keys=keys)
         self.table.setModel(self.model)
@@ -95,22 +96,22 @@ class CategoriesWidget(QWidget):
     def _category_payload_dialog(self, title, category=None):
         dialog = QDialog(self)
         dialog.setWindowTitle(title)
-        dialog.setLayoutDirection(Qt.RightToLeft)
+        dialog.setLayoutDirection(qt_layout_direction())
         dialog.resize(460, 330)
         layout = QFormLayout(dialog)
 
         name_edit = QLineEdit()
-        name_edit.setPlaceholderText('اسم التصنيف')
+        name_edit.setPlaceholderText(translate('category_name'))
         parent_combo = QComboBox()
-        parent_combo.addItem('بدون أب', None)
+        parent_combo.addItem(translate('no_parent'), None)
         for cat in product_service.categories(include_inactive=True, include_deleted=False):
             if category and int(cat.get('id')) == int(category.get('id')):
                 continue
             parent_combo.addItem(cat.get('full_name') or cat.get('name', ''), cat.get('id'))
         desc_edit = QTextEdit()
-        desc_edit.setPlaceholderText('وصف مختصر اختياري')
+        desc_edit.setPlaceholderText(translate('optional_short_description'))
         desc_edit.setMaximumHeight(80)
-        active_check = QCheckBox('نشط')
+        active_check = QCheckBox(translate('active'))
         active_check.setChecked(True)
 
         if category:
@@ -123,15 +124,15 @@ class CategoriesWidget(QWidget):
                     parent_combo.setCurrentIndex(i)
                     break
 
-        layout.addRow('الاسم:', name_edit)
-        layout.addRow('التصنيف الأب:', parent_combo)
-        layout.addRow('الوصف:', desc_edit)
+        layout.addRow(translate('name_label'), name_edit)
+        layout.addRow(translate('parent_category_label'), parent_combo)
+        layout.addRow(translate('description_label'), desc_edit)
         layout.addRow('', active_check)
 
         btns = QHBoxLayout()
-        save_btn = QPushButton('حفظ')
+        save_btn = QPushButton(translate('save'))
         save_btn.setObjectName('primary')
-        cancel_btn = QPushButton('إلغاء')
+        cancel_btn = QPushButton(translate('cancel'))
         btns.addWidget(save_btn)
         btns.addWidget(cancel_btn)
         layout.addRow(btns)
@@ -141,7 +142,7 @@ class CategoriesWidget(QWidget):
         def save():
             name = name_edit.text().strip()
             if not name:
-                show_toast('اسم التصنيف مطلوب', 'error', dialog)
+                show_toast(translate('category_name_required'), 'error', dialog)
                 name_edit.setFocus()
                 return
             payload.update({
@@ -161,12 +162,12 @@ class CategoriesWidget(QWidget):
         return None
 
     def add_category(self):
-        payload = self._category_payload_dialog('إضافة تصنيف')
+        payload = self._category_payload_dialog(translate('add_category'))
         if not payload:
             return
         try:
             product_service.add_category(payload)
-            show_toast('تمت إضافة التصنيف', 'success', self)
+            show_toast(translate('category_added'), 'success', self)
             self.refresh()
         except Exception as e:
             show_toast(str(e), 'error', self)
@@ -174,18 +175,18 @@ class CategoriesWidget(QWidget):
     def edit_category(self, index=None):
         cat_id = self.current_category_id() if index is None else self.model.get_id(index.row())
         if not cat_id:
-            show_toast('اختر تصنيفاً أولاً', 'warning', self)
+            show_toast(translate('select_category_first'), 'warning', self)
             return
         category = product_service.category_by_id(cat_id)
         if not category:
-            show_toast('التصنيف غير موجود', 'error', self)
+            show_toast(translate('category_not_found'), 'error', self)
             return
-        payload = self._category_payload_dialog('تعديل تصنيف', category)
+        payload = self._category_payload_dialog(translate('edit_category'), category)
         if not payload:
             return
         try:
             product_service.update_category(cat_id, payload)
-            show_toast('تم تحديث التصنيف', 'success', self)
+            show_toast(translate('category_updated'), 'success', self)
             self.refresh()
         except Exception as e:
             show_toast(str(e), 'error', self)
@@ -193,14 +194,14 @@ class CategoriesWidget(QWidget):
     def archive_selected(self):
         cat_id = self.current_category_id()
         if not cat_id:
-            show_toast('اختر تصنيفاً أولاً', 'warning', self)
+            show_toast(translate('select_category_first'), 'warning', self)
             return
-        reply = QMessageBox.question(self, 'تأكيد الأرشفة', 'هل تريد أرشفة هذا التصنيف؟', QMessageBox.Yes | QMessageBox.No)
+        reply = QMessageBox.question(self, translate('confirm_archive'), translate('archive_category_confirm'), QMessageBox.Yes | QMessageBox.No)
         if reply != QMessageBox.Yes:
             return
         try:
             product_service.delete_category(cat_id)
-            show_toast('تمت أرشفة التصنيف', 'success', self)
+            show_toast(translate('category_archived'), 'success', self)
             self.refresh()
         except Exception as e:
             show_toast(str(e), 'error', self)
@@ -208,20 +209,20 @@ class CategoriesWidget(QWidget):
     def restore_selected(self):
         cat_id = self.current_category_id()
         if not cat_id:
-            show_toast('اختر تصنيفاً أولاً', 'warning', self)
+            show_toast(translate('select_category_first'), 'warning', self)
             return
         try:
             product_service.restore_category(cat_id)
-            show_toast('تمت استعادة التصنيف', 'success', self)
+            show_toast(translate('category_restored'), 'success', self)
             self.refresh()
         except Exception as e:
             show_toast(str(e), 'error', self)
 
     def show_context_menu(self, pos):
         menu = QMenu(self)
-        edit = menu.addAction('تعديل')
-        archive = menu.addAction('أرشفة')
-        restore = menu.addAction('استعادة')
+        edit = menu.addAction(translate('edit'))
+        archive = menu.addAction(translate('archive'))
+        restore = menu.addAction(translate('restore'))
         action = menu.exec_(self.table.viewport().mapToGlobal(pos))
         if action == edit:
             self.edit_category()
