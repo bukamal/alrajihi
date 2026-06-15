@@ -10,17 +10,14 @@ from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate, qt_layout_direction
 
 
-try:
-    from alrajhi_client.i18n import translate
-except ModuleNotFoundError:
-    from i18n import translate
 class MonitoringWidget(QWidget):
     """Read-only operations dashboard: API, Offline Queue, Ledger, request log."""
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(qt_layout_direction())
         self._build_ui()
-        apply_modern_widget(self, translate('monitoring_title_icon'), translate('monitoring_subtitle'))
+        # Phase117: no duplicated top header card on monitoring page.
+        apply_modern_widget(self)
         QTimer.singleShot(150, self.refresh)
 
     def _build_ui(self):
@@ -28,20 +25,15 @@ class MonitoringWidget(QWidget):
         layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(10)
 
-        header = QHBoxLayout()
-        title = QLabel(translate('monitoring_title'))
-        title.setStyleSheet('font-size:20px;font-weight:700;')
-        header.addWidget(title)
-        header.addStretch()
+        toolbar = QHBoxLayout()
+        toolbar.addStretch()
         self.refresh_btn = QPushButton(translate('refresh'))
         self.refresh_btn.clicked.connect(self.refresh)
-        header.addWidget(self.refresh_btn)
-        layout.addLayout(header)
+        toolbar.addWidget(self.refresh_btn)
+        layout.addLayout(toolbar)
 
         self.summary = QLabel('')
-        self.summary.setWordWrap(True)
-        self.summary.setObjectName('ModernSummaryBox')
-        layout.addWidget(self.summary)
+        self.summary.setVisible(False)
 
         self.table = QTableWidget(0, 4, self)
         self.table.setHorizontalHeaderLabels([translate('metric'), translate('status'), translate('value'), translate('notes')])
@@ -66,6 +58,32 @@ class MonitoringWidget(QWidget):
         self.table.insertRow(row)
         for col, text in enumerate([metric, status, value, notes]):
             self.table.setItem(row, col, QTableWidgetItem(str(text)))
+
+    def set_global_filter(self, text: str):
+        text = (text or '').strip().lower()
+        # Generic visual filter for widgets that expose one or more Qt tables.
+        for name, table in self.__dict__.items():
+            if not hasattr(table, 'rowCount') or not hasattr(table, 'setRowHidden'):
+                continue
+            try:
+                rows = table.rowCount()
+                cols = table.columnCount()
+            except Exception:
+                continue
+            for row in range(rows):
+                hay = []
+                for col in range(cols):
+                    try:
+                        item = table.item(row, col) if hasattr(table, 'item') else None
+                        if item is not None:
+                            hay.append(item.text())
+                        elif hasattr(table, 'model') and table.model() is not None:
+                            idx = table.model().index(row, col)
+                            hay.append(str(table.model().data(idx) or ''))
+                    except Exception:
+                        pass
+                table.setRowHidden(row, bool(text) and text not in ' '.join(hay).lower())
+
 
     def refresh(self):
         try:

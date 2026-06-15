@@ -237,11 +237,19 @@ def apply_modern_widget(widget, title: str = '', subtitle: str = ''):
         widget.setStyleSheet(current + '\n' + _modern_widget_style())
     layout = widget.layout()
     _normalize_layout(layout)
-    if title and layout is not None:
+    # Phase118: page-level explanatory/header cards are intentionally disabled
+    # across all widgets. Navigation/context already provides the page title, and
+    # adding per-page header cards made the UI inconsistent. Keep styling and
+    # control normalization only; also remove any legacy ModernPageHeader that
+    # may have been inserted by older versions.
+    if layout is not None:
         try:
-            first = layout.itemAt(0).widget() if layout.count() else None
-            if not (first and first.objectName() == 'ModernPageHeader'):
-                layout.insertWidget(0, _make_header(title, subtitle))
+            for idx in reversed(range(layout.count())):
+                item = layout.itemAt(idx)
+                child = item.widget() if item else None
+                if child is not None and child.objectName() == 'ModernPageHeader':
+                    layout.removeWidget(child)
+                    child.deleteLater()
         except Exception:
             pass
     _normalize_child_controls(widget)

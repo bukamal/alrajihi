@@ -248,6 +248,22 @@ class ReturnsWidget(QWidget):
         pager.addStretch()
         layout.addLayout(pager)
 
+    def set_global_filter(self, text: str):
+        text = text or ''
+        field = getattr(getattr(self, 'toolbar', None), 'search_edit', None)
+        if field is not None and field.text() != text:
+            field.setText(text)
+        else:
+            self.refresh(reset_page=True)
+
+    def set_global_filter(self, text: str):
+        text = text or ''
+        field = getattr(getattr(self, 'toolbar', None), 'search_edit', None)
+        if field is not None and field.text() != text:
+            field.setText(text)
+        else:
+            self.refresh(reset_page=True)
+
     def refresh(self, reset_page=False):
         if reset_page:
             self.page = 0

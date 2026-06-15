@@ -24,7 +24,7 @@ def main():
         text=(ROOT/rel).read_text(encoding='utf-8')
         if 'Qt.RightToLeft' in text:
             bad.append(rel+': hard-coded RTL')
-        if 'from alrajhi_client.i18n import translate' not in text:
+        if ('from alrajhi_client.i18n import translate' not in text) and ('from i18n import translate' not in text) and ('from i18n import translate,' not in text):
             bad.append(rel+': missing translate import')
     if bad:
         raise SystemExit('\n'.join(bad))

@@ -112,6 +112,15 @@ class BaseWidget(QWidget, BaseActionHandler):
         self.current_page = 0
         self.refresh()
 
+    # Phase116: global context-aware search entry point used by MainWindow.
+    def set_global_filter(self, text: str):
+        text = text or ""
+        if self.search_edit is not None and self.search_edit.text() != text:
+            self.search_edit.setText(text)
+        else:
+            self.current_page = 0
+            self.refresh()
+
     # --- دوال يجب تجاوزها ---
     def fetch_data(self, search=None, limit=None, offset=None):
         raise NotImplementedError

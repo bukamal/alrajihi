@@ -71,6 +71,32 @@ def page_breadcrumb(pid):
     return f"{home} > {group} > {title}" if group != home and title != group else f"{home} > {title}"
 
 
+
+# Phase116: page-aware global search. Each page decides whether the shell
+# search box is visible and what business fields it filters. Unsupported
+# pages, especially the dashboard, hide the box instead of showing a dead
+# control.
+GLOBAL_SEARCH_PLACEHOLDERS = {
+    'pos': 'context_search_pos_placeholder',
+    'sales_invoices': 'context_search_sales_invoices_placeholder',
+    'purchase_invoices': 'context_search_purchase_invoices_placeholder',
+    'items': 'context_search_items_placeholder',
+    'categories': 'context_search_categories_placeholder',
+    'warehouses': 'context_search_warehouses_placeholder',
+    'branches': 'context_search_branches_placeholder',
+    'cashboxes': 'context_search_cashboxes_placeholder',
+    'customers': 'context_search_customers_placeholder',
+    'suppliers': 'context_search_suppliers_placeholder',
+    'vouchers': 'context_search_vouchers_placeholder',
+    'returns': 'context_search_returns_placeholder',
+    'purchase_returns': 'context_search_purchase_returns_placeholder',
+    'manufacturing': 'context_search_manufacturing_placeholder',
+    'users': 'context_search_users_placeholder',
+    'audit_log': 'context_search_audit_log_placeholder',
+    'offline_queue': 'context_search_offline_queue_placeholder',
+    'monitoring': 'context_search_monitoring_placeholder',
+}
+
 NAV_GROUP_BY_PAGE = {
     'dashboard': 'الرئيسية',
     'pos': 'المبيعات',
@@ -431,6 +457,11 @@ class MainWindow(QMainWindow):
         Primary navigation is now in setup_menus(). This avoids duplicated menu
         rows and keeps the shell visually clean.
         """
+        self._global_search_timer = QTimer(self)
+        self._global_search_timer.setSingleShot(True)
+        self._global_search_timer.setInterval(220)
+        self._global_search_timer.timeout.connect(self._apply_global_filter)
+        self.top_bar.search_box.textChanged.connect(lambda _text: self._global_search_timer.start())
         self.top_bar.search_box.returnPressed.connect(self.global_search)
         self.top_bar.theme_btn.clicked.connect(self.toggle_theme)
         self.top_bar.alert_btn.clicked.connect(self.show_alerts_menu)
@@ -571,25 +602,82 @@ class MainWindow(QMainWindow):
             if hasattr(self.top_bar, 'set_alert_badge'):
                 self.top_bar.set_alert_badge(0)
 
-    def global_search(self):
+    def _current_page_id(self):
+        current = self.stack.currentWidget() if hasattr(self, 'stack') else None
+        for pid, widget in getattr(self, 'pages', {}).items():
+            if widget is current:
+                return pid
+        return None
+
+    def _page_supports_global_filter(self, page):
+        if page is None:
+            return False
+        return (
+            hasattr(page, 'set_global_filter')
+            or hasattr(page, 'search_edit')
+            or hasattr(page, 'sales_search')
+            or hasattr(page, 'purchases_search')
+            or hasattr(page, 'toolbar')
+            or hasattr(page, 'barcode_input')
+        )
+
+    def _update_global_search_context(self, pid):
+        box = getattr(getattr(self, 'top_bar', None), 'search_box', None)
+        if box is None:
+            return
+        page = self.pages.get(pid) if hasattr(self, 'pages') else None
+        supported = pid in GLOBAL_SEARCH_PLACEHOLDERS and self._page_supports_global_filter(page)
+        box.blockSignals(True)
+        try:
+            box.clear()
+            box.setVisible(bool(supported))
+            box.setEnabled(bool(supported))
+            if supported:
+                box.setPlaceholderText(translate(GLOBAL_SEARCH_PLACEHOLDERS.get(pid, 'global_search_placeholder')))
+            else:
+                box.setPlaceholderText('')
+        finally:
+            box.blockSignals(False)
+
+    def _apply_global_filter(self):
+        pid = self._current_page_id()
+        if not pid or pid not in GLOBAL_SEARCH_PLACEHOLDERS:
+            return
+        page = self.pages.get(pid)
         text = self.top_bar.search_box.text().strip()
-        if text:
-            self.show_global_search(text)
+        if page is None:
+            return
+        if hasattr(page, 'set_global_filter'):
+            page.set_global_filter(text)
+            return
+        for attr in ('search_edit', 'sales_search', 'purchases_search'):
+            field = getattr(page, attr, None)
+            if field is not None and hasattr(field, 'setText'):
+                if field.text() != text:
+                    field.setText(text)
+                elif hasattr(page, 'refresh'):
+                    page.refresh()
+                return
+        toolbar = getattr(page, 'toolbar', None)
+        field = getattr(toolbar, 'search_edit', None) if toolbar is not None else None
+        if field is not None and hasattr(field, 'setText'):
+            if field.text() != text:
+                field.setText(text)
+            elif hasattr(page, 'refresh'):
+                page.refresh()
+            return
+        barcode = getattr(page, 'barcode_input', None)
+        if barcode is not None and hasattr(barcode, 'setText'):
+            barcode.setText(text)
+            barcode.setFocus()
+
+    def global_search(self):
+        self._apply_global_filter()
 
     def show_global_search(self, text=None):
-        if not text:
-            return
-        lowered = text.strip().lower()
-        if lowered:
-            # بحث مبدئي سريع: يفتح شاشة المواد لأنها تدعم الاسم/الباركود.
-            self.switch_page('items')
-            page = self.pages.get('items')
-            if page and hasattr(page, 'search_input'):
-                page.search_input.setText(text)
-                if hasattr(page, 'refresh'):
-                    page.refresh()
-            else:
-                QMessageBox.information(self, translate('search_title'), translate('search_done', text=text))
+        if text is not None and hasattr(self.top_bar, 'search_box'):
+            self.top_bar.search_box.setText(text)
+        self._apply_global_filter()
 
     def show_print_dialog(self):
         from PyQt5.QtWidgets import QMessageBox
@@ -643,6 +731,7 @@ class MainWindow(QMainWindow):
             if self.stack.currentWidget() is not self.pages[pid]:
                 self.stack.setCurrentWidget(self.pages[pid])
             self._set_page_context(pid)
+            self._update_global_search_context(pid)
             if hasattr(self.pages[pid], 'refresh'):
                 self.pages[pid].refresh()
 

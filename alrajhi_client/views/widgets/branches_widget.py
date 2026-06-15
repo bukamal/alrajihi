@@ -10,10 +10,6 @@ from core.services.branch_service import branch_service
 from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
 from utils import show_toast
-try:
-    from alrajhi_client.i18n import translate
-except ModuleNotFoundError:
-    from i18n import translate
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
 
@@ -104,6 +100,15 @@ class BranchesWidget(QWidget):
         self.status = QLabel()
         self.status.setObjectName('mutedLabel')
         layout.addWidget(self.status)
+
+    def set_global_filter(self, text: str):
+        text = text or ''
+        field = getattr(self, 'search_edit', None)
+        if field is not None and field.text() != text:
+            field.setText(text)
+        elif hasattr(self, 'refresh'):
+            self.refresh()
+
 
     def refresh(self):
         branch_service.bootstrap()

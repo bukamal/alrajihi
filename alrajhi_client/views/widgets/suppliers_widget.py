@@ -65,6 +65,15 @@ class SuppliersWidget(QWidget):
         apply_modern_widget(self, tr('suppliers_title'), tr('suppliers_subtitle'))
         self.refresh()
 
+    def set_global_filter(self, text: str):
+        text = text or ''
+        field = getattr(self, 'search_edit', None)
+        if field is not None and field.text() != text:
+            field.setText(text)
+        elif hasattr(self, 'refresh'):
+            self.refresh()
+
+
     def refresh(self):
         search = self.search_edit.text().strip() or None
         offset = self.current_page * self.page_size

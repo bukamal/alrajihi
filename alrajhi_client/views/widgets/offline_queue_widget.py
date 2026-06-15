@@ -7,10 +7,6 @@ from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate, qt_layout_direction
 
 
-try:
-    from alrajhi_client.i18n import translate
-except ModuleNotFoundError:
-    from i18n import translate
 class OfflineQueueWidget(QWidget):
     """Pending offline write operations created while the client was disconnected."""
     def __init__(self, parent=None):
@@ -55,6 +51,32 @@ class OfflineQueueWidget(QWidget):
         self.retry_btn.clicked.connect(self.retry_now)
         self.delete_btn.clicked.connect(self.delete_selected)
         self.clear_sent_btn.clicked.connect(self.clear_sent)
+
+    def set_global_filter(self, text: str):
+        text = (text or '').strip().lower()
+        # Generic visual filter for widgets that expose one or more Qt tables.
+        for name, table in self.__dict__.items():
+            if not hasattr(table, 'rowCount') or not hasattr(table, 'setRowHidden'):
+                continue
+            try:
+                rows = table.rowCount()
+                cols = table.columnCount()
+            except Exception:
+                continue
+            for row in range(rows):
+                hay = []
+                for col in range(cols):
+                    try:
+                        item = table.item(row, col) if hasattr(table, 'item') else None
+                        if item is not None:
+                            hay.append(item.text())
+                        elif hasattr(table, 'model') and table.model() is not None:
+                            idx = table.model().index(row, col)
+                            hay.append(str(table.model().data(idx) or ''))
+                    except Exception:
+                        pass
+                table.setRowHidden(row, bool(text) and text not in ' '.join(hay).lower())
+
 
     def refresh(self):
         rows = offline_queue_service.recent(300)

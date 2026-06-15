@@ -54,7 +54,8 @@ class InvoicesWidget(QWidget):
             self.tabs.addTab(self.purchases_tab, "📦 " + translate("purchase_invoices"))
             layout.addWidget(self.tabs)
 
-        apply_modern_widget(self, '💳 ' + translate('invoice_page_title'), translate('invoice_page_subtitle'))
+        # Phase117: standalone invoice pages should not show duplicated top header cards.
+        apply_modern_widget(self)
         self.refresh_all()
 
     def _apply_page_style(self):
@@ -171,8 +172,6 @@ class InvoicesWidget(QWidget):
         layout = QVBoxLayout(self.sales_tab)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
-        layout.addWidget(self._make_page_header(translate("sales_invoices_title"), translate("sales_invoices_subtitle")))
-
         self.sales_toolbar = TableToolbar(translate("sales_invoice"), translate("search_sales_invoices"), self)
         self.sales_toolbar.addRequested.connect(lambda: self.create_invoice('sale'))
         self.sales_toolbar.editRequested.connect(lambda: self.edit_selected_invoice('sale'))
@@ -241,8 +240,6 @@ class InvoicesWidget(QWidget):
         layout = QVBoxLayout(self.purchases_tab)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(12)
-        layout.addWidget(self._make_page_header(translate("purchase_invoices_title"), translate("purchase_invoices_subtitle")))
-
         self.purchases_toolbar = TableToolbar(translate("purchase_invoice"), translate("search_purchase_invoices"), self)
         self.purchases_toolbar.addRequested.connect(lambda: self.create_invoice('purchase'))
         self.purchases_toolbar.editRequested.connect(lambda: self.edit_selected_invoice('purchase'))
@@ -344,6 +341,25 @@ class InvoicesWidget(QWidget):
             raise
         for s in suppliers:
             self.purchases_supplier_combo.addItem(s.get('name', ''), s.get('id'))
+
+    # Phase116: global shell search support.
+    def set_global_filter(self, text: str):
+        text = text or ''
+        if self.invoice_scope == 'sale':
+            if hasattr(self, 'sales_search') and self.sales_search.text() != text:
+                self.sales_search.setText(text)
+            else:
+                self.refresh_tab('sale', reset_page=True)
+        elif self.invoice_scope == 'purchase':
+            if hasattr(self, 'purchases_search') and self.purchases_search.text() != text:
+                self.purchases_search.setText(text)
+            else:
+                self.refresh_tab('purchase', reset_page=True)
+        else:
+            if hasattr(self, 'sales_search'):
+                self.sales_search.setText(text)
+            if hasattr(self, 'purchases_search'):
+                self.purchases_search.setText(text)
 
     def refresh_all(self):
         try:

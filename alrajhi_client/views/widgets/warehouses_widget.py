@@ -28,21 +28,14 @@ class WarehousesWidget(QWidget):
         self.setObjectName('WarehousesWidget')
         warehouse_service.bootstrap()
         self.setup_ui()
-        apply_modern_widget(self, '🏬 ' + translate('warehouses'), translate('warehouse_hint'))
+        # Phase117: no duplicated top header card or repeated explanatory hint.
+        apply_modern_widget(self)
         self.refresh()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
         layout.setSpacing(12)
-
-        header = QLabel(translate('warehouse_management'))
-        header.setObjectName('pageTitle')
-        layout.addWidget(header)
-
-        hint = QLabel(translate('warehouse_hint'))
-        hint.setObjectName('mutedLabel')
-        layout.addWidget(hint)
 
         self.tabs = QTabWidget()
         layout.addWidget(self.tabs)
@@ -143,6 +136,32 @@ class WarehousesWidget(QWidget):
         self.transfer_table.setSelectionBehavior(QTableView.SelectRows)
         layout.addWidget(self.transfer_table)
         self.tabs.addTab(page, translate('transfers_tab'))
+
+    def set_global_filter(self, text: str):
+        text = (text or '').strip().lower()
+        # Generic visual filter for widgets that expose one or more Qt tables.
+        for name, table in self.__dict__.items():
+            if not hasattr(table, 'rowCount') or not hasattr(table, 'setRowHidden'):
+                continue
+            try:
+                rows = table.rowCount()
+                cols = table.columnCount()
+            except Exception:
+                continue
+            for row in range(rows):
+                hay = []
+                for col in range(cols):
+                    try:
+                        item = table.item(row, col) if hasattr(table, 'item') else None
+                        if item is not None:
+                            hay.append(item.text())
+                        elif hasattr(table, 'model') and table.model() is not None:
+                            idx = table.model().index(row, col)
+                            hay.append(str(table.model().data(idx) or ''))
+                    except Exception:
+                        pass
+                table.setRowHidden(row, bool(text) and text not in ' '.join(hay).lower())
+
 
     def refresh(self):
         warehouse_service.bootstrap()

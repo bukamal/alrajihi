@@ -36,7 +36,7 @@ class SettingsWidget(QWidget):
         main = QVBoxLayout(self)
         main.setContentsMargins(18, 18, 18, 18)
         main.setSpacing(14)
-        main.addWidget(self._create_header())
+        # Phase118: no top explanatory/header card; tabs start directly.
 
         self.tabs = QTabWidget()
         self.tabs.setObjectName('settingsTabs')
@@ -52,52 +52,12 @@ class SettingsWidget(QWidget):
         main.addWidget(self.tabs, 1)
 
         self._apply_local_style()
-        # Phase 41: keep exactly one settings header inside this page.
+        # Phase118: modern styling without page header cards.
         apply_modern_widget(self)
-        self._ensure_single_settings_header()
         self.load_rates_table()
 
 
-    def _ensure_single_settings_header(self):
-        """Keep exactly one visible settings header inside the settings page."""
-        layout = self.layout()
-        if layout is None:
-            return
-        seen_settings_header = False
-        for idx in reversed(range(layout.count())):
-            item = layout.itemAt(idx)
-            widget = item.widget() if item else None
-            if widget is None:
-                continue
-            name = widget.objectName() or ''
-            if name == 'ModernPageHeader':
-                layout.removeWidget(widget)
-                widget.deleteLater()
-            elif name == 'settingsHeader':
-                if seen_settings_header:
-                    layout.removeWidget(widget)
-                    widget.deleteLater()
-                else:
-                    seen_settings_header = True
-
-    def _create_header(self):
-        frame = QFrame()
-        frame.setObjectName('settingsHeader')
-        layout = QHBoxLayout(frame)
-        layout.setContentsMargins(18, 16, 18, 16)
-        layout.setSpacing(12)
-        texts = QVBoxLayout()
-        title = QLabel(translate('settings_header_title'))
-        title.setObjectName('settingsTitle')
-        subtitle = QLabel(translate('settings_header_subtitle'))
-        subtitle.setObjectName('settingsSubtitle')
-        subtitle.setWordWrap(True)
-        texts.addWidget(title)
-        texts.addWidget(subtitle)
-        layout.addLayout(texts, 1)
-        self.settings_status = DesignSystem.status_pill(translate('ready'), 'success')
-        layout.addWidget(self.settings_status, 0, Qt.AlignVCenter)
-        return frame
+    # Phase118: settings page has no top explanatory/header card.
 
     def _scroll_tab(self):
         scroll = QScrollArea()

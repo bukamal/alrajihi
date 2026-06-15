@@ -10,10 +10,6 @@ from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
 
-try:
-    from alrajhi_client.i18n import translate
-except ModuleNotFoundError:
-    from i18n import translate
 class AuditLogWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -100,6 +96,15 @@ class AuditLogWidget(QWidget):
 
         apply_modern_widget(self, translate('audit_log_title_icon'), translate('audit_log_subtitle'))
         self.refresh()
+
+    def set_global_filter(self, text: str):
+        text = text or ''
+        field = getattr(self, 'search_edit', None)
+        if field is not None and field.text() != text:
+            field.setText(text)
+        elif hasattr(self, 'refresh'):
+            self.refresh()
+
 
     def refresh(self, reset_page=True):
         if reset_page:

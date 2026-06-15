@@ -10,10 +10,6 @@ from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 from views.widgets.modern_ui import apply_modern_widget
-try:
-    from alrajhi_client.i18n import translate
-except ModuleNotFoundError:
-    from i18n import translate
 from i18n import translate, qt_layout_direction
 
 
@@ -59,6 +55,15 @@ class CategoriesWidget(QWidget):
         hint = QLabel(translate('categories_hint'))
         hint.setObjectName('mutedLabel')
         layout.addWidget(hint)
+
+    def set_global_filter(self, text: str):
+        text = text or ''
+        field = getattr(self, 'search_edit', None)
+        if field is not None and field.text() != text:
+            field.setText(text)
+        elif hasattr(self, 'refresh'):
+            self.refresh()
+
 
     def refresh(self):
         self._categories = product_service.categories(

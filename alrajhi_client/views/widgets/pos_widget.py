@@ -35,7 +35,8 @@ class POSWidget(QWidget):
         self._pos_columns = self._build_pos_columns()
         self._visible_pos_columns = self._load_visible_pos_columns()
         self._init_ui()
-        apply_modern_widget(self, translate('pos_title_short'), translate('pos_modern_subtitle'))
+        # Phase117: keep POS compact; page title is already represented by navigation/context.
+        apply_modern_widget(self)
         self._setup_shortcuts()
         self.refresh_cart()
 
@@ -60,9 +61,6 @@ class POSWidget(QWidget):
         layout.setSpacing(10)
 
         title_row = QHBoxLayout()
-        title = QLabel(translate("pos_fast_title"))
-        title.setStyleSheet("font-size: 24px; font-weight: 800;")
-        title_row.addWidget(title)
         title_row.addStretch()
         self.columns_btn = QPushButton(translate("pos_columns_btn"))
         self._build_columns_menu()
@@ -424,6 +422,12 @@ class POSWidget(QWidget):
     def scan_entered_barcode(self):
         code = self.barcode_input.text().strip()
         self.add_barcode_to_cart(code)
+
+    def set_global_filter(self, text: str):
+        # In POS the context search acts as the cashier scan/search field.
+        if hasattr(self, 'barcode_input'):
+            self.barcode_input.setText(text or '')
+            self._focus_barcode_input()
 
     def scan_with_camera(self):
         try:

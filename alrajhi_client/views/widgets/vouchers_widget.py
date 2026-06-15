@@ -86,6 +86,15 @@ class VouchersWidget(QWidget):
         apply_modern_widget(self, tr('vouchers_title'), tr('vouchers_subtitle'))
         self.refresh()
 
+    def set_global_filter(self, text: str):
+        text = text or ''
+        field = getattr(self, 'search_edit', None)
+        if field is not None and field.text() != text:
+            field.setText(text)
+        elif hasattr(self, 'refresh'):
+            self.refresh()
+
+
     def refresh(self):
         filter_type = self.type_filter.currentData() or "all"
         vtype = None

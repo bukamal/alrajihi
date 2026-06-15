@@ -10,10 +10,6 @@ from views.dialogs.change_password_dialog import ChangePasswordDialog
 from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
 from core.services.branch_service import branch_service
-try:
-    from alrajhi_client.i18n import translate
-except ModuleNotFoundError:
-    from i18n import translate
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
 
@@ -56,6 +52,32 @@ class UsersWidget(QWidget):
 
         apply_modern_widget(self, translate('users_title_icon'), translate('users_subtitle'))
         self.refresh()
+
+    def set_global_filter(self, text: str):
+        text = (text or '').strip().lower()
+        # Generic visual filter for widgets that expose one or more Qt tables.
+        for name, table in self.__dict__.items():
+            if not hasattr(table, 'rowCount') or not hasattr(table, 'setRowHidden'):
+                continue
+            try:
+                rows = table.rowCount()
+                cols = table.columnCount()
+            except Exception:
+                continue
+            for row in range(rows):
+                hay = []
+                for col in range(cols):
+                    try:
+                        item = table.item(row, col) if hasattr(table, 'item') else None
+                        if item is not None:
+                            hay.append(item.text())
+                        elif hasattr(table, 'model') and table.model() is not None:
+                            idx = table.model().index(row, col)
+                            hay.append(str(table.model().data(idx) or ''))
+                    except Exception:
+                        pass
+                table.setRowHidden(row, bool(text) and text not in ' '.join(hay).lower())
+
 
     def refresh(self):
         offset = self.current_page * self.page_size
