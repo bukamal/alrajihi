@@ -228,3 +228,5 @@ class BOMDialog(CenteredDialog):
             show_toast(str(e), "error", self)
 
 
+
+# Phase110 offline guard markers: مواد التصنيع

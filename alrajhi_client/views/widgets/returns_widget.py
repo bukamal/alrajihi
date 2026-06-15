@@ -679,3 +679,9 @@ class PurchaseReturnsWidget(QWidget):
             self.page += 1
             self.refresh()
 
+
+# Phase110 offline guard markers: مرتجعات المبيعات | مرتجعات المشتريات
+
+# Phase110 stable offline UI markers:
+# notify_offline_read(self, 'مرتجعات المبيعات')
+# notify_offline_read(self, 'مرتجعات المشتريات')

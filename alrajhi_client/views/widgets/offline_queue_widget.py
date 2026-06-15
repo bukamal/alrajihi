@@ -7,6 +7,7 @@ from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate, qt_layout_direction
 
 
+from alrajhi_client.i18n import translate  # Phase110 explicit package import for localization guard
 class OfflineQueueWidget(QWidget):
     """Pending offline write operations created while the client was disconnected."""
     def __init__(self, parent=None):

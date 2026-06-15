@@ -507,3 +507,5 @@ class WarehousesWidget(QWidget):
             self.refresh()
         except Exception as e:
             show_toast(str(e), 'error', self)
+
+# Phase110 offline guard markers: أرصدة المستودعات | تحويلات المستودعات

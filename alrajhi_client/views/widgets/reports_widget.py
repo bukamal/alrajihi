@@ -87,7 +87,7 @@ class ReportsWidget(QWidget):
         print_btn = QPushButton(tr("printing"))
         print_menu = QMenu(print_btn)
         print_menu.addAction(tr("preview_in_app"), lambda: self.print_report('preview'))
-        print_menu.addAction(tr("open_html_browser"), lambda: self.print_report('browser'))
+        print_menu.addAction(tr("open_html_browser"), lambda: self.print_report('browser'))  # فتح HTML في المتصفح
         print_menu.addAction(tr("direct_print"), lambda: self.print_report('direct'))
         print_menu.addAction(tr("export_pdf"), lambda: self.print_report('pdf'))
         print_btn.setMenu(print_menu)

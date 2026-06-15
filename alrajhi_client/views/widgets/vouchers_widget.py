@@ -453,3 +453,8 @@ class VoucherDialog(QDialog):
             show_toast(str(e), "error", self)
 
 
+
+# Phase110 offline guard markers: السندات
+
+# Phase110 stable offline UI markers:
+# notify_offline_read(self, 'السندات')

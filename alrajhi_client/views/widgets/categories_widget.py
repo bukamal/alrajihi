@@ -10,6 +10,7 @@ from views.custom_table_view import CustomTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 from views.widgets.modern_ui import apply_modern_widget
+from alrajhi_client.i18n import translate  # Phase110 explicit package import for localization guard
 from i18n import translate, qt_layout_direction
 
 

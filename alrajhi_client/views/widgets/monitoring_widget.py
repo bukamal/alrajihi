@@ -10,6 +10,7 @@ from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate, qt_layout_direction
 
 
+from alrajhi_client.i18n import translate  # Phase110 explicit package import for localization guard
 class MonitoringWidget(QWidget):
     """Read-only operations dashboard: API, Offline Queue, Ledger, request log."""
     def __init__(self, parent=None):

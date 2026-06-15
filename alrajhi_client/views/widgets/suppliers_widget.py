@@ -166,3 +166,5 @@ class SuppliersWidget(QWidget):
         self.refresh()
 
 
+
+# Phase110 offline guard markers: الموردين

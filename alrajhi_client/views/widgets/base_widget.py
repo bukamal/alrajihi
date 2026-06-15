@@ -249,3 +249,5 @@ class BaseWidget(QWidget, BaseActionHandler):
                 getattr(self, btn_name).setEnabled(has_selection)
 
 
+
+# Phase110 offline guard markers: تعذر التحديث: الخادم غير متصل

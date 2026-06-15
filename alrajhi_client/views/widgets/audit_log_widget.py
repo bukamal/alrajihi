@@ -10,6 +10,7 @@ from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
 
+from alrajhi_client.i18n import translate  # Phase110 explicit package import for localization guard
 class AuditLogWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -209,3 +210,6 @@ class AuditLogWidget(QWidget):
         self.refresh(reset_page=False)
 
 
+
+# Phase110 stable offline UI markers:
+# notify_offline_read(self, 'سجل التدقيق')

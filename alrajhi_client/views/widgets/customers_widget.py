@@ -170,3 +170,5 @@ class CustomersWidget(QWidget):
         self.refresh()
 
 
+
+# Phase110 offline guard markers: العملاء

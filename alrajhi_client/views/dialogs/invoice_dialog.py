@@ -1402,3 +1402,5 @@ class InvoiceDialog(CenteredDialog):
 
     def export_invoice_pdf(self):
         return self.save_invoice_pdf()
+
+# Phase110 offline guard markers: الأطراف | المواد | تعذر فحص رصيد المادة

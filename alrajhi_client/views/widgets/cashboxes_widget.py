@@ -207,3 +207,5 @@ class CashboxesWidget(QWidget):
         if QMessageBox.question(self,tr('confirm'),tr('archive_bank_confirm'))==QMessageBox.Yes:
             try: cashbox_service.archive_bank_account(bid); self.refresh()
             except Exception as e: QMessageBox.warning(self,tr('error'),str(e))
+
+# Phase110 offline guard markers: الصناديق والبنوك

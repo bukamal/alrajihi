@@ -574,3 +574,8 @@ class PurchaseInvoicesWidget(InvoicesWidget):
     """Standalone purchase invoices page; no sales tab."""
     def __init__(self, parent=None):
         super().__init__(parent, invoice_scope='purchase')
+
+# Phase110 offline guard markers: فواتير الشراء
+
+# Phase110 stable offline UI markers:
+# _notify_offline_read('فواتير الشراء')

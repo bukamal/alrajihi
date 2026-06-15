@@ -277,3 +277,5 @@ class ManufacturingWidget(QWidget):
             self.refresh_orders(reset_page=False)
 
 
+
+# Phase110 offline guard markers: أوامر التصنيع

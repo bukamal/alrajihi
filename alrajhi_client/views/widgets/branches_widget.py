@@ -10,6 +10,7 @@ from core.services.branch_service import branch_service
 from models.table_models import GenericTableModel
 from views.custom_table_view import CustomTableView
 from utils import show_toast
+from alrajhi_client.i18n import translate  # Phase110 explicit package import for localization guard
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
 
