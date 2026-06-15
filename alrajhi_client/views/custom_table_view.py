@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, QSettings, QTimer
 from PyQt5.QtGui import QKeySequence
 from theme_manager import ThemeManager
 from views.widgets.components.table_preferences import TablePreferences
+from i18n import translate
 import re
 
 class CenterAlignDelegate(QStyledItemDelegate):
@@ -112,28 +113,28 @@ class CustomTableView(QTableView):
 
     def _show_menu(self, pos):
         menu = QMenu()
-        export_excel = QAction("📊 تصدير إلى Excel", self)
+        export_excel = QAction(translate("excel"), self)
         export_excel.triggered.connect(self.export_to_excel)
         menu.addAction(export_excel)
-        export_pdf = QAction("📄 طباعة", self)
+        export_pdf = QAction(translate("print"), self)
         export_pdf.triggered.connect(self.print_table)
         menu.addAction(export_pdf)
         menu.addSeparator()
-        copy_act = QAction("📋 نسخ", self)
+        copy_act = QAction(translate("copy"), self)
         copy_act.triggered.connect(self.copy_selection)
         menu.addAction(copy_act)
 
         model = self.model()
         if model:
-            columns_menu = menu.addMenu("🧩 الأعمدة")
+            columns_menu = menu.addMenu(translate("columns"))
             for col in range(model.columnCount()):
-                header = model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or f"عمود {col + 1}"
+                header = model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or translate("column_number", number=col + 1)
                 action = QAction(str(header), self)
                 action.setCheckable(True)
                 action.setChecked(not self.isColumnHidden(col))
                 action.toggled.connect(lambda checked, c=col: self.set_column_visible(c, checked))
                 columns_menu.addAction(action)
-            reset_columns = QAction("↩️ إعادة ضبط الأعمدة", self)
+            reset_columns = QAction(translate("reset_columns"), self)
             reset_columns.triggered.connect(self.reset_layout)
             columns_menu.addSeparator()
             columns_menu.addAction(reset_columns)
@@ -154,14 +155,14 @@ class CustomTableView(QTableView):
             import openpyxl
             from openpyxl.styles import Font, Alignment
         except ImportError:
-            QMessageBox.warning(self, "تنبيه", "مكتبة openpyxl غير مثبتة")
+            QMessageBox.warning(self, translate("warning"), translate("openpyxl_missing"))
             return
-        filename, _ = QFileDialog.getSaveFileName(self, "حفظ التقرير", "report.xlsx", "Excel (*.xlsx)")
+        filename, _ = QFileDialog.getSaveFileName(self, translate("save_report"), "report.xlsx", "Excel (*.xlsx)")
         if not filename:
             return
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "تقرير"
+        ws.title = translate("report")
         visible_cols = [col for col in range(model.columnCount()) if not self.isColumnHidden(col)]
         for out_col, col in enumerate(visible_cols, start=1):
             header = model.headerData(col, Qt.Horizontal, Qt.DisplayRole)

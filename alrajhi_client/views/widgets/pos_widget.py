@@ -3,12 +3,12 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSettings
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QComboBox,
-    QDoubleSpinBox, QShortcut, QInputDialog
+    QDoubleSpinBox, QShortcut, QInputDialog, QMenu
 )
 import qtawesome as qta
 
@@ -31,6 +31,9 @@ class POSWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction(settings_service.get_language()))
         self.cart = pos_service.new_cart(self._selected_warehouse_id() if hasattr(self, 'warehouse_combo') else None, self._selected_cashbox_id() if hasattr(self, 'cashbox_combo') else None)
         self.display_curr = currency.get_display_currency()
+        self._settings = QSettings("Alrajhi", "Accounting")
+        self._pos_columns = self._build_pos_columns()
+        self._visible_pos_columns = self._load_visible_pos_columns()
         self._init_ui()
         apply_modern_widget(self, translate('pos_title_short'), translate('pos_modern_subtitle'))
         self._setup_shortcuts()
@@ -61,6 +64,10 @@ class POSWidget(QWidget):
         title.setStyleSheet("font-size: 24px; font-weight: 800;")
         title_row.addWidget(title)
         title_row.addStretch()
+        self.columns_btn = QPushButton(translate("pos_columns_btn"))
+        self._build_columns_menu()
+        title_row.addWidget(self.columns_btn)
+
         self.fullscreen_btn = QPushButton(translate("fullscreen"))
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
         title_row.addWidget(self.fullscreen_btn)
@@ -117,15 +124,12 @@ class POSWidget(QWidget):
         scan_row.addWidget(camera_btn)
         layout.addLayout(scan_row)
 
-        self.table = QTableWidget(0, 7)
-        self.table.setHorizontalHeaderLabels([translate("item"), translate("barcode"), translate("unit"), translate("quantity"), translate("price"), translate("total"), translate("available")])
-        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeToContents)
+        self.table = QTableWidget(0, len(self._pos_columns))
+        self.table.setHorizontalHeaderLabels([translate(col['label']) for col in self._pos_columns])
+        for col, definition in enumerate(self._pos_columns):
+            mode = QHeaderView.Stretch if definition['key'] == 'item' else QHeaderView.ResizeToContents
+            self.table.horizontalHeader().setSectionResizeMode(col, mode)
+        self._apply_pos_column_visibility()
         self.table.setAlternatingRowColors(True)
         self.table.setSelectionBehavior(QTableWidget.SelectRows)
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
@@ -194,6 +198,77 @@ class POSWidget(QWidget):
         layout.addWidget(self.status_label)
 
 
+
+    def _build_pos_columns(self):
+        return [
+            {'key': 'item', 'label': 'item'},
+            {'key': 'barcode', 'label': 'barcode'},
+            {'key': 'unit', 'label': 'unit'},
+            {'key': 'quantity', 'label': 'quantity'},
+            {'key': 'price', 'label': 'price'},
+            {'key': 'total', 'label': 'total'},
+            {'key': 'available', 'label': 'available'},
+        ]
+
+    def _load_visible_pos_columns(self):
+        default = [col['key'] for col in self._pos_columns]
+        raw = self._settings.value('pos/visible_columns', ','.join(default))
+        if isinstance(raw, (list, tuple)):
+            values = [str(v) for v in raw]
+        else:
+            values = [v.strip() for v in str(raw).split(',') if v.strip()]
+        allowed = {col['key'] for col in self._pos_columns}
+        selected = [v for v in values if v in allowed]
+        return selected or default
+
+    def _save_visible_pos_columns(self):
+        self._settings.setValue('pos/visible_columns', ','.join(self._visible_pos_columns))
+        self._settings.sync()
+
+    def _build_columns_menu(self):
+        menu = QMenu(self.columns_btn)
+        self._column_actions = {}
+        for col in self._pos_columns:
+            action = menu.addAction(translate(col['label']))
+            action.setCheckable(True)
+            action.setChecked(col['key'] in self._visible_pos_columns)
+            action.toggled.connect(lambda checked, key=col['key']: self._set_pos_column_visible(key, checked))
+            self._column_actions[col['key']] = action
+        menu.addSeparator()
+        menu.addAction(translate('reset_columns'), self._reset_pos_columns)
+        self.columns_btn.setMenu(menu)
+
+    def _set_pos_column_visible(self, key, visible):
+        if visible and key not in self._visible_pos_columns:
+            self._visible_pos_columns.append(key)
+        elif not visible and key in self._visible_pos_columns:
+            if len(self._visible_pos_columns) <= 1:
+                action = getattr(self, '_column_actions', {}).get(key)
+                if action is not None and not action.isChecked():
+                    action.blockSignals(True)
+                    action.setChecked(True)
+                    action.blockSignals(False)
+                return
+            self._visible_pos_columns.remove(key)
+        self._save_visible_pos_columns()
+        self._apply_pos_column_visibility()
+
+    def _reset_pos_columns(self):
+        self._visible_pos_columns = [col['key'] for col in self._pos_columns]
+        for key, action in getattr(self, '_column_actions', {}).items():
+            action.blockSignals(True)
+            action.setChecked(True)
+            action.blockSignals(False)
+        self._save_visible_pos_columns()
+        self._apply_pos_column_visibility()
+
+    def _apply_pos_column_visibility(self):
+        table = getattr(self, 'table', None)
+        if table is None:
+            return
+        visible = set(self._visible_pos_columns)
+        for col, definition in enumerate(self._pos_columns):
+            table.setColumnHidden(col, definition['key'] not in visible)
 
     def _pos_shifts_enabled(self):
         try:
@@ -382,7 +457,16 @@ class POSWidget(QWidget):
             price = currency.convert(line.unit_price_usd, 'USD', self.display_curr)
             total = currency.convert(line.total_usd, 'USD', self.display_curr)
             available = line.available_qty
-            values = [line.name, line.barcode, line.unit, str(line.qty), currency.format_amount(price), currency.format_amount(total), str(available)]
+            values_by_key = {
+                'item': line.name,
+                'barcode': line.barcode,
+                'unit': line.unit,
+                'quantity': str(line.qty),
+                'price': currency.format_amount(price),
+                'total': currency.format_amount(total),
+                'available': str(available),
+            }
+            values = [values_by_key[col['key']] for col in self._pos_columns]
             for col, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 item.setTextAlignment(Qt.AlignCenter)

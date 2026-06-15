@@ -2662,3 +2662,45 @@ _translations['en'].update({
     'barcode_invalid_ean13_print': 'This code cannot be printed as EAN-13 because it is invalid',
     'barcode_python_packages_required': 'python-barcode and Pillow are required for barcode printing',
 })
+
+
+# Phase112: vouchers delete action and POS column visibility controls.
+_translations['ar'].update({
+    'delete_voucher': '🗑 حذف سند',
+    'delete_voucher_confirm': 'هل تريد حذف السند رقم {id}؟ سيتم عكس أثره على الفاتورة والرصيد والصندوق/البنك. المبلغ: {amount}',
+    'voucher_deleted': 'تم حذف السند وعكس أثره المحاسبي',
+    'pos_columns_btn': '🧩 أعمدة البيع السريع',
+})
+_translations['de'].update({
+    'delete_voucher': '🗑 Beleg löschen',
+    'delete_voucher_confirm': 'Beleg Nr. {id} löschen? Die Wirkung auf Rechnung, Saldo und Kasse/Bank wird rückgängig gemacht. Betrag: {amount}',
+    'voucher_deleted': 'Beleg gelöscht und buchhalterische Wirkung rückgängig gemacht',
+    'pos_columns_btn': '🧩 POS-Spalten',
+})
+_translations['en'].update({
+    'delete_voucher': '🗑 Delete voucher',
+    'delete_voucher_confirm': 'Delete voucher #{id}? Its effect on invoice, balance, and cash/bank will be reversed. Amount: {amount}',
+    'voucher_deleted': 'Voucher deleted and accounting effect reversed',
+    'pos_columns_btn': '🧩 POS columns',
+})
+
+
+# Phase113: localize table context-menu labels introduced/used by column controls.
+_translations['ar'].update({
+    'copy': '📋 نسخ',
+    'openpyxl_missing': 'مكتبة openpyxl غير مثبتة',
+    'save_report': 'حفظ التقرير',
+    'report': 'تقرير',
+})
+_translations['de'].update({
+    'copy': '📋 Kopieren',
+    'openpyxl_missing': 'Bibliothek openpyxl ist nicht installiert',
+    'save_report': 'Bericht speichern',
+    'report': 'Bericht',
+})
+_translations['en'].update({
+    'copy': '📋 Copy',
+    'openpyxl_missing': 'openpyxl library is not installed',
+    'save_report': 'Save report',
+    'report': 'Report',
+})

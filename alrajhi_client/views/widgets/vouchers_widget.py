@@ -50,6 +50,11 @@ class VouchersWidget(QWidget):
         self.add_btn.clicked.connect(self.add_voucher)
         top_layout.addWidget(self.add_btn)
 
+        self.delete_btn = QPushButton(tr("delete_voucher"))
+        self.delete_btn.setObjectName("danger")
+        self.delete_btn.clicked.connect(self.delete_selected_voucher)
+        top_layout.addWidget(self.delete_btn)
+
         self.print_btn = QPushButton(tr("print_button"))
         print_menu = QMenu(self.print_btn)
         print_menu.addAction(tr("preview_inside_app"), lambda: self.print_selected('preview'))
@@ -134,6 +139,32 @@ class VouchersWidget(QWidget):
         if not rows or not hasattr(self, 'model'):
             return None
         return self.model.get_id(rows[0].row())
+
+    def delete_selected_voucher(self):
+        vid = self._selected_id()
+        if not vid:
+            QMessageBox.information(self, tr("delete_voucher"), tr("select_voucher_first"))
+            return
+        voucher = voucher_service.get(vid)
+        if not voucher:
+            QMessageBox.warning(self, tr("delete_voucher"), tr("voucher_load_failed"))
+            return
+        amount = voucher.get('amount') or ''
+        reply = QMessageBox.question(
+            self,
+            tr("delete_voucher"),
+            tr("delete_voucher_confirm", id=vid, amount=amount),
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        try:
+            voucher_service.delete(vid)
+            show_toast(tr("voucher_deleted"), "success", self)
+            self.refresh()
+        except Exception as exc:
+            show_toast(str(exc), "error", self)
 
     def print_selected(self, mode='preview'):
         vid = self._selected_id()
