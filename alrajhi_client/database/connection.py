@@ -766,13 +766,16 @@ class DatabaseConnection:
             conn.execute("DELETE FROM invoice_lines WHERE invoice_id=?", (invoice_id,))
             conn.execute('''
                 UPDATE invoices SET type=?, customer_id=?, supplier_id=?, date=?, reference=?, notes=?, total=?, paid=?,
-                    status='active', exchange_rate_to_usd=?, original_currency=?, warehouse_id=?, branch_id=?, deleted_at=NULL
+                    status='active', exchange_rate_to_usd=?, original_currency=?, warehouse_id=?, branch_id=?,
+                    cashbox_id=?, bank_account_id=?, payment_method=?, shift_id=?, deleted_at=NULL
                 WHERE id=?
             ''', (
                 data['type'], data.get('customer_id'), data.get('supplier_id'), data['date'],
                 data.get('reference', ''), data.get('notes', ''), str(data['total']),
                 str(data.get('paid_amount', data.get('paid', 0))), data.get('exchange_rate_to_usd', 1.0),
-                data.get('original_currency', 'USD'), data.get('warehouse_id'), data.get('branch_id'), invoice_id
+                data.get('original_currency', 'USD'), data.get('warehouse_id'), data.get('branch_id'),
+                data.get('cashbox_id'), data.get('bank_account_id'), data.get('payment_method', 'cash'),
+                data.get('shift_id'), invoice_id
             ))
 
             new_item_ids = []
