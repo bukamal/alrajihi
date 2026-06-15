@@ -747,6 +747,8 @@ class DatabaseConnection:
             raise ValueError("الفاتورة غير موجودة")
         if self._invoice_has_vouchers(invoice_id):
             raise ValueError("لا يمكن تعديل فاتورة مرتبطة بسندات. احذف أو عدّل السندات أولاً.")
+        if self._invoice_has_returns(invoice_id):
+            raise ValueError("لا يمكن تعديل فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.")
         conn = self.get_connection()
         self.begin()
         try:
@@ -827,6 +829,8 @@ class DatabaseConnection:
             return
         if self._invoice_has_vouchers(invoice_id):
             raise ValueError("لا يمكن حذف فاتورة مرتبطة بسندات. احذف السندات أولاً.")
+        if self._invoice_has_returns(invoice_id):
+            raise ValueError("لا يمكن حذف فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.")
         conn = self.get_connection()
         self.begin()
         try:
@@ -1024,11 +1028,54 @@ class DatabaseConnection:
         if self.is_remote():
             self._rest_client.update_voucher(voucher_id, data)
             return
-        if not self.get_voucher_by_id(voucher_id):
+        conn = self.get_connection()
+        old_row = conn.execute("SELECT * FROM vouchers WHERE id=?", (voucher_id,)).fetchone()
+        if not old_row:
             raise ValueError("السند غير موجود")
         self._validate_voucher_data(data, exclude_voucher_id=voucher_id)
-        self.delete_voucher(voucher_id)
-        self.add_voucher(data)
+        old = dict(old_row)
+        self.begin()
+        try:
+            old_amount = Decimal(str(old.get('amount') or 0))
+            if old.get('type') == 'receipt':
+                self._update_cash_balance(old_amount, add=False)
+            elif old.get('type') in ('payment', 'expense'):
+                self._update_cash_balance(old_amount, add=True)
+            if old.get('customer_id'):
+                self._update_customer_balance(old['customer_id'], old_amount)
+            elif old.get('supplier_id'):
+                self._update_supplier_balance(old['supplier_id'], old_amount)
+            if old.get('invoice_id'):
+                self._update_invoice_paid(old['invoice_id'], old_amount, add=False)
+
+            conn.execute('''
+                UPDATE vouchers
+                SET type=?, date=?, amount=?, description=?, reference=?, customer_id=?, supplier_id=?, invoice_id=?,
+                    exchange_rate_to_usd=?, original_currency=?, branch_id=?, cashbox_id=?, bank_account_id=?, payment_method=?
+                WHERE id=?
+            ''', (
+                data['type'], data['date'], str(data['amount']),
+                data.get('description', ''), data.get('reference', ''),
+                data.get('customer_id'), data.get('supplier_id'), data.get('invoice_id'),
+                data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'), data.get('branch_id'),
+                data.get('cashbox_id'), data.get('bank_account_id'), data.get('payment_method', 'cash'), voucher_id
+            ))
+
+            amount = Decimal(str(data['amount']))
+            if data['type'] == 'receipt':
+                self._update_cash_balance(amount, add=True)
+            elif data['type'] in ('payment', 'expense'):
+                self._update_cash_balance(amount, add=False)
+            if data.get('customer_id'):
+                self._update_customer_balance(data['customer_id'], -amount)
+            elif data.get('supplier_id'):
+                self._update_supplier_balance(data['supplier_id'], -amount)
+            if data.get('invoice_id'):
+                self._update_invoice_paid(data['invoice_id'], amount, add=True)
+            self.commit()
+        except Exception as e:
+            self.rollback()
+            raise e
 
     # ------------------- دوال مساعدة داخلية -------------------
     def _get_opening_quantity(self, item_id, user_id):

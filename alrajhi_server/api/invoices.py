@@ -50,6 +50,36 @@ def _recalculate_average_cost(db, item_id, user_id):
     db.execute("UPDATE items SET average_cost=? WHERE id=? AND user_id=?", (str(avg), item_id, user_id))
 
 
+def _available_item_quantity(db, item_id, user_id):
+    row = db.execute('''
+        SELECT SUM(CASE
+            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return') THEN CAST(quantity AS REAL)
+            WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+            ELSE 0 END) AS total_qty
+        FROM inventory_movements
+        WHERE item_id=? AND user_id=?
+    ''', (item_id, user_id)).fetchone()
+    return Decimal(str(row['total_qty'])) if row and row['total_qty'] is not None else Decimal('0')
+
+
+def _assert_sale_stock_available(db, user_id, lines):
+    required_by_item = {}
+    for line in lines or []:
+        item_id = line['item_id']
+        conv_factor = Decimal(str(line.get('conversion_factor', 1) or 1))
+        if conv_factor <= 0:
+            conv_factor = Decimal('1')
+        qty = Decimal(str(line.get('quantity', 0) or 0))
+        base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
+        required_by_item[item_id] = required_by_item.get(item_id, Decimal('0')) + base_qty
+    for item_id, required_qty in required_by_item.items():
+        available = _available_item_quantity(db, item_id, user_id)
+        if required_qty > available:
+            item = db.execute("SELECT name FROM items WHERE id=? AND user_id=?", (item_id, user_id)).fetchone()
+            name = item['name'] if item and 'name' in item.keys() else str(item_id)
+            raise ValueError(f"الكمية غير كافية للمادة {name}: المطلوب {required_qty} والمتاح {available}")
+
+
 def _apply_invoice_financial_effect(db, invoice, sign):
     total = Decimal(str(invoice.get('total', 0)))
     paid = Decimal(str(invoice.get('paid', 0)))
@@ -235,17 +265,24 @@ def add_invoice():
     user_id = get_jwt_identity()
     data = request.get_json()
     db = get_db()
+    if data.get('type') == 'sale':
+        try:
+            _assert_sale_stock_available(db, user_id, data.get('lines', []))
+        except ValueError as e:
+            return jsonify({'error': str(e)}), 400
     db.execute("BEGIN TRANSACTION")
     try:
         # إدراج الفاتورة
         cursor = db.execute('''
-            INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, exchange_rate_to_usd, original_currency, warehouse_id, branch_id)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, exchange_rate_to_usd, original_currency, warehouse_id, branch_id, cashbox_id, bank_account_id, payment_method, shift_id)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ''', (
             user_id, data['type'], data.get('customer_id'), data.get('supplier_id'),
             data['date'], data.get('reference', ''), data.get('notes', ''),
             str(data['total']), str(data['paid_amount']), 'active',
-            data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'), data.get('warehouse_id'), data.get('branch_id')
+            data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'),
+            data.get('warehouse_id'), data.get('branch_id'), data.get('cashbox_id'),
+            data.get('bank_account_id'), data.get('payment_method', 'cash'), data.get('shift_id')
         ))
         invoice_id = cursor.lastrowid
         # إدراج البنود وتسجيل حركات المخزون (محاكاة منطق العميل)
@@ -320,9 +357,12 @@ def update_invoice(invoice_id):
         _post_invoice_ledger_reversal(db, user_id, invoice_id, old_invoice_dict, old_lines)
         db.execute("DELETE FROM inventory_movements WHERE reference_id=? AND user_id=? AND movement_type IN ('purchase','sale')", (invoice_id, user_id))
         db.execute("DELETE FROM invoice_lines WHERE invoice_id=?", (invoice_id,))
+        if data.get('type') == 'sale':
+            _assert_sale_stock_available(db, user_id, data.get('lines', []))
         db.execute('''
             UPDATE invoices SET type=?, customer_id=?, supplier_id=?, date=?, reference=?, notes=?, total=?, paid=?,
-                status='active', exchange_rate_to_usd=?, original_currency=?, warehouse_id=?, branch_id=?, deleted_at=NULL
+                status='active', exchange_rate_to_usd=?, original_currency=?, warehouse_id=?, branch_id=?,
+                cashbox_id=?, bank_account_id=?, payment_method=?, shift_id=?, deleted_at=NULL
             WHERE id=? AND user_id=?
         ''', (
             data['type'], data.get('customer_id'), data.get('supplier_id'), data['date'],
@@ -372,6 +412,9 @@ def update_invoice(invoice_id):
         audit_log('UPDATE', 'SALE_INVOICE' if data.get('type') == 'sale' else 'PURCHASE_INVOICE', invoice_id, old_values=old_invoice_dict, new_values=data, details='تعديل فاتورة')
         db.execute("COMMIT")
         return jsonify({'id': invoice_id, 'status': 'ok'}), 200
+    except ValueError as e:
+        db.execute("ROLLBACK")
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         db.execute("ROLLBACK")
         return jsonify({'error': str(e)}), 500

@@ -58,6 +58,91 @@ def _recalculate_average_cost(db, item_id, user_id):
 
 
 
+def _warehouse_available_qty(db, user_id, item_id, warehouse_id):
+    if not item_id or not warehouse_id:
+        row = db.execute("""
+            SELECT SUM(CASE
+                WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+                WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+                ELSE 0 END) AS quantity
+            FROM inventory_movements
+            WHERE user_id=? AND item_id=?
+        """, (user_id, item_id)).fetchone()
+        return _dec(row['quantity']) if row and row['quantity'] is not None else Decimal('0')
+    row = db.execute("""
+        SELECT CAST(COALESCE(quantity,'0') AS REAL) AS quantity
+        FROM item_warehouse_balances
+        WHERE user_id=? AND item_id=? AND warehouse_id=?
+    """, (user_id, item_id, warehouse_id)).fetchone()
+    return _dec(row['quantity']) if row and row['quantity'] is not None else Decimal('0')
+
+
+def _update_warehouse_balance(db, user_id, item_id, warehouse_id):
+    if not item_id or not warehouse_id:
+        return
+    row = db.execute("""
+        SELECT SUM(CAST(quantity AS REAL)) AS quantity,
+               SUM(CASE WHEN CAST(quantity AS REAL) > 0 THEN CAST(quantity AS REAL) * CAST(COALESCE(unit_cost,'0') AS REAL) ELSE 0 END) AS inbound_cost,
+               SUM(CASE WHEN CAST(quantity AS REAL) > 0 THEN CAST(quantity AS REAL) ELSE 0 END) AS inbound_qty
+        FROM warehouse_movements
+        WHERE user_id=? AND item_id=? AND warehouse_id=?
+    """, (user_id, item_id, warehouse_id)).fetchone()
+    qty = _dec(row['quantity']) if row and row['quantity'] is not None else Decimal('0')
+    inbound_qty = _dec(row['inbound_qty']) if row and row['inbound_qty'] is not None else Decimal('0')
+    inbound_cost = _dec(row['inbound_cost']) if row and row['inbound_cost'] is not None else Decimal('0')
+    avg = inbound_cost / inbound_qty if inbound_qty > 0 else Decimal('0')
+    now = datetime.datetime.now().isoformat()
+    db.execute("""
+        INSERT INTO item_warehouse_balances (user_id,item_id,warehouse_id,quantity,average_cost,updated_at)
+        VALUES (?,?,?,?,?,?)
+        ON CONFLICT(user_id,item_id,warehouse_id)
+        DO UPDATE SET quantity=excluded.quantity, average_cost=excluded.average_cost, updated_at=excluded.updated_at
+    """, (user_id, item_id, warehouse_id, str(qty), str(avg), now))
+
+
+def _record_warehouse_movement(db, user_id, item_id, warehouse_id, movement_type, signed_quantity, unit_cost, reference_type, reference_id, notes, movement_date):
+    if not item_id or not warehouse_id:
+        return
+    now = datetime.datetime.now().isoformat()
+    db.execute("""
+        INSERT INTO warehouse_movements
+        (user_id,item_id,warehouse_id,movement_type,quantity,unit_cost,reference_type,reference_id,notes,movement_date,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+    """, (user_id, item_id, warehouse_id, movement_type, str(signed_quantity), str(_dec(unit_cost)), reference_type, reference_id, notes or '', movement_date or now, now))
+    _update_warehouse_balance(db, user_id, item_id, warehouse_id)
+
+
+def _delete_return_warehouse_movements(db, user_id, reference_type, return_id, lines, warehouse_id):
+    db.execute("DELETE FROM warehouse_movements WHERE user_id=? AND reference_type=? AND reference_id=?", (user_id, reference_type, return_id))
+    for line in lines or []:
+        _update_warehouse_balance(db, user_id, line.get('item_id'), warehouse_id)
+
+
+def _record_cash_bank_return_refund(db, user_id, reference_type, return_id, branch_id, cashbox_id, bank_account_id, payment_method, amount, movement_date, description):
+    amount = _dec(amount)
+    if amount <= 0:
+        return
+    signed = -abs(amount) if reference_type == 'sales_return' else abs(amount)
+    direction = 'out' if signed < 0 else 'in'
+    now = datetime.datetime.now().isoformat()
+    if payment_method == 'bank':
+        cashbox_id = None
+    else:
+        bank_account_id = None
+    db.execute("DELETE FROM cash_bank_movements WHERE user_id=? AND reference_type=? AND reference_id=?", (user_id, reference_type, return_id))
+    db.execute("""
+        INSERT INTO cash_bank_movements
+        (user_id,branch_id,cashbox_id,bank_account_id,movement_type,amount,direction,shift_id,reference_type,reference_id,description,movement_date,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (user_id, branch_id, cashbox_id, bank_account_id,
+          'sales_return_refund' if reference_type == 'sales_return' else 'purchase_return_refund',
+          str(signed), direction, None, reference_type, return_id, description or '', movement_date or now, now))
+
+
+def _delete_cash_bank_reference(db, user_id, reference_type, return_id):
+    db.execute("DELETE FROM cash_bank_movements WHERE user_id=? AND reference_type=? AND reference_id=?", (user_id, reference_type, return_id))
+
+
 
 def _post_return_ledger_entry(db, user_id, item_id, warehouse_id, kind, direction, quantity, unit_cost, return_id, notes=''):
     if direction not in {'in', 'out', 'neutral'}:
@@ -355,15 +440,36 @@ def _create_return(kind):
         if base_qty > base_sold - already:
             return jsonify({'error': 'كمية المرتجع أكبر من الكمية المتبقية'}), 400
         price = _dec(orig.get('unit_price') or 0)
-        cost_per_display_unit = _dec(orig.get('unit_cost') or price)
-        cost_per_base_unit = cost_per_display_unit / factor
+        if kind == 'sales':
+            # Use original COGS for returned sales inventory, not the selling price.
+            orig_cost_amount = _dec(orig.get('cost_amount') or 0)
+            cost_per_base_unit = (orig_cost_amount / base_sold) if base_sold > 0 and orig_cost_amount > 0 else (_dec(orig.get('unit_cost') or price) / factor)
+        else:
+            cost_per_display_unit = _dec(orig.get('unit_cost') or price)
+            cost_per_base_unit = cost_per_display_unit / factor
         amount = qty * price
         total += amount
-        prepared.append((orig, qty, base_qty, price, cost_per_base_unit, amount))
+        if kind == 'purchase':
+            available = _warehouse_available_qty(db, user_id, orig.get('item_id'), data.get('warehouse_id') or inv.get('warehouse_id'))
+            if base_qty > available:
+                return jsonify({'error': 'لا توجد كمية كافية في المستودع لإرجاع هذا البند'}), 400
+        prepared.append({
+            'original_invoice_line_id': line_id,
+            'item_id': orig.get('item_id'),
+            'quantity': qty,
+            'quantity_in_base': base_qty,
+            'unit_price': price,
+            'unit_cost': cost_per_base_unit,
+            'total': amount,
+            'unit': orig.get('unit') or '',
+            'cost_amount': base_qty * cost_per_base_unit,
+        })
     if not prepared:
         return jsonify({'error': 'يجب إدخال كمية مرتجع صحيحة'}), 400
 
-    refund = _dec(data.get('refund_amount') or 0)
+    remaining_amount = max(Decimal('0'), _dec(inv.get('total') or 0) - _dec(inv.get('paid') or 0))
+    requested_refund = data.get('refund_amount')
+    refund = max(Decimal('0'), total - min(total, remaining_amount)) if requested_refund in (None, '') else _dec(requested_refund)
     if refund < 0 or refund > total:
         return jsonify({'error': 'مبلغ الرد يجب أن يكون بين صفر وإجمالي المرتجع'}), 400
     credit = total - refund
@@ -385,23 +491,25 @@ def _create_return(kind):
         """, (user_id, ret_no, inv['id'], inv.get('customer_id'), date, str(total), str(refund), str(credit),
               wh_id, branch_id, cashbox_id, bank_account_id, payment_method, data.get('notes') or '', now))
         rid = cur.lastrowid
-        for orig, qty, base_qty, price, cost, amount in prepared:
+        for line in prepared:
             db.execute("""
                 INSERT INTO sales_return_lines
                 (sales_return_id,original_invoice_line_id,item_id,quantity,unit_price,total,unit,quantity_in_base,unit_cost,cost_amount)
                 VALUES (?,?,?,?,?,?,?,?,?,?)
-            """, (rid, orig.get('id'), orig.get('item_id'), str(qty), str(price), str(amount), orig.get('unit') or '',
-                  str(base_qty), str(cost), str(base_qty * cost)))
+            """, (rid, line['original_invoice_line_id'], line['item_id'], str(line['quantity']), str(line['unit_price']),
+                  str(line['total']), line['unit'], str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
             db.execute("""
                 INSERT INTO inventory_movements (user_id,item_id,movement_type,quantity,unit_cost,reference_id,date)
                 VALUES (?,?,?,?,?,?,?)
-            """, (user_id, orig.get('item_id'), 'sales_return', str(base_qty), str(cost), rid, date))
-            _update_item_quantity(db, orig.get('item_id'), user_id)
-            _recalculate_average_cost(db, orig.get('item_id'), user_id)
+            """, (user_id, line['item_id'], 'sales_return', str(line['quantity_in_base']), str(line['unit_cost']), rid, date))
+            _record_warehouse_movement(db, user_id, line['item_id'], wh_id, 'sales_return_in', line['quantity_in_base'], line['unit_cost'], 'sales_return', rid, 'إرجاع مبيعات إلى المستودع', date)
+            _update_item_quantity(db, line['item_id'], user_id)
+            _recalculate_average_cost(db, line['item_id'], user_id)
         if inv.get('customer_id') and credit > 0:
             db.execute("UPDATE customers SET balance=CAST(COALESCE(balance,'0') AS REAL)-? WHERE id=? AND user_id=?", (str(credit), inv.get('customer_id'), user_id))
         if refund > 0:
             db.execute("UPDATE users SET cash_balance=CAST(COALESCE(cash_balance,'0') AS REAL)-? WHERE id=?", (str(refund), user_id))
+            _record_cash_bank_return_refund(db, user_id, 'sales_return', rid, branch_id, cashbox_id, bank_account_id, payment_method, refund, date, f'رد مرتجع مبيعات {ret_no}')
     else:
         ret_no = data.get('return_no') or _next_no(db, 'purchase_returns', user_id, 'PR')
         cur = db.execute("""
@@ -412,30 +520,29 @@ def _create_return(kind):
         """, (user_id, ret_no, inv['id'], inv.get('supplier_id'), date, str(total), str(refund), str(credit),
               wh_id, branch_id, cashbox_id, bank_account_id, payment_method, data.get('notes') or '', now))
         rid = cur.lastrowid
-        for orig, qty, base_qty, price, cost, amount in prepared:
+        for line in prepared:
             db.execute("""
                 INSERT INTO purchase_return_lines
                 (purchase_return_id,original_invoice_line_id,item_id,quantity,unit_price,total,unit,quantity_in_base,unit_cost,cost_amount)
                 VALUES (?,?,?,?,?,?,?,?,?,?)
-            """, (rid, orig.get('id'), orig.get('item_id'), str(qty), str(price), str(amount), orig.get('unit') or '',
-                  str(base_qty), str(cost), str(base_qty * cost)))
+            """, (rid, line['original_invoice_line_id'], line['item_id'], str(line['quantity']), str(line['unit_price']),
+                  str(line['total']), line['unit'], str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
             db.execute("""
                 INSERT INTO inventory_movements (user_id,item_id,movement_type,quantity,unit_cost,reference_id,date)
                 VALUES (?,?,?,?,?,?,?)
-            """, (user_id, orig.get('item_id'), 'purchase_return', str(base_qty), str(cost), rid, date))
-            _update_item_quantity(db, orig.get('item_id'), user_id)
-            _recalculate_average_cost(db, orig.get('item_id'), user_id)
+            """, (user_id, line['item_id'], 'purchase_return', str(line['quantity_in_base']), str(line['unit_cost']), rid, date))
+            _record_warehouse_movement(db, user_id, line['item_id'], wh_id, 'purchase_return_out', -abs(line['quantity_in_base']), line['unit_cost'], 'purchase_return', rid, 'مرتجع مشتريات من المستودع', date)
+            _update_item_quantity(db, line['item_id'], user_id)
+            _recalculate_average_cost(db, line['item_id'], user_id)
         if inv.get('supplier_id') and credit > 0:
             db.execute("UPDATE suppliers SET balance=CAST(COALESCE(balance,'0') AS REAL)-? WHERE id=? AND user_id=?", (str(credit), inv.get('supplier_id'), user_id))
         if refund > 0:
             db.execute("UPDATE users SET cash_balance=CAST(COALESCE(cash_balance,'0') AS REAL)+? WHERE id=?", (str(refund), user_id))
+            _record_cash_bank_return_refund(db, user_id, 'purchase_return', rid, branch_id, cashbox_id, bank_account_id, payment_method, refund, date, f'استرداد مرتجع مشتريات {ret_no}')
 
     # Phase 24: shadow-post returns to append-only inventory_ledger.
     # This does not replace the legacy inventory_movements/item quantity semantics.
-    _post_return_ledger_entries(db, user_id, kind, rid, wh_id, [
-        {'item_id': line['item_id'], 'quantity_in_base': line['quantity_in_base'], 'unit_cost': line['unit_cost']}
-        for line in prepared
-    ])
+    _post_return_ledger_entries(db, user_id, kind, rid, wh_id, prepared)
 
     db.commit()
     return jsonify({'id': rid, 'return_no': ret_no}), 201
@@ -461,8 +568,24 @@ def delete_sales_return(return_id):
     ret = db.execute("SELECT * FROM sales_returns WHERE id=? AND user_id=?", (return_id, user_id)).fetchone()
     if not ret:
         return jsonify({'ok': True})
+    ret = dict(ret)
+    if ret.get('deleted_at') or ret.get('status') == 'cancelled':
+        return jsonify({'ok': True})
     lines = [dict(x) for x in db.execute("SELECT * FROM sales_return_lines WHERE sales_return_id=?", (return_id,)).fetchall()]
-    _post_return_ledger_reversal(db, user_id, 'sales', return_id, ret['warehouse_id'], lines)
+    item_ids = {line.get('item_id') for line in lines if line.get('item_id')}
+    _post_return_ledger_reversal(db, user_id, 'sales', return_id, ret.get('warehouse_id'), lines)
+    db.execute("DELETE FROM inventory_movements WHERE user_id=? AND reference_id=? AND movement_type='sales_return'", (user_id, return_id))
+    _delete_return_warehouse_movements(db, user_id, 'sales_return', return_id, lines, ret.get('warehouse_id'))
+    for item_id in item_ids:
+        _update_item_quantity(db, item_id, user_id)
+        _recalculate_average_cost(db, item_id, user_id)
+    credit = _dec(ret.get('credit_amount') or 0)
+    if ret.get('customer_id') and credit > 0:
+        db.execute("UPDATE customers SET balance=CAST(COALESCE(balance,'0') AS REAL)+? WHERE id=? AND user_id=?", (str(credit), ret.get('customer_id'), user_id))
+    refund = _dec(ret.get('refund_amount') or 0)
+    if refund > 0:
+        db.execute("UPDATE users SET cash_balance=CAST(COALESCE(cash_balance,'0') AS REAL)+? WHERE id=?", (str(refund), user_id))
+        _delete_cash_bank_reference(db, user_id, 'sales_return', return_id)
     db.execute("UPDATE sales_returns SET deleted_at=datetime('now'), status='cancelled' WHERE id=? AND user_id=?", (return_id, user_id))
     db.commit()
     return jsonify({'ok': True})
@@ -476,8 +599,24 @@ def delete_purchase_return(return_id):
     ret = db.execute("SELECT * FROM purchase_returns WHERE id=? AND user_id=?", (return_id, user_id)).fetchone()
     if not ret:
         return jsonify({'ok': True})
+    ret = dict(ret)
+    if ret.get('deleted_at') or ret.get('status') == 'cancelled':
+        return jsonify({'ok': True})
     lines = [dict(x) for x in db.execute("SELECT * FROM purchase_return_lines WHERE purchase_return_id=?", (return_id,)).fetchall()]
-    _post_return_ledger_reversal(db, user_id, 'purchase', return_id, ret['warehouse_id'], lines)
+    item_ids = {line.get('item_id') for line in lines if line.get('item_id')}
+    _post_return_ledger_reversal(db, user_id, 'purchase', return_id, ret.get('warehouse_id'), lines)
+    db.execute("DELETE FROM inventory_movements WHERE user_id=? AND reference_id=? AND movement_type='purchase_return'", (user_id, return_id))
+    _delete_return_warehouse_movements(db, user_id, 'purchase_return', return_id, lines, ret.get('warehouse_id'))
+    for item_id in item_ids:
+        _update_item_quantity(db, item_id, user_id)
+        _recalculate_average_cost(db, item_id, user_id)
+    credit = _dec(ret.get('credit_amount') or 0)
+    if ret.get('supplier_id') and credit > 0:
+        db.execute("UPDATE suppliers SET balance=CAST(COALESCE(balance,'0') AS REAL)+? WHERE id=? AND user_id=?", (str(credit), ret.get('supplier_id'), user_id))
+    refund = _dec(ret.get('refund_amount') or 0)
+    if refund > 0:
+        db.execute("UPDATE users SET cash_balance=CAST(COALESCE(cash_balance,'0') AS REAL)-? WHERE id=?", (str(refund), user_id))
+        _delete_cash_bank_reference(db, user_id, 'purchase_return', return_id)
     db.execute("UPDATE purchase_returns SET deleted_at=datetime('now'), status='cancelled' WHERE id=? AND user_id=?", (return_id, user_id))
     db.commit()
     return jsonify({'ok': True})

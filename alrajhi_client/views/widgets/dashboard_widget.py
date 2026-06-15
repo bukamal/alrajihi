@@ -211,7 +211,7 @@ class DashboardWidget(QWidget):
         self.main_layout.setContentsMargins(22, 22, 22, 22)
         self.main_layout.setSpacing(18)
 
-        self._build_hero()
+        # Phase 100: remove the first hero card under the global search bar.
         self._build_middle_grid()
         self._build_bottom_grid()
 

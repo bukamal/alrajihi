@@ -362,8 +362,6 @@ class InvoiceDialog(CenteredDialog):
             show_toast(translate("invoice_not_found"), "error", self)
             self.reject()
             return
-        # التحقق من اختلاف الأسعار
-        self.check_price_differences(inv)
         if self.inv_type == 'sale':
             if inv.get('customer_id'):
                 cust = next((c for c in self.customers if c.get('id') == inv['customer_id']), None)
@@ -387,19 +385,50 @@ class InvoiceDialog(CenteredDialog):
         self.notes_edit.setPlainText(inv.get('notes', ''))
         self.lines_model.load_invoice_lines(inv.get('lines', []))
         self.update_total_display()
+        # فحص تغير الأسعار يجب أن يتم بعد تحميل السطور في النموذج؛ وإلا فإن اختيار
+        # "تحديث الأسعار" لا يطبق أي تغيير فعليًا على السطور المعروضة.
+        self.check_price_differences(inv)
+
+    def _invoice_line_value(self, line, key, default=None):
+        if isinstance(line, dict):
+            return line.get(key, default)
+        return getattr(line, key, default)
+
+    def _line_conversion_factor(self, line):
+        """Return the saved line unit conversion factor.
+
+        Invoice line price is stored per selected invoice unit.  Therefore a
+        carton/box line must be compared against the current item base price
+        multiplied by the same conversion factor, not against the base price.
+        """
+        return _positive_decimal(
+            self._invoice_line_value(line, 'conversion_factor', self._invoice_line_value(line, 'factor', 1)),
+            '1'
+        )
+
+    def _item_current_unit_price_usd(self, item, line, inv_type=None):
+        inv_type = inv_type or self.inv_type
+        base_price = _decimal_value(item.get('selling_price' if inv_type == 'sale' else 'purchase_price', 0), '0')
+        return base_price * self._line_conversion_factor(line)
 
     def check_price_differences(self, invoice):
-        """Check price differences between stored invoice lines and current item prices."""
+        """Check price differences between stored invoice lines and current item prices.
+
+        The comparison is unit-aware. Saved invoice line prices are per selected
+        unit, while item master prices are stored per base unit.
+        """
         changes = []
+        inv_type = invoice.get('type', self.inv_type)
         for line in invoice.get('lines', []):
-            item = product_service.item_by_id(line.get('item_id') if isinstance(line, dict) else getattr(line, 'item_id', None))
+            item_id = self._invoice_line_value(line, 'item_id')
+            item = product_service.item_by_id(item_id)
             if not item:
                 continue
-            current_price = item.get('selling_price' if invoice['type'] == 'sale' else 'purchase_price', 0)
-            current_price_display = currency.convert(current_price, 'USD', self.display_curr)
-            old_price = line.get('unit_price') if isinstance(line, dict) else getattr(line, 'unit_price', 0)
-            old_price_display = currency.convert(old_price, 'USD', self.display_curr)
-            if abs(current_price_display - old_price_display) > 0.01:
+            current_price_usd = self._item_current_unit_price_usd(item, line, inv_type)
+            current_price_display = _decimal_value(currency.convert(current_price_usd, 'USD', self.display_curr), '0')
+            old_price = _decimal_value(self._invoice_line_value(line, 'unit_price', 0), '0')
+            old_price_display = _decimal_value(currency.convert(old_price, 'USD', self.display_curr), '0')
+            if abs(current_price_display - old_price_display) > Decimal('0.01'):
                 changes.append(translate('was_now', item=item['name'], old=currency.format_amount(old_price_display), new=currency.format_amount(current_price_display)))
         if changes:
             msg = translate('price_update_msg', intro=translate('price_update_intro'), changes='\n'.join(changes), question=translate('price_update_question'))
@@ -409,8 +438,8 @@ class InvoiceDialog(CenteredDialog):
                     if line['item_id']:
                         item = product_service.item_by_id(line['item_id'])
                         if item:
-                            new_price = item.get('selling_price' if self.inv_type == 'sale' else 'purchase_price', 0)
-                            new_price_display = currency.convert(new_price, 'USD', self.display_curr)
+                            new_price_usd = self._item_current_unit_price_usd(item, line, self.inv_type)
+                            new_price_display = currency.convert(new_price_usd, 'USD', self.display_curr)
                             self.lines_model.setData(self.lines_model.index(idx, LinesModel.COL_PRICE), new_price_display, Qt.EditRole)
                 self.update_total_display()
 

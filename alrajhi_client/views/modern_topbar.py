@@ -81,6 +81,16 @@ class ModernTopBar(QWidget):
 
         utility_layout.addStretch(1)
 
+        self.refresh_btn = QToolButton()
+        self.refresh_btn.setObjectName("ShellIconButton")
+        self.refresh_btn.setIcon(qta.icon('fa5s.sync-alt'))
+        self.refresh_btn.setIconSize(QSize(20, 20))
+        self.refresh_btn.setText('')
+        self.refresh_btn.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.refresh_btn.setToolTip(translate('refresh_now'))
+        self.refresh_btn.setFixedSize(48, 48)
+        utility_layout.addWidget(self.refresh_btn)
+
         self.alert_btn = QToolButton()
         self.alert_btn.setObjectName("ShellIconButton")
         self.alert_btn.setIcon(qta.icon('fa5s.bell'))

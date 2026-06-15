@@ -251,7 +251,11 @@ class LocalPurchaseReturnGateway(PurchaseReturnGateway):
         if not ret or ret.get('deleted_at'):
             raise PurchaseReturnException('مرتجع المشتريات غير موجود')
         conn = self._conn()
+        item_ids = {line.get('item_id') for line in (ret.get('lines') or []) if line.get('item_id')}
         conn.execute("DELETE FROM inventory_movements WHERE reference_id=? AND movement_type='purchase_return'", (return_id,))
+        for item_id in item_ids:
+            self.db._update_item_quantity(item_id)
+            self.db._recalculate_average_cost(item_id)
         for line in ret.get('lines') or []:
             inventory_service.record_ledger_entry(
                 item_id=line.get('item_id'), warehouse_id=ret.get('warehouse_id'), movement_type='purchase_return_reversal',

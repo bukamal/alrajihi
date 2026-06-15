@@ -62,6 +62,10 @@ class ManufacturingDAO:
             if waste < 0:
                 raise ValueError("نسبة الهالك لا يمكن أن تكون سالبة")
             unit_id = line.get('unit_id')
+            if unit_id:
+                unit = self.db.execute("SELECT id FROM item_units WHERE id=? AND item_id=?", (unit_id, item_id)).fetchone()
+                if not unit:
+                    raise ValueError("الوحدة المحددة لا تتبع مادة المكون في BOM")
             key = (item_id, unit_id)
             if key in seen:
                 raise ValueError("يوجد مكون مكرر في BOM")
@@ -173,7 +177,7 @@ class ManufacturingDAO:
             SELECT bl.*, i.name as item_name, u.unit_name, CAST(u.conversion_factor AS TEXT) as conversion_factor
             FROM bom_lines bl
             JOIN items i ON bl.item_id = i.id
-            LEFT JOIN item_units u ON bl.unit_id = u.id
+            LEFT JOIN item_units u ON bl.unit_id = u.id AND u.item_id = bl.item_id
             WHERE bl.bom_id = ?
         """, (bom_id,)).fetchall()
         bom['lines'] = [dict(line) for line in lines]
@@ -232,6 +236,22 @@ class ManufacturingDAO:
         return True, ""
 
     # ========== BOM متعدد المستويات ==========
+    def _bom_line_required_base_qty(self, bom: Dict, line: Dict, planned_qty: Decimal) -> Decimal:
+        """Return the component quantity in the component base unit.
+
+        BOM line quantity is expressed for bom.quantity units of the parent
+        product. If a secondary unit is selected, item_units.conversion_factor
+        converts that line quantity into the item's base unit. waste_percent is
+        stored as a ratio (10% = 0.10), matching bom_dialog.py.
+        """
+        bom_qty = self._validate_positive_qty(bom.get('quantity', 1), "كمية BOM")
+        line_qty = self._validate_positive_qty(line.get('quantity', 0), "كمية المكون")
+        conversion_factor = self._to_decimal(line.get('conversion_factor') or '1')
+        if conversion_factor <= 0:
+            conversion_factor = Decimal('1')
+        waste_factor = Decimal('1') + self._to_decimal(line.get('waste_percent', 0))
+        return line_qty * conversion_factor * (planned_qty / bom_qty) * waste_factor
+
     def _expand_bom(self, product_id: int, quantity: Decimal, multiplier: Decimal = Decimal('1'), visited: set = None) -> List[Dict]:
         if visited is None:
             visited = set()
@@ -245,11 +265,11 @@ class ManufacturingDAO:
         for line in bom.get('lines', []):
             item_id = line['item_id']
             item = self.db.execute("SELECT item_type FROM items WHERE id=?", (item_id,)).fetchone()
+            required_qty = self._bom_line_required_base_qty(bom, line, quantity)
             if item and item['item_type'] == 'منتج نهائي':
-                sub_items = self._expand_bom(item_id, Decimal(str(line['quantity'])) * quantity, multiplier * Decimal(str(line.get('waste_percent', 0))), visited)
+                sub_items = self._expand_bom(item_id, required_qty, multiplier, visited)
                 result.extend(sub_items)
             else:
-                required_qty = Decimal(str(line['quantity'])) * quantity * (Decimal('1') + Decimal(str(line.get('waste_percent', 0))))
                 result.append({
                     'item_id': item_id,
                     'item_name': line.get('item_name', ''),
@@ -679,17 +699,13 @@ class ManufacturingDAO:
         bom = self.get_bom(bom_id)
         if not bom:
             return []
-        required = []
-        for line in bom['lines']:
-            qty_needed = Decimal(str(line['quantity'])) * planned_qty * (Decimal('1') + Decimal(str(line.get('waste_percent', 0))))
-            required.append({
-                'item_id': line['item_id'],
-                'item_name': line['item_name'],
-                'required_qty': qty_needed,
-                'available_qty': Decimal('0'),
-                'is_sufficient': False
-            })
-        return required
+        # Use the same recursive expansion as production orders/availability so
+        # direct BOM previews cannot understate requirements in multi-level BOMs.
+        materials = self.get_required_materials_recursive(bom['product_id'], self._to_decimal(planned_qty))
+        for mat in materials:
+            mat['available_qty'] = Decimal('0')
+            mat['is_sufficient'] = False
+        return materials
 
     def check_materials_availability(self, bom_id: int, planned_qty: Decimal) -> Tuple[bool, List[Dict]]:
         if self.db.is_remote():

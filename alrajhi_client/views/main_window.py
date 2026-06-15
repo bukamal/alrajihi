@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog
-from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer, QDateTime
+from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog, QToolButton
+from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer, QDateTime, QSize
 from PyQt5.QtGui import QIcon, QKeySequence
 import qtawesome as qta
 from auth.session import UserSession
@@ -95,6 +95,61 @@ NAV_GROUP_BY_PAGE = {
     'monitoring': 'الإدارة',
 }
 
+
+
+class IconMenuBar(QWidget):
+    """Icon-first business navigation bar with text below icons.
+
+    It intentionally mimics the small subset of QMenuBar used by MainWindow:
+    clear(), addMenu(), setLayoutDirection(), setFixedHeight(), setStyleSheet().
+    Each top-level entry is a QToolButton with ToolButtonTextUnderIcon. The
+    dashboard/home entry keeps the icon only by design.
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName('IconMenuBar')
+        self._buttons = []
+        self._menus = []
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(12, 4, 12, 5)
+        self._layout.setSpacing(6)
+        self._layout.addStretch(1)
+
+    def clear(self):
+        for btn in self._buttons:
+            btn.setParent(None)
+            btn.deleteLater()
+        for menu in self._menus:
+            menu.deleteLater()
+        self._buttons.clear()
+        self._menus.clear()
+        # Keep the trailing stretch as the last layout item.
+        while self._layout.count() > 1:
+            item = self._layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+    def addMenu(self, icon, title):
+        label = str(title or '').replace('\n', '').strip()
+        is_home = label in {'الرئيسية', translate('home_breadcrumb'), translate('dashboard')}
+        menu = QMenu(self)
+        btn = QToolButton(self)
+        btn.setObjectName('MainNavToolButton')
+        btn.setCursor(Qt.PointingHandCursor)
+        btn.setIcon(icon)
+        btn.setIconSize(QSize(32, 32))
+        btn.setText('' if is_home else label)
+        btn.setToolTip(label or translate('dashboard'))
+        btn.setToolButtonStyle(Qt.ToolButtonIconOnly if is_home else Qt.ToolButtonTextUnderIcon)
+        btn.setPopupMode(QToolButton.InstantPopup)
+        btn.setMenu(menu)
+        btn.setMinimumWidth(74 if is_home else 92)
+        btn.setMinimumHeight(64)
+        self._layout.insertWidget(max(0, self._layout.count() - 1), btn)
+        self._buttons.append(btn)
+        self._menus.append(menu)
+        return menu
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -163,9 +218,24 @@ class MainWindow(QMainWindow):
         # Legacy custom title strip is no longer part of the visible shell.
         self.title_bar.setVisible(False)
 
-        self.menu_bar = QMenuBar()
-        self.menu_bar.setStyleSheet("QMenuBar { background-color: palette(window); border-bottom: 1px solid palette(mid); }")
-        self.menu_bar.setFixedHeight(30)
+        self.menu_bar = IconMenuBar(self)
+        self.menu_bar.setStyleSheet("""
+            QWidget#IconMenuBar { background-color: palette(window); border-bottom: 1px solid palette(mid); }
+            QToolButton#MainNavToolButton {
+                background: transparent;
+                border: none;
+                border-radius: 12px;
+                padding: 4px 10px;
+                font-size: 11px;
+                font-weight: 800;
+                color: palette(text);
+            }
+            QToolButton#MainNavToolButton:hover {
+                background: palette(alternate-base);
+            }
+            QToolButton#MainNavToolButton::menu-indicator { image: none; width: 0px; }
+        """)
+        self.menu_bar.setFixedHeight(74)
         main_layout.addWidget(self.menu_bar)
 
         self.top_bar = ModernTopBar(self)
@@ -241,24 +311,25 @@ class MainWindow(QMainWindow):
         """
         self.menu_bar.clear()
         self.menu_bar.setLayoutDirection(qt_layout_direction(self._current_language))
-        self.menu_bar.setFixedHeight(62)
+        self.menu_bar.setFixedHeight(74)
         self.menu_bar.setStyleSheet("""
-            QMenuBar {
+            QWidget#IconMenuBar {
                 background-color: palette(window);
                 border-bottom: 1px solid palette(mid);
-                padding: 3px 10px;
-                spacing: 4px;
-                font-weight: 700;
             }
-            QMenuBar::item {
-                padding: 6px 14px;
-                min-width: 74px;
-                border-radius: 10px;
+            QToolButton#MainNavToolButton {
                 background: transparent;
+                border: none;
+                border-radius: 12px;
+                padding: 4px 10px;
+                font-size: 11px;
+                font-weight: 800;
+                color: palette(text);
             }
-            QMenuBar::item:selected {
+            QToolButton#MainNavToolButton:hover {
                 background: palette(alternate-base);
             }
+            QToolButton#MainNavToolButton::menu-indicator { image: none; width: 0px; }
             QMenu {
                 padding: 5px;
                 border: 1px solid palette(mid);
@@ -286,48 +357,48 @@ class MainWindow(QMainWindow):
             menu.addAction(action)
             return action
 
-        home_menu = self.menu_bar.addMenu(qta.icon('fa5s.home'), '\nالرئيسية')
+        home_menu = self.menu_bar.addMenu(qta.icon('fa5s.home'), '\n' + translate('home_breadcrumb'))
         add_action(home_menu, translate('dashboard'), 'tachometer-alt', 'dashboard', shortcut='F1')
         add_action(home_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
         home_menu.addSeparator()
         add_action(home_menu, translate('monitoring'), 'heartbeat', 'monitoring')
 
-        sales_menu = self.menu_bar.addMenu(qta.icon('fa5s.shopping-cart'), '\nالمبيعات')
+        sales_menu = self.menu_bar.addMenu(qta.icon('fa5s.shopping-cart'), '\n' + translate('nav_sales'))
         add_action(sales_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
         add_action(sales_menu, translate('sales_invoices'), 'file-invoice-dollar', 'sales_invoices', shortcut='F3')
         add_action(sales_menu, translate('sales_returns'), 'undo', 'returns')
         sales_menu.addSeparator()
         add_action(sales_menu, translate('receipt_voucher'), 'hand-holding-usd', 'vouchers')
 
-        purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), '\nالمشتريات')
+        purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), '\n' + translate('nav_purchases'))
         add_action(purchase_menu, translate('purchase_invoices'), 'file-invoice', 'purchase_invoices')
         add_action(purchase_menu, translate('purchase_returns'), 'undo-alt', 'purchase_returns')
         purchase_menu.addSeparator()
         add_action(purchase_menu, translate('payment_voucher'), 'money-bill-wave', 'vouchers')
 
-        inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), '\nالمخزون')
+        inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), '\n' + translate('nav_inventory'))
         add_action(inventory_menu, translate('items'), 'box', 'items', shortcut='F4')
         add_action(inventory_menu, translate('categories'), 'folder', 'categories')
         add_action(inventory_menu, translate('warehouses'), 'warehouse', 'warehouses', shortcut='F5')
 
-        manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), '\nالتصنيع')
+        manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), '\n' + translate('nav_manufacturing'))
         add_action(manufacturing_menu, translate('nav_manufacturing'), 'industry', 'manufacturing')
 
-        parties_menu = self.menu_bar.addMenu(qta.icon('fa5s.users'), '\nالأطراف')
+        parties_menu = self.menu_bar.addMenu(qta.icon('fa5s.users'), '\n' + translate('nav_parties'))
         add_action(parties_menu, translate('customers'), 'user-friends', 'customers')
         add_action(parties_menu, translate('suppliers'), 'truck-loading', 'suppliers')
 
-        finance_menu = self.menu_bar.addMenu(qta.icon('fa5s.wallet'), '\nالمالية')
+        finance_menu = self.menu_bar.addMenu(qta.icon('fa5s.wallet'), '\n' + translate('nav_finance'))
         add_action(finance_menu, translate('cashboxes'), 'cash-register', 'cashboxes')
         add_action(finance_menu, translate('vouchers'), 'receipt', 'vouchers')
 
-        reports_menu = self.menu_bar.addMenu(qta.icon('fa5s.chart-line'), '\nالتقارير')
+        reports_menu = self.menu_bar.addMenu(qta.icon('fa5s.chart-line'), '\n' + translate('reports'))
         add_action(reports_menu, translate('reports'), 'chart-line', 'reports')
         add_action(reports_menu, translate('customer_statement'), 'user', 'reports')
         add_action(reports_menu, translate('supplier_statement'), 'truck', 'reports')
         add_action(reports_menu, translate('ledger_reconciliation'), 'balance-scale', 'reports')
 
-        admin_menu = self.menu_bar.addMenu(qta.icon('fa5s.cog'), '\nالإدارة')
+        admin_menu = self.menu_bar.addMenu(qta.icon('fa5s.cog'), '\n' + translate('nav_admin'))
         add_action(admin_menu, translate('settings'), 'sliders-h', 'settings')
         add_action(admin_menu, translate('branches'), 'code-branch', 'branches')
         add_action(admin_menu, translate('offline_queue'), 'cloud-upload-alt', 'offline_queue')
@@ -341,11 +412,11 @@ class MainWindow(QMainWindow):
         add_action(admin_menu, translate('exit'), 'times-circle', callback=self.close_app, shortcut='Alt+F4')
 
         if UserSession.is_admin():
-            users_menu = self.menu_bar.addMenu(qta.icon('fa5s.user-shield'), '\nالمستخدمون')
+            users_menu = self.menu_bar.addMenu(qta.icon('fa5s.user-shield'), '\n' + translate('nav_users'))
             add_action(users_menu, translate('users'), 'users-cog', 'users')
             add_action(users_menu, translate('audit_log'), 'history', 'audit_log')
 
-        quick_menu = self.menu_bar.addMenu(qta.icon('fa5s.bolt'), '\nإجراءات سريعة')
+        quick_menu = self.menu_bar.addMenu(qta.icon('fa5s.bolt'), '\n' + translate('quick_actions'))
         add_action(quick_menu, translate('new_sales_invoice'), 'file-invoice-dollar', 'sales_invoices', shortcut='Ctrl+N')
         add_action(quick_menu, translate('new_purchase_invoice'), 'file-invoice', 'purchase_invoices')
         add_action(quick_menu, translate('receipt_voucher'), 'hand-holding-usd', 'vouchers')
@@ -363,6 +434,8 @@ class MainWindow(QMainWindow):
         self.top_bar.search_box.returnPressed.connect(self.global_search)
         self.top_bar.theme_btn.clicked.connect(self.toggle_theme)
         self.top_bar.alert_btn.clicked.connect(self.show_alerts_menu)
+        if hasattr(self.top_bar, 'refresh_btn'):
+            self.top_bar.refresh_btn.clicked.connect(self.refresh_current_view)
         if hasattr(self.top_bar, 'screenshot_btn'):
             self.top_bar.screenshot_btn.clicked.connect(self.export_screenshot)
         self.update_badges()
@@ -379,6 +452,26 @@ class MainWindow(QMainWindow):
         next_theme = 'dark' if current != 'dark' else 'light'
         self.change_theme(next_theme)
 
+
+    def refresh_current_view(self):
+        """Refresh current page from the shell utility button."""
+        page = self.stack.currentWidget() if hasattr(self, 'stack') else None
+        refreshed = False
+        for method_name in ('refresh_all', 'refresh', 'load_data'):
+            if page is not None and hasattr(page, method_name):
+                try:
+                    getattr(page, method_name)()
+                    refreshed = True
+                    break
+                except Exception as exc:
+                    QMessageBox.warning(self, translate('warning'), f"{translate('refresh_now')}: {exc}")
+                    return
+        try:
+            self.update_badges()
+        except Exception:
+            pass
+        if not refreshed and hasattr(self.pages.get('dashboard'), 'refresh_all'):
+            self.pages['dashboard'].refresh_all()
 
     def export_screenshot(self):
         """Capture the current application window and export it as an image."""

@@ -262,6 +262,8 @@ class VoucherDialog(QDialog):
 
         self.invoice_combo = QComboBox()
         self.invoice_combo.addItem(tr("no_invoice"), None)
+        self._invoice_remaining_by_id = {}
+        self._loading_voucher = False
         form.addRow(tr("invoice_label"), self.invoice_combo)
 
         layout.addLayout(form)
@@ -283,6 +285,7 @@ class VoucherDialog(QDialog):
         self.customer_combo.currentIndexChanged.connect(self.update_invoice_list)
         self.supplier_combo.currentIndexChanged.connect(self.update_invoice_list)
         self.payment_method_combo.currentIndexChanged.connect(self.update_payment_visibility)
+        self.invoice_combo.currentIndexChanged.connect(self.update_amount_from_invoice)
 
         if self.is_edit:
             self.load_voucher_data()
@@ -295,6 +298,7 @@ class VoucherDialog(QDialog):
         self.cashbox_combo.setVisible(not is_bank)
 
     def load_voucher_data(self):
+        self._loading_voucher = True
         v = self.voucher
         type_map = {"receipt": 0, "payment": 1, "expense": 2}
         self.type_combo.setCurrentIndex(type_map.get(v['type'], 2))
@@ -329,6 +333,29 @@ class VoucherDialog(QDialog):
             idx = self.invoice_combo.findData(v['invoice_id'])
             if idx >= 0:
                 self.invoice_combo.setCurrentIndex(idx)
+        self._loading_voucher = False
+
+    def _voucher_old_amount_for_invoice(self, invoice_id):
+        if not self.is_edit or not self.voucher:
+            return Decimal('0')
+        if self.voucher.get('invoice_id') != invoice_id:
+            return Decimal('0')
+        try:
+            return Decimal(str(self.voucher.get('amount') or 0))
+        except Exception:
+            return Decimal('0')
+
+    def _add_invoice_option(self, inv):
+        try:
+            inv_id = inv.get('id')
+            remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0))) + self._voucher_old_amount_for_invoice(inv_id)
+        except Exception:
+            remaining = Decimal('0')
+        if remaining <= 0:
+            return
+        self._invoice_remaining_by_id[inv_id] = remaining
+        amount_label = currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))
+        self.invoice_combo.addItem(tr("remaining_invoice_amount", reference=inv.get('reference', inv_id), amount=amount_label), inv_id)
 
     def update_invoice_list(self):
         typ = self.type_combo.currentData() or "expense"
@@ -337,23 +364,48 @@ class VoucherDialog(QDialog):
             entity_id = self.customer_combo.currentData()
         elif typ == "payment":
             entity_id = self.supplier_combo.currentData()
+        self.invoice_combo.blockSignals(True)
+        self.invoice_combo.clear()
+        self._invoice_remaining_by_id = {}
+        self.invoice_combo.addItem(tr("no_invoice"), None)
         if not entity_id:
-            self.invoice_combo.clear()
-            self.invoice_combo.addItem(tr("no_invoice"), None)
+            self.invoice_combo.blockSignals(False)
             return
-        # جلب الفواتير غير المسددة بالكامل (محدودة للعرض)
         invoices = invoice_service.unpaid_invoices(
             inv_type='sale' if typ == "receipt" else 'purchase',
             customer_id=entity_id if typ == "receipt" else None,
             supplier_id=entity_id if typ == "payment" else None,
             limit=100
         )
-        self.invoice_combo.clear()
-        self.invoice_combo.addItem(tr("no_invoice"), None)
+        seen = set()
         for inv in invoices:
-            remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0)))
-            if remaining > 0:
-                self.invoice_combo.addItem(tr("remaining_invoice_amount", reference=inv['reference'], amount=currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))), inv['id'])
+            seen.add(inv.get('id'))
+            self._add_invoice_option(inv)
+        current_invoice_id = self.voucher.get('invoice_id') if self.is_edit and self.voucher else None
+        if current_invoice_id and current_invoice_id not in seen:
+            current = invoice_service.get(current_invoice_id)
+            if current:
+                expected_type = 'sale' if typ == "receipt" else 'purchase'
+                party_ok = (
+                    (typ == "receipt" and current.get('customer_id') == entity_id) or
+                    (typ == "payment" and current.get('supplier_id') == entity_id)
+                )
+                if current.get('type') == expected_type and party_ok:
+                    self._add_invoice_option(current)
+        self.invoice_combo.blockSignals(False)
+        self.update_amount_from_invoice()
+
+    def update_amount_from_invoice(self):
+        if getattr(self, '_loading_voucher', False):
+            return
+        invoice_id = self.invoice_combo.currentData()
+        if not invoice_id:
+            return
+        remaining = self._invoice_remaining_by_id.get(invoice_id)
+        if remaining is None or remaining <= 0:
+            return
+        amount_display = currency.convert(remaining, 'USD', currency.get_display_currency())
+        self.amount_spin.setValue(float(amount_display))
 
     def save(self):
         typ = self.type_combo.currentData() or "expense"

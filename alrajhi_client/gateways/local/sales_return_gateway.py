@@ -178,8 +178,11 @@ class LocalSalesReturnGateway(SalesReturnGateway):
             if base_qty > (sold - already):
                 raise SalesReturnException('كمية المرتجع أكبر من الكمية المتبقية القابلة للإرجاع')
             price = Decimal(str(orig.get('unit_price') or 0))
-            cost_per_display_unit = Decimal(str(orig.get('unit_cost') or price))
-            cost_per_base_unit = cost_per_display_unit / factor
+            # Sales invoices may store unit_cost as the display selling price in legacy rows.
+            # For a sales return, inventory must be re-entered at the original COGS,
+            # derived from invoice_lines.cost_amount / quantity_in_base when available.
+            orig_cost_amount = Decimal(str(orig.get('cost_amount') or 0))
+            cost_per_base_unit = (orig_cost_amount / sold) if sold > 0 and orig_cost_amount > 0 else (Decimal(str(orig.get('unit_cost') or price)) / factor)
             amount = qty * price
             total += amount
             prepared.append({

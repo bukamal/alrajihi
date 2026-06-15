@@ -207,7 +207,12 @@ def _validate_bom_payload(db, data, user_id):
         _validate_positive(line.get('quantity'), 'كمية المكون')
         if _dec(line.get('waste_percent', 0)) < 0:
             raise ValueError('نسبة الهالك لا يمكن أن تكون سالبة')
-        key = (item_id, line.get('unit_id'))
+        unit_id = line.get('unit_id')
+        if unit_id:
+            unit = db.execute("SELECT id FROM item_units WHERE id=? AND item_id=?", (unit_id, item_id)).fetchone()
+            if not unit:
+                raise ValueError('الوحدة المحددة لا تتبع مادة المكون في BOM')
+        key = (item_id, unit_id)
         if key in seen:
             raise ValueError('يوجد مكون مكرر في BOM')
         seen.add(key)
@@ -223,12 +228,22 @@ def _get_bom_for_product(db, product_id, user_id):
                    CAST(COALESCE(u.conversion_factor, 1) AS TEXT) AS conversion_factor
             FROM bom_lines bl
             JOIN items i ON i.id = bl.item_id
-            LEFT JOIN item_units u ON u.id = bl.unit_id
+            LEFT JOIN item_units u ON u.id = bl.unit_id AND u.item_id = bl.item_id
             WHERE bl.bom_id=?
             ORDER BY bl.id
         ''', (bom_id,)).fetchall()
         return {'id': bom_id, 'product_id': bom['product_id'], 'quantity': bom['quantity'], 'lines': [dict(l) for l in lines]}
     return None
+
+def _bom_line_required_base_qty(bom, line, planned_qty):
+    """Return required component quantity in the component base unit."""
+    bom_qty = _validate_positive(bom.get('quantity', 1), 'كمية BOM')
+    line_qty = _validate_positive(line.get('quantity', 0), 'كمية المكون')
+    conversion_factor = _dec(line.get('conversion_factor') or '1')
+    if conversion_factor <= 0:
+        conversion_factor = Decimal('1')
+    waste_factor = Decimal('1') + _dec(line.get('waste_percent', 0))
+    return line_qty * conversion_factor * (_dec(planned_qty) / bom_qty) * waste_factor
 
 def _expand_bom(db, product_id, quantity, user_id, multiplier=Decimal('1'), visited=None):
     if visited is None:
@@ -243,11 +258,11 @@ def _expand_bom(db, product_id, quantity, user_id, multiplier=Decimal('1'), visi
     for line in bom['lines']:
         item_id = line['item_id']
         item = db.execute("SELECT item_type FROM items WHERE id=?", (item_id,)).fetchone()
+        required_qty = _bom_line_required_base_qty(bom, line, quantity)
         if item and item['item_type'] == 'منتج نهائي':
-            sub_items = _expand_bom(db, item_id, Decimal(str(line['quantity'])) * quantity, user_id, multiplier * Decimal(str(line.get('waste_percent', 0))), visited)
+            sub_items = _expand_bom(db, item_id, required_qty, user_id, multiplier, visited)
             result.extend(sub_items)
         else:
-            required_qty = Decimal(str(line['quantity'])) * quantity * (Decimal('1') + Decimal(str(line.get('waste_percent', 0))))
             result.append({
                 'item_id': item_id,
                 'item_name': line.get('item_name', ''),
@@ -309,7 +324,7 @@ def get_bom(bom_id):
                CAST(COALESCE(u.conversion_factor, 1) AS TEXT) AS conversion_factor
         FROM bom_lines bl
         JOIN items i ON i.id = bl.item_id
-        LEFT JOIN item_units u ON u.id = bl.unit_id
+        LEFT JOIN item_units u ON u.id = bl.unit_id AND u.item_id = bl.item_id
         WHERE bl.bom_id=?
         ORDER BY bl.id
     ''', (bom_id,)).fetchall()
@@ -661,7 +676,7 @@ def get_bom_by_product(product_id):
         SELECT bl.*, i.name as item_name, u.unit_name, CAST(COALESCE(u.conversion_factor, 1) AS TEXT) as conversion_factor
         FROM bom_lines bl
         JOIN items i ON i.id=bl.item_id
-        LEFT JOIN item_units u ON u.id=bl.unit_id
+        LEFT JOIN item_units u ON u.id=bl.unit_id AND u.item_id=bl.item_id
         WHERE bl.bom_id=?
     ''', (row['id'],)).fetchall()
     out = dict(bom)

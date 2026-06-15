@@ -2,17 +2,31 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from alrajhi_server.api.audit_utils import audit_log
 from alrajhi_server.database.connection import get_db
-import datetime
 from decimal import Decimal
 
 vouchers_bp = Blueprint('vouchers', __name__)
+
+
+def _dec(value, default='0'):
+    try:
+        return Decimal(str(value if value is not None else default))
+    except Exception:
+        return Decimal(default)
+
+
+def _entity_type(vtype):
+    if vtype == 'receipt':
+        return 'RECEIPT_VOUCHER'
+    if vtype == 'payment':
+        return 'PAYMENT_VOUCHER'
+    return 'EXPENSE_VOUCHER'
 
 
 def _validate_voucher_payload(db, user_id, data, exclude_voucher_id=None):
     vtype = data.get('type')
     if vtype not in ('receipt', 'payment', 'expense'):
         raise ValueError('نوع السند غير صالح')
-    amount = Decimal(str(data.get('amount', 0)))
+    amount = _dec(data.get('amount'))
     if amount <= 0:
         raise ValueError('مبلغ السند يجب أن يكون أكبر من صفر')
     customer_id = data.get('customer_id')
@@ -46,10 +60,62 @@ def _validate_voucher_payload(db, user_id, data, exclude_voucher_id=None):
     if exclude_voucher_id is not None:
         old = db.execute("SELECT * FROM vouchers WHERE id=? AND user_id=?", (exclude_voucher_id, user_id)).fetchone()
         if old and old['invoice_id'] == invoice_id:
-            old_amount = Decimal(str(old['amount']))
-    remaining = Decimal(str(inv['total'])) - (Decimal(str(inv['paid'])) - old_amount)
+            old_amount = _dec(old['amount'])
+    remaining = _dec(inv['total']) - (_dec(inv['paid']) - old_amount)
     if amount > remaining:
         raise ValueError(f'مبلغ السند يتجاوز المتبقي على الفاتورة ({remaining})')
+
+
+def _apply_voucher_effects(db, user_id, voucher):
+    amount = _dec(voucher.get('amount'))
+    if voucher.get('type') == 'receipt':
+        db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS REAL) + ? WHERE id=?", (str(amount), user_id))
+    elif voucher.get('type') in ('payment', 'expense'):
+        db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS REAL) - ? WHERE id=?", (str(amount), user_id))
+    if voucher.get('customer_id'):
+        db.execute("UPDATE customers SET balance = CAST(COALESCE(balance, '0') AS REAL) - ? WHERE id=? AND user_id=?", (str(amount), voucher['customer_id'], user_id))
+    elif voucher.get('supplier_id'):
+        db.execute("UPDATE suppliers SET balance = CAST(COALESCE(balance, '0') AS REAL) - ? WHERE id=? AND user_id=?", (str(amount), voucher['supplier_id'], user_id))
+    if voucher.get('invoice_id'):
+        db.execute("UPDATE invoices SET paid = CAST(COALESCE(paid, '0') AS REAL) + ? WHERE id=? AND user_id=?", (str(amount), voucher['invoice_id'], user_id))
+
+
+def _reverse_voucher_effects(db, user_id, voucher):
+    amount = _dec(voucher.get('amount'))
+    if voucher.get('type') == 'receipt':
+        db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS REAL) - ? WHERE id=?", (str(amount), user_id))
+    elif voucher.get('type') in ('payment', 'expense'):
+        db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS REAL) + ? WHERE id=?", (str(amount), user_id))
+    if voucher.get('customer_id'):
+        db.execute("UPDATE customers SET balance = CAST(COALESCE(balance, '0') AS REAL) + ? WHERE id=? AND user_id=?", (str(amount), voucher['customer_id'], user_id))
+    elif voucher.get('supplier_id'):
+        db.execute("UPDATE suppliers SET balance = CAST(COALESCE(balance, '0') AS REAL) + ? WHERE id=? AND user_id=?", (str(amount), voucher['supplier_id'], user_id))
+    if voucher.get('invoice_id'):
+        db.execute("UPDATE invoices SET paid = CAST(COALESCE(paid, '0') AS REAL) - ? WHERE id=? AND user_id=?", (str(amount), voucher['invoice_id'], user_id))
+
+
+def _record_voucher_movement(db, user_id, voucher_id, voucher):
+    db.execute("DELETE FROM cash_bank_movements WHERE user_id=? AND reference_type='voucher' AND reference_id=?", (user_id, voucher_id))
+    amount = _dec(voucher.get('amount'))
+    signed = abs(amount) if voucher.get('type') == 'receipt' else -abs(amount)
+    db.execute('''
+        INSERT INTO cash_bank_movements
+        (user_id, branch_id, cashbox_id, bank_account_id, movement_type, amount, direction, reference_type, reference_id, description, movement_date, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,datetime('now'))
+    ''', (
+        user_id, voucher.get('branch_id'), voucher.get('cashbox_id'), voucher.get('bank_account_id'), voucher.get('type'),
+        str(signed), 'in' if signed >= 0 else 'out', 'voucher', voucher_id,
+        voucher.get('description') or voucher.get('reference') or 'سند مالي', voucher.get('date')
+    ))
+
+
+def _delete_voucher_movement(db, user_id, voucher_id):
+    db.execute("DELETE FROM cash_bank_movements WHERE user_id=? AND reference_type='voucher' AND reference_id=?", (user_id, voucher_id))
+
+
+def _row_to_dict(row):
+    return dict(row) if row else None
+
 
 @vouchers_bp.route('/vouchers', methods=['GET'])
 @jwt_required()
@@ -59,17 +125,24 @@ def get_vouchers():
     limit = request.args.get('limit', type=int)
     offset = request.args.get('offset', type=int)
     db = get_db()
-    query = "SELECT * FROM vouchers WHERE user_id = ?"
+    query = """
+        SELECT v.*, b.name AS branch_name, c.name AS cashbox_name, ba.bank_name AS bank_name, ba.account_name AS bank_account_name
+        FROM vouchers v
+        LEFT JOIN branches b ON b.id=v.branch_id
+        LEFT JOIN cashboxes c ON c.id=v.cashbox_id
+        LEFT JOIN bank_accounts ba ON ba.id=v.bank_account_id
+        WHERE v.user_id = ?
+    """
     count_query = "SELECT COUNT(*) FROM vouchers WHERE user_id = ?"
     params = [user_id]
     count_params = [user_id]
     if vtype in ('receipt', 'payment', 'expense'):
-        query += " AND type = ?"
+        query += " AND v.type = ?"
         count_query += " AND type = ?"
         params.append(vtype)
         count_params.append(vtype)
     total = db.execute(count_query, count_params).fetchone()[0]
-    query += " ORDER BY id DESC"
+    query += " ORDER BY v.id DESC"
     if limit is not None:
         query += " LIMIT ?"
         params.append(limit)
@@ -78,6 +151,7 @@ def get_vouchers():
         params.append(offset)
     rows = db.execute(query, params).fetchall()
     return jsonify({'vouchers': [dict(row) for row in rows], 'total': total})
+
 
 @vouchers_bp.route('/vouchers/<int:voucher_id>', methods=['GET'])
 @jwt_required()
@@ -89,11 +163,12 @@ def get_voucher(voucher_id):
         return jsonify({'error': 'Not found'}), 404
     return jsonify(dict(row))
 
+
 @vouchers_bp.route('/vouchers', methods=['POST'])
 @jwt_required()
 def add_voucher():
     user_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.get_json() or {}
     db = get_db()
     try:
         _validate_voucher_payload(db, user_id, data)
@@ -102,96 +177,66 @@ def add_voucher():
     db.execute("BEGIN TRANSACTION")
     try:
         cursor = db.execute('''
-            INSERT INTO vouchers (user_id, type, date, amount, description, reference, customer_id, supplier_id, invoice_id, exchange_rate_to_usd, original_currency)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO vouchers
+            (user_id, type, date, amount, description, reference, customer_id, supplier_id, invoice_id,
+             exchange_rate_to_usd, original_currency, branch_id, cashbox_id, bank_account_id, payment_method)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ''', (
             user_id, data['type'], data['date'], str(data['amount']),
             data.get('description', ''), data.get('reference', ''),
             data.get('customer_id'), data.get('supplier_id'), data.get('invoice_id'),
-            data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD')
+            data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'), data.get('branch_id'),
+            data.get('cashbox_id'), data.get('bank_account_id'), data.get('payment_method', 'cash')
         ))
         voucher_id = cursor.lastrowid
-        amount = Decimal(str(data['amount']))
-        # تحديث رصيد الصندوق
-        if data['type'] == 'receipt':
-            db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS TEXT) + ? WHERE id=?", (str(amount), user_id))
-        elif data['type'] in ('payment', 'expense'):
-            db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS TEXT) - ? WHERE id=?", (str(amount), user_id))
-        # تحديث رصيد العميل/المورد
-        if data.get('customer_id'):
-            db.execute("UPDATE customers SET balance = CAST(COALESCE(balance, '0') AS TEXT) - ? WHERE id=?", (str(amount), data['customer_id']))
-        elif data.get('supplier_id'):
-            db.execute("UPDATE suppliers SET balance = CAST(COALESCE(balance, '0') AS TEXT) - ? WHERE id=?", (str(amount), data['supplier_id']))
-        # تحديث المدفوع في الفاتورة
-        if data.get('invoice_id'):
-            db.execute("UPDATE invoices SET paid = CAST(paid AS REAL) + ? WHERE id=?", (str(amount), data['invoice_id']))
-            db.execute("UPDATE invoices SET paid = MAX(paid, 0) WHERE id=?", (data['invoice_id'],))
-        audit_log('CREATE', 'RECEIPT_VOUCHER' if data.get('type') == 'receipt' else 'PAYMENT_VOUCHER' if data.get('type') == 'payment' else 'EXPENSE_VOUCHER', voucher_id, new_values=data, details='إنشاء سند')
+        _apply_voucher_effects(db, user_id, data)
+        _record_voucher_movement(db, user_id, voucher_id, data)
+        audit_log('CREATE', _entity_type(data.get('type')), voucher_id, new_values=data, details='إنشاء سند')
         db.execute("COMMIT")
         return jsonify({'id': voucher_id}), 201
     except Exception as e:
         db.execute("ROLLBACK")
         return jsonify({'error': str(e)}), 500
 
+
 @vouchers_bp.route('/vouchers/<int:voucher_id>', methods=['PUT'])
 @jwt_required()
 def update_voucher(voucher_id):
-    # حذف القديم وإضافة الجديد (للبساطة)
     user_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.get_json() or {}
     db = get_db()
+    try:
+        _validate_voucher_payload(db, user_id, data, exclude_voucher_id=voucher_id)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
     db.execute("BEGIN TRANSACTION")
     try:
-        # حذف السند القديم وعكس آثاره
-        old = db.execute("SELECT * FROM vouchers WHERE id=? AND user_id=?", (voucher_id, user_id)).fetchone()
-        if not old:
+        old_row = db.execute("SELECT * FROM vouchers WHERE id=? AND user_id=?", (voucher_id, user_id)).fetchone()
+        if not old_row:
             db.execute("ROLLBACK")
             return jsonify({'error': 'Not found'}), 404
-        try:
-            _validate_voucher_payload(db, user_id, data, exclude_voucher_id=voucher_id)
-        except ValueError as e:
-            db.execute("ROLLBACK")
-            return jsonify({'error': str(e)}), 400
-        old_amount = Decimal(str(old['amount']))
-        if old['type'] == 'receipt':
-            db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS TEXT) - ? WHERE id=?", (str(old_amount), user_id))
-        elif old['type'] in ('payment', 'expense'):
-            db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS TEXT) + ? WHERE id=?", (str(old_amount), user_id))
-        if old.get('customer_id'):
-            db.execute("UPDATE customers SET balance = CAST(COALESCE(balance, '0') AS TEXT) + ? WHERE id=?", (str(old_amount), old['customer_id']))
-        elif old.get('supplier_id'):
-            db.execute("UPDATE suppliers SET balance = CAST(COALESCE(balance, '0') AS TEXT) + ? WHERE id=?", (str(old_amount), old['supplier_id']))
-        if old.get('invoice_id'):
-            db.execute("UPDATE invoices SET paid = CAST(paid AS REAL) - ? WHERE id=?", (str(old_amount), old['invoice_id']))
-        db.execute("DELETE FROM vouchers WHERE id=? AND user_id=?", (voucher_id, user_id))
-        # إضافة الجديد (مع تغيير البيانات)
-        cursor = db.execute('''
-            INSERT INTO vouchers (user_id, type, date, amount, description, reference, customer_id, supplier_id, invoice_id, exchange_rate_to_usd, original_currency)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        old = dict(old_row)
+        _reverse_voucher_effects(db, user_id, old)
+        db.execute('''
+            UPDATE vouchers
+            SET type=?, date=?, amount=?, description=?, reference=?, customer_id=?, supplier_id=?, invoice_id=?,
+                exchange_rate_to_usd=?, original_currency=?, branch_id=?, cashbox_id=?, bank_account_id=?, payment_method=?
+            WHERE id=? AND user_id=?
         ''', (
-            user_id, data['type'], data['date'], str(data['amount']),
-            data.get('description', ''), data.get('reference', ''),
+            data['type'], data['date'], str(data['amount']), data.get('description', ''), data.get('reference', ''),
             data.get('customer_id'), data.get('supplier_id'), data.get('invoice_id'),
-            data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD')
+            data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'), data.get('branch_id'),
+            data.get('cashbox_id'), data.get('bank_account_id'), data.get('payment_method', 'cash'), voucher_id, user_id
         ))
-        new_voucher_id = cursor.lastrowid
-        new_amount = Decimal(str(data['amount']))
-        if data['type'] == 'receipt':
-            db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS TEXT) + ? WHERE id=?", (str(new_amount), user_id))
-        elif data['type'] in ('payment', 'expense'):
-            db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS TEXT) - ? WHERE id=?", (str(new_amount), user_id))
-        if data.get('customer_id'):
-            db.execute("UPDATE customers SET balance = CAST(COALESCE(balance, '0') AS TEXT) - ? WHERE id=?", (str(new_amount), data['customer_id']))
-        elif data.get('supplier_id'):
-            db.execute("UPDATE suppliers SET balance = CAST(COALESCE(balance, '0') AS TEXT) - ? WHERE id=?", (str(new_amount), data['supplier_id']))
-        if data.get('invoice_id'):
-            db.execute("UPDATE invoices SET paid = CAST(paid AS REAL) + ? WHERE id=?", (str(new_amount), data['invoice_id']))
-        audit_log('UPDATE', 'RECEIPT_VOUCHER' if data.get('type') == 'receipt' else 'PAYMENT_VOUCHER' if data.get('type') == 'payment' else 'EXPENSE_VOUCHER', new_voucher_id, old_values=dict(old), new_values=data, details='تعديل سند')
+        _apply_voucher_effects(db, user_id, data)
+        _record_voucher_movement(db, user_id, voucher_id, data)
+        audit_log('UPDATE', _entity_type(data.get('type')), voucher_id, old_values=old, new_values=data, details='تعديل سند')
         db.execute("COMMIT")
-        return jsonify({'id': new_voucher_id}), 200
+        return jsonify({'id': voucher_id}), 200
     except Exception as e:
         db.execute("ROLLBACK")
         return jsonify({'error': str(e)}), 500
+
 
 @vouchers_bp.route('/vouchers/<int:voucher_id>', methods=['DELETE'])
 @jwt_required()
@@ -200,26 +245,17 @@ def delete_voucher(voucher_id):
     db = get_db()
     db.execute("BEGIN TRANSACTION")
     try:
-        old = db.execute("SELECT * FROM vouchers WHERE id=? AND user_id=?", (voucher_id, user_id)).fetchone()
-        if not old:
+        old_row = db.execute("SELECT * FROM vouchers WHERE id=? AND user_id=?", (voucher_id, user_id)).fetchone()
+        if not old_row:
+            db.execute("ROLLBACK")
             return jsonify({'error': 'Not found'}), 404
-        amount = Decimal(str(old['amount']))
-        if old['type'] == 'receipt':
-            db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS TEXT) - ? WHERE id=?", (str(amount), user_id))
-        elif old['type'] in ('payment', 'expense'):
-            db.execute("UPDATE users SET cash_balance = CAST(COALESCE(cash_balance, '0') AS TEXT) + ? WHERE id=?", (str(amount), user_id))
-        if old.get('customer_id'):
-            db.execute("UPDATE customers SET balance = CAST(COALESCE(balance, '0') AS TEXT) + ? WHERE id=?", (str(amount), old['customer_id']))
-        elif old.get('supplier_id'):
-            db.execute("UPDATE suppliers SET balance = CAST(COALESCE(balance, '0') AS TEXT) + ? WHERE id=?", (str(amount), old['supplier_id']))
-        if old.get('invoice_id'):
-            db.execute("UPDATE invoices SET paid = CAST(paid AS REAL) - ? WHERE id=?", (str(amount), old['invoice_id']))
+        old = dict(old_row)
+        _reverse_voucher_effects(db, user_id, old)
+        _delete_voucher_movement(db, user_id, voucher_id)
         db.execute("DELETE FROM vouchers WHERE id=? AND user_id=?", (voucher_id, user_id))
-        audit_log('DELETE', 'RECEIPT_VOUCHER' if old['type'] == 'receipt' else 'PAYMENT_VOUCHER' if old['type'] == 'payment' else 'EXPENSE_VOUCHER', voucher_id, old_values=dict(old), details='حذف سند')
+        audit_log('DELETE', _entity_type(old.get('type')), voucher_id, old_values=old, details='حذف سند')
         db.execute("COMMIT")
         return jsonify({'status': 'ok'})
     except Exception as e:
         db.execute("ROLLBACK")
         return jsonify({'error': str(e)}), 500
-
-
