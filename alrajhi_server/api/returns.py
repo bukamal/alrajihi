@@ -19,6 +19,14 @@ def _dec(value, default='0'):
         return Decimal(str(default))
 
 
+def _fmt_dec(value):
+    """Return a plain decimal string for API/UI quantities, never scientific notation."""
+    d = _dec(value)
+    if d == d.to_integral():
+        return format(d.quantize(Decimal('1')), 'f')
+    return format(d.normalize(), 'f')
+
+
 def _next_no(db, table, user_id, prefix):
     year = datetime.datetime.now().strftime('%Y')
     full_prefix = f'{prefix}-{year}-'
@@ -199,7 +207,15 @@ def _invoice(db, invoice_id, user_id, inv_type):
 
 
 def _invoice_lines(db, invoice_id):
-    return [dict(r) for r in db.execute("SELECT * FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()]
+    return [dict(r) for r in db.execute("""
+        SELECT il.*,
+               COALESCE(NULLIF(il.description, ''), it.name, CAST(il.item_id AS TEXT)) AS description,
+               it.name AS item_name
+        FROM invoice_lines il
+        LEFT JOIN items it ON it.id = il.item_id
+        WHERE il.invoice_id=?
+        ORDER BY il.id
+    """, (invoice_id,)).fetchall()]
 
 
 def _returned_qty(db, kind, invoice_id, line_id=None, item_id=None):
@@ -377,10 +393,10 @@ def sales_returnable_lines(invoice_id):
         returned_base = _returned_qty(db, 'sales', invoice_id, line.get('id'), line.get('item_id'))
         remaining_base = max(Decimal('0'), sold_base - returned_base)
         row = dict(line)
-        row.update({'sold_qty': str(sold_base / factor), 'returned_qty': str(returned_base / factor),
-                    'returnable_qty': str(remaining_base / factor), 'sold_qty_base': str(sold_base),
-                    'returned_qty_base': str(returned_base), 'returnable_qty_base': str(remaining_base),
-                    'conversion_factor': str(factor)})
+        row.update({'sold_qty': _fmt_dec(sold_base / factor), 'returned_qty': _fmt_dec(returned_base / factor),
+                    'returnable_qty': _fmt_dec(remaining_base / factor), 'sold_qty_base': _fmt_dec(sold_base),
+                    'returned_qty_base': _fmt_dec(returned_base), 'returnable_qty_base': _fmt_dec(remaining_base),
+                    'conversion_factor': _fmt_dec(factor)})
         result.append(row)
     return jsonify({'lines': result})
 
@@ -402,10 +418,10 @@ def purchase_returnable_lines(invoice_id):
         returned_base = _returned_qty(db, 'purchase', invoice_id, line.get('id'), line.get('item_id'))
         remaining_base = max(Decimal('0'), purchased_base - returned_base)
         row = dict(line)
-        row.update({'purchased_qty': str(purchased_base / factor), 'returned_qty': str(returned_base / factor),
-                    'returnable_qty': str(remaining_base / factor), 'purchased_qty_base': str(purchased_base),
-                    'returned_qty_base': str(returned_base), 'returnable_qty_base': str(remaining_base),
-                    'conversion_factor': str(factor)})
+        row.update({'purchased_qty': _fmt_dec(purchased_base / factor), 'returned_qty': _fmt_dec(returned_base / factor),
+                    'returnable_qty': _fmt_dec(remaining_base / factor), 'purchased_qty_base': _fmt_dec(purchased_base),
+                    'returned_qty_base': _fmt_dec(returned_base), 'returnable_qty_base': _fmt_dec(remaining_base),
+                    'conversion_factor': _fmt_dec(factor)})
         result.append(row)
     return jsonify({'lines': result})
 

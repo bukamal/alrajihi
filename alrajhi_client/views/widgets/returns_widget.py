@@ -17,6 +17,32 @@ from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
 
 
+def _usd_to_display_amount(value):
+    return Decimal(str(currency.convert(Decimal(str(value or 0)), 'USD', currency.get_display_currency())))
+
+
+def _display_to_usd_amount(value):
+    return Decimal(str(currency.convert(Decimal(str(value or 0)), currency.get_display_currency(), 'USD')))
+
+
+def _display_number(value):
+    amount = Decimal(str(value or 0))
+    return f"{amount:.2f}".rstrip('0').rstrip('.')
+
+
+def _plain_number(value):
+    """Format quantities without scientific notation, e.g. 1E+1 -> 10."""
+    amount = Decimal(str(value or 0))
+    if amount == amount.to_integral():
+        return format(amount.quantize(Decimal('1')), 'f')
+    return format(amount.normalize(), 'f')
+
+
+def _return_item_name(line):
+    return (line.get('description') or line.get('item_name') or line.get('name')
+            or line.get('item_name_ar') or str(line.get('item_id') or ''))
+
+
 class SalesReturnDialog(CenteredDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -147,7 +173,8 @@ class SalesReturnDialog(CenteredDialog):
             row = self.lines_table.rowCount()
             self.lines_table.insertRow(row)
             self.line_rows.append(line)
-            vals = [line.get('description') or str(line.get('item_id')), line.get('sold_qty','0'), line.get('returned_qty','0'), line.get('returnable_qty','0'), '0', line.get('unit_price','0')]
+            display_price = _usd_to_display_amount(line.get('unit_price') or 0)
+            vals = [_return_item_name(line), _plain_number(line.get('sold_qty','0')), _plain_number(line.get('returned_qty','0')), _plain_number(line.get('returnable_qty','0')), '0', _display_number(display_price)]
             for col, val in enumerate(vals):
                 item = QTableWidgetItem(str(val))
                 if col != 4:
@@ -167,7 +194,8 @@ class SalesReturnDialog(CenteredDialog):
         for row, line in enumerate(self.line_rows):
             try:
                 qty = Decimal(str(self.lines_table.item(row, 4).text() or 0))
-                total += max(Decimal('0'), qty) * Decimal(str(line.get('unit_price') or 0))
+                unit_price_display = _usd_to_display_amount(line.get('unit_price') or 0)
+                total += max(Decimal('0'), qty) * unit_price_display
             except Exception:
                 pass
         self.refund_spin.setMaximum(float(total))
@@ -197,7 +225,7 @@ class SalesReturnDialog(CenteredDialog):
                 'original_invoice_id': self.invoice_combo.currentData(),
                 'date': self.date_edit.date().toString('yyyy-MM-dd'),
                 'warehouse_id': self.warehouse_combo.currentData(),
-                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(self.refund_spin.value()),
+                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(_display_to_usd_amount(self.refund_spin.value())),
                 'payment_method': self.payment_method_combo.currentData(),
                 'cashbox_id': self.cashbox_combo.currentData(),
                 'bank_account_id': self.bank_combo.currentData(),
@@ -494,7 +522,8 @@ class PurchaseReturnDialog(CenteredDialog):
             row = self.lines_table.rowCount()
             self.lines_table.insertRow(row)
             self.line_rows.append(line)
-            vals = [line.get('description') or str(line.get('item_id')), line.get('purchased_qty','0'), line.get('returned_qty','0'), line.get('returnable_qty','0'), '0', line.get('unit_price','0')]
+            display_price = _usd_to_display_amount(line.get('unit_price') or 0)
+            vals = [_return_item_name(line), _plain_number(line.get('purchased_qty','0')), _plain_number(line.get('returned_qty','0')), _plain_number(line.get('returnable_qty','0')), '0', _display_number(display_price)]
             for col, val in enumerate(vals):
                 item = QTableWidgetItem(str(val))
                 if col != 4:
@@ -514,7 +543,8 @@ class PurchaseReturnDialog(CenteredDialog):
         for row, line in enumerate(self.line_rows):
             try:
                 qty = Decimal(str(self.lines_table.item(row, 4).text() or 0))
-                total += max(Decimal('0'), qty) * Decimal(str(line.get('unit_price') or 0))
+                unit_price_display = _usd_to_display_amount(line.get('unit_price') or 0)
+                total += max(Decimal('0'), qty) * unit_price_display
             except Exception:
                 pass
         self.refund_spin.setMaximum(float(total))
@@ -544,7 +574,7 @@ class PurchaseReturnDialog(CenteredDialog):
                 'original_invoice_id': self.invoice_combo.currentData(),
                 'date': self.date_edit.date().toString('yyyy-MM-dd'),
                 'warehouse_id': self.warehouse_combo.currentData(),
-                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(self.refund_spin.value()),
+                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(_display_to_usd_amount(self.refund_spin.value())),
                 'payment_method': self.payment_method_combo.currentData(),
                 'cashbox_id': self.cashbox_combo.currentData(),
                 'bank_account_id': self.bank_combo.currentData(),
