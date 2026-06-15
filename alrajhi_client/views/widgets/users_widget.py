@@ -10,7 +10,10 @@ from views.dialogs.change_password_dialog import ChangePasswordDialog
 from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
 from core.services.branch_service import branch_service
-from alrajhi_client.i18n import translate  # Phase110 explicit package import for localization guard
+try:
+    from alrajhi_client.i18n import translate
+except ModuleNotFoundError:
+    from i18n import translate
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
 

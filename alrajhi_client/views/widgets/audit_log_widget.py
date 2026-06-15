@@ -10,7 +10,10 @@ from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
 
-from alrajhi_client.i18n import translate  # Phase110 explicit package import for localization guard
+try:
+    from alrajhi_client.i18n import translate
+except ModuleNotFoundError:
+    from i18n import translate
 class AuditLogWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)

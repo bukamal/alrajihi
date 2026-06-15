@@ -317,8 +317,7 @@ def base_document(title: str, body_html: str, paper: str = "a4", settings: Optio
     settings = settings or _settings()
     spec = _paper_spec(paper, settings)
     lang = _document_language()
-    # Phase110: branded printable output is normalized to LTR for stable browser/PDF layout.
-    doc_dir = 'ltr'
+    doc_dir = _document_direction()
     text_align = 'right' if doc_dir == 'rtl' else 'left'
     opposite_align = 'left' if doc_dir == 'rtl' else 'right'
     accent = _accent(settings)
@@ -328,14 +327,14 @@ def base_document(title: str, body_html: str, paper: str = "a4", settings: Optio
 
     # Use table-based layout because Qt QTextDocument renders it more reliably than flex/grid in PDF.
     return f"""<!DOCTYPE html>
-<html dir='ltr' lang='{lang}'>
+<html dir='{doc_dir}' lang='{lang}'>
 <head>
 <meta charset='utf-8'>
 <title>{_s(title)}</title>
 <style>
 @page {{ size: {spec['page']}; margin: {spec['margin']}; }}
 * {{ box-sizing: border-box; }}
-html, body {{ margin: 0; padding: 0; background: #ffffff; color: #111827; direction: ltr; }}
+html, body {{ margin: 0; padding: 0; background: #ffffff; color: #111827; direction: {doc_dir}; }}
 body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45; }}
 .sheet {{ width: {spec['width']}; margin: 0 auto; }}
 .brand-table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; border-bottom: 3px solid {accent}; }}
