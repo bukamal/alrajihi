@@ -92,7 +92,15 @@ class UsersWidget(QWidget):
         users = users[offset:offset + self.page_size]
         data = []
         for u in users:
-            role_text = translate('role_admin') if u.get('role') == 'admin' else translate('role_user') if u.get('role') == 'user' else translate('role_viewer')
+            role_keys = {
+                'admin': 'role_admin',
+                'manager': 'role_manager',
+                'accountant': 'role_accountant',
+                'cashier': 'role_cashier',
+                'viewer': 'role_viewer',
+                'user': 'role_user',
+            }
+            role_text = translate(role_keys.get(str(u.get('role') or 'user').lower(), 'role_user'))
             data.append({
                 'id': u.get('id'),
                 'username': u.get('username'),
@@ -158,7 +166,16 @@ class UserDialog(QDialog):
         form.addRow(translate('full_name_label'), self.fullname_edit)
 
         self.role_combo = QComboBox()
-        self.role_combo.addItems([translate('role_admin'), translate('role_user'), translate('role_viewer')])
+        self.role_values = ['admin', 'manager', 'accountant', 'cashier', 'viewer']
+        self.role_labels = {
+            'admin': translate('role_admin'),
+            'manager': translate('role_manager'),
+            'accountant': translate('role_accountant'),
+            'cashier': translate('role_cashier'),
+            'viewer': translate('role_viewer'),
+        }
+        for role in self.role_values:
+            self.role_combo.addItem(self.role_labels[role], role)
         form.addRow(translate('role_label'), self.role_combo)
 
         self.branch_combo = QComboBox()
@@ -210,16 +227,18 @@ class UserDialog(QDialog):
                 if str(self.branch_combo.itemData(i)) == str(branch_id):
                     self.branch_combo.setCurrentIndex(i)
                     break
-            role_map = {'admin': 0, 'user': 1, 'viewer': 2}
-            self.role_combo.setCurrentIndex(role_map.get(user.get('role', 'user'), 1))
+            role = str(user.get('role', 'viewer') or 'viewer').lower()
+            if role == 'user':
+                role = 'viewer'
+            idx = self.role_values.index(role) if role in self.role_values else self.role_values.index('viewer')
+            self.role_combo.setCurrentIndex(idx)
 
     def save(self):
         username = self.username_edit.text().strip()
         if not username:
             QMessageBox.warning(self, translate('error'), translate('username_required'))
             return
-        role_map = {0: 'admin', 1: 'user', 2: 'viewer'}
-        role = role_map[self.role_combo.currentIndex()]
+        role = self.role_combo.currentData() or 'viewer'
         if not self.user_id:
             password = self.password_edit.text()
             confirm = self.confirm_edit.text()

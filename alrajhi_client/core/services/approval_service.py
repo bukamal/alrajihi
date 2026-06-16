@@ -63,6 +63,11 @@ class ApprovalService:
             VALUES ('INVOICE', ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?)
         """, (invoice['id'], str(invoice.get('total', 0)), str(self._threshold(invoice.get('type'))), username, now, now, now, notes or ''))
         conn.commit()
+        try:
+            from core.services.advanced_approval_service import advanced_approval_service
+            advanced_approval_service.ensure_steps_for_request(int(cur.lastrowid), 'INVOICE', invoice.get('type'), invoice.get('total'))
+        except Exception:
+            pass
         audit_service.log('REQUEST_APPROVAL', 'INVOICE', invoice['id'], new_values={'approval_status':'PENDING'}, details=notes or 'طلب اعتماد فاتورة')
         return int(cur.lastrowid)
     def assert_can_approve_invoice(self, invoice: Dict[str, Any]) -> None:
@@ -84,6 +89,19 @@ class ApprovalService:
     def approve_invoice(self, invoice: Dict[str, Any], notes: str = '') -> None:
         self.assert_can_approve_invoice(invoice)
         if not self.requires_approval(invoice): return
+        try:
+            from core.services.advanced_approval_service import advanced_approval_service
+            req_id = self.ensure_invoice_request(invoice, notes)
+            if req_id:
+                advanced_approval_service.ensure_steps_for_request(req_id, 'INVOICE', invoice.get('type'), invoice.get('total'))
+                step = advanced_approval_service.pending_step(req_id)
+                if step:
+                    advanced_approval_service.approve_current_step(req_id, notes)
+                    return
+        except PermissionError:
+            raise
+        except Exception:
+            pass
         db = self._db()
         if db.is_remote(): return
         conn = db.get_connection(); self.ensure_schema(conn); self.ensure_invoice_request(invoice, notes)

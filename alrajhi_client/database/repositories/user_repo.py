@@ -52,7 +52,12 @@ class UserRepository(BaseRepository):
                 'role': role,
                 'branch_id': branch_id
             }
-            return str(self.db.get_rest_client().add_user(data))
+            user_id = str(self.db.get_rest_client().add_user(data))
+            try:
+                self.db.get_rest_client().set_user_roles(user_id, [role])
+            except Exception:
+                pass
+            return user_id
         else:
             pwd_hash, salt = hash_password(password)
             now = datetime.datetime.now().isoformat()
@@ -62,6 +67,7 @@ class UserRepository(BaseRepository):
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''', (user_id, username, pwd_hash, salt, full_name, role, branch_id, now))
             self._commit()
+            self._sync_rbac_role(user_id, role, branch_id)
             current = UserSession.get_current()
             if current:
                 self.db._log_audit_local(
@@ -76,9 +82,14 @@ class UserRepository(BaseRepository):
         if self.db.is_remote():
             data = {'full_name': full_name, 'role': role, 'branch_id': branch_id}
             self.db.get_rest_client().update_user(int(user_id), data)
+            try:
+                self.db.get_rest_client().set_user_roles(str(user_id), [role])
+            except Exception:
+                pass
         else:
             self._execute('UPDATE users SET full_name=?, role=?, branch_id=? WHERE id=?', (full_name, role, branch_id, user_id))
             self._commit()
+            self._sync_rbac_role(user_id, role, branch_id)
             current = UserSession.get_current()
             if current:
                 self.db._log_audit_local(
@@ -87,6 +98,22 @@ class UserRepository(BaseRepository):
                     "تعديل مستخدم",
                     'users', user_id, f"الاسم: {full_name}, صلاحية: {role}"
                 )
+
+    def _sync_rbac_role(self, user_id: str, role: str, branch_id=None):
+        """Keep legacy users.role, user_roles, and user_branch_access aligned."""
+        try:
+            conn = self.db.get_connection()
+            role_name = str(role or 'viewer').lower()
+            row = conn.execute('SELECT id FROM roles WHERE name=?', (role_name,)).fetchone()
+            if row:
+                conn.execute('DELETE FROM user_roles WHERE user_id=?', (str(user_id),))
+                conn.execute('INSERT OR IGNORE INTO user_roles(user_id, role_id, branch_id) VALUES (?,?,?)', (str(user_id), row['id'], branch_id))
+            if branch_id is not None:
+                conn.execute('DELETE FROM user_branch_access WHERE user_id=?', (str(user_id),))
+                conn.execute('INSERT OR IGNORE INTO user_branch_access(user_id, branch_id) VALUES (?,?)', (str(user_id), branch_id))
+            conn.commit()
+        except Exception:
+            pass
 
     def change_password(self, user_id: str, old_password: str, new_password: str) -> bool:
         if self.db.is_remote():

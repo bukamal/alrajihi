@@ -477,29 +477,40 @@ def init_database():
     if 'updated_at' not in settings_columns:
         cursor.execute("ALTER TABLE settings ADD COLUMN updated_at TEXT")
 
+    # Production-readiness: normalize legacy columns before indexes/default data.
+    apply_common_schema(conn)
+
     # فهارس
-    cursor.executescript('''
-
-        CREATE INDEX IF NOT EXISTS idx_wh_user ON warehouses(user_id);
-        CREATE INDEX IF NOT EXISTS idx_wh_bal_item ON item_warehouse_balances(item_id);
-        CREATE INDEX IF NOT EXISTS idx_wh_bal_wh ON item_warehouse_balances(warehouse_id);
-        CREATE INDEX IF NOT EXISTS idx_wh_mov_item ON warehouse_movements(item_id);
-        CREATE INDEX IF NOT EXISTS idx_wh_mov_wh ON warehouse_movements(warehouse_id);
-        CREATE INDEX IF NOT EXISTS idx_items_barcode ON items(barcode) WHERE barcode IS NOT NULL;
-        CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id);
-        CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(date);
-
-        CREATE INDEX IF NOT EXISTS idx_inventory_ledger_user_item ON inventory_ledger(user_id, item_id);
-        CREATE INDEX IF NOT EXISTS idx_inventory_ledger_item_date ON inventory_ledger(item_id, movement_date);
-        CREATE INDEX IF NOT EXISTS idx_inventory_ledger_ref ON inventory_ledger(reference_type, reference_id);
-        CREATE INDEX IF NOT EXISTS idx_production_orders_product_id ON production_orders(product_id);
-        CREATE INDEX IF NOT EXISTS idx_bom_product_id ON bom(product_id);
-        CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id);
-        CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp);
-        CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log(entity_type, entity_id);
-        CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action);
-        CREATE INDEX IF NOT EXISTS idx_exch_rate_hist_currency_date ON exchange_rate_history(currency_code, effective_date);
-    ''')
+    for _idx_sql in [
+        'CREATE INDEX IF NOT EXISTS idx_wh_user ON warehouses(user_id);',
+        'CREATE INDEX IF NOT EXISTS idx_wh_bal_item ON item_warehouse_balances(item_id);',
+        'CREATE INDEX IF NOT EXISTS idx_wh_bal_wh ON item_warehouse_balances(warehouse_id);',
+        'CREATE INDEX IF NOT EXISTS idx_wh_mov_item ON warehouse_movements(item_id);',
+        'CREATE INDEX IF NOT EXISTS idx_wh_mov_wh ON warehouse_movements(warehouse_id);',
+        'CREATE INDEX IF NOT EXISTS idx_items_barcode ON items(barcode) WHERE barcode IS NOT NULL;',
+        'CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON invoices(user_id);',
+        'CREATE INDEX IF NOT EXISTS idx_invoices_date ON invoices(date);',
+        'CREATE INDEX IF NOT EXISTS idx_inventory_ledger_user_item ON inventory_ledger(user_id, item_id);',
+        'CREATE INDEX IF NOT EXISTS idx_inventory_ledger_item_date ON inventory_ledger(item_id, movement_date);',
+        'CREATE INDEX IF NOT EXISTS idx_inventory_ledger_ref ON inventory_ledger(reference_type, reference_id);',
+        'CREATE INDEX IF NOT EXISTS idx_production_orders_product_id ON production_orders(product_id);',
+        'CREATE INDEX IF NOT EXISTS idx_bom_product_id ON bom(product_id);',
+        'CREATE INDEX IF NOT EXISTS idx_audit_log_user ON audit_log(user_id);',
+        'CREATE INDEX IF NOT EXISTS idx_audit_log_timestamp ON audit_log(timestamp);',
+        'CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log(entity_type, entity_id);',
+        'CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action);',
+        'CREATE INDEX IF NOT EXISTS idx_exch_rate_hist_currency_date ON exchange_rate_history(currency_code, effective_date);'
+    ]:
+        try:
+            cursor.execute(_idx_sql)
+        except sqlite3.OperationalError as exc:
+            # Production-readiness hotfix: old databases may have legacy tables
+            # without newer indexed columns. Index creation must never block
+            # schema upgrade; later migrations add/normalize missing columns.
+            msg = str(exc).lower()
+            if 'no such column' in msg or 'no such table' in msg:
+                continue
+            raise
 
     # إعدادات افتراضية
     cursor.executescript('''
@@ -761,6 +772,29 @@ def init_database():
     """)
 
     # Phase157: Enterprise RBAC tables and default policies
+
+    # Phase158/159 hardening: old databases may already have shallow RBAC tables.
+    def _table_exists_local(name):
+        cursor.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND lower(name)=lower(?) LIMIT 1", (name,))
+        return cursor.fetchone() is not None
+    def _columns_local(name):
+        if not _table_exists_local(name):
+            return set()
+        cursor.execute(f"PRAGMA table_info({name})")
+        return {row[1] for row in cursor.fetchall()}
+    def _add_col_local(table, col, ddl):
+        if _table_exists_local(table) and col not in _columns_local(table):
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} {ddl}")
+    _add_col_local('roles','display_name','TEXT')
+    _add_col_local('roles','description','TEXT')
+    _add_col_local('roles','is_system','INTEGER DEFAULT 0')
+    _add_col_local('roles','is_active','INTEGER DEFAULT 1')
+    _add_col_local('roles','created_at','TEXT DEFAULT CURRENT_TIMESTAMP')
+    _add_col_local('permissions','module','TEXT')
+    _add_col_local('permissions','action','TEXT')
+    _add_col_local('permissions','description','TEXT')
+    _add_col_local('permissions','created_at','TEXT DEFAULT CURRENT_TIMESTAMP')
+
     cursor.executescript("""
         CREATE TABLE IF NOT EXISTS roles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -850,9 +884,172 @@ def init_database():
     """)
 
 
+    _phase158_159_schema(conn)
     conn.commit()
     conn.close()
     print(f"✅ تم تهيئة قاعدة بيانات الخادم في: {DB_PATH}")
+
+
+def _phase158_159_schema(conn):
+    """Phase 158/159: enterprise governance, health, recovery/stress support.
+
+    Idempotent schema patch for both fresh and upgraded databases.
+    """
+    cur = conn.cursor()
+    def _table_exists(name):
+        cur.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND lower(name)=lower(?) LIMIT 1", (name,))
+        return cur.fetchone() is not None
+    def _columns(name):
+        if not _table_exists(name):
+            return set()
+        cur.execute(f"PRAGMA table_info({name})")
+        return {row[1] for row in cur.fetchall()}
+    def _add_col(table, col, ddl):
+        if _table_exists(table) and col not in _columns(table):
+            cur.execute(f"ALTER TABLE {table} ADD COLUMN {col} {ddl}")
+    cur.executescript("""
+
+        CREATE TABLE IF NOT EXISTS approval_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            amount TEXT DEFAULT '0',
+            threshold_amount TEXT DEFAULT '0',
+            status TEXT NOT NULL DEFAULT 'PENDING',
+            requested_by TEXT,
+            requested_at TEXT,
+            decided_by TEXT,
+            decided_at TEXT,
+            decision_notes TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT,
+            UNIQUE(entity_type, entity_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON approval_requests(status, entity_type);
+        CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, parent_id INTEGER, is_active INTEGER DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS journal_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, entry_no TEXT UNIQUE, entry_date TEXT NOT NULL DEFAULT CURRENT_DATE, source_type TEXT, source_id INTEGER, description TEXT, status TEXT DEFAULT 'POSTED', created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(source_type, source_id));
+        CREATE TABLE IF NOT EXISTS journal_lines (id INTEGER PRIMARY KEY AUTOINCREMENT, journal_entry_id INTEGER NOT NULL, account_id INTEGER NOT NULL, debit TEXT DEFAULT '0', credit TEXT DEFAULT '0', memo TEXT, FOREIGN KEY(journal_entry_id) REFERENCES journal_entries(id) ON DELETE CASCADE, FOREIGN KEY(account_id) REFERENCES accounts(id));
+        CREATE INDEX IF NOT EXISTS idx_journal_entries_source ON journal_entries(source_type, source_id);
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1000','Cash / صندوق','ASSET');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1100','Accounts Receivable / ذمم العملاء','ASSET');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1200','Inventory / مخزون','ASSET');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('2000','Accounts Payable / ذمم الموردين','LIABILITY');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('3000','Owner Equity / حقوق الملكية','EQUITY');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('3100','Retained Earnings / أرباح مرحلة','EQUITY');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('4000','Sales Revenue / إيرادات المبيعات','REVENUE');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('5000','Purchases / مشتريات','EXPENSE');
+        CREATE TABLE IF NOT EXISTS approval_matrix (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            document_type TEXT NOT NULL DEFAULT 'INVOICE',
+            invoice_type TEXT,
+            min_amount TEXT DEFAULT '0',
+            max_amount TEXT,
+            required_role TEXT NOT NULL,
+            required_permission TEXT DEFAULT 'approval.approve',
+            approval_order INTEGER NOT NULL DEFAULT 1,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS approval_steps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            approval_request_id INTEGER NOT NULL,
+            step_order INTEGER NOT NULL,
+            required_role TEXT NOT NULL,
+            required_permission TEXT DEFAULT 'approval.approve',
+            status TEXT DEFAULT 'PENDING',
+            decided_by TEXT,
+            decided_at TEXT,
+            notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(approval_request_id, step_order),
+            FOREIGN KEY(approval_request_id) REFERENCES approval_requests(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_approval_steps_request
+            ON approval_steps(approval_request_id, status, step_order);
+
+        CREATE TABLE IF NOT EXISTS system_health_checks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            check_key TEXT NOT NULL,
+            status TEXT NOT NULL,
+            message TEXT,
+            details TEXT,
+            checked_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_system_health_checks_key
+            ON system_health_checks(check_key, checked_at);
+
+        CREATE TABLE IF NOT EXISTS validation_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_type TEXT NOT NULL,
+            status TEXT NOT NULL,
+            summary TEXT,
+            details TEXT,
+            started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            finished_at TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_validation_runs_type
+            ON validation_runs(run_type, started_at);
+    """)
+    _add_col('approval_matrix', 'invoice_type', 'TEXT')
+    _add_col('approval_matrix', 'min_amount', "TEXT DEFAULT '0'")
+    _add_col('approval_matrix', 'max_amount', 'TEXT')
+    _add_col('approval_matrix', 'required_permission', "TEXT DEFAULT 'approval.approve'")
+    _add_col('approval_matrix', 'approval_order', 'INTEGER DEFAULT 1')
+    _add_col('approval_matrix', 'is_active', 'INTEGER DEFAULT 1')
+    cur.execute('CREATE INDEX IF NOT EXISTS idx_approval_matrix_scope ON approval_matrix(document_type, invoice_type, is_active, approval_order)')
+    _add_col('roles', 'parent_role_id', 'INTEGER')
+    _add_col('roles', 'priority', 'INTEGER DEFAULT 0')
+    _add_col('user_roles', 'branch_id', 'INTEGER')
+    # Default hierarchy: viewer < cashier < accountant < manager < admin
+    cur.executescript("""
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('system.health.view','system','health_view','View system health center');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('system.validation.run','system','validation_run','Run backup/recovery/stress validations');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('approval.matrix.manage','approval','matrix_manage','Manage approval matrix');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('approval.level1','approval','level1','Approve first approval level');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('approval.level2','approval','level2','Approve second approval level');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('approval.level3','approval','level3','Approve third approval level');
+    """)
+    # safe hierarchy updates after roles exist
+    roles = {r[1] if not hasattr(r, 'keys') else r['name']: (r[0] if not hasattr(r,'keys') else r['id']) for r in cur.execute("SELECT id, name FROM roles").fetchall()} if _table_exists('roles') else {}
+    priorities = {'viewer':10,'cashier':20,'accountant':30,'manager':40,'admin':50}
+    parent = {'cashier':'viewer','accountant':'cashier','manager':'accountant','admin':'manager'}
+    for name, prio in priorities.items():
+        cur.execute("UPDATE roles SET priority=? WHERE name=?", (prio, name))
+        if name in parent and parent[name] in roles:
+            cur.execute("UPDATE roles SET parent_role_id=? WHERE name=? AND (parent_role_id IS NULL OR parent_role_id=0)", (roles[parent[name]], name))
+    cur.executescript("""
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'system.health.view','system.validation.run','approval.matrix.manage','approval.level1','approval.level2','approval.level3'
+        ) WHERE r.name='admin';
+
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'system.health.view','approval.level1','approval.level2'
+        ) WHERE r.name='manager';
+
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'system.health.view','approval.level1'
+        ) WHERE r.name='accountant';
+    """)
+    # Default approval matrix: small -> manager/accountant level1; medium -> manager+accountant; large -> manager+accountant+admin
+    cur.executescript("""
+        INSERT OR IGNORE INTO approval_matrix(document_type, invoice_type, min_amount, max_amount, required_role, required_permission, approval_order, is_active)
+        VALUES ('INVOICE','sale','0','5000','manager','approval.level1',1,1);
+        INSERT OR IGNORE INTO approval_matrix(document_type, invoice_type, min_amount, max_amount, required_role, required_permission, approval_order, is_active)
+        VALUES ('INVOICE','sale','5000','20000','manager','approval.level1',1,1);
+        INSERT OR IGNORE INTO approval_matrix(document_type, invoice_type, min_amount, max_amount, required_role, required_permission, approval_order, is_active)
+        VALUES ('INVOICE','sale','5000','20000','accountant','approval.level2',2,1);
+        INSERT OR IGNORE INTO approval_matrix(document_type, invoice_type, min_amount, max_amount, required_role, required_permission, approval_order, is_active)
+        VALUES ('INVOICE','sale','20000',NULL,'manager','approval.level1',1,1);
+        INSERT OR IGNORE INTO approval_matrix(document_type, invoice_type, min_amount, max_amount, required_role, required_permission, approval_order, is_active)
+        VALUES ('INVOICE','sale','20000',NULL,'accountant','approval.level2',2,1);
+        INSERT OR IGNORE INTO approval_matrix(document_type, invoice_type, min_amount, max_amount, required_role, required_permission, approval_order, is_active)
+        VALUES ('INVOICE','sale','20000',NULL,'admin','approval.level3',3,1);
+    """)
+
 
 def ensure_db():
     # init_database uses CREATE IF NOT EXISTS and safe ALTERs, so running it

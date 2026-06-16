@@ -44,6 +44,12 @@ ACTION_PERMISSION_MAP = {
     'accounting.close_period': 'accounting.close_period',
     'settings.manage': 'settings.manage',
     'users.manage': 'users.manage',
+    'system.health.view': 'system.health.view',
+    'system.validation.run': 'system.validation.run',
+    'approval.matrix.manage': 'approval.matrix.manage',
+    'approval.level1': 'approval.level1',
+    'approval.level2': 'approval.level2',
+    'approval.level3': 'approval.level3',
 }
 
 
@@ -106,8 +112,63 @@ class RBACService:
             pass
         return [self._legacy_role(user_id)]
 
+
+    def role_parent_map(self) -> dict[str, str]:
+        try:
+            conn = self._conn()
+            if not conn:
+                return {}
+            rows = conn.execute("""
+                SELECT r.name AS role_name, p.name AS parent_name
+                FROM roles r LEFT JOIN roles p ON p.id=r.parent_role_id
+                WHERE r.is_active=1
+            """).fetchall()
+            return {str(r['role_name']).lower(): str(r['parent_name']).lower() for r in rows if r['parent_name']}
+        except Exception:
+            return {}
+
+    def effective_user_roles(self, user_id: str | None = None) -> List[str]:
+        roles = [str(r).lower() for r in self.user_roles(user_id)]
+        parent_map = self.role_parent_map()
+        seen = set(roles)
+        stack = list(roles)
+        while stack:
+            role = stack.pop()
+            parent = parent_map.get(role)
+            if parent and parent not in seen:
+                seen.add(parent)
+                stack.append(parent)
+        return sorted(seen)
+
+    def role_permissions(self, role_name: str) -> set[str]:
+        try:
+            conn = self._conn()
+            if not conn:
+                defaults = DEFAULT_ROLE_PERMISSIONS.get(str(role_name).lower(), set())
+                return {'*'} if defaults is None else set(defaults)
+            row = conn.execute('SELECT id FROM roles WHERE name=? AND is_active=1', (str(role_name).lower(),)).fetchone()
+            if not row:
+                return set()
+            rows = conn.execute('SELECT permission_key FROM role_permissions WHERE role_id=? AND allowed=1', (row['id'],)).fetchall()
+            return {str(r['permission_key']) for r in rows}
+        except Exception:
+            defaults = DEFAULT_ROLE_PERMISSIONS.get(str(role_name).lower(), set())
+            return {'*'} if defaults is None else set(defaults)
+
+    def can_access_branch(self, branch_id: int | None, user_id: str | None = None) -> bool:
+        if branch_id in (None, '', 0):
+            return True
+        if self.has_permission('branches.view_all', user_id):
+            return True
+        allowed = self.allowed_branch_ids(user_id)
+        try:
+            return int(branch_id) in allowed
+        except Exception:
+            return False
+
+
     def user_permissions(self, user_id: str | None = None) -> set[str]:
-        roles = self.user_roles(user_id)
+        roles = self.effective_user_roles(user_id)
         if 'admin' in roles:
             return {p['key'] for p in self.list_permissions()} or {'*'}
         perms: set[str] = set()

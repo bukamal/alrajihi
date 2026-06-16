@@ -172,14 +172,21 @@ class InvoicesWidget(QWidget):
     def _add_workflow_buttons(self, layout, inv_type):
         """Phase154: operational workflow buttons on invoice lists."""
         row = QHBoxLayout()
-        for caption, action in [
-            ('إرسال للاعتماد', 'submit'),
-            ('اعتماد', 'approve'),
-            ('رفض', 'reject'),
-            ('ترحيل', 'post'),
-            ('إعادة فتح', 'reopen'),
-        ]:
-            btn = QPushButton(caption)
+        actions = [
+            ('workflow_submit', 'submit', 'approval.submit'),
+            ('workflow_approve', 'approve', 'approval.approve'),
+            ('workflow_reject', 'reject', 'approval.reject'),
+            ('workflow_post', 'post', 'accounting.post'),
+            ('workflow_reopen', 'reopen', 'invoices.edit'),
+        ]
+        for label_key, action, perm in actions:
+            btn = QPushButton(translate(label_key))
+            try:
+                if not permission_service.can(perm):
+                    btn.setEnabled(False)
+                    btn.setToolTip(translate('permission_denied'))
+            except Exception:
+                pass
             btn.clicked.connect(lambda _=False, a=action, t=inv_type: self._run_workflow_action(t, a))
             row.addWidget(btn)
         row.addStretch()
@@ -188,7 +195,7 @@ class InvoicesWidget(QWidget):
     def _run_workflow_action(self, inv_type, action):
         inv_id = self._selected_invoice_id(inv_type)
         if not inv_id:
-            show_toast('اختر فاتورة أولاً', 'warning', self)
+            show_toast(translate('select_invoice_first'), 'warning', self)
             return
         try:
             if action == 'submit':
@@ -201,10 +208,10 @@ class InvoicesWidget(QWidget):
                 invoice_service.post(inv_id)
             elif action == 'reopen':
                 invoice_service.reopen(inv_id)
-            show_toast('تم تنفيذ إجراء سير العمل', 'success', self)
+            show_toast(translate('workflow_action_done'), 'success', self)
             self.refresh_all()
         except Exception as exc:
-            QMessageBox.critical(self, 'سير العمل', str(exc))
+            QMessageBox.critical(self, translate('workflow_title'), str(exc))
 
     def setup_sales_tab(self):
         layout = QVBoxLayout(self.sales_tab)

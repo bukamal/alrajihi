@@ -10,13 +10,31 @@ SCHEMA_VERSION = 20260611
 
 REQUIRED_COLUMNS = {
     "users": {
+        "full_name": "TEXT",
+        "role": "TEXT DEFAULT 'user'",
         "branch_id": "INTEGER",
+        "created_at": "TEXT",
+        "last_login": "TEXT",
         "cash_balance": "TEXT DEFAULT '0'",
         "force_password_change": "INTEGER DEFAULT 0",
+    },
+    "customers": {
+        "phone": "TEXT",
+        "address": "TEXT",
+        "balance": "TEXT DEFAULT '0'",
+    },
+    "suppliers": {
+        "phone": "TEXT",
+        "address": "TEXT",
+        "balance": "TEXT DEFAULT '0'",
     },
     "items": {
         "category_id": "INTEGER",
         "item_type": "TEXT",
+        "purchase_price": "TEXT DEFAULT '0'",
+        "selling_price": "TEXT DEFAULT '0'",
+        "quantity": "TEXT DEFAULT '0'",
+        "unit": "TEXT",
         "average_cost": "TEXT DEFAULT '0'",
         "barcode": "TEXT",
         "reorder_level": "TEXT DEFAULT '0'",
@@ -31,6 +49,7 @@ REQUIRED_COLUMNS = {
         "deleted_at": "TEXT",
     },
     "invoices": {
+        "due_date": "TEXT",
         "exchange_rate_to_usd": "REAL DEFAULT 1.0",
         "original_currency": "TEXT DEFAULT 'USD'",
         "warehouse_id": "INTEGER",
@@ -87,6 +106,7 @@ REQUIRED_COLUMNS = {
         "payment_method": "TEXT DEFAULT 'cash'",
     },
     "expenses": {
+        "user_id": "TEXT",
         "exchange_rate_to_usd": "REAL DEFAULT 1.0",
         "original_currency": "TEXT DEFAULT 'USD'",
         "warehouse_id": "INTEGER",
@@ -96,6 +116,7 @@ REQUIRED_COLUMNS = {
         "payment_method": "TEXT DEFAULT 'cash'",
     },
     "warehouses": {
+        "user_id": "TEXT",
         "code": "TEXT",
         "location": "TEXT",
         "notes": "TEXT",
@@ -107,6 +128,7 @@ REQUIRED_COLUMNS = {
         "updated_at": "TEXT",
     },
     "branches": {
+        "user_id": "TEXT",
         "code": "TEXT",
         "address": "TEXT",
         "phone": "TEXT",
