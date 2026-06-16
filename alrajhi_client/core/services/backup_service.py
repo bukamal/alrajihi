@@ -55,5 +55,14 @@ class BackupService:
                           details='إعادة تهيئة قاعدة البيانات المحلية', source='USER')
         return result
 
+    def list_backups(self, folder: str, prefix: str = 'alrajhi_backup') -> Dict[str, object]:
+        return self._get_gateway().list_backups(folder, prefix=prefix)
+
+    def cleanup_old_backups(self, folder: str, keep_count: int, prefix: str = 'alrajhi_backup') -> Dict[str, object]:
+        result = self._get_gateway().cleanup_old_backups(folder, keep_count, prefix=prefix)
+        audit_service.log('BACKUP_CLEANUP', 'DATABASE', None, new_values=result,
+                          details=folder, source='USER')
+        return result
+
 
 backup_service = BackupService()

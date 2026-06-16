@@ -104,12 +104,23 @@ def init_database():
             customer_id INTEGER,
             supplier_id INTEGER,
             date TEXT,
+            due_date TEXT,
             reference TEXT,
             notes TEXT,
             total TEXT DEFAULT '0',
             paid TEXT DEFAULT '0',
             status TEXT,
+            workflow_status TEXT DEFAULT 'DRAFT',
+            submitted_at TEXT,
+            submitted_by TEXT,
+            approved_at TEXT,
+            approved_by TEXT,
+            posted_at TEXT,
+            posted_by TEXT,
+            cancelled_at TEXT,
+            cancelled_by TEXT,
             deleted_at TEXT,
+            deleted_by TEXT,
             exchange_rate_to_usd REAL DEFAULT 1.0,
             original_currency TEXT DEFAULT 'USD',
             warehouse_id INTEGER,
@@ -131,11 +142,12 @@ def init_database():
             unit_price TEXT DEFAULT '0',
             total TEXT DEFAULT '0',
             unit TEXT,
+            unit_id INTEGER,
+            conversion_factor REAL DEFAULT 1.0,
             quantity_in_base TEXT DEFAULT '0',
             unit_cost TEXT DEFAULT '0',
             cost_amount TEXT DEFAULT '0',
             production_order_id INTEGER,
-            conversion_factor REAL DEFAULT 1.0,
             FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
             FOREIGN KEY (item_id) REFERENCES items(id)
         );
@@ -483,8 +495,88 @@ def init_database():
 
         CREATE TABLE IF NOT EXISTS settings (
             key TEXT PRIMARY KEY,
-            value TEXT
+            value TEXT,
+            category TEXT,
+            updated_at TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS settings_audit (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            setting_key TEXT NOT NULL,
+            old_value TEXT,
+            new_value TEXT,
+            changed_by TEXT,
+            changed_at TEXT NOT NULL,
+            source TEXT DEFAULT 'SettingsService'
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_settings_audit_key_time
+            ON settings_audit(setting_key, changed_at);
+
+        CREATE TABLE IF NOT EXISTS security_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_type TEXT NOT NULL,
+            action TEXT,
+            role TEXT,
+            username TEXT,
+            allowed INTEGER NOT NULL DEFAULT 0,
+            reason TEXT,
+            context TEXT,
+            created_at TEXT NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_security_events_time
+            ON security_events(created_at);
+
+        CREATE INDEX IF NOT EXISTS idx_security_events_action
+            ON security_events(action, role);
+
+
+        CREATE TABLE IF NOT EXISTS settings_profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            is_active INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT,
+            updated_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS settings_profile_values (
+            profile_id INTEGER NOT NULL,
+            setting_key TEXT NOT NULL,
+            setting_value TEXT,
+            updated_at TEXT,
+            PRIMARY KEY (profile_id, setting_key),
+            FOREIGN KEY(profile_id) REFERENCES settings_profiles(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_settings_profile_values_key
+            ON settings_profile_values(setting_key);
+
+        INSERT OR IGNORE INTO settings_profiles(id, name, description, is_active, created_at, updated_at)
+            VALUES (1, 'Default', 'ملف الإعدادات الافتراضي', 1, datetime('now'), datetime('now'));
+
+        UPDATE settings_profiles
+            SET is_active = CASE WHEN id = (SELECT COALESCE(MIN(id), 1) FROM settings_profiles WHERE is_active = 1) THEN 1 ELSE 0 END
+            WHERE EXISTS (SELECT 1 FROM settings_profiles WHERE is_active = 1);
+
+        CREATE TABLE IF NOT EXISTS workflow_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            old_status TEXT,
+            new_status TEXT NOT NULL,
+            action TEXT NOT NULL,
+            username TEXT,
+            user_id TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_workflow_events_entity
+            ON workflow_events(entity_type, entity_id, created_at);
+        -- Phase151 hotfix: this index is created after safe ALTER migrations.
+        -- Creating it here breaks upgraded databases whose invoices table existed
+        -- before workflow_status was added.
 
         CREATE TABLE IF NOT EXISTS audit_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -510,6 +602,14 @@ def init_database():
             created_at TEXT
         );
     ''')
+
+    
+    cursor.execute("PRAGMA table_info(settings)")
+    settings_columns = [row[1] for row in cursor.fetchall()]
+    if 'category' not in settings_columns:
+        cursor.execute("ALTER TABLE settings ADD COLUMN category TEXT")
+    if 'updated_at' not in settings_columns:
+        cursor.execute("ALTER TABLE settings ADD COLUMN updated_at TEXT")
 
     # ========== الفهارس ==========
     cursor.executescript('''
@@ -551,6 +651,32 @@ def init_database():
         INSERT OR IGNORE INTO settings (key, value) VALUES ('base_currency', 'USD');
         INSERT OR IGNORE INTO settings (key, value) VALUES ('display_currency', 'SYP');
         INSERT OR IGNORE INTO settings (key, value) VALUES ('abbreviate_numbers', 'false');
+
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('invoice/sales_prefix', 'SAL-', 'invoices');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('invoice/purchase_prefix', 'PUR-', 'invoices');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('invoice/auto_numbering', 'true', 'invoices');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('invoice/show_profit', 'false', 'invoices');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('invoice/show_cost', 'false', 'invoices');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('inventory/allow_negative_stock', 'false', 'inventory');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('inventory/default_reorder_level', '0', 'inventory');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('inventory/cost_method', 'AVERAGE', 'inventory');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('units/default_sale_unit', 'قطعة', 'units');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('units/default_purchase_unit', 'قطعة', 'units');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('returns/max_days', '30', 'returns');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('manufacturing/cost_method', 'MATERIALS_ONLY', 'manufacturing');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('reports/default_limit', '100', 'reports');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/sales_approval_threshold', '0', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/purchase_approval_threshold', '0', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_edit_draft', 'true', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_edit_submitted', 'true', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_edit_approved', 'false', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_edit_posted', 'false', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_edit_cancelled', 'false', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_delete_draft', 'true', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_delete_submitted', 'true', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_delete_approved', 'false', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_delete_posted', 'false', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_delete_cancelled', 'false', 'workflow');
     ''')
 
     # ========== مستخدم admin افتراضي ==========
@@ -611,6 +737,8 @@ def init_database():
             unit_price TEXT DEFAULT '0',
             total TEXT DEFAULT '0',
             unit TEXT,
+            unit_id INTEGER,
+            conversion_factor REAL DEFAULT 1.0,
             quantity_in_base TEXT DEFAULT '0',
             unit_cost TEXT DEFAULT '0',
             cost_amount TEXT DEFAULT '0',
@@ -659,6 +787,8 @@ def init_database():
             unit_price TEXT NOT NULL DEFAULT '0',
             total TEXT NOT NULL DEFAULT '0',
             unit TEXT,
+            unit_id INTEGER,
+            conversion_factor REAL DEFAULT 1.0,
             quantity_in_base TEXT NOT NULL DEFAULT '0',
             unit_cost TEXT NOT NULL DEFAULT '0',
             cost_amount TEXT NOT NULL DEFAULT '0',
@@ -670,6 +800,62 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_purchase_returns_branch ON purchase_returns(branch_id);
         CREATE INDEX IF NOT EXISTS idx_purchase_return_lines_return ON purchase_return_lines(purchase_return_id);
     ''')
+
+    # Phase151 hotfix: init_database() is also called for existing SQLite files.
+    # CREATE TABLE IF NOT EXISTS does not add new columns to an existing table;
+    # therefore every workflow column must be ensured before creating indexes
+    # that reference it.
+    def _table_exists_init(name):
+        cursor.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND lower(name)=lower(?) LIMIT 1", (name,))
+        return cursor.fetchone() is not None
+
+    def _columns_init(name):
+        if not _table_exists_init(name):
+            return set()
+        cursor.execute(f"PRAGMA table_info({name})")
+        return {row[1] for row in cursor.fetchall()}
+
+    if _table_exists_init('invoices'):
+        invoice_columns = _columns_init('invoices')
+        for col_name, col_type in [
+            ('due_date', 'TEXT'),
+            ('due_date', 'TEXT'),
+            ('workflow_status', "TEXT DEFAULT 'DRAFT'"),
+            ('submitted_at', 'TEXT'),
+            ('submitted_by', 'TEXT'),
+            ('approved_at', 'TEXT'),
+            ('approved_by', 'TEXT'),
+            ('posted_at', 'TEXT'),
+            ('posted_by', 'TEXT'),
+            ('cancelled_at', 'TEXT'),
+            ('cancelled_by', 'TEXT'),
+            ('deleted_by', 'TEXT'),
+        ]:
+            if col_name not in invoice_columns:
+                cursor.execute(f"ALTER TABLE invoices ADD COLUMN {col_name} {col_type}")
+        if _table_exists_init('invoices') and 'workflow_status' in _columns_init('invoices'):
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_workflow_status ON invoices(workflow_status)")
+
+
+    # Phase157: Enterprise RBAC tables also during first database initialization
+    cursor.executescript("""
+        CREATE TABLE IF NOT EXISTS roles (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, display_name TEXT, description TEXT, is_system INTEGER DEFAULT 0, is_active INTEGER DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS permissions (key TEXT PRIMARY KEY, module TEXT NOT NULL, action TEXT NOT NULL, description TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS role_permissions (role_id INTEGER NOT NULL, permission_key TEXT NOT NULL, allowed INTEGER NOT NULL DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(role_id, permission_key), FOREIGN KEY(role_id) REFERENCES roles(id) ON DELETE CASCADE, FOREIGN KEY(permission_key) REFERENCES permissions(key) ON DELETE CASCADE);
+        CREATE TABLE IF NOT EXISTS user_roles (user_id TEXT NOT NULL, role_id INTEGER NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id, role_id), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY(role_id) REFERENCES roles(id) ON DELETE CASCADE);
+        CREATE TABLE IF NOT EXISTS user_branch_access (user_id TEXT NOT NULL, branch_id INTEGER NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id, branch_id), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY(branch_id) REFERENCES branches(id) ON DELETE CASCADE);
+        CREATE INDEX IF NOT EXISTS idx_user_roles_user ON user_roles(user_id);
+        CREATE INDEX IF NOT EXISTS idx_role_permissions_role ON role_permissions(role_id);
+        CREATE INDEX IF NOT EXISTS idx_user_branch_access_user ON user_branch_access(user_id);
+        INSERT OR IGNORE INTO roles(name, display_name, description, is_system) VALUES ('admin','Administrator / مدير النظام','Full system access',1),('manager','Manager / مدير','Operational management access',1),('accountant','Accountant / محاسب','Accounting and financial reporting access',1),('cashier','Cashier / أمين صندوق','Sales and cashbox access',1),('viewer','Viewer / مشاهدة','Read-only access',1);
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('reports.view','reports','view','View reports'),('reports.export','reports','export','Export reports'),('invoices.edit','invoices','edit','Edit invoices'),('invoices.delete','invoices','delete','Delete invoices'),('returns.edit','returns','edit','Edit returns'),('branches.view_all','branches','view_all','View all branches'),('branches.manage_all','branches','manage_all','Manage all branches'),('approval.submit','approval','submit','Submit documents for approval'),('approval.approve','approval','approve','Approve documents'),('approval.reject','approval','reject','Reject approval requests'),('accounting.view','accounting','view','View accounting reports'),('accounting.post','accounting','post','Post journal entries / documents'),('accounting.close_period','accounting','close_period','Close accounting periods'),('settings.manage','settings','manage','Manage system settings'),('users.manage','users','manage','Manage users and roles');
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed) SELECT r.id, p.key, 1 FROM roles r CROSS JOIN permissions p WHERE r.name='admin';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed) SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN ('reports.view','reports.export','invoices.edit','returns.edit','branches.view_all','approval.submit','approval.approve','approval.reject') WHERE r.name='manager';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed) SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN ('reports.view','reports.export','accounting.view','accounting.post','accounting.close_period','approval.submit') WHERE r.name='accountant';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed) SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN ('approval.submit') WHERE r.name='cashier';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed) SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN ('reports.view') WHERE r.name='viewer';
+        INSERT OR IGNORE INTO user_roles(user_id, role_id) SELECT u.id, r.id FROM users u JOIN roles r ON lower(COALESCE(u.role,'user')) = r.name;
+    """)
 
     apply_common_schema(conn)
     conn.commit()
@@ -684,10 +870,132 @@ def ensure_db():
         init_database()
         return
     else:
+        # Phase128: bootstrap core schema before applying legacy ALTER migrations.
+        # Some restored/old databases may exist as files but miss core tables such as
+        # invoice_lines or production_orders; ALTER TABLE must never run before the
+        # base CREATE TABLE IF NOT EXISTS script has had a chance to create them.
+        init_database()
         # ترقية الجداول القديمة (إضافة أعمدة جديدة)
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
+
+        # Phase152/153 approval + accounting foundation tables
+        cursor.executescript("""
+            CREATE TABLE IF NOT EXISTS approval_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entity_type TEXT NOT NULL,
+                entity_id INTEGER NOT NULL,
+                amount TEXT DEFAULT '0',
+                threshold_amount TEXT DEFAULT '0',
+                status TEXT NOT NULL DEFAULT 'PENDING',
+                requested_by TEXT,
+                requested_at TEXT,
+                decided_by TEXT,
+                decided_at TEXT,
+                decision_notes TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT,
+                UNIQUE(entity_type, entity_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON approval_requests(status, entity_type);
+            CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, parent_id INTEGER, is_active INTEGER DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS journal_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, entry_no TEXT UNIQUE, entry_date TEXT NOT NULL, source_type TEXT, source_id INTEGER, description TEXT, status TEXT DEFAULT 'POSTED', created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(source_type, source_id));
+            CREATE TABLE IF NOT EXISTS journal_lines (id INTEGER PRIMARY KEY AUTOINCREMENT, journal_entry_id INTEGER NOT NULL, account_id INTEGER NOT NULL, debit TEXT DEFAULT '0', credit TEXT DEFAULT '0', memo TEXT, FOREIGN KEY(journal_entry_id) REFERENCES journal_entries(id) ON DELETE CASCADE, FOREIGN KEY(account_id) REFERENCES accounts(id));
+            CREATE INDEX IF NOT EXISTS idx_journal_entries_source ON journal_entries(source_type, source_id);
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1000','Cash / صندوق','ASSET');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1100','Accounts Receivable / ذمم العملاء','ASSET');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1200','Inventory / مخزون','ASSET');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('2000','Accounts Payable / ذمم الموردين','LIABILITY');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('4000','Sales Revenue / إيرادات المبيعات','REVENUE');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('5000','Purchases / مشتريات','EXPENSE');
+            INSERT OR IGNORE INTO settings (key, value, category) VALUES ('approval/non_admin_can_approve', 'false', 'approval');
+        """)
+
         apply_common_schema(conn)
+
+        def _table_exists(name):
+            cursor.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND lower(name)=lower(?) LIMIT 1", (name,))
+            return cursor.fetchone() is not None
+
+        def _columns(name):
+            if not _table_exists(name):
+                return set()
+            cursor.execute(f"PRAGMA table_info({name})")
+            return {row[1] for row in cursor.fetchall()}
+
+        def _add_column_if_missing(table, column, ddl_tail):
+            if not _table_exists(table):
+                return False
+            cols = _columns(table)
+            if column not in cols:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl_tail}")
+                return True
+            return False
+
+        # Phase151 workflow lifecycle columns for upgraded databases
+        for col_name, col_type in [
+            ('workflow_status', "TEXT DEFAULT 'DRAFT'"),
+            ('submitted_at', 'TEXT'),
+            ('submitted_by', 'TEXT'),
+            ('approved_at', 'TEXT'),
+            ('approved_by', 'TEXT'),
+            ('posted_at', 'TEXT'),
+            ('posted_by', 'TEXT'),
+            ('cancelled_at', 'TEXT'),
+            ('cancelled_by', 'TEXT'),
+            ('deleted_by', 'TEXT'),
+        ]:
+            _add_column_if_missing('invoices', col_name, col_type)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS workflow_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entity_type TEXT NOT NULL,
+                entity_id INTEGER NOT NULL,
+                old_status TEXT,
+                new_status TEXT NOT NULL,
+                action TEXT NOT NULL,
+                username TEXT,
+                user_id TEXT,
+                notes TEXT,
+                created_at TEXT NOT NULL
+            )
+        """)
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_workflow_events_entity ON workflow_events(entity_type, entity_id, created_at)')
+        if 'workflow_status' in [row[1] for row in cursor.execute("PRAGMA table_info(invoices)").fetchall()]:
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_invoices_workflow_status ON invoices(workflow_status)')
+
+
+        # Phase152/153 approval + accounting foundation tables
+        cursor.executescript("""
+            CREATE TABLE IF NOT EXISTS approval_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                entity_type TEXT NOT NULL,
+                entity_id INTEGER NOT NULL,
+                amount TEXT DEFAULT '0',
+                threshold_amount TEXT DEFAULT '0',
+                status TEXT NOT NULL DEFAULT 'PENDING',
+                requested_by TEXT,
+                requested_at TEXT,
+                decided_by TEXT,
+                decided_at TEXT,
+                decision_notes TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT,
+                UNIQUE(entity_type, entity_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON approval_requests(status, entity_type);
+            CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, parent_id INTEGER, is_active INTEGER DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS journal_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, entry_no TEXT UNIQUE, entry_date TEXT NOT NULL, source_type TEXT, source_id INTEGER, description TEXT, status TEXT DEFAULT 'POSTED', created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(source_type, source_id));
+            CREATE TABLE IF NOT EXISTS journal_lines (id INTEGER PRIMARY KEY AUTOINCREMENT, journal_entry_id INTEGER NOT NULL, account_id INTEGER NOT NULL, debit TEXT DEFAULT '0', credit TEXT DEFAULT '0', memo TEXT, FOREIGN KEY(journal_entry_id) REFERENCES journal_entries(id) ON DELETE CASCADE, FOREIGN KEY(account_id) REFERENCES accounts(id));
+            CREATE INDEX IF NOT EXISTS idx_journal_entries_source ON journal_entries(source_type, source_id);
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1000','Cash / صندوق','ASSET');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1100','Accounts Receivable / ذمم العملاء','ASSET');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1200','Inventory / مخزون','ASSET');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('2000','Accounts Payable / ذمم الموردين','LIABILITY');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('4000','Sales Revenue / إيرادات المبيعات','REVENUE');
+            INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('5000','Purchases / مشتريات','EXPENSE');
+            INSERT OR IGNORE INTO settings (key, value, category) VALUES ('approval/non_admin_can_approve', 'false', 'approval');
+        """)
 
         # Ensure category hierarchy/status support exists for upgraded databases
         cursor.execute("PRAGMA table_info(categories)")
@@ -925,19 +1233,38 @@ def ensure_db():
         if 'reorder_level' not in item_columns:
             cursor.execute("ALTER TABLE items ADD COLUMN reorder_level TEXT DEFAULT '0'")
 
-        cursor.execute("PRAGMA table_info(invoice_lines)")
-        columns = [col[1] for col in cursor.fetchall()]
-        if 'conversion_factor' not in columns:
-            cursor.execute("ALTER TABLE invoice_lines ADD COLUMN conversion_factor REAL DEFAULT 1.0")
-            cursor.execute("UPDATE invoice_lines SET conversion_factor = 1.0 WHERE conversion_factor IS NULL")
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND lower(name)=lower('invoice_lines')")
+        if cursor.fetchone():
+            cursor.execute("PRAGMA table_info(invoice_lines)")
+            columns = [col[1] for col in cursor.fetchall()]
+            if 'conversion_factor' not in columns:
+                cursor.execute("ALTER TABLE invoice_lines ADD COLUMN conversion_factor REAL DEFAULT 1.0")
+                cursor.execute("UPDATE invoice_lines SET conversion_factor = 1.0 WHERE conversion_factor IS NULL")
+        else:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS invoice_lines (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    invoice_id INTEGER,
+                    item_id INTEGER,
+                    description TEXT,
+                    quantity TEXT DEFAULT '0',
+                    unit_price TEXT DEFAULT '0',
+                    total TEXT DEFAULT '0',
+                    unit TEXT,
+                    unit_id INTEGER,
+                    conversion_factor REAL DEFAULT 1.0,
+                    quantity_in_base TEXT DEFAULT '0',
+                    unit_cost TEXT DEFAULT '0',
+                    cost_amount TEXT DEFAULT '0',
+                    production_order_id INTEGER,
+                    FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
+                    FOREIGN KEY (item_id) REFERENCES items(id)
+                )
+            """)
 
         # التحقق من وجود عمودي linked_entry_id و linked_entry_type في production_orders
-        cursor.execute("PRAGMA table_info(production_orders)")
-        pcols = [col[1] for col in cursor.fetchall()]
-        if 'linked_entry_id' not in pcols:
-            cursor.execute("ALTER TABLE production_orders ADD COLUMN linked_entry_id INTEGER")
-        if 'linked_entry_type' not in pcols:
-            cursor.execute("ALTER TABLE production_orders ADD COLUMN linked_entry_type TEXT")
+        _add_column_if_missing('production_orders', 'linked_entry_id', 'INTEGER')
+        _add_column_if_missing('production_orders', 'linked_entry_type', 'TEXT')
 
         # جدول material_reservations
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='material_reservations'")
@@ -1017,38 +1344,17 @@ def ensure_db():
             ''')
 
         # التأكد من وجود أعمدة exchange_rate_to_usd و original_currency في invoices, vouchers, expenses
-        cursor.execute("PRAGMA table_info(invoices)")
-        incols = [col[1] for col in cursor.fetchall()]
-        if 'exchange_rate_to_usd' not in incols:
-            cursor.execute("ALTER TABLE invoices ADD COLUMN exchange_rate_to_usd REAL DEFAULT 1.0")
-        if 'original_currency' not in incols:
-            cursor.execute("ALTER TABLE invoices ADD COLUMN original_currency TEXT DEFAULT 'USD'")
-
-        cursor.execute("PRAGMA table_info(vouchers)")
-        vcols = [col[1] for col in cursor.fetchall()]
-        if 'exchange_rate_to_usd' not in vcols:
-            cursor.execute("ALTER TABLE vouchers ADD COLUMN exchange_rate_to_usd REAL DEFAULT 1.0")
-        if 'original_currency' not in vcols:
-            cursor.execute("ALTER TABLE vouchers ADD COLUMN original_currency TEXT DEFAULT 'USD'")
-
-        cursor.execute("PRAGMA table_info(expenses)")
-        ecols = [col[1] for col in cursor.fetchall()]
-        if 'exchange_rate_to_usd' not in ecols:
-            cursor.execute("ALTER TABLE expenses ADD COLUMN exchange_rate_to_usd REAL DEFAULT 1.0")
-        if 'original_currency' not in ecols:
-            cursor.execute("ALTER TABLE expenses ADD COLUMN original_currency TEXT DEFAULT 'USD'")
+        _add_column_if_missing('invoices', 'exchange_rate_to_usd', 'REAL DEFAULT 1.0')
+        _add_column_if_missing('invoices', 'original_currency', "TEXT DEFAULT 'USD'")
+        _add_column_if_missing('vouchers', 'exchange_rate_to_usd', 'REAL DEFAULT 1.0')
+        _add_column_if_missing('vouchers', 'original_currency', "TEXT DEFAULT 'USD'")
+        _add_column_if_missing('expenses', 'exchange_rate_to_usd', 'REAL DEFAULT 1.0')
+        _add_column_if_missing('expenses', 'original_currency', "TEXT DEFAULT 'USD'")
 
 
         # Warehouse-4: production order warehouse links
-        try:
-            cursor.execute("PRAGMA table_info(production_orders)")
-            _po_cols = {row[1] for row in cursor.fetchall()}
-            if 'raw_warehouse_id' not in _po_cols:
-                cursor.execute("ALTER TABLE production_orders ADD COLUMN raw_warehouse_id INTEGER")
-            if 'output_warehouse_id' not in _po_cols:
-                cursor.execute("ALTER TABLE production_orders ADD COLUMN output_warehouse_id INTEGER")
-        except Exception:
-            pass
+        _add_column_if_missing('production_orders', 'raw_warehouse_id', 'INTEGER')
+        _add_column_if_missing('production_orders', 'output_warehouse_id', 'INTEGER')
         
     # Branches core migration/bootstrap
 
@@ -1196,6 +1502,8 @@ def ensure_db():
             unit_price TEXT NOT NULL DEFAULT '0',
             total TEXT NOT NULL DEFAULT '0',
             unit TEXT,
+            unit_id INTEGER,
+            conversion_factor REAL DEFAULT 1.0,
             quantity_in_base TEXT NOT NULL DEFAULT '0',
             unit_cost TEXT NOT NULL DEFAULT '0',
             cost_amount TEXT NOT NULL DEFAULT '0',
@@ -1207,6 +1515,134 @@ def ensure_db():
         CREATE INDEX IF NOT EXISTS idx_purchase_returns_branch ON purchase_returns(branch_id);
         CREATE INDEX IF NOT EXISTS idx_purchase_return_lines_return ON purchase_return_lines(purchase_return_id);
     ''')
+
+
+    # Phase155: ensure approval/accounting/financial-statement tables on first startup
+    cursor.executescript('''
+        CREATE TABLE IF NOT EXISTS approval_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            amount TEXT DEFAULT '0',
+            threshold_amount TEXT DEFAULT '0',
+            status TEXT NOT NULL DEFAULT 'PENDING',
+            requested_by TEXT,
+            requested_at TEXT,
+            decided_by TEXT,
+            decided_at TEXT,
+            decision_notes TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT,
+            UNIQUE(entity_type, entity_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON approval_requests(status, entity_type);
+        CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, parent_id INTEGER, is_active INTEGER DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS journal_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, entry_no TEXT UNIQUE, entry_date TEXT NOT NULL, source_type TEXT, source_id INTEGER, description TEXT, status TEXT DEFAULT 'POSTED', created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(source_type, source_id));
+        CREATE TABLE IF NOT EXISTS journal_lines (id INTEGER PRIMARY KEY AUTOINCREMENT, journal_entry_id INTEGER NOT NULL, account_id INTEGER NOT NULL, debit TEXT DEFAULT '0', credit TEXT DEFAULT '0', memo TEXT, FOREIGN KEY(journal_entry_id) REFERENCES journal_entries(id) ON DELETE CASCADE, FOREIGN KEY(account_id) REFERENCES accounts(id));
+        CREATE INDEX IF NOT EXISTS idx_journal_entries_source ON journal_entries(source_type, source_id);
+        CREATE TABLE IF NOT EXISTS accounting_periods (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, start_date TEXT NOT NULL, end_date TEXT NOT NULL, status TEXT DEFAULT 'OPEN', closed_at TEXT, closed_by TEXT, closing_entry_id INTEGER, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        CREATE INDEX IF NOT EXISTS idx_accounting_periods_dates ON accounting_periods(start_date, end_date, status);
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('1000','Cash / صندوق','ASSET');
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('1100','Accounts Receivable / ذمم العملاء','ASSET');
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('1200','Inventory / مخزون','ASSET');
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('2000','Accounts Payable / ذمم الموردين','LIABILITY');
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('3000','Owner Equity / حقوق الملكية','EQUITY');
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('3100','Retained Earnings / أرباح مرحلة','EQUITY');
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('3900','Current Year Earnings / أرباح السنة الحالية','EQUITY');
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('4000','Sales Revenue / إيرادات المبيعات','REVENUE');
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('5000','Purchases / مشتريات','EXPENSE');
+        INSERT OR IGNORE INTO accounts(code,name,type) VALUES ('5900','Closing Summary / ملخص الإقفال','EQUITY');
+    ''')
+
+
+    # Phase157: Enterprise RBAC tables and default policies
+    cursor.executescript("""
+        CREATE TABLE IF NOT EXISTS roles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            display_name TEXT,
+            description TEXT,
+            is_system INTEGER DEFAULT 0,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS permissions (
+            key TEXT PRIMARY KEY,
+            module TEXT NOT NULL,
+            action TEXT NOT NULL,
+            description TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS role_permissions (
+            role_id INTEGER NOT NULL,
+            permission_key TEXT NOT NULL,
+            allowed INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(role_id, permission_key),
+            FOREIGN KEY(role_id) REFERENCES roles(id) ON DELETE CASCADE,
+            FOREIGN KEY(permission_key) REFERENCES permissions(key) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS user_roles (
+            user_id TEXT NOT NULL,
+            role_id INTEGER NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(user_id, role_id),
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(role_id) REFERENCES roles(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS user_branch_access (
+            user_id TEXT NOT NULL,
+            branch_id INTEGER NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(user_id, branch_id),
+            FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(branch_id) REFERENCES branches(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_roles_user ON user_roles(user_id);
+        CREATE INDEX IF NOT EXISTS idx_role_permissions_role ON role_permissions(role_id);
+        CREATE INDEX IF NOT EXISTS idx_user_branch_access_user ON user_branch_access(user_id);
+
+        INSERT OR IGNORE INTO roles(name, display_name, description, is_system) VALUES ('admin','Administrator / مدير النظام','Full system access',1);
+        INSERT OR IGNORE INTO roles(name, display_name, description, is_system) VALUES ('manager','Manager / مدير','Operational management access',1);
+        INSERT OR IGNORE INTO roles(name, display_name, description, is_system) VALUES ('accountant','Accountant / محاسب','Accounting and financial reporting access',1);
+        INSERT OR IGNORE INTO roles(name, display_name, description, is_system) VALUES ('cashier','Cashier / أمين صندوق','Sales and cashbox access',1);
+        INSERT OR IGNORE INTO roles(name, display_name, description, is_system) VALUES ('viewer','Viewer / مشاهدة','Read-only access',1);
+
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('reports.view','reports','view','View reports');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('reports.export','reports','export','Export reports');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('invoices.edit','invoices','edit','Edit invoices');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('invoices.delete','invoices','delete','Delete invoices');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('returns.edit','returns','edit','Edit returns');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('branches.view_all','branches','view_all','View all branches');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('branches.manage_all','branches','manage_all','Manage all branches');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('approval.submit','approval','submit','Submit documents for approval');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('approval.approve','approval','approve','Approve documents');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('approval.reject','approval','reject','Reject approval requests');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('accounting.view','accounting','view','View accounting reports');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('accounting.post','accounting','post','Post journal entries / documents');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('accounting.close_period','accounting','close_period','Close accounting periods');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('settings.manage','settings','manage','Manage system settings');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('users.manage','users','manage','Manage users and roles');
+    """)
+
+    cursor.executescript("""
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r CROSS JOIN permissions p WHERE r.name='admin';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'reports.view','reports.export','invoices.edit','returns.edit','branches.view_all','approval.submit','approval.approve','approval.reject'
+        ) WHERE r.name='manager';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'reports.view','reports.export','accounting.view','accounting.post','accounting.close_period','approval.submit'
+        ) WHERE r.name='accountant';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN ('approval.submit') WHERE r.name='cashier';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN ('reports.view') WHERE r.name='viewer';
+        INSERT OR IGNORE INTO user_roles(user_id, role_id)
+        SELECT u.id, r.id FROM users u JOIN roles r ON lower(COALESCE(u.role,'user')) = r.name;
+    """)
 
 
     conn.commit()

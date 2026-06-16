@@ -41,5 +41,8 @@ class SalesReturnService:
     def delete_return(self, return_id: int) -> None:
         return self.gateway.delete_return(return_id)
 
+    def update_return(self, return_id: int, data: Dict) -> int:
+        return self.gateway.update_return(return_id, data)
+
 
 sales_return_service = SalesReturnService()

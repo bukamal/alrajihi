@@ -83,6 +83,8 @@ class BranchesWidget(QWidget):
         edit_btn.clicked.connect(self.edit_branch)
         archive_btn = QPushButton(translate('archive_btn'))
         archive_btn.clicked.connect(self.archive_branch)
+        default_btn = QPushButton('⭐ تعيين كفرع افتراضي')
+        default_btn.clicked.connect(self.set_default_branch)
         refresh_btn = QPushButton(translate('refresh'))
         refresh_btn.clicked.connect(self.refresh)
         header.addWidget(title)
@@ -91,6 +93,7 @@ class BranchesWidget(QWidget):
         header.addWidget(add_btn)
         header.addWidget(edit_btn)
         header.addWidget(archive_btn)
+        header.addWidget(default_btn)
         header.addWidget(refresh_btn)
         layout.addLayout(header)
         self.table = CustomTableView()
@@ -177,6 +180,19 @@ class BranchesWidget(QWidget):
                 self.refresh()
             except Exception as e:
                 QMessageBox.warning(self, translate('error'), str(e))
+
+
+    def set_default_branch(self):
+        branch_id = self._selected_id()
+        if not branch_id:
+            QMessageBox.information(self, translate('branches_title'), translate('select_branch_first'))
+            return
+        try:
+            branch_service.set_default_branch(branch_id)
+            show_toast(self, 'تم تعيين الفرع الافتراضي', 'success')
+            self.refresh()
+        except Exception as e:
+            QMessageBox.warning(self, translate('error'), str(e))
 
     def archive_branch(self):
         branch_id = self._selected_id()

@@ -630,7 +630,7 @@ def load_translations():
         'bank_account': 'الحساب البنكي:',
         'return_summary_sale': 'الإجمالي: {total} | تخفيض الرصيد: {credit} | رد نقدي/بنك: {refund}',
         'return_summary_purchase': 'الإجمالي: {total} | تخفيض الرصيد: {credit} | استرداد نقدي/بنك: {refund}',
-        'save_return': 'حفظ المرتجع',
+        'save_return': 'حفظ المرتجع', 'update_return': 'تحديث المرتجع', 'edit_return': 'تعديل المرتجع', 'return_updated': 'تم تعديل المرتجع',
         'return_item': 'المادة',
         'sold_qty': 'المباع',
         'purchased_qty': 'المشترى',
@@ -656,6 +656,7 @@ def load_translations():
         'return_cancelled': 'تم إلغاء المرتجع',
         'cancel_failed': 'تعذر الإلغاء',
         'return_save_failed': 'تعذر حفظ المرتجع',
+        'return_quantity_exceeds_available': 'كمية المرتجع أكبر من القابل للإرجاع حسب الوحدة المختارة',
         'sales_invoices_for_return': 'فواتير البيع للمرتجع',
         'purchase_invoices_for_return': 'فواتير الشراء للمرتجع',
     })
@@ -686,7 +687,7 @@ def load_translations():
         'parties': 'Partner',
         'materials': 'Artikel',
         'service_item_type': 'Dienstleistung', 'price': 'Preis', 'discount_percent': 'Rabatt %', 'tax_percent': 'Steuer %',
-        'sales_return': 'Verkaufsrückgabe', 'purchase_return': 'Einkaufsrückgabe', 'search_returns': 'Rückgaben suchen...', 'sales_returns_title': 'Verkaufsrückgaben', 'sales_returns_subtitle': 'Verkaufsrückgaben erfassen und prüfen', 'purchase_returns_title': 'Einkaufsrückgaben', 'purchase_returns_subtitle': 'Einkaufsrückgaben erfassen und prüfen', 'original_invoice': 'Ursprungsrechnung:', 'original_purchase_invoice': 'Ursprüngliche Einkaufsrechnung:', 'return_warehouse': 'Rücknahmelager:', 'output_warehouse': 'Ausgangslager:', 'refund_amount': 'Erstatteter Betrag:', 'returned_amount': 'Rückerstatteter Betrag:', 'refund_method': 'Erstattungsart:', 'return_method': 'Rückerstattungsart:', 'cashbox': 'Kasse:', 'bank_account': 'Bankkonto:', 'return_summary_sale': 'Summe: {total} | Saldo-Minderung: {credit} | Bar/Bank-Erstattung: {refund}', 'return_summary_purchase': 'Summe: {total} | Saldo-Minderung: {credit} | Bar/Bank-Erstattung: {refund}', 'save_return': 'Rückgabe speichern', 'return_item': 'Artikel', 'sold_qty': 'Verkauft', 'purchased_qty': 'Gekauft', 'previous_returned': 'Bereits zurückgegeben', 'returnable_qty': 'Rückgabefähig', 'return_qty': 'Rückgabemenge', 'return_no': 'Rückgabenr.', 'invoice': 'Rechnung', 'warehouse': 'Lager', 'refunded': 'Erstattet', 'credit_reduction': 'Saldo-Minderung', 'preview_in_app': 'Vorschau im Programm', 'open_html_browser': 'HTML im Browser öffnen', 'direct_print': 'Direktdruck', 'export_pdf': 'PDF exportieren', 'select_return_first': 'Bitte zuerst eine Rückgabe auswählen', 'return_load_failed': 'Rückgabedaten konnten nicht geladen werden', 'sales_return_saved': 'Verkaufsrückgabe gespeichert', 'purchase_return_saved': 'Einkaufsrückgabe gespeichert', 'confirm': 'Bestätigung', 'confirm_cancel_sales_return': 'Möchten Sie die ausgewählte Verkaufsrückgabe stornieren?', 'confirm_cancel_purchase_return': 'Möchten Sie die ausgewählte Einkaufsrückgabe stornieren?', 'return_cancelled': 'Rückgabe wurde storniert', 'cancel_failed': 'Stornierung fehlgeschlagen', 'return_save_failed': 'Rückgabe konnte nicht gespeichert werden', 'sales_invoices_for_return': 'Verkaufsrechnungen für Rückgabe', 'purchase_invoices_for_return': 'Einkaufsrechnungen für Rückgabe',
+        'sales_return': 'Verkaufsrückgabe', 'purchase_return': 'Einkaufsrückgabe', 'search_returns': 'Rückgaben suchen...', 'sales_returns_title': 'Verkaufsrückgaben', 'sales_returns_subtitle': 'Verkaufsrückgaben erfassen und prüfen', 'purchase_returns_title': 'Einkaufsrückgaben', 'purchase_returns_subtitle': 'Einkaufsrückgaben erfassen und prüfen', 'original_invoice': 'Ursprungsrechnung:', 'original_purchase_invoice': 'Ursprüngliche Einkaufsrechnung:', 'return_warehouse': 'Rücknahmelager:', 'output_warehouse': 'Ausgangslager:', 'refund_amount': 'Erstatteter Betrag:', 'returned_amount': 'Rückerstatteter Betrag:', 'refund_method': 'Erstattungsart:', 'return_method': 'Rückerstattungsart:', 'cashbox': 'Kasse:', 'bank_account': 'Bankkonto:', 'return_summary_sale': 'Summe: {total} | Saldo-Minderung: {credit} | Bar/Bank-Erstattung: {refund}', 'return_summary_purchase': 'Summe: {total} | Saldo-Minderung: {credit} | Bar/Bank-Erstattung: {refund}', 'save_return': 'Rückgabe speichern', 'update_return': 'Rückgabe aktualisieren', 'edit_return': 'Rückgabe bearbeiten', 'return_updated': 'Rückgabe wurde aktualisiert', 'return_item': 'Artikel', 'sold_qty': 'Verkauft', 'purchased_qty': 'Gekauft', 'previous_returned': 'Bereits zurückgegeben', 'returnable_qty': 'Rückgabefähig', 'return_qty': 'Rückgabemenge', 'return_no': 'Rückgabenr.', 'invoice': 'Rechnung', 'warehouse': 'Lager', 'refunded': 'Erstattet', 'credit_reduction': 'Saldo-Minderung', 'preview_in_app': 'Vorschau im Programm', 'open_html_browser': 'HTML im Browser öffnen', 'direct_print': 'Direktdruck', 'export_pdf': 'PDF exportieren', 'select_return_first': 'Bitte zuerst eine Rückgabe auswählen', 'return_load_failed': 'Rückgabedaten konnten nicht geladen werden', 'sales_return_saved': 'Verkaufsrückgabe gespeichert', 'purchase_return_saved': 'Einkaufsrückgabe gespeichert', 'confirm': 'Bestätigung', 'confirm_cancel_sales_return': 'Möchten Sie die ausgewählte Verkaufsrückgabe stornieren?', 'confirm_cancel_purchase_return': 'Möchten Sie die ausgewählte Einkaufsrückgabe stornieren?', 'return_cancelled': 'Rückgabe wurde storniert', 'cancel_failed': 'Stornierung fehlgeschlagen', 'return_save_failed': 'Rückgabe konnte nicht gespeichert werden', 'return_quantity_exceeds_available': 'Die Rückgabemenge überschreitet die verfügbare Menge in der gewählten Einheit', 'sales_invoices_for_return': 'Verkaufsrechnungen für Rückgabe', 'purchase_invoices_for_return': 'Einkaufsrechnungen für Rückgabe',
     })
     en.update({
         'from_date': 'From:', 'to_date': 'To:', 'all': 'All', 'cash': 'Cash', 'bank': 'Bank', 'none': 'None',
@@ -715,7 +716,7 @@ def load_translations():
         'parties': 'Parties',
         'materials': 'Items',
         'service_item_type': 'Service', 'price': 'Price', 'discount_percent': 'Discount %', 'tax_percent': 'Tax %',
-        'sales_return': 'Sales Return', 'purchase_return': 'Purchase Return', 'search_returns': 'Search returns...', 'sales_returns_title': 'Sales Returns', 'sales_returns_subtitle': 'Create and review sales returns', 'purchase_returns_title': 'Purchase Returns', 'purchase_returns_subtitle': 'Create and review purchase returns', 'original_invoice': 'Original invoice:', 'original_purchase_invoice': 'Original purchase invoice:', 'return_warehouse': 'Return warehouse:', 'output_warehouse': 'Output warehouse:', 'refund_amount': 'Refund amount:', 'returned_amount': 'Returned amount:', 'refund_method': 'Refund method:', 'return_method': 'Return method:', 'cashbox': 'Cashbox:', 'bank_account': 'Bank account:', 'return_summary_sale': 'Total: {total} | Credit reduction: {credit} | Cash/Bank refund: {refund}', 'return_summary_purchase': 'Total: {total} | Credit reduction: {credit} | Cash/Bank refund: {refund}', 'save_return': 'Save Return', 'return_item': 'Item', 'sold_qty': 'Sold', 'purchased_qty': 'Purchased', 'previous_returned': 'Previously returned', 'returnable_qty': 'Returnable', 'return_qty': 'Return qty', 'return_no': 'Return No.', 'invoice': 'Invoice', 'warehouse': 'Warehouse', 'refunded': 'Refunded', 'credit_reduction': 'Credit reduction', 'preview_in_app': 'Preview in app', 'open_html_browser': 'Open HTML in browser', 'direct_print': 'Direct print', 'export_pdf': 'Export PDF', 'select_return_first': 'Select a return first', 'return_load_failed': 'Could not load return data', 'sales_return_saved': 'Sales return saved', 'purchase_return_saved': 'Purchase return saved', 'confirm': 'Confirm', 'confirm_cancel_sales_return': 'Do you want to cancel the selected sales return?', 'confirm_cancel_purchase_return': 'Do you want to cancel the selected purchase return?', 'return_cancelled': 'Return cancelled', 'cancel_failed': 'Cancel failed', 'return_save_failed': 'Could not save return', 'sales_invoices_for_return': 'Sales invoices for return', 'purchase_invoices_for_return': 'Purchase invoices for return',
+        'sales_return': 'Sales Return', 'purchase_return': 'Purchase Return', 'search_returns': 'Search returns...', 'sales_returns_title': 'Sales Returns', 'sales_returns_subtitle': 'Create and review sales returns', 'purchase_returns_title': 'Purchase Returns', 'purchase_returns_subtitle': 'Create and review purchase returns', 'original_invoice': 'Original invoice:', 'original_purchase_invoice': 'Original purchase invoice:', 'return_warehouse': 'Return warehouse:', 'output_warehouse': 'Output warehouse:', 'refund_amount': 'Refund amount:', 'returned_amount': 'Returned amount:', 'refund_method': 'Refund method:', 'return_method': 'Return method:', 'cashbox': 'Cashbox:', 'bank_account': 'Bank account:', 'return_summary_sale': 'Total: {total} | Credit reduction: {credit} | Cash/Bank refund: {refund}', 'return_summary_purchase': 'Total: {total} | Credit reduction: {credit} | Cash/Bank refund: {refund}', 'save_return': 'Save Return', 'update_return': 'Update Return', 'edit_return': 'Edit Return', 'return_updated': 'Return updated', 'return_item': 'Item', 'sold_qty': 'Sold', 'purchased_qty': 'Purchased', 'previous_returned': 'Previously returned', 'returnable_qty': 'Returnable', 'return_qty': 'Return qty', 'return_no': 'Return No.', 'invoice': 'Invoice', 'warehouse': 'Warehouse', 'refunded': 'Refunded', 'credit_reduction': 'Credit reduction', 'preview_in_app': 'Preview in app', 'open_html_browser': 'Open HTML in browser', 'direct_print': 'Direct print', 'export_pdf': 'Export PDF', 'select_return_first': 'Select a return first', 'return_load_failed': 'Could not load return data', 'sales_return_saved': 'Sales return saved', 'purchase_return_saved': 'Purchase return saved', 'confirm': 'Confirm', 'confirm_cancel_sales_return': 'Do you want to cancel the selected sales return?', 'confirm_cancel_purchase_return': 'Do you want to cancel the selected purchase return?', 'return_cancelled': 'Return cancelled', 'cancel_failed': 'Cancel failed', 'return_save_failed': 'Could not save return', 'return_quantity_exceeds_available': 'Return quantity exceeds the returnable quantity for the selected unit', 'sales_invoices_for_return': 'Sales invoices for return', 'purchase_invoices_for_return': 'Purchase invoices for return',
     })
 
     ar.update({
@@ -2921,4 +2922,231 @@ _translations['en'].update({
     'context_search_audit_log_placeholder': 'Filter audit log: user, action, entity ...',
     'context_search_offline_queue_placeholder': 'Filter pending requests ...',
     'context_search_monitoring_placeholder': 'Filter monitoring ...',
+})
+
+# Phase130: return dialog unified print actions.
+_translations['ar'].update({
+    'draft': 'مسودة',
+    'no_return_lines_to_print': 'لا توجد بنود مرتجع قابلة للطباعة. أدخل كمية مرتجعة أولاً.',
+})
+_translations['de'].update({
+    'draft': 'Entwurf',
+    'no_return_lines_to_print': 'Keine Rückgabezeilen zum Drucken vorhanden. Geben Sie zuerst eine Rückgabemenge ein.',
+})
+_translations['en'].update({
+    'draft': 'Draft',
+    'no_return_lines_to_print': 'There are no return lines to print. Enter a return quantity first.',
+})
+
+
+# Phase131: unified line-table column labels.
+_translations['ar'].update({
+    'item_profit': 'ربح المادة',
+})
+_translations['de'].update({
+    'item_profit': 'Artikelgewinn',
+})
+_translations['en'].update({
+    'item_profit': 'Item Profit',
+})
+
+# Phase133: external list line columns.
+_translations['ar'].update({
+    'invoice_total': 'إجمالي الفاتورة',
+    'return_total': 'إجمالي المرتجع',
+})
+_translations['de'].update({
+    'invoice_total': 'Rechnungssumme',
+    'return_total': 'Rückgabesumme',
+})
+_translations['en'].update({
+    'invoice_total': 'Invoice Total',
+    'return_total': 'Return Total',
+})
+
+# Phase135: external management table columns for invoices and returns.
+_translations['ar'].update({
+    'invoice_value': 'قيمة الفاتورة',
+    'received': 'المقبوض',
+    'invoice_profit': 'ربح الفاتورة',
+    'return_value': 'قيمة المرتجع',
+    'settlement_remaining': 'المتبقي للتسوية',
+})
+_translations['de'].update({
+    'invoice_value': 'Rechnungswert',
+    'received': 'Eingegangen',
+    'invoice_profit': 'Rechnungsgewinn',
+    'return_value': 'Rückgabewert',
+    'settlement_remaining': 'Offen zur Verrechnung',
+})
+_translations['en'].update({
+    'invoice_value': 'Invoice Value',
+    'received': 'Received',
+    'invoice_profit': 'Invoice Profit',
+    'return_value': 'Return Value',
+    'settlement_remaining': 'Settlement Remaining',
+})
+
+# Phase138 reports center foundation + party statement labels
+_translations['ar'].update({
+    'reset_filters': 'إعادة ضبط الفلاتر',
+    'rows_count': 'عدد السجلات',
+    'debit': 'مدين',
+    'credit': 'دائن',
+    'opening_balance': 'رصيد افتتاحي',
+    'sale_invoice': 'فاتورة بيع',
+    'purchase_invoice': 'فاتورة شراء',
+    'sales_return': 'مرتجع بيع',
+    'purchase_return': 'مرتجع شراء',
+})
+_translations['de'].update({
+    'reset_filters': 'Filter zurücksetzen',
+    'rows_count': 'Datensätze',
+    'debit': 'Soll',
+    'credit': 'Haben',
+    'opening_balance': 'Eröffnungssaldo',
+    'sale_invoice': 'Verkaufsrechnung',
+    'purchase_invoice': 'Einkaufsrechnung',
+    'sales_return': 'Verkaufsretoure',
+    'purchase_return': 'Einkaufsretoure',
+})
+_translations['en'].update({
+    'reset_filters': 'Reset filters',
+    'rows_count': 'Rows',
+    'debit': 'Debit',
+    'credit': 'Credit',
+    'opening_balance': 'Opening balance',
+    'sale_invoice': 'Sales invoice',
+    'purchase_invoice': 'Purchase invoice',
+    'sales_return': 'Sales return',
+    'purchase_return': 'Purchase return',
+})
+
+# Phase139: item movement and invoice profitability reports
+_translations['ar'].update({
+    'item_label': 'المادة:',
+    'all_items': 'كل المواد',
+    'report_item_movement': 'حركة المادة',
+    'report_invoice_profit': 'أرباح الفواتير',
+    'reference': 'المرجع',
+    'movement_type': 'نوع الحركة',
+    'in_qty': 'وارد',
+    'out_qty': 'صادر',
+    'total_cost': 'إجمالي التكلفة',
+    'sales_value': 'قيمة البيع',
+    'cost': 'التكلفة',
+    'profit': 'الربح',
+    'profit_margin': 'نسبة الربح',
+})
+_translations['de'].update({
+    'item_label': 'Artikel:',
+    'all_items': 'Alle Artikel',
+    'report_item_movement': 'Artikelbewegung',
+    'report_invoice_profit': 'Rechnungsgewinne',
+    'reference': 'Referenz',
+    'movement_type': 'Bewegungsart',
+    'in_qty': 'Eingang',
+    'out_qty': 'Ausgang',
+    'total_cost': 'Gesamtkosten',
+    'sales_value': 'Verkaufswert',
+    'cost': 'Kosten',
+    'profit': 'Gewinn',
+    'profit_margin': 'Gewinnspanne',
+})
+_translations['en'].update({
+    'item_label': 'Item:',
+    'all_items': 'All items',
+    'report_item_movement': 'Item Movement',
+    'report_invoice_profit': 'Invoice Profitability',
+    'reference': 'Reference',
+    'movement_type': 'Movement Type',
+    'in_qty': 'In',
+    'out_qty': 'Out',
+    'total_cost': 'Total Cost',
+    'sales_value': 'Sales Value',
+    'cost': 'Cost',
+    'profit': 'Profit',
+    'profit_margin': 'Profit Margin',
+})
+
+# Phase140: cash/bank, net profit, manufacturing and product-cost reports
+_translations['ar'].update({
+    'report_net_profit': 'الربح الصافي',
+    'report_manufacturing_orders': 'أوامر التصنيع',
+    'report_product_cost': 'تكلفة المنتج',
+    'running_balance': 'الرصيد التراكمي',
+    'direction': 'الاتجاه',
+    'bank_account': 'الحساب البنكي',
+    'net_sales': 'صافي المبيعات',
+    'cogs': 'تكلفة البضاعة المباعة',
+    'product': 'المنتج',
+    'components_count': 'عدد المكونات',
+    'bom_cost': 'تكلفة المواد',
+    'final_cost': 'التكلفة النهائية',
+})
+_translations['de'].update({
+    'report_net_profit': 'Nettogewinn',
+    'report_manufacturing_orders': 'Fertigungsaufträge',
+    'report_product_cost': 'Produktkosten',
+    'running_balance': 'Laufender Saldo',
+    'direction': 'Richtung',
+    'bank_account': 'Bankkonto',
+    'net_sales': 'Nettoverkauf',
+    'cogs': 'Wareneinsatz',
+    'product': 'Produkt',
+    'components_count': 'Komponentenanzahl',
+    'bom_cost': 'Materialkosten',
+    'final_cost': 'Endkosten',
+})
+_translations['en'].update({
+    'report_net_profit': 'Net Profit',
+    'report_manufacturing_orders': 'Manufacturing Orders',
+    'report_product_cost': 'Product Cost',
+    'running_balance': 'Running Balance',
+    'direction': 'Direction',
+    'bank_account': 'Bank Account',
+    'net_sales': 'Net Sales',
+    'cogs': 'COGS',
+    'product': 'Product',
+    'components_count': 'Components',
+    'bom_cost': 'BOM Cost',
+    'final_cost': 'Final Cost',
+})
+
+# Phase 141: remaining professional reports localization.
+_translations['ar'].update({
+    'report_general_ledger': 'الأستاذ العام',
+    'report_full_trial_balance': 'ميزان المراجعة الكامل',
+    'report_slow_items': 'المواد الراكدة',
+    'report_top_items': 'المواد الأكثر مبيعًا',
+    'report_low_items': 'المواد الأقل مبيعًا',
+    'report_reorder_items': 'مواد تحت حد الطلب',
+    'report_consistency_audit': 'تدقيق اتساق التقارير',
+    'account': 'الحساب', 'difference': 'الفرق', 'min_stock': 'حد الطلب',
+    'shortage': 'النقص', 'last_sale': 'آخر بيع', 'days_without_movement': 'أيام بلا حركة',
+    'scope': 'النطاق', 'severity': 'الخطورة', 'message': 'الرسالة'
+})
+_translations['de'].update({
+    'report_general_ledger': 'Hauptbuch',
+    'report_full_trial_balance': 'Vollständige Summenbilanz',
+    'report_slow_items': 'Langsam drehende Artikel',
+    'report_top_items': 'Meistverkaufte Artikel',
+    'report_low_items': 'Am wenigsten verkaufte Artikel',
+    'report_reorder_items': 'Artikel unter Meldebestand',
+    'report_consistency_audit': 'Berichts-Konsistenzprüfung',
+    'account': 'Konto', 'difference': 'Differenz', 'min_stock': 'Meldebestand',
+    'shortage': 'Fehlmenge', 'last_sale': 'Letzter Verkauf', 'days_without_movement': 'Tage ohne Bewegung',
+    'scope': 'Bereich', 'severity': 'Schweregrad', 'message': 'Meldung'
+})
+_translations['en'].update({
+    'report_general_ledger': 'General Ledger',
+    'report_full_trial_balance': 'Full Trial Balance',
+    'report_slow_items': 'Slow-Moving Items',
+    'report_top_items': 'Top-Selling Items',
+    'report_low_items': 'Low-Selling Items',
+    'report_reorder_items': 'Items Below Reorder Level',
+    'report_consistency_audit': 'Report Consistency Audit',
+    'account': 'Account', 'difference': 'Difference', 'min_stock': 'Reorder Level',
+    'shortage': 'Shortage', 'last_sale': 'Last Sale', 'days_without_movement': 'Days Without Movement',
+    'scope': 'Scope', 'severity': 'Severity', 'message': 'Message'
 })

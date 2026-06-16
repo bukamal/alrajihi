@@ -177,7 +177,7 @@ class CustomTableView(QTableView):
         wb.save(filename)
         QMessageBox.information(self, "نجاح", f"تم التصدير إلى {filename}")
 
-    def print_table(self):
+    def print_table(self, mode='preview'):
         """Print table through the centralized printing service.
 
         Supports any Qt model already used by project pages, respects hidden columns,
@@ -205,7 +205,14 @@ class CustomTableView(QTableView):
         subtitle = f"عدد السجلات: {len(rows)}"
         try:
             from printing.printing_service import printing_service
-            printing_service.report_preview(str(title), rows, headers, self, subtitle=subtitle)
+            if mode == 'browser':
+                printing_service.report_browser(str(title), rows, headers, self, subtitle=subtitle)
+            elif mode == 'direct':
+                printing_service.report_print(str(title), rows, headers, self, subtitle=subtitle)
+            elif mode == 'pdf':
+                printing_service.report_pdf(str(title), rows, headers, self, subtitle=subtitle)
+            else:
+                printing_service.report_preview(str(title), rows, headers, self, subtitle=subtitle)
         except Exception as exc:
             QMessageBox.warning(self, "تعذر الطباعة", str(exc))
 

@@ -182,6 +182,55 @@ class BranchRepository(BaseRepository):
         conn.execute("UPDATE branches SET deleted_at=?, is_active=0, updated_at=? WHERE id=? AND user_id=?", (now, now, branch_id, uid))
         conn.commit()
 
+
+    def set_default(self, branch_id: int) -> None:
+        if self.db.is_remote():
+            # Remote API has no dedicated endpoint in this client contract yet.
+            # Keep local behaviour explicit and let the server-side roadmap add
+            # this route later without breaking offline mode.
+            raise NotImplementedError('تعيين الفرع الافتراضي غير مدعوم في وضع الخادم حالياً')
+        self.bootstrap_defaults()
+        uid = self._uid()
+        conn = self.db.get_connection()
+        row = conn.execute(
+            "SELECT id, name FROM branches WHERE id=? AND user_id=? AND deleted_at IS NULL AND COALESCE(is_active,1)=1",
+            (int(branch_id), uid)
+        ).fetchone()
+        if not row:
+            raise ValueError('الفرع غير موجود أو غير نشط')
+        now = self._now()
+        conn.execute("UPDATE branches SET is_default=0, updated_at=? WHERE user_id=?", (now, uid))
+        conn.execute("UPDATE branches SET is_default=1, updated_at=? WHERE id=? AND user_id=?", (now, int(branch_id), uid))
+        conn.commit()
+
+    def branch_diagnostics(self) -> Dict:
+        if self.db.is_remote():
+            return {'mode': 'remote', 'branches_count': None, 'default_branch_id': None, 'checks': []}
+        self.bootstrap_defaults()
+        uid = self._uid()
+        conn = self.db.get_connection()
+        def scalar(sql, params=()):
+            try:
+                return conn.execute(sql, params).fetchone()[0]
+            except Exception as exc:
+                return f'ERROR: {exc}'
+        default_id = self.default_branch_id(uid)
+        checks = [
+            {'code': 'branches_count', 'label': 'عدد الفروع النشطة', 'value': scalar("SELECT COUNT(*) FROM branches WHERE user_id=? AND deleted_at IS NULL AND COALESCE(is_active,1)=1", (uid,))},
+            {'code': 'default_branch_id', 'label': 'الفرع الافتراضي', 'value': default_id or 'غير محدد'},
+            {'code': 'warehouses_without_branch', 'label': 'مستودعات بلا فرع', 'value': scalar("SELECT COUNT(*) FROM warehouses WHERE user_id=? AND deleted_at IS NULL AND branch_id IS NULL", (uid,))},
+            {'code': 'invoices_without_branch', 'label': 'فواتير بلا فرع', 'value': scalar("SELECT COUNT(*) FROM invoices WHERE user_id=? AND deleted_at IS NULL AND branch_id IS NULL", (uid,))},
+            {'code': 'vouchers_without_branch', 'label': 'سندات بلا فرع', 'value': scalar("SELECT COUNT(*) FROM vouchers WHERE user_id=? AND branch_id IS NULL", (uid,))},
+            {'code': 'returns_without_branch', 'label': 'مرتجعات بلا فرع', 'value': scalar("SELECT (SELECT COUNT(*) FROM sales_returns WHERE user_id=? AND branch_id IS NULL) + (SELECT COUNT(*) FROM purchase_returns WHERE user_id=? AND branch_id IS NULL)", (uid, uid))},
+        ]
+        risk_count = 0
+        for check in checks:
+            if check['code'] in ('warehouses_without_branch', 'invoices_without_branch', 'vouchers_without_branch', 'returns_without_branch'):
+                v = check.get('value')
+                if isinstance(v, (int, float)) and v > 0:
+                    risk_count += int(v)
+        return {'mode': 'local', 'default_branch_id': default_id, 'risk_count': risk_count, 'checks': checks}
+
     def _validate(self, data: Dict) -> Dict:
         payload = dict(data or {})
         name = str(payload.get('name', '')).strip()

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBo
                              QApplication, QTableView, QHeaderView, QAbstractItemView, QWidget,
                              QStyledItemDelegate, QCompleter, QPushButton, QSpinBox, QCheckBox, QFrame,
                              QSplitter, QSizePolicy, QMenu, QAction)
-from PyQt5.QtCore import Qt, QDate, QAbstractTableModel, QModelIndex, QStringListModel, QEvent, QTimer
+from PyQt5.QtCore import Qt, QDate, QAbstractTableModel, QModelIndex, QStringListModel, QEvent, QTimer, QSettings
 from PyQt5.QtGui import QKeySequence, QFont
 from decimal import Decimal
 
@@ -61,12 +61,14 @@ class LinesModel(QAbstractTableModel):
     COL_QUANTITY = 3
     COL_UNIT = 4
     COL_PRICE = 5
-    COL_DISCOUNT = 6
-    COL_TAX = 7
-    COL_TOTAL = 8
-    COL_DELETE = 9
+    COL_TOTAL = 6
+    COL_NOTES = 7
+    COL_PROFIT = 8
+    COL_DISCOUNT = 9
+    COL_TAX = 10
+    COL_DELETE = 11
 
-    EDITABLE_COLUMNS = (COL_BARCODE, COL_ITEM_NAME, COL_QUANTITY, COL_UNIT, COL_PRICE, COL_DISCOUNT, COL_TAX)
+    EDITABLE_COLUMNS = (COL_BARCODE, COL_ITEM_NAME, COL_QUANTITY, COL_UNIT, COL_PRICE, COL_NOTES, COL_DISCOUNT, COL_TAX)
 
     def __init__(self, inv_type, parent=None):
         super().__init__(parent)
@@ -78,7 +80,7 @@ class LinesModel(QAbstractTableModel):
         return len(self.lines)
 
     def columnCount(self, parent=QModelIndex()):
-        return 10
+        return 12
 
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
@@ -93,7 +95,7 @@ class LinesModel(QAbstractTableModel):
                 return Qt.AlignCenter
             return None
         if role == Qt.TextAlignmentRole:
-            if col in (self.COL_ROW, self.COL_QUANTITY, self.COL_PRICE, self.COL_DISCOUNT, self.COL_TAX, self.COL_TOTAL):
+            if col in (self.COL_ROW, self.COL_QUANTITY, self.COL_PRICE, self.COL_TOTAL, self.COL_PROFIT, self.COL_DISCOUNT, self.COL_TAX):
                 return Qt.AlignCenter
             return Qt.AlignVCenter | Qt.AlignRight
         if role == Qt.DisplayRole or role == Qt.EditRole:
@@ -109,12 +111,16 @@ class LinesModel(QAbstractTableModel):
                 return line.get('unit_display', '')
             if col == self.COL_PRICE:
                 return f"{line['price']:.2f}"
+            if col == self.COL_TOTAL:
+                return f"{line['total']:.2f} {self.display_curr}"
+            if col == self.COL_NOTES:
+                return line.get('notes', '')
+            if col == self.COL_PROFIT:
+                return '' if self.inv_type != 'sale' else f"{line.get('profit', Decimal('0')):.2f} {self.display_curr}"
             if col == self.COL_DISCOUNT:
                 return f"{line.get('discount_percent', Decimal('0')):.2f}"
             if col == self.COL_TAX:
                 return f"{line.get('tax_percent', Decimal('0')):.2f}"
-            if col == self.COL_TOTAL:
-                return f"{line['total']:.2f} {self.display_curr}"
         return None
 
     def setData(self, index, value, role=Qt.EditRole):
@@ -143,6 +149,8 @@ class LinesModel(QAbstractTableModel):
                 if price < 0:
                     return False
                 line['price'] = price
+            elif col == self.COL_NOTES:
+                line['notes'] = str(value or '')
             elif col == self.COL_DISCOUNT:
                 discount = Decimal(str(value))
                 if discount < 0 or discount > 100:
@@ -172,7 +180,7 @@ class LinesModel(QAbstractTableModel):
 
     def headerData(self, section, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            headers = [translate('line_no'), translate('barcode'), translate('item'), translate('quantity'), translate('unit'), translate('price'), translate('discount_percent'), translate('tax_percent'), translate('total'), '']
+            headers = [translate('line_no'), translate('barcode'), translate('item'), translate('quantity'), translate('unit'), translate('price'), translate('total'), translate('notes'), translate('item_profit'), translate('discount_percent'), translate('tax_percent'), '']
             return headers[section]
         return None
 
@@ -187,6 +195,8 @@ class LinesModel(QAbstractTableModel):
             'unit_display': '',
             'conversion_factor': Decimal('1'),
             'price': Decimal('0'),
+            'item_cost_base': Decimal('0'),
+            'profit': Decimal('0'),
             'discount_percent': Decimal('0'),
             'tax_percent': Decimal('0'),
             'total': Decimal('0'),
@@ -218,6 +228,11 @@ class LinesModel(QAbstractTableModel):
                 self.lines[row]['unit_id'] = None
                 self.lines[row]['unit_display'] = ''
                 self.lines[row]['conversion_factor'] = Decimal('1')
+            try:
+                item = product_service.item_by_id(item_id) or {}
+            except Exception:
+                item = {}
+            self.lines[row]['item_cost_base'] = _decimal_value(item.get('cost_price') or item.get('purchase_price') or item.get('average_cost') or item.get('cost') or 0, '0')
             self.lines[row]['price'] = _decimal_value(default_price, '0')
             self.update_row_total(row)
             self.dataChanged.emit(self.index(row, 0), self.index(row, self.columnCount()-1))
@@ -284,6 +299,8 @@ class LinesModel(QAbstractTableModel):
                 'unit_display': current_unit,
                 'conversion_factor': current_factor,
                 'price': price_display,
+                'item_cost_base': _decimal_value((item or {}).get('cost_price') or (item or {}).get('purchase_price') or (item or {}).get('average_cost') or val(line, 'cost_price', val(line, 'unit_cost', 0)), '0'),
+                'profit': Decimal('0'),
                 'discount_percent': _decimal_value(val(line, 'discount_percent', 0), '0'),
                 'tax_percent': _decimal_value(val(line, 'tax_percent', 0), '0'),
                 'total': total_display,
@@ -307,8 +324,10 @@ class LinesModel(QAbstractTableModel):
             result.append({
                 'item_id': line['item_id'],
                 'item_name': line.get('item_name', ''),
+                'barcode': line.get('barcode', ''),
                 'quantity': line['qty'],
                 'unit': line.get('unit_display', ''),
+                'unit_id': line.get('unit_id'),
                 'conversion_factor': line.get('conversion_factor', Decimal('1')),
                 'base_qty': base_qty,
                 'unit_price': price_usd,
@@ -327,7 +346,16 @@ class LinesModel(QAbstractTableModel):
             tax_percent = _decimal_value(line.get('tax_percent', 0), '0')
             after_discount = subtotal - (subtotal * discount_percent / Decimal('100'))
             line['total'] = after_discount + (after_discount * tax_percent / Decimal('100'))
-            self.dataChanged.emit(self.index(row, self.COL_TOTAL), self.index(row, self.COL_TOTAL))
+            try:
+                if self.inv_type == 'sale':
+                    factor = _positive_decimal(line.get('conversion_factor', 1), '1')
+                    unit_cost_display = currency.convert(_decimal_value(line.get('item_cost_base', 0), '0') * factor, 'USD', self.display_curr)
+                    line['profit'] = (_decimal_value(line.get('price', 0), '0') - _decimal_value(unit_cost_display, '0')) * _decimal_value(line.get('qty', 0), '0')
+                else:
+                    line['profit'] = Decimal('0')
+            except Exception:
+                line['profit'] = Decimal('0')
+            self.dataChanged.emit(self.index(row, self.COL_TOTAL), self.index(row, self.COL_PROFIT))
 
 class InvoiceDialog(CenteredDialog):
     def __init__(self, inv_type, parent=None, invoice_id=None):
@@ -640,10 +668,14 @@ class InvoiceDialog(CenteredDialog):
         self.lines_table.setColumnWidth(LinesModel.COL_QUANTITY, 88)
         self.lines_table.setColumnWidth(LinesModel.COL_UNIT, 95)
         self.lines_table.setColumnWidth(LinesModel.COL_PRICE, 105)
+        self.lines_table.setColumnWidth(LinesModel.COL_TOTAL, 130)
+        self.lines_table.setColumnWidth(LinesModel.COL_NOTES, 160)
+        self.lines_table.setColumnWidth(LinesModel.COL_PROFIT, 120)
         self.lines_table.setColumnWidth(LinesModel.COL_DISCOUNT, 78)
         self.lines_table.setColumnWidth(LinesModel.COL_TAX, 78)
-        self.lines_table.setColumnWidth(LinesModel.COL_TOTAL, 130)
         self.lines_table.setColumnWidth(LinesModel.COL_DELETE, 48)
+        self.lines_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.lines_table.customContextMenuRequested.connect(self._show_lines_columns_menu)
         self.lines_table.installEventFilter(self)
 
         from views.dialogs.invoice_delegates import ItemComboDelegate, UnitComboBoxDelegate, DoubleSpinDelegate
@@ -656,6 +688,7 @@ class InvoiceDialog(CenteredDialog):
         self.lines_table.setItemDelegateForColumn(LinesModel.COL_PRICE, self.double_delegate)
         self.lines_table.setItemDelegateForColumn(LinesModel.COL_DISCOUNT, self.double_delegate)
         self.lines_table.setItemDelegateForColumn(LinesModel.COL_TAX, self.double_delegate)
+        self._restore_lines_table_layout()
 
         self.lines_table.clicked.connect(self.on_table_clicked)
         if not self.invoice_id:
@@ -671,8 +704,12 @@ class InvoiceDialog(CenteredDialog):
         self.remove_line_btn = QPushButton(translate('remove_line'))
         self.remove_line_btn.setObjectName("danger")
         self.remove_line_btn.clicked.connect(self.remove_selected_line)
+        self.columns_btn = QPushButton(translate('columns'))
+        self.columns_btn.setObjectName("softAction")
+        self.columns_btn.clicked.connect(self._show_lines_columns_menu_from_button)
         btn_line_layout.addWidget(self.add_line_btn)
         btn_line_layout.addWidget(self.remove_line_btn)
+        btn_line_layout.addWidget(self.columns_btn)
         btn_line_layout.addStretch()
         left_layout.addLayout(btn_line_layout)
 
@@ -852,7 +889,7 @@ class InvoiceDialog(CenteredDialog):
         if not index.isValid():
             self.focus_barcode_input()
             return
-        editable = [LinesModel.COL_BARCODE, LinesModel.COL_ITEM_NAME, LinesModel.COL_QUANTITY, LinesModel.COL_UNIT, LinesModel.COL_PRICE, LinesModel.COL_DISCOUNT, LinesModel.COL_TAX]
+        editable = [LinesModel.COL_BARCODE, LinesModel.COL_ITEM_NAME, LinesModel.COL_QUANTITY, LinesModel.COL_UNIT, LinesModel.COL_PRICE, LinesModel.COL_NOTES, LinesModel.COL_DISCOUNT, LinesModel.COL_TAX]
         row, col = index.row(), index.column()
         if col == LinesModel.COL_BARCODE:
             text = str(self.lines_model.lines[row].get('barcode', '') or '').strip()
@@ -869,6 +906,73 @@ class InvoiceDialog(CenteredDialog):
             next_index = self.lines_model.index(row + 1, LinesModel.COL_BARCODE)
         self.lines_table.setCurrentIndex(next_index)
         self.lines_table.edit(next_index)
+
+
+    def _lines_table_settings_key(self):
+        return f"invoice_lines/{self.inv_type}"
+
+    def _default_invoice_line_visible_columns(self):
+        if self.inv_type == 'sale':
+            return {LinesModel.COL_BARCODE, LinesModel.COL_ITEM_NAME, LinesModel.COL_QUANTITY, LinesModel.COL_UNIT, LinesModel.COL_PRICE, LinesModel.COL_TOTAL, LinesModel.COL_NOTES, LinesModel.COL_PROFIT, LinesModel.COL_DELETE}
+        return {LinesModel.COL_BARCODE, LinesModel.COL_ITEM_NAME, LinesModel.COL_UNIT, LinesModel.COL_QUANTITY, LinesModel.COL_PRICE, LinesModel.COL_TOTAL, LinesModel.COL_NOTES, LinesModel.COL_DELETE}
+
+    def _restore_lines_table_layout(self):
+        try:
+            settings = QSettings('Alrajhi', 'Accounting')
+            key = self._lines_table_settings_key()
+            saved = settings.value(f'{key}/visible_columns')
+            if saved:
+                visible = {int(x) for x in str(saved).split(',') if str(x).strip().isdigit()}
+            else:
+                visible = self._default_invoice_line_visible_columns()
+            for col in range(self.lines_model.columnCount()):
+                self.lines_table.setColumnHidden(col, col not in visible)
+            state = settings.value(f'{key}/header_state')
+            if state:
+                self.lines_table.horizontalHeader().restoreState(state)
+            elif self.inv_type == 'purchase':
+                try:
+                    h = self.lines_table.horizontalHeader()
+                    h.moveSection(h.visualIndex(LinesModel.COL_UNIT), h.visualIndex(LinesModel.COL_QUANTITY))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    def _save_lines_table_layout(self):
+        try:
+            settings = QSettings('Alrajhi', 'Accounting')
+            key = self._lines_table_settings_key()
+            visible = [str(c) for c in range(self.lines_model.columnCount()) if not self.lines_table.isColumnHidden(c)]
+            settings.setValue(f'{key}/visible_columns', ','.join(visible))
+            settings.setValue(f'{key}/header_state', self.lines_table.horizontalHeader().saveState())
+        except Exception:
+            pass
+
+    def _set_line_column_visible(self, column, visible):
+        self.lines_table.setColumnHidden(column, not visible)
+        self._save_lines_table_layout()
+
+    def _show_lines_columns_menu_from_button(self):
+        if hasattr(self, 'columns_btn'):
+            self._show_lines_columns_menu(self.columns_btn.rect().bottomLeft(), source_widget=self.columns_btn)
+
+    def _show_lines_columns_menu(self, pos, source_widget=None):
+        menu = QMenu(self)
+        columns_menu = menu.addMenu(translate('columns'))
+        for col in range(self.lines_model.columnCount()):
+            header = self.lines_model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or translate('column_number', number=col + 1)
+            act = QAction(str(header), self)
+            act.setCheckable(True)
+            act.setChecked(not self.lines_table.isColumnHidden(col))
+            act.toggled.connect(lambda checked, c=col: self._set_line_column_visible(c, checked))
+            columns_menu.addAction(act)
+        reset = QAction(translate('reset_columns'), self)
+        reset.triggered.connect(lambda: (QSettings('Alrajhi', 'Accounting').remove(self._lines_table_settings_key()), self._restore_lines_table_layout()))
+        columns_menu.addSeparator()
+        columns_menu.addAction(reset)
+        target = source_widget or self.lines_table.viewport()
+        menu.exec(target.mapToGlobal(pos))
 
 
     def _load_warehouses(self):

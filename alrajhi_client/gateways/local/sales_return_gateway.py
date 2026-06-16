@@ -32,6 +32,41 @@ class LocalSalesReturnGateway(SalesReturnGateway):
             raise SalesReturnException('لا توجد جلسة مستخدم نشطة')
         return uid
 
+    def _unit_factor_for_return(self, orig: Dict, line: Dict) -> Tuple[Decimal, str, Optional[int]]:
+        """Resolve the selected return unit against item units; never trust client conversion blindly."""
+        item_id = orig.get('item_id')
+        orig_factor = Decimal(str(orig.get('conversion_factor') or 1))
+        if orig_factor <= 0:
+            orig_factor = Decimal('1')
+        unit_id = line.get('unit_id')
+        unit_name = str(line.get('unit') or orig.get('unit') or '').strip()
+        conn = self._conn()
+        if item_id and unit_id not in (None, ''):
+            row = conn.execute("SELECT id, unit_name, conversion_factor FROM item_units WHERE id=? AND item_id=?", (unit_id, item_id)).fetchone()
+            if not row:
+                raise SalesReturnException('وحدة المرتجع لا تتبع المادة المحددة')
+            factor = Decimal(str(row['conversion_factor'] or 1))
+            if factor <= 0:
+                raise SalesReturnException('معامل وحدة المرتجع غير صالح')
+            return factor, str(row['unit_name'] or unit_name), int(row['id'])
+        if item_id and unit_name:
+            item = conn.execute("SELECT unit FROM items WHERE id=?", (item_id,)).fetchone()
+            if item and str(item['unit'] or '').strip() == unit_name:
+                return Decimal('1'), unit_name, None
+            row = conn.execute("SELECT id, unit_name, conversion_factor FROM item_units WHERE item_id=? AND unit_name=?", (item_id, unit_name)).fetchone()
+            if row:
+                factor = Decimal(str(row['conversion_factor'] or 1))
+                if factor <= 0:
+                    raise SalesReturnException('معامل وحدة المرتجع غير صالح')
+                return factor, str(row['unit_name'] or unit_name), int(row['id'])
+        return orig_factor, unit_name, line.get('unit_id') if line.get('unit_id') not in (None, '') else orig.get('unit_id')
+
+    def _return_unit_price(self, orig: Dict, factor: Decimal) -> Decimal:
+        orig_factor = Decimal(str(orig.get('conversion_factor') or 1))
+        if orig_factor <= 0:
+            orig_factor = Decimal('1')
+        return (Decimal(str(orig.get('unit_price') or orig.get('price') or 0)) / orig_factor) * factor
+
     def next_return_no(self) -> str:
         if self.db.is_remote():
             # الرقم النهائي يولده الخادم عند الحفظ؛ هذه قيمة عرض مؤقتة فقط.
@@ -87,7 +122,12 @@ class LocalSalesReturnGateway(SalesReturnGateway):
         if not row:
             return None
         ret = dict(row)
-        ret['lines'] = [dict(x) for x in self._conn().execute("SELECT * FROM sales_return_lines WHERE sales_return_id=?", (return_id,)).fetchall()]
+        ret['lines'] = [dict(x) for x in self._conn().execute("""
+            SELECT rl.*, it.name AS item_name, it.barcode AS barcode, it.unit AS base_unit
+            FROM sales_return_lines rl
+            LEFT JOIN items it ON it.id = rl.item_id
+            WHERE rl.sales_return_id=?
+        """, (return_id,)).fetchall()]
         return ret
 
     def sale_invoices(self, search: str | None = None, limit: int = 200) -> List[Dict]:
@@ -169,15 +209,18 @@ class LocalSalesReturnGateway(SalesReturnGateway):
             qty = Decimal(str(line.get('quantity') or 0))
             if qty <= 0:
                 raise SalesReturnException('كمية المرتجع يجب أن تكون أكبر من صفر')
-            factor = Decimal(str(orig.get('conversion_factor') or 1))
-            if factor <= 0:
-                factor = Decimal('1')
-            base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * factor)) or 0))
+            factor, unit_name, unit_id = self._unit_factor_for_return(orig, line)
+            base_qty = qty * factor
+            explicit_base = line.get('base_qty', line.get('quantity_in_base'))
+            if explicit_base not in (None, ''):
+                base_qty = Decimal(str(explicit_base or 0))
+                if base_qty != qty * factor:
+                    base_qty = qty * factor
             sold = Decimal(str(orig.get('quantity_in_base') or orig.get('quantity') or 0))
             already = self.returned_qty(invoice_id, orig_line_id, orig.get('item_id'))
             if base_qty > (sold - already):
                 raise SalesReturnException('كمية المرتجع أكبر من الكمية المتبقية القابلة للإرجاع')
-            price = Decimal(str(orig.get('unit_price') or 0))
+            price = self._return_unit_price(orig, factor)
             # Sales invoices may store unit_cost as the display selling price in legacy rows.
             # For a sales return, inventory must be re-entered at the original COGS,
             # derived from invoice_lines.cost_amount / quantity_in_base when available.
@@ -193,7 +236,9 @@ class LocalSalesReturnGateway(SalesReturnGateway):
                 'unit_price': price,
                 'unit_cost': cost_per_base_unit,
                 'total': amount,
-                'unit': orig.get('unit') or '',
+                'unit': unit_name,
+                'unit_id': unit_id,
+                'conversion_factor': factor,
                 'cost_amount': base_qty * cost_per_base_unit,
             })
         remaining_receivable = max(Decimal('0'), Decimal(str(inv.get('total') or 0)) - Decimal(str(inv.get('paid') or 0)))
@@ -222,10 +267,10 @@ class LocalSalesReturnGateway(SalesReturnGateway):
         for line in prepared:
             conn.execute("""
                 INSERT INTO sales_return_lines
-                (sales_return_id,original_invoice_line_id,item_id,quantity,unit_price,total,unit,quantity_in_base,unit_cost,cost_amount)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
+                (sales_return_id,original_invoice_line_id,item_id,quantity,unit_price,total,unit,unit_id,conversion_factor,quantity_in_base,unit_cost,cost_amount)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
             """, (rid, line['original_invoice_line_id'], line['item_id'], str(line['quantity']), str(line['unit_price']),
-                  str(line['total']), line['unit'], str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
+                  str(line['total']), line['unit'], line.get('unit_id'), str(line.get('conversion_factor') or 1), str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
             self.db._record_inventory_movement(line['item_id'], 'sales_return', line['quantity_in_base'], line['unit_cost'], rid)
             warehouse_service.record_movement(line['item_id'], wh_id, 'sales_return_in', line['quantity_in_base'], line['unit_cost'], 'sales_return', rid, 'إرجاع مبيعات إلى المستودع')
             inventory_service.record_ledger_entry(
@@ -285,3 +330,23 @@ class LocalSalesReturnGateway(SalesReturnGateway):
         conn.commit()
         audit_service.log('REVERSE', 'SALES_RETURN', return_id, old_values=ret, details='إلغاء مرتجع مبيعات')
 
+
+    def update_return(self, return_id: int, data: Dict) -> int:
+        """Replace an active return through the same reversal/create pipeline."""
+        if self.db.is_remote():
+            old = self.get(return_id) or {}
+            data = dict(data or {})
+            if old.get('return_no') and not data.get('return_no'):
+                data['return_no'] = old.get('return_no')
+            self.delete_return(return_id)
+            return self.create_return(data)
+        old = self.get(return_id)
+        if not old or old.get('deleted_at'):
+            raise SalesReturnException('المرتجع غير موجود أو ملغى')
+        data = dict(data or {})
+        data.setdefault('return_no', old.get('return_no'))
+        data.setdefault('original_invoice_id', old.get('original_invoice_id'))
+        self.delete_return(return_id)
+        new_id = self.create_return(data)
+        audit_service.log('UPDATE', 'SALES_RETURN', new_id, old_values=old, new_values=self.get(new_id), details='تعديل مرتجع عبر عكس وإعادة إنشاء محاسبي')
+        return new_id

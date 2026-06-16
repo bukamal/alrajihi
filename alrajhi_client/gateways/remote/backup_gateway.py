@@ -28,3 +28,9 @@ class RemoteBackupGateway(BackupGateway):
 
     def reset_database(self) -> Dict[str, str]:
         self._raise_remote()
+
+    def list_backups(self, folder: str, prefix: str = 'alrajhi_backup') -> Dict[str, object]:
+        self._raise_remote()
+
+    def cleanup_old_backups(self, folder: str, keep_count: int, prefix: str = 'alrajhi_backup') -> Dict[str, object]:
+        self._raise_remote()

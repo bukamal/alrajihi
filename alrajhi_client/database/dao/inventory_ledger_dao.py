@@ -17,6 +17,35 @@ class InventoryLedgerDAO:
     def __init__(self):
         self.db = DatabaseConnection()
 
+
+    def _ensure_schema(self):
+        self.db.execute("""
+            CREATE TABLE IF NOT EXISTS inventory_ledger (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                item_id INTEGER NOT NULL,
+                warehouse_id INTEGER,
+                movement_type TEXT NOT NULL,
+                direction TEXT NOT NULL CHECK(direction IN ('in','out','neutral')),
+                quantity TEXT NOT NULL,
+                unit_cost TEXT,
+                total_cost TEXT,
+                reference_type TEXT,
+                reference_id INTEGER,
+                source_table TEXT,
+                source_id INTEGER,
+                notes TEXT,
+                movement_date TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        try:
+            self.db.execute("CREATE INDEX IF NOT EXISTS idx_inventory_ledger_ref ON inventory_ledger(reference_type, reference_id)")
+            self.db.execute("CREATE INDEX IF NOT EXISTS idx_inventory_ledger_item_date ON inventory_ledger(item_id, movement_date)")
+        except Exception:
+            pass
+        self.db.commit()
+
     def list_entries(self, item_id=None, warehouse_id=None, reference_type=None, reference_id=None, limit=200):
         uid = UserSession.get_current_user_id()
         sql = ["SELECT * FROM inventory_ledger WHERE user_id = ?"]
@@ -44,6 +73,7 @@ class InventoryLedgerDAO:
         uid = UserSession.get_current_user_id()
         if not uid:
             return None
+        self._ensure_schema()
         if direction not in {'in', 'out', 'neutral'}:
             raise ValueError("direction must be one of: in, out, neutral")
         qty = Decimal(str(quantity or '0'))

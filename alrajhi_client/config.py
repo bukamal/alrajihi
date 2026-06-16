@@ -25,6 +25,8 @@ def get_company_info():
         'phone': settings.value("company/phone", "+966 12 3456789"),
         'email': settings.value("company/email", "info@alrajhi.com"),
         'tax_number': settings.value("company/tax_number", ""),
+        'commercial_register': settings.value("company/commercial_register", ""),
+        'website': settings.value("company/website", ""),
         'logo_path': _valid_logo_path(settings.value("company/logo_path", _default_logo_path())),
     }
 
@@ -35,6 +37,8 @@ def save_company_info(info):
     settings.setValue("company/phone", info.get('phone', ''))
     settings.setValue("company/email", info.get('email', ''))
     settings.setValue("company/tax_number", info.get('tax_number', ''))
+    settings.setValue("company/commercial_register", info.get('commercial_register', ''))
+    settings.setValue("company/website", info.get('website', ''))
     settings.setValue("company/logo_path", info.get('logo_path') or _default_logo_path())
 
 

@@ -440,46 +440,12 @@ class VoucherDialog(QDialog):
             return
         invoice_id = self.invoice_combo.currentData()
         if not invoice_id:
-            self._selected_invoice_remaining_base = None
             return
         remaining = self._invoice_remaining_by_id.get(invoice_id)
         if remaining is None or remaining <= 0:
-            self._selected_invoice_remaining_base = None
             return
-        # Store the canonical remaining amount in the accounting/base currency
-        # (USD in the current schema).  The spinbox shows the display currency
-        # only.  Saving the displayed value again with a current exchange rate
-        # can produce false over-payment validation errors when the invoice was
-        # created in another currency or the rate changed/rounded.
-        self._selected_invoice_remaining_base = remaining
         amount_display = currency.convert(remaining, 'USD', currency.get_display_currency())
         self.amount_spin.setValue(float(amount_display))
-
-    def _amount_to_accounting_currency(self, amount_display):
-        """Return voucher amount in the same currency used by invoice totals.
-
-        Invoice totals/paid values are stored in the base accounting currency.
-        When a user selects an invoice, the UI displays its remaining amount in
-        the active display currency.  If the user keeps that displayed amount
-        (usually the common workflow), persist the exact cached remaining base
-        value instead of reconverting through the current exchange rate.  This
-        prevents values like 2,000,000 SYP being compared as 2,000,000 USD or
-        as a slightly different USD value against 142.857142857... USD.
-        """
-        display_curr = currency.get_display_currency()
-        amount_display_dec = Decimal(str(amount_display))
-        invoice_id = self.invoice_combo.currentData()
-        remaining_base = self._invoice_remaining_by_id.get(invoice_id) if invoice_id else None
-        if remaining_base is not None and remaining_base > 0:
-            expected_display = currency.convert(remaining_base, 'USD', display_curr)
-            decimals = max(0, int(currency.get_currency_decimals()))
-            tolerance = Decimal('1').scaleb(-decimals) if decimals else Decimal('1')
-            # QDoubleSpinBox stores the rounded display amount.  If the entered
-            # value is equal to the auto-filled remaining amount within one
-            # display minor unit, use the exact base remainder.
-            if abs(amount_display_dec - expected_display) <= tolerance:
-                return remaining_base
-        return currency.convert(amount_display_dec, display_curr, 'USD')
 
     def save(self):
         typ = self.type_combo.currentData() or "expense"
@@ -499,7 +465,7 @@ class VoucherDialog(QDialog):
         if amount_display <= 0:
             show_toast(tr("amount_positive_required"), "error", self)
             return
-        amount_usd = self._amount_to_accounting_currency(amount_display)
+        amount_usd = currency.convert(Decimal(str(amount_display)), currency.get_display_currency(), 'USD')
         data = {
             'type': typ,
             'amount': amount_usd,

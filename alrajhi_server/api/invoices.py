@@ -5,6 +5,24 @@ from alrajhi_server.database.connection import get_db
 import datetime
 from decimal import Decimal
 
+def _has_permission(db, user_id, permission_key):
+    user_id = str(user_id)
+    role = db.execute("SELECT role FROM users WHERE id=?", (user_id,)).fetchone()
+    if role and role['role'] == 'admin':
+        return True
+    db.execute("""
+        INSERT OR IGNORE INTO user_roles(user_id, role_id)
+        SELECT u.id, r.id FROM users u JOIN roles r ON lower(COALESCE(u.role,'user'))=r.name WHERE u.id=?
+    """, (user_id,))
+    row = db.execute("""
+        SELECT 1 FROM user_roles ur
+        JOIN role_permissions rp ON rp.role_id=ur.role_id AND rp.allowed=1
+        JOIN roles r ON r.id=ur.role_id AND r.is_active=1
+        WHERE ur.user_id=? AND rp.permission_key=? LIMIT 1
+    """, (user_id, permission_key)).fetchone()
+    return row is not None
+
+
 invoices_bp = Blueprint('invoices', __name__)
 
 
@@ -80,6 +98,85 @@ def _assert_sale_stock_available(db, user_id, lines):
             raise ValueError(f"الكمية غير كافية للمادة {name}: المطلوب {required_qty} والمتاح {available}")
 
 
+
+def _setting(db, key, default=''):
+    try:
+        row = db.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+        return row['value'] if row and row['value'] is not None else default
+    except Exception:
+        return default
+
+
+def _setting_bool(db, key, default=False):
+    value = str(_setting(db, key, 'true' if default else 'false')).strip().lower()
+    return value in ('1', 'true', 'yes', 'y', 'on', 'نعم')
+
+
+def _workflow_status(invoice):
+    value = str((invoice or {}).get('workflow_status') or (invoice or {}).get('status') or 'DRAFT').strip().upper()
+    return value if value in {'DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'CANCELLED'} else 'DRAFT'
+
+
+def _workflow_threshold(db, inv_type):
+    key = 'workflow/sales_approval_threshold' if inv_type == 'sale' else 'workflow/purchase_approval_threshold'
+    try:
+        return Decimal(str(_setting(db, key, '0') or '0'))
+    except Exception:
+        return Decimal('0')
+
+
+def _initial_workflow_status(db, inv_type, total):
+    try:
+        amount = Decimal(str(total or '0'))
+    except Exception:
+        amount = Decimal('0')
+    threshold = _workflow_threshold(db, inv_type)
+    return 'SUBMITTED' if threshold > 0 and amount >= threshold else 'DRAFT'
+
+
+def _assert_workflow_allowed(db, invoice, operation):
+    status = _workflow_status(dict(invoice) if invoice else {})
+    default_edit = {'DRAFT': True, 'SUBMITTED': True, 'APPROVED': False, 'POSTED': False, 'CANCELLED': False}
+    default_delete = dict(default_edit)
+    if operation == 'edit':
+        allowed = _setting_bool(db, f'workflow/allow_edit_{status.lower()}', default_edit.get(status, False))
+    else:
+        allowed = _setting_bool(db, f'workflow/allow_delete_{status.lower()}', default_delete.get(status, False))
+    if not allowed:
+        raise ValueError(f'لا يمكن {"تعديل" if operation == "edit" else "حذف"} المستند في حالة {status} حسب سياسة سير العمل.')
+
+
+def _ensure_workflow_schema(db):
+    cols = {r[1] for r in db.execute('PRAGMA table_info(invoices)').fetchall()}
+    for name, ddl in {
+        'workflow_status': "TEXT DEFAULT 'DRAFT'",
+        'submitted_at': 'TEXT', 'submitted_by': 'TEXT',
+        'approved_at': 'TEXT', 'approved_by': 'TEXT',
+        'posted_at': 'TEXT', 'posted_by': 'TEXT',
+        'cancelled_at': 'TEXT', 'cancelled_by': 'TEXT', 'deleted_by': 'TEXT',
+    }.items():
+        if name not in cols:
+            db.execute(f'ALTER TABLE invoices ADD COLUMN {name} {ddl}')
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS workflow_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            old_status TEXT,
+            new_status TEXT NOT NULL,
+            action TEXT NOT NULL,
+            username TEXT,
+            user_id TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+    db.execute('CREATE INDEX IF NOT EXISTS idx_workflow_events_entity ON workflow_events(entity_type, entity_id, created_at)')
+    cols_after = {r[1] for r in db.execute('PRAGMA table_info(invoices)').fetchall()}
+    if 'workflow_status' in cols_after:
+        db.execute('CREATE INDEX IF NOT EXISTS idx_invoices_workflow_status ON invoices(workflow_status)')
+
+
 def _apply_invoice_financial_effect(db, invoice, sign):
     total = Decimal(str(invoice.get('total', 0)))
     paid = Decimal(str(invoice.get('paid', 0)))
@@ -94,10 +191,98 @@ def _apply_invoice_financial_effect(db, invoice, sign):
 
 
 
+
+
+
+def _ensure_approval_accounting_schema(db):
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS approval_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, entity_type TEXT NOT NULL, entity_id INTEGER NOT NULL, amount TEXT DEFAULT '0', threshold_amount TEXT DEFAULT '0', status TEXT NOT NULL DEFAULT 'PENDING', requested_by TEXT, requested_at TEXT, decided_by TEXT, decided_at TEXT, decision_notes TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT, UNIQUE(entity_type, entity_id));
+        CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON approval_requests(status, entity_type);
+        CREATE TABLE IF NOT EXISTS accounts (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT UNIQUE NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, parent_id INTEGER, is_active INTEGER DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS journal_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, entry_no TEXT UNIQUE, entry_date TEXT NOT NULL, source_type TEXT, source_id INTEGER, description TEXT, status TEXT DEFAULT 'POSTED', created_by TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP, UNIQUE(source_type, source_id));
+        CREATE TABLE IF NOT EXISTS journal_lines (id INTEGER PRIMARY KEY AUTOINCREMENT, journal_entry_id INTEGER NOT NULL, account_id INTEGER NOT NULL, debit TEXT DEFAULT '0', credit TEXT DEFAULT '0', memo TEXT);
+        CREATE INDEX IF NOT EXISTS idx_journal_entries_source ON journal_entries(source_type, source_id);
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1000','Cash / صندوق','ASSET');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1100','Accounts Receivable / ذمم العملاء','ASSET');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('1200','Inventory / مخزون','ASSET');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('2000','Accounts Payable / ذمم الموردين','LIABILITY');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('4000','Sales Revenue / إيرادات المبيعات','REVENUE');
+        INSERT OR IGNORE INTO accounts(code, name, type) VALUES ('5000','Purchases / مشتريات','EXPENSE');
+    """)
+
+def _account_id(db, code):
+    row = db.execute('SELECT id FROM accounts WHERE code=?', (code,)).fetchone()
+    return row['id'] if row else None
+
+def _ensure_approval_request(db, invoice, user_id, notes=''):
+    _ensure_approval_accounting_schema(db)
+    threshold = _workflow_threshold(db, invoice.get('type'))
+    amount = Decimal(str(invoice.get('total', 0) or 0))
+    if threshold <= 0 or amount < threshold:
+        return
+    now = datetime.datetime.now().isoformat(timespec='seconds')
+    db.execute("""INSERT OR IGNORE INTO approval_requests(entity_type, entity_id, amount, threshold_amount, status, requested_by, requested_at, created_at, updated_at, decision_notes)
+                  VALUES ('INVOICE', ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?)""", (invoice['id'], str(amount), str(threshold), user_id, now, now, now, notes or ''))
+
+def _approve_request(db, invoice, user_id, notes=''):
+    _ensure_approval_request(db, invoice, user_id, notes)
+    now = datetime.datetime.now().isoformat(timespec='seconds')
+    db.execute("UPDATE approval_requests SET status='APPROVED', decided_by=?, decided_at=?, decision_notes=?, updated_at=? WHERE entity_type='INVOICE' AND entity_id=?", (user_id, now, notes or 'Approved', now, invoice['id']))
+
+def _post_accounting_invoice(db, invoice, user_id, notes=''):
+    _ensure_approval_accounting_schema(db)
+    existing = db.execute("SELECT id FROM journal_entries WHERE source_type='INVOICE' AND source_id=?", (invoice['id'],)).fetchone()
+    if existing:
+        return existing['id']
+    total = Decimal(str(invoice.get('total', 0) or 0)); paid = Decimal(str(invoice.get('paid', 0) or 0)); unpaid = total - paid
+    if total <= 0:
+        return None
+    row = db.execute('SELECT COALESCE(MAX(id),0)+1 AS n FROM journal_entries').fetchone(); entry_no = f"JE-{int(row['n']):06d}"
+    now = datetime.datetime.now().isoformat(timespec='seconds')
+    cur = db.execute("INSERT INTO journal_entries(entry_no, entry_date, source_type, source_id, description, status, created_by, created_at) VALUES (?, ?, 'INVOICE', ?, ?, 'POSTED', ?, ?)", (entry_no, invoice.get('date') or now[:10], invoice['id'], notes or 'Invoice posting', user_id, now))
+    je_id = cur.lastrowid; lines=[]
+    if invoice.get('type') == 'sale':
+        if paid > 0: lines.append(('1000', paid, Decimal('0'), 'قبض من فاتورة بيع'))
+        if unpaid > 0: lines.append(('1100', unpaid, Decimal('0'), 'ذمم عميل'))
+        lines.append(('4000', Decimal('0'), total, 'إيراد مبيعات'))
+    elif invoice.get('type') == 'purchase':
+        lines.append(('5000', total, Decimal('0'), 'مشتريات'))
+        if paid > 0: lines.append(('1000', Decimal('0'), paid, 'دفع شراء'))
+        if unpaid > 0: lines.append(('2000', Decimal('0'), unpaid, 'ذمم مورد'))
+    if sum(x[1] for x in lines) != sum(x[2] for x in lines):
+        raise ValueError('القيد المحاسبي غير متوازن')
+    for code, debit, credit, memo in lines:
+        db.execute('INSERT INTO journal_lines(journal_entry_id, account_id, debit, credit, memo) VALUES (?,?,?,?,?)', (je_id, _account_id(db, code), str(debit), str(credit), memo))
+    return je_id
+
+def _ensure_inventory_ledger_table(db):
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS inventory_ledger (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            item_id INTEGER NOT NULL,
+            warehouse_id INTEGER,
+            movement_type TEXT NOT NULL,
+            direction TEXT NOT NULL CHECK(direction IN ('in','out','neutral')),
+            quantity TEXT NOT NULL,
+            unit_cost TEXT,
+            total_cost TEXT,
+            reference_type TEXT,
+            reference_id INTEGER,
+            source_table TEXT,
+            source_id INTEGER,
+            notes TEXT,
+            movement_date TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+
 def _post_inventory_ledger_entry(db, user_id, item_id, warehouse_id, movement_type, direction,
                                  quantity, unit_cost, invoice_id, notes=''):
     if direction not in {'in', 'out', 'neutral'}:
         return
+    _ensure_inventory_ledger_table(db)
     qty = abs(Decimal(str(quantity or '0')))
     cost = Decimal(str(unit_cost or '0'))
     total_cost = qty * cost
@@ -259,12 +444,70 @@ def get_invoice(invoice_id):
     inv['lines'] = [dict(line) for line in lines]
     return jsonify(inv)
 
+
+@invoices_bp.route('/invoices/<int:invoice_id>/workflow', methods=['POST'])
+@jwt_required()
+def transition_invoice_workflow(invoice_id):
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    new_status = str(data.get('status') or '').strip().upper()
+    if new_status not in {'DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'CANCELLED'}:
+        return jsonify({'error': 'حالة سير العمل غير صالحة'}), 400
+    action = str(data.get('action') or new_status.lower()).strip() or new_status.lower()
+    notes = str(data.get('notes') or '')
+    db = get_db()
+    _ensure_workflow_schema(db)
+    row = db.execute("SELECT * FROM invoices WHERE id=? AND user_id=? AND deleted_at IS NULL", (invoice_id, user_id)).fetchone()
+    if not row:
+        return jsonify({'error': 'Not found'}), 404
+    old_status = _workflow_status(dict(row))
+    now = datetime.datetime.now().isoformat(timespec='seconds')
+    if action == 'submit':
+        _ensure_approval_request(db, dict(row), user_id, notes)
+    if action == 'approve':
+        if not _has_permission(db, user_id, 'approval.approve'):
+            return jsonify({'error': 'Permission denied', 'permission': 'approval.approve'}), 403
+        _approve_request(db, dict(row), user_id, notes)
+    if action == 'reject':
+        if not _has_permission(db, user_id, 'approval.reject'):
+            return jsonify({'error': 'Permission denied', 'permission': 'approval.reject'}), 403
+    if action == 'post' and not _has_permission(db, user_id, 'accounting.post'):
+        return jsonify({'error': 'Permission denied', 'permission': 'accounting.post'}), 403
+    if action == 'post' and old_status != 'APPROVED':
+        return jsonify({'error': 'لا يمكن الترحيل قبل الاعتماد'}), 400
+    if action == 'post':
+        _post_accounting_invoice(db, dict(row), user_id, notes)
+    updates = {'workflow_status': new_status}
+    if new_status == 'SUBMITTED':
+        updates.update({'submitted_at': now, 'submitted_by': user_id})
+    elif new_status == 'APPROVED':
+        updates.update({'approved_at': now, 'approved_by': user_id})
+    elif new_status == 'POSTED':
+        updates.update({'posted_at': now, 'posted_by': user_id})
+    elif new_status == 'CANCELLED':
+        updates.update({'cancelled_at': now, 'cancelled_by': user_id})
+    set_sql = ', '.join([f'{k}=?' for k in updates])
+    db.execute(f"UPDATE invoices SET {set_sql} WHERE id=? AND user_id=?", list(updates.values()) + [invoice_id, user_id])
+    db.execute('''
+        INSERT INTO workflow_events(entity_type, entity_id, old_status, new_status, action, username, user_id, notes, created_at)
+        VALUES (?,?,?,?,?,?,?,?,?)
+    ''', ('INVOICE', invoice_id, old_status, new_status, action, user_id, user_id, notes, now))
+    audit_log(action.upper(), 'INVOICE_WORKFLOW', invoice_id,
+              old_values={'workflow_status': old_status}, new_values={'workflow_status': new_status}, details=notes or action)
+    db.commit()
+    return jsonify({'id': invoice_id, 'workflow_status': new_status, 'old_status': old_status})
+
 @invoices_bp.route('/invoices', methods=['POST'])
 @jwt_required()
 def add_invoice():
     user_id = get_jwt_identity()
     data = request.get_json()
     db = get_db()
+    _ensure_workflow_schema(db)
+    if not data.get('workflow_status'):
+        data['workflow_status'] = _initial_workflow_status(db, data.get('type'), data.get('total'))
+    if data.get('workflow_status') == 'SUBMITTED' and not data.get('submitted_at'):
+        data['submitted_at'] = datetime.datetime.now().isoformat(timespec='seconds')
     if data.get('type') == 'sale':
         try:
             _assert_sale_stock_available(db, user_id, data.get('lines', []))
@@ -274,17 +517,26 @@ def add_invoice():
     try:
         # إدراج الفاتورة
         cursor = db.execute('''
-            INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, exchange_rate_to_usd, original_currency, warehouse_id, branch_id, cashbox_id, bank_account_id, payment_method, shift_id)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, workflow_status, submitted_at, exchange_rate_to_usd, original_currency, warehouse_id, branch_id, cashbox_id, bank_account_id, payment_method, shift_id)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ''', (
             user_id, data['type'], data.get('customer_id'), data.get('supplier_id'),
             data['date'], data.get('reference', ''), data.get('notes', ''),
             str(data['total']), str(data['paid_amount']), 'active',
+            data.get('workflow_status', 'DRAFT'), data.get('submitted_at'),
             data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'),
             data.get('warehouse_id'), data.get('branch_id'), data.get('cashbox_id'),
             data.get('bank_account_id'), data.get('payment_method', 'cash'), data.get('shift_id')
         ))
         invoice_id = cursor.lastrowid
+        # Phase154: create pending approval request immediately when the invoice
+        # starts as SUBMITTED because it exceeded the configured threshold.
+        if data.get('workflow_status') == 'SUBMITTED':
+            _ensure_approval_request(db, {
+                'id': invoice_id,
+                'type': data.get('type'),
+                'total': data.get('total'),
+            }, user_id, 'طلب اعتماد تلقائي بسبب تجاوز حد الاعتماد')
         # إدراج البنود وتسجيل حركات المخزون (محاكاة منطق العميل)
         for line in data['lines']:
             conv_factor = Decimal(str(line.get('conversion_factor', 1) or 1))
@@ -341,9 +593,14 @@ def update_invoice(invoice_id):
     user_id = get_jwt_identity()
     data = request.get_json()
     db = get_db()
+    _ensure_workflow_schema(db)
     old_invoice = db.execute("SELECT * FROM invoices WHERE id=? AND user_id=? AND deleted_at IS NULL", (invoice_id, user_id)).fetchone()
     if not old_invoice:
         return jsonify({'error': 'Not found'}), 404
+    try:
+        _assert_workflow_allowed(db, old_invoice, 'edit')
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
     if _invoice_has_vouchers(db, invoice_id, user_id):
         return jsonify({'error': 'لا يمكن تعديل فاتورة مرتبطة بسندات. احذف أو عدّل السندات أولاً.'}), 400
     if _invoice_has_returns(db, invoice_id, user_id):
@@ -368,7 +625,9 @@ def update_invoice(invoice_id):
             data['type'], data.get('customer_id'), data.get('supplier_id'), data['date'],
             data.get('reference', ''), data.get('notes', ''), str(data['total']),
             str(data.get('paid_amount', data.get('paid', 0))), data.get('exchange_rate_to_usd', 1.0),
-            data.get('original_currency', 'USD'), data.get('warehouse_id'), data.get('branch_id'), invoice_id, user_id
+            data.get('original_currency', 'USD'), data.get('warehouse_id'), data.get('branch_id'),
+            data.get('cashbox_id'), data.get('bank_account_id'), data.get('payment_method', 'cash'), data.get('shift_id'),
+            invoice_id, user_id
         ))
         for line in data['lines']:
             conv_factor = Decimal(str(line.get('conversion_factor', 1) or 1))
@@ -424,9 +683,14 @@ def update_invoice(invoice_id):
 def delete_invoice(invoice_id):
     user_id = get_jwt_identity()
     db = get_db()
+    _ensure_workflow_schema(db)
     inv = db.execute("SELECT * FROM invoices WHERE id=? AND user_id=? AND deleted_at IS NULL", (invoice_id, user_id)).fetchone()
     if not inv:
         return jsonify({'error': 'Not found'}), 404
+    try:
+        _assert_workflow_allowed(db, inv, 'delete')
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
     if _invoice_has_vouchers(db, invoice_id, user_id):
         return jsonify({'error': 'لا يمكن حذف فاتورة مرتبطة بسندات. احذف السندات أولاً.'}), 400
     if _invoice_has_returns(db, invoice_id, user_id):
@@ -441,7 +705,7 @@ def delete_invoice(invoice_id):
             _update_item_quantity(db, item_id, user_id)
             _recalculate_average_cost(db, item_id, user_id)
         _apply_invoice_financial_effect(db, dict(inv), Decimal('-1'))
-        db.execute("UPDATE invoices SET deleted_at = datetime('now') WHERE id=? AND user_id=?", (invoice_id, user_id))
+        db.execute("UPDATE invoices SET deleted_at = datetime('now'), status='cancelled', workflow_status='CANCELLED', cancelled_at=datetime('now'), deleted_by=? WHERE id=? AND user_id=?", (user_id, invoice_id, user_id))
         audit_log('SOFT_DELETE', 'SALE_INVOICE' if inv['type'] == 'sale' else 'PURCHASE_INVOICE', invoice_id, old_values=dict(inv), details='إلغاء/حذف فاتورة')
         db.execute("COMMIT")
         return jsonify({'status': 'ok'})

@@ -34,6 +34,14 @@ class BackupGateway(ABC):
     def reset_database(self) -> Dict[str, str]:
         raise NotImplementedError
 
+    @abstractmethod
+    def list_backups(self, folder: str, prefix: str = 'alrajhi_backup') -> Dict[str, object]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def cleanup_old_backups(self, folder: str, keep_count: int, prefix: str = 'alrajhi_backup') -> Dict[str, object]:
+        raise NotImplementedError
+
 
 def create_backup_gateway() -> BackupGateway:
     from database.connection import DatabaseConnection

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QHeaderView, QLabel, QComboBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit, QHeaderView, QLabel, QComboBox, QMessageBox
 from PyQt5.QtCore import Qt
 from i18n import translate
 from action_handler import BaseActionHandler
@@ -9,6 +9,7 @@ from utils import show_toast
 from views.widgets.components.table_toolbar import TableToolbar
 from views.widgets.modern_ui import apply_modern_widget
 from core.offline_guard import is_offline_read_error, offline_read_message
+from core.services.permission_service import permission_service
 
 class BaseWidget(QWidget, BaseActionHandler):
     entity_name = translate("item")
@@ -143,6 +144,9 @@ class BaseWidget(QWidget, BaseActionHandler):
         self.open_dialog(is_edit=False)
 
     def edit_item(self, index):
+        if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):
+            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_EDIT_INVOICES))
+            return
         row = index.row()
         item_id = self.model.get_id(row) if self.model else None
         if item_id:
@@ -217,6 +221,9 @@ class BaseWidget(QWidget, BaseActionHandler):
         return ['id', 'name']
 
     def export_to_excel(self):
+        if not permission_service.can(permission_service.ACTION_EXPORT_REPORTS):
+            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_EXPORT_REPORTS))
+            return
         if hasattr(self.table, 'export_to_excel'):
             self.table.export_to_excel()
         else:
@@ -246,13 +253,15 @@ class BaseWidget(QWidget, BaseActionHandler):
     def _update_action_buttons_state(self):
         sm = self.table.selectionModel() if self.table else None
         has_selection = len(sm.selectedRows()) > 0 if sm else False
+        can_edit = permission_service.can(permission_service.ACTION_EDIT_INVOICES)
+        can_delete = permission_service.can(permission_service.ACTION_DELETE)
         if self.has_edit and hasattr(self, 'edit_btn'):
-            self.edit_btn.setEnabled(has_selection)
+            self.edit_btn.setEnabled(has_selection and can_edit)
         if self.has_delete and hasattr(self, 'delete_btn'):
-            self.delete_btn.setEnabled(has_selection)
+            self.delete_btn.setEnabled(has_selection and can_delete)
         if hasattr(self, 'toolbar'):
-            self.toolbar.set_edit_enabled(has_selection and self.has_edit)
-            self.toolbar.set_delete_enabled(has_selection and self.has_delete)
+            self.toolbar.set_edit_enabled(has_selection and self.has_edit and can_edit)
+            self.toolbar.set_delete_enabled(has_selection and self.has_delete and can_delete)
         for _, _, btn_name in self.extra_buttons:
             if hasattr(self, btn_name):
                 getattr(self, btn_name).setEnabled(has_selection)

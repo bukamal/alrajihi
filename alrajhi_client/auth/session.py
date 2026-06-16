@@ -38,6 +38,11 @@ class UserSession:
         return cls._current_user_role
 
     @classmethod
+    def get_current_username(cls) -> Optional[str]:
+        user = cls.get_current() or {}
+        return user.get('username') or user.get('full_name') or cls._current_user_id
+
+    @classmethod
     def get_current_branch_id(cls):
         user = cls.get_current() or {}
         branch_id = user.get('branch_id')

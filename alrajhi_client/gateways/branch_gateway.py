@@ -40,6 +40,12 @@ class BranchGateway(ABC):
     def archive(self, branch_id: int):
         raise NotImplementedError
 
+    def set_default(self, branch_id: int):
+        raise NotImplementedError
+
+    def diagnostics(self) -> Dict[str, Any]:
+        raise NotImplementedError
+
 
 def create_branch_gateway() -> BranchGateway:
     """Return the active branch gateway."""

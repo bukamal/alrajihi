@@ -27,5 +27,11 @@ class BranchDAO:
     def default_branch_id(self):
         return self.repo.default_branch_id()
 
+    def set_default(self, branch_id):
+        return self.repo.set_default(branch_id)
+
+    def diagnostics(self):
+        return self.repo.branch_diagnostics()
+
 
 branch_dao = BranchDAO()

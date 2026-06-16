@@ -13,6 +13,9 @@ from gateways.invoice_gateway import create_invoice_gateway
 from core.services.audit_service import audit_service
 from core.services.warehouse_service import warehouse_service
 from core.services.branch_service import branch_service
+from core.services.workflow_policy_service import workflow_policy_service
+from core.services.approval_service import approval_service
+from core.services.accounting_service import accounting_service
 
 
 class InvoiceService:
@@ -94,16 +97,36 @@ class InvoiceService:
             return True
 
     def create(self, data: Dict) -> int:
+        workflow_policy_service.ensure_schema()
+        data = dict(data or {})
+        if not data.get('workflow_status'):
+            data['workflow_status'] = workflow_policy_service.initial_status(data.get('type'), data.get('total'))
+        if data.get('workflow_status') == workflow_policy_service.SUBMITTED and not data.get('submitted_at'):
+            from datetime import datetime
+            data['submitted_at'] = datetime.now().isoformat(timespec='seconds')
         data = branch_service.ensure_branch_id(data)
         invoice_id = self.gateway.create(data)
+        # Phase154: create the approval request immediately for threshold-driven submitted documents.
+        # Phase152 only marked the invoice as SUBMITTED; this closes the workflow gap so
+        # pending approvals appear without requiring a second manual submit call.
+        try:
+            if data.get('workflow_status') == workflow_policy_service.SUBMITTED:
+                approval_payload = dict(data)
+                approval_payload['id'] = invoice_id
+                approval_service.ensure_invoice_request(approval_payload, 'طلب اعتماد تلقائي بسبب تجاوز حد الاعتماد')
+        except Exception as exc:
+            # Do not lose the invoice if approval logging fails; surface through audit/diagnostics later.
+            audit_service.log('APPROVAL_AUTO_REQUEST_FAILED', 'INVOICE', invoice_id, new_values={'error': str(exc)}, details='تعذر إنشاء طلب الاعتماد التلقائي')
         if self._client_side_movements_enabled():
             warehouse_service.record_invoice_movements(invoice_id, data)
         audit_service.log('CREATE', 'SALE_INVOICE' if data.get('type') == 'sale' else 'PURCHASE_INVOICE', invoice_id, new_values=data, details='إنشاء فاتورة')
         return invoice_id
 
     def update(self, invoice_id: int, data: Dict):
+        workflow_policy_service.ensure_schema()
         data = branch_service.ensure_branch_id(data)
         old = self.get(invoice_id)
+        workflow_policy_service.assert_can_edit(old, 'INVOICE')
         if self.has_linked_returns(invoice_id):
             raise ValueError('لا يمكن تعديل فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.')
         if self._client_side_movements_enabled():
@@ -129,7 +152,9 @@ class InvoiceService:
             return False
 
     def delete(self, invoice_id: int):
+        workflow_policy_service.ensure_schema()
         old = self.get(invoice_id)
+        workflow_policy_service.assert_can_delete(old, 'INVOICE')
         if self.has_linked_returns(invoice_id):
             raise ValueError('لا يمكن حذف فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.')
         if self._client_side_movements_enabled():
@@ -138,6 +163,37 @@ class InvoiceService:
         entity = 'SALE_INVOICE' if (old or {}).get('type') == 'sale' else 'PURCHASE_INVOICE'
         audit_service.log('SOFT_DELETE', entity, invoice_id, old_values=old, details='إلغاء/حذف فاتورة')
         return result
+
+    def submit(self, invoice_id: int, notes: str = '') -> str:
+        invoice = self.get(invoice_id)
+        if invoice:
+            approval_service.ensure_invoice_request(invoice, notes or 'إرسال الفاتورة للاعتماد')
+        return workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.SUBMITTED, 'submit', notes or 'إرسال الفاتورة للاعتماد')
+
+    def approve(self, invoice_id: int, notes: str = '') -> str:
+        invoice = self.get(invoice_id)
+        approval_service.approve_invoice(invoice, notes or 'اعتماد الفاتورة')
+        return workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.APPROVED, 'approve', notes or 'اعتماد الفاتورة')
+
+    def reject(self, invoice_id: int, notes: str = '') -> str:
+        invoice = self.get(invoice_id)
+        approval_service.reject_invoice(invoice, notes or 'رفض الفاتورة')
+        return workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.CANCELLED, 'reject', notes or 'رفض الفاتورة')
+
+    def post(self, invoice_id: int, notes: str = '') -> str:
+        invoice = self.get(invoice_id)
+        status = (invoice or {}).get('workflow_status', 'DRAFT')
+        if status != workflow_policy_service.APPROVED:
+            raise ValueError('لا يمكن ترحيل الفاتورة محاسبيًا قبل اعتمادها.')
+        new_status = workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.POSTED, 'post', notes or 'ترحيل الفاتورة')
+        accounting_service.post_invoice(self.get(invoice_id) or invoice, notes or 'قيد تلقائي من ترحيل فاتورة')
+        return new_status
+
+    def cancel(self, invoice_id: int, notes: str = '') -> str:
+        return workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.CANCELLED, 'cancel', notes or 'إلغاء الفاتورة')
+
+    def reopen(self, invoice_id: int, notes: str = '') -> str:
+        return workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.DRAFT, 'reopen', notes or 'إعادة فتح الفاتورة')
 
     def next_reference(self, inv_type: str) -> str:
         try:

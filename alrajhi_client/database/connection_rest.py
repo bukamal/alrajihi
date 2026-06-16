@@ -435,6 +435,10 @@ class RestClient:
     def delete_invoice(self, invoice_id: int):
         self._request('DELETE', f'/api/invoices/{invoice_id}')
 
+    def transition_invoice_workflow(self, invoice_id: int, status: str, action: str = None, notes: str = '') -> Dict:
+        payload = {'status': status, 'action': action or str(status).lower(), 'notes': notes or ''}
+        return self._request('POST', f'/api/invoices/{invoice_id}/workflow', payload, queue_on_failure=False)
+
 
     def get_next_invoice_reference(self, inv_type: str) -> str:
         result = self._request('GET', '/api/invoices/next-reference', params={'type': inv_type}, queue_on_failure=False)
@@ -624,6 +628,78 @@ class RestClient:
     def get_trial_balance(self) -> List[Dict]:
         result = self._request('GET', '/api/reports/trial_balance')
         return result.get('rows', result if isinstance(result, list) else [])
+
+    def get_accounting_trial_balance(self) -> List[Dict]:
+        result = self._request('GET', '/api/reports/accounting/trial_balance')
+        return result.get('rows', result if isinstance(result, list) else [])
+
+    def get_accounting_ledger(self, account_id=None, start_date=None, end_date=None, limit=1000) -> List[Dict]:
+        params = {'limit': limit}
+        if account_id: params['account_id'] = account_id
+        if start_date: params['start_date'] = start_date
+        if end_date: params['end_date'] = end_date
+        result = self._request('GET', '/api/reports/accounting/ledger', params=params)
+        return result.get('rows', result if isinstance(result, list) else [])
+
+    def get_accounting_income_statement(self, start_date=None, end_date=None) -> Dict:
+        params = {}
+        if start_date: params['start_date'] = start_date
+        if end_date: params['end_date'] = end_date
+        return self._request('GET', '/api/reports/accounting/income_statement', params=params)
+
+    def get_accounting_balance_sheet(self, as_of_date=None) -> Dict:
+        params = {}
+        if as_of_date: params['as_of_date'] = as_of_date
+        return self._request('GET', '/api/reports/accounting/balance_sheet', params=params)
+
+    def get_accounting_cash_flow(self, start_date=None, end_date=None) -> Dict:
+        params = {}
+        if start_date: params['start_date'] = start_date
+        if end_date: params['end_date'] = end_date
+        return self._request('GET', '/api/reports/accounting/cash_flow', params=params)
+
+
+    def get_accounting_receivables_aging(self, as_of_date=None) -> Dict:
+        params = {}
+        if as_of_date: params['as_of_date'] = as_of_date
+        return self._request('GET', '/api/reports/accounting/receivables/aging', params=params)
+
+    def get_accounting_payables_aging(self, as_of_date=None) -> Dict:
+        params = {}
+        if as_of_date: params['as_of_date'] = as_of_date
+        return self._request('GET', '/api/reports/accounting/payables/aging', params=params)
+
+    def get_accounting_customer_statement(self, customer_id, start_date=None, end_date=None) -> Dict:
+        params = {}
+        if start_date: params['start_date'] = start_date
+        if end_date: params['end_date'] = end_date
+        return self._request('GET', f'/api/reports/accounting/customers/{customer_id}/statement', params=params)
+
+    def get_accounting_supplier_statement(self, supplier_id, start_date=None, end_date=None) -> Dict:
+        params = {}
+        if start_date: params['start_date'] = start_date
+        if end_date: params['end_date'] = end_date
+        return self._request('GET', f'/api/reports/accounting/suppliers/{supplier_id}/statement', params=params)
+
+
+    # ------------------- Phase157 RBAC -------------------
+    def get_rbac_roles(self) -> List[Dict]:
+        return self._request('GET', '/api/rbac/roles')
+
+    def get_rbac_permissions(self) -> List[Dict]:
+        return self._request('GET', '/api/rbac/permissions')
+
+    def get_my_permissions(self) -> Dict:
+        return self._request('GET', '/api/rbac/me')
+
+    def set_user_roles(self, user_id: str, roles: List[str]) -> Dict:
+        return self._request('PUT', f'/api/rbac/users/{user_id}/roles', {'roles': roles})
+
+    def set_role_permissions(self, role_name: str, permissions: List[str]) -> Dict:
+        return self._request('PUT', f'/api/rbac/roles/{role_name}/permissions', {'permissions': permissions})
+
+    def set_user_branch_access(self, user_id: str, branch_ids: List[int]) -> Dict:
+        return self._request('PUT', f'/api/rbac/users/{user_id}/branches', {'branch_ids': branch_ids})
 
     # ------------------- الإعدادات -------------------
     def get_setting(self, key: str) -> Any:

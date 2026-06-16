@@ -41,6 +41,9 @@ class SalesReturnGateway(ABC):
     def delete_return(self, return_id: int) -> None: raise NotImplementedError
 
     @abstractmethod
+    def update_return(self, return_id: int, data: Dict[str, Any]) -> int: raise NotImplementedError
+
+    @abstractmethod
     def is_remote(self) -> bool: raise NotImplementedError
 
 

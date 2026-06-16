@@ -21,6 +21,18 @@ class BranchService:
         return self.gateway.get(branch_id)
 
     def default_branch_id(self) -> int | None:
+        # Phase 149: settings may pin a runtime default branch.  If the setting
+        # is invalid or the branch was archived, fall back to the repository
+        # default so old databases continue to work.
+        try:
+            from core.services.settings_service import settings_service
+            configured = settings_service.get('branches/default_branch_id', '')
+            if configured not in (None, '', '0', 0):
+                branch = self.branch_by_id(int(configured))
+                if branch and not branch.get('deleted_at') and int(branch.get('is_active') or 1) == 1:
+                    return int(branch['id'])
+        except Exception:
+            pass
         try:
             return self.gateway.default_branch_id()
         except Exception:
@@ -44,6 +56,39 @@ class BranchService:
             pass
         return self.default_branch_id()
 
+    def report_scope(self, requested_branch_id=None) -> Dict:
+        """Return branch visibility scope used by reports and diagnostics.
+
+        When the permission policy restricts non-admin users to their branch, a
+        requested branch is ignored unless the user may view all branches.
+        """
+        try:
+            from core.services.permission_service import permission_service
+            bid = permission_service.effective_branch_id(requested_branch_id)
+            if bid:
+                return {'mode': 'branch', 'branch_id': int(bid), 'branch_name': self.branch_name(int(bid))}
+            if permission_service.can_view_all_branches():
+                return {'mode': 'all', 'branch_id': None, 'branch_name': 'كل الفروع'}
+        except Exception:
+            pass
+        bid = self.current_branch_id()
+        return {'mode': 'branch', 'branch_id': bid, 'branch_name': self.branch_name(bid) if bid else ''}
+
+    def warehouses_for_scope(self, branch_id=None) -> List[int]:
+        """Return warehouse IDs visible in the effective branch scope."""
+        scope = self.report_scope(branch_id)
+        if scope.get('mode') == 'all':
+            return []
+        bid = scope.get('branch_id')
+        if not bid:
+            return []
+        try:
+            from core.services.warehouse_service import warehouse_service
+            return [int(w.get('id')) for w in warehouse_service.warehouses(include_archived=False)
+                    if int(w.get('branch_id') or 0) == int(bid)]
+        except Exception:
+            return []
+
     def ensure_branch_id(self, data: Dict | None) -> Dict:
         payload = dict(data or {})
         if not payload.get('branch_id'):
@@ -55,6 +100,22 @@ class BranchService:
     def branch_name(self, branch_id: int | None) -> str:
         branch = self.branch_by_id(branch_id) if branch_id else self.default_branch()
         return (branch or {}).get('name', '')
+
+    def set_default_branch(self, branch_id: int) -> None:
+        old = self.default_branch()
+        self.gateway.set_default(int(branch_id))
+        try:
+            from core.services.settings_service import settings_service
+            settings_service.set('branches/default_branch_id', str(int(branch_id)))
+        except Exception:
+            pass
+        audit_service.log('UPDATE', 'BRANCH_DEFAULT', branch_id, old_values=old, new_values=self.branch_by_id(branch_id), details='تغيير الفرع الافتراضي')
+
+    def diagnostics(self) -> Dict:
+        try:
+            return self.gateway.diagnostics()
+        except Exception as exc:
+            return {'mode': 'error', 'error': str(exc), 'checks': []}
 
     def add_branch(self, data: Dict) -> int:
         branch_id = self.gateway.create(data)

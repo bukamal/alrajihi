@@ -25,19 +25,29 @@ class InvoiceRepository(BaseRepository):
         if self.db.is_remote():
             return self.db.get_rest_client().get_next_invoice_reference(inv_type)
         from auth.session import UserSession
+        from core.services.settings_service import settings_service
         uid = UserSession.get_current_user_id()
         year = __import__('datetime').datetime.now().strftime("%Y")
-        prefix = f"{inv_type[:3].upper()}-{year}-"
+        cfg_prefix = settings_service.invoice_prefix(inv_type) or (f"{inv_type[:3].upper()}-")
+        if '{YYYY}' in cfg_prefix:
+            prefix = cfg_prefix.replace('{YYYY}', year)
+        elif str(cfg_prefix).endswith('-'):
+            prefix = f"{cfg_prefix}{year}-"
+        else:
+            prefix = f"{cfg_prefix}-{year}-"
         conn = self.db.get_connection()
         cur = conn.execute("SELECT MAX(reference) FROM invoices WHERE reference LIKE ? AND user_id=?", (prefix + '%', uid))
         max_ref = cur.fetchone()[0]
         if max_ref:
             try:
-                num = int(max_ref.split('-')[-1]) + 1
-            except:
+                import re
+                m = re.search(r'(\d+)$', str(max_ref))
+                num = int(m.group(1)) + 1 if m else 1
+            except Exception:
                 num = 1
         else:
             num = 1
-        return f"{prefix}{num:04d}"
+        width = settings_service.get_int('invoice/number_width', 4, minimum=3, maximum=10)
+        return f"{prefix}{num:0{width}d}"
 
 

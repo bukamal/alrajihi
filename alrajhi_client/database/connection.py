@@ -671,7 +671,12 @@ class DatabaseConnection:
         if not row:
             return None
         inv = dict(row)
-        lines = conn.execute("SELECT * FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()
+        lines = conn.execute("""
+            SELECT il.*, it.name AS item_name, it.unit AS base_unit, it.barcode AS barcode, it.average_cost AS item_average_cost, COALESCE(it.average_cost, it.purchase_price, '0') AS item_cost_price, it.purchase_price AS item_purchase_price
+            FROM invoice_lines il
+            LEFT JOIN items it ON it.id = il.item_id
+            WHERE il.invoice_id=?
+        """, (invoice_id,)).fetchall()
         inv['lines'] = [dict(line) for line in lines]
         return inv
 
@@ -684,12 +689,13 @@ class DatabaseConnection:
         self.begin()
         try:
             cursor = conn.execute('''
-                INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, exchange_rate_to_usd, original_currency, warehouse_id, branch_id, cashbox_id, bank_account_id, payment_method, shift_id)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                INSERT INTO invoices (user_id, type, customer_id, supplier_id, date, reference, notes, total, paid, status, workflow_status, submitted_at, exchange_rate_to_usd, original_currency, warehouse_id, branch_id, cashbox_id, bank_account_id, payment_method, shift_id)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ''', (
                 uid, data['type'], data.get('customer_id'), data.get('supplier_id'),
                 data['date'], data.get('reference', ''), data.get('notes', ''),
                 str(data['total']), str(data['paid_amount']), 'active',
+                data.get('workflow_status', 'DRAFT'), data.get('submitted_at'),
                 data.get('exchange_rate_to_usd', 1.0), data.get('original_currency', 'USD'),
                 data.get('warehouse_id'), data.get('branch_id'), data.get('cashbox_id'),
                 data.get('bank_account_id'), data.get('payment_method', 'cash'), data.get('shift_id')
@@ -858,7 +864,12 @@ class DatabaseConnection:
                     self._update_cash_balance(paid, add=False)
                 else:
                     self._update_cash_balance(paid, add=True)
-            conn.execute("UPDATE invoices SET deleted_at = datetime('now') WHERE id=?", (invoice_id,))
+            try:
+                from auth.session import UserSession
+                _deleted_by = UserSession.get_current_username() or UserSession.get_current_user_id() or ''
+            except Exception:
+                _deleted_by = ''
+            conn.execute("UPDATE invoices SET deleted_at = datetime('now'), status='cancelled', workflow_status='CANCELLED', cancelled_at=datetime('now'), deleted_by=? WHERE id=?", (_deleted_by, invoice_id))
             self.commit()
         except Exception as e:
             self.rollback()
@@ -1237,7 +1248,34 @@ class DatabaseConnection:
             self._rest_client.set_setting(key, value)
             return
         conn = self.get_connection()
-        conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
+        category = key.split('/')[0] if '/' in str(key) else None
+        now = __import__('datetime').datetime.now().isoformat(timespec='seconds')
+        old_row = conn.execute("SELECT value FROM settings WHERE key=?", (key,)).fetchone()
+        old_value = old_row['value'] if old_row else None
+        try:
+            conn.execute("INSERT OR REPLACE INTO settings (key, value, category, updated_at) VALUES (?, ?, ?, ?)", (key, value, category, now))
+        except Exception:
+            # Backward-compatible fallback for old databases not migrated yet.
+            conn.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
+        if str(old_value) != str(value):
+            try:
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS settings_audit (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        setting_key TEXT NOT NULL,
+                        old_value TEXT,
+                        new_value TEXT,
+                        changed_by TEXT,
+                        changed_at TEXT NOT NULL,
+                        source TEXT DEFAULT 'SettingsService'
+                    )
+                """)
+                conn.execute("""
+                    INSERT INTO settings_audit(setting_key, old_value, new_value, changed_by, changed_at, source)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (key, old_value, value, None, now, 'DatabaseConnection.set_setting'))
+            except Exception:
+                pass
         conn.commit()
 
     def get_all_currencies(self):

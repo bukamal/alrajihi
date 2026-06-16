@@ -80,9 +80,18 @@ class ReportsWidget(QWidget):
         self._load_suppliers()
         period_layout.addWidget(self.supplier_filter)
 
+        period_layout.addWidget(QLabel(tr("item_label")))
+        self.item_filter = QComboBox()
+        self._load_items()
+        period_layout.addWidget(self.item_filter)
+
         refresh_btn = QPushButton(tr("refresh_report"))
         refresh_btn.clicked.connect(self.refresh_report)
         period_layout.addWidget(refresh_btn)
+
+        reset_btn = QPushButton(tr("reset_filters"))
+        reset_btn.clicked.connect(self.reset_report_filters)
+        period_layout.addWidget(reset_btn)
 
         print_btn = QPushButton(tr("printing"))
         print_menu = QMenu(print_btn)
@@ -118,6 +127,18 @@ class ReportsWidget(QWidget):
         self.ledger_readiness_tab = QWidget()
         self.offline_queue_tab = QWidget()
         self.unit_audit_tab = QWidget()
+        self.item_movement_tab = QWidget()
+        self.invoice_profit_tab = QWidget()
+        self.net_profit_tab = QWidget()
+        self.manufacturing_orders_tab = QWidget()
+        self.product_cost_tab = QWidget()
+        self.general_ledger_tab = QWidget()
+        self.full_trial_balance_tab = QWidget()
+        self.slow_items_tab = QWidget()
+        self.top_items_tab = QWidget()
+        self.low_items_tab = QWidget()
+        self.reorder_items_tab = QWidget()
+        self.report_audit_tab = QWidget()
         self.setup_income_tab()
         self.setup_balance_tab()
         self.setup_warehouse_tabs()
@@ -136,6 +157,18 @@ class ReportsWidget(QWidget):
         self.tabs.addTab(self.trial_balance_tab, tr("report_trial_balance"))
         self.tabs.addTab(self.customer_statement_tab, tr("report_customer_statement"))
         self.tabs.addTab(self.supplier_statement_tab, tr("report_supplier_statement"))
+        self.tabs.addTab(self.item_movement_tab, tr("report_item_movement"))
+        self.tabs.addTab(self.invoice_profit_tab, tr("report_invoice_profit"))
+        self.tabs.addTab(self.net_profit_tab, tr("report_net_profit"))
+        self.tabs.addTab(self.manufacturing_orders_tab, tr("report_manufacturing_orders"))
+        self.tabs.addTab(self.product_cost_tab, tr("report_product_cost"))
+        self.tabs.addTab(self.general_ledger_tab, tr("report_general_ledger"))
+        self.tabs.addTab(self.full_trial_balance_tab, tr("report_full_trial_balance"))
+        self.tabs.addTab(self.slow_items_tab, tr("report_slow_items"))
+        self.tabs.addTab(self.top_items_tab, tr("report_top_items"))
+        self.tabs.addTab(self.low_items_tab, tr("report_low_items"))
+        self.tabs.addTab(self.reorder_items_tab, tr("report_reorder_items"))
+        self.tabs.addTab(self.report_audit_tab, tr("report_consistency_audit"))
         self.tabs.addTab(self.customer_balances_tab, tr("report_customer_balances"))
         self.tabs.addTab(self.supplier_balances_tab, tr("report_supplier_balances"))
         self.tabs.addTab(self.customer_aging_tab, tr("report_customer_aging"))
@@ -149,6 +182,12 @@ class ReportsWidget(QWidget):
         self.tabs.currentChanged.connect(lambda _idx: self.refresh_report())
         layout.addWidget(self.tabs)
 
+        self.report_summary = QLabel()
+        self.report_summary.setObjectName('reportSummaryBar')
+        self.report_summary.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.report_summary)
+
+        self._install_report_table_identities()
         self.on_period_type_changed()
         apply_modern_widget(self, tr('reports_page_title'), tr('reports_page_subtitle'))
         self.refresh_report()
@@ -200,6 +239,20 @@ class ReportsWidget(QWidget):
             rows, _ = entity_service.suppliers(limit=1000)
             for s in rows:
                 self.supplier_filter.addItem(s.get('name', ''), s.get('id'))
+        except Exception:
+            pass
+
+    def _load_items(self):
+        self.item_filter.clear()
+        self.item_filter.addItem(tr("all_items"), None)
+        try:
+            from core.services.product_service import product_service
+            rows = product_service.items(limit=2000)
+            for item in rows or []:
+                label = item.get('name', '')
+                if item.get('barcode'):
+                    label = f"{label} - {item.get('barcode')}"
+                self.item_filter.addItem(label, item.get('id'))
         except Exception:
             pass
 
@@ -291,17 +344,89 @@ class ReportsWidget(QWidget):
             ('ledger_readiness_table', self.ledger_readiness_tab),
             ('offline_queue_table', self.offline_queue_tab),
             ('unit_audit_table', self.unit_audit_tab),
+            ('item_movement_table', self.item_movement_tab),
+            ('invoice_profit_table', self.invoice_profit_tab),
+            ('net_profit_table', self.net_profit_tab),
+            ('manufacturing_orders_table', self.manufacturing_orders_tab),
+            ('product_cost_table', self.product_cost_tab),
+            ('general_ledger_table', self.general_ledger_tab),
+            ('full_trial_balance_table', self.full_trial_balance_tab),
+            ('slow_items_table', self.slow_items_tab),
+            ('top_items_table', self.top_items_tab),
+            ('low_items_table', self.low_items_tab),
+            ('reorder_items_table', self.reorder_items_tab),
+            ('report_audit_table', self.report_audit_tab),
         ]:
             layout = QVBoxLayout(tab)
             table = CustomTableView()
             setattr(self, attr, table)
             layout.addWidget(table)
 
+    def _install_report_table_identities(self):
+        """Attach stable identities for saved column layouts and unified print titles."""
+        for name in (
+            'income_table', 'balance_table', 'wh_valuation_table', 'wh_balances_table',
+            'wh_movements_table', 'wh_transfers_table', 'cash_summary_table',
+            'cash_movements_table', 'bank_movements_table', 'pos_shifts_table',
+            'trial_balance_table', 'customer_statement_table', 'supplier_statement_table',
+            'customer_balances_table', 'supplier_balances_table', 'customer_aging_table',
+            'supplier_aging_table', 'ledger_reconciliation_table', 'ledger_dual_read_table',
+            'ledger_readiness_table', 'offline_queue_table', 'unit_audit_table',
+            'item_movement_table', 'invoice_profit_table', 'net_profit_table',
+            'manufacturing_orders_table', 'product_cost_table', 'general_ledger_table',
+            'full_trial_balance_table', 'slow_items_table', 'top_items_table',
+            'low_items_table', 'reorder_items_table', 'report_audit_table'
+        ):
+            table = getattr(self, name, None)
+            if table is not None:
+                table.set_table_identity(f'reports_{name}')
+
+    def _set_summary(self, text=''):
+        if hasattr(self, 'report_summary'):
+            self.report_summary.setText(text or '')
+            self.report_summary.setVisible(bool(text))
+
+    def reset_report_filters(self):
+        self.period_type.setCurrentIndex(0)
+        from datetime import datetime
+        self.year_combo.setCurrentText(str(datetime.now().year))
+        self.month_combo.setCurrentIndex(datetime.now().month - 1)
+        for combo_name in ('warehouse_filter', 'cashbox_filter', 'bank_filter', 'customer_filter', 'supplier_filter', 'item_filter'):
+            combo = getattr(self, combo_name, None)
+            if combo is not None and combo.count():
+                combo.setCurrentIndex(0)
+        self.refresh_report()
+
+    def _report_source_label(self, source):
+        return {
+            'opening_balance': tr('opening_balance'),
+            'sale_invoice': tr('sales_invoice'),
+            'purchase_invoice': tr('purchase_invoice'),
+            'sales_return': tr('sales_returns'),
+            'purchase_return': tr('purchase_returns'),
+            'receipt_voucher': tr('receipt_voucher'),
+            'payment_voucher': tr('payment_voucher'),
+        }.get(source or '', source or '')
+
+    def _statement_summary(self, rows):
+        debit = sum((Decimal(str(r.get('debit_raw') or 0)) for r in rows), Decimal('0'))
+        credit = sum((Decimal(str(r.get('credit_raw') or 0)) for r in rows), Decimal('0'))
+        last_balance = Decimal(str(rows[-1].get('balance_raw') or 0)) if rows else Decimal('0')
+        return f"{tr('rows_count')}: {len(rows)} | {tr('debit')}: {currency.format_amount(debit)} | {tr('credit')}: {currency.format_amount(credit)} | {tr('balance')}: {currency.format_amount(last_balance)}"
+
     def _set_table(self, table, rows, headers, keys):
         model = GenericTableModel(rows, headers, data_keys=keys)
         table.setModel(model)
+        try:
+            table.setProperty('print_title', self.tabs.tabText(self.tabs.currentIndex()))
+        except Exception:
+            pass
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         table.horizontalHeader().setStretchLastSection(True)
+        try:
+            table.restore_layout()
+        except Exception:
+            pass
         return model
 
     def _apply_pos_shift_report_visibility(self):
@@ -322,6 +447,7 @@ class ReportsWidget(QWidget):
         active tab only, while tab changes trigger this same method lazily.
         """
         start, end = self.get_date_range()
+        self._set_summary('')
         display_curr = currency.get_display_currency()
         tab = self.tabs.currentWidget() if hasattr(self, 'tabs') else None
         try:
@@ -336,7 +462,11 @@ class ReportsWidget(QWidget):
             elif tab in (self.trial_balance_tab, self.customer_statement_tab, self.supplier_statement_tab,
                          self.customer_balances_tab, self.supplier_balances_tab, self.customer_aging_tab,
                          self.supplier_aging_tab, self.ledger_reconciliation_tab, self.ledger_dual_read_tab,
-                         self.ledger_readiness_tab, self.offline_queue_tab, self.unit_audit_tab):
+                         self.ledger_readiness_tab, self.offline_queue_tab, self.unit_audit_tab,
+                         self.item_movement_tab, self.invoice_profit_tab, self.net_profit_tab,
+                         self.manufacturing_orders_tab, self.product_cost_tab, self.general_ledger_tab,
+                         self.full_trial_balance_tab, self.slow_items_tab, self.top_items_tab,
+                         self.low_items_tab, self.reorder_items_tab, self.report_audit_tab):
                 self._refresh_phase36_reports(start, end, display_curr)
             else:
                 self._refresh_income(start, end, display_curr)
@@ -487,10 +617,14 @@ class ReportsWidget(QWidget):
         self._set_table(self.cash_summary_table, summary_rows, ['النوع', 'الفرع', 'الاسم', 'الرقم/الكود', 'الرصيد', 'الحالة'], ['type','branch','name','code','balance','status'])
 
         cash_rows = []
+        cash_running = Decimal('0')
         for m in reporting_service.cash_bank_movements(cashbox_id=cashbox_id, limit=1000):
             if m.get('cashbox_id') is None:
                 continue
-            amount = currency.convert(Decimal(str(m.get('amount') or 0)), 'USD', display_curr)
+            raw_amount = Decimal(str(m.get('amount') or 0))
+            cash_running += raw_amount
+            amount = currency.convert(raw_amount, 'USD', display_curr)
+            running_display = currency.convert(cash_running, 'USD', display_curr)
             cash_rows.append({
                 'date': m.get('movement_date') or m.get('created_at') or '',
                 'branch': m.get('branch_name') or '',
@@ -498,16 +632,21 @@ class ReportsWidget(QWidget):
                 'type': self._cash_movement_label(m.get('movement_type')),
                 'direction': 'داخل' if Decimal(str(m.get('amount') or 0)) >= 0 else 'خارج',
                 'amount': currency.format_amount(amount),
+                'balance': currency.format_amount(running_display),
                 'ref': m.get('reference_type') or '—',
                 'desc': m.get('description') or '',
             })
-        self._set_table(self.cash_movements_table, cash_rows, ['التاريخ', 'الفرع', 'الصندوق', 'النوع', 'الاتجاه', 'المبلغ', 'المرجع', 'البيان'], ['date','branch','cashbox','type','direction','amount','ref','desc'])
+        self._set_table(self.cash_movements_table, cash_rows, [tr('date'), tr('branch'), tr('cashbox_label'), tr('type'), tr('direction'), tr('amount'), tr('running_balance'), tr('reference'), tr('description')], ['date','branch','cashbox','type','direction','amount','balance','ref','desc'])
 
         bank_rows = []
+        bank_running = Decimal('0')
         for m in reporting_service.cash_bank_movements(bank_account_id=bank_id, limit=1000):
             if m.get('bank_account_id') is None:
                 continue
-            amount = currency.convert(Decimal(str(m.get('amount') or 0)), 'USD', display_curr)
+            raw_amount = Decimal(str(m.get('amount') or 0))
+            bank_running += raw_amount
+            amount = currency.convert(raw_amount, 'USD', display_curr)
+            running_display = currency.convert(bank_running, 'USD', display_curr)
             bank_rows.append({
                 'date': m.get('movement_date') or m.get('created_at') or '',
                 'branch': m.get('branch_name') or '',
@@ -515,10 +654,11 @@ class ReportsWidget(QWidget):
                 'type': self._cash_movement_label(m.get('movement_type')),
                 'direction': 'داخل' if Decimal(str(m.get('amount') or 0)) >= 0 else 'خارج',
                 'amount': currency.format_amount(amount),
+                'balance': currency.format_amount(running_display),
                 'ref': m.get('reference_type') or '—',
                 'desc': m.get('description') or '',
             })
-        self._set_table(self.bank_movements_table, bank_rows, ['التاريخ', 'الفرع', 'الحساب البنكي', 'النوع', 'الاتجاه', 'المبلغ', 'المرجع', 'البيان'], ['date','branch','bank','type','direction','amount','ref','desc'])
+        self._set_table(self.bank_movements_table, bank_rows, [tr('date'), tr('branch'), tr('bank_account'), tr('type'), tr('direction'), tr('amount'), tr('running_balance'), tr('reference'), tr('description')], ['date','branch','bank','type','direction','amount','balance','ref','desc'])
 
         shift_rows = []
         for s in reporting_service.pos_shifts_report(limit=1000):
@@ -592,6 +732,11 @@ class ReportsWidget(QWidget):
         customer_id = self.customer_filter.currentData() if hasattr(self, 'customer_filter') else None
         supplier_id = self.supplier_filter.currentData() if hasattr(self, 'supplier_filter') else None
         wh_id = self.warehouse_filter.currentData() if hasattr(self, 'warehouse_filter') else None
+        item_id = self.item_filter.currentData() if hasattr(self, 'item_filter') else None
+
+        if self.tabs.currentWidget() in (self.general_ledger_tab, self.full_trial_balance_tab, self.slow_items_tab, self.top_items_tab, self.low_items_tab, self.reorder_items_tab, self.report_audit_tab):
+            self._refresh_phase141_reports(start, end, display_curr)
+            return
 
         # Trial balance
         try:
@@ -618,18 +763,28 @@ class ReportsWidget(QWidget):
                     debit = Decimal(str(r.get('debit') or 0))
                     credit = Decimal(str(r.get('credit') or 0))
                     balance = Decimal(str(r.get('balance') if r.get('balance') is not None else debit - credit))
+                    debit_display = currency.convert(debit, 'USD', display_curr)
+                    credit_display = currency.convert(credit, 'USD', display_curr)
+                    balance_display = currency.convert(balance, 'USD', display_curr)
                     rows.append({
                         'date': r.get('date') or r.get('created_at') or r.get('invoice_date') or '',
-                        'type': r.get('type') or r.get('source') or r.get('movement_type') or '',
+                        'type': self._report_source_label(r.get('source_type') or r.get('type') or r.get('source') or r.get('movement_type')),
                         'ref': r.get('reference') or r.get('reference_no') or r.get('invoice_no') or r.get('voucher_no') or '',
-                        'desc': r.get('description') or r.get('notes') or '',
-                        'debit': currency.format_amount(currency.convert(debit, 'USD', display_curr)),
-                        'credit': currency.format_amount(currency.convert(credit, 'USD', display_curr)),
-                        'balance': currency.format_amount(currency.convert(balance, 'USD', display_curr)),
+                        'desc': self._report_source_label(r.get('description') or r.get('source_type')),
+                        'debit': currency.format_amount(debit_display),
+                        'credit': currency.format_amount(credit_display),
+                        'balance': currency.format_amount(balance_display),
+                        'debit_raw': debit_display,
+                        'credit_raw': credit_display,
+                        'balance_raw': balance_display,
                     })
-            self._set_table(self.customer_statement_table, rows, ['التاريخ', 'النوع', 'المرجع', 'البيان', 'مدين', 'دائن', 'الرصيد'], ['date','type','ref','desc','debit','credit','balance'])
-        except Exception:
-            self._set_table(self.customer_statement_table, [], ['التاريخ', 'النوع', 'المرجع', 'البيان', 'مدين', 'دائن', 'الرصيد'], ['date','type','ref','desc','debit','credit','balance'])
+            self._set_table(self.customer_statement_table, rows, [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
+            if self.tabs.currentWidget() is self.customer_statement_tab:
+                self._set_summary(self._statement_summary(rows) if rows else tr('choose_customer'))
+        except Exception as exc:
+            self._set_table(self.customer_statement_table, [], [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
+            if self.tabs.currentWidget() is self.customer_statement_tab:
+                self._set_summary(tr('reports_refresh_failed', error=str(exc)))
 
         # Supplier statement
         try:
@@ -639,18 +794,28 @@ class ReportsWidget(QWidget):
                     debit = Decimal(str(r.get('debit') or 0))
                     credit = Decimal(str(r.get('credit') or 0))
                     balance = Decimal(str(r.get('balance') if r.get('balance') is not None else credit - debit))
+                    debit_display = currency.convert(debit, 'USD', display_curr)
+                    credit_display = currency.convert(credit, 'USD', display_curr)
+                    balance_display = currency.convert(balance, 'USD', display_curr)
                     rows.append({
                         'date': r.get('date') or r.get('created_at') or r.get('invoice_date') or '',
-                        'type': r.get('type') or r.get('source') or r.get('movement_type') or '',
+                        'type': self._report_source_label(r.get('source_type') or r.get('type') or r.get('source') or r.get('movement_type')),
                         'ref': r.get('reference') or r.get('reference_no') or r.get('invoice_no') or r.get('voucher_no') or '',
-                        'desc': r.get('description') or r.get('notes') or '',
-                        'debit': currency.format_amount(currency.convert(debit, 'USD', display_curr)),
-                        'credit': currency.format_amount(currency.convert(credit, 'USD', display_curr)),
-                        'balance': currency.format_amount(currency.convert(balance, 'USD', display_curr)),
+                        'desc': self._report_source_label(r.get('description') or r.get('source_type')),
+                        'debit': currency.format_amount(debit_display),
+                        'credit': currency.format_amount(credit_display),
+                        'balance': currency.format_amount(balance_display),
+                        'debit_raw': debit_display,
+                        'credit_raw': credit_display,
+                        'balance_raw': balance_display,
                     })
-            self._set_table(self.supplier_statement_table, rows, ['التاريخ', 'النوع', 'المرجع', 'البيان', 'مدين', 'دائن', 'الرصيد'], ['date','type','ref','desc','debit','credit','balance'])
-        except Exception:
-            self._set_table(self.supplier_statement_table, [], ['التاريخ', 'النوع', 'المرجع', 'البيان', 'مدين', 'دائن', 'الرصيد'], ['date','type','ref','desc','debit','credit','balance'])
+            self._set_table(self.supplier_statement_table, rows, [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
+            if self.tabs.currentWidget() is self.supplier_statement_tab:
+                self._set_summary(self._statement_summary(rows) if rows else tr('choose_supplier'))
+        except Exception as exc:
+            self._set_table(self.supplier_statement_table, [], [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
+            if self.tabs.currentWidget() is self.supplier_statement_tab:
+                self._set_summary(tr('reports_refresh_failed', error=str(exc)))
 
         # Customer/Supplier balances
         try:
@@ -749,6 +914,75 @@ class ReportsWidget(QWidget):
             self._set_table(self.ledger_dual_read_table, [], ['المادة', 'المستودع', 'التشغيلي', 'Ledger', 'الفرق', 'الحالة'], ['item','warehouse','operational','ledger','difference','status'])
             self._set_table(self.ledger_readiness_table, [], ['النوع', 'الرسالة'], ['type','message'])
 
+
+        # Item movement report
+        try:
+            rows = []
+            total_in = Decimal('0')
+            total_out = Decimal('0')
+            for r in reporting_service.item_movement_report(item_id=item_id, warehouse_id=wh_id, start_date=start, end_date=end):
+                in_qty = Decimal(str(r.get('in_qty') or 0))
+                out_qty = Decimal(str(r.get('out_qty') or 0))
+                total_in += in_qty
+                total_out += out_qty
+                rows.append({
+                    'date': r.get('movement_date') or '',
+                    'reference': f"{r.get('reference_type') or ''} #{r.get('reference_id') or ''}".strip(),
+                    'item': r.get('item_name') or r.get('item_id') or '',
+                    'barcode': r.get('barcode') or '',
+                    'warehouse': r.get('warehouse_name') or '',
+                    'movement': self._movement_label(r.get('movement_type')),
+                    'in_qty': f"{in_qty:.4f}".rstrip('0').rstrip('.'),
+                    'out_qty': f"{out_qty:.4f}".rstrip('0').rstrip('.'),
+                    'balance': f"{Decimal(str(r.get('balance_qty') or 0)):.4f}".rstrip('0').rstrip('.'),
+                    'unit_cost': currency.format_amount(currency.convert(Decimal(str(r.get('unit_cost') or 0)), 'USD', display_curr)),
+                    'total_cost': currency.format_amount(currency.convert(Decimal(str(r.get('total_cost') or 0)), 'USD', display_curr)),
+                    'notes': r.get('notes') or '',
+                })
+            self._set_table(
+                self.item_movement_table,
+                rows,
+                [tr('date'), tr('reference'), tr('print_item'), tr('barcode'), tr('warehouse_label'), tr('movement_type'), tr('in_qty'), tr('out_qty'), tr('balance'), tr('unit_cost'), tr('total_cost'), tr('notes')],
+                ['date', 'reference', 'item', 'barcode', 'warehouse', 'movement', 'in_qty', 'out_qty', 'balance', 'unit_cost', 'total_cost', 'notes']
+            )
+            if self.tabs.currentWidget() is self.item_movement_tab:
+                self._set_summary(f"{tr('rows_count')}: {len(rows)} | {tr('in_qty')}: {total_in} | {tr('out_qty')}: {total_out}")
+        except Exception:
+            self._set_table(self.item_movement_table, [], [tr('date'), tr('reference'), tr('print_item'), tr('barcode'), tr('warehouse_label'), tr('movement_type'), tr('in_qty'), tr('out_qty'), tr('balance'), tr('unit_cost'), tr('total_cost'), tr('notes')], ['date','reference','item','barcode','warehouse','movement','in_qty','out_qty','balance','unit_cost','total_cost','notes'])
+
+        # Invoice profitability report
+        try:
+            rows = []
+            total_sales = Decimal('0')
+            total_cost = Decimal('0')
+            total_profit = Decimal('0')
+            for r in reporting_service.invoice_profit_report(start_date=start, end_date=end, customer_id=customer_id):
+                invoice_total = Decimal(str(r.get('invoice_total') or 0))
+                cost_total = Decimal(str(r.get('cost_total') or 0))
+                profit = Decimal(str(r.get('profit') or 0))
+                total_sales += invoice_total
+                total_cost += cost_total
+                total_profit += profit
+                rows.append({
+                    'date': r.get('date') or '',
+                    'reference': r.get('reference') or r.get('id') or '',
+                    'customer': r.get('customer_name') or '',
+                    'sales': currency.format_amount(currency.convert(invoice_total, 'USD', display_curr)),
+                    'cost': currency.format_amount(currency.convert(cost_total, 'USD', display_curr)),
+                    'profit': currency.format_amount(currency.convert(profit, 'USD', display_curr)),
+                    'margin': f"{Decimal(str(r.get('profit_margin') or 0)):.2f}%",
+                })
+            self._set_table(
+                self.invoice_profit_table,
+                rows,
+                [tr('date'), tr('reference'), tr('customer_label'), tr('sales_value'), tr('cost'), tr('profit'), tr('profit_margin')],
+                ['date', 'reference', 'customer', 'sales', 'cost', 'profit', 'margin']
+            )
+            if self.tabs.currentWidget() is self.invoice_profit_tab:
+                self._set_summary(f"{tr('rows_count')}: {len(rows)} | {tr('sales_value')}: {currency.format_amount(currency.convert(total_sales, 'USD', display_curr))} | {tr('cost')}: {currency.format_amount(currency.convert(total_cost, 'USD', display_curr))} | {tr('profit')}: {currency.format_amount(currency.convert(total_profit, 'USD', display_curr))}")
+        except Exception:
+            self._set_table(self.invoice_profit_table, [], [tr('date'), tr('reference'), tr('customer_label'), tr('sales_value'), tr('cost'), tr('profit'), tr('profit_margin')], ['date','reference','customer','sales','cost','profit','margin'])
+
         # Offline queue diagnostics
         try:
             from core.services.offline_queue_service import offline_queue_service
@@ -793,6 +1027,85 @@ class ReportsWidget(QWidget):
             self._set_table(self.unit_audit_table, rows, [tr('print_item'), tr('base_unit'), tr('print_unit'), tr('conversion_factor'), tr('status')], ['item','base','unit','factor','status'])
         except Exception:
             self._set_table(self.unit_audit_table, [], [tr('print_item'), tr('base_unit'), tr('print_unit'), tr('conversion_factor'), tr('status')], ['item','base','unit','factor','status'])
+
+
+    def _refresh_phase141_reports(self, start, end, display_curr):
+        tab = self.tabs.currentWidget()
+        wh_id = self.warehouse_filter.currentData() if hasattr(self, 'warehouse_filter') else None
+        # General ledger
+        if tab is self.general_ledger_tab:
+            rows=[]
+            for r in reporting_service.general_ledger_report(start_date=start, end_date=end):
+                rows.append({
+                    'date': r.get('entry_date') or '',
+                    'account': f"{r.get('account_code') or ''} {r.get('account_name') or ''}".strip(),
+                    'reference': r.get('reference') or r.get('entry_id') or '',
+                    'description': r.get('description') or '',
+                    'debit': currency.format_amount(currency.convert(Decimal(str(r.get('debit') or 0)), 'USD', display_curr)),
+                    'credit': currency.format_amount(currency.convert(Decimal(str(r.get('credit') or 0)), 'USD', display_curr)),
+                    'balance': currency.format_amount(currency.convert(Decimal(str(r.get('balance') or 0)), 'USD', display_curr)),
+                })
+            self._set_table(self.general_ledger_table, rows, [tr('date'), tr('account'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','account','reference','description','debit','credit','balance'])
+            self._set_summary(f"{tr('rows_count')}: {len(rows)}")
+            return
+        # Full trial balance
+        if tab is self.full_trial_balance_tab:
+            tb = reporting_service.full_trial_balance_report(start, end)
+            rows=[]
+            for r in tb.get('rows') or []:
+                rows.append({
+                    'code': r.get('code') or r.get('account_code') or '',
+                    'account': r.get('account_name') or r.get('name') or r.get('account') or '',
+                    'debit': currency.format_amount(currency.convert(Decimal(str(r.get('debit') or 0)), 'USD', display_curr)),
+                    'credit': currency.format_amount(currency.convert(Decimal(str(r.get('credit') or 0)), 'USD', display_curr)),
+                    'balance': currency.format_amount(currency.convert(Decimal(str(r.get('balance') or 0)), 'USD', display_curr)),
+                })
+            self._set_table(self.full_trial_balance_table, rows, [tr('code'), tr('account'), tr('debit'), tr('credit'), tr('balance')], ['code','account','debit','credit','balance'])
+            self._set_summary(f"{tr('debit')}: {currency.format_amount(currency.convert(Decimal(str(tb.get('total_debit') or 0)), 'USD', display_curr))} | {tr('credit')}: {currency.format_amount(currency.convert(Decimal(str(tb.get('total_credit') or 0)), 'USD', display_curr))} | {tr('difference')}: {currency.format_amount(currency.convert(Decimal(str(tb.get('difference') or 0)), 'USD', display_curr))}")
+            return
+        # Smart item reports
+        smart_map = {
+            self.slow_items_tab: ('slow', self.slow_items_table),
+            self.top_items_tab: ('top', self.top_items_table),
+            self.low_items_tab: ('low', self.low_items_table),
+            self.reorder_items_tab: ('reorder', self.reorder_items_table),
+        }
+        if tab in smart_map:
+            kind, table = smart_map[tab]
+            rows=[]
+            for r in reporting_service.smart_items_report(kind, start_date=start, end_date=end, warehouse_id=wh_id):
+                rows.append({
+                    'item': r.get('name') or r.get('item_name') or '',
+                    'barcode': r.get('barcode') or '',
+                    'warehouse': r.get('warehouse_name') or '',
+                    'qty': str(r.get('qty') if r.get('qty') is not None else r.get('quantity') or 0),
+                    'min_stock': str(r.get('min_stock') or ''),
+                    'shortage': str(r.get('shortage') or ''),
+                    'last_sale': r.get('last_sale_date') or '',
+                    'days': str(r.get('days_without_movement') if r.get('days_without_movement') is not None else ''),
+                    'sales': currency.format_amount(currency.convert(Decimal(str(r.get('sales_value') or 0)), 'USD', display_curr)),
+                    'profit': currency.format_amount(currency.convert(Decimal(str(r.get('profit') or 0)), 'USD', display_curr)),
+                })
+            if kind == 'reorder':
+                headers=[tr('print_item'), tr('barcode'), tr('warehouse_label'), tr('quantity'), tr('min_stock'), tr('shortage')]
+                keys=['item','barcode','warehouse','qty','min_stock','shortage']
+            elif kind == 'slow':
+                headers=[tr('print_item'), tr('barcode'), tr('last_sale'), tr('days_without_movement'), tr('quantity')]
+                keys=['item','barcode','last_sale','days','qty']
+            else:
+                headers=[tr('print_item'), tr('barcode'), tr('quantity'), tr('sales_value'), tr('profit')]
+                keys=['item','barcode','qty','sales','profit']
+            self._set_table(table, rows, headers, keys)
+            self._set_summary(f"{tr('rows_count')}: {len(rows)}")
+            return
+        # Consistency audit
+        if tab is self.report_audit_tab:
+            rows=[]
+            for r in reporting_service.report_consistency_audit(start, end):
+                rows.append({'scope': r.get('scope') or '', 'status': r.get('status') or '', 'severity': r.get('severity') or '', 'message': r.get('message') or ''})
+            self._set_table(self.report_audit_table, rows, [tr('scope'), tr('status'), tr('severity'), tr('message')], ['scope','status','severity','message'])
+            self._set_summary(f"{tr('rows_count')}: {len(rows)}")
+            return
 
     def print_report(self, mode='preview'):
         from printing.printing_service import printing_service
@@ -844,6 +1157,30 @@ class ReportsWidget(QWidget):
             table = self.offline_queue_table
         elif tab is self.unit_audit_tab:
             table = self.unit_audit_table
+        elif tab is self.item_movement_tab:
+            table = self.item_movement_table
+        elif tab is self.invoice_profit_tab:
+            table = self.invoice_profit_table
+        elif tab is self.net_profit_tab:
+            table = self.net_profit_table
+        elif tab is self.manufacturing_orders_tab:
+            table = self.manufacturing_orders_table
+        elif tab is self.product_cost_tab:
+            table = self.product_cost_table
+        elif tab is self.general_ledger_tab:
+            table = self.general_ledger_table
+        elif tab is self.full_trial_balance_tab:
+            table = self.full_trial_balance_table
+        elif tab is self.slow_items_tab:
+            table = self.slow_items_table
+        elif tab is self.top_items_tab:
+            table = self.top_items_table
+        elif tab is self.low_items_tab:
+            table = self.low_items_table
+        elif tab is self.reorder_items_tab:
+            table = self.reorder_items_table
+        elif tab is self.report_audit_tab:
+            table = self.report_audit_table
         if not table or not table.model():
             return
         model = table.model()

@@ -123,7 +123,7 @@ def _font_family(settings: Dict[str, Any]) -> str:
 def _document_language() -> str:
     try:
         from i18n.translator import normalize_language
-        return normalize_language(settings_service.get_language())
+        return normalize_language(settings_service.print_language())
     except Exception:
         return "ar"
 
@@ -181,7 +181,7 @@ def _human_title(title: Any, fallback: str = _tr("print_report_default")) -> str
 
 
 def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
-    info = get_company_info() or {}
+    info = settings_service.company_info() or {}
     logo_path = _value(info.get("logo_path") or settings.get("logo_path"))
     try:
         from pathlib import Path as _Path
@@ -197,6 +197,8 @@ def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
         "email": _value(info.get("email") or settings.get("company_email")),
         "tax_number": _value(info.get("tax_number") or settings.get("tax_number")),
         "logo_path": logo_path,
+        "commercial_register": _value(info.get("commercial_register") or settings.get("commercial_register")),
+        "website": _value(info.get("website") or settings.get("company_website")),
     }
 
 
@@ -212,6 +214,8 @@ def _company_header(settings: Dict[str, Any], title: str = "") -> str:
     tax_line = ""
     if data["tax_number"] and _bool_setting(settings, "show_tax_number", True):
         tax_line = f"<div class='muted'>الرقم الضريبي: {_s(data['tax_number'])}</div>"
+    cr_line = f"<div class='muted'>السجل التجاري: {_s(data['commercial_register'])}</div>" if data.get("commercial_register") else ""
+    website_line = f"<div class='muted'>{_s(data['website'])}</div>" if data.get("website") else ""
 
     contacts = []
     if data["phone"]:
@@ -229,6 +233,8 @@ def _company_header(settings: Dict[str, Any], title: str = "") -> str:
                 <div class='muted'>{_s(data['address'])}</div>
                 <div class='muted'>{contact_line}</div>
                 {tax_line}
+                {cr_line}
+                {website_line}
             </td>
             <td class='brand-meta'>
                 <div class='document-badge'>{_s(title)}</div>

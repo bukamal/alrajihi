@@ -18,7 +18,12 @@ def set_setting(key):
     data = request.get_json()
     value = data.get('value')
     db = get_db()
-    db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
+    category = key.split('/')[0] if '/' in str(key) else None
+    now = __import__('datetime').datetime.now().isoformat(timespec='seconds')
+    try:
+        db.execute("INSERT OR REPLACE INTO settings (key, value, category, updated_at) VALUES (?, ?, ?, ?)", (key, value, category, now))
+    except Exception:
+        db.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", (key, value))
     db.commit()
     return jsonify({'status': 'ok'})
 

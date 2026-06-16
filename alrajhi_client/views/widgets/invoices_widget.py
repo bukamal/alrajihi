@@ -14,6 +14,7 @@ from views.widgets.components.table_toolbar import TableToolbar
 from theme_manager import ThemeManager
 from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate, qt_layout_direction
+from core.services.permission_service import permission_service
 
 class InvoicesWidget(QWidget):
     def __init__(self, parent=None, invoice_scope=None):
@@ -168,6 +169,43 @@ class InvoicesWidget(QWidget):
         label.setObjectName("FilterLabel")
         return label
 
+    def _add_workflow_buttons(self, layout, inv_type):
+        """Phase154: operational workflow buttons on invoice lists."""
+        row = QHBoxLayout()
+        for caption, action in [
+            ('إرسال للاعتماد', 'submit'),
+            ('اعتماد', 'approve'),
+            ('رفض', 'reject'),
+            ('ترحيل', 'post'),
+            ('إعادة فتح', 'reopen'),
+        ]:
+            btn = QPushButton(caption)
+            btn.clicked.connect(lambda _=False, a=action, t=inv_type: self._run_workflow_action(t, a))
+            row.addWidget(btn)
+        row.addStretch()
+        layout.addLayout(row)
+
+    def _run_workflow_action(self, inv_type, action):
+        inv_id = self._selected_invoice_id(inv_type)
+        if not inv_id:
+            show_toast('اختر فاتورة أولاً', 'warning', self)
+            return
+        try:
+            if action == 'submit':
+                invoice_service.submit(inv_id)
+            elif action == 'approve':
+                invoice_service.approve(inv_id)
+            elif action == 'reject':
+                invoice_service.reject(inv_id)
+            elif action == 'post':
+                invoice_service.post(inv_id)
+            elif action == 'reopen':
+                invoice_service.reopen(inv_id)
+            show_toast('تم تنفيذ إجراء سير العمل', 'success', self)
+            self.refresh_all()
+        except Exception as exc:
+            QMessageBox.critical(self, 'سير العمل', str(exc))
+
     def setup_sales_tab(self):
         layout = QVBoxLayout(self.sales_tab)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -182,6 +220,7 @@ class InvoicesWidget(QWidget):
         self.sales_toolbar.resetColumnsRequested.connect(lambda: self.sales_table.reset_layout())
         self.sales_toolbar.searchChanged.connect(lambda _text: self.refresh_tab('sale', reset_page=True))
         layout.addWidget(self.sales_toolbar)
+        self._add_workflow_buttons(layout, 'sale')
         self.sales_search = self.sales_toolbar.search_edit
 
         # شريط الفلترة المتخصص للتبويب
@@ -250,6 +289,7 @@ class InvoicesWidget(QWidget):
         self.purchases_toolbar.resetColumnsRequested.connect(lambda: self.purchases_table.reset_layout())
         self.purchases_toolbar.searchChanged.connect(lambda _text: self.refresh_tab('purchase', reset_page=True))
         layout.addWidget(self.purchases_toolbar)
+        self._add_workflow_buttons(layout, 'purchase')
         self.purchases_search = self.purchases_toolbar.search_edit
 
         filter_layout = QHBoxLayout()
@@ -319,6 +359,10 @@ class InvoicesWidget(QWidget):
             show_toast(msg, 'warning', self)
         except Exception:
             pass
+
+
+    # Phase137: external invoice tabs are management summaries only.
+    # Line-item columns stay inside invoice dialogs where they are editable/contextual.
 
     def load_customers(self):
         try:
@@ -397,17 +441,23 @@ class InvoicesWidget(QWidget):
             data = []
             for inv in invoices:
                 remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0)))
-                data.append({
+                paid_display = currency.format_amount(currency.convert(inv.get('paid', 0), 'USD', currency.get_display_currency()))
+                row = {
                     'id': inv['id'],
-                    'reference': inv.get('reference', ''),
+                    'reference': inv.get('id', ''),
+                    'invoice': inv.get('reference', ''),
                     'date': inv.get('date', ''),
                     'customer': inv.get('customer_name', translate('cash_customer')),
-                    'total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
-                    'paid': currency.format_amount(currency.convert(inv.get('paid', 0), 'USD', currency.get_display_currency())),
-                    'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))
-                })
-            headers = ['reference', 'date', 'customer', 'total', 'paid', 'remaining']
-            display_headers = [translate('reference'), translate('date'), translate('customer'), translate('total'), translate('paid'), translate('remaining')]
+                    'invoice_total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
+                    'paid': paid_display,
+                    'received': paid_display,
+                    'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency())),
+                    'workflow_status': inv.get('workflow_status', 'DRAFT'),
+                    'notes': inv.get('notes', '')
+                }
+                data.append(row)
+            headers = ['reference', 'invoice', 'invoice_total', 'customer', 'paid', 'received', 'remaining', 'workflow_status', 'invoice_profit', 'date', 'notes']
+            display_headers = [translate('reference'), translate('invoice'), translate('invoice_value'), translate('customer'), translate('paid'), translate('received'), translate('remaining'), 'Workflow', translate('invoice_profit'), translate('date'), translate('notes')]
             model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
             self.sales_table.setModel(model)
             self._connect_table_selection('sale')
@@ -442,17 +492,21 @@ class InvoicesWidget(QWidget):
             data = []
             for inv in invoices:
                 remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0)))
-                data.append({
+                row = {
                     'id': inv['id'],
-                    'reference': inv.get('reference', ''),
+                    'reference': inv.get('id', ''),
+                    'invoice': inv.get('reference', ''),
                     'date': inv.get('date', ''),
                     'supplier': inv.get('supplier_name', translate('cash_customer')),
-                    'total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
+                    'invoice_total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
                     'paid': currency.format_amount(currency.convert(inv.get('paid', 0), 'USD', currency.get_display_currency())),
-                    'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))
-                })
-            headers = ['reference', 'date', 'supplier', 'total', 'paid', 'remaining']
-            display_headers = [translate('reference'), translate('date'), translate('supplier'), translate('total'), translate('paid'), translate('remaining')]
+                    'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency())),
+                    'workflow_status': inv.get('workflow_status', 'DRAFT'),
+                    'notes': inv.get('notes', '')
+                }
+                data.append(row)
+            headers = ['reference', 'invoice', 'invoice_total', 'supplier', 'paid', 'remaining', 'workflow_status', 'date', 'notes']
+            display_headers = [translate('reference'), translate('invoice'), translate('invoice_value'), translate('supplier'), translate('paid'), translate('remaining'), 'Workflow', translate('date'), translate('notes')]
             model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
             self.purchases_table.setModel(model)
             self._connect_table_selection('purchase')
@@ -474,6 +528,9 @@ class InvoicesWidget(QWidget):
             self.refresh_all()
 
     def edit_invoice(self, inv_type, index):
+        if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):
+            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_EDIT_INVOICES))
+            return
         row = index.row()
         if inv_type == 'sale':
             inv_id = self.sales_table.model().get_id(row)
@@ -516,8 +573,8 @@ class InvoicesWidget(QWidget):
         toolbar = self.sales_toolbar if inv_type == 'sale' else self.purchases_toolbar
         sm = table.selectionModel()
         has_selection = bool(sm and sm.selectedRows())
-        toolbar.set_edit_enabled(has_selection)
-        toolbar.set_delete_enabled(has_selection)
+        toolbar.set_edit_enabled(has_selection and permission_service.can(permission_service.ACTION_EDIT_INVOICES))
+        toolbar.set_delete_enabled(has_selection and permission_service.can(permission_service.ACTION_DELETE))
 
     def _selected_invoice_id(self, inv_type):
         table = self.sales_table if inv_type == 'sale' else self.purchases_table
@@ -529,6 +586,9 @@ class InvoicesWidget(QWidget):
         return model.get_id(row)
 
     def edit_selected_invoice(self, inv_type):
+        if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):
+            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_EDIT_INVOICES))
+            return
         inv_id = self._selected_invoice_id(inv_type)
         if not inv_id:
             show_toast(translate("select_invoice_first"), "warning", self)
@@ -538,6 +598,9 @@ class InvoicesWidget(QWidget):
             self.refresh_all()
 
     def delete_selected_invoice(self, inv_type):
+        if not permission_service.can(permission_service.ACTION_DELETE):
+            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_DELETE))
+            return
         inv_id = self._selected_invoice_id(inv_type)
         if not inv_id:
             show_toast(translate("select_invoice_delete"), "warning", self)

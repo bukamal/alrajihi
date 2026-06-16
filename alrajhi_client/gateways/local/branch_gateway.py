@@ -35,5 +35,11 @@ class LocalBranchGateway(BranchGateway):
     def archive(self, branch_id: int):
         return branch_dao.delete(branch_id)
 
+    def set_default(self, branch_id: int):
+        return branch_dao.set_default(branch_id)
+
+    def diagnostics(self) -> Dict[str, Any]:
+        return branch_dao.diagnostics()
+
     def is_remote(self) -> bool:
         return False

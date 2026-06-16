@@ -34,5 +34,11 @@ class RemoteBranchGateway(BranchGateway):
     def archive(self, branch_id: int):
         return self.rest_client.archive_branch(branch_id)
 
+    def set_default(self, branch_id: int):
+        raise NotImplementedError('تعيين الفرع الافتراضي يتطلب Route في الخادم')
+
+    def diagnostics(self):
+        return {'mode': 'remote', 'checks': []}
+
     def is_remote(self) -> bool:
         return True

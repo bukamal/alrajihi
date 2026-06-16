@@ -39,7 +39,17 @@ REQUIRED_COLUMNS = {
         "bank_account_id": "INTEGER",
         "payment_method": "TEXT DEFAULT 'cash'",
         "shift_id": "INTEGER",
+        "workflow_status": "TEXT DEFAULT 'DRAFT'",
+        "submitted_at": "TEXT",
+        "submitted_by": "TEXT",
+        "approved_at": "TEXT",
+        "approved_by": "TEXT",
+        "posted_at": "TEXT",
+        "posted_by": "TEXT",
+        "cancelled_at": "TEXT",
+        "cancelled_by": "TEXT",
         "deleted_at": "TEXT",
+        "deleted_by": "TEXT",
     },
     "invoice_lines": {
         "unit": "TEXT",
@@ -48,6 +58,24 @@ REQUIRED_COLUMNS = {
         "cost_amount": "TEXT DEFAULT '0'",
         "production_order_id": "INTEGER",
         "conversion_factor": "REAL DEFAULT 1.0",
+    },
+    "sales_return_lines": {
+        "unit_id": "INTEGER",
+        "conversion_factor": "REAL DEFAULT 1.0",
+    },
+    "purchase_return_lines": {
+        "unit_id": "INTEGER",
+        "conversion_factor": "REAL DEFAULT 1.0",
+    },
+    "inventory_movements": {
+        "item_id": "INTEGER",
+        "user_id": "TEXT",
+        "movement_type": "TEXT",
+        "quantity": "TEXT",
+        "unit_cost": "TEXT",
+        "reference_id": "INTEGER",
+        "movement_date": "TEXT",
+        "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
     },
     "vouchers": {
         "exchange_rate_to_usd": "REAL DEFAULT 1.0",
@@ -184,6 +212,19 @@ CREATE TABLE IF NOT EXISTS bank_accounts (
     updated_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS workflow_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER NOT NULL,
+    old_status TEXT,
+    new_status TEXT NOT NULL,
+    action TEXT NOT NULL,
+    username TEXT,
+    user_id TEXT,
+    notes TEXT,
+    created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS cash_bank_movements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT NOT NULL,
@@ -231,6 +272,18 @@ CREATE TABLE IF NOT EXISTS item_warehouse_balances (
     UNIQUE(user_id, item_id, warehouse_id)
 );
 
+CREATE TABLE IF NOT EXISTS inventory_movements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
+    movement_type TEXT NOT NULL,
+    quantity TEXT NOT NULL,
+    unit_cost TEXT,
+    reference_id INTEGER,
+    movement_date TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS warehouse_movements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT NOT NULL,
@@ -245,6 +298,28 @@ CREATE TABLE IF NOT EXISTS warehouse_movements (
     movement_date TEXT,
     created_at TEXT
 );
+
+CREATE TABLE IF NOT EXISTS inventory_ledger (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    item_id INTEGER NOT NULL,
+    warehouse_id INTEGER,
+    movement_type TEXT NOT NULL,
+    direction TEXT NOT NULL CHECK(direction IN ('in','out','neutral')),
+    quantity TEXT NOT NULL,
+    unit_cost TEXT,
+    total_cost TEXT,
+    reference_type TEXT,
+    reference_id INTEGER,
+    source_table TEXT,
+    source_id INTEGER,
+    notes TEXT,
+    movement_date TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_ledger_ref ON inventory_ledger(reference_type, reference_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_ledger_item_date ON inventory_ledger(item_id, movement_date);
 
 CREATE TABLE IF NOT EXISTS warehouse_transfers (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -265,15 +340,21 @@ CREATE TABLE IF NOT EXISTS warehouse_transfers (
 """
 
 
+def _actual_table_name(cursor, table_name):
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND lower(name)=lower(?) LIMIT 1", (table_name,))
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+
 def _table_exists(cursor, table_name):
-    cursor.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table_name,))
-    return cursor.fetchone() is not None
+    return _actual_table_name(cursor, table_name) is not None
 
 
 def _column_names(cursor, table_name):
-    if not _table_exists(cursor, table_name):
+    actual = _actual_table_name(cursor, table_name)
+    if not actual:
         return set()
-    cursor.execute(f"PRAGMA table_info({table_name})")
+    cursor.execute(f"PRAGMA table_info({actual})")
     return {row[1] for row in cursor.fetchall()}
 
 
@@ -294,6 +375,10 @@ def apply_common_schema(conn):
         _add_missing_columns(cursor, table_name, columns)
 
     conditional_indexes = {
+        "inventory_movements": [
+            "CREATE INDEX IF NOT EXISTS idx_inventory_movements_item ON inventory_movements(item_id)",
+            "CREATE INDEX IF NOT EXISTS idx_inventory_movements_ref ON inventory_movements(reference_id, movement_type)",
+        ],
         "invoices": [
             "CREATE INDEX IF NOT EXISTS idx_invoices_branch ON invoices(branch_id)",
             "CREATE INDEX IF NOT EXISTS idx_invoices_warehouse ON invoices(warehouse_id)",

@@ -19,14 +19,6 @@ def _dec(value, default='0'):
         return Decimal(str(default))
 
 
-def _fmt_dec(value):
-    """Return a plain decimal string for API/UI quantities, never scientific notation."""
-    d = _dec(value)
-    if d == d.to_integral():
-        return format(d.quantize(Decimal('1')), 'f')
-    return format(d.normalize(), 'f')
-
-
 def _next_no(db, table, user_id, prefix):
     year = datetime.datetime.now().strftime('%Y')
     full_prefix = f'{prefix}-{year}-'
@@ -152,9 +144,34 @@ def _delete_cash_bank_reference(db, user_id, reference_type, return_id):
 
 
 
+
+def _ensure_inventory_ledger_table(db):
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS inventory_ledger (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            item_id INTEGER NOT NULL,
+            warehouse_id INTEGER,
+            movement_type TEXT NOT NULL,
+            direction TEXT NOT NULL CHECK(direction IN ('in','out','neutral')),
+            quantity TEXT NOT NULL,
+            unit_cost TEXT,
+            total_cost TEXT,
+            reference_type TEXT,
+            reference_id INTEGER,
+            source_table TEXT,
+            source_id INTEGER,
+            notes TEXT,
+            movement_date TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+
 def _post_return_ledger_entry(db, user_id, item_id, warehouse_id, kind, direction, quantity, unit_cost, return_id, notes=''):
     if direction not in {'in', 'out', 'neutral'}:
         return
+    _ensure_inventory_ledger_table(db)
     qty = abs(_dec(quantity))
     cost = _dec(unit_cost)
     total_cost = qty * cost
@@ -208,14 +225,47 @@ def _invoice(db, invoice_id, user_id, inv_type):
 
 def _invoice_lines(db, invoice_id):
     return [dict(r) for r in db.execute("""
-        SELECT il.*,
-               COALESCE(NULLIF(il.description, ''), it.name, CAST(il.item_id AS TEXT)) AS description,
-               it.name AS item_name
+        SELECT il.*, it.name AS item_name, it.unit AS base_unit
         FROM invoice_lines il
         LEFT JOIN items it ON it.id = il.item_id
         WHERE il.invoice_id=?
-        ORDER BY il.id
     """, (invoice_id,)).fetchall()]
+
+
+
+def _resolve_return_unit_factor(db, orig, src):
+    item_id = orig.get('item_id')
+    orig_factor = _dec(orig.get('conversion_factor') or 1)
+    if orig_factor <= 0:
+        orig_factor = Decimal('1')
+    unit_id = src.get('unit_id')
+    unit_name = str(src.get('unit') or orig.get('unit') or '').strip()
+    if item_id and unit_id not in (None, ''):
+        row = db.execute("SELECT id, unit_name, conversion_factor FROM item_units WHERE id=? AND item_id=?", (unit_id, item_id)).fetchone()
+        if not row:
+            raise ValueError('وحدة المرتجع لا تتبع المادة المحددة')
+        factor = _dec(row['conversion_factor'] or 1)
+        if factor <= 0:
+            raise ValueError('معامل وحدة المرتجع غير صالح')
+        return factor, str(row['unit_name'] or unit_name), int(row['id'])
+    if item_id and unit_name:
+        item = db.execute("SELECT unit FROM items WHERE id=?", (item_id,)).fetchone()
+        if item and str(item['unit'] or '').strip() == unit_name:
+            return Decimal('1'), unit_name, None
+        row = db.execute("SELECT id, unit_name, conversion_factor FROM item_units WHERE item_id=? AND unit_name=?", (item_id, unit_name)).fetchone()
+        if row:
+            factor = _dec(row['conversion_factor'] or 1)
+            if factor <= 0:
+                raise ValueError('معامل وحدة المرتجع غير صالح')
+            return factor, str(row['unit_name'] or unit_name), int(row['id'])
+    return orig_factor, unit_name, src.get('unit_id') if src.get('unit_id') not in (None, '') else orig.get('unit_id')
+
+
+def _return_unit_price(orig, factor):
+    orig_factor = _dec(orig.get('conversion_factor') or 1)
+    if orig_factor <= 0:
+        orig_factor = Decimal('1')
+    return (_dec(orig.get('unit_price') or orig.get('price') or 0) / orig_factor) * factor
 
 
 def _returned_qty(db, kind, invoice_id, line_id=None, item_id=None):
@@ -393,10 +443,10 @@ def sales_returnable_lines(invoice_id):
         returned_base = _returned_qty(db, 'sales', invoice_id, line.get('id'), line.get('item_id'))
         remaining_base = max(Decimal('0'), sold_base - returned_base)
         row = dict(line)
-        row.update({'sold_qty': _fmt_dec(sold_base / factor), 'returned_qty': _fmt_dec(returned_base / factor),
-                    'returnable_qty': _fmt_dec(remaining_base / factor), 'sold_qty_base': _fmt_dec(sold_base),
-                    'returned_qty_base': _fmt_dec(returned_base), 'returnable_qty_base': _fmt_dec(remaining_base),
-                    'conversion_factor': _fmt_dec(factor)})
+        row.update({'sold_qty': str(sold_base / factor), 'returned_qty': str(returned_base / factor),
+                    'returnable_qty': str(remaining_base / factor), 'sold_qty_base': str(sold_base),
+                    'returned_qty_base': str(returned_base), 'returnable_qty_base': str(remaining_base),
+                    'conversion_factor': str(factor)})
         result.append(row)
     return jsonify({'lines': result})
 
@@ -418,10 +468,10 @@ def purchase_returnable_lines(invoice_id):
         returned_base = _returned_qty(db, 'purchase', invoice_id, line.get('id'), line.get('item_id'))
         remaining_base = max(Decimal('0'), purchased_base - returned_base)
         row = dict(line)
-        row.update({'purchased_qty': _fmt_dec(purchased_base / factor), 'returned_qty': _fmt_dec(returned_base / factor),
-                    'returnable_qty': _fmt_dec(remaining_base / factor), 'purchased_qty_base': _fmt_dec(purchased_base),
-                    'returned_qty_base': _fmt_dec(returned_base), 'returnable_qty_base': _fmt_dec(remaining_base),
-                    'conversion_factor': _fmt_dec(factor)})
+        row.update({'purchased_qty': str(purchased_base / factor), 'returned_qty': str(returned_base / factor),
+                    'returnable_qty': str(remaining_base / factor), 'purchased_qty_base': str(purchased_base),
+                    'returned_qty_base': str(returned_base), 'returnable_qty_base': str(remaining_base),
+                    'conversion_factor': str(factor)})
         result.append(row)
     return jsonify({'lines': result})
 
@@ -447,21 +497,27 @@ def _create_return(kind):
         qty = _dec(src.get('quantity'))
         if qty <= 0:
             continue
-        factor = _dec(orig.get('conversion_factor') or 1)
-        if factor <= 0:
-            factor = Decimal('1')
-        base_qty = _dec(src.get('base_qty') or src.get('quantity_in_base') or (qty * factor))
+        try:
+            factor, unit_name, unit_id = _resolve_return_unit_factor(db, orig, src)
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
+        base_qty = qty * factor
+        explicit_base = src.get('base_qty') or src.get('quantity_in_base')
+        if explicit_base not in (None, ''):
+            base_qty = _dec(explicit_base)
+            if base_qty != qty * factor:
+                base_qty = qty * factor
         base_sold = _dec(orig.get('quantity_in_base') or orig.get('quantity') or 0)
         already = _returned_qty(db, kind, inv['id'], line_id, orig.get('item_id'))
         if base_qty > base_sold - already:
             return jsonify({'error': 'كمية المرتجع أكبر من الكمية المتبقية'}), 400
-        price = _dec(orig.get('unit_price') or 0)
+        price = _return_unit_price(orig, factor)
         if kind == 'sales':
             # Use original COGS for returned sales inventory, not the selling price.
             orig_cost_amount = _dec(orig.get('cost_amount') or 0)
             cost_per_base_unit = (orig_cost_amount / base_sold) if base_sold > 0 and orig_cost_amount > 0 else (_dec(orig.get('unit_cost') or price) / factor)
         else:
-            cost_per_display_unit = _dec(orig.get('unit_cost') or price)
+            cost_per_display_unit = price
             cost_per_base_unit = cost_per_display_unit / factor
         amount = qty * price
         total += amount
@@ -477,7 +533,9 @@ def _create_return(kind):
             'unit_price': price,
             'unit_cost': cost_per_base_unit,
             'total': amount,
-            'unit': orig.get('unit') or '',
+            'unit': unit_name,
+            'unit_id': unit_id,
+            'conversion_factor': factor,
             'cost_amount': base_qty * cost_per_base_unit,
         })
     if not prepared:
@@ -510,10 +568,10 @@ def _create_return(kind):
         for line in prepared:
             db.execute("""
                 INSERT INTO sales_return_lines
-                (sales_return_id,original_invoice_line_id,item_id,quantity,unit_price,total,unit,quantity_in_base,unit_cost,cost_amount)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
+                (sales_return_id,original_invoice_line_id,item_id,quantity,unit_price,total,unit,unit_id,conversion_factor,quantity_in_base,unit_cost,cost_amount)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
             """, (rid, line['original_invoice_line_id'], line['item_id'], str(line['quantity']), str(line['unit_price']),
-                  str(line['total']), line['unit'], str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
+                  str(line['total']), line['unit'], line.get('unit_id'), str(line.get('conversion_factor') or 1), str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
             db.execute("""
                 INSERT INTO inventory_movements (user_id,item_id,movement_type,quantity,unit_cost,reference_id,date)
                 VALUES (?,?,?,?,?,?,?)
@@ -539,10 +597,10 @@ def _create_return(kind):
         for line in prepared:
             db.execute("""
                 INSERT INTO purchase_return_lines
-                (purchase_return_id,original_invoice_line_id,item_id,quantity,unit_price,total,unit,quantity_in_base,unit_cost,cost_amount)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
+                (purchase_return_id,original_invoice_line_id,item_id,quantity,unit_price,total,unit,unit_id,conversion_factor,quantity_in_base,unit_cost,cost_amount)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
             """, (rid, line['original_invoice_line_id'], line['item_id'], str(line['quantity']), str(line['unit_price']),
-                  str(line['total']), line['unit'], str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
+                  str(line['total']), line['unit'], line.get('unit_id'), str(line.get('conversion_factor') or 1), str(line['quantity_in_base']), str(line['unit_cost']), str(line['cost_amount'])))
             db.execute("""
                 INSERT INTO inventory_movements (user_id,item_id,movement_type,quantity,unit_cost,reference_id,date)
                 VALUES (?,?,?,?,?,?,?)
