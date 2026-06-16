@@ -819,7 +819,6 @@ def init_database():
         invoice_columns = _columns_init('invoices')
         for col_name, col_type in [
             ('due_date', 'TEXT'),
-            ('due_date', 'TEXT'),
             ('workflow_status', "TEXT DEFAULT 'DRAFT'"),
             ('submitted_at', 'TEXT'),
             ('submitted_by', 'TEXT'),
@@ -833,6 +832,7 @@ def init_database():
         ]:
             if col_name not in invoice_columns:
                 cursor.execute(f"ALTER TABLE invoices ADD COLUMN {col_name} {col_type}")
+                invoice_columns.add(col_name)
         if _table_exists_init('invoices') and 'workflow_status' in _columns_init('invoices'):
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_invoices_workflow_status ON invoices(workflow_status)")
 

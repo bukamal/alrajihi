@@ -446,6 +446,7 @@ def init_database():
     ]:
         if col_name not in invoice_columns:
             cursor.execute(f"ALTER TABLE invoices ADD COLUMN {col_name} {col_type}")
+            invoice_columns.add(col_name)
     cursor.executescript('''
         CREATE TABLE IF NOT EXISTS workflow_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
