@@ -9,6 +9,7 @@ if (!(Test-Path $IconPath)) {
 }
 
 python tools\verify_branding_assets.py
+python tools\phase32_windows_import_guard.py
 
 python -m pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
@@ -52,6 +53,16 @@ pyinstaller `
   --hidden-import reportlab `
   --hidden-import waitress `
   --hidden-import flask `
+  --hidden-import views.restaurant `
+  --hidden-import views.restaurant.restaurant_dashboard `
+  --hidden-import views.restaurant.table_map_widget `
+  --hidden-import views.restaurant.restaurant_pos_widget `
+  --hidden-import views.restaurant.kitchen_display_widget `
+  --hidden-import views.restaurant.restaurant_analytics_widget `
+  --hidden-import core.services.restaurant_service `
+  --hidden-import gateways.restaurant_gateway `
+  --hidden-import gateways.local.restaurant_gateway `
+  --hidden-import gateways.remote.restaurant_gateway `
   --hidden-import flask_jwt_extended `
   --add-data "$QtPlatforms;platforms" `
   --add-data "alrajhi_client\assets\brand;assets\brand" `
