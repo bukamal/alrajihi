@@ -120,6 +120,11 @@ class RestaurantGateway(ABC):
         raise NotImplementedError
 
 
+    @abstractmethod
+    def restaurant_analytics(self, start_date: str = "", end_date: str = "") -> dict[str, Any]:
+        raise NotImplementedError
+
+
 def create_restaurant_gateway() -> RestaurantGateway:
     from database.connection import DatabaseConnection
     db = DatabaseConnection()

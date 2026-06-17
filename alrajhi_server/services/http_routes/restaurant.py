@@ -340,3 +340,15 @@ def waiter_session_summary(session_id: int):
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
 
+
+
+@restaurant_bp.route("/restaurant/analytics", methods=["GET"])
+@jwt_required()
+def restaurant_analytics():
+    try:
+        return jsonify(_repo.restaurant_analytics(
+            start_date=request.args.get("start_date") or "",
+            end_date=request.args.get("end_date") or "",
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400

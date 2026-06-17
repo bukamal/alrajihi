@@ -103,4 +103,8 @@ class RestaurantService:
         return self.gateway.assign_menu_item_station(item_id=item_id, station_id=station_id)
 
 
+    def restaurant_analytics(self, start_date: str = "", end_date: str = "") -> dict[str, Any]:
+        return self.gateway.restaurant_analytics(start_date=start_date, end_date=end_date)
+
+
 restaurant_service = RestaurantService()

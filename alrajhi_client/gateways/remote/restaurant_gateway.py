@@ -101,3 +101,7 @@ class RemoteRestaurantGateway(RestaurantGateway):
 
     def assign_menu_item_station(self, item_id: int, station_id: int) -> dict[str, Any]:
         return self.client._request("POST", f"/api/restaurant/menu_items/{int(item_id)}/station", {"station_id": int(station_id)}) or {}
+
+    def restaurant_analytics(self, start_date: str = "", end_date: str = "") -> dict[str, Any]:
+        params = {"start_date": start_date or "", "end_date": end_date or ""}
+        return self.client._request("GET", "/api/restaurant/analytics", params) or {}

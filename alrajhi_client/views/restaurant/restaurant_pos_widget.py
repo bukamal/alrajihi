@@ -336,7 +336,8 @@ class RestaurantPOSWidget(QWidget):
                 return
             result = self.service.record_payment(session_id=int(self.session["id"]), **dialog.payload())
             self.load_session(self.session)
-            self.status.setText(_("restaurant.payment_recorded") + f" — {_("restaurant.remaining")}: {result.get('remaining', '0')}")
+            remaining_label = _("restaurant.remaining")
+            self.status.setText(_("restaurant.payment_recorded") + f" — {remaining_label}: {result.get('remaining', '0')}")
         except Exception as exc:
             self.status.setText(str(exc))
 

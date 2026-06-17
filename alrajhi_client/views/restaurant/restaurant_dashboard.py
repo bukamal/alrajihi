@@ -9,6 +9,7 @@ from i18n.translator import qt_layout_direction, translate as _
 from views.restaurant.table_map_widget import RestaurantTableMapWidget
 from views.restaurant.restaurant_pos_widget import RestaurantPOSWidget
 from views.restaurant.kitchen_display_widget import KitchenDisplayWidget
+from views.restaurant.restaurant_analytics_widget import RestaurantAnalyticsWidget
 
 
 class RestaurantDashboard(QWidget):
@@ -60,9 +61,14 @@ class RestaurantDashboard(QWidget):
         self.kds = KitchenDisplayWidget(self.service)
         self.kds.setObjectName("restaurantKDSPane")
         splitter.addWidget(self.kds)
+
+        self.analytics = RestaurantAnalyticsWidget(self.service)
+        self.analytics.setObjectName("restaurantAnalyticsPane")
+        splitter.addWidget(self.analytics)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
         splitter.setStretchFactor(2, 2)
+        splitter.setStretchFactor(3, 1)
         layout.addWidget(splitter)
 
         self.status = QLabel("")
@@ -76,6 +82,10 @@ class RestaurantDashboard(QWidget):
     def reload(self):
         try:
             self.table_map.set_tables(self.service.list_tables())
+            try:
+                self.analytics.reload()
+            except Exception:
+                pass
             self.status.setText("")
         except Exception as exc:
             self.status.setText(str(exc))
@@ -84,6 +94,7 @@ class RestaurantDashboard(QWidget):
         self.reload()
         try:
             self.kds.reload()
+            self.analytics.reload()
         except Exception:
             pass
 

@@ -3486,3 +3486,27 @@ _translations['en'].update({
     'restaurant.waiter.resolve_call': 'Resolve waiter call',
     'restaurant.waiter.summary': 'Table service summary',
 })
+
+
+# Phase 32 restaurant analytics translations
+_translations.setdefault('ar', {}).update({
+    'restaurant.analytics': 'تحليلات المطعم',
+    'restaurant.analytics.open_sessions': 'جلسات مفتوحة',
+    'restaurant.analytics.payments_total': 'إجمالي الدفعات',
+    'restaurant.analytics.top_item': 'الصنف الأعلى',
+    'restaurant.analytics.kitchen_tickets': 'تذاكر المطبخ',
+})
+_translations.setdefault('de', {}).update({
+    'restaurant.analytics': 'Restaurant-Analysen',
+    'restaurant.analytics.open_sessions': 'Offene Sitzungen',
+    'restaurant.analytics.payments_total': 'Zahlungen gesamt',
+    'restaurant.analytics.top_item': 'Top-Artikel',
+    'restaurant.analytics.kitchen_tickets': 'Küchenbons',
+})
+_translations.setdefault('en', {}).update({
+    'restaurant.analytics': 'Restaurant analytics',
+    'restaurant.analytics.open_sessions': 'Open sessions',
+    'restaurant.analytics.payments_total': 'Payments total',
+    'restaurant.analytics.top_item': 'Top item',
+    'restaurant.analytics.kitchen_tickets': 'Kitchen tickets',
+})

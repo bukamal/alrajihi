@@ -957,5 +957,140 @@ class RestaurantRepository:
         }
 
 
+    def restaurant_analytics(self, start_date: str = "", end_date: str = "") -> dict[str, Any]:
+        """Read-only restaurant operational analytics.
+
+        SQL remains inside the repository boundary. HTTP/services receive only a
+        semantic payload: sales, table usage, waiter performance, kitchen load,
+        and top menu items.
+        """
+        self.ensure_kitchen_station_schema()
+        self.ensure_waiter_workflow_schema()
+        db = get_db()
+        start = str(start_date or "").strip()
+        end = str(end_date or "").strip()
+
+        def _between(column: str, params: list[Any]) -> str:
+            clauses: list[str] = []
+            if start:
+                clauses.append(f"{column} >= ?")
+                params.append(start)
+            if end:
+                clauses.append(f"{column} <= ?")
+                params.append(end)
+            return (" AND " + " AND ".join(clauses)) if clauses else ""
+
+        table_counts = db.execute(
+            "SELECT status, COUNT(*) AS c FROM restaurant_tables WHERE is_active=1 GROUP BY status"
+        ).fetchall()
+        table_status = {str(row["status"] or "free"): int(row["c"] or 0) for row in table_counts}
+
+        session_params: list[Any] = []
+        session_date_filter = _between("opened_at", session_params)
+        session_row = db.execute(
+            f"SELECT COUNT(*) AS total_sessions, SUM(CASE WHEN status='open' THEN 1 ELSE 0 END) AS open_sessions FROM restaurant_sessions WHERE 1=1 {session_date_filter}",
+            session_params,
+        ).fetchone()
+
+        payment_params: list[Any] = []
+        payment_date_filter = _between("created_at", payment_params)
+        payment_rows = db.execute(
+            f"SELECT amount, payment_method FROM restaurant_payments WHERE status='posted' {payment_date_filter}",
+            payment_params,
+        ).fetchall()
+        total_payments = sum((self.decimal_value(row["amount"], "0") for row in payment_rows), Decimal("0"))
+        by_payment_method: dict[str, Decimal] = {}
+        for row in payment_rows:
+            method = str(row["payment_method"] or "cash")
+            by_payment_method[method] = by_payment_method.get(method, Decimal("0")) + self.decimal_value(row["amount"], "0")
+
+        item_params: list[Any] = []
+        item_date_filter = _between("s.opened_at", item_params)
+        item_rows = db.execute(
+            f"""
+            SELECT l.item_name, SUM(CAST(COALESCE(NULLIF(l.quantity, ''), '0') AS REAL)) AS quantity,
+                   SUM(CAST(COALESCE(NULLIF(l.quantity, ''), '0') AS REAL) * CAST(COALESCE(NULLIF(l.unit_price, ''), '0') AS REAL)) AS sales
+            FROM restaurant_order_lines l
+            JOIN restaurant_sessions s ON s.id=l.session_id
+            WHERE COALESCE(l.kitchen_status, 'new') <> 'cancelled' {item_date_filter}
+            GROUP BY l.item_name
+            ORDER BY sales DESC, quantity DESC
+            LIMIT 10
+            """,
+            item_params,
+        ).fetchall()
+
+        table_params: list[Any] = []
+        table_date_filter = _between("s.opened_at", table_params)
+        table_rows = db.execute(
+            f"""
+            SELECT t.id AS table_id, t.name AS table_name, COUNT(s.id) AS sessions,
+                   SUM(CASE WHEN s.status='open' THEN 1 ELSE 0 END) AS open_sessions
+            FROM restaurant_tables t
+            LEFT JOIN restaurant_sessions s ON s.table_id=t.id {table_date_filter}
+            WHERE t.is_active=1
+            GROUP BY t.id, t.name
+            ORDER BY sessions DESC, t.id
+            LIMIT 10
+            """,
+            table_params,
+        ).fetchall()
+
+        waiter_params: list[Any] = []
+        waiter_date_filter = _between("s.opened_at", waiter_params)
+        waiter_rows = db.execute(
+            f"""
+            SELECT COALESCE(NULLIF(s.waiter_id, ''), 'unassigned') AS waiter_id,
+                   COUNT(DISTINCT s.id) AS sessions,
+                   COALESCE(SUM(s.modification_count), 0) AS modifications,
+                   COALESCE(SUM(s.cancelled_line_count), 0) AS cancellations,
+                   COUNT(l.id) AS lines
+            FROM restaurant_sessions s
+            LEFT JOIN restaurant_order_lines l ON l.session_id=s.id
+            WHERE 1=1 {waiter_date_filter}
+            GROUP BY COALESCE(NULLIF(s.waiter_id, ''), 'unassigned')
+            ORDER BY sessions DESC, lines DESC
+            LIMIT 10
+            """,
+            waiter_params,
+        ).fetchall()
+
+        kitchen_params: list[Any] = []
+        kitchen_date_filter = _between("kt.sent_at", kitchen_params)
+        kitchen_rows = db.execute(
+            f"""
+            SELECT COALESCE(st.code, 'unassigned') AS station_code,
+                   COALESCE(st.name, 'Unassigned') AS station_name,
+                   COUNT(DISTINCT kt.id) AS tickets,
+                   COUNT(ktl.id) AS lines,
+                   SUM(CASE WHEN kt.status='ready' THEN 1 ELSE 0 END) AS ready_tickets,
+                   SUM(CASE WHEN kt.status='cancelled' THEN 1 ELSE 0 END) AS cancelled_tickets
+            FROM kitchen_tickets kt
+            LEFT JOIN restaurant_kitchen_stations st ON st.id=kt.station_id
+            LEFT JOIN kitchen_ticket_lines ktl ON ktl.ticket_id=kt.id
+            WHERE 1=1 {kitchen_date_filter}
+            GROUP BY COALESCE(st.code, 'unassigned'), COALESCE(st.name, 'Unassigned')
+            ORDER BY tickets DESC, lines DESC
+            LIMIT 10
+            """,
+            kitchen_params,
+        ).fetchall()
+
+        return {
+            "period": {"start_date": start, "end_date": end},
+            "summary": {
+                "total_sessions": int((session_row or {})["total_sessions"] or 0),
+                "open_sessions": int((session_row or {})["open_sessions"] or 0),
+                "table_status": table_status,
+                "payments_total": str(total_payments),
+                "payment_methods": {k: str(v) for k, v in by_payment_method.items()},
+            },
+            "top_items": [dict(row) for row in item_rows],
+            "table_usage": [dict(row) for row in table_rows],
+            "waiter_performance": [dict(row) for row in waiter_rows],
+            "kitchen_performance": [dict(row) for row in kitchen_rows],
+        }
+
+
 def get_restaurant_repository() -> RestaurantRepository:
     return RestaurantRepository()

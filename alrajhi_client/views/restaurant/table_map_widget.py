@@ -56,7 +56,8 @@ class RestaurantTableMapWidget(QWidget):
         guests = table.get("active_guests") or ""
         seats = table.get("seats") or ""
         icon = {"free": "🟢", "occupied": "🍽", "reserved": "📌", "payment": "💳"}.get(status, "🍽")
-        lines = [f"{icon}  {str(table.get("name") or table.get("id"))}", status_label]
+        table_name = str(table.get("name") or table.get("id"))
+        lines = [f"{icon}  {table_name}", status_label]
         if guests:
             lines.append(_("restaurant.guests_count", guests=guests))
         elif seats:
