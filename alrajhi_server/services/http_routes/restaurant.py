@@ -128,6 +128,22 @@ def session_balance(session_id: int):
         return jsonify({"error": str(exc)}), 400
 
 
+@restaurant_bp.route("/restaurant/sessions/<int:session_id>/adjustments", methods=["POST"])
+@jwt_required()
+def set_session_adjustments(session_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.set_session_adjustments(
+            session_id=session_id,
+            discount_amount=data.get("discount_amount") or "0",
+            service_charge_amount=data.get("service_charge_amount") or "0",
+            tax_amount=data.get("tax_amount") or "0",
+            notes=data.get("notes") or "",
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/payments", methods=["POST"])
 @jwt_required()
 def record_payment(session_id: int):
@@ -350,5 +366,261 @@ def restaurant_analytics():
             start_date=request.args.get("start_date") or "",
             end_date=request.args.get("end_date") or "",
         ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+
+# Phase 35: takeaway and delivery endpoints
+@restaurant_bp.route("/restaurant/orders", methods=["GET"])
+@jwt_required()
+def list_restaurant_orders():
+    try:
+        return jsonify(_repo.list_restaurant_orders(
+            order_type=request.args.get("order_type") or "",
+            status=request.args.get("status") or "open",
+            limit=int(request.args.get("limit") or 100),
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/takeaway_orders", methods=["POST"])
+@jwt_required()
+def create_takeaway_order():
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.create_takeaway_order(
+            customer_name=data.get("customer_name") or "",
+            phone=data.get("phone") or "",
+            notes=data.get("notes") or "",
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/delivery_orders", methods=["POST"])
+@jwt_required()
+def create_delivery_order():
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.create_delivery_order(
+            customer_name=data.get("customer_name") or "",
+            phone=data.get("phone") or "",
+            address=data.get("address") or data.get("delivery_address") or "",
+            delivery_fee=data.get("delivery_fee") or "0",
+            driver_id=data.get("driver_id") or "",
+            notes=data.get("notes") or "",
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/sessions/<int:session_id>/delivery_status", methods=["POST"])
+@jwt_required()
+def update_delivery_status(session_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.update_delivery_status(
+            session_id=session_id,
+            status=data.get("status") or "pending",
+            driver_id=data.get("driver_id") or "",
+            notes=data.get("notes") or "",
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+# Phase 34: modifiers and recipe/consumption endpoints
+@restaurant_bp.route("/restaurant/menu_items/<int:item_id>/modifier_groups", methods=["GET"])
+@jwt_required()
+def list_item_modifier_groups(item_id: int):
+    try:
+        return jsonify(_repo.list_modifier_groups(item_id=item_id, include_inactive=request.args.get("include_inactive") == "1"))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/modifier_groups", methods=["POST"])
+@jwt_required()
+def upsert_modifier_group():
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.upsert_modifier_group(
+            item_id=data.get("item_id"),
+            name=data.get("name") or "Modifier Group",
+            min_selected=int(data.get("min_selected") or 0),
+            max_selected=int(data.get("max_selected") or 1),
+            is_required=bool(data.get("is_required", False)),
+            group_id=data.get("id"),
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/modifier_groups/<int:group_id>/options", methods=["POST"])
+@jwt_required()
+def upsert_modifier_option(group_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.upsert_modifier_option(
+            group_id=group_id,
+            name=data.get("name") or "Option",
+            price_delta=data.get("price_delta") or "0",
+            item_id=data.get("item_id"),
+            kitchen_label=data.get("kitchen_label") or "",
+            is_default=bool(data.get("is_default", False)),
+            option_id=data.get("id"),
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/lines/<int:line_id>/modifiers", methods=["POST"])
+@jwt_required()
+def add_line_modifier(line_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.add_order_line_modifier(
+            line_id=line_id,
+            option_id=data.get("option_id"),
+            name=data.get("name") or "",
+            price_delta=data.get("price_delta") or "0",
+            quantity=data.get("quantity") or "1",
+            action=data.get("action") or "add",
+            group_id=data.get("group_id"),
+            kitchen_label=data.get("kitchen_label") or "",
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/lines/<int:line_id>/modifiers", methods=["GET"])
+@jwt_required()
+def list_line_modifiers(line_id: int):
+    try:
+        return jsonify(_repo.list_line_modifiers(line_id))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/menu_items/<int:item_id>/recipe", methods=["GET"])
+@jwt_required()
+def get_item_recipe(item_id: int):
+    try:
+        return jsonify(_repo.get_recipe_by_item(item_id))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/menu_items/<int:item_id>/recipe", methods=["POST"])
+@jwt_required()
+def upsert_item_recipe(item_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.upsert_recipe(
+            item_id=item_id,
+            name=data.get("name") or "",
+            yield_quantity=data.get("yield_quantity") or "1",
+            lines=data.get("lines") or [],
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/sessions/<int:session_id>/recipe_consumption", methods=["POST"])
+@jwt_required()
+def consume_session_recipes(session_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.consume_session_recipes(session_id=session_id, invoice_id=data.get("invoice_id")))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+# Phase 36: advanced split bill + printer routing endpoints
+@restaurant_bp.route("/restaurant/sessions/<int:session_id>/split_bills", methods=["POST"])
+@jwt_required()
+def create_split_bills(session_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.create_split_bills(session_id=session_id, splits=data.get("splits") or [], notes=data.get("notes") or ""))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/sessions/<int:session_id>/split_bills", methods=["GET"])
+@jwt_required()
+def list_split_bills(session_id: int):
+    try:
+        return jsonify(_repo.list_split_bills(session_id=session_id))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/split_bills/<int:split_bill_id>/payments", methods=["POST"])
+@jwt_required()
+def pay_split_bill(split_bill_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.pay_split_bill(split_bill_id=split_bill_id, amount=data.get("amount") or "0", payment_method=data.get("payment_method") or "cash", notes=data.get("notes") or ""))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/printers", methods=["GET"])
+@jwt_required()
+def list_restaurant_printers():
+    try:
+        return jsonify(_repo.list_printers(include_inactive=request.args.get("include_inactive") == "1"))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/printers", methods=["POST"])
+@admin_required
+def upsert_restaurant_printer():
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.upsert_printer(name=data.get("name") or "Kitchen Printer", printer_type=data.get("printer_type") or "kitchen", device_uri=data.get("device_uri") or "", printer_id=data.get("id"), is_active=bool(data.get("is_active", True))))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/kitchen/stations/<int:station_id>/printer", methods=["POST"])
+@admin_required
+def assign_station_printer(station_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.assign_station_printer(station_id=station_id, printer_id=int(data.get("printer_id"))))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/kitchen/tickets/<int:ticket_id>/print_jobs", methods=["POST"])
+@jwt_required()
+def queue_ticket_print(ticket_id: int):
+    data = request.get_json() or {}
+    try:
+        return jsonify(_repo.queue_ticket_print(ticket_id=ticket_id, job_type=data.get("job_type") or "kot"))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/print_jobs/<int:job_id>/printed", methods=["POST"])
+@jwt_required()
+def mark_print_job_done(job_id: int):
+    try:
+        return jsonify(_repo.mark_print_job_done(job_id=job_id))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+# Phase 37: production readiness diagnostics
+@restaurant_bp.route("/restaurant/readiness", methods=["GET"])
+@jwt_required()
+def restaurant_production_readiness():
+    try:
+        return jsonify(_repo.restaurant_production_readiness())
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400

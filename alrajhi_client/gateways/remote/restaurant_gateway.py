@@ -43,6 +43,18 @@ class RemoteRestaurantGateway(RestaurantGateway):
     def session_balance(self, session_id: int) -> dict[str, Any]:
         return self.client._request("GET", f"/api/restaurant/sessions/{int(session_id)}/balance") or {}
 
+    def set_session_adjustments(self, session_id: int, discount_amount: Any = "0", service_charge_amount: Any = "0", tax_amount: Any = "0", notes: str = "") -> dict[str, Any]:
+        return self.client._request(
+            "POST",
+            f"/api/restaurant/sessions/{int(session_id)}/adjustments",
+            {
+                "discount_amount": discount_amount,
+                "service_charge_amount": service_charge_amount,
+                "tax_amount": tax_amount,
+                "notes": notes,
+            },
+        ) or {}
+
     def record_payment(self, session_id: int, amount: Any, payment_method: str = "cash", notes: str = "") -> dict[str, Any]:
         return self.client._request("POST", f"/api/restaurant/sessions/{int(session_id)}/payments", {"amount": amount, "payment_method": payment_method, "notes": notes}) or {}
 
@@ -105,3 +117,74 @@ class RemoteRestaurantGateway(RestaurantGateway):
     def restaurant_analytics(self, start_date: str = "", end_date: str = "") -> dict[str, Any]:
         params = {"start_date": start_date or "", "end_date": end_date or ""}
         return self.client._request("GET", "/api/restaurant/analytics", params) or {}
+
+
+
+    def create_takeaway_order(self, customer_name: str = "", phone: str = "", notes: str = "") -> dict[str, Any]:
+        return self.client.post('/restaurant/takeaway_orders', json={'customer_name': customer_name, 'phone': phone, 'notes': notes})
+
+    def create_delivery_order(self, customer_name: str = "", phone: str = "", address: str = "", delivery_fee: Any = "0", driver_id: str = "", notes: str = "") -> dict[str, Any]:
+        return self.client.post('/restaurant/delivery_orders', json={'customer_name': customer_name, 'phone': phone, 'address': address, 'delivery_fee': delivery_fee, 'driver_id': driver_id, 'notes': notes})
+
+    def update_delivery_status(self, session_id: int, status: str, driver_id: str = "", notes: str = "") -> dict[str, Any]:
+        return self.client.post(f'/restaurant/sessions/{int(session_id)}/delivery_status', json={'status': status, 'driver_id': driver_id, 'notes': notes})
+
+    def list_restaurant_orders(self, order_type: str = "", status: str = "open", limit: int = 100) -> list[dict[str, Any]]:
+        return self.client.get('/restaurant/orders', params={'order_type': order_type, 'status': status, 'limit': int(limit or 100)})
+
+    # Phase 34: modifiers + recipe integration
+    def list_modifier_groups(self, item_id: int | None = None, include_inactive: bool = False) -> list[dict[str, Any]]:
+        if item_id is None:
+            return self.client._request("GET", "/api/restaurant/menu_items/0/modifier_groups", {"include_inactive": "1" if include_inactive else "0"}) or []
+        return self.client._request("GET", f"/api/restaurant/menu_items/{int(item_id)}/modifier_groups", {"include_inactive": "1" if include_inactive else "0"}) or []
+
+    def upsert_modifier_group(self, item_id: int | None, name: str, min_selected: int = 0, max_selected: int = 1, is_required: bool = False, group_id: int | None = None) -> dict[str, Any]:
+        return self.client._request("POST", "/api/restaurant/modifier_groups", {"id": group_id, "item_id": item_id, "name": name, "min_selected": min_selected, "max_selected": max_selected, "is_required": is_required}) or {}
+
+    def upsert_modifier_option(self, group_id: int, name: str, price_delta: Any = "0", item_id: int | None = None, kitchen_label: str = "", is_default: bool = False, option_id: int | None = None) -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/modifier_groups/{int(group_id)}/options", {"id": option_id, "name": name, "price_delta": price_delta, "item_id": item_id, "kitchen_label": kitchen_label, "is_default": is_default}) or {}
+
+    def add_order_line_modifier(self, line_id: int, option_id: int | None = None, name: str = "", price_delta: Any = "0", quantity: Any = "1", action: str = "add", group_id: int | None = None, kitchen_label: str = "") -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/lines/{int(line_id)}/modifiers", {"option_id": option_id, "name": name, "price_delta": price_delta, "quantity": quantity, "action": action, "group_id": group_id, "kitchen_label": kitchen_label}) or {}
+
+    def list_line_modifiers(self, line_id: int) -> list[dict[str, Any]]:
+        return self.client._request("GET", f"/api/restaurant/lines/{int(line_id)}/modifiers") or []
+
+    def get_recipe_by_item(self, item_id: int) -> dict[str, Any]:
+        return self.client._request("GET", f"/api/restaurant/menu_items/{int(item_id)}/recipe") or {}
+
+    def upsert_recipe(self, item_id: int, name: str = "", yield_quantity: Any = "1", lines: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/menu_items/{int(item_id)}/recipe", {"name": name, "yield_quantity": yield_quantity, "lines": lines or []}) or {}
+
+    def consume_session_recipes(self, session_id: int, invoice_id: int | None = None) -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/sessions/{int(session_id)}/recipe_consumption", {"invoice_id": invoice_id}) or {}
+
+    # Phase 36: split bill + printer routing
+    def create_split_bills(self, session_id: int, splits: list[dict[str, Any]], notes: str = "") -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/sessions/{int(session_id)}/split_bills", {"splits": splits or [], "notes": notes}) or {}
+
+    def list_split_bills(self, session_id: int) -> list[dict[str, Any]]:
+        return self.client._request("GET", f"/api/restaurant/sessions/{int(session_id)}/split_bills") or []
+
+    def pay_split_bill(self, split_bill_id: int, amount: Any, payment_method: str = "cash", notes: str = "") -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/split_bills/{int(split_bill_id)}/payments", {"amount": amount, "payment_method": payment_method, "notes": notes}) or {}
+
+    def list_printers(self, include_inactive: bool = False) -> list[dict[str, Any]]:
+        return self.client._request("GET", "/api/restaurant/printers", {"include_inactive": "1" if include_inactive else "0"}) or []
+
+    def upsert_printer(self, name: str, printer_type: str = "kitchen", device_uri: str = "", printer_id: int | None = None, is_active: bool = True) -> dict[str, Any]:
+        return self.client._request("POST", "/api/restaurant/printers", {"id": printer_id, "name": name, "printer_type": printer_type, "device_uri": device_uri, "is_active": bool(is_active)}) or {}
+
+    def assign_station_printer(self, station_id: int, printer_id: int) -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/kitchen/stations/{int(station_id)}/printer", {"printer_id": int(printer_id)}) or {}
+
+    def queue_ticket_print(self, ticket_id: int, job_type: str = "kot") -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/kitchen/tickets/{int(ticket_id)}/print_jobs", {"job_type": job_type}) or {}
+
+    def mark_print_job_done(self, job_id: int) -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/print_jobs/{int(job_id)}/printed", {}) or {}
+
+
+    def restaurant_production_readiness(self) -> dict[str, Any]:
+        return self.client._request("GET", "/api/restaurant/readiness") or {}
+

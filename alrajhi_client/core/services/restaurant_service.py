@@ -47,6 +47,15 @@ class RestaurantService:
     def session_balance(self, session_id: int) -> dict[str, Any]:
         return self.gateway.session_balance(session_id=session_id)
 
+    def set_session_adjustments(self, session_id: int, discount_amount: Any = "0", service_charge_amount: Any = "0", tax_amount: Any = "0", notes: str = "") -> dict[str, Any]:
+        return self.gateway.set_session_adjustments(
+            session_id=session_id,
+            discount_amount=discount_amount,
+            service_charge_amount=service_charge_amount,
+            tax_amount=tax_amount,
+            notes=notes,
+        )
+
     def record_payment(self, session_id: int, amount: Any, payment_method: str = "cash", notes: str = "") -> dict[str, Any]:
         return self.gateway.record_payment(session_id=session_id, amount=amount, payment_method=payment_method, notes=notes)
 
@@ -105,6 +114,76 @@ class RestaurantService:
 
     def restaurant_analytics(self, start_date: str = "", end_date: str = "") -> dict[str, Any]:
         return self.gateway.restaurant_analytics(start_date=start_date, end_date=end_date)
+
+
+    # Phase 34: modifiers + recipe integration
+    def list_modifier_groups(self, item_id: int | None = None, include_inactive: bool = False) -> list[dict[str, Any]]:
+        return self.gateway.list_modifier_groups(item_id=item_id, include_inactive=include_inactive)
+
+    def upsert_modifier_group(self, item_id: int | None, name: str, min_selected: int = 0, max_selected: int = 1, is_required: bool = False, group_id: int | None = None) -> dict[str, Any]:
+        return self.gateway.upsert_modifier_group(item_id=item_id, name=name, min_selected=min_selected, max_selected=max_selected, is_required=is_required, group_id=group_id)
+
+    def upsert_modifier_option(self, group_id: int, name: str, price_delta: Any = "0", item_id: int | None = None, kitchen_label: str = "", is_default: bool = False, option_id: int | None = None) -> dict[str, Any]:
+        return self.gateway.upsert_modifier_option(group_id=group_id, name=name, price_delta=price_delta, item_id=item_id, kitchen_label=kitchen_label, is_default=is_default, option_id=option_id)
+
+    def add_order_line_modifier(self, line_id: int, option_id: int | None = None, name: str = "", price_delta: Any = "0", quantity: Any = "1", action: str = "add", group_id: int | None = None, kitchen_label: str = "") -> dict[str, Any]:
+        return self.gateway.add_order_line_modifier(line_id=line_id, option_id=option_id, name=name, price_delta=price_delta, quantity=quantity, action=action, group_id=group_id, kitchen_label=kitchen_label)
+
+    def list_line_modifiers(self, line_id: int) -> list[dict[str, Any]]:
+        return self.gateway.list_line_modifiers(line_id=line_id)
+
+    def get_recipe_by_item(self, item_id: int) -> dict[str, Any]:
+        return self.gateway.get_recipe_by_item(item_id=item_id)
+
+    def upsert_recipe(self, item_id: int, name: str = "", yield_quantity: Any = "1", lines: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return self.gateway.upsert_recipe(item_id=item_id, name=name, yield_quantity=yield_quantity, lines=lines or [])
+
+    def consume_session_recipes(self, session_id: int, invoice_id: int | None = None) -> dict[str, Any]:
+        return self.gateway.consume_session_recipes(session_id=session_id, invoice_id=invoice_id)
+
+
+
+    # Phase 35: takeaway/delivery workflow
+    def create_takeaway_order(self, customer_name: str = "", phone: str = "", notes: str = "") -> dict[str, Any]:
+        return self.gateway.create_takeaway_order(customer_name=customer_name, phone=phone, notes=notes)
+
+    def create_delivery_order(self, customer_name: str = "", phone: str = "", address: str = "", delivery_fee: Any = "0", driver_id: str = "", notes: str = "") -> dict[str, Any]:
+        return self.gateway.create_delivery_order(customer_name=customer_name, phone=phone, address=address, delivery_fee=delivery_fee, driver_id=driver_id, notes=notes)
+
+    def update_delivery_status(self, session_id: int, status: str, driver_id: str = "", notes: str = "") -> dict[str, Any]:
+        return self.gateway.update_delivery_status(session_id=session_id, status=status, driver_id=driver_id, notes=notes)
+
+    def list_restaurant_orders(self, order_type: str = "", status: str = "open", limit: int = 100) -> list[dict[str, Any]]:
+        return self.gateway.list_restaurant_orders(order_type=order_type, status=status, limit=limit)
+
+    # Phase 36: split bill + printer routing
+    def create_split_bills(self, session_id: int, splits: list[dict[str, Any]], notes: str = "") -> dict[str, Any]:
+        return self.gateway.create_split_bills(session_id=session_id, splits=splits, notes=notes)
+
+    def list_split_bills(self, session_id: int) -> list[dict[str, Any]]:
+        return self.gateway.list_split_bills(session_id=session_id)
+
+    def pay_split_bill(self, split_bill_id: int, amount: Any, payment_method: str = "cash", notes: str = "") -> dict[str, Any]:
+        return self.gateway.pay_split_bill(split_bill_id=split_bill_id, amount=amount, payment_method=payment_method, notes=notes)
+
+    def list_printers(self, include_inactive: bool = False) -> list[dict[str, Any]]:
+        return self.gateway.list_printers(include_inactive=include_inactive)
+
+    def upsert_printer(self, name: str, printer_type: str = "kitchen", device_uri: str = "", printer_id: int | None = None, is_active: bool = True) -> dict[str, Any]:
+        return self.gateway.upsert_printer(name=name, printer_type=printer_type, device_uri=device_uri, printer_id=printer_id, is_active=is_active)
+
+    def assign_station_printer(self, station_id: int, printer_id: int) -> dict[str, Any]:
+        return self.gateway.assign_station_printer(station_id=station_id, printer_id=printer_id)
+
+    def queue_ticket_print(self, ticket_id: int, job_type: str = "kot") -> dict[str, Any]:
+        return self.gateway.queue_ticket_print(ticket_id=ticket_id, job_type=job_type)
+
+    def mark_print_job_done(self, job_id: int) -> dict[str, Any]:
+        return self.gateway.mark_print_job_done(job_id=job_id)
+
+    # Phase 37: production readiness diagnostics
+    def restaurant_production_readiness(self) -> dict[str, Any]:
+        return self.gateway.restaurant_production_readiness()
 
 
 restaurant_service = RestaurantService()

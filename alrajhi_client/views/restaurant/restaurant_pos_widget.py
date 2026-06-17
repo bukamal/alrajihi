@@ -54,6 +54,48 @@ class RestaurantLineDialog(QDialog):
         }
 
 
+class RestaurantAdjustmentsDialog(QDialog):
+    """Touch-safe bill adjustments: discount, service charge, and tax."""
+
+    def __init__(self, balance=None, parent=None):
+        super().__init__(parent)
+        balance = balance or {}
+        self.setWindowTitle(_("restaurant.adjust_bill"))
+        self.setMinimumWidth(440)
+        self.setLayoutDirection(qt_layout_direction())
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+        self.discount_edit = QLineEdit(str(balance.get("discount_amount") or "0"))
+        self.service_edit = QLineEdit(str(balance.get("service_charge_amount") or "0"))
+        self.tax_edit = QLineEdit(str(balance.get("tax_amount") or "0"))
+        self.notes_edit = QLineEdit(str(balance.get("adjustment_notes") or ""))
+        for field in (self.discount_edit, self.service_edit, self.tax_edit, self.notes_edit):
+            field.setMinimumHeight(48)
+        form.addRow(_("restaurant.discount"), self.discount_edit)
+        form.addRow(_("restaurant.service_charge"), self.service_edit)
+        form.addRow(_("restaurant.tax"), self.tax_edit)
+        form.addRow(_("notes"), self.notes_edit)
+        layout.addLayout(form)
+        buttons = QHBoxLayout()
+        cancel = QPushButton(_("cancel"))
+        save = QPushButton(_("save"))
+        cancel.setMinimumHeight(50)
+        save.setMinimumHeight(50)
+        cancel.clicked.connect(self.reject)
+        save.clicked.connect(self.accept)
+        buttons.addWidget(cancel)
+        buttons.addWidget(save)
+        layout.addLayout(buttons)
+
+    def payload(self):
+        return {
+            "discount_amount": self.discount_edit.text().strip() or "0",
+            "service_charge_amount": self.service_edit.text().strip() or "0",
+            "tax_amount": self.tax_edit.text().strip() or "0",
+            "notes": self.notes_edit.text().strip(),
+        }
+
+
 class RestaurantPaymentDialog(QDialog):
     """Touch-safe payment capture dialog for split restaurant payments."""
 
@@ -159,12 +201,14 @@ class RestaurantPOSWidget(QWidget):
 
         actions = QHBoxLayout()
         self.send_kitchen_btn = QPushButton("👨‍🍳  " + _("restaurant.send_to_kitchen"))
+        self.adjust_btn = QPushButton("%  " + _("restaurant.adjust_bill"))
         self.payment_btn = QPushButton("💳  " + _("restaurant.record_payment"))
         self.close_btn = QPushButton("🧾  " + _("restaurant.checkout"))
         self.send_kitchen_btn.setObjectName("restaurantKitchenButton")
+        self.adjust_btn.setObjectName("restaurantAdjustButton")
         self.payment_btn.setObjectName("restaurantPaymentButton")
         self.close_btn.setObjectName("restaurantCloseButton")
-        for button in (self.send_kitchen_btn, self.payment_btn, self.close_btn):
+        for button in (self.send_kitchen_btn, self.adjust_btn, self.payment_btn, self.close_btn):
             button.setMinimumHeight(66)
             actions.addWidget(button)
         root.addLayout(actions)
@@ -180,6 +224,7 @@ class RestaurantPOSWidget(QWidget):
         self.search_button.clicked.connect(self.reload_menu)
         self.search_edit.returnPressed.connect(self.reload_menu)
         self.send_kitchen_btn.clicked.connect(self.send_to_kitchen)
+        self.adjust_btn.clicked.connect(self.adjust_bill)
         self.payment_btn.clicked.connect(self.record_payment)
         self.close_btn.clicked.connect(self.checkout_session)
         self._set_enabled(False)
@@ -204,7 +249,7 @@ class RestaurantPOSWidget(QWidget):
         self._set_enabled(True)
 
     def _set_enabled(self, enabled):
-        for widget in (self.send_kitchen_btn, self.payment_btn, self.close_btn, self.guests, self.manual_button):
+        for widget in (self.send_kitchen_btn, self.adjust_btn, self.payment_btn, self.close_btn, self.guests, self.manual_button):
             widget.setEnabled(bool(enabled))
         self.menu_scroll.setEnabled(bool(enabled))
 
@@ -265,12 +310,20 @@ class RestaurantPOSWidget(QWidget):
             return Decimal("0")
 
     def _update_total(self):
-        total = Decimal("0")
+        subtotal = Decimal("0")
         if self.session:
             for line in self.session.get("lines") or []:
-                total += self._line_amount(line)
-        balance = self._balance() if self.session else {"paid": "0", "remaining": "0"}
-        self.total_label.setText(_("restaurant.current_total") + f": {total}  |  " + _("restaurant.paid") + f": {balance.get('paid', '0')}  |  " + _("restaurant.remaining") + f": {balance.get('remaining', '0')}")
+                subtotal += self._line_amount(line)
+        balance = self._balance() if self.session else {"total": str(subtotal), "paid": "0", "remaining": "0", "discount_amount": "0", "service_charge_amount": "0", "tax_amount": "0"}
+        self.total_label.setText(
+            _("restaurant.subtotal") + f": {balance.get('subtotal', subtotal)}  |  "
+            + _("restaurant.discount") + f": {balance.get('discount_amount', '0')}  |  "
+            + _("restaurant.service_charge") + f": {balance.get('service_charge_amount', '0')}  |  "
+            + _("restaurant.tax") + f": {balance.get('tax_amount', '0')}  |  "
+            + _("restaurant.current_total") + f": {balance.get('total', subtotal)}  |  "
+            + _("restaurant.paid") + f": {balance.get('paid', '0')}  |  "
+            + _("restaurant.remaining") + f": {balance.get('remaining', '0')}"
+        )
 
     def add_menu_item(self, item):
         if not self.session:
@@ -325,6 +378,20 @@ class RestaurantPOSWidget(QWidget):
             return self.service.session_balance(int(self.session["id"]))
         except Exception:
             return {"total": "0", "paid": "0", "remaining": "0"}
+
+    def adjust_bill(self):
+        if not self.session:
+            return
+        try:
+            balance = self._balance()
+            dialog = RestaurantAdjustmentsDialog(balance, self)
+            if dialog.exec() != QDialog.Accepted:
+                return
+            result = self.service.set_session_adjustments(session_id=int(self.session["id"]), **dialog.payload())
+            self.load_session(self.session)
+            self.status.setText(_("restaurant.adjustments_saved") + f" — {_('restaurant.current_total')}: {result.get('total', '0')}")
+        except Exception as exc:
+            self.status.setText(str(exc))
 
     def record_payment(self):
         if not self.session:

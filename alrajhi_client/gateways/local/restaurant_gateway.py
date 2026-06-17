@@ -86,6 +86,47 @@ class LocalRestaurantGateway(RestaurantGateway):
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(session_id) REFERENCES restaurant_sessions(id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS restaurant_session_adjustments (
+                session_id INTEGER PRIMARY KEY,
+                discount_amount TEXT NOT NULL DEFAULT '0',
+                service_charge_amount TEXT NOT NULL DEFAULT '0',
+                tax_amount TEXT NOT NULL DEFAULT '0',
+                notes TEXT,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(session_id) REFERENCES restaurant_sessions(id) ON DELETE CASCADE
+            );
+            """
+        )
+        conn.commit()
+
+    def _ensure_delivery_takeaway_schema(self) -> None:
+        self._ensure_schema()
+        conn = self._conn()
+        for ddl in (
+            "ALTER TABLE restaurant_sessions ADD COLUMN order_type TEXT NOT NULL DEFAULT 'dine_in'",
+            "ALTER TABLE restaurant_sessions ADD COLUMN customer_name TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN phone TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN delivery_address TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN delivery_fee TEXT NOT NULL DEFAULT '0'",
+            "ALTER TABLE restaurant_sessions ADD COLUMN delivery_status TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN driver_id TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN promised_at TEXT",
+        ):
+            try:
+                conn.execute(ddl)
+            except Exception:
+                pass
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS restaurant_delivery_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                driver_id TEXT,
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(session_id) REFERENCES restaurant_sessions(id) ON DELETE CASCADE
+            );
             """
         )
         conn.commit()
@@ -349,9 +390,65 @@ class LocalRestaurantGateway(RestaurantGateway):
         return f"{prefix}{number:05d}"
 
 
-    def _session_total(self, session_id: int) -> Decimal:
+
+    def _get_session_adjustments(self, session_id: int) -> dict[str, Any]:
+        self._ensure_schema()
+        row = self._conn().execute(
+            "SELECT * FROM restaurant_session_adjustments WHERE session_id=?",
+            (int(session_id),),
+        ).fetchone()
+        if not row:
+            return {
+                "session_id": int(session_id),
+                "discount_amount": "0",
+                "service_charge_amount": "0",
+                "tax_amount": "0",
+                "notes": "",
+            }
+        return dict(row)
+
+    def set_session_adjustments(self, session_id: int, discount_amount: Any = "0", service_charge_amount: Any = "0", tax_amount: Any = "0", notes: str = "") -> dict[str, Any]:
+        self._ensure_schema()
+        session = self.get_session(int(session_id))
+        if session.get("status") != "open":
+            raise ValueError("Restaurant session is not open")
+        discount = self._decimal(discount_amount, "0")
+        service_charge = self._decimal(service_charge_amount, "0")
+        tax = self._decimal(tax_amount, "0")
+        if min(discount, service_charge, tax) < Decimal("0"):
+            raise ValueError("Restaurant adjustments cannot be negative")
+        subtotal = self._session_subtotal(int(session_id))
+        if discount > subtotal:
+            discount = subtotal
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        self._conn().execute(
+            """
+            INSERT INTO restaurant_session_adjustments(session_id, discount_amount, service_charge_amount, tax_amount, notes, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(session_id) DO UPDATE SET
+                discount_amount=excluded.discount_amount,
+                service_charge_amount=excluded.service_charge_amount,
+                tax_amount=excluded.tax_amount,
+                notes=excluded.notes,
+                updated_at=excluded.updated_at
+            """,
+            (int(session_id), str(discount), str(service_charge), str(tax), notes or "", now),
+        )
+        self._conn().commit()
+        return self.session_balance(int(session_id))
+
+    def _session_subtotal(self, session_id: int) -> Decimal:
         billable = [line for line in self._list_session_lines(int(session_id)) if (line.get("kitchen_status") or "new") != "cancelled"]
         return sum((self._decimal(line.get("quantity"), "0") * self._decimal(line.get("unit_price"), "0") for line in billable), Decimal("0"))
+
+    def _session_total(self, session_id: int) -> Decimal:
+        subtotal = self._session_subtotal(int(session_id))
+        adjustments = self._get_session_adjustments(int(session_id))
+        discount = self._decimal(adjustments.get("discount_amount"), "0")
+        service_charge = self._decimal(adjustments.get("service_charge_amount"), "0")
+        tax = self._decimal(adjustments.get("tax_amount"), "0")
+        total = subtotal - discount + service_charge + tax
+        return total if total > Decimal("0") else Decimal("0")
 
     def _session_paid(self, session_id: int) -> Decimal:
         rows = self._conn().execute(
@@ -372,10 +469,17 @@ class LocalRestaurantGateway(RestaurantGateway):
             "SELECT * FROM restaurant_payments WHERE session_id=? ORDER BY id",
             (int(session_id),),
         ).fetchall()
+        adjustments = self._get_session_adjustments(int(session_id))
+        subtotal = self._session_subtotal(int(session_id))
         return {
             "session_id": int(session_id),
             "table_id": session.get("table_id"),
             "table_name": session.get("table_name"),
+            "subtotal": str(subtotal),
+            "discount_amount": str(self._decimal(adjustments.get("discount_amount"), "0")),
+            "service_charge_amount": str(self._decimal(adjustments.get("service_charge_amount"), "0")),
+            "tax_amount": str(self._decimal(adjustments.get("tax_amount"), "0")),
+            "adjustment_notes": adjustments.get("notes") or "",
             "total": str(total),
             "paid": str(paid),
             "remaining": str(remaining),
@@ -437,7 +541,8 @@ class LocalRestaurantGateway(RestaurantGateway):
         if session.get("status") != "open":
             raise ValueError("Restaurant session is not open")
         billable = self._checkout_lines(int(session_id))
-        total = sum((self._decimal(line.get("quantity"), "0") * self._decimal(line.get("unit_price"), "0") for line in billable), Decimal("0"))
+        total = self._session_total(int(session_id))
+        adjustments = self._get_session_adjustments(int(session_id))
         existing_paid = self._session_paid(int(session_id))
         extra_paid = self._decimal(paid_amount, "0") if paid_amount is not None else Decimal("0")
         if extra_paid < Decimal("0"):
@@ -494,6 +599,24 @@ class LocalRestaurantGateway(RestaurantGateway):
                     str(quantity),
                     str(unit_price),
                 ),
+            )
+        discount = self._decimal(adjustments.get("discount_amount"), "0")
+        service_charge = self._decimal(adjustments.get("service_charge_amount"), "0")
+        tax = self._decimal(adjustments.get("tax_amount"), "0")
+        adjustment_lines = [
+            ("Restaurant discount", -discount),
+            ("Restaurant service charge", service_charge),
+            ("Restaurant tax", tax),
+        ]
+        for description, amount in adjustment_lines:
+            if amount == Decimal("0"):
+                continue
+            conn.execute(
+                """
+                INSERT INTO invoice_lines (invoice_id, item_id, description, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
+                VALUES (?, NULL, ?, '1', ?, ?, '', '1', ?, '0', 1.0)
+                """,
+                (invoice_id, description, str(amount), str(amount), str(amount)),
             )
         conn.execute("UPDATE restaurant_order_lines SET kitchen_status='served' WHERE session_id=? AND kitchen_status IN ('sent','preparing','ready')", (int(session_id),))
         conn.execute("UPDATE restaurant_sessions SET status='closed', closed_at=?, invoice_id=? WHERE id=?", (now_ts, invoice_id, int(session_id)))
@@ -1098,4 +1221,650 @@ class LocalRestaurantGateway(RestaurantGateway):
             "waiter_performance": [dict(row) for row in waiter_rows],
             "kitchen_performance": [dict(row) for row in kitchen_rows],
         }
+
+
+
+
+    # Phase 35: takeaway and delivery orders
+    def create_takeaway_order(self, customer_name: str = "", phone: str = "", notes: str = "") -> dict[str, Any]:
+        self._ensure_delivery_takeaway_schema()
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        cur = self._conn().execute(
+            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, notes, order_type, customer_name, phone, delivery_status) VALUES (?, NULL, 1, 'open', ?, ?, 'takeaway', ?, ?, 'pending')",
+            (self._ensure_virtual_table('Takeaway'), now, notes or '', customer_name or '', phone or ''),
+        )
+        self._conn().commit()
+        return self.get_session(int(cur.lastrowid))
+
+    def create_delivery_order(self, customer_name: str = "", phone: str = "", address: str = "", delivery_fee: Any = "0", driver_id: str = "", notes: str = "") -> dict[str, Any]:
+        self._ensure_delivery_takeaway_schema()
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        cur = self._conn().execute(
+            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, notes, order_type, customer_name, phone, delivery_address, delivery_fee, delivery_status, driver_id) VALUES (?, NULL, 1, 'open', ?, ?, 'delivery', ?, ?, ?, ?, 'pending', ?)",
+            (self._ensure_virtual_table('Delivery'), now, notes or '', customer_name or '', phone or '', address or '', str(delivery_fee or '0'), driver_id or ''),
+        )
+        sid = int(cur.lastrowid)
+        self._conn().execute("INSERT INTO restaurant_delivery_events(session_id, status, driver_id, notes, created_at) VALUES (?, 'pending', ?, ?, ?)", (sid, driver_id or '', notes or '', now))
+        self._conn().commit()
+        return self.get_session(sid)
+
+    def _ensure_virtual_table(self, name: str) -> int:
+        self._ensure_schema()
+        row = self._conn().execute("SELECT id FROM restaurant_tables WHERE name=?", (name,)).fetchone()
+        if row:
+            return int(row['id'])
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        cur = self._conn().execute("INSERT INTO restaurant_tables(name, zone, seats, status, is_active, created_at, updated_at) VALUES (?, 'Virtual', 1, 'occupied', 1, ?, ?)", (name, now, now))
+        return int(cur.lastrowid)
+
+    def update_delivery_status(self, session_id: int, status: str, driver_id: str = "", notes: str = "") -> dict[str, Any]:
+        self._ensure_delivery_takeaway_schema()
+        allowed = {'pending', 'accepted', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'}
+        if status not in allowed:
+            raise ValueError('Invalid delivery status')
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        self._conn().execute("UPDATE restaurant_sessions SET delivery_status=?, driver_id=COALESCE(NULLIF(?, ''), driver_id) WHERE id=?", (status, driver_id or '', int(session_id)))
+        self._conn().execute("INSERT INTO restaurant_delivery_events(session_id, status, driver_id, notes, created_at) VALUES (?, ?, ?, ?, ?)", (int(session_id), status, driver_id or '', notes or '', now))
+        self._conn().commit()
+        return self.get_session(int(session_id))
+
+    def list_restaurant_orders(self, order_type: str = "", status: str = "open", limit: int = 100) -> list[dict[str, Any]]:
+        self._ensure_delivery_takeaway_schema()
+        params = []
+        where = []
+        if status:
+            where.append('s.status=?'); params.append(status)
+        if order_type:
+            where.append("COALESCE(s.order_type, 'dine_in')=?"); params.append(order_type)
+        sql_where = ('WHERE ' + ' AND '.join(where)) if where else ''
+        params.append(int(limit or 100))
+        rows = self._conn().execute(f"SELECT s.*, t.name AS table_name FROM restaurant_sessions s LEFT JOIN restaurant_tables t ON t.id=s.table_id {sql_where} ORDER BY s.id DESC LIMIT ?", params).fetchall()
+        return [dict(row) for row in rows]
+
+
+    # Phase 34: modifiers + recipe integration
+    def _ensure_modifier_recipe_schema(self) -> None:
+        self._ensure_kitchen_station_schema()
+        conn = self._conn()
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS restaurant_modifier_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER,
+                name TEXT NOT NULL,
+                min_selected INTEGER NOT NULL DEFAULT 0,
+                max_selected INTEGER NOT NULL DEFAULT 1,
+                is_required INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT,
+                updated_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_modifier_options (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                group_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                price_delta TEXT NOT NULL DEFAULT '0',
+                item_id INTEGER,
+                kitchen_label TEXT,
+                is_default INTEGER NOT NULL DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT,
+                updated_at TEXT,
+                FOREIGN KEY(group_id) REFERENCES restaurant_modifier_groups(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_order_line_modifiers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                line_id INTEGER NOT NULL,
+                group_id INTEGER,
+                option_id INTEGER,
+                name TEXT NOT NULL,
+                price_delta TEXT NOT NULL DEFAULT '0',
+                quantity TEXT NOT NULL DEFAULT '1',
+                action TEXT NOT NULL DEFAULT 'add',
+                kitchen_label TEXT,
+                created_at TEXT,
+                FOREIGN KEY(line_id) REFERENCES restaurant_order_lines(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_recipes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER NOT NULL UNIQUE,
+                name TEXT,
+                yield_quantity TEXT NOT NULL DEFAULT '1',
+                is_active INTEGER NOT NULL DEFAULT 1,
+                updated_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_recipe_lines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recipe_id INTEGER NOT NULL,
+                component_item_id INTEGER,
+                component_name TEXT NOT NULL,
+                quantity TEXT NOT NULL DEFAULT '0',
+                unit TEXT,
+                unit_cost TEXT NOT NULL DEFAULT '0',
+                FOREIGN KEY(recipe_id) REFERENCES restaurant_recipes(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_inventory_consumption (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                order_line_id INTEGER NOT NULL,
+                invoice_id INTEGER,
+                item_id INTEGER,
+                component_item_id INTEGER,
+                component_name TEXT NOT NULL,
+                quantity TEXT NOT NULL DEFAULT '0',
+                unit TEXT,
+                source_key TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL
+            );
+        """)
+        conn.commit()
+
+    def upsert_modifier_group(self, item_id: int | None, name: str, min_selected: int = 0, max_selected: int = 1, is_required: bool = False, group_id: int | None = None) -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        name = str(name or '').strip()
+        if not name:
+            raise ValueError('Modifier group name is required')
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        conn = self._conn()
+        if group_id:
+            conn.execute('UPDATE restaurant_modifier_groups SET item_id=?, name=?, min_selected=?, max_selected=?, is_required=?, updated_at=? WHERE id=?', (item_id, name, int(min_selected or 0), int(max_selected or 1), 1 if is_required else 0, now, int(group_id)))
+            new_id = int(group_id)
+        else:
+            cur = conn.execute('INSERT INTO restaurant_modifier_groups(item_id, name, min_selected, max_selected, is_required, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)', (item_id, name, int(min_selected or 0), int(max_selected or 1), 1 if is_required else 0, now, now))
+            new_id = int(cur.lastrowid)
+        conn.commit()
+        return self.get_modifier_group(new_id)
+
+    def get_modifier_group(self, group_id: int) -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        row = self._conn().execute('SELECT * FROM restaurant_modifier_groups WHERE id=?', (int(group_id),)).fetchone()
+        if not row:
+            raise ValueError('Modifier group not found')
+        payload = dict(row)
+        payload['options'] = self.list_modifier_options(int(group_id))
+        return payload
+
+    def list_modifier_groups(self, item_id: int | None = None, include_inactive: bool = False) -> list[dict[str, Any]]:
+        self._ensure_modifier_recipe_schema()
+        where = [] if include_inactive else ['is_active=1']
+        params: list[Any] = []
+        if item_id is not None:
+            where.append('(item_id=? OR item_id IS NULL)')
+            params.append(int(item_id))
+        sql_where = 'WHERE ' + ' AND '.join(where) if where else ''
+        rows = self._conn().execute(f'SELECT * FROM restaurant_modifier_groups {sql_where} ORDER BY item_id IS NOT NULL DESC, id', params).fetchall()
+        result = []
+        for row in rows:
+            payload = dict(row)
+            payload['options'] = self.list_modifier_options(int(row['id']))
+            result.append(payload)
+        return result
+
+    def upsert_modifier_option(self, group_id: int, name: str, price_delta: Any = '0', item_id: int | None = None, kitchen_label: str = '', is_default: bool = False, option_id: int | None = None) -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        name = str(name or '').strip()
+        if not name:
+            raise ValueError('Modifier option name is required')
+        price = self._decimal(price_delta, '0')
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        conn = self._conn()
+        if option_id:
+            conn.execute('UPDATE restaurant_modifier_options SET group_id=?, name=?, price_delta=?, item_id=?, kitchen_label=?, is_default=?, updated_at=? WHERE id=?', (int(group_id), name, str(price), item_id, kitchen_label or name, 1 if is_default else 0, now, int(option_id)))
+            new_id = int(option_id)
+        else:
+            cur = conn.execute('INSERT INTO restaurant_modifier_options(group_id, name, price_delta, item_id, kitchen_label, is_default, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)', (int(group_id), name, str(price), item_id, kitchen_label or name, 1 if is_default else 0, now, now))
+            new_id = int(cur.lastrowid)
+        conn.commit()
+        return self.get_modifier_option(new_id)
+
+    def get_modifier_option(self, option_id: int) -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        row = self._conn().execute('SELECT * FROM restaurant_modifier_options WHERE id=?', (int(option_id),)).fetchone()
+        if not row:
+            raise ValueError('Modifier option not found')
+        return dict(row)
+
+    def list_modifier_options(self, group_id: int) -> list[dict[str, Any]]:
+        self._ensure_modifier_recipe_schema()
+        rows = self._conn().execute('SELECT * FROM restaurant_modifier_options WHERE group_id=? AND is_active=1 ORDER BY id', (int(group_id),)).fetchall()
+        return [dict(row) for row in rows]
+
+    def add_order_line_modifier(self, line_id: int, option_id: int | None = None, name: str = '', price_delta: Any = '0', quantity: Any = '1', action: str = 'add', group_id: int | None = None, kitchen_label: str = '') -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        self.get_order_line(int(line_id))
+        option = self.get_modifier_option(int(option_id)) if option_id else None
+        if option:
+            group_id = group_id or option.get('group_id')
+            name = name or option.get('name') or ''
+            price_delta = option.get('price_delta', price_delta)
+            kitchen_label = kitchen_label or option.get('kitchen_label') or name
+        name = str(name or '').strip()
+        if not name:
+            raise ValueError('Modifier name is required')
+        action = str(action or 'add').strip().lower()
+        if action not in {'add', 'remove', 'note', 'size'}:
+            action = 'add'
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        cur = self._conn().execute('INSERT INTO restaurant_order_line_modifiers(line_id, group_id, option_id, name, price_delta, quantity, action, kitchen_label, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', (int(line_id), group_id, option_id, name, str(self._decimal(price_delta, '0')), str(self._decimal(quantity, '1')), action, kitchen_label or name, now))
+        self._conn().commit()
+        return self.get_order_line_modifier(int(cur.lastrowid))
+
+    def get_order_line_modifier(self, modifier_id: int) -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        row = self._conn().execute('SELECT * FROM restaurant_order_line_modifiers WHERE id=?', (int(modifier_id),)).fetchone()
+        if not row:
+            raise ValueError('Order line modifier not found')
+        return dict(row)
+
+    def list_line_modifiers(self, line_id: int) -> list[dict[str, Any]]:
+        self._ensure_modifier_recipe_schema()
+        rows = self._conn().execute('SELECT * FROM restaurant_order_line_modifiers WHERE line_id=? ORDER BY id', (int(line_id),)).fetchall()
+        return [dict(row) for row in rows]
+
+    def _line_modifier_total(self, line_id: int) -> Decimal:
+        total = Decimal('0')
+        for modifier in self.list_line_modifiers(int(line_id)):
+            if (modifier.get('action') or 'add') in {'remove', 'note'}:
+                continue
+            total += self._decimal(modifier.get('price_delta'), '0') * self._decimal(modifier.get('quantity'), '1')
+        return total
+
+    def get_order_line(self, line_id: int) -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        row = self._conn().execute('SELECT * FROM restaurant_order_lines WHERE id=?', (int(line_id),)).fetchone()
+        if not row:
+            raise ValueError('Restaurant order line not found')
+        payload = dict(row)
+        modifiers = self.list_line_modifiers(int(line_id))
+        base = self._decimal(payload.get('quantity'), '0') * self._decimal(payload.get('unit_price'), '0')
+        modifier_total = self._line_modifier_total(int(line_id))
+        payload['modifiers'] = modifiers
+        payload['modifier_total'] = str(modifier_total)
+        payload['line_total'] = str(base + modifier_total)
+        payload['kitchen_modifier_notes'] = ', '.join([str(m.get('kitchen_label') or m.get('name')) for m in modifiers])
+        return payload
+
+    def list_session_lines(self, session_id: int) -> list[dict[str, Any]]:
+        self._ensure_modifier_recipe_schema()
+        rows = self._conn().execute('SELECT id FROM restaurant_order_lines WHERE session_id=? ORDER BY id', (int(session_id),)).fetchall()
+        return [self.get_order_line(int(row['id'])) for row in rows]
+
+    def _session_subtotal(self, session_id: int) -> Decimal:
+        billable = [line for line in self.list_session_lines(int(session_id)) if (line.get('kitchen_status') or 'new') != 'cancelled']
+        return sum((self._decimal(line.get('line_total'), '0') for line in billable), Decimal('0'))
+
+    def upsert_recipe(self, item_id: int, name: str = '', yield_quantity: Any = '1', lines: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        conn = self._conn()
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        row = conn.execute('SELECT id FROM restaurant_recipes WHERE item_id=?', (int(item_id),)).fetchone()
+        if row:
+            recipe_id = int(row['id'])
+            conn.execute('UPDATE restaurant_recipes SET name=?, yield_quantity=?, is_active=1, updated_at=? WHERE id=?', (name or f'Item {item_id}', str(self._decimal(yield_quantity, '1')), now, recipe_id))
+            conn.execute('DELETE FROM restaurant_recipe_lines WHERE recipe_id=?', (recipe_id,))
+        else:
+            cur = conn.execute('INSERT INTO restaurant_recipes(item_id, name, yield_quantity, is_active, updated_at) VALUES (?, ?, ?, 1, ?)', (int(item_id), name or f'Item {item_id}', str(self._decimal(yield_quantity, '1')), now))
+            recipe_id = int(cur.lastrowid)
+        for line in lines or []:
+            component_name = str(line.get('component_name') or line.get('name') or '').strip()
+            if not component_name:
+                continue
+            conn.execute('INSERT INTO restaurant_recipe_lines(recipe_id, component_item_id, component_name, quantity, unit, unit_cost) VALUES (?, ?, ?, ?, ?, ?)', (recipe_id, line.get('component_item_id'), component_name, str(self._decimal(line.get('quantity'), '0')), line.get('unit') or '', str(self._decimal(line.get('unit_cost'), '0'))))
+        conn.commit()
+        return self.get_recipe_by_item(int(item_id))
+
+    def get_recipe_by_item(self, item_id: int) -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        row = self._conn().execute('SELECT * FROM restaurant_recipes WHERE item_id=? AND is_active=1', (int(item_id),)).fetchone()
+        if not row:
+            return {'item_id': int(item_id), 'lines': [], 'is_configured': False}
+        payload = dict(row)
+        rows = self._conn().execute('SELECT * FROM restaurant_recipe_lines WHERE recipe_id=? ORDER BY id', (int(row['id']),)).fetchall()
+        payload['lines'] = [dict(line) for line in rows]
+        payload['is_configured'] = True
+        return payload
+
+    def consume_session_recipes(self, session_id: int, invoice_id: int | None = None) -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        conn = self._conn()
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        consumed = []
+        for line in self.list_session_lines(int(session_id)):
+            if (line.get('kitchen_status') or 'new') == 'cancelled' or not line.get('item_id'):
+                continue
+            recipe = self.get_recipe_by_item(int(line['item_id']))
+            if not recipe.get('is_configured'):
+                continue
+            yield_qty = self._decimal(recipe.get('yield_quantity'), '1') or Decimal('1')
+            sold_qty = self._decimal(line.get('quantity'), '0')
+            for component in recipe.get('lines') or []:
+                consume_qty = (sold_qty * self._decimal(component.get('quantity'), '0')) / yield_qty
+                source_key = f"restaurant:{int(session_id)}:{int(line['id'])}:{component.get('id')}"
+                try:
+                    conn.execute('INSERT INTO restaurant_inventory_consumption(session_id, order_line_id, invoice_id, item_id, component_item_id, component_name, quantity, unit, source_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (int(session_id), int(line['id']), invoice_id, line.get('item_id'), component.get('component_item_id'), component.get('component_name'), str(consume_qty), component.get('unit') or '', source_key, now))
+                except Exception:
+                    continue
+                if component.get('component_item_id'):
+                    try:
+                        conn.execute('UPDATE items SET quantity = CAST(COALESCE(NULLIF(quantity, \'\'), \'0\') AS REAL) - ? WHERE id=?', (float(consume_qty), int(component['component_item_id'])))
+                    except Exception:
+                        pass
+                consumed.append({'line_id': int(line['id']), 'component_name': component.get('component_name'), 'quantity': str(consume_qty), 'unit': component.get('unit') or ''})
+        conn.commit()
+        return {'session_id': int(session_id), 'invoice_id': invoice_id, 'consumed': consumed, 'count': len(consumed)}
+
+    def checkout_session(self, session_id: int, paid_amount: Any | None = None, payment_method: str = "cash") -> dict[str, Any]:
+        self._ensure_modifier_recipe_schema()
+        conn = self._conn()
+        session = self.get_session(int(session_id))
+        if session.get("status") != "open":
+            raise ValueError("Restaurant session is not open")
+        billable = self._checkout_lines(int(session_id))
+        total = self._session_total(int(session_id))
+        adjustments = self._get_session_adjustments(int(session_id))
+        existing_paid = self._session_paid(int(session_id))
+        extra_paid = self._decimal(paid_amount, "0") if paid_amount is not None else Decimal("0")
+        if extra_paid < Decimal("0"):
+            raise ValueError("Paid amount cannot be negative")
+        if existing_paid == Decimal("0") and paid_amount is None:
+            extra_paid = total
+        paid = existing_paid + extra_paid
+        if paid < total:
+            raise ValueError("Cannot checkout before the restaurant session is fully paid")
+        if paid > total:
+            paid = total
+        now_date = datetime.date.today().isoformat()
+        now_ts = datetime.datetime.now().isoformat(timespec="seconds")
+        reference = self._next_restaurant_reference(conn)
+        cur = conn.execute(
+            """
+            INSERT INTO invoices (user_id, type, date, reference, notes, total, paid, status, workflow_status, original_currency, payment_method)
+            VALUES (?, 'sale', ?, ?, ?, ?, ?, 'active', 'POSTED', 'USD', ?)
+            """,
+            (self._current_user_id(), now_date, reference, f"Restaurant table {session.get('table_name') or session.get('table_id')} / session {session_id}", str(total), str(paid), payment_method or "cash"),
+        )
+        invoice_id = int(cur.lastrowid)
+        if extra_paid > Decimal("0"):
+            conn.execute(
+                "INSERT INTO restaurant_payments(session_id, invoice_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, ?, 'posted', ?, ?)",
+                (int(session_id), invoice_id, str(extra_paid), payment_method or "cash", "checkout", now_ts),
+            )
+        conn.execute("UPDATE restaurant_payments SET invoice_id=? WHERE session_id=? AND invoice_id IS NULL", (invoice_id, int(session_id)))
+        for line in billable:
+            quantity = self._decimal(line.get("quantity"), "0")
+            unit_price = self._decimal(line.get("unit_price"), "0")
+            line_total = self._decimal(line.get("line_total"), "0")
+            description = line.get("item_name") or "Restaurant item"
+            if line.get("modifiers"):
+                modifier_text = "; ".join([f"{m.get('action', 'add')} {m.get('name')}" for m in line.get("modifiers") or []])
+                description = f"{description} ({modifier_text})"
+            conn.execute(
+                """
+                INSERT INTO invoice_lines (invoice_id, item_id, description, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
+                VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, '0', 1.0)
+                """,
+                (invoice_id, line.get("item_id"), description, str(quantity), str(unit_price), str(line_total), str(quantity), str(unit_price)),
+            )
+        discount = self._decimal(adjustments.get("discount_amount"), "0")
+        service_charge = self._decimal(adjustments.get("service_charge_amount"), "0")
+        tax = self._decimal(adjustments.get("tax_amount"), "0")
+        for description, amount in [("Restaurant discount", -discount), ("Restaurant service charge", service_charge), ("Restaurant tax", tax)]:
+            if amount == Decimal("0"):
+                continue
+            conn.execute(
+                """
+                INSERT INTO invoice_lines (invoice_id, item_id, description, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
+                VALUES (?, NULL, ?, '1', ?, ?, '', '1', ?, '0', 1.0)
+                """,
+                (invoice_id, description, str(amount), str(amount), str(amount)),
+            )
+        consumption = self.consume_session_recipes(int(session_id), invoice_id=invoice_id)
+        conn.execute("UPDATE restaurant_order_lines SET kitchen_status='served' WHERE session_id=? AND kitchen_status IN ('sent','preparing','ready')", (int(session_id),))
+        conn.execute("UPDATE restaurant_sessions SET status='closed', closed_at=?, invoice_id=? WHERE id=?", (now_ts, invoice_id, int(session_id)))
+        conn.execute("UPDATE restaurant_tables SET status='free', updated_at=? WHERE id=?", (now_ts, int(session["table_id"])))
+        conn.commit()
+        closed = self.get_session(int(session_id))
+        closed["invoice_id"] = invoice_id
+        closed["invoice_reference"] = reference
+        closed["invoice_total"] = str(total)
+        closed["paid_amount"] = str(paid)
+        closed["recipe_consumption"] = consumption
+        return closed
+
+    def _checkout_lines(self, session_id: int) -> list[dict[str, Any]]:
+        lines = self.list_session_lines(int(session_id))
+        billable = [line for line in lines if (line.get("kitchen_status") or "new") != "cancelled"]
+        if not billable:
+            raise ValueError("Cannot checkout an empty restaurant session")
+        if any((line.get("kitchen_status") or "new") == "new" for line in billable):
+            raise ValueError("Send new order lines to kitchen before checkout")
+        return billable
+
+    # Phase 36: advanced split bill + printer routing
+    def _ensure_split_printer_schema(self) -> None:
+        self._ensure_modifier_recipe_schema()
+        conn = self._conn()
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS restaurant_split_bills (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                guest_label TEXT,
+                subtotal TEXT NOT NULL DEFAULT '0',
+                paid_amount TEXT NOT NULL DEFAULT '0',
+                payment_method TEXT,
+                status TEXT NOT NULL DEFAULT 'open',
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(session_id) REFERENCES restaurant_sessions(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_split_bill_lines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                split_bill_id INTEGER NOT NULL,
+                order_line_id INTEGER NOT NULL,
+                quantity TEXT NOT NULL DEFAULT '1',
+                amount TEXT NOT NULL DEFAULT '0',
+                FOREIGN KEY(split_bill_id) REFERENCES restaurant_split_bills(id) ON DELETE CASCADE,
+                FOREIGN KEY(order_line_id) REFERENCES restaurant_order_lines(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_printers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                printer_type TEXT NOT NULL DEFAULT 'kitchen',
+                device_uri TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_station_printers (
+                station_id INTEGER PRIMARY KEY,
+                printer_id INTEGER NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(printer_id) REFERENCES restaurant_printers(id)
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_print_jobs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id INTEGER,
+                session_id INTEGER,
+                station_id INTEGER,
+                printer_id INTEGER,
+                job_type TEXT NOT NULL DEFAULT 'kot',
+                status TEXT NOT NULL DEFAULT 'queued',
+                payload TEXT,
+                created_at TEXT NOT NULL,
+                printed_at TEXT,
+                FOREIGN KEY(ticket_id) REFERENCES kitchen_tickets(id) ON DELETE CASCADE
+            );
+        """)
+        conn.commit()
+
+    def create_split_bills(self, session_id: int, splits: list[dict[str, Any]], notes: str = "") -> dict[str, Any]:
+        self._ensure_split_printer_schema()
+        session = self.get_session(int(session_id))
+        if session.get('status') != 'open':
+            raise ValueError('Restaurant session must be open to split bill')
+        if not splits:
+            raise ValueError('At least one split bill is required')
+        conn = self._conn()
+        lines = {int(line['id']): line for line in self.list_session_lines(int(session_id)) if (line.get('kitchen_status') or 'new') != 'cancelled'}
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        seen: set[int] = set()
+        for idx, split in enumerate(splits, start=1):
+            line_ids = [int(x) for x in (split.get('line_ids') or [])]
+            if not line_ids:
+                raise ValueError('Each split bill needs at least one order line')
+            if any(line_id not in lines for line_id in line_ids):
+                raise ValueError('Split contains order lines outside this session')
+            if any(line_id in seen for line_id in line_ids):
+                raise ValueError('Order line cannot be assigned twice')
+            seen.update(line_ids)
+            subtotal = sum((self._decimal(lines[line_id].get('line_total') or (self._decimal(lines[line_id].get('quantity')) * self._decimal(lines[line_id].get('unit_price'))), '0') for line_id in line_ids), Decimal('0'))
+            paid = self._decimal(split.get('paid_amount'), '0')
+            status = 'paid' if paid >= subtotal and subtotal > Decimal('0') else 'open'
+            cur = conn.execute("INSERT INTO restaurant_split_bills(session_id, guest_label, subtotal, paid_amount, payment_method, status, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (int(session_id), split.get('guest_label') or f'Guest {idx}', str(subtotal), str(paid), split.get('payment_method') or '', status, notes or split.get('notes') or '', now, now))
+            split_id = int(cur.lastrowid)
+            for line_id in line_ids:
+                line = lines[line_id]
+                amount = self._decimal(line.get('line_total') or (self._decimal(line.get('quantity')) * self._decimal(line.get('unit_price'))), '0')
+                conn.execute("INSERT INTO restaurant_split_bill_lines(split_bill_id, order_line_id, quantity, amount) VALUES (?, ?, ?, ?)", (split_id, line_id, str(line.get('quantity') or '1'), str(amount)))
+            if paid > Decimal('0'):
+                conn.execute("INSERT INTO restaurant_payments(session_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, 'posted', ?, ?)", (int(session_id), str(paid), split.get('payment_method') or 'split', f'split_bill:{split_id}', now))
+        conn.commit()
+        return {'session_id': int(session_id), 'split_bills': self.list_split_bills(int(session_id)), 'balance': self.session_balance(int(session_id))}
+
+    def list_split_bills(self, session_id: int) -> list[dict[str, Any]]:
+        self._ensure_split_printer_schema()
+        conn = self._conn()
+        bills = conn.execute("SELECT * FROM restaurant_split_bills WHERE session_id=? ORDER BY id", (int(session_id),)).fetchall()
+        payload = []
+        for bill in bills:
+            item = dict(bill)
+            rows = conn.execute("SELECT sbl.*, rol.item_name, rol.notes, rol.kitchen_status FROM restaurant_split_bill_lines sbl LEFT JOIN restaurant_order_lines rol ON rol.id=sbl.order_line_id WHERE sbl.split_bill_id=? ORDER BY sbl.id", (int(item['id']),)).fetchall()
+            item['lines'] = [dict(row) for row in rows]
+            payload.append(item)
+        return payload
+
+    def pay_split_bill(self, split_bill_id: int, amount: Any, payment_method: str = "cash", notes: str = "") -> dict[str, Any]:
+        self._ensure_split_printer_schema()
+        conn = self._conn()
+        bill = conn.execute("SELECT * FROM restaurant_split_bills WHERE id=?", (int(split_bill_id),)).fetchone()
+        if not bill:
+            raise ValueError('Split bill not found')
+        amount_dec = self._decimal(amount, '0')
+        if amount_dec <= Decimal('0'):
+            raise ValueError('Payment amount must be positive')
+        paid = self._decimal(bill['paid_amount'], '0') + amount_dec
+        subtotal = self._decimal(bill['subtotal'], '0')
+        status = 'paid' if paid >= subtotal and subtotal > Decimal('0') else 'open'
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        conn.execute("UPDATE restaurant_split_bills SET paid_amount=?, payment_method=?, status=?, notes=?, updated_at=? WHERE id=?", (str(paid), payment_method or 'cash', status, notes or bill['notes'] or '', now, int(split_bill_id)))
+        conn.execute("INSERT INTO restaurant_payments(session_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, 'posted', ?, ?)", (int(bill['session_id']), str(amount_dec), payment_method or 'cash', f'split_bill:{int(split_bill_id)} {notes or ""}'.strip(), now))
+        conn.commit()
+        return {'split_bill_id': int(split_bill_id), 'status': status, 'paid_amount': str(paid), 'session_balance': self.session_balance(int(bill['session_id']))}
+
+    def upsert_printer(self, name: str, printer_type: str = "kitchen", device_uri: str = "", printer_id: int | None = None, is_active: bool = True) -> dict[str, Any]:
+        self._ensure_split_printer_schema()
+        conn = self._conn()
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        if printer_id:
+            conn.execute("UPDATE restaurant_printers SET name=?, printer_type=?, device_uri=?, is_active=?, updated_at=? WHERE id=?", (name, printer_type or 'kitchen', device_uri or '', 1 if is_active else 0, now, int(printer_id)))
+            new_id = int(printer_id)
+        else:
+            cur = conn.execute("INSERT INTO restaurant_printers(name, printer_type, device_uri, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", (name, printer_type or 'kitchen', device_uri or '', 1 if is_active else 0, now, now))
+            new_id = int(cur.lastrowid)
+        conn.commit()
+        return dict(conn.execute("SELECT * FROM restaurant_printers WHERE id=?", (new_id,)).fetchone())
+
+    def list_printers(self, include_inactive: bool = False) -> list[dict[str, Any]]:
+        self._ensure_split_printer_schema()
+        where = '' if include_inactive else 'WHERE is_active=1'
+        rows = self._conn().execute(f"SELECT * FROM restaurant_printers {where} ORDER BY printer_type, name").fetchall()
+        return [dict(row) for row in rows]
+
+    def assign_station_printer(self, station_id: int, printer_id: int) -> dict[str, Any]:
+        self._ensure_split_printer_schema()
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        self._conn().execute("INSERT INTO restaurant_station_printers(station_id, printer_id, updated_at) VALUES (?, ?, ?) ON CONFLICT(station_id) DO UPDATE SET printer_id=excluded.printer_id, updated_at=excluded.updated_at", (int(station_id), int(printer_id), now))
+        self._conn().commit()
+        return {'station_id': int(station_id), 'printer_id': int(printer_id)}
+
+    def queue_ticket_print(self, ticket_id: int, job_type: str = "kot") -> dict[str, Any]:
+        self._ensure_split_printer_schema()
+        ticket = self.get_kitchen_ticket(int(ticket_id))
+        station_id = ticket.get('station_id')
+        conn = self._conn()
+        printer = None
+        if station_id:
+            printer = conn.execute("SELECT p.* FROM restaurant_station_printers sp LEFT JOIN restaurant_printers p ON p.id=sp.printer_id WHERE sp.station_id=? AND p.is_active=1", (int(station_id),)).fetchone()
+        if printer is None:
+            printer = conn.execute("SELECT * FROM restaurant_printers WHERE is_active=1 ORDER BY id LIMIT 1").fetchone()
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        cur = conn.execute("INSERT INTO restaurant_print_jobs(ticket_id, session_id, station_id, printer_id, job_type, status, payload, created_at) VALUES (?, ?, ?, ?, ?, 'queued', ?, ?)", (int(ticket_id), ticket.get('session_id'), station_id, int(printer['id']) if printer else None, job_type or 'kot', str(ticket), now))
+        conn.commit()
+        return {'job_id': int(cur.lastrowid), 'ticket_id': int(ticket_id), 'printer': dict(printer) if printer else None, 'status': 'queued'}
+
+    def mark_print_job_done(self, job_id: int) -> dict[str, Any]:
+        self._ensure_split_printer_schema()
+        conn = self._conn()
+        row = conn.execute("SELECT * FROM restaurant_print_jobs WHERE id=?", (int(job_id),)).fetchone()
+        if not row:
+            raise ValueError('Print job not found')
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        conn.execute("UPDATE restaurant_print_jobs SET status='printed', printed_at=? WHERE id=?", (now, int(job_id)))
+        if row['ticket_id']:
+            conn.execute("UPDATE kitchen_tickets SET printed_at=COALESCE(printed_at, ?) WHERE id=?", (now, int(row['ticket_id'])))
+        conn.commit()
+        return dict(conn.execute("SELECT * FROM restaurant_print_jobs WHERE id=?", (int(job_id),)).fetchone())
+
+
+    # Phase 37: production readiness diagnostics
+    def restaurant_production_readiness(self) -> dict[str, Any]:
+        self._ensure_split_printer_schema()
+        self._ensure_modifier_recipe_schema()
+        try:
+            self._ensure_delivery_takeaway_schema()
+        except AttributeError:
+            pass
+        self.seed_default_tables_if_empty()
+        conn = self._conn()
+        required_tables = [
+            "restaurant_tables", "restaurant_sessions", "restaurant_order_lines",
+            "kitchen_tickets", "kitchen_ticket_lines", "restaurant_payments",
+            "restaurant_session_adjustments", "restaurant_reservations",
+            "restaurant_service_events", "restaurant_kitchen_stations",
+            "restaurant_item_kitchen_stations", "restaurant_modifier_groups",
+            "restaurant_modifier_options", "restaurant_order_line_modifiers",
+            "restaurant_recipes", "restaurant_recipe_lines",
+            "restaurant_inventory_consumption", "restaurant_orders",
+            "restaurant_delivery_events", "restaurant_split_bills",
+            "restaurant_split_bill_lines", "restaurant_printers",
+            "restaurant_station_printers", "restaurant_print_jobs",
+        ]
+        existing = {str(row["name"]) for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        missing = [name for name in required_tables if name not in existing]
+        def scalar(sql: str) -> int:
+            try:
+                row = conn.execute(sql).fetchone()
+                return int((row[0] if row else 0) or 0)
+            except Exception:
+                return 0
+        diagnostics = {
+            "missing_tables": missing,
+            "dangling_sessions": scalar("SELECT COUNT(*) FROM restaurant_sessions s LEFT JOIN restaurant_tables t ON t.id=s.table_id WHERE t.id IS NULL"),
+            "dangling_order_lines": scalar("SELECT COUNT(*) FROM restaurant_order_lines l LEFT JOIN restaurant_sessions s ON s.id=l.session_id WHERE s.id IS NULL"),
+            "dangling_kitchen_lines": scalar("SELECT COUNT(*) FROM kitchen_ticket_lines ktl LEFT JOIN kitchen_tickets kt ON kt.id=ktl.ticket_id LEFT JOIN restaurant_order_lines rol ON rol.id=ktl.order_line_id WHERE kt.id IS NULL OR rol.id IS NULL"),
+            "open_sessions": scalar("SELECT COUNT(*) FROM restaurant_sessions WHERE status='open'"),
+            "new_unsent_lines": scalar("SELECT COUNT(*) FROM restaurant_order_lines WHERE COALESCE(kitchen_status, 'new')='new'"),
+            "queued_print_jobs": scalar("SELECT COUNT(*) FROM restaurant_print_jobs WHERE status='queued'"),
+            "pending_delivery_orders": scalar("SELECT COUNT(*) FROM restaurant_orders WHERE order_type='delivery' AND status NOT IN ('closed','cancelled','delivered')"),
+            "pending_takeaway_orders": scalar("SELECT COUNT(*) FROM restaurant_orders WHERE order_type='takeaway' AND status NOT IN ('closed','cancelled','picked_up')"),
+        }
+        blocking = bool(missing or diagnostics["dangling_sessions"] or diagnostics["dangling_order_lines"] or diagnostics["dangling_kitchen_lines"])
+        warnings = []
+        if diagnostics["new_unsent_lines"]:
+            warnings.append("There are unsent restaurant order lines")
+        if diagnostics["queued_print_jobs"]:
+            warnings.append("There are queued restaurant print jobs")
+        if diagnostics["pending_delivery_orders"] or diagnostics["pending_takeaway_orders"]:
+            warnings.append("There are pending delivery/takeaway orders")
+        return {"ready": not blocking, "blocking": blocking, "warnings": warnings, "diagnostics": diagnostics, "required_tables": required_tables}
 
