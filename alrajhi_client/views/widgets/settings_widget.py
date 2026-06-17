@@ -922,6 +922,10 @@ class SettingsWidget(QWidget):
     def create_workflow_tab(self):
         scroll, layout = self._scroll_tab()
         group, form = self._form_card('سياسات سير العمل', 'تحدد متى يسمح النظام بتعديل أو حذف الفواتير حسب حالة المستند، مع حدود اعتماد للمبيعات والمشتريات.')
+        self.workflow_enabled_cb = QCheckBox('تفعيل سير العمل على الفواتير')
+        self.workflow_approval_required_cb = QCheckBox('اشتراط الاعتماد قبل الترحيل')
+        form.addRow('تشغيل Workflow', self.workflow_enabled_cb)
+        form.addRow('الاعتماد قبل الترحيل', self.workflow_approval_required_cb)
         self.workflow_sales_threshold = QLineEdit()
         self.workflow_purchase_threshold = QLineEdit()
         form.addRow('حد اعتماد المبيعات', self.workflow_sales_threshold)
@@ -950,6 +954,8 @@ class SettingsWidget(QWidget):
 
     def load_workflow_settings(self):
         try:
+            self.workflow_enabled_cb.setChecked(settings_service.get_bool('workflow/enabled', False))
+            self.workflow_approval_required_cb.setChecked(settings_service.get_bool('workflow/approval_required', False))
             self.workflow_sales_threshold.setText(str(settings_service.get('workflow/sales_approval_threshold', '0') or '0'))
             self.workflow_purchase_threshold.setText(str(settings_service.get('workflow/purchase_approval_threshold', '0') or '0'))
             defaults_edit = {'draft': True, 'submitted': True, 'approved': False, 'posted': False, 'cancelled': False}
@@ -962,6 +968,8 @@ class SettingsWidget(QWidget):
 
     def save_workflow_settings(self):
         try:
+            settings_service.set('workflow/enabled', 'true' if self.workflow_enabled_cb.isChecked() else 'false')
+            settings_service.set('workflow/approval_required', 'true' if self.workflow_approval_required_cb.isChecked() else 'false')
             settings_service.set('workflow/sales_approval_threshold', self.workflow_sales_threshold.text().strip() or '0')
             settings_service.set('workflow/purchase_approval_threshold', self.workflow_purchase_threshold.text().strip() or '0')
             for status, (edit_cb, delete_cb) in self.workflow_checks.items():

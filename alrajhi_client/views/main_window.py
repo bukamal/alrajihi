@@ -443,13 +443,14 @@ class MainWindow(QMainWindow):
             add_action(users_menu, translate('audit_log'), 'history', 'audit_log')
 
         quick_menu = self.menu_bar.addMenu(qta.icon('fa5s.bolt'), '\n' + translate('quick_actions'))
-        add_action(quick_menu, translate('new_sales_invoice'), 'file-invoice-dollar', 'sales_invoices', shortcut='Ctrl+N')
-        add_action(quick_menu, translate('new_purchase_invoice'), 'file-invoice', 'purchase_invoices')
-        add_action(quick_menu, translate('receipt_voucher'), 'hand-holding-usd', 'vouchers')
-        add_action(quick_menu, translate('payment_voucher'), 'money-bill-wave', 'vouchers')
+        add_action(quick_menu, translate('new_sales_invoice'), 'file-invoice-dollar', callback=lambda: self.open_quick_invoice('sale'), shortcut='Ctrl+N')
+        add_action(quick_menu, translate('new_purchase_invoice'), 'file-invoice', callback=lambda: self.open_quick_invoice('purchase'))
+        add_action(quick_menu, translate('receipt_voucher'), 'hand-holding-usd', callback=lambda: self.open_quick_voucher('receipt'))
+        add_action(quick_menu, translate('payment_voucher'), 'money-bill-wave', callback=lambda: self.open_quick_voucher('payment'))
         quick_menu.addSeparator()
-        add_action(quick_menu, translate('new_customer'), 'user-plus', 'customers')
-        add_action(quick_menu, translate('new_item'), 'box-open', 'items')
+        add_action(quick_menu, translate('new_customer'), 'user-plus', callback=self.open_quick_customer)
+        add_action(quick_menu, translate('new_supplier'), 'truck-loading', callback=self.open_quick_supplier)
+        add_action(quick_menu, translate('new_item'), 'box-open', callback=self.open_quick_item)
 
     def setup_topbar_buttons(self):
         """Wire utility-strip actions only.
@@ -560,6 +561,63 @@ class MainWindow(QMainWindow):
             self.top_bar.set_active(NAV_GROUP_BY_PAGE.get(pid, pid))
         if hasattr(self, 'title_label'):
             self.title_label.setText(f"{translate('app_title')} — {title}")
+
+    def _refresh_page_if_loaded(self, page_key):
+        try:
+            page = self.pages.get(page_key) if hasattr(self, 'pages') else None
+            if page and hasattr(page, 'refresh_all'):
+                page.refresh_all()
+            elif page and hasattr(page, 'refresh'):
+                page.refresh()
+        except Exception:
+            pass
+
+    def open_quick_invoice(self, inv_type):
+        try:
+            from views.dialogs.invoice_dialog import InvoiceDialog
+            dialog = InvoiceDialog(inv_type, self)
+            if dialog.exec():
+                self._refresh_page_if_loaded('sales_invoices' if inv_type == 'sale' else 'purchase_invoices')
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_quick_item(self):
+        try:
+            from views.dialogs.item_dialog import ItemDialog
+            dialog = ItemDialog(self)
+            if dialog.exec():
+                self._refresh_page_if_loaded('items')
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_quick_customer(self):
+        try:
+            from views.dialogs.add_entity_dialog import AddEntityDialog
+            dialog = AddEntityDialog(self, 'sale')
+            if dialog.exec():
+                self._refresh_page_if_loaded('customers')
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_quick_supplier(self):
+        try:
+            from views.dialogs.add_entity_dialog import AddEntityDialog
+            dialog = AddEntityDialog(self, 'purchase')
+            if dialog.exec():
+                self._refresh_page_if_loaded('suppliers')
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_quick_voucher(self, voucher_type='receipt'):
+        try:
+            from views.widgets.vouchers_widget import VoucherDialog
+            dialog = VoucherDialog(self)
+            if hasattr(dialog, 'type_combo'):
+                dialog.type_combo.setCurrentIndex(0 if voucher_type == 'receipt' else 1)
+            if dialog.exec():
+                self._refresh_page_if_loaded('vouchers')
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
 
     def setup_shortcuts(self):
         self.esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)

@@ -676,6 +676,8 @@ def init_database():
         INSERT OR IGNORE INTO settings (key, value, category) VALUES ('returns/max_days', '30', 'returns');
         INSERT OR IGNORE INTO settings (key, value, category) VALUES ('manufacturing/cost_method', 'MATERIALS_ONLY', 'manufacturing');
         INSERT OR IGNORE INTO settings (key, value, category) VALUES ('reports/default_limit', '100', 'reports');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/enabled', 'false', 'workflow');
+        INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/approval_required', 'false', 'workflow');
         INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/sales_approval_threshold', '0', 'workflow');
         INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/purchase_approval_threshold', '0', 'workflow');
         INSERT OR IGNORE INTO settings (key, value, category) VALUES ('workflow/allow_edit_draft', 'true', 'workflow');

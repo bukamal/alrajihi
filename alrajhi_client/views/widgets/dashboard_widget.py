@@ -879,27 +879,51 @@ class DashboardWidget(QWidget):
             show_toast(translate('cannot_navigate_to_page'), 'error', self)
 
     def _open_invoice(self, inv_type):
+        # Daily shortcuts must open modal dialogs only; they must not navigate to
+        # the underlying management page. Refresh the page silently if it exists.
         page_key = 'sales_invoices' if inv_type == 'sale' else 'purchase_invoices'
-        main_window = self._main_window()
-        if not main_window:
-            show_toast(translate('cannot_open_invoice_from_dashboard'), 'error', self)
-            return
-        page = main_window.pages.get(page_key)
-        main_window.switch_page(page_key)
         try:
-            if page and hasattr(page, 'create_invoice'):
-                page.create_invoice(inv_type)
+            from views.dialogs.invoice_dialog import InvoiceDialog
+            dialog = InvoiceDialog(inv_type, self)
+            if dialog.exec():
+                page = (self._main_window().pages.get(page_key) if self._main_window() else None)
+                if page and hasattr(page, 'refresh_all'):
+                    page.refresh_all()
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 
     def _open_add_item(self):
-        self._open_page_action('items', ('open_dialog', 'add_item'), {'open_dialog': {'is_edit': False}})
+        try:
+            from views.dialogs.item_dialog import ItemDialog
+            dialog = ItemDialog(self)
+            if dialog.exec():
+                page = (self._main_window().pages.get('items') if self._main_window() else None)
+                if page and hasattr(page, 'refresh'):
+                    page.refresh()
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
 
     def _open_add_customer(self):
-        self._open_page_action('customers', ('add_customer', 'open_dialog'))
+        try:
+            from views.dialogs.add_entity_dialog import AddEntityDialog
+            dialog = AddEntityDialog(self, 'sale')
+            if dialog.exec():
+                page = (self._main_window().pages.get('customers') if self._main_window() else None)
+                if page and hasattr(page, 'refresh'):
+                    page.refresh()
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
 
     def _open_add_supplier(self):
-        self._open_page_action('suppliers', ('add_supplier', 'open_dialog'))
+        try:
+            from views.dialogs.add_entity_dialog import AddEntityDialog
+            dialog = AddEntityDialog(self, 'purchase')
+            if dialog.exec():
+                page = (self._main_window().pages.get('suppliers') if self._main_window() else None)
+                if page and hasattr(page, 'refresh'):
+                    page.refresh()
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
 
     def _open_page_action(self, page_key, methods, kwargs_by_method=None):
         kwargs_by_method = kwargs_by_method or {}
@@ -907,7 +931,6 @@ class DashboardWidget(QWidget):
         if not main_window:
             return
         page = main_window.pages.get(page_key)
-        main_window.switch_page(page_key)
         for method in methods:
             if page and hasattr(page, method):
                 try:
@@ -919,24 +942,17 @@ class DashboardWidget(QWidget):
                 return
 
     def _open_voucher(self, voucher_type='receipt'):
-        main_window = self._main_window()
-        if not main_window:
-            return
-        page = main_window.pages.get('vouchers')
-        main_window.switch_page('vouchers')
         try:
             from views.widgets.vouchers_widget import VoucherDialog
-            dialog = VoucherDialog(page or self)
+            dialog = VoucherDialog(self)
             if hasattr(dialog, 'type_combo'):
                 dialog.type_combo.setCurrentIndex(0 if voucher_type == 'receipt' else 1)
-            if dialog.exec() and page and hasattr(page, 'refresh'):
-                page.refresh()
-        except Exception:
-            try:
-                if page and hasattr(page, 'add_voucher'):
-                    page.add_voucher()
-            except Exception as exc:
-                show_toast(str(exc), 'error', self)
+            if dialog.exec():
+                page = (self._main_window().pages.get('vouchers') if self._main_window() else None)
+                if page and hasattr(page, 'refresh'):
+                    page.refresh()
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
 
     def apply_theme_colors(self):
         self.refresh_all()

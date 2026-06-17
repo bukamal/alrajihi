@@ -62,6 +62,12 @@ class WorkflowPolicyService:
         except (InvalidOperation, ValueError):
             return Decimal('0')
 
+    def workflow_enabled(self) -> bool:
+        return self._setting_bool('workflow/enabled', False)
+
+    def approval_required(self) -> bool:
+        return self._setting_bool('workflow/approval_required', False)
+
     def threshold_for(self, doc_type: str) -> Decimal:
         key = 'workflow/sales_approval_threshold' if doc_type == 'sale' else 'workflow/purchase_approval_threshold'
         return self._to_decimal(settings_service.get(key, '0'))
@@ -74,6 +80,8 @@ class WorkflowPolicyService:
         remain DRAFT to preserve current editable workflows until explicit
         approval/posting UI is introduced.
         """
+        if not self.workflow_enabled() or not self.approval_required():
+            return self.DRAFT
         amount = self._to_decimal(total)
         threshold = self.threshold_for(doc_type)
         if threshold > 0 and amount >= threshold:
@@ -92,6 +100,8 @@ class WorkflowPolicyService:
 
     def assert_can_edit(self, document: Optional[Dict], entity_type: str = 'INVOICE') -> None:
         status = self.normalize_status((document or {}).get('workflow_status') or (document or {}).get('status'))
+        if not self.workflow_enabled():
+            return
         if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):
             raise PermissionError(permission_service.denied_message(permission_service.ACTION_EDIT_INVOICES))
         if not self.can_edit_status(status):
@@ -101,6 +111,8 @@ class WorkflowPolicyService:
 
     def assert_can_delete(self, document: Optional[Dict], entity_type: str = 'INVOICE') -> None:
         status = self.normalize_status((document or {}).get('workflow_status') or (document or {}).get('status'))
+        if not self.workflow_enabled():
+            return
         if not permission_service.can(permission_service.ACTION_DELETE):
             raise PermissionError(permission_service.denied_message(permission_service.ACTION_DELETE))
         if not self.can_delete_status(status):

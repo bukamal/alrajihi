@@ -119,6 +119,19 @@ class InvoiceService:
             audit_service.log('APPROVAL_AUTO_REQUEST_FAILED', 'INVOICE', invoice_id, new_values={'error': str(exc)}, details='تعذر إنشاء طلب الاعتماد التلقائي')
         if self._client_side_movements_enabled():
             warehouse_service.record_invoice_movements(invoice_id, data)
+        # Phase160 daily-mode: when Workflow is disabled, a saved invoice must be
+        # posted immediately so daily users do not need a separate Post action.
+        try:
+            if not workflow_policy_service.workflow_enabled():
+                self.post(invoice_id, 'ترحيل تلقائي لأن سير العمل غير مفعل')
+        except Exception as exc:
+            audit_service.log(
+                'AUTO_POST_FAILED',
+                'SALE_INVOICE' if data.get('type') == 'sale' else 'PURCHASE_INVOICE',
+                invoice_id,
+                new_values={'error': str(exc)},
+                details='تعذر الترحيل التلقائي عند تعطيل سير العمل'
+            )
         audit_service.log('CREATE', 'SALE_INVOICE' if data.get('type') == 'sale' else 'PURCHASE_INVOICE', invoice_id, new_values=data, details='إنشاء فاتورة')
         return invoice_id
 
@@ -165,17 +178,23 @@ class InvoiceService:
         return result
 
     def submit(self, invoice_id: int, notes: str = '') -> str:
+        if not workflow_policy_service.workflow_enabled():
+            return workflow_policy_service.DRAFT
         invoice = self.get(invoice_id)
-        if invoice:
+        if invoice and workflow_policy_service.approval_required():
             approval_service.ensure_invoice_request(invoice, notes or 'إرسال الفاتورة للاعتماد')
         return workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.SUBMITTED, 'submit', notes or 'إرسال الفاتورة للاعتماد')
 
     def approve(self, invoice_id: int, notes: str = '') -> str:
+        if not workflow_policy_service.workflow_enabled() or not workflow_policy_service.approval_required():
+            return (self.get(invoice_id) or {}).get('workflow_status', workflow_policy_service.DRAFT)
         invoice = self.get(invoice_id)
         approval_service.approve_invoice(invoice, notes or 'اعتماد الفاتورة')
         return workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.APPROVED, 'approve', notes or 'اعتماد الفاتورة')
 
     def reject(self, invoice_id: int, notes: str = '') -> str:
+        if not workflow_policy_service.workflow_enabled() or not workflow_policy_service.approval_required():
+            return (self.get(invoice_id) or {}).get('workflow_status', workflow_policy_service.DRAFT)
         invoice = self.get(invoice_id)
         approval_service.reject_invoice(invoice, notes or 'رفض الفاتورة')
         return workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.CANCELLED, 'reject', notes or 'رفض الفاتورة')
@@ -183,8 +202,10 @@ class InvoiceService:
     def post(self, invoice_id: int, notes: str = '') -> str:
         invoice = self.get(invoice_id)
         status = (invoice or {}).get('workflow_status', 'DRAFT')
-        if status != workflow_policy_service.APPROVED:
+        if workflow_policy_service.workflow_enabled() and workflow_policy_service.approval_required() and status != workflow_policy_service.APPROVED:
             raise ValueError('لا يمكن ترحيل الفاتورة محاسبيًا قبل اعتمادها.')
+        if workflow_policy_service.workflow_enabled() and not workflow_policy_service.approval_required() and status not in (workflow_policy_service.DRAFT, workflow_policy_service.SUBMITTED, workflow_policy_service.APPROVED):
+            raise ValueError('لا يمكن ترحيل الفاتورة في حالتها الحالية.')
         new_status = workflow_policy_service.transition_invoice(invoice_id, workflow_policy_service.POSTED, 'post', notes or 'ترحيل الفاتورة')
         accounting_service.post_invoice(self.get(invoice_id) or invoice, notes or 'قيد تلقائي من ترحيل فاتورة')
         return new_status

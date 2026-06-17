@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLi
 from PyQt5.QtCore import Qt, QDate
 from decimal import Decimal
 from core.services.invoice_service import invoice_service
+from core.services.workflow_policy_service import workflow_policy_service
 from core.services.catalog_service import catalog_service
 from currency import currency
 from views.custom_table_view import CustomTableView
@@ -170,15 +171,26 @@ class InvoicesWidget(QWidget):
         return label
 
     def _add_workflow_buttons(self, layout, inv_type):
-        """Phase154: operational workflow buttons on invoice lists."""
+        """Operational workflow buttons, honoring optional Workflow settings."""
         row = QHBoxLayout()
-        actions = [
-            ('workflow_submit', 'submit', 'approval.submit'),
-            ('workflow_approve', 'approve', 'approval.approve'),
-            ('workflow_reject', 'reject', 'approval.reject'),
-            ('workflow_post', 'post', 'accounting.post'),
-            ('workflow_reopen', 'reopen', 'invoices.edit'),
-        ]
+        try:
+            workflow_enabled = workflow_policy_service.workflow_enabled()
+            approval_required = workflow_policy_service.approval_required()
+        except Exception:
+            workflow_enabled = True
+            approval_required = True
+        actions = []
+        if workflow_enabled:
+            actions.append(('workflow_submit', 'submit', 'approval.submit'))
+            if approval_required:
+                actions.extend([
+                    ('workflow_approve', 'approve', 'approval.approve'),
+                    ('workflow_reject', 'reject', 'approval.reject'),
+                ])
+            actions.append(('workflow_post', 'post', 'accounting.post'))
+            actions.append(('workflow_reopen', 'reopen', 'invoices.edit'))
+        else:
+            actions.append(('workflow_post', 'post', 'accounting.post'))
         for label_key, action, perm in actions:
             btn = QPushButton(translate(label_key))
             try:

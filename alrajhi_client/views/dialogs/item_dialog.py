@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import (QFormLayout, QLineEdit, QDoubleSpinBox, QComboBox, QPushButton,
                              QHBoxLayout, QVBoxLayout, QMessageBox, QTableWidget, QTableWidgetItem,
                              QHeaderView, QLabel, QWidget, QSplitter, QGroupBox, QApplication, QDialog,
-                             QShortcut, QFrame)
+                             QShortcut, QFrame, QInputDialog)
 from PyQt5.QtCore import Qt
 from i18n import translate, qt_layout_direction
 from PyQt5.QtGui import QKeySequence
@@ -126,8 +126,20 @@ class ItemDialog(CenteredDialog):
         self.barcode_edit.textChanged.connect(self.update_barcode_status)
 
         self.category_combo = QComboBox()
-        self.category_combo.addItems(self.category_names)
-        general_form.addRow(translate("category_label"), self.category_combo)
+        self.category_combo.addItem(translate("no_category"), None)
+        for c in self.categories:
+            self.category_combo.addItem(c.get('full_name') or c.get('name', ''), c.get('id'))
+        category_widget = QWidget()
+        category_layout = QHBoxLayout(category_widget)
+        category_layout.setContentsMargins(0, 0, 0, 0)
+        category_layout.setSpacing(8)
+        category_layout.addWidget(self.category_combo, 1)
+        self.add_category_btn = QPushButton('+')
+        self.add_category_btn.setToolTip(translate('add_category') if translate('add_category') != 'add_category' else 'إضافة تصنيف')
+        self.add_category_btn.setFixedWidth(38)
+        self.add_category_btn.clicked.connect(self.add_category_from_dialog)
+        category_layout.addWidget(self.add_category_btn)
+        general_form.addRow(translate("category_label"), category_widget)
 
         self.type_combo = QComboBox()
         self.type_combo.addItem(translate("stock_item_type"), "مخزون")
@@ -377,6 +389,37 @@ class ItemDialog(CenteredDialog):
             }}
         """)
 
+    def refresh_categories(self, select_id=None):
+        current = self.category_combo.currentData() if hasattr(self, 'category_combo') else None
+        self.categories = product_service.categories()
+        self.category_combo.blockSignals(True)
+        self.category_combo.clear()
+        self.category_combo.addItem(translate("no_category"), None)
+        for c in self.categories:
+            self.category_combo.addItem(c.get('full_name') or c.get('name', ''), c.get('id'))
+        target = select_id if select_id is not None else current
+        if target is not None:
+            idx = self.category_combo.findData(target)
+            if idx >= 0:
+                self.category_combo.setCurrentIndex(idx)
+        self.category_combo.blockSignals(False)
+
+    def add_category_from_dialog(self):
+        text, ok = QInputDialog.getText(
+            self,
+            translate('add_category') if translate('add_category') != 'add_category' else 'إضافة تصنيف',
+            translate('category_name') if translate('category_name') != 'category_name' else 'اسم التصنيف'
+        )
+        name = str(text or '').strip()
+        if not ok or not name:
+            return
+        try:
+            cat_id = product_service.add_category(name)
+            self.refresh_categories(select_id=cat_id)
+            show_toast(translate('category_added') if translate('category_added') != 'category_added' else 'تمت إضافة التصنيف', 'success', self)
+        except Exception as exc:
+            show_toast(translate("category_create_failed", error=str(exc)), "error", self)
+
     def clear_for_new(self):
         if not self.is_edit:
             self.name_edit.clear()
@@ -523,11 +566,9 @@ class ItemDialog(CenteredDialog):
         self.name_edit.setText(item['name'])
         self.barcode_edit.setText(item.get('barcode') or '')
         if item.get('category_id'):
-            cat = next((c for c in self.categories if c['id'] == item['category_id']), None)
-            if cat:
-                idx = self.category_combo.findText(cat['name'])
-                if idx >= 0:
-                    self.category_combo.setCurrentIndex(idx)
+            idx = self.category_combo.findData(item.get('category_id'))
+            if idx >= 0:
+                self.category_combo.setCurrentIndex(idx)
         idx = self.type_combo.findData(item.get('item_type', 'مخزون'))
         if idx >= 0:
             self.type_combo.setCurrentIndex(idx)
@@ -584,20 +625,7 @@ class ItemDialog(CenteredDialog):
 
         barcode = self.barcode_edit.text().strip() or None
 
-        cat_name = self.category_combo.currentText()
-        cat_id = None
-        if cat_name != translate("no_category"):
-            for c in self.categories:
-                if (c.get('full_name') or c.get('name', '')) == cat_name:
-                    cat_id = c['id']
-                    break
-            if cat_id is None:
-                try:
-                    cat_id = product_service.add_category(cat_name)
-                    self.categories = product_service.categories()
-                except Exception as e:
-                    show_toast(translate("category_create_failed", error=str(e)), "error", self)
-                    return
+        cat_id = self.category_combo.currentData()
 
         item_type = self.type_combo.currentData() or self.type_combo.currentText()
         unit = self.unit_edit.text().strip() or translate('unit_piece')

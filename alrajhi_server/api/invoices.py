@@ -117,6 +117,14 @@ def _workflow_status(invoice):
     return value if value in {'DRAFT', 'SUBMITTED', 'APPROVED', 'POSTED', 'CANCELLED'} else 'DRAFT'
 
 
+def _workflow_enabled(db):
+    return _setting_bool(db, 'workflow/enabled', False)
+
+
+def _approval_required(db):
+    return _setting_bool(db, 'workflow/approval_required', False)
+
+
 def _workflow_threshold(db, inv_type):
     key = 'workflow/sales_approval_threshold' if inv_type == 'sale' else 'workflow/purchase_approval_threshold'
     try:
@@ -130,12 +138,16 @@ def _initial_workflow_status(db, inv_type, total):
         amount = Decimal(str(total or '0'))
     except Exception:
         amount = Decimal('0')
+    if not _workflow_enabled(db) or not _approval_required(db):
+        return 'DRAFT'
     threshold = _workflow_threshold(db, inv_type)
     return 'SUBMITTED' if threshold > 0 and amount >= threshold else 'DRAFT'
 
 
 def _assert_workflow_allowed(db, invoice, operation):
     status = _workflow_status(dict(invoice) if invoice else {})
+    if not _workflow_enabled(db):
+        return
     default_edit = {'DRAFT': True, 'SUBMITTED': True, 'APPROVED': False, 'POSTED': False, 'CANCELLED': False}
     default_delete = dict(default_edit)
     if operation == 'edit':
@@ -462,19 +474,21 @@ def transition_invoice_workflow(invoice_id):
         return jsonify({'error': 'Not found'}), 404
     old_status = _workflow_status(dict(row))
     now = datetime.datetime.now().isoformat(timespec='seconds')
-    if action == 'submit':
+    if action == 'submit' and _approval_required(db):
         _ensure_approval_request(db, dict(row), user_id, notes)
-    if action == 'approve':
+    if action == 'approve' and _workflow_enabled(db) and _approval_required(db):
         if not _has_permission(db, user_id, 'approval.approve'):
             return jsonify({'error': 'Permission denied', 'permission': 'approval.approve'}), 403
         _approve_request(db, dict(row), user_id, notes)
-    if action == 'reject':
+    if action == 'reject' and _workflow_enabled(db) and _approval_required(db):
         if not _has_permission(db, user_id, 'approval.reject'):
             return jsonify({'error': 'Permission denied', 'permission': 'approval.reject'}), 403
     if action == 'post' and not _has_permission(db, user_id, 'accounting.post'):
         return jsonify({'error': 'Permission denied', 'permission': 'accounting.post'}), 403
-    if action == 'post' and old_status != 'APPROVED':
+    if action == 'post' and _workflow_enabled(db) and _approval_required(db) and old_status != 'APPROVED':
         return jsonify({'error': 'لا يمكن الترحيل قبل الاعتماد'}), 400
+    if action == 'post' and _workflow_enabled(db) and not _approval_required(db) and old_status not in {'DRAFT','SUBMITTED','APPROVED'}:
+        return jsonify({'error': 'لا يمكن الترحيل في الحالة الحالية'}), 400
     if action == 'post':
         _post_accounting_invoice(db, dict(row), user_id, notes)
     updates = {'workflow_status': new_status}
@@ -579,6 +593,21 @@ def add_invoice():
             'supplier_id': data.get('supplier_id'), 'total': data['total'],
             'paid': data.get('paid_amount', 0)
         }, Decimal('1'))
+        # Phase160 daily-mode: direct API/client creations should also become
+        # accounting-posted when Workflow is disabled.
+        if not _workflow_enabled(db):
+            inv_for_post = {
+                'id': invoice_id, 'type': data.get('type'), 'total': data.get('total'),
+                'paid': data.get('paid_amount', 0), 'date': data.get('date'),
+                'reference': data.get('reference', '')
+            }
+            _post_accounting_invoice(db, inv_for_post, user_id, 'ترحيل تلقائي لأن سير العمل غير مفعل')
+            now = datetime.datetime.now().isoformat(timespec='seconds')
+            db.execute("UPDATE invoices SET workflow_status='POSTED', posted_at=?, posted_by=? WHERE id=? AND user_id=?", (now, user_id, invoice_id, user_id))
+            db.execute('''
+                INSERT INTO workflow_events(entity_type, entity_id, old_status, new_status, action, username, user_id, notes, created_at)
+                VALUES (?,?,?,?,?,?,?,?,?)
+            ''', ('INVOICE', invoice_id, data.get('workflow_status', 'DRAFT'), 'POSTED', 'auto_post', user_id, user_id, 'ترحيل تلقائي لأن سير العمل غير مفعل', now))
         audit_log('CREATE', 'SALE_INVOICE' if data.get('type') == 'sale' else 'PURCHASE_INVOICE', invoice_id, new_values=data, details='إنشاء فاتورة')
         db.execute("COMMIT")
         return jsonify({'id': invoice_id}), 201
