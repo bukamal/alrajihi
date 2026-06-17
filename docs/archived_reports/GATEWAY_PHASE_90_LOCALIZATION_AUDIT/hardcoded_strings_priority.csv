@@ -1,0 +1,1097 @@
+﻿file,line,class,call_context,text
+alrajhi_client/views/centered_dialog.py,38,likely_ui,question,تغييرات غير محفوظة
+alrajhi_client/views/centered_dialog.py,39,likely_ui,question,لديك تغييرات غير محفوظة. هل تريد الخروج دون حفظ؟
+alrajhi_client/views/custom_table_view.py,115,likely_ui,QAction,📊 تصدير إلى Excel
+alrajhi_client/views/custom_table_view.py,118,likely_ui,QAction,📄 طباعة
+alrajhi_client/views/custom_table_view.py,122,likely_ui,QAction,📋 نسخ
+alrajhi_client/views/custom_table_view.py,128,arabic_literal,addMenu,🧩 الأعمدة
+alrajhi_client/views/custom_table_view.py,130,arabic_literal,,عمود 
+alrajhi_client/views/custom_table_view.py,136,likely_ui,QAction,↩️ إعادة ضبط الأعمدة
+alrajhi_client/views/custom_table_view.py,157,likely_ui,warning,تنبيه
+alrajhi_client/views/custom_table_view.py,157,likely_ui,warning,مكتبة openpyxl غير مثبتة
+alrajhi_client/views/custom_table_view.py,159,arabic_literal,getSaveFileName,حفظ التقرير
+alrajhi_client/views/custom_table_view.py,164,arabic_literal,,تقرير
+alrajhi_client/views/custom_table_view.py,177,likely_ui,information,نجاح
+alrajhi_client/views/custom_table_view.py,177,likely_ui,information,تم التصدير إلى 
+alrajhi_client/views/custom_table_view.py,192,arabic_literal,append,عمود 
+alrajhi_client/views/custom_table_view.py,203,arabic_literal,,تقرير جدول
+alrajhi_client/views/custom_table_view.py,204,arabic_literal,,عدد السجلات: 
+alrajhi_client/views/custom_table_view.py,209,likely_ui,warning,تعذر الطباعة
+alrajhi_client/views/dialogs/activation_dialog.py,21,arabic_literal,emit,فحص صيغة مفتاح الترخيص...
+alrajhi_client/views/dialogs/activation_dialog.py,22,arabic_literal,emit,جاري الاتصال بخادم التفعيل...
+alrajhi_client/views/dialogs/activation_dialog.py,25,arabic_literal,emit,تم التفعيل بنجاح
+alrajhi_client/views/dialogs/activation_dialog.py,28,arabic_literal,emit,فشل التفعيل
+alrajhi_client/views/dialogs/activation_dialog.py,36,likely_ui,setWindowTitle,تفعيل النظام
+alrajhi_client/views/dialogs/activation_dialog.py,51,likely_ui,QLabel,🔐
+alrajhi_client/views/dialogs/activation_dialog.py,56,likely_ui,QLabel,تفعيل نظام الراجحي للمحاسبة
+alrajhi_client/views/dialogs/activation_dialog.py,61,likely_ui,QLabel,أدخل مفتاح الترخيص. يلزم اتصال بالإنترنت لإتمام التفعيل.
+alrajhi_client/views/dialogs/activation_dialog.py,67,arabic_literal,status_pill,سيتم حفظ الترخيص محليًا وربطه بالجهاز
+alrajhi_client/views/dialogs/activation_dialog.py,71,likely_ui,setPlaceholderText,أدخل مفتاح الترخيص — مثال: XXXX-XXXX-XXXX-XXXX
+alrajhi_client/views/dialogs/activation_dialog.py,76,likely_ui,QCheckBox,إظهار المفتاح
+alrajhi_client/views/dialogs/activation_dialog.py,85,likely_ui,QLabel,جاهز للتفعيل
+alrajhi_client/views/dialogs/activation_dialog.py,92,arabic_literal,primary_button,تفعيل
+alrajhi_client/views/dialogs/activation_dialog.py,97,arabic_literal,secondary_button,إعادة المحاولة
+alrajhi_client/views/dialogs/activation_dialog.py,102,arabic_literal,secondary_button,إلغاء
+alrajhi_client/views/dialogs/activation_dialog.py,120,arabic_literal,_set_status,يرجى إدخال مفتاح الترخيص
+alrajhi_client/views/dialogs/activation_dialog.py,128,arabic_literal,_set_status,جاري بدء التفعيل...
+alrajhi_client/views/dialogs/activation_dialog.py,144,arabic_literal,_set_status,الترخيص صالح. تم التفعيل بنجاح.
+alrajhi_client/views/dialogs/activation_dialog.py,145,likely_ui,information,نجاح
+alrajhi_client/views/dialogs/activation_dialog.py,145,likely_ui,information,تم التفعيل بنجاح. سيتم متابعة تشغيل التطبيق.
+alrajhi_client/views/dialogs/activation_dialog.py,149,arabic_literal,,تحقق من المفتاح أو اتصال الإنترنت ثم أعد المحاولة.
+alrajhi_client/views/dialogs/activation_dialog.py,150,arabic_literal,_set_status,فشل التفعيل: 
+alrajhi_client/views/dialogs/add_entity_dialog.py,15,likely_ui,setWindowTitle,إضافة 
+alrajhi_client/views/dialogs/add_entity_dialog.py,15,likely_ui,setWindowTitle,عميل
+alrajhi_client/views/dialogs/add_entity_dialog.py,15,likely_ui,setWindowTitle,مورد
+alrajhi_client/views/dialogs/add_entity_dialog.py,15,likely_ui,setWindowTitle, جديد
+alrajhi_client/views/dialogs/add_entity_dialog.py,22,likely_ui,setPlaceholderText,الاسم
+alrajhi_client/views/dialogs/add_entity_dialog.py,23,arabic_literal,addRow,الاسم:
+alrajhi_client/views/dialogs/add_entity_dialog.py,27,likely_ui,setPlaceholderText,الهاتف (اختياري)
+alrajhi_client/views/dialogs/add_entity_dialog.py,28,arabic_literal,addRow,الهاتف:
+alrajhi_client/views/dialogs/add_entity_dialog.py,30,likely_ui,setPlaceholderText,العنوان (اختياري)
+alrajhi_client/views/dialogs/add_entity_dialog.py,31,arabic_literal,addRow,العنوان:
+alrajhi_client/views/dialogs/add_entity_dialog.py,35,likely_ui,QPushButton,حفظ
+alrajhi_client/views/dialogs/add_entity_dialog.py,37,likely_ui,QPushButton,إلغاء
+alrajhi_client/views/dialogs/add_entity_dialog.py,45,arabic_literal,apply_modern_dialog,إضافة عميل/مورد
+alrajhi_client/views/dialogs/add_entity_dialog.py,50,arabic_literal,required,الاسم
+alrajhi_client/views/dialogs/add_entity_dialog.py,62,arabic_literal,show_toast,تمت الإضافة
+alrajhi_client/views/dialogs/barcode_camera_dialog.py,46,likely_ui,addItems,Camera 0
+alrajhi_client/views/dialogs/barcode_camera_dialog.py,46,likely_ui,addItems,Camera 1
+alrajhi_client/views/dialogs/barcode_camera_dialog.py,46,likely_ui,addItems,Camera 2
+alrajhi_client/views/dialogs/batch_print_dialog.py,18,likely_ui,setWindowTitle,طباعة باركودات متعددة
+alrajhi_client/views/dialogs/batch_print_dialog.py,30,likely_ui,QLabel,الطابعة:
+alrajhi_client/views/dialogs/batch_print_dialog.py,39,likely_ui,QLabel,عدد النسخ:
+alrajhi_client/views/dialogs/batch_print_dialog.py,45,likely_ui,QLabel,حجم الملصق:
+alrajhi_client/views/dialogs/batch_print_dialog.py,50,likely_ui,QLabel,النوع:
+alrajhi_client/views/dialogs/batch_print_dialog.py,55,likely_ui,QCheckBox,اسم الشركة
+alrajhi_client/views/dialogs/batch_print_dialog.py,57,likely_ui,QCheckBox,اسم المادة
+alrajhi_client/views/dialogs/batch_print_dialog.py,59,likely_ui,QCheckBox,السعر
+alrajhi_client/views/dialogs/batch_print_dialog.py,61,likely_ui,QCheckBox,رقم الباركود
+alrajhi_client/views/dialogs/batch_print_dialog.py,76,likely_ui,QPushButton,➕ إضافة مواد
+alrajhi_client/views/dialogs/batch_print_dialog.py,78,likely_ui,QPushButton,🗑 حذف المحدد
+alrajhi_client/views/dialogs/batch_print_dialog.py,80,likely_ui,QPushButton,🖨️ طباعة
+alrajhi_client/views/dialogs/batch_print_dialog.py,82,likely_ui,QPushButton,إلغاء
+alrajhi_client/views/dialogs/batch_print_dialog.py,96,arabic_literal,,المادة
+alrajhi_client/views/dialogs/batch_print_dialog.py,96,arabic_literal,,الباركود
+alrajhi_client/views/dialogs/batch_print_dialog.py,96,arabic_literal,,السعر
+alrajhi_client/views/dialogs/batch_print_dialog.py,96,arabic_literal,,عدد النسخ
+alrajhi_client/views/dialogs/batch_print_dialog.py,140,likely_ui,setWindowTitle,اختر المواد
+alrajhi_client/views/dialogs/batch_print_dialog.py,157,arabic_literal,apply_modern_dialog,طباعة دفعة
+alrajhi_client/views/dialogs/batch_print_dialog.py,190,arabic_literal,show_toast,لا توجد مواد للطباعة
+alrajhi_client/views/dialogs/batch_print_dialog.py,195,arabic_literal,show_toast,لم يتم اختيار طابعة
+alrajhi_client/views/dialogs/batch_print_dialog.py,214,arabic_literal,show_toast,تم حفظ PDF بنجاح
+alrajhi_client/views/dialogs/batch_print_dialog.py,217,arabic_literal,show_toast,فشل حفظ PDF
+alrajhi_client/views/dialogs/batch_print_dialog.py,228,arabic_literal,show_toast,تم حفظ PDF بنجاح
+alrajhi_client/views/dialogs/batch_print_dialog.py,231,arabic_literal,show_toast,فشل حفظ PDF
+alrajhi_client/views/dialogs/batch_print_dialog.py,234,arabic_literal,show_toast,تمت الطباعة بنجاح
+alrajhi_client/views/dialogs/batch_print_dialog.py,237,arabic_literal,show_toast,حدثت بعض الأخطاء أثناء الطباعة
+alrajhi_client/views/dialogs/bom_dialog.py,41,arabic_literal,,منتج نهائي
+alrajhi_client/views/dialogs/bom_dialog.py,43,likely_ui,addItem, (
+alrajhi_client/views/dialogs/bom_dialog.py,43,likely_ui,addItem,)
+alrajhi_client/views/dialogs/bom_dialog.py,106,arabic_literal,,مخزون
+alrajhi_client/views/dialogs/bom_dialog.py,106,arabic_literal,,منتج نهائي
+alrajhi_client/views/dialogs/bom_dialog.py,107,likely_ui,addItem, (
+alrajhi_client/views/dialogs/bom_dialog.py,107,likely_ui,addItem,)
+alrajhi_client/views/dialogs/category_dialog.py,13,likely_ui,setWindowTitle,إدارة التصنيفات
+alrajhi_client/views/dialogs/category_dialog.py,17,arabic_literal,apply_modern_dialog,إدارة التصنيفات
+alrajhi_client/views/dialogs/change_password_dialog.py,23,likely_ui,QLabel,تغيير كلمة المرور
+alrajhi_client/views/dialogs/change_password_dialog.py,43,likely_ui,QCheckBox,إظهار كلمات المرور
+alrajhi_client/views/dialogs/change_password_dialog.py,47,likely_ui,QLabel,قوة كلمة المرور: —
+alrajhi_client/views/dialogs/change_password_dialog.py,52,likely_ui,QLabel,استخدم 8 أحرف على الأقل مع أرقام وحروف. تجنب admin123 وكلمات المرور الشائعة.
+alrajhi_client/views/dialogs/change_password_dialog.py,95,arabic_literal,,ضعيفة جدًا
+alrajhi_client/views/dialogs/change_password_dialog.py,96,arabic_literal,,ضعيفة
+alrajhi_client/views/dialogs/change_password_dialog.py,97,arabic_literal,,متوسطة
+alrajhi_client/views/dialogs/change_password_dialog.py,98,arabic_literal,,جيدة
+alrajhi_client/views/dialogs/change_password_dialog.py,99,arabic_literal,,قوية
+alrajhi_client/views/dialogs/change_password_dialog.py,102,likely_ui,setText,قوة كلمة المرور: 
+alrajhi_client/views/dialogs/change_password_dialog.py,110,likely_ui,warning,جميع الحقول مطلوبة
+alrajhi_client/views/dialogs/change_password_dialog.py,113,likely_ui,warning,كلمتا المرور غير متطابقتين
+alrajhi_client/views/dialogs/change_password_dialog.py,116,likely_ui,warning,كلمة المرور ضعيفة جدًا
+alrajhi_client/views/dialogs/change_password_dialog.py,119,likely_ui,information,تم تغيير كلمة المرور
+alrajhi_client/views/dialogs/change_password_dialog.py,122,likely_ui,warning,كلمة المرور الحالية غير صحيحة
+alrajhi_client/views/dialogs/column_customizer.py,9,likely_ui,setWindowTitle,تخصيص أعمدة جدول 
+alrajhi_client/views/dialogs/column_customizer.py,26,likely_ui,QPushButton,حفظ
+alrajhi_client/views/dialogs/column_customizer.py,28,likely_ui,QPushButton,إلغاء
+alrajhi_client/views/dialogs/column_customizer.py,29,likely_ui,QPushButton,تحديد الكل
+alrajhi_client/views/dialogs/column_customizer.py,30,likely_ui,QPushButton,إلغاء التحديد
+alrajhi_client/views/dialogs/item_dialog.py,133,likely_ui,addItem,مخزون
+alrajhi_client/views/dialogs/item_dialog.py,134,likely_ui,addItem,منتج نهائي
+alrajhi_client/views/dialogs/item_dialog.py,135,likely_ui,addItem,خدمة
+alrajhi_client/views/dialogs/item_dialog.py,461,likely_ui,setText,✗ 
+alrajhi_client/views/dialogs/item_dialog.py,501,likely_ui,QPushButton,🗑
+alrajhi_client/views/dialogs/item_dialog.py,531,arabic_literal,get,مخزون
+alrajhi_client/views/dialogs/item_dialog.py,548,likely_ui,QPushButton,🗑
+alrajhi_client/views/dialogs/login_dialog.py,131,likely_ui,QLabel,© AlRajhi ERP — Secure Desktop Edition
+alrajhi_client/views/dialogs/production_details_dialog.py,52,likely_ui,QLabel,\n            <b>
+alrajhi_client/views/dialogs/production_details_dialog.py,53,likely_ui,QLabel,</b> 
+alrajhi_client/views/dialogs/production_details_dialog.py,53,likely_ui,QLabel,<br>\n            <b>
+alrajhi_client/views/dialogs/production_details_dialog.py,54,likely_ui,QLabel,</b> 
+alrajhi_client/views/dialogs/production_details_dialog.py,54,likely_ui,QLabel,<br>\n            <b>
+alrajhi_client/views/dialogs/production_details_dialog.py,55,likely_ui,QLabel,</b> 
+alrajhi_client/views/dialogs/production_details_dialog.py,55,likely_ui,QLabel,<br>\n            <b>
+alrajhi_client/views/dialogs/production_details_dialog.py,56,likely_ui,QLabel,</b> 
+alrajhi_client/views/dialogs/production_details_dialog.py,56,likely_ui,QLabel,<br>\n            <b>
+alrajhi_client/views/dialogs/production_details_dialog.py,57,likely_ui,QLabel,</b> 
+alrajhi_client/views/dialogs/production_details_dialog.py,57,likely_ui,QLabel,<br>\n            <b>
+alrajhi_client/views/dialogs/production_details_dialog.py,58,likely_ui,QLabel,</b> 
+alrajhi_client/views/dialogs/production_details_dialog.py,58,likely_ui,QLabel,<br>\n            <b>
+alrajhi_client/views/dialogs/production_details_dialog.py,59,likely_ui,QLabel,</b> 
+alrajhi_client/views/dialogs/production_details_dialog.py,59,likely_ui,QLabel,<br>\n            <b>
+alrajhi_client/views/dialogs/production_details_dialog.py,60,likely_ui,QLabel,</b> 
+alrajhi_client/views/dialogs/production_details_dialog.py,60,likely_ui,QLabel,<br>\n            <b>
+alrajhi_client/views/dialogs/production_details_dialog.py,61,likely_ui,QLabel,</b> 
+alrajhi_client/views/dialogs/production_order_dialog.py,57,arabic_literal,,منتج نهائي
+alrajhi_client/views/dialogs/production_order_dialog.py,61,likely_ui,addItem, (
+alrajhi_client/views/dialogs/production_order_dialog.py,61,likely_ui,addItem,)
+alrajhi_client/views/dialogs/production_order_dialog.py,63,likely_ui,addItem, (
+alrajhi_client/views/dialogs/production_order_dialog.py,63,likely_ui,addItem,) - 
+alrajhi_client/views/frameless_dialog.py,43,likely_ui,QLabel,نافذة
+alrajhi_client/views/main_window.py,75,arabic_literal,,الرئيسية
+alrajhi_client/views/main_window.py,76,arabic_literal,,المبيعات
+alrajhi_client/views/main_window.py,77,arabic_literal,,المبيعات
+alrajhi_client/views/main_window.py,78,arabic_literal,,المشتريات
+alrajhi_client/views/main_window.py,79,arabic_literal,,المبيعات
+alrajhi_client/views/main_window.py,80,arabic_literal,,المشتريات
+alrajhi_client/views/main_window.py,81,arabic_literal,,المبيعات
+alrajhi_client/views/main_window.py,82,arabic_literal,,المبيعات
+alrajhi_client/views/main_window.py,83,arabic_literal,,المشتريات
+alrajhi_client/views/main_window.py,84,arabic_literal,,المخزون
+alrajhi_client/views/main_window.py,85,arabic_literal,,المخزون
+alrajhi_client/views/main_window.py,86,arabic_literal,,المخزون
+alrajhi_client/views/main_window.py,87,arabic_literal,,الإدارة
+alrajhi_client/views/main_window.py,88,arabic_literal,,المبيعات
+alrajhi_client/views/main_window.py,89,arabic_literal,,التصنيع
+alrajhi_client/views/main_window.py,90,arabic_literal,,التقارير
+alrajhi_client/views/main_window.py,91,arabic_literal,,الإدارة
+alrajhi_client/views/main_window.py,92,arabic_literal,,المستخدمين
+alrajhi_client/views/main_window.py,93,arabic_literal,,المستخدمين
+alrajhi_client/views/main_window.py,94,arabic_literal,,الإدارة
+alrajhi_client/views/main_window.py,95,arabic_literal,,الإدارة
+alrajhi_client/views/main_window.py,190,likely_ui,QLabel,تعذر تحميل صفحة 
+alrajhi_client/views/main_window.py,190,likely_ui,QLabel,.\n\nالسبب: 
+alrajhi_client/views/main_window.py,191,likely_ui,QLabel,\n\nلن يتم إغلاق البرنامج. تحقق من اتصال الخادم أو من توفر واجهة REST المطلوبة ثم افتح الصفحة مرة أخرى.
+alrajhi_client/views/main_window.py,289,arabic_literal,addMenu,\nالرئيسية
+alrajhi_client/views/main_window.py,295,arabic_literal,addMenu,\nالمبيعات
+alrajhi_client/views/main_window.py,302,arabic_literal,addMenu,\nالمشتريات
+alrajhi_client/views/main_window.py,308,arabic_literal,addMenu,\nالمخزون
+alrajhi_client/views/main_window.py,313,arabic_literal,addMenu,\nالتصنيع
+alrajhi_client/views/main_window.py,316,arabic_literal,addMenu,\nالأطراف
+alrajhi_client/views/main_window.py,320,arabic_literal,addMenu,\nالمالية
+alrajhi_client/views/main_window.py,324,arabic_literal,addMenu,\nالتقارير
+alrajhi_client/views/main_window.py,330,arabic_literal,addMenu,\nالإدارة
+alrajhi_client/views/main_window.py,344,arabic_literal,addMenu,\nالمستخدمون
+alrajhi_client/views/main_window.py,348,arabic_literal,addMenu,\nإجراءات سريعة
+alrajhi_client/views/main_window.py,404,likely_ui,setText, — 
+alrajhi_client/views/main_window.py,426,arabic_literal,set_badge,فواتير البيع
+alrajhi_client/views/main_window.py,555,likely_ui,information,تم الإرسال: 
+alrajhi_client/views/main_window.py,555,likely_ui,information,\nفشل: 
+alrajhi_client/views/splash_screen.py,50,arabic_literal,,قاعدة البيانات
+alrajhi_client/views/splash_screen.py,50,arabic_literal,,الترخيص
+alrajhi_client/views/splash_screen.py,50,arabic_literal,,تسجيل الدخول
+alrajhi_client/views/splash_screen.py,50,arabic_literal,,الواجهة
+alrajhi_client/views/splash_screen.py,58,likely_ui,QLabel,تهيئة بدء التشغيل
+alrajhi_client/views/splash_screen.py,82,likely_ui,QLabel,جاري تهيئة النظام...
+alrajhi_client/views/splash_screen.py,88,likely_ui,QLabel,الرجاء عدم إغلاق التطبيق أثناء التحميل
+alrajhi_client/views/splash_screen.py,131,likely_ui,setText,تعذر إكمال التشغيل
+alrajhi_client/views/splash_screen.py,133,likely_ui,setText,راجع الرسالة ثم أعد المحاولة.
+alrajhi_client/views/widgets/components/table_toolbar.py,17,arabic_literal,,العنصر
+alrajhi_client/views/widgets/components/table_toolbar.py,17,arabic_literal,,بحث...
+alrajhi_client/views/widgets/components/table_toolbar.py,28,likely_ui,QPushButton,➕ إضافة 
+alrajhi_client/views/widgets/components/table_toolbar.py,33,likely_ui,QPushButton,✏️ تعديل
+alrajhi_client/views/widgets/components/table_toolbar.py,38,likely_ui,QPushButton,🗑 حذف
+alrajhi_client/views/widgets/components/table_toolbar.py,51,likely_ui,QPushButton,🧩 الأعمدة
+alrajhi_client/views/widgets/components/table_toolbar.py,55,likely_ui,QPushButton,📊 Excel
+alrajhi_client/views/widgets/components/table_toolbar.py,59,likely_ui,QPushButton,🖨️ طباعة
+alrajhi_client/views/widgets/components/table_toolbar.py,63,likely_ui,QPushButton,🔄 تحديث
+alrajhi_client/views/widgets/components/table_toolbar.py,67,likely_ui,QLabel,0 سجل
+alrajhi_client/views/widgets/components/table_toolbar.py,115,arabic_literal,,عمود 
+alrajhi_client/views/widgets/components/table_toolbar.py,121,likely_ui,addAction,↩️ إعادة ضبط الأعمدة
+alrajhi_client/views/widgets/dashboard_widget.py,253,likely_ui,QLabel,API: —
+alrajhi_client/views/widgets/dashboard_widget.py,255,likely_ui,QLabel,Queue: —
+alrajhi_client/views/widgets/dashboard_widget.py,257,likely_ui,QLabel,Ledger: —
+alrajhi_client/views/widgets/dashboard_widget.py,360,likely_ui,QLabel,—
+alrajhi_client/views/widgets/dashboard_widget.py,366,likely_ui,QLabel,—
+alrajhi_client/views/widgets/dashboard_widget.py,372,likely_ui,QLabel,—
+alrajhi_client/views/widgets/dashboard_widget.py,378,likely_ui,QLabel,—
+alrajhi_client/views/widgets/dashboard_widget.py,394,arabic_literal,print,⚠️ تعذر تحميل معلومات الشركة: 
+alrajhi_client/views/widgets/dashboard_widget.py,466,likely_ui,QLabel,—
+alrajhi_client/views/widgets/dashboard_widget.py,507,likely_ui,QLabel,—
+alrajhi_client/views/widgets/dashboard_widget.py,551,likely_ui,QLabel,—
+alrajhi_client/views/widgets/dashboard_widget.py,609,likely_ui,QLabel,—
+alrajhi_client/views/widgets/dashboard_widget.py,637,likely_ui,addItem, (
+alrajhi_client/views/widgets/dashboard_widget.py,637,likely_ui,addItem,)
+alrajhi_client/views/widgets/dashboard_widget.py,665,arabic_literal,print,⚠️ تعذر تحديث لوحة التحكم: 
+alrajhi_client/views/widgets/dashboard_widget.py,681,arabic_literal,print,⚠️ تعذر تحميل تنبيهات لوحة التحكم: 
+alrajhi_client/views/widgets/dashboard_widget.py,818,likely_ui,setText,1 USD = 
+alrajhi_client/views/widgets/dashboard_widget.py,821,arabic_literal,print,⚠️ تعذر تحميل سعر صرف الليرة السورية: 
+alrajhi_client/views/widgets/dashboard_widget.py,838,arabic_literal,print,⚠️ تعذر تحميل مراقبة التشغيل: 
+alrajhi_client/views/widgets/invoices_widget.py,53,likely_ui,addTab,💰 
+alrajhi_client/views/widgets/invoices_widget.py,54,likely_ui,addTab,📦 
+alrajhi_client/views/widgets/items_widget.py,59,arabic_literal,,إضافة فلاتر المواد فوق الجدول مع استخدام بحث الشريط الموحد.
+alrajhi_client/views/widgets/items_widget.py,67,likely_ui,addItem,مخزون
+alrajhi_client/views/widgets/items_widget.py,68,likely_ui,addItem,منتج نهائي
+alrajhi_client/views/widgets/items_widget.py,69,likely_ui,addItem,خدمة
+alrajhi_client/views/widgets/items_widget.py,90,arabic_literal,,إرجاع اسم المادة من الصف المحدد (لرسالة تأكيد الحذف)
+alrajhi_client/views/widgets/manufacturing_widget.py,182,likely_ui,QAction,✏️ 
+alrajhi_client/views/widgets/manufacturing_widget.py,184,likely_ui,QAction,🗑 
+alrajhi_client/views/widgets/modern_ui.py,220,arabic_literal,any,حفظ
+alrajhi_client/views/widgets/modern_ui.py,220,arabic_literal,any,إضافة
+alrajhi_client/views/widgets/modern_ui.py,220,arabic_literal,any,جديد
+alrajhi_client/views/widgets/modern_ui.py,220,arabic_literal,any,إنشاء
+alrajhi_client/views/widgets/modern_ui.py,222,arabic_literal,any,حذف
+alrajhi_client/views/widgets/modern_ui.py,222,arabic_literal,any,أرشفة
+alrajhi_client/views/widgets/modern_ui.py,222,arabic_literal,any,إلغاء
+alrajhi_client/views/widgets/modern_ui.py,223,arabic_literal,setObjectName,حذف
+alrajhi_client/views/widgets/modern_ui.py,223,arabic_literal,setObjectName,أرشفة
+alrajhi_client/views/widgets/offline_queue_widget.py,44,likely_ui,setHorizontalHeaderLabels,#
+alrajhi_client/views/widgets/reports_widget.py,370,arabic_literal,append,إجمالي الإيرادات
+alrajhi_client/views/widgets/reports_widget.py,377,arabic_literal,append,إجمالي المصروفات
+alrajhi_client/views/widgets/reports_widget.py,378,arabic_literal,append,صافي الربح
+alrajhi_client/views/widgets/reports_widget.py,388,arabic_literal,append,إجمالي الأصول
+alrajhi_client/views/widgets/reports_widget.py,389,arabic_literal,_set_table,الحساب
+alrajhi_client/views/widgets/reports_widget.py,389,arabic_literal,_set_table,المبلغ
+alrajhi_client/views/widgets/reports_widget.py,404,likely_ui,setText,إجمالي قيمة المخزون: 
+alrajhi_client/views/widgets/reports_widget.py,405,arabic_literal,_set_table,المستودع
+alrajhi_client/views/widgets/reports_widget.py,405,arabic_literal,_set_table,عدد المواد
+alrajhi_client/views/widgets/reports_widget.py,405,arabic_literal,_set_table,إجمالي الكميات
+alrajhi_client/views/widgets/reports_widget.py,405,arabic_literal,_set_table,قيمة المخزون
+alrajhi_client/views/widgets/reports_widget.py,423,likely_ui,setText,عدد السجلات: 
+alrajhi_client/views/widgets/reports_widget.py,423,likely_ui,setText, | إجمالي القيمة: 
+alrajhi_client/views/widgets/reports_widget.py,424,arabic_literal,_set_table,المستودع
+alrajhi_client/views/widgets/reports_widget.py,424,arabic_literal,_set_table,المادة
+alrajhi_client/views/widgets/reports_widget.py,424,arabic_literal,_set_table,الباركود
+alrajhi_client/views/widgets/reports_widget.py,424,arabic_literal,_set_table,الكمية
+alrajhi_client/views/widgets/reports_widget.py,424,arabic_literal,_set_table,الوحدة
+alrajhi_client/views/widgets/reports_widget.py,424,arabic_literal,_set_table,متوسط التكلفة
+alrajhi_client/views/widgets/reports_widget.py,424,arabic_literal,_set_table,قيمة المخزون
+alrajhi_client/views/widgets/reports_widget.py,438,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,438,arabic_literal,_set_table,المستودع
+alrajhi_client/views/widgets/reports_widget.py,438,arabic_literal,_set_table,المادة
+alrajhi_client/views/widgets/reports_widget.py,438,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,438,arabic_literal,_set_table,الكمية
+alrajhi_client/views/widgets/reports_widget.py,438,arabic_literal,_set_table,التكلفة
+alrajhi_client/views/widgets/reports_widget.py,438,arabic_literal,_set_table,المرجع
+alrajhi_client/views/widgets/reports_widget.py,438,arabic_literal,_set_table,ملاحظات
+alrajhi_client/views/widgets/reports_widget.py,451,arabic_literal,append,ملغى
+alrajhi_client/views/widgets/reports_widget.py,451,arabic_literal,append,نشط
+alrajhi_client/views/widgets/reports_widget.py,454,arabic_literal,_set_table,رقم التحويل
+alrajhi_client/views/widgets/reports_widget.py,454,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,454,arabic_literal,_set_table,المادة
+alrajhi_client/views/widgets/reports_widget.py,454,arabic_literal,_set_table,من
+alrajhi_client/views/widgets/reports_widget.py,454,arabic_literal,_set_table,إلى
+alrajhi_client/views/widgets/reports_widget.py,454,arabic_literal,_set_table,الكمية
+alrajhi_client/views/widgets/reports_widget.py,454,arabic_literal,_set_table,الحالة
+alrajhi_client/views/widgets/reports_widget.py,454,arabic_literal,_set_table,ملاحظات
+alrajhi_client/views/widgets/reports_widget.py,464,likely_ui,setText,الصناديق: 
+alrajhi_client/views/widgets/reports_widget.py,464,likely_ui,setText, | البنوك: 
+alrajhi_client/views/widgets/reports_widget.py,464,likely_ui,setText, | الإجمالي المتاح: 
+alrajhi_client/views/widgets/reports_widget.py,470,arabic_literal,append,صندوق
+alrajhi_client/views/widgets/reports_widget.py,475,arabic_literal,append,نشط
+alrajhi_client/views/widgets/reports_widget.py,475,arabic_literal,append,مؤرشف
+alrajhi_client/views/widgets/reports_widget.py,480,arabic_literal,append,بنك
+alrajhi_client/views/widgets/reports_widget.py,485,arabic_literal,append,نشط
+alrajhi_client/views/widgets/reports_widget.py,485,arabic_literal,append,مؤرشف
+alrajhi_client/views/widgets/reports_widget.py,487,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,487,arabic_literal,_set_table,الفرع
+alrajhi_client/views/widgets/reports_widget.py,487,arabic_literal,_set_table,الاسم
+alrajhi_client/views/widgets/reports_widget.py,487,arabic_literal,_set_table,الرقم/الكود
+alrajhi_client/views/widgets/reports_widget.py,487,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,487,arabic_literal,_set_table,الحالة
+alrajhi_client/views/widgets/reports_widget.py,499,arabic_literal,append,داخل
+alrajhi_client/views/widgets/reports_widget.py,499,arabic_literal,append,خارج
+alrajhi_client/views/widgets/reports_widget.py,504,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,504,arabic_literal,_set_table,الفرع
+alrajhi_client/views/widgets/reports_widget.py,504,arabic_literal,_set_table,الصندوق
+alrajhi_client/views/widgets/reports_widget.py,504,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,504,arabic_literal,_set_table,الاتجاه
+alrajhi_client/views/widgets/reports_widget.py,504,arabic_literal,_set_table,المبلغ
+alrajhi_client/views/widgets/reports_widget.py,504,arabic_literal,_set_table,المرجع
+alrajhi_client/views/widgets/reports_widget.py,504,arabic_literal,_set_table,البيان
+alrajhi_client/views/widgets/reports_widget.py,516,arabic_literal,append,داخل
+alrajhi_client/views/widgets/reports_widget.py,516,arabic_literal,append,خارج
+alrajhi_client/views/widgets/reports_widget.py,521,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,521,arabic_literal,_set_table,الفرع
+alrajhi_client/views/widgets/reports_widget.py,521,arabic_literal,_set_table,الحساب البنكي
+alrajhi_client/views/widgets/reports_widget.py,521,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,521,arabic_literal,_set_table,الاتجاه
+alrajhi_client/views/widgets/reports_widget.py,521,arabic_literal,_set_table,المبلغ
+alrajhi_client/views/widgets/reports_widget.py,521,arabic_literal,_set_table,المرجع
+alrajhi_client/views/widgets/reports_widget.py,521,arabic_literal,_set_table,البيان
+alrajhi_client/views/widgets/reports_widget.py,537,arabic_literal,append,مفتوحة
+alrajhi_client/views/widgets/reports_widget.py,537,arabic_literal,append,مغلقة
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,الفرع
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,الصندوق
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,الفتح
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,الإغلاق
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,افتتاحي
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,نقد
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,بطاقة
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,متوقع
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,فعلي
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,الفرق
+alrajhi_client/views/widgets/reports_widget.py,539,arabic_literal,_set_table,الحالة
+alrajhi_client/views/widgets/reports_widget.py,543,arabic_literal,get,قبض
+alrajhi_client/views/widgets/reports_widget.py,544,arabic_literal,get,دفع
+alrajhi_client/views/widgets/reports_widget.py,545,arabic_literal,get,مصروف
+alrajhi_client/views/widgets/reports_widget.py,546,arabic_literal,get,بيع POS نقدي
+alrajhi_client/views/widgets/reports_widget.py,547,arabic_literal,get,بيع POS بطاقة
+alrajhi_client/views/widgets/reports_widget.py,548,arabic_literal,get,تحويل نقدي
+alrajhi_client/views/widgets/reports_widget.py,549,arabic_literal,get,إيداع بنكي
+alrajhi_client/views/widgets/reports_widget.py,550,arabic_literal,get,سحب بنكي
+alrajhi_client/views/widgets/reports_widget.py,555,arabic_literal,get,ترحيل افتتاحي
+alrajhi_client/views/widgets/reports_widget.py,556,arabic_literal,get,افتتاحي
+alrajhi_client/views/widgets/reports_widget.py,557,arabic_literal,get,صرف فاتورة بيع
+alrajhi_client/views/widgets/reports_widget.py,558,arabic_literal,get,استلام فاتورة شراء
+alrajhi_client/views/widgets/reports_widget.py,559,arabic_literal,get,تحويل صادر
+alrajhi_client/views/widgets/reports_widget.py,560,arabic_literal,get,تحويل وارد
+alrajhi_client/views/widgets/reports_widget.py,561,arabic_literal,get,إلغاء تحويل صادر
+alrajhi_client/views/widgets/reports_widget.py,562,arabic_literal,get,إلغاء تحويل وارد
+alrajhi_client/views/widgets/reports_widget.py,563,arabic_literal,get,استهلاك إنتاج
+alrajhi_client/views/widgets/reports_widget.py,564,arabic_literal,get,إنتاج وارد
+alrajhi_client/views/widgets/reports_widget.py,565,arabic_literal,get,تسوية
+alrajhi_client/views/widgets/reports_widget.py,609,arabic_literal,_set_table,الحساب
+alrajhi_client/views/widgets/reports_widget.py,609,arabic_literal,_set_table,الكود
+alrajhi_client/views/widgets/reports_widget.py,609,arabic_literal,_set_table,مدين
+alrajhi_client/views/widgets/reports_widget.py,609,arabic_literal,_set_table,دائن
+alrajhi_client/views/widgets/reports_widget.py,609,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,611,arabic_literal,_set_table,الحساب
+alrajhi_client/views/widgets/reports_widget.py,611,arabic_literal,_set_table,الكود
+alrajhi_client/views/widgets/reports_widget.py,611,arabic_literal,_set_table,مدين
+alrajhi_client/views/widgets/reports_widget.py,611,arabic_literal,_set_table,دائن
+alrajhi_client/views/widgets/reports_widget.py,611,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,630,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,630,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,630,arabic_literal,_set_table,المرجع
+alrajhi_client/views/widgets/reports_widget.py,630,arabic_literal,_set_table,البيان
+alrajhi_client/views/widgets/reports_widget.py,630,arabic_literal,_set_table,مدين
+alrajhi_client/views/widgets/reports_widget.py,630,arabic_literal,_set_table,دائن
+alrajhi_client/views/widgets/reports_widget.py,630,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,632,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,632,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,632,arabic_literal,_set_table,المرجع
+alrajhi_client/views/widgets/reports_widget.py,632,arabic_literal,_set_table,البيان
+alrajhi_client/views/widgets/reports_widget.py,632,arabic_literal,_set_table,مدين
+alrajhi_client/views/widgets/reports_widget.py,632,arabic_literal,_set_table,دائن
+alrajhi_client/views/widgets/reports_widget.py,632,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,651,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,651,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,651,arabic_literal,_set_table,المرجع
+alrajhi_client/views/widgets/reports_widget.py,651,arabic_literal,_set_table,البيان
+alrajhi_client/views/widgets/reports_widget.py,651,arabic_literal,_set_table,مدين
+alrajhi_client/views/widgets/reports_widget.py,651,arabic_literal,_set_table,دائن
+alrajhi_client/views/widgets/reports_widget.py,651,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,653,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,653,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,653,arabic_literal,_set_table,المرجع
+alrajhi_client/views/widgets/reports_widget.py,653,arabic_literal,_set_table,البيان
+alrajhi_client/views/widgets/reports_widget.py,653,arabic_literal,_set_table,مدين
+alrajhi_client/views/widgets/reports_widget.py,653,arabic_literal,_set_table,دائن
+alrajhi_client/views/widgets/reports_widget.py,653,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,661,arabic_literal,_set_table,العميل
+alrajhi_client/views/widgets/reports_widget.py,661,arabic_literal,_set_table,الهاتف
+alrajhi_client/views/widgets/reports_widget.py,661,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,663,arabic_literal,_set_table,العميل
+alrajhi_client/views/widgets/reports_widget.py,663,arabic_literal,_set_table,الهاتف
+alrajhi_client/views/widgets/reports_widget.py,663,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,669,arabic_literal,_set_table,المورد
+alrajhi_client/views/widgets/reports_widget.py,669,arabic_literal,_set_table,الهاتف
+alrajhi_client/views/widgets/reports_widget.py,669,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,671,arabic_literal,_set_table,المورد
+alrajhi_client/views/widgets/reports_widget.py,671,arabic_literal,_set_table,الهاتف
+alrajhi_client/views/widgets/reports_widget.py,671,arabic_literal,_set_table,الرصيد
+alrajhi_client/views/widgets/reports_widget.py,686,arabic_literal,_set_table,العميل
+alrajhi_client/views/widgets/reports_widget.py,686,arabic_literal,_set_table,حالي
+alrajhi_client/views/widgets/reports_widget.py,686,arabic_literal,_set_table,الإجمالي
+alrajhi_client/views/widgets/reports_widget.py,688,arabic_literal,_set_table,العميل
+alrajhi_client/views/widgets/reports_widget.py,688,arabic_literal,_set_table,حالي
+alrajhi_client/views/widgets/reports_widget.py,688,arabic_literal,_set_table,الإجمالي
+alrajhi_client/views/widgets/reports_widget.py,701,arabic_literal,_set_table,المورد
+alrajhi_client/views/widgets/reports_widget.py,701,arabic_literal,_set_table,حالي
+alrajhi_client/views/widgets/reports_widget.py,701,arabic_literal,_set_table,الإجمالي
+alrajhi_client/views/widgets/reports_widget.py,703,arabic_literal,_set_table,المورد
+alrajhi_client/views/widgets/reports_widget.py,703,arabic_literal,_set_table,حالي
+alrajhi_client/views/widgets/reports_widget.py,703,arabic_literal,_set_table,الإجمالي
+alrajhi_client/views/widgets/reports_widget.py,723,arabic_literal,_set_table,النطاق
+alrajhi_client/views/widgets/reports_widget.py,723,arabic_literal,_set_table,المادة
+alrajhi_client/views/widgets/reports_widget.py,723,arabic_literal,_set_table,المستودع
+alrajhi_client/views/widgets/reports_widget.py,723,arabic_literal,_set_table,التشغيلي
+alrajhi_client/views/widgets/reports_widget.py,723,arabic_literal,_set_table,الفرق
+alrajhi_client/views/widgets/reports_widget.py,735,arabic_literal,append,مطابق
+alrajhi_client/views/widgets/reports_widget.py,735,arabic_literal,append,فرق
+alrajhi_client/views/widgets/reports_widget.py,737,arabic_literal,_set_table,المادة
+alrajhi_client/views/widgets/reports_widget.py,737,arabic_literal,_set_table,المستودع
+alrajhi_client/views/widgets/reports_widget.py,737,arabic_literal,_set_table,التشغيلي
+alrajhi_client/views/widgets/reports_widget.py,737,arabic_literal,_set_table,الفرق
+alrajhi_client/views/widgets/reports_widget.py,737,arabic_literal,_set_table,الحالة
+alrajhi_client/views/widgets/reports_widget.py,743,arabic_literal,append,مانع
+alrajhi_client/views/widgets/reports_widget.py,743,arabic_literal,append,تحذير
+alrajhi_client/views/widgets/reports_widget.py,745,arabic_literal,insert,القرار
+alrajhi_client/views/widgets/reports_widget.py,745,arabic_literal,insert,جاهز للقراءة المزدوجة
+alrajhi_client/views/widgets/reports_widget.py,745,arabic_literal,insert,غير جاهز
+alrajhi_client/views/widgets/reports_widget.py,746,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,746,arabic_literal,_set_table,الرسالة
+alrajhi_client/views/widgets/reports_widget.py,748,arabic_literal,_set_table,النطاق
+alrajhi_client/views/widgets/reports_widget.py,748,arabic_literal,_set_table,المادة
+alrajhi_client/views/widgets/reports_widget.py,748,arabic_literal,_set_table,المستودع
+alrajhi_client/views/widgets/reports_widget.py,748,arabic_literal,_set_table,التشغيلي
+alrajhi_client/views/widgets/reports_widget.py,748,arabic_literal,_set_table,الفرق
+alrajhi_client/views/widgets/reports_widget.py,749,arabic_literal,_set_table,المادة
+alrajhi_client/views/widgets/reports_widget.py,749,arabic_literal,_set_table,المستودع
+alrajhi_client/views/widgets/reports_widget.py,749,arabic_literal,_set_table,التشغيلي
+alrajhi_client/views/widgets/reports_widget.py,749,arabic_literal,_set_table,الفرق
+alrajhi_client/views/widgets/reports_widget.py,749,arabic_literal,_set_table,الحالة
+alrajhi_client/views/widgets/reports_widget.py,750,arabic_literal,_set_table,النوع
+alrajhi_client/views/widgets/reports_widget.py,750,arabic_literal,_set_table,الرسالة
+alrajhi_client/views/widgets/reports_widget.py,766,arabic_literal,_set_table,الطريقة
+alrajhi_client/views/widgets/reports_widget.py,766,arabic_literal,_set_table,المسار
+alrajhi_client/views/widgets/reports_widget.py,766,arabic_literal,_set_table,الحالة
+alrajhi_client/views/widgets/reports_widget.py,766,arabic_literal,_set_table,المحاولات
+alrajhi_client/views/widgets/reports_widget.py,766,arabic_literal,_set_table,الخطأ
+alrajhi_client/views/widgets/reports_widget.py,766,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,768,arabic_literal,_set_table,الطريقة
+alrajhi_client/views/widgets/reports_widget.py,768,arabic_literal,_set_table,المسار
+alrajhi_client/views/widgets/reports_widget.py,768,arabic_literal,_set_table,الحالة
+alrajhi_client/views/widgets/reports_widget.py,768,arabic_literal,_set_table,المحاولات
+alrajhi_client/views/widgets/reports_widget.py,768,arabic_literal,_set_table,الخطأ
+alrajhi_client/views/widgets/reports_widget.py,768,arabic_literal,_set_table,التاريخ
+alrajhi_client/views/widgets/reports_widget.py,778,arabic_literal,append,لا توجد وحدات فرعية
+alrajhi_client/views/widgets/reports_widget.py,784,arabic_literal,,سليم
+alrajhi_client/views/widgets/reports_widget.py,786,arabic_literal,,اسم وحدة فارغ
+alrajhi_client/views/widgets/reports_widget.py,788,arabic_literal,,وحدة مكررة
+alrajhi_client/views/widgets/reports_widget.py,790,arabic_literal,,معامل غير صالح
+alrajhi_client/views/widgets/settings_widget.py,44,likely_ui,addTab,🎨 
+alrajhi_client/views/widgets/settings_widget.py,45,likely_ui,addTab,🏢 
+alrajhi_client/views/widgets/settings_widget.py,46,likely_ui,addTab,🖨️ 
+alrajhi_client/views/widgets/settings_widget.py,47,likely_ui,addTab,🧾 
+alrajhi_client/views/widgets/settings_widget.py,48,likely_ui,addTab,💰 
+alrajhi_client/views/widgets/settings_widget.py,49,likely_ui,addTab,💱 
+alrajhi_client/views/widgets/settings_widget.py,50,likely_ui,addTab,🌐 
+alrajhi_client/views/widgets/settings_widget.py,51,likely_ui,addTab,💾 
+alrajhi_client/views/widgets/settings_widget.py,486,likely_ui,setTabText,🎨 
+alrajhi_client/views/widgets/settings_widget.py,487,likely_ui,setTabText,🏢 
+alrajhi_client/views/widgets/settings_widget.py,488,likely_ui,setTabText,🖨️ 
+alrajhi_client/views/widgets/settings_widget.py,489,likely_ui,setTabText,🧾 
+alrajhi_client/views/widgets/settings_widget.py,490,likely_ui,setTabText,💰 
+alrajhi_client/views/widgets/settings_widget.py,491,likely_ui,setTabText,💱 
+alrajhi_client/views/widgets/settings_widget.py,492,likely_ui,setTabText,🌐 
+alrajhi_client/views/widgets/settings_widget.py,493,likely_ui,setTabText,💾 
+alrajhi_client/views/widgets/settings_widget.py,697,likely_ui,setText,✅ 
+alrajhi_client/views/widgets/settings_widget.py,697,likely_ui,setText,⚪ 
+alrajhi_client/views/widgets/warehouses_widget.py,67,likely_ui,QPushButton,✏️ 
+alrajhi_client/action_handler.py,9,arabic_literal,,\n    كلاس مختلط (mixin) يضيف إجراءات موحدة لأي واجهة تحتوي على جدول.\n    يجب أن تحتوي الواجهة على الخصائص التالية:\n        - self.table (QTableView أو مشتق)\n        - self.model (نموذج الجدول)\n        - self.add_item()   (دالة للإضافة)\n        - self.edit_item()  (دالة للتعديل، تستقبل index)\n        - self.delete_item() (دالة للحذف، تستقبل id)\n        - self.refresh()    (دالة لتحديث البيانات)\n        - self.export_to_excel() (دالة لتصدير Excel)\n        - self.print_table() (دالة لطباع
+alrajhi_client/action_handler.py,22,arabic_literal,,يجب استدعاؤها في __init__ بعد إنشاء الجدول
+alrajhi_client/action_handler.py,28,arabic_literal,,تثبيت الاختصارات العامة
+alrajhi_client/action_handler.py,61,arabic_literal,show_toast,الرجاء تحديد صف أولاً
+alrajhi_client/action_handler.py,67,arabic_literal,show_toast,الرجاء تحديد صف للحذف
+alrajhi_client/action_handler.py,72,likely_ui,question,تأكيد الحذف
+alrajhi_client/action_handler.py,72,likely_ui,question,هل تريد حذف '
+alrajhi_client/action_handler.py,72,likely_ui,question,'؟
+alrajhi_client/action_handler.py,77,arabic_literal,show_toast,تم الحذف
+alrajhi_client/action_handler.py,101,likely_ui,QAction,إضافة
+alrajhi_client/action_handler.py,105,likely_ui,QAction,تعديل
+alrajhi_client/action_handler.py,109,likely_ui,QAction,حذف
+alrajhi_client/action_handler.py,118,likely_ui,QAction,طباعة
+alrajhi_client/auth/activation.py,51,arabic_literal,,فشل التفعيل
+alrajhi_client/auth/activation.py,67,arabic_literal,,لم يتم التفعيل
+alrajhi_client/auth/activation.py,74,arabic_literal,,ترخيص غير صالح
+alrajhi_client/auth/activation.py,84,arabic_literal,,فشل تفعيل الشبكة
+alrajhi_client/auth/activation.py,100,arabic_literal,,ميزة الشبكة غير مفعلة
+alrajhi_client/auth/activation.py,107,arabic_literal,,ترخيص الشبكة غير صالح
+alrajhi_client/brand_assets.py,64,arabic_literal,,الراجحي للمحاسبة والمستودعات
+alrajhi_client/brand_assets.py,65,arabic_literal,,نظام الراجحي للمحاسبة والمستودعات
+alrajhi_client/config.py,23,arabic_literal,value,الراجحي للمحاسبة والمستودعات
+alrajhi_client/config.py,24,arabic_literal,value,المملكة العربية السعودية - الرياض
+alrajhi_client/core/offline_guard.py,18,arabic_literal,,البيانات
+alrajhi_client/core/offline_guard.py,19,arabic_literal,,تعذر تحديث 
+alrajhi_client/core/offline_guard.py,19,arabic_literal,, لأن الخادم غير متصل. العمليات المحفوظة Offline ستبقى في قائمة المزامنة.
+alrajhi_client/core/server_control.py,116,arabic_literal,,الخادم أجاب لكن /health أعاد الحالة 
+alrajhi_client/core/server_control.py,120,arabic_literal,,الخادم أجاب على /health لكن الرد ليس JSON صالحاً.
+alrajhi_client/core/server_control.py,123,arabic_literal,,الخادم أجاب لكن الحالة ليست alive: 
+alrajhi_client/core/server_control.py,125,arabic_literal,,الخادم يعمل ويجيب على /health.
+alrajhi_client/core/server_control.py,133,arabic_literal,,الخادم يعمل، لكن مسار /api/routes غير متاح. هذا يعني غالباً أن نسخة الخادم أقدم من العميل أو أن عنوان العميل يشير إلى خادم آخر.
+alrajhi_client/core/server_control.py,139,arabic_literal,,مسار /api/routes أجاب لكن الرد ليس JSON صالحاً.
+alrajhi_client/core/server_control.py,148,arabic_literal,,الخادم يعمل لكن توجد مسارات API ناقصة: 
+alrajhi_client/core/server_control.py,149,arabic_literal,,الاتصال ناجح والخادم متوافق مع هذه النسخة.
+alrajhi_client/core/server_control.py,151,arabic_literal,,انتهت مهلة الاتصال بالخادم: 
+alrajhi_client/core/server_control.py,153,arabic_literal,,تعذر فتح اتصال بالخادم: 
+alrajhi_client/core/server_control.py,155,arabic_literal,,فشل اختبار الاتصال: 
+alrajhi_client/core/server_control.py,312,arabic_literal,,تم فتح مجلد بيانات الخادم:\n
+alrajhi_client/core/server_control.py,314,arabic_literal,,تعذر فتح مجلد البيانات:\n
+alrajhi_client/core/server_control.py,321,arabic_literal,,لا توجد قاعدة بيانات للخادم في المسار:\n
+alrajhi_client/core/server_control.py,334,arabic_literal,,تم إنشاء نسخة احتياطية لقاعدة الخادم:\n
+alrajhi_client/core/server_control.py,338,arabic_literal,,تم نسخ قاعدة الخادم احتياطياً بطريقة مباشرة:\n
+alrajhi_client/core/server_control.py,340,arabic_literal,,فشل النسخ الاحتياطي لقاعدة الخادم:\n
+alrajhi_client/core/server_control.py,356,arabic_literal,,الخادم يعمل على المنفذ 
+alrajhi_client/core/server_control.py,358,arabic_literal,,المنفذ 
+alrajhi_client/core/server_control.py,358,arabic_literal,, مشغول بخدمة أخرى أو خادم يعمل مسبقاً.
+alrajhi_client/core/server_control.py,361,arabic_literal,,الخادم متوقف على المنفذ 
+alrajhi_client/core/server_control.py,375,arabic_literal,,الخادم يعمل مسبقاً على المنفذ 
+alrajhi_client/core/server_control.py,376,arabic_literal,,المنفذ 
+alrajhi_client/core/server_control.py,376,arabic_literal,, مشغول ولا يمكن تشغيل الخادم عليه.
+alrajhi_client/core/server_control.py,402,arabic_literal,,فشل تشغيل الخادم: 
+alrajhi_client/core/server_control.py,407,arabic_literal,,تم تشغيل الخادم على المنفذ 
+alrajhi_client/core/server_control.py,409,arabic_literal,,تم طلب تشغيل الخادم لكن لم يستجب خلال 
+alrajhi_client/core/server_control.py,409,arabic_literal,, ثوانٍ.
+alrajhi_client/core/server_control.py,417,arabic_literal,,الخادم أو خدمة أخرى تعمل على المنفذ، لكن لا يوجد PID محفوظ لإيقافه بأمان.
+alrajhi_client/core/server_control.py,418,arabic_literal,,الخادم متوقف بالفعل.
+alrajhi_client/core/server_control.py,422,arabic_literal,,الخادم متوقف بالفعل.
+alrajhi_client/core/server_control.py,433,arabic_literal,,تم إيقاف الخادم.
+alrajhi_client/core/server_control.py,435,arabic_literal,,فشل إيقاف الخادم: 
+alrajhi_client/core/services/alert_service.py,35,arabic_literal,,نفاد مخزون
+alrajhi_client/core/services/alert_service.py,38,arabic_literal,,مخزون منخفض
+alrajhi_client/core/services/alert_service.py,45,arabic_literal,append, — الكمية الحالية: 
+alrajhi_client/core/services/alert_service.py,45,arabic_literal,append, / حد إعادة الطلب: 
+alrajhi_client/core/services/alert_service.py,63,arabic_literal,,فاتورة بيع غير مدفوعة
+alrajhi_client/core/services/alert_service.py,63,arabic_literal,,فاتورة شراء غير مدفوعة
+alrajhi_client/core/services/alert_service.py,68,arabic_literal,append, — المتبقي: 
+alrajhi_client/core/services/backup_service.py,55,arabic_literal,log,إعادة تهيئة قاعدة البيانات المحلية
+alrajhi_client/core/services/barcode_label_service.py,70,arabic_literal,BarcodeError,الباركود مطلوب للطباعة
+alrajhi_client/core/services/barcode_label_service.py,77,arabic_literal,BarcodeError,لا يمكن طباعة هذا الرمز كـ EAN-13 لأنه غير صالح
+alrajhi_client/core/services/barcode_label_service.py,82,arabic_literal,RuntimeError,حزمة python-barcode و Pillow مطلوبة لطباعة صور الباركود. ثبّت: pip install python-barcode Pillow
+alrajhi_client/core/services/barcode_label_service.py,103,arabic_literal,get,الراجحي للمحاسبة
+alrajhi_client/core/services/barcode_label_service.py,117,arabic_literal,append,<div class='price'>السعر: 
+alrajhi_client/core/services/barcode_scanner_service.py,52,arabic_literal,,مكتبات الكاميرا غير متاحة
+alrajhi_client/core/services/barcode_service.py,38,arabic_literal,BarcodeError,EAN-13 يحتاج 12 رقمًا لحساب رقم التحقق
+alrajhi_client/core/services/barcode_service.py,75,arabic_literal,BarcodeError,الباركود مطلوب
+alrajhi_client/core/services/barcode_service.py,78,arabic_literal,BarcodeError,باركود EAN-13 غير صالح: رقم التحقق غير صحيح
+alrajhi_client/core/services/barcode_service.py,80,arabic_literal,BarcodeError,صيغة الباركود غير صالحة. استخدم EAN-13 رقمي أو Code128 بحروف/أرقام ورموز بسيطة
+alrajhi_client/core/services/branch_service.py,61,arabic_literal,log,إنشاء فرع
+alrajhi_client/core/services/branch_service.py,67,arabic_literal,log,تعديل فرع
+alrajhi_client/core/services/branch_service.py,72,arabic_literal,log,أرشفة فرع
+alrajhi_client/core/services/cashbox_service.py,38,arabic_literal,log,إنشاء صندوق
+alrajhi_client/core/services/cashbox_service.py,44,arabic_literal,log,تعديل صندوق
+alrajhi_client/core/services/cashbox_service.py,49,arabic_literal,log,أرشفة صندوق
+alrajhi_client/core/services/cashbox_service.py,53,arabic_literal,log,إنشاء حساب بنكي
+alrajhi_client/core/services/cashbox_service.py,59,arabic_literal,log,تعديل حساب بنكي
+alrajhi_client/core/services/cashbox_service.py,64,arabic_literal,log,أرشفة حساب بنكي
+alrajhi_client/core/services/cashbox_service.py,94,arabic_literal,record_movement,سند مالي
+alrajhi_client/core/services/cashbox_service.py,116,arabic_literal,record_movement,رد مرتجع مبيعات
+alrajhi_client/core/services/cashbox_service.py,135,arabic_literal,record_movement,استرداد مرتجع مشتريات
+alrajhi_client/core/services/cashbox_service.py,148,arabic_literal,print,⚠️ تعذر التحقق من الوردية المفتوحة من الخادم: 
+alrajhi_client/core/services/cashbox_service.py,156,arabic_literal,ValueError,نظام الورديات معطل من الإعدادات
+alrajhi_client/core/services/cashbox_service.py,158,arabic_literal,log,فتح وردية كاشير
+alrajhi_client/core/services/cashbox_service.py,163,arabic_literal,ValueError,نظام الورديات معطل من الإعدادات
+alrajhi_client/core/services/cashbox_service.py,168,arabic_literal,ValueError,نظام الورديات معطل من الإعدادات
+alrajhi_client/core/services/cashbox_service.py,171,arabic_literal,log,إغلاق وردية كاشير
+alrajhi_client/core/services/cashbox_service.py,200,arabic_literal,record_movement,بيع سريع POS
+alrajhi_client/core/services/cashbox_service.py,204,arabic_literal,print,⚠️ تعذر تسجيل حركة POS النقدية؛ لن يتم إسقاط عملية البيع: 
+alrajhi_client/core/services/dashboard_service.py,52,arabic_literal,print,⚠️ تعذر تحميل بيانات لوحة التحكم: 
+alrajhi_client/core/services/dashboard_service.py,59,arabic_literal,print,⚠️ تعذر تحميل ملخص التقارير للوحة التحكم: 
+alrajhi_client/core/services/dashboard_service.py,125,arabic_literal,append,وارد
+alrajhi_client/core/services/dashboard_service.py,125,arabic_literal,append,صادر
+alrajhi_client/core/services/entity_service.py,38,arabic_literal,log,إنشاء عميل
+alrajhi_client/core/services/entity_service.py,43,arabic_literal,log,إنشاء مورد
+alrajhi_client/core/services/entity_service.py,50,arabic_literal,log,تعديل عميل
+alrajhi_client/core/services/entity_service.py,57,arabic_literal,log,تعديل مورد
+alrajhi_client/core/services/entity_service.py,63,arabic_literal,log,حذف عميل
+alrajhi_client/core/services/entity_service.py,69,arabic_literal,log,حذف مورد
+alrajhi_client/core/services/expense_service.py,32,arabic_literal,log,إنشاء مصروف
+alrajhi_client/core/services/expense_service.py,42,arabic_literal,log,حذف مصروف
+alrajhi_client/core/services/inventory_service.py,32,arabic_literal,log,تسجيل قيد دفتر مخزون
+alrajhi_client/core/services/inventory_service.py,106,arabic_literal,log,تسجيل حركة مخزون
+alrajhi_client/core/services/invoice_service.py,66,arabic_literal,print,⚠️ تعذر فحص تكرار مرجع الفاتورة؛ سيتم الاعتماد على الخادم عند المزامنة: 
+alrajhi_client/core/services/invoice_service.py,101,arabic_literal,log,إنشاء فاتورة
+alrajhi_client/core/services/invoice_service.py,108,arabic_literal,ValueError,لا يمكن تعديل فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.
+alrajhi_client/core/services/invoice_service.py,116,arabic_literal,log,تعديل فاتورة
+alrajhi_client/core/services/invoice_service.py,134,arabic_literal,ValueError,لا يمكن حذف فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.
+alrajhi_client/core/services/invoice_service.py,139,arabic_literal,log,إلغاء/حذف فاتورة
+alrajhi_client/core/services/invoice_service.py,152,arabic_literal,print,⚠️ تعذر جلب رقم الفاتورة من الخادم؛ تم توليد رقم مؤقت 
+alrajhi_client/core/services/manufacturing_service.py,43,arabic_literal,log,حفظ BOM
+alrajhi_client/core/services/manufacturing_service.py,52,arabic_literal,log,حذف BOM
+alrajhi_client/core/services/manufacturing_service.py,86,arabic_literal,log,إنشاء أمر إنتاج
+alrajhi_client/core/services/manufacturing_service.py,92,arabic_literal,log,إنشاء أمر إنتاج
+alrajhi_client/core/services/manufacturing_service.py,99,arabic_literal,log,بدء إنتاج
+alrajhi_client/core/services/manufacturing_service.py,106,arabic_literal,log,إلغاء أمر إنتاج
+alrajhi_client/core/services/manufacturing_service.py,111,arabic_literal,log,استهلاك مواد إنتاج
+alrajhi_client/core/services/manufacturing_service.py,118,arabic_literal,log,إتمام إنتاج
+alrajhi_client/core/services/manufacturing_service.py,124,arabic_literal,log,حذف أمر إنتاج
+alrajhi_client/core/services/manufacturing_service.py,131,arabic_literal,log,عكس أمر إنتاج
+alrajhi_client/core/services/manufacturing_service.py,160,arabic_literal,log,حذف استهلاك مادة إنتاج
+alrajhi_client/core/services/manufacturing_service.py,170,arabic_literal,log,حذف مخرج إنتاج
+alrajhi_client/core/services/pos_service.py,112,arabic_literal,POSException,أدخل أو امسح باركود المادة
+alrajhi_client/core/services/pos_service.py,119,arabic_literal,POSException,لم يتم العثور على مادة بالباركود: 
+alrajhi_client/core/services/pos_service.py,120,arabic_literal,,خدمة
+alrajhi_client/core/services/pos_service.py,129,arabic_literal,POSException,الكمية يجب أن تكون أكبر من صفر
+alrajhi_client/core/services/pos_service.py,139,arabic_literal,POSException,سعر البيع غير صالح
+alrajhi_client/core/services/pos_service.py,140,arabic_literal,,خدمة
+alrajhi_client/core/services/pos_service.py,144,arabic_literal,POSException,المخزون غير كافٍ للمادة 
+alrajhi_client/core/services/pos_service.py,144,arabic_literal,POSException,. المتاح: 
+alrajhi_client/core/services/pos_service.py,152,arabic_literal,str,قطعة
+alrajhi_client/core/services/pos_service.py,168,arabic_literal,POSException,لا يمكن تعليق سلة فارغة
+alrajhi_client/core/services/pos_service.py,171,arabic_literal,log,تعليق بيع سريع
+alrajhi_client/core/services/pos_service.py,178,arabic_literal,POSException,البيع المعلق غير موجود
+alrajhi_client/core/services/pos_service.py,179,arabic_literal,log,استرجاع بيع معلق
+alrajhi_client/core/services/pos_service.py,184,arabic_literal,POSException,لا يمكن إنهاء بيع بدون مواد
+alrajhi_client/core/services/pos_service.py,187,arabic_literal,POSException,إجمالي البيع يجب أن يكون أكبر من صفر
+alrajhi_client/core/services/pos_service.py,192,arabic_literal,POSException,المدفوع لا يمكن أن يكون سالبًا
+alrajhi_client/core/services/pos_service.py,198,arabic_literal,POSException,لا يمكن البيع من POS بدون وردية مفتوحة. افتح وردية أولاً.
+alrajhi_client/core/services/pos_service.py,223,arabic_literal,log,إنهاء بيع سريع
+alrajhi_client/core/services/product_service.py,32,arabic_literal,ValueError,الباركود '
+alrajhi_client/core/services/product_service.py,32,arabic_literal,ValueError,' مستخدم بالفعل للمادة: 
+alrajhi_client/core/services/product_service.py,41,arabic_literal,ValueError,تعذر توليد باركود غير مكرر. حاول مرة أخرى.
+alrajhi_client/core/services/product_service.py,62,arabic_literal,log,إنشاء مادة
+alrajhi_client/core/services/product_service.py,71,arabic_literal,log,تعديل مادة
+alrajhi_client/core/services/product_service.py,76,arabic_literal,log,أرشفة مادة
+alrajhi_client/core/services/product_service.py,97,arabic_literal,log,تعديل وحدات المادة عبر الخادم
+alrajhi_client/core/services/product_service.py,116,arabic_literal,log,تعديل وحدات المادة
+alrajhi_client/core/services/product_service.py,139,arabic_literal,log,إنشاء تصنيف
+alrajhi_client/core/services/product_service.py,150,arabic_literal,log,تعديل تصنيف
+alrajhi_client/core/services/product_service.py,155,arabic_literal,log,أرشفة تصنيف
+alrajhi_client/core/services/product_service.py,160,arabic_literal,log,استعادة تصنيف
+alrajhi_client/core/services/reporting_service.py,97,arabic_literal,,غير محدد
+alrajhi_client/core/services/settings_service.py,40,arabic_literal,log,تعديل لغة البرنامج
+alrajhi_client/core/services/settings_service.py,52,arabic_literal,log,تعديل مظهر البرنامج
+alrajhi_client/core/services/settings_service.py,74,arabic_literal,log,تعديل إعدادات العملة
+alrajhi_client/core/services/settings_service.py,80,arabic_literal,log,تغيير عملة العرض
+alrajhi_client/core/services/settings_service.py,93,arabic_literal,get,شكراً لتعاملكم معنا
+alrajhi_client/core/services/settings_service.py,143,arabic_literal,log,تعديل إعدادات الطباعة
+alrajhi_client/core/services/settings_service.py,155,arabic_literal,log,تعديل إعدادات نقطة البيع
+alrajhi_client/core/services/settings_service.py,170,arabic_literal,log,تعديل مصدر قراءة المخزون
+alrajhi_client/core/services/voucher_service.py,53,arabic_literal,log,إنشاء سند
+alrajhi_client/core/services/voucher_service.py,64,arabic_literal,log,تعديل سند
+alrajhi_client/core/services/voucher_service.py,71,arabic_literal,log,حذف سند
+alrajhi_client/core/services/warehouse_service.py,28,arabic_literal,log,إنشاء مستودع
+alrajhi_client/core/services/warehouse_service.py,35,arabic_literal,log,تعديل مستودع
+alrajhi_client/core/services/warehouse_service.py,40,arabic_literal,log,أرشفة مستودع
+alrajhi_client/core/services/warehouse_service.py,55,arabic_literal,print,⚠️ تعذر جلب المستودع الافتراضي من الخادم: 
+alrajhi_client/core/services/warehouse_service.py,62,arabic_literal,print,⚠️ تعذر جلب بيانات المستودع الافتراضي من الخادم: 
+alrajhi_client/core/services/warehouse_service.py,69,arabic_literal,print,⚠️ تعذر جلب الرصيد المتاح من الخادم: 
+alrajhi_client/core/services/warehouse_service.py,126,arabic_literal,print,⚠️ فشل تسجيل دفتر المخزون لحركة مستودع: 
+alrajhi_client/core/services/warehouse_service.py,137,arabic_literal,_record_warehouse_ledger_entry,دفتر مخزون تحويل مستودعي - خروج
+alrajhi_client/core/services/warehouse_service.py,138,arabic_literal,_record_warehouse_ledger_entry,دفتر مخزون تحويل مستودعي - دخول
+alrajhi_client/core/services/warehouse_service.py,149,arabic_literal,_record_warehouse_ledger_entry,عكس دفتر مخزون تحويل مستودعي - خروج من الوجهة
+alrajhi_client/core/services/warehouse_service.py,150,arabic_literal,_record_warehouse_ledger_entry,عكس دفتر مخزون تحويل مستودعي - دخول إلى المصدر
+alrajhi_client/core/services/warehouse_service.py,176,arabic_literal,,صرف فاتورة بيع من المستودع
+alrajhi_client/core/services/warehouse_service.py,181,arabic_literal,,استلام فاتورة شراء إلى المستودع
+alrajhi_client/core/services/warehouse_service.py,220,arabic_literal,print,⚠️ فشل تسجيل دفتر المخزون للفاتورة 
+alrajhi_client/core/services/warehouse_service.py,240,arabic_literal,_record_invoice_ledger_entry,عكس دفتر مخزون فاتورة بيع
+alrajhi_client/core/services/warehouse_service.py,242,arabic_literal,_record_invoice_ledger_entry,عكس دفتر مخزون فاتورة شراء
+alrajhi_client/core/services/warehouse_service.py,264,arabic_literal,record_ledger_entry,عكس دفتر مخزون فاتورة
+alrajhi_client/core/services/warehouse_service.py,267,arabic_literal,print,⚠️ فشل عكس دفتر المخزون للفاتورة 
+alrajhi_client/core/services/warehouse_service.py,278,arabic_literal,log,إنشاء تحويل مستودعي
+alrajhi_client/core/services/warehouse_service.py,286,arabic_literal,log,إلغاء تحويل مستودعي
+alrajhi_client/core/services/warehouse_service.py,292,arabic_literal,ValueError,اسم المستودع مطلوب
+alrajhi_client/currency.py,33,arabic_literal,,ل.س
+alrajhi_client/currency.py,34,arabic_literal,,د.إ
+alrajhi_client/currency.py,34,arabic_literal,,ر.ق
+alrajhi_client/currency.py,34,arabic_literal,,د.ك
+alrajhi_client/currency.py,34,arabic_literal,,ر.ع.
+alrajhi_client/currency.py,91,arabic_literal,print,⚠️ تعذر جلب سعر الصرف من الخادم؛ سيتم استخدام آخر سعر محفوظ لـ 
+alrajhi_client/currency.py,104,arabic_literal,print,⚠️ تعذر جلب سعر الصرف التاريخي من الخادم؛ سيتم استخدام آخر سعر محفوظ لـ 
+alrajhi_client/currency.py,124,arabic_literal,,تحديث سعر الصرف الحالي (يُستخدم من settings_widget.py)
+alrajhi_client/currency.py,171,arabic_literal,print,⚠️ تعذر جلب قائمة العملات من الخادم؛ سيتم استخدام الكاش المحلي: 
+alrajhi_client/database/connection.py,111,arabic_literal,,الفواتير
+alrajhi_client/database/connection.py,111,arabic_literal,,المواد
+alrajhi_client/database/connection.py,112,arabic_literal,,العملاء
+alrajhi_client/database/connection.py,112,arabic_literal,,الموردون
+alrajhi_client/database/connection.py,113,arabic_literal,,السندات
+alrajhi_client/database/connection.py,113,arabic_literal,,المصروفات
+alrajhi_client/database/connection.py,114,arabic_literal,,مرتجعات المبيعات
+alrajhi_client/database/connection.py,114,arabic_literal,,مرتجعات المشتريات
+alrajhi_client/database/connection.py,122,arabic_literal,get,إنشاء
+alrajhi_client/database/connection.py,122,arabic_literal,get,تعديل
+alrajhi_client/database/connection.py,122,arabic_literal,get,تعديل
+alrajhi_client/database/connection.py,122,arabic_literal,get,حذف
+alrajhi_client/database/connection.py,242,arabic_literal,print,⚠️ فشل فحص/ترقية بنية قاعدة البيانات: 
+alrajhi_client/database/connection.py,292,arabic_literal,ValueError,الباركود '
+alrajhi_client/database/connection.py,292,arabic_literal,ValueError,' مستخدم بالفعل للمادة: 
+alrajhi_client/database/connection.py,366,arabic_literal,get,مخزون
+alrajhi_client/database/connection.py,390,arabic_literal,ValueError,لا يمكن تعديل الكمية الافتتاحية بعد وجود حركات بيع/شراء/تصنيع/تسوية. استخدم تسوية مخزون بدل تعديل الافتتاحي.
+alrajhi_client/database/connection.py,414,arabic_literal,ValueError,لا يمكن حذف المادة لأنها مستخدمة في عمليات سابقة (
+alrajhi_client/database/connection.py,741,arabic_literal,,تحديث الفاتورة مع الحفاظ على رقمها، وعكس الأثر المالي/المخزني القديم داخل معاملة واحدة.
+alrajhi_client/database/connection.py,747,arabic_literal,ValueError,الفاتورة غير موجودة
+alrajhi_client/database/connection.py,749,arabic_literal,ValueError,لا يمكن تعديل فاتورة مرتبطة بسندات. احذف أو عدّل السندات أولاً.
+alrajhi_client/database/connection.py,829,arabic_literal,ValueError,لا يمكن حذف فاتورة مرتبطة بسندات. احذف السندات أولاً.
+alrajhi_client/database/connection.py,881,arabic_literal,ValueError,نوع السند غير صالح
+alrajhi_client/database/connection.py,884,arabic_literal,ValueError,مبلغ السند يجب أن يكون أكبر من صفر
+alrajhi_client/database/connection.py,890,arabic_literal,ValueError,سند القبض يجب أن يرتبط بعميل فقط
+alrajhi_client/database/connection.py,893,arabic_literal,ValueError,سند الدفع يجب أن يرتبط بمورد فقط
+alrajhi_client/database/connection.py,896,arabic_literal,ValueError,سند المصروف لا يجب ربطه بفاتورة
+alrajhi_client/database/connection.py,898,arabic_literal,ValueError,سند المصروف لا يجب ربطه بعميل أو مورد
+alrajhi_client/database/connection.py,903,arabic_literal,ValueError,الفاتورة المرتبطة غير موجودة أو محذوفة
+alrajhi_client/database/connection.py,905,arabic_literal,ValueError,سند القبض لا يرتبط إلا بفاتورة بيع
+alrajhi_client/database/connection.py,907,arabic_literal,ValueError,سند الدفع لا يرتبط إلا بفاتورة شراء
+alrajhi_client/database/connection.py,909,arabic_literal,ValueError,العميل في السند لا يطابق عميل الفاتورة
+alrajhi_client/database/connection.py,911,arabic_literal,ValueError,المورد في السند لا يطابق مورد الفاتورة
+alrajhi_client/database/connection.py,921,arabic_literal,ValueError,مبلغ السند يتجاوز المتبقي على الفاتورة (
+alrajhi_client/database/connection.py,1028,arabic_literal,ValueError,السند غير موجود
+alrajhi_client/database/dao/category_dao.py,20,arabic_literal,Exception,لا توجد جلسة مستخدم فعالة
+alrajhi_client/database/dao/category_dao.py,82,arabic_literal,,نشط
+alrajhi_client/database/dao/category_dao.py,82,arabic_literal,,مؤرشف
+alrajhi_client/database/dao/category_dao.py,89,arabic_literal,Exception,اسم التصنيف مطلوب
+alrajhi_client/database/dao/category_dao.py,92,arabic_literal,Exception,لا يمكن أن يكون التصنيف أباً لنفسه
+alrajhi_client/database/dao/category_dao.py,96,arabic_literal,Exception,التصنيف الأب غير موجود أو مؤرشف
+alrajhi_client/database/dao/category_dao.py,101,arabic_literal,Exception,لا يمكن إنشاء حلقة في شجرة التصنيفات
+alrajhi_client/database/dao/category_dao.py,112,arabic_literal,Exception,يوجد تصنيف بنفس الاسم ضمن نفس المستوى
+alrajhi_client/database/dao/category_dao.py,181,arabic_literal,Exception,لا يمكن حذف التصنيف لوجود مواد مرتبطة به. انقل المواد أولاً أو أرشف التصنيف فقط.
+alrajhi_client/database/dao/category_dao.py,184,arabic_literal,Exception,لا يمكن حذف التصنيف لوجود تصنيفات فرعية. انقلها أو أرشفها أولاً.
+alrajhi_client/database/dao/expense_dao.py,20,arabic_literal,add,مصروف عام
+alrajhi_client/database/dao/manufacturing_dao.py,37,arabic_literal,ValueError, يجب أن تكون أكبر من صفر
+alrajhi_client/database/dao/manufacturing_dao.py,43,arabic_literal,ValueError,يجب اختيار المنتج النهائي
+alrajhi_client/database/dao/manufacturing_dao.py,44,arabic_literal,_validate_positive_qty,كمية BOM
+alrajhi_client/database/dao/manufacturing_dao.py,47,arabic_literal,ValueError,المنتج النهائي غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,48,arabic_literal,,منتج نهائي
+alrajhi_client/database/dao/manufacturing_dao.py,49,arabic_literal,ValueError,يجب أن يكون المنتج من نوع منتج نهائي
+alrajhi_client/database/dao/manufacturing_dao.py,52,arabic_literal,ValueError,لا يمكن حفظ BOM بدون مكونات
+alrajhi_client/database/dao/manufacturing_dao.py,57,arabic_literal,ValueError,يوجد مكون بدون مادة
+alrajhi_client/database/dao/manufacturing_dao.py,59,arabic_literal,ValueError,لا يمكن أن يكون المنتج النهائي مكوناً لنفسه
+alrajhi_client/database/dao/manufacturing_dao.py,60,arabic_literal,_validate_positive_qty,كمية المكون
+alrajhi_client/database/dao/manufacturing_dao.py,63,arabic_literal,ValueError,نسبة الهالك لا يمكن أن تكون سالبة
+alrajhi_client/database/dao/manufacturing_dao.py,67,arabic_literal,ValueError,يوجد مكون مكرر في BOM
+alrajhi_client/database/dao/manufacturing_dao.py,106,arabic_literal,ValueError,فشل تسجيل دفتر المخزون للتصنيع: 
+alrajhi_client/database/dao/manufacturing_dao.py,108,arabic_literal,,دفتر مخزون استهلاك إنتاج
+alrajhi_client/database/dao/manufacturing_dao.py,114,arabic_literal,,دفتر مخزون إنتاج منتج نهائي
+alrajhi_client/database/dao/manufacturing_dao.py,120,arabic_literal,,عكس دفتر مخزون استهلاك إنتاج
+alrajhi_client/database/dao/manufacturing_dao.py,126,arabic_literal,,عكس دفتر مخزون إنتاج منتج نهائي
+alrajhi_client/database/dao/manufacturing_dao.py,229,arabic_literal,,لا يمكن حذف BOM لوجود أوامر إنتاج نشطة: 
+alrajhi_client/database/dao/manufacturing_dao.py,239,arabic_literal,Exception,دورة في BOM: المنتج 
+alrajhi_client/database/dao/manufacturing_dao.py,239,arabic_literal,Exception, يظهر مرتين
+alrajhi_client/database/dao/manufacturing_dao.py,243,arabic_literal,Exception,المنتج 
+alrajhi_client/database/dao/manufacturing_dao.py,243,arabic_literal,Exception, ليس له قائمة مواد (BOM)
+alrajhi_client/database/dao/manufacturing_dao.py,248,arabic_literal,,منتج نهائي
+alrajhi_client/database/dao/manufacturing_dao.py,368,arabic_literal,_validate_positive_qty,الكمية المخططة
+alrajhi_client/database/dao/manufacturing_dao.py,373,arabic_literal,ValueError,لا يمكن إنشاء أمر إنتاج دون BOM صالح يحتوي على مكونات
+alrajhi_client/database/dao/manufacturing_dao.py,377,arabic_literal,ValueError,يجب وجود مستودع مواد خام ومستودع منتج نهائي
+alrajhi_client/database/dao/manufacturing_dao.py,381,arabic_literal,join,: المطلوب 
+alrajhi_client/database/dao/manufacturing_dao.py,381,arabic_literal,join,، المتوفر 
+alrajhi_client/database/dao/manufacturing_dao.py,382,arabic_literal,ValueError,لا يمكن إنشاء أمر الإنتاج لعدم كفاية المواد:\n
+alrajhi_client/database/dao/manufacturing_dao.py,417,arabic_literal,,أمر الإنتاج غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,419,arabic_literal,,لا يمكن بدء أمر بحالة 
+alrajhi_client/database/dao/manufacturing_dao.py,421,arabic_literal,,الكمية المخططة يجب أن تكون أكبر من صفر
+alrajhi_client/database/dao/manufacturing_dao.py,427,arabic_literal,,لا توجد مواد مطلوبة للأمر
+alrajhi_client/database/dao/manufacturing_dao.py,431,arabic_literal,,لا يمكن إنشاء حجوزات المواد: 
+alrajhi_client/database/dao/manufacturing_dao.py,437,arabic_literal,append,: المطلوب 
+alrajhi_client/database/dao/manufacturing_dao.py,437,arabic_literal,append,، المتوفر 
+alrajhi_client/database/dao/manufacturing_dao.py,439,arabic_literal,,المواد التالية غير كافية:\n
+alrajhi_client/database/dao/manufacturing_dao.py,458,arabic_literal,,أمر الإنتاج غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,460,arabic_literal,,لا يمكن تسجيل استهلاك لأمر بحالة 
+alrajhi_client/database/dao/manufacturing_dao.py,463,arabic_literal,,كمية الاستهلاك يجب أن تكون أكبر من صفر
+alrajhi_client/database/dao/manufacturing_dao.py,466,arabic_literal,,تكلفة الوحدة لا يمكن أن تكون سالبة
+alrajhi_client/database/dao/manufacturing_dao.py,474,arabic_literal,,لا يوجد حجز لهذه المادة في هذا الأمر
+alrajhi_client/database/dao/manufacturing_dao.py,479,arabic_literal,,الكمية المستهلكة (
+alrajhi_client/database/dao/manufacturing_dao.py,479,arabic_literal,,) تتجاوز المتبقي من الحجز (
+alrajhi_client/database/dao/manufacturing_dao.py,482,arabic_literal,,المخزون غير كافٍ. المطلوب 
+alrajhi_client/database/dao/manufacturing_dao.py,482,arabic_literal,,، المتوفر 
+alrajhi_client/database/dao/manufacturing_dao.py,495,arabic_literal,_record_warehouse_movement,استهلاك مواد أمر إنتاج
+alrajhi_client/database/dao/manufacturing_dao.py,505,arabic_literal,,أمر الإنتاج غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,507,arabic_literal,,لا يمكن إتمام أمر بحالة 
+alrajhi_client/database/dao/manufacturing_dao.py,510,arabic_literal,,كمية الإنتاج يجب أن تكون أكبر من صفر
+alrajhi_client/database/dao/manufacturing_dao.py,513,arabic_literal,,لا توجد حجوزات مواد لهذا الأمر
+alrajhi_client/database/dao/manufacturing_dao.py,517,arabic_literal,,لم يتم استهلاك كامل كمية المادة 
+alrajhi_client/database/dao/manufacturing_dao.py,517,arabic_literal,,. المتبقي: 
+alrajhi_client/database/dao/manufacturing_dao.py,520,arabic_literal,,لا يمكن إتمام الإنتاج دون تسجيل استهلاك مواد
+alrajhi_client/database/dao/manufacturing_dao.py,523,arabic_literal,,تكلفة الإنتاج يجب أن تكون أكبر من صفر
+alrajhi_client/database/dao/manufacturing_dao.py,532,arabic_literal,_record_warehouse_movement,إدخال منتج نهائي من أمر إنتاج
+alrajhi_client/database/dao/manufacturing_dao.py,540,arabic_literal,_create_journal_entry,إتمام أمر إنتاج 
+alrajhi_client/database/dao/manufacturing_dao.py,558,arabic_literal,,أمر الإنتاج غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,560,arabic_literal,,لا يمكن حذف أمر بحالة 
+alrajhi_client/database/dao/manufacturing_dao.py,642,arabic_literal,execute,عكس قيد رقم 
+alrajhi_client/database/dao/manufacturing_dao.py,710,arabic_literal,,BOM غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,716,arabic_literal,,لا يمكن تعديل BOM لوجود أوامر إنتاج نشطة: 
+alrajhi_client/database/dao/manufacturing_dao.py,725,arabic_literal,,الاستهلاك غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,729,arabic_literal,,أمر الإنتاج غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,731,arabic_literal,,لا يمكن حذف استهلاك من أمر 
+alrajhi_client/database/dao/manufacturing_dao.py,740,arabic_literal,_record_warehouse_movement,عكس استهلاك مادة إنتاج
+alrajhi_client/database/dao/manufacturing_dao.py,751,arabic_literal,,الإنتاج غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,755,arabic_literal,,أمر الإنتاج غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,757,arabic_literal,,لا يمكن حذف مخرج من أمر مكتمل؛ استخدم التراجع عن الإنتاج بالكامل
+alrajhi_client/database/dao/manufacturing_dao.py,759,arabic_literal,,لا يمكن حذف إنتاج من أمر 
+alrajhi_client/database/dao/manufacturing_dao.py,763,arabic_literal,,لا يمكن حذف الإنتاج لأن مخزون المنتج سيصبح سالباً. المتوفر 
+alrajhi_client/database/dao/manufacturing_dao.py,763,arabic_literal,,، المطلوب عكسه 
+alrajhi_client/database/dao/manufacturing_dao.py,766,arabic_literal,_record_warehouse_movement,عكس مخرج إنتاج
+alrajhi_client/database/dao/manufacturing_dao.py,779,arabic_literal,,أمر الإنتاج غير موجود
+alrajhi_client/database/dao/manufacturing_dao.py,781,arabic_literal,,لا يمكن التراجع عن أمر 
+alrajhi_client/database/dao/manufacturing_dao.py,787,arabic_literal,,لا يمكن التراجع لأن مخزون المنتج 
+alrajhi_client/database/dao/manufacturing_dao.py,787,arabic_literal,, سيصبح سالباً. المتوفر 
+alrajhi_client/database/dao/manufacturing_dao.py,787,arabic_literal,,، المطلوب عكسه 
+alrajhi_client/database/dao/manufacturing_dao.py,797,arabic_literal,_record_warehouse_movement,عكس استهلاك أمر إنتاج
+alrajhi_client/database/dao/manufacturing_dao.py,803,arabic_literal,_record_warehouse_movement,عكس مخرج أمر إنتاج
+alrajhi_client/database/dao/manufacturing_dao.py,809,arabic_literal,,تم التراجع عن أمر الإنتاج بالكامل
+alrajhi_client/database/dao/manufacturing_dao.py,812,arabic_literal,,حدث خطأ أثناء التراجع: 
+alrajhi_client/database/dao/reporting_dao.py,195,arabic_literal,,الصندوق
+alrajhi_client/database/dao/reporting_dao.py,196,arabic_literal,,الذمم المدينة
+alrajhi_client/database/dao/reporting_dao.py,197,arabic_literal,,الذمم الدائنة
+alrajhi_client/database/dao/reporting_dao.py,198,arabic_literal,,المبيعات
+alrajhi_client/database/dao/reporting_dao.py,199,arabic_literal,,مرتجعات المبيعات
+alrajhi_client/database/dao/reporting_dao.py,200,arabic_literal,,المشتريات
+alrajhi_client/database/dao/reporting_dao.py,201,arabic_literal,,مرتجعات المشتريات
+alrajhi_client/database/dao/reporting_dao.py,202,arabic_literal,,المصاريف
+alrajhi_client/database/migrations.py,12,arabic_literal,print,⚠️ وضع العميل: قاعدة البيانات على الخادم، لا حاجة لإنشاء محلي.
+alrajhi_client/database/migrations.py,567,arabic_literal,execute,المدير العام
+alrajhi_client/database/migrations.py,677,arabic_literal,print,✅ تم تهيئة قاعدة البيانات المحلية في: 
+alrajhi_client/database/models.py,55,arabic_literal,,مخزون
+alrajhi_client/database/repositories/audit_repo.py,20,arabic_literal,,إرجاع السجلات مع العدد الإجمالي (يدعم pagination)
+alrajhi_client/database/repositories/audit_repo.py,29,arabic_literal,,الكل
+alrajhi_client/database/repositories/audit_repo.py,31,arabic_literal,,الكل
+alrajhi_client/database/repositories/audit_repo.py,49,arabic_literal,,الكل
+alrajhi_client/database/repositories/audit_repo.py,53,arabic_literal,,الكل
+alrajhi_client/database/repositories/branch_repo.py,10,arabic_literal,,الفرع الرئيسي
+alrajhi_client/database/repositories/branch_repo.py,87,arabic_literal,execute,تم إنشاؤه تلقائياً عند تفعيل نظام الفروع
+alrajhi_client/database/repositories/branch_repo.py,159,arabic_literal,ValueError,الفرع غير موجود
+alrajhi_client/database/repositories/branch_repo.py,175,arabic_literal,ValueError,الفرع غير موجود
+alrajhi_client/database/repositories/branch_repo.py,177,arabic_literal,ValueError,لا يمكن أرشفة الفرع الرئيسي
+alrajhi_client/database/repositories/branch_repo.py,180,arabic_literal,ValueError,لا يمكن أرشفة فرع مرتبط بمستودعات نشطة. انقل أو أرشف المستودعات أولاً.
+alrajhi_client/database/repositories/branch_repo.py,189,arabic_literal,ValueError,اسم الفرع مطلوب
+alrajhi_client/database/repositories/cashbox_repo.py,10,arabic_literal,,الصندوق الرئيسي
+alrajhi_client/database/repositories/cashbox_repo.py,148,arabic_literal,execute,تم إنشاؤه تلقائياً عند تفعيل نظام الصناديق
+alrajhi_client/database/repositories/cashbox_repo.py,204,arabic_literal,ValueError,الصندوق غير موجود
+alrajhi_client/database/repositories/cashbox_repo.py,205,arabic_literal,ValueError,لا يمكن أرشفة الصندوق الرئيسي
+alrajhi_client/database/repositories/cashbox_repo.py,247,arabic_literal,execute,ترحيل سند مالي
+alrajhi_client/database/repositories/cashbox_repo.py,275,arabic_literal,ValueError,يجب اختيار صندوق للوردية
+alrajhi_client/database/repositories/cashbox_repo.py,276,arabic_literal,ValueError,توجد وردية مفتوحة على هذا الصندوق
+alrajhi_client/database/repositories/cashbox_repo.py,285,arabic_literal,ValueError,الوردية غير موجودة
+alrajhi_client/database/repositories/cashbox_repo.py,305,arabic_literal,ValueError,الوردية مغلقة بالفعل
+alrajhi_client/database/repositories/cashbox_repo.py,312,arabic_literal,ValueError,اسم الصندوق مطلوب
+alrajhi_client/database/repositories/cashbox_repo.py,316,arabic_literal,ValueError,اسم البنك مطلوب
+alrajhi_client/database/repositories/expense_repo.py,9,arabic_literal,,جلب جميع الحركات من نوع expense أو receipt (الإيرادات) من جدول vouchers
+alrajhi_client/database/repositories/expense_repo.py,23,arabic_literal,get,مصروف عام
+alrajhi_client/database/repositories/expense_repo.py,38,arabic_literal,,إضافة مصروف أو إيراد عن طريق إنشاء سند من النوع expense أو receipt
+alrajhi_client/database/repositories/expense_repo.py,71,arabic_literal,Exception,لم يتم العثور على السند المرتبط
+alrajhi_client/database/repositories/manufacturing_repo.py,323,arabic_literal,,BOM غير موجود
+alrajhi_client/database/repositories/manufacturing_repo.py,329,arabic_literal,,لا يمكن تعديل BOM لوجود أوامر إنتاج نشطة: 
+alrajhi_client/database/repositories/reporting_repo.py,139,arabic_literal,,إجمالي الإيرادات
+alrajhi_client/database/repositories/reporting_repo.py,140,arabic_literal,,تكلفة البضاعة المباعة
+alrajhi_client/database/repositories/reporting_repo.py,141,arabic_literal,,المصروفات التشغيلية
+alrajhi_client/database/repositories/reporting_repo.py,150,arabic_literal,,الصندوق
+alrajhi_client/database/repositories/reporting_repo.py,151,arabic_literal,,الذمم المدينة
+alrajhi_client/database/repositories/reporting_repo.py,154,arabic_literal,,الذمم الدائنة
+alrajhi_client/database/repositories/reporting_repo.py,157,arabic_literal,,رأس المال
+alrajhi_client/database/repositories/user_repo.py,70,arabic_literal,_log_audit_local,إضافة مستخدم
+alrajhi_client/database/repositories/user_repo.py,71,arabic_literal,_log_audit_local,المستخدم: 
+alrajhi_client/database/repositories/user_repo.py,87,arabic_literal,_log_audit_local,تعديل مستخدم
+alrajhi_client/database/repositories/user_repo.py,88,arabic_literal,_log_audit_local,الاسم: 
+alrajhi_client/database/repositories/user_repo.py,88,arabic_literal,_log_audit_local,", صلاحية: "
+alrajhi_client/database/repositories/user_repo.py,111,arabic_literal,_log_audit_local,تغيير كلمة المرور
+alrajhi_client/database/repositories/user_repo.py,136,arabic_literal,_log_audit_local,حذف مستخدم
+alrajhi_client/database/repositories/user_repo.py,137,arabic_literal,_log_audit_local,المستخدم: 
+alrajhi_client/database/repositories/user_repo.py,152,arabic_literal,log,تعديل إلزام تغيير كلمة المرور
+alrajhi_client/database/repositories/warehouse_repo.py,12,arabic_literal,,المستودع الرئيسي
+alrajhi_client/database/repositories/warehouse_repo.py,144,arabic_literal,execute,تم إنشاؤه تلقائياً عند تفعيل نظام المستودعات
+alrajhi_client/database/repositories/warehouse_repo.py,178,arabic_literal,execute,ترحيل رصيد المادة إلى المستودع الرئيسي
+alrajhi_client/database/repositories/warehouse_repo.py,240,arabic_literal,ValueError,المستودع غير موجود
+alrajhi_client/database/repositories/warehouse_repo.py,255,arabic_literal,ValueError,المستودع غير موجود
+alrajhi_client/database/repositories/warehouse_repo.py,257,arabic_literal,ValueError,لا يمكن أرشفة المستودع الرئيسي
+alrajhi_client/database/repositories/warehouse_repo.py,263,arabic_literal,ValueError,لا يمكن أرشفة مستودع يحتوي أرصدة مواد. انقل الرصيد أولاً في مرحلة التحويلات.
+alrajhi_client/database/repositories/warehouse_repo.py,394,arabic_literal,ValueError,المستودع غير نشط أو غير موجود
+alrajhi_client/database/repositories/warehouse_repo.py,401,arabic_literal,ValueError,الرصيد غير كافٍ في المستودع المحدد
+alrajhi_client/database/repositories/warehouse_repo.py,440,arabic_literal,record_movement,عكس حركة مستودعية
+alrajhi_client/database/repositories/warehouse_repo.py,461,arabic_literal,ValueError,اختر المادة
+alrajhi_client/database/repositories/warehouse_repo.py,463,arabic_literal,ValueError,اختر مستودع المصدر والوجهة
+alrajhi_client/database/repositories/warehouse_repo.py,465,arabic_literal,ValueError,لا يمكن التحويل إلى نفس المستودع
+alrajhi_client/database/repositories/warehouse_repo.py,467,arabic_literal,ValueError,كمية التحويل يجب أن تكون أكبر من صفر
+alrajhi_client/database/repositories/warehouse_repo.py,469,arabic_literal,ValueError,لا يمكن التحويل من أو إلى مستودع مؤرشف
+alrajhi_client/database/repositories/warehouse_repo.py,472,arabic_literal,ValueError,الرصيد غير كافٍ في المستودع المصدر. المتاح: 
+alrajhi_client/database/repositories/warehouse_repo.py,484,arabic_literal,record_movement,تحويل إلى مستودع #
+alrajhi_client/database/repositories/warehouse_repo.py,485,arabic_literal,record_movement,تحويل من مستودع #
+alrajhi_client/database/repositories/warehouse_repo.py,498,arabic_literal,ValueError,التحويل غير موجود
+alrajhi_client/database/repositories/warehouse_repo.py,500,arabic_literal,ValueError,التحويل ملغى مسبقاً
+alrajhi_client/database/repositories/warehouse_repo.py,503,arabic_literal,ValueError,لا يمكن إلغاء التحويل لأن رصيد المستودع المستلم غير كافٍ
+alrajhi_client/database/repositories/warehouse_repo.py,505,arabic_literal,record_movement,إلغاء تحويل مستودعي
+alrajhi_client/database/repositories/warehouse_repo.py,506,arabic_literal,record_movement,إلغاء تحويل مستودعي
+alrajhi_client/gateways/local/audit_gateway.py,112,arabic_literal,,الكل
+alrajhi_client/gateways/local/audit_gateway.py,116,arabic_literal,,الكل
+alrajhi_client/gateways/local/backup_gateway.py,39,arabic_literal,RuntimeError,فشل فحص سلامة قاعدة البيانات: 
+alrajhi_client/gateways/local/backup_gateway.py,44,arabic_literal,RuntimeError,النسخة لا تبدو قاعدة الراجحي الصحيحة. جداول ناقصة: 
+alrajhi_client/gateways/local/backup_gateway.py,52,arabic_literal,FileNotFoundError,لا توجد قاعدة بيانات محلية للنسخ الاحتياطي
+alrajhi_client/gateways/local/backup_gateway.py,92,arabic_literal,RuntimeError,تغيّر ملف النسخة الاحتياطية: checksum غير مطابق
+alrajhi_client/gateways/local/backup_gateway.py,94,arabic_literal,RuntimeError,ملف بيانات النسخة الاحتياطية تالف
+alrajhi_client/gateways/local/offline_queue_gateway.py,65,arabic_literal,print,✅ تم إرسال الطلب المعلق: 
+alrajhi_client/gateways/local/offline_queue_gateway.py,75,arabic_literal,print,⛔ تم تعليم الطلب المعلق كفاشل نهائياً 
+alrajhi_client/gateways/local/offline_queue_gateway.py,78,arabic_literal,print,⚠️ فشل إرسال الطلب المعلق 
+alrajhi_client/gateways/local/purchase_return_gateway.py,32,arabic_literal,PurchaseReturnException,لا توجد جلسة مستخدم نشطة
+alrajhi_client/gateways/local/purchase_return_gateway.py,123,arabic_literal,PurchaseReturnException,يجب اختيار فاتورة شراء صالحة
+alrajhi_client/gateways/local/purchase_return_gateway.py,157,arabic_literal,PurchaseReturnException,يجب اختيار فاتورة شراء صالحة
+alrajhi_client/gateways/local/purchase_return_gateway.py,160,arabic_literal,PurchaseReturnException,يجب اختيار بند واحد على الأقل للمرتجع
+alrajhi_client/gateways/local/purchase_return_gateway.py,169,arabic_literal,PurchaseReturnException,بند المرتجع غير موجود في فاتورة الشراء الأصلية
+alrajhi_client/gateways/local/purchase_return_gateway.py,172,arabic_literal,PurchaseReturnException,كمية المرتجع يجب أن تكون أكبر من صفر
+alrajhi_client/gateways/local/purchase_return_gateway.py,180,arabic_literal,PurchaseReturnException,كمية المرتجع أكبر من الكمية المتبقية القابلة للإرجاع
+alrajhi_client/gateways/local/purchase_return_gateway.py,183,arabic_literal,PurchaseReturnException,لا توجد كمية كافية في المستودع لإرجاع هذا البند
+alrajhi_client/gateways/local/purchase_return_gateway.py,204,arabic_literal,PurchaseReturnException,مبلغ الاسترداد يجب أن يكون بين صفر وإجمالي المرتجع
+alrajhi_client/gateways/local/purchase_return_gateway.py,230,arabic_literal,record_movement,مرتجع مشتريات من المستودع
+alrajhi_client/gateways/local/purchase_return_gateway.py,235,arabic_literal,record_ledger_entry,دفتر مخزون مرتجع شراء
+alrajhi_client/gateways/local/purchase_return_gateway.py,241,arabic_literal,record_purchase_return_refund,استرداد مرتجع مشتريات
+alrajhi_client/gateways/local/purchase_return_gateway.py,243,arabic_literal,log,إنشاء مرتجع مشتريات
+alrajhi_client/gateways/local/purchase_return_gateway.py,252,arabic_literal,PurchaseReturnException,مرتجع المشتريات غير موجود
+alrajhi_client/gateways/local/purchase_return_gateway.py,261,arabic_literal,record_ledger_entry,عكس دفتر مخزون مرتجع شراء
+alrajhi_client/gateways/local/purchase_return_gateway.py,273,arabic_literal,log,إلغاء مرتجع مشتريات
+alrajhi_client/gateways/local/sales_return_gateway.py,32,arabic_literal,SalesReturnException,لا توجد جلسة مستخدم نشطة
+alrajhi_client/gateways/local/sales_return_gateway.py,125,arabic_literal,SalesReturnException,يجب اختيار فاتورة بيع صالحة
+alrajhi_client/gateways/local/sales_return_gateway.py,157,arabic_literal,SalesReturnException,يجب اختيار فاتورة بيع صالحة
+alrajhi_client/gateways/local/sales_return_gateway.py,160,arabic_literal,SalesReturnException,يجب اختيار بند واحد على الأقل للمرتجع
+alrajhi_client/gateways/local/sales_return_gateway.py,168,arabic_literal,SalesReturnException,بند المرتجع غير موجود في الفاتورة الأصلية
+alrajhi_client/gateways/local/sales_return_gateway.py,171,arabic_literal,SalesReturnException,كمية المرتجع يجب أن تكون أكبر من صفر
+alrajhi_client/gateways/local/sales_return_gateway.py,179,arabic_literal,SalesReturnException,كمية المرتجع أكبر من الكمية المتبقية القابلة للإرجاع
+alrajhi_client/gateways/local/sales_return_gateway.py,200,arabic_literal,SalesReturnException,مبلغ الرد النقدي يجب أن يكون بين صفر وإجمالي المرتجع
+alrajhi_client/gateways/local/sales_return_gateway.py,227,arabic_literal,record_movement,إرجاع مبيعات إلى المستودع
+alrajhi_client/gateways/local/sales_return_gateway.py,232,arabic_literal,record_ledger_entry,دفتر مخزون مرتجع بيع
+alrajhi_client/gateways/local/sales_return_gateway.py,241,arabic_literal,record_return_refund,رد مرتجع مبيعات 
+alrajhi_client/gateways/local/sales_return_gateway.py,245,arabic_literal,log,إنشاء مرتجع مبيعات
+alrajhi_client/gateways/local/sales_return_gateway.py,270,arabic_literal,record_ledger_entry,عكس دفتر مخزون مرتجع بيع
+alrajhi_client/gateways/local/sales_return_gateway.py,283,arabic_literal,log,إلغاء مرتجع مبيعات
+alrajhi_client/gateways/local/system_gateway.py,49,arabic_literal,,محلي SQLite
+alrajhi_client/gateways/remote/audit_gateway.py,33,arabic_literal,,الكل
+alrajhi_client/gateways/remote/audit_gateway.py,35,arabic_literal,,الكل
+alrajhi_client/gateways/remote/backup_gateway.py,15,arabic_literal,RuntimeError,لا يمكن تنفيذ النسخ الاحتياطي أو الاستعادة من جهاز عميل.
+alrajhi_client/gateways/remote/settings_gateway.py,30,arabic_literal,print,⚠️ تعذر جلب الإعداد من الخادم؛ سيتم استخدام آخر قيمة محفوظة لـ 
+alrajhi_client/main.py,36,likely_ui,setWindowTitle,ترخيص منتهي
+alrajhi_client/main.py,37,likely_ui,setText,انتهت صلاحية الترخيص.\nسيتم إغلاق التطبيق.
+alrajhi_client/main.py,73,arabic_literal,print,⚠️ فشل النسخ الاحتياطي الدوري: 
+alrajhi_client/main.py,79,arabic_literal,print,⚠️ النسخ الاحتياطي الدوري معطل في وضع العميل
+alrajhi_client/main.py,130,likely_ui,setWindowTitle,إعدادات الشبكة
+alrajhi_client/main.py,141,likely_ui,QLabel,لا يمكن الاتصال بالخادم الحالي. عدّل وضع التشغيل أو عنوان الخادم هنا. هذه النافذة تستخدم إعدادات محلية فقط ولا تحتاج إلى اتصال بالخادم.
+alrajhi_client/main.py,155,likely_ui,addItem,محلي (بدون شبكة)
+alrajhi_client/main.py,156,likely_ui,addItem,عميل (اتصال بخادم)
+alrajhi_client/main.py,157,likely_ui,addItem,خادم (تشغيل خدمة)
+alrajhi_client/main.py,161,arabic_literal,addRow,وضع التشغيل:
+alrajhi_client/main.py,164,likely_ui,setPlaceholderText,10.98.199.132 أو http://10.98.199.132:8000
+alrajhi_client/main.py,165,arabic_literal,addRow,عنوان الخادم:
+alrajhi_client/main.py,170,arabic_literal,addRow,منفذ الخادم المحلي:
+alrajhi_client/main.py,172,likely_ui,QCheckBox,تشغيل الخادم المحلي تلقائياً عند بدء التطبيق
+alrajhi_client/main.py,178,arabic_literal,addRow,الحالة:
+alrajhi_client/main.py,188,likely_ui,setText,✅ 
+alrajhi_client/main.py,191,likely_ui,setText,❌ 
+alrajhi_client/main.py,191,likely_ui,setText,\nالعنوان المستخدم: 
+alrajhi_client/main.py,194,likely_ui,QPushButton,اختبار الاتصال
+alrajhi_client/main.py,219,arabic_literal,print,تشغيل خادم الراجحي للمحاسبة...
+alrajhi_client/main.py,230,arabic_literal,print,✅ الخادم يعمل مسبقاً على المنفذ 
+alrajhi_client/main.py,236,arabic_literal,print,ℹ️ مسار قاعدة بيانات الخادم: 
+alrajhi_client/main.py,238,arabic_literal,print,⚠️ تعذر ضبط مسار قاعدة بيانات الخادم الموحد: 
+alrajhi_client/main.py,246,arabic_literal,print,✅ الخادم يعمل مسبقاً على المنفذ 
+alrajhi_client/main.py,266,likely_ui,critical,تفعيل الشبكة مطلوب
+alrajhi_client/main.py,267,likely_ui,critical,\n\nسيتم تشغيل التطبيق في الوضع المحلي.
+alrajhi_client/main.py,285,likely_ui,warning,تنبيه الخادم
+alrajhi_client/main.py,286,likely_ui,warning,تعذر تشغيل الخادم المحلي تلقائياً:\n
+alrajhi_client/main.py,286,likely_ui,warning,\n\nيمكن تشغيله أو إيقافه يدوياً من الإعدادات > الشبكة.
+alrajhi_client/main.py,290,arabic_literal,print,ℹ️ وضع الخادم مفعل، لكن التشغيل التلقائي للخادم معطل من الإعدادات.
+alrajhi_client/main.py,294,likely_ui,critical,خطأ في الاتصال
+alrajhi_client/main.py,295,likely_ui,critical,لا يمكن الاتصال بالخادم المحدد:\n
+alrajhi_client/main.py,295,likely_ui,critical,\n\nسيتم فتح إعدادات الشبكة لتعديل العنوان.
+alrajhi_client/main.py,298,likely_ui,information,تم الحفظ
+alrajhi_client/main.py,298,likely_ui,information,سيتم إعادة تشغيل التطبيق لتطبيق الإعدادات.
+alrajhi_client/main.py,306,arabic_literal,set_progress,جاري تهيئة قاعدة البيانات...
+alrajhi_client/main.py,317,arabic_literal,print,ℹ️ وضع العميل مفعل. مصدر البيانات: 
+alrajhi_client/main.py,319,arabic_literal,set_progress,التحقق من الترخيص...
+alrajhi_client/main.py,331,arabic_literal,set_progress,تم التفعيل...
+alrajhi_client/main.py,335,arabic_literal,set_progress,تسجيل الدخول...
+alrajhi_client/main.py,354,arabic_literal,set_progress,جاري تحميل الواجهة...
+alrajhi_client/offline_read.py,22,arabic_literal,,تعذر تحديث البيانات لأن الخادم غير متصل. ستبقى العمليات المحفوظة Offline في قائمة المزامنة.
+alrajhi_client/offline_read.py,36,likely_ui,warning,وضع عدم الاتصال
+alrajhi_client/printer_manager.py,39,arabic_literal,PrinterInfo,حفظ كـ PDF
+alrajhi_client/printer_manager.py,46,arabic_literal,PrinterInfo,حفظ كـ صورة PNG
+alrajhi_client/printing/label_designer.py,44,likely_ui,setWindowTitle,محرر قوالب الباركود
+alrajhi_client/printing/label_designer.py,51,likely_ui,QLabel,القالب:
+alrajhi_client/printing/label_designer.py,55,likely_ui,QPushButton,💾 حفظ
+alrajhi_client/printing/label_designer.py,58,likely_ui,QPushButton,📄 حفظ باسم
+alrajhi_client/printing/label_designer.py,61,likely_ui,QPushButton,🗑 حذف
+alrajhi_client/printing/label_designer.py,78,likely_ui,QPushButton,🔄 إعادة ضبط
+alrajhi_client/printing/label_designer.py,80,likely_ui,QPushButton,إغلاق
+alrajhi_client/printing/label_designer.py,118,arabic_literal,replace,الراجحي للمحاسبة
+alrajhi_client/printing/label_designer.py,119,arabic_literal,replace,مادة تجريبية
+alrajhi_client/printing/label_designer.py,122,arabic_literal,replace,السعر:
+alrajhi_client/printing/label_designer.py,128,likely_ui,warning,تنبيه
+alrajhi_client/printing/label_designer.py,128,likely_ui,warning,لا يمكن تعديل القالب الافتراضي
+alrajhi_client/printing/label_designer.py,133,arabic_literal,getText,حفظ القالب
+alrajhi_client/printing/label_designer.py,133,arabic_literal,getText,اسم القالب:
+alrajhi_client/printing/label_designer.py,147,arabic_literal,show_toast,تم حفظ القالب '
+alrajhi_client/printing/label_designer.py,151,likely_ui,warning,تنبيه
+alrajhi_client/printing/label_designer.py,151,likely_ui,warning,لا يمكن حذف القالب الافتراضي
+alrajhi_client/printing/label_designer.py,153,likely_ui,question,تأكيد الحذف
+alrajhi_client/printing/label_designer.py,153,likely_ui,question,حذف القالب '
+alrajhi_client/printing/label_designer.py,153,likely_ui,question,'؟
+alrajhi_client/printing/print_manager.py,17,likely_ui,setWindowTitle,إعدادات الطباعة
+alrajhi_client/printing/print_manager.py,22,likely_ui,QGroupBox,إعدادات الطابعة
+alrajhi_client/printing/print_manager.py,29,arabic_literal,addRow,الطابعة:
+alrajhi_client/printing/print_manager.py,33,arabic_literal,addRow,عدد النسخ:
+alrajhi_client/printing/print_manager.py,34,likely_ui,QCheckBox,طباعة بالألوان
+alrajhi_client/printing/print_manager.py,39,likely_ui,QGroupBox,إعدادات الورق
+alrajhi_client/printing/print_manager.py,44,arabic_literal,addRow,حجم الورق:
+alrajhi_client/printing/print_manager.py,46,likely_ui,addItems,عمودي
+alrajhi_client/printing/print_manager.py,46,likely_ui,addItems,أفقي
+alrajhi_client/printing/print_manager.py,47,arabic_literal,addRow,الاتجاه:
+alrajhi_client/printing/print_manager.py,50,likely_ui,QGroupBox,خيارات إضافية
+alrajhi_client/printing/print_manager.py,52,likely_ui,QCheckBox,إظهار شعار الشركة
+alrajhi_client/printing/print_manager.py,55,likely_ui,QCheckBox,إظهار التذييل
+alrajhi_client/printing/print_manager.py,61,likely_ui,QPushButton,معاينة
+alrajhi_client/printing/print_manager.py,63,likely_ui,QPushButton,طباعة
+alrajhi_client/printing/print_manager.py,64,likely_ui,QPushButton,إلغاء
+alrajhi_client/printing/print_templates.py,80,arabic_literal,,نعم
+alrajhi_client/printing/print_templates.py,150,arabic_literal,,التصنيفات
+alrajhi_client/printing/print_templates.py,151,arabic_literal,,المستخدمون
+alrajhi_client/printing/print_templates.py,214,arabic_literal,,<div class='muted'>الرقم الضريبي: 
+alrajhi_client/printing/print_templates.py,234,arabic_literal,,</div>\n                <div class='muted'>تاريخ الطباعة</div>\n                <div class='strong'>
+alrajhi_client/printing/print_templates.py,440,arabic_literal,,'><div>رمز المستند</div></td></tr></table>
+alrajhi_client/printing/print_templates.py,459,arabic_literal,,\n    <table class='signatures hide-thermal'><tr><td>توقيع المستلم</td><td>المحاسب</td></tr></table>\n    
+alrajhi_client/printing/print_templates.py,478,arabic_literal,,</div>\n    <table class='signatures'><tr><td>المستلم</td><td>المحاسب</td></tr></table>\n    
+alrajhi_client/printing/print_templates.py,522,arabic_literal,,مخطط
+alrajhi_client/printing/print_templates.py,522,arabic_literal,,قيد التنفيذ
+alrajhi_client/printing/print_templates.py,522,arabic_literal,,مكتمل
+alrajhi_client/printing/print_templates.py,522,arabic_literal,,ملغي
+alrajhi_client/printing/print_templates.py,544,arabic_literal,,\n    <h3>المواد المستهلكة</h3>\n    
+alrajhi_client/printing/print_templates.py,546,arabic_literal,_table,المادة
+alrajhi_client/printing/print_templates.py,546,arabic_literal,_table,الكمية
+alrajhi_client/printing/print_templates.py,546,arabic_literal,_table,تكلفة الوحدة
+alrajhi_client/printing/print_templates.py,546,arabic_literal,_table,التاريخ
+alrajhi_client/printing/print_templates.py,546,arabic_literal,_table,لا توجد مواد مستهلكة
+alrajhi_client/printing/print_templates.py,546,arabic_literal,,\n    <h3>المنتج النهائي</h3>\n    
+alrajhi_client/printing/print_templates.py,548,arabic_literal,_table,المنتج
+alrajhi_client/printing/print_templates.py,548,arabic_literal,_table,الكمية
+alrajhi_client/printing/print_templates.py,548,arabic_literal,_table,تكلفة الوحدة
+alrajhi_client/printing/print_templates.py,548,arabic_literal,_table,التاريخ
+alrajhi_client/printing/print_templates.py,548,arabic_literal,_table,لا توجد مخرجات إنتاج
+alrajhi_client/printing/print_templates.py,548,arabic_literal,,\n    <h3>الحجوزات والمتبقي</h3>\n    
+alrajhi_client/printing/print_templates.py,550,arabic_literal,_table,المادة
+alrajhi_client/printing/print_templates.py,550,arabic_literal,_table,المحجوز
+alrajhi_client/printing/print_templates.py,550,arabic_literal,_table,المستهلك
+alrajhi_client/printing/print_templates.py,550,arabic_literal,_table,المتبقي
+alrajhi_client/printing/print_templates.py,550,arabic_literal,_table,لا توجد حجوزات
+alrajhi_client/printing/print_templates.py,550,arabic_literal,,\n    <table class='signatures hide-thermal'><tr><td>مسؤول الإنتاج</td><td>المحاسبة</td></tr></table>\n    
+alrajhi_client/printing/print_templates.py,552,arabic_literal,_footer,تم إنشاء أمر الإنتاج بواسطة نظام الراجحي
+alrajhi_client/printing/printing_service.py,32,arabic_literal,,معاينة الطباعة
+alrajhi_client/printing/printing_service.py,34,likely_ui,warning,تنبيه
+alrajhi_client/printing/printing_service.py,34,likely_ui,warning,لا يوجد محتوى للطباعة
+alrajhi_client/printing/printing_service.py,44,arabic_literal,,معاينة HTML
+alrajhi_client/printing/printing_service.py,52,likely_ui,warning,تنبيه
+alrajhi_client/printing/printing_service.py,52,likely_ui,warning,لا يوجد محتوى للمعاينة
+alrajhi_client/printing/printing_service.py,61,likely_ui,warning,تعذر فتح المتصفح
+alrajhi_client/printing/printing_service.py,64,arabic_literal,,طباعة
+alrajhi_client/printing/printing_service.py,66,likely_ui,warning,تنبيه
+alrajhi_client/printing/printing_service.py,66,likely_ui,warning,لا يوجد محتوى للطباعة
+alrajhi_client/printing/printing_service.py,79,likely_ui,warning,تنبيه
+alrajhi_client/printing/printing_service.py,79,likely_ui,warning,لا يوجد محتوى للحفظ
+alrajhi_client/printing/printing_service.py,81,arabic_literal,getSaveFileName,حفظ PDF
+alrajhi_client/printing/printing_service.py,97,arabic_literal,open_html_in_browser,معاينة HTML للفاتورة
+alrajhi_client/printing/printing_service.py,105,arabic_literal,preview_html,معاينة الفاتورة
+alrajhi_client/printing/printing_service.py,108,arabic_literal,print_html,طباعة الفاتورة
+alrajhi_client/printing/printing_service.py,118,arabic_literal,preview_html,معاينة السند
+alrajhi_client/printing/printing_service.py,121,arabic_literal,print_html,طباعة السند
+alrajhi_client/printing/printing_service.py,124,arabic_literal,open_html_in_browser,معاينة HTML للسند
+alrajhi_client/printing/printing_service.py,134,arabic_literal,preview_html,معاينة المرتجع
+alrajhi_client/printing/printing_service.py,137,arabic_literal,print_html,طباعة المرتجع
+alrajhi_client/printing/printing_service.py,140,arabic_literal,open_html_in_browser,معاينة HTML للمرتجع
+alrajhi_client/printing/printing_service.py,150,arabic_literal,preview_html,معاينة أمر الإنتاج
+alrajhi_client/printing/printing_service.py,153,arabic_literal,print_html,طباعة أمر الإنتاج
+alrajhi_client/printing/printing_service.py,156,arabic_literal,open_html_in_browser,معاينة HTML لأمر الإنتاج
+alrajhi_client/printing/printing_service.py,168,arabic_literal,preview_html,معاينة 
+alrajhi_client/printing/printing_service.py,172,arabic_literal,print_html,طباعة 
+alrajhi_client/printing/thermal_printer.py,64,arabic_literal,encode,السعر: 
+alrajhi_client/printing/thermal_printer.py,69,arabic_literal,print,خطأ في الطباعة: 
+alrajhi_client/printing/thermal_printer.py,79,arabic_literal,encode,الراجحي للمحاسبة
+alrajhi_client/printing/thermal_printer.py,84,arabic_literal,encode,شكراً لتعاملكم معنا
+alrajhi_client/printing/thermal_printer.py,101,arabic_literal,print,خطأ: لا يوجد نافذة أبوية لفتح حوار الحفظ
+alrajhi_client/printing/thermal_printer.py,103,arabic_literal,getSaveFileName,حفظ PDF
+alrajhi_client/printing/thermal_printer.py,115,arabic_literal,show_toast,تم حفظ PDF بنجاح: 
+alrajhi_client/printing/thermal_printer.py,121,arabic_literal,getSaveFileName,حفظ الباركودات كـ PDF
+alrajhi_client/printing/thermal_printer.py,132,arabic_literal,show_toast,تم حفظ PDF بنجاح: 
+alrajhi_client/printing/thermal_printer.py,142,arabic_literal,getSaveFileName,حفظ PNG
+alrajhi_client/printing/thermal_printer.py,149,arabic_literal,show_toast,تم حفظ الصورة بنجاح: 
+alrajhi_client/theme/brand.py,11,arabic_literal,,الراجحي للمحاسبة والمستودعات والتصنيع
+alrajhi_client/theme/brand.py,12,arabic_literal,,الراجحي للمحاسبة
+alrajhi_client/theme/brand.py,13,arabic_literal,,الراجحي للمحاسبة والمستودعات والتصنيع
+alrajhi_client/ui/form_validation.py,71,arabic_literal,_set_invalid, مطلوب
+alrajhi_client/ui/form_validation.py,83,arabic_literal,_set_invalid, يجب أن يكون رقمًا صحيحًا
+alrajhi_client/ui/form_validation.py,87,arabic_literal,_set_invalid, يجب أن يكون 
+alrajhi_client/ui/form_validation.py,87,arabic_literal,_set_invalid,صفرًا أو أكبر
+alrajhi_client/ui/form_validation.py,87,arabic_literal,_set_invalid,أكبر من صفر
+alrajhi_client/utils.py,79,arabic_literal,_toast,نجاح
+alrajhi_client/utils.py,79,arabic_literal,_toast,تم الحفظ
+alrajhi_client/utils.py,79,arabic_literal,_toast,تم
+alrajhi_client/utils.py,148,arabic_literal,print,✅ تم تفعيل تحديد النص تلقائياً عند التركيز

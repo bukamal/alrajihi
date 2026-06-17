@@ -1,64 +1,56 @@
 # -*- coding: utf-8 -*-
+import datetime
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
-from alrajhi_server.database.connection import get_db
+
 from alrajhi_server.auth.password import verify_password
-import datetime
-from alrajhi_server.api.audit_utils import audit_log
+from alrajhi_server.repositories.auth_repository import AuthRepository
 
 auth_bp = Blueprint('auth', __name__)
 
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
+    data = request.get_json() or {}
     username = data.get('username')
     password = data.get('password')
-    db = get_db()
-    user = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+    repo = AuthRepository()
+    user = repo.get_user_by_username(username)
     if not user or not verify_password(password or '', user['password_hash'], user['salt']):
         return jsonify({'error': 'Invalid credentials'}), 401
 
-    now_login = datetime.datetime.now().isoformat()
-    db.execute("UPDATE users SET last_login = ? WHERE id = ?", (now_login, user['id']))
-    db.commit()
+    now = datetime.datetime.now().isoformat()
+    repo.mark_last_login(user['id'], now)
+    token = create_access_token(identity=str(user['id']))
+    repo.record_auth_event(
+        user_id=user['id'], username=user['username'], action='تسجيل دخول',
+        table_name='users', record_id=user['id'], ip_address=request.remote_addr, timestamp=now,
+    )
+    return jsonify({
+        'token': token,
+        'user': {
+            'id': user['id'],
+            'username': user['username'],
+            'full_name': user['full_name'],
+            'role': user['role'],
+            'force_password_change': user['force_password_change'] if 'force_password_change' in user.keys() else 0
+        }
+    })
 
-    if user:
-        token = create_access_token(identity=str(user['id']))
-        # تسجيل التدقيق
-        db = get_db()
-        now = datetime.datetime.now().isoformat()
-        db.execute('''
-            INSERT INTO audit_log (user_id, username, action, table_name, record_id, details, ip_address, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user['id'], user['username'], 'تسجيل دخول', 'users', user['id'], '', request.remote_addr, now))
-        db.commit()
-        return jsonify({
-            'token': token,
-            'user': {
-                'id': user['id'],
-                'username': user['username'],
-                'full_name': user['full_name'],
-                'role': user['role'],
-                'force_password_change': user['force_password_change'] if 'force_password_change' in user.keys() else 0
-            }
-        })
-    return jsonify({'error': 'Invalid credentials'}), 401
 
 @auth_bp.route('/logout', methods=['POST'])
 @jwt_required()
 def logout():
-    jti = get_jwt()['jti']
-    db = get_db()
+    repo = AuthRepository()
     now = datetime.datetime.now().isoformat()
-    db.execute('INSERT INTO token_blacklist (jti, created_at) VALUES (?, ?)', (jti, now))
+    jti = get_jwt()['jti']
+    repo.add_token_to_blacklist(jti, now)
     user_id = get_jwt_identity()
-    user = db.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
-    if user:
-        db.execute('''
-            INSERT INTO audit_log (user_id, username, action, table_name, record_id, details, ip_address, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, user['username'], 'تسجيل خروج', 'auth', 0, '', request.remote_addr, now))
-    db.commit()
+    username = repo.get_username(user_id)
+    if username:
+        repo.record_auth_event(
+            user_id=user_id, username=username, action='تسجيل خروج',
+            table_name='auth', record_id=0, ip_address=request.remote_addr, timestamp=now,
+        )
     return jsonify({'status': 'logged out'}), 200
-
-

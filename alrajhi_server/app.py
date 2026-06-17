@@ -89,6 +89,8 @@ from alrajhi_server.api.warehouses import warehouses_bp
 from alrajhi_server.api.debug import debug_bp
 from alrajhi_server.api.rbac import rbac_bp
 from alrajhi_server.api.enterprise_governance import enterprise_governance_bp
+from alrajhi_server.api.industry import industry_bp
+from alrajhi_server.api.restaurant import restaurant_bp
 
 app.register_blueprint(auth_bp, url_prefix='/api')
 app.register_blueprint(items_bp, url_prefix='/api')
@@ -110,6 +112,8 @@ app.register_blueprint(warehouses_bp, url_prefix='/api')
 app.register_blueprint(debug_bp, url_prefix='/api')
 app.register_blueprint(rbac_bp, url_prefix='/api')
 app.register_blueprint(enterprise_governance_bp, url_prefix='/api')
+app.register_blueprint(industry_bp, url_prefix='/api')
+app.register_blueprint(restaurant_bp, url_prefix='/api')
 
 if __name__ == '__main__':
     host = os.environ.get('ALRAJHI_HOST', '127.0.0.1')

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Architecture boundary guard for the Alrajhi desktop client.
+"""Architecture boundary guard for the Alrajhi client and server API.
 
-Phase 21 rule:
+Phase 22 rule:
 - UI/views, core/services, currency.py, and main.py must not import database package, database.dao or database.repositories directly.
 - Direct DatabaseConnection access is forbidden in protected layers and must remain behind gateways/services.
 - Direct SQL execution is forbidden in protected layers.
@@ -21,6 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CHECK_DIRS = [
     ROOT / "alrajhi_client" / "views",
     ROOT / "alrajhi_client" / "core" / "services",
+    ROOT / "alrajhi_server" / "api",
+    ROOT / "alrajhi_server" / "services" / "http_routes",
 ]
 CHECK_FILES = [
     ROOT / "alrajhi_client" / "currency.py",
@@ -40,35 +42,19 @@ FORBIDDEN_REPOSITORY_PREFIXES = (
 
 # Existing technical-debt exceptions.  These are not ideal; they are tracked so
 # new direct DB access cannot silently enter views/services.
-LEGACY_DB_ALLOWLIST = {
-    # Phase 160 architecture-debt register: these files currently contain
-    # transitional local-SQL access added by ERP governance/accounting phases.
-    # They are intentionally tracked here so CI blocks any new unregistered
-    # direct database access while the code is gradually moved behind gateways.
-    "alrajhi_client/views/widgets/settings_widget.py",
-    "alrajhi_client/core/services/accounting_service.py",
-    "alrajhi_client/core/services/advanced_approval_service.py",
-    "alrajhi_client/core/services/approval_service.py",
-    "alrajhi_client/core/services/permission_service.py",
-    "alrajhi_client/core/services/production_validation_service.py",
-    "alrajhi_client/core/services/rbac_service.py",
-    "alrajhi_client/core/services/reporting_service.py",
-    "alrajhi_client/core/services/settings_service.py",
-    "alrajhi_client/core/services/system_health_service.py",
-    "alrajhi_client/core/services/system_service.py",
-    "alrajhi_client/core/services/workflow_policy_service.py",
-}
+LEGACY_DB_ALLOWLIST = set()
 
-LEGACY_SQL_ALLOWLIST = set(LEGACY_DB_ALLOWLIST)
+LEGACY_SQL_ALLOWLIST = set()
 
 DATABASE_CONNECTION_MODULES = {
     "database.connection",
     "alrajhi_client.database.connection",
     "database.connection_rest",
     "alrajhi_client.database.connection_rest",
+    "alrajhi_server.database.connection",
 }
 
-SQL_METHOD_NAMES = {"execute", "executemany", "executescript"}
+SQL_METHOD_NAMES = {"execute", "executemany", "executescript", "query"}
 FORBIDDEN_SERVER_CONTROL_MODULES = {
     "core.server_control",
     "alrajhi_client.core.server_control",
@@ -77,6 +63,10 @@ FORBIDDEN_SERVER_CONTROL_MODULES = {
 FORBIDDEN_DATABASE_ROOT_MODULES = {
     "database",
     "alrajhi_client.database",
+}
+
+FORBIDDEN_SERVER_API_REPOSITORY_MODULES = {
+    "alrajhi_server.repositories.legacy_sql_repository",
 }
 
 ALLOWED_DATABASE_ROOT_NAMES = set()
@@ -132,7 +122,14 @@ def scan_file(path: Path) -> list[Violation]:
     violations: list[Violation] = []
     rel = path.relative_to(ROOT).as_posix()
 
+    SQL_KEYWORDS = ("SELECT", "INSERT", "UPDATE", "DELETE", "CREATE", "ALTER", "DROP", "PRAGMA")
+
     for node in ast.walk(tree):
+        if (rel.startswith("alrajhi_server/api/") or rel.startswith("alrajhi_server/services/http_routes/")) and isinstance(node, ast.Constant) and isinstance(node.value, str):
+            text = " ".join(node.value.upper().split())
+            if any(text.startswith(keyword + " ") for keyword in SQL_KEYWORDS):
+                violations.append(Violation(path, getattr(node, "lineno", 0), "<sql literal>", "SQL literals are forbidden in server API/service HTTP wrappers; move data access behind service/repository layers"))
+
         if isinstance(node, ast.Call):
             func = node.func
             if isinstance(func, ast.Attribute) and func.attr in SQL_METHOD_NAMES:
@@ -149,6 +146,8 @@ def scan_file(path: Path) -> list[Violation]:
                     violations.append(Violation(path, node.lineno, import_name(node), "direct DatabaseConnection import requires explicit allow-list"))
                 if alias.name in FORBIDDEN_SERVER_CONTROL_MODULES:
                     violations.append(Violation(path, node.lineno, import_name(node), "direct server_control import is forbidden in UI/application entrypoints; use SystemService"))
+                if alias.name in FORBIDDEN_SERVER_API_REPOSITORY_MODULES and (rel.startswith("alrajhi_server/api/") or rel.startswith("alrajhi_server/services/http_routes/")):
+                    violations.append(Violation(path, node.lineno, import_name(node), "server API must not depend on LegacySqlRepository; use a domain repository"))
                 if alias.name in FORBIDDEN_DATABASE_ROOT_MODULES:
                     violations.append(Violation(path, node.lineno, import_name(node), "direct database package import is forbidden in protected layers; use Service/Gateway"))
 
@@ -162,6 +161,8 @@ def scan_file(path: Path) -> list[Violation]:
                 violations.append(Violation(path, node.lineno, import_name(node), "direct DatabaseConnection import requires explicit allow-list"))
             if module in FORBIDDEN_SERVER_CONTROL_MODULES:
                 violations.append(Violation(path, node.lineno, import_name(node), "direct server_control import is forbidden in UI/application entrypoints; use SystemService"))
+            if module in FORBIDDEN_SERVER_API_REPOSITORY_MODULES and (rel.startswith("alrajhi_server/api/") or rel.startswith("alrajhi_server/services/http_routes/")):
+                violations.append(Violation(path, node.lineno, import_name(node), "server API must not depend on LegacySqlRepository; use a domain repository"))
             if module in FORBIDDEN_DATABASE_ROOT_MODULES:
                 imported = {alias.name for alias in node.names}
                 if imported - ALLOWED_DATABASE_ROOT_NAMES:
@@ -196,7 +197,7 @@ def main() -> int:
         print("\nMove data access behind Service/Gateway, or document a temporary legacy exception explicitly.")
         return 1
 
-    print("Architecture guard passed: no forbidden DAO/repository/SQL access in protected UI/service layers.")
+    print("Architecture guard passed: no forbidden DAO/repository/SQL access in protected client/server layers.")
     print(f"Tracked legacy DatabaseConnection exceptions: {len(LEGACY_DB_ALLOWLIST)} files.")
     print(f"Tracked legacy SQL execution exceptions: {len(LEGACY_SQL_ALLOWLIST)} files.")
     return 0

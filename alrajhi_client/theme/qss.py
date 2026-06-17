@@ -279,6 +279,205 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['text_primary']};
         }}
         QProgressBar::chunk {{ background-color: {colors['primary']}; border-radius: 6px; }}
+
+        /* Phase 24: modern restaurant touch UI. */
+        QWidget#restaurantDashboard {{
+            background-color: {colors['bg_window']};
+        }}
+        QFrame#restaurantHeaderCard {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+        QLabel#restaurantDashboardTitle {{
+            font-size: 24px;
+            font-weight: 900;
+            color: {colors['primary']};
+        }}
+        QLabel#restaurantModeBadge {{
+            background-color: {colors['brand_soft']};
+            color: {colors['primary']};
+            border: 1px solid {colors['border']};
+            border-radius: 16px;
+            padding: 7px 14px;
+            font-weight: 800;
+        }}
+        QPushButton#restaurantRefreshButton {{
+            background-color: {colors['primary']};
+            color: white;
+            border: none;
+            border-radius: {radius_md}px;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: 900;
+        }}
+        QWidget#restaurantTableMap, QWidget#restaurantTableMapPane,
+        QWidget#restaurantPOSPane, QWidget#restaurantPOSWidget {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+        QPushButton#restaurantTableButton {{
+            border: 2px solid {colors['border']};
+            border-radius: {radius_lg}px;
+            padding: 18px;
+            font-size: 17px;
+            font-weight: 900;
+            text-align: center;
+            min-width: 170px;
+            min-height: 120px;
+        }}
+        QPushButton#restaurantTableButton[restaurant_status="free"] {{
+            background-color: {colors['success_soft']};
+            color: {colors['success']};
+            border-color: {colors['success']};
+        }}
+        QPushButton#restaurantTableButton[restaurant_status="occupied"] {{
+            background-color: {colors['info_soft']};
+            color: {colors['info']};
+            border-color: {colors['info']};
+        }}
+        QPushButton#restaurantTableButton[restaurant_status="payment"] {{
+            background-color: {colors['warning_soft']};
+            color: {colors['warning']};
+            border-color: {colors['warning']};
+        }}
+        QPushButton#restaurantTableButton[restaurant_status="reserved"] {{
+            background-color: {colors['danger_soft']};
+            color: {colors['danger']};
+            border-color: {colors['danger']};
+        }}
+        QPushButton#restaurantTableButton:hover {{
+            background-color: {colors['brand_soft']};
+            color: {colors['primary']};
+            border-color: {colors['primary']};
+        }}
+        QLabel#restaurantPOSTitle {{
+            font-size: 19px;
+            font-weight: 900;
+            color: {colors['text_primary']};
+        }}
+        QLabel#restaurantPOSTotal {{
+            background-color: {colors['brand_soft']};
+            color: {colors['primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 12px;
+            font-size: 18px;
+            font-weight: 900;
+        }}
+        QListWidget#restaurantOrderLines {{
+            background-color: {colors['bg_table']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px;
+            font-size: 15px;
+        }}
+        QListWidget#restaurantOrderLines::item {{
+            min-height: 48px;
+            padding: 9px;
+            border-bottom: 1px solid {colors['border']};
+        }}
+        /* Phase 25: product-card ordering grid. */
+        QLineEdit#restaurantMenuSearch {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 9px 14px;
+            font-size: 15px;
+        }}
+        QPushButton#restaurantMenuSearchButton,
+        QPushButton#restaurantManualItemButton {{
+            background-color: {colors['card_bg']};
+            color: {colors['primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px 14px;
+            font-weight: 900;
+        }}
+        QScrollArea#restaurantMenuScroll {{
+            background-color: {colors['bg_table']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QWidget#restaurantMenuHost {{
+            background-color: {colors['bg_table']};
+        }}
+        QPushButton#restaurantMenuItemButton {{
+            background-color: {colors['card_bg']};
+            color: {colors['text_primary']};
+            border: 2px solid {colors['border']};
+            border-radius: {radius_lg}px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 900;
+            text-align: center;
+        }}
+        QPushButton#restaurantMenuItemButton:hover {{
+            background-color: {colors['brand_soft']};
+            color: {colors['primary']};
+            border-color: {colors['primary']};
+        }}
+        QLabel#restaurantEmptyMenuLabel {{
+            color: {colors['text_secondary']};
+            font-weight: 800;
+            padding: 20px;
+        }}
+        QPushButton#restaurantKitchenButton {{ background-color: {colors['info']}; color: white; border: none; border-radius: {radius_md}px; font-weight: 900; }}
+        QPushButton#restaurantPaymentButton {{ background-color: {colors['warning']}; color: white; border: none; border-radius: {radius_md}px; font-weight: 900; }}
+        QPushButton#restaurantCloseButton {{ background-color: {colors['success']}; color: white; border: none; border-radius: {radius_md}px; font-weight: 900; }}
+        QLabel#restaurantPOSStatus, QLabel#restaurantStatusBar {{
+            color: {colors['text_secondary']};
+            font-weight: 700;
+            padding: 6px;
+        }}
+
+        /* Phase 28: restaurant kitchen display system. */
+        QWidget#restaurantKitchenDisplay {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+        QLabel#restaurantKDSTitle,
+        QLabel#restaurantKDSDetailTitle {{
+            font-size: 18px;
+            font-weight: 900;
+            color: {colors['text_primary']};
+        }}
+        QListWidget#restaurantKDSTickets,
+        QListWidget#restaurantKDSLines {{
+            background-color: {colors['bg_table']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px;
+            font-size: 15px;
+            font-weight: 800;
+        }}
+        QListWidget#restaurantKDSTickets::item,
+        QListWidget#restaurantKDSLines::item {{
+            min-height: 56px;
+            padding: 10px;
+            border-bottom: 1px solid {colors['border']};
+        }}
+        QFrame#restaurantKDSDetailCard {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+            padding: 10px;
+        }}
+        QPushButton#restaurantKDSRefreshButton {{
+            background-color: {colors['card_bg']};
+            color: {colors['primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px 14px;
+            font-weight: 900;
+        }}
+        QLabel#restaurantKDSStatus {{
+            color: {colors['text_secondary']};
+            font-weight: 700;
+            padding: 6px;
+        }}
     """
 
 

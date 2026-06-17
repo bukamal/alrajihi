@@ -43,6 +43,43 @@ class SystemGateway(ABC):
     def request_log(self) -> List[Dict]:
         raise NotImplementedError
 
+    @abstractmethod
+    def integrity_checks(self) -> Dict[str, object]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def local_diagnostics_snapshot(self) -> Dict[str, object]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def run_health_checks(self) -> Dict[str, object]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def log_security_event(self, event_type: str, action: str = '', allowed: bool = False, reason: str = '', context: str = '', role: str | None = None, username: str = '') -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def security_events(self, limit: int = 200) -> List[Dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def denied_security_events_count(self) -> int:
+        raise NotImplementedError
+
+
+
+    @abstractmethod
+    def record_validation_run(self, run_type: str, status: str, summary: str, details: dict) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def validate_backup_restore(self) -> Dict[str, object]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def run_stress_smoke(self, invoice_count: int = 200) -> Dict[str, object]:
+        raise NotImplementedError
 
     @abstractmethod
     def ensure_local_database(self) -> None:

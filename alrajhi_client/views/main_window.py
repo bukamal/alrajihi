@@ -24,6 +24,7 @@ from views.widgets.returns_widget import ReturnsWidget, PurchaseReturnsWidget
 from views.widgets.audit_log_widget import AuditLogWidget
 from views.widgets.offline_queue_widget import OfflineQueueWidget
 from views.widgets.monitoring_widget import MonitoringWidget
+from views.restaurant.restaurant_dashboard import RestaurantDashboard
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from views.dialogs.login_dialog import LoginDialog
 from views.modern_topbar import ModernTopBar
@@ -55,7 +56,9 @@ PAGE_META_KEYS = {
     'audit_log': ('audit_log', 'nav_users'),
     'offline_queue': ('offline_queue', 'nav_admin'),
     'monitoring': ('monitoring', 'nav_admin'),
+    'restaurant': ('restaurant.dashboard', 'nav_restaurant'),
 }
+
 
 
 def page_title(pid):
@@ -119,6 +122,7 @@ NAV_GROUP_BY_PAGE = {
     'audit_log': 'المستخدمين',
     'offline_queue': 'الإدارة',
     'monitoring': 'الإدارة',
+    'restaurant': 'المطعم',
 }
 
 
@@ -323,6 +327,7 @@ class MainWindow(QMainWindow):
             ('audit_log', AuditLogWidget),
             ('offline_queue', OfflineQueueWidget),
             ('monitoring', MonitoringWidget),
+            ('restaurant', RestaurantDashboard),
         ]
         for key, factory in page_factories:
             self.pages[key] = self._create_page_safely(key, factory)
@@ -386,6 +391,7 @@ class MainWindow(QMainWindow):
         home_menu = self.menu_bar.addMenu(qta.icon('fa5s.home'), '\n' + translate('home_breadcrumb'))
         add_action(home_menu, translate('dashboard'), 'tachometer-alt', 'dashboard', shortcut='F1')
         add_action(home_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
+        add_action(home_menu, translate('restaurant.dashboard'), 'utensils', 'restaurant', shortcut='F8')
         home_menu.addSeparator()
         add_action(home_menu, translate('monitoring'), 'heartbeat', 'monitoring')
 
@@ -395,6 +401,11 @@ class MainWindow(QMainWindow):
         add_action(sales_menu, translate('sales_returns'), 'undo', 'returns')
         sales_menu.addSeparator()
         add_action(sales_menu, translate('receipt_voucher'), 'hand-holding-usd', 'vouchers')
+
+        restaurant_menu = self.menu_bar.addMenu(qta.icon('fa5s.utensils'), '\n' + translate('nav_restaurant'))
+        add_action(restaurant_menu, translate('restaurant.dashboard'), 'utensils', 'restaurant', shortcut='F8')
+        add_action(restaurant_menu, translate('restaurant.open_table'), 'door-open', 'restaurant')
+        add_action(restaurant_menu, translate('restaurant.kitchen_ticket'), 'receipt', 'restaurant')
 
         purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), '\n' + translate('nav_purchases'))
         add_action(purchase_menu, translate('purchase_invoices'), 'file-invoice', 'purchase_invoices')
@@ -632,6 +643,8 @@ class MainWindow(QMainWindow):
         self.new_item_shortcut.activated.connect(lambda: self.switch_page('items'))
         self.warehouse_shortcut = QShortcut(QKeySequence('F5'), self)
         self.warehouse_shortcut.activated.connect(lambda: self.switch_page('warehouses'))
+        self.restaurant_shortcut = QShortcut(QKeySequence('F8'), self)
+        self.restaurant_shortcut.activated.connect(lambda: self.switch_page('restaurant'))
         self.legacy_pos_shortcut = QShortcut(QKeySequence('F9'), self)
         self.legacy_pos_shortcut.activated.connect(lambda: self.switch_page('pos'))
 

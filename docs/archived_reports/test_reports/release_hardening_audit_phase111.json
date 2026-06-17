@@ -1,0 +1,176 @@
+{
+  "summary": {
+    "passed": 6,
+    "failed": 0
+  },
+  "results": [
+    {
+      "name": "migration_idempotent_and_schema_columns",
+      "status": "PASS",
+      "detail": {
+        "db": "/tmp/alrajhi_release_hardening_phase111/release_hardening.db",
+        "required_columns_ok": true
+      }
+    },
+    {
+      "name": "accounting_units_returns_vouchers_integrity",
+      "status": "PASS",
+      "detail": {
+        "purchase": 1,
+        "sale": 2,
+        "sales_return": 1,
+        "purchase_return": 1,
+        "voucher": 1,
+        "quantity": "1060.0",
+        "avg_cost": "10",
+        "payment_metadata_update": {
+          "cashbox_id": 1,
+          "bank_account_id": 1,
+          "payment_method": "bank",
+          "shift_id": 7
+        },
+        "oversell_blocked": true
+      }
+    },
+    {
+      "name": "transaction_rollback_on_invalid_invoice_payload",
+      "status": "PASS",
+      "detail": {
+        "invoice_count_before": 4,
+        "invoice_count_after": 4,
+        "rolled_back": true
+      }
+    },
+    {
+      "name": "performance_smoke_250_invoice_writes",
+      "status": "PASS",
+      "detail": {
+        "sales_created": 250,
+        "seconds": 0.626,
+        "per_invoice_ms": 2.503,
+        "final_qty": "4750.0"
+      }
+    },
+    {
+      "name": "static_security_probe_no_eval_exec_and_sql_formatting",
+      "status": "PASS",
+      "detail": {
+        "eval_exec_calls": [],
+        "eval_exec_count": 0,
+        "bare_except_count": 13,
+        "sql_string_format_count": 33,
+        "sql_string_format_sample": [
+          [
+            "alrajhi_client/database/migrations.py",
+            704,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/migrations.py",
+            1006,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/migrations.py",
+            1063,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/migrations.py",
+            1067,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/schema_manager.py",
+            276,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/schema_manager.py",
+            326,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/schema_manager.py",
+            286,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/gateways/local/product_gateway.py",
+            59,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/gateways/local/product_gateway.py",
+            72,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/gateways/local/sales_return_gateway.py",
+            65,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/gateways/local/purchase_return_gateway.py",
+            64,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/gateways/local/audit_gateway.py",
+            53,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/gateways/local/audit_gateway.py",
+            29,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/gateways/local/monitoring_gateway.py",
+            39,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/dao/reporting_dao.py",
+            136,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/repositories/cashbox_repo.py",
+            113,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/repositories/cashbox_repo.py",
+            122,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_client/database/repositories/cashbox_repo.py",
+            119,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_server/api/items.py",
+            121,
+            "f-string execute"
+          ],
+          [
+            "alrajhi_server/api/reports.py",
+            278,
+            "f-string execute"
+          ]
+        ],
+        "status": "WARN"
+      }
+    },
+    {
+      "name": "sqlite_integrity_and_concurrency_scope",
+      "status": "PASS",
+      "detail": {
+        "sqlite_integrity_check": "ok",
+        "note": "true multi-user concurrency must be tested against deployed server/database, not the single-process desktop connection"
+      }
+    }
+  ]
+}

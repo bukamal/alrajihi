@@ -1,0 +1,966 @@
+# -*- coding: utf-8 -*-
+from __future__ import annotations
+
+import datetime
+from decimal import Decimal, InvalidOperation
+from typing import Any
+
+from database.connection import DatabaseConnection
+from gateways.restaurant_gateway import RestaurantGateway
+
+
+class LocalRestaurantGateway(RestaurantGateway):
+    """Local SQLite adapter for restaurant tables/sessions/KOT."""
+
+    def __init__(self):
+        self.db = DatabaseConnection()
+
+    def _conn(self):
+        return self.db.get_connection()
+
+    def _ensure_schema(self) -> None:
+        conn = self._conn()
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS restaurant_tables (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                zone TEXT,
+                seats INTEGER DEFAULT 4,
+                status TEXT NOT NULL DEFAULT 'free',
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT,
+                updated_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                table_id INTEGER NOT NULL,
+                waiter_id TEXT,
+                guests INTEGER DEFAULT 1,
+                status TEXT NOT NULL DEFAULT 'open',
+                opened_at TEXT NOT NULL,
+                closed_at TEXT,
+                invoice_id INTEGER,
+                notes TEXT,
+                FOREIGN KEY(table_id) REFERENCES restaurant_tables(id)
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_order_lines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                item_id INTEGER,
+                item_name TEXT,
+                quantity TEXT DEFAULT '1',
+                unit_price TEXT DEFAULT '0',
+                notes TEXT,
+                kitchen_status TEXT DEFAULT 'new',
+                created_at TEXT,
+                FOREIGN KEY(session_id) REFERENCES restaurant_sessions(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS kitchen_tickets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                status TEXT DEFAULT 'sent',
+                sent_at TEXT NOT NULL,
+                printed_at TEXT,
+                notes TEXT,
+                FOREIGN KEY(session_id) REFERENCES restaurant_sessions(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS kitchen_ticket_lines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticket_id INTEGER NOT NULL,
+                order_line_id INTEGER NOT NULL,
+                item_name TEXT,
+                quantity TEXT DEFAULT '1',
+                notes TEXT,
+                FOREIGN KEY(ticket_id) REFERENCES kitchen_tickets(id) ON DELETE CASCADE,
+                FOREIGN KEY(order_line_id) REFERENCES restaurant_order_lines(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                invoice_id INTEGER,
+                amount TEXT NOT NULL DEFAULT '0',
+                payment_method TEXT NOT NULL DEFAULT 'cash',
+                status TEXT NOT NULL DEFAULT 'posted',
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(session_id) REFERENCES restaurant_sessions(id) ON DELETE CASCADE
+            );
+            """
+        )
+        conn.commit()
+
+    def _seed_default_tables_if_empty(self) -> None:
+        """Create a safe default table map before the touch UI can open a table.
+
+        Phase 21 rendered placeholder buttons when the database had no rows.
+        Those placeholders emitted ids 1..12 although no restaurant_tables rows
+        existed yet, so opening one could violate the restaurant_sessions.table_id
+        foreign key. Persisting the default tables at the gateway boundary keeps
+        the UI honest and makes first-click operation safe.
+        """
+        conn = self._conn()
+        count = conn.execute("SELECT COUNT(*) AS c FROM restaurant_tables").fetchone()["c"]
+        if int(count or 0) > 0:
+            return
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        for index in range(1, 13):
+            conn.execute(
+                "INSERT INTO restaurant_tables(name, zone, seats, status, is_active, created_at, updated_at) VALUES (?, ?, 4, 'free', 1, ?, ?)",
+                (f"Table {index}", "Main", now, now),
+            )
+        conn.commit()
+
+    def list_tables(self) -> list[dict[str, Any]]:
+        self._ensure_schema()
+        self._seed_default_tables_if_empty()
+        rows = self._conn().execute(
+            """
+            SELECT t.*, s.id AS active_session_id, s.guests AS active_guests, s.opened_at AS active_opened_at
+            FROM restaurant_tables t
+            LEFT JOIN restaurant_sessions s ON s.table_id=t.id AND s.status='open'
+            WHERE t.is_active=1
+            ORDER BY COALESCE(t.zone, ''), t.id
+            """
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def upsert_table(self, name: str, zone: str = "", seats: int = 4, table_id: int | None = None) -> dict[str, Any]:
+        self._ensure_schema()
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn = self._conn()
+        seats = max(1, int(seats or 1))
+        if table_id:
+            conn.execute("UPDATE restaurant_tables SET name=?, zone=?, seats=?, updated_at=? WHERE id=?", (name, zone, seats, now, int(table_id)))
+            new_id = int(table_id)
+        else:
+            cur = conn.execute(
+                "INSERT INTO restaurant_tables(name, zone, seats, status, is_active, created_at, updated_at) VALUES (?, ?, ?, 'free', 1, ?, ?)",
+                (name, zone, seats, now, now),
+            )
+            new_id = int(cur.lastrowid)
+        conn.commit()
+        return self._get_table(new_id)
+
+    def _get_table(self, table_id: int) -> dict[str, Any]:
+        row = self._conn().execute("SELECT * FROM restaurant_tables WHERE id=?", (int(table_id),)).fetchone()
+        if not row:
+            raise ValueError("Restaurant table not found")
+        return dict(row)
+
+    def open_table(self, table_id: int, guests: int = 1, waiter_id: str | None = None, notes: str = "") -> dict[str, Any]:
+        self._ensure_schema()
+        conn = self._conn()
+        table_id = int(table_id)
+        table = conn.execute("SELECT id FROM restaurant_tables WHERE id=? AND is_active=1", (table_id,)).fetchone()
+        if not table:
+            raise ValueError("Restaurant table not found; refresh the table map and try again")
+        existing = conn.execute("SELECT * FROM restaurant_sessions WHERE table_id=? AND status='open' LIMIT 1", (table_id,)).fetchone()
+        if existing:
+            return dict(existing)
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        cur = conn.execute(
+            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, notes) VALUES (?, ?, ?, 'open', ?, ?)",
+            (table_id, waiter_id, max(1, int(guests or 1)), now, notes or ""),
+        )
+        conn.execute("UPDATE restaurant_tables SET status='occupied', updated_at=? WHERE id=?", (now, table_id))
+        conn.commit()
+        return self.get_session(int(cur.lastrowid))
+
+    def get_session(self, session_id: int) -> dict[str, Any]:
+        self._ensure_schema()
+        row = self._conn().execute("""
+            SELECT s.*, t.name AS table_name
+            FROM restaurant_sessions s
+            LEFT JOIN restaurant_tables t ON t.id=s.table_id
+            WHERE s.id=?
+            """, (int(session_id),)).fetchone()
+        if not row:
+            raise ValueError("Restaurant session not found")
+        payload = dict(row)
+        payload["lines"] = self._list_session_lines(session_id)
+        return payload
+
+    def add_order_line(self, session_id: int, item_name: str, item_id: int | None = None, quantity: Any = "1", unit_price: Any = "0", notes: str = "") -> dict[str, Any]:
+        self._ensure_waiter_workflow_schema()
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        cur = self._conn().execute(
+            "INSERT INTO restaurant_order_lines(session_id, item_id, item_name, quantity, unit_price, notes, kitchen_status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'new', ?)",
+            (int(session_id), item_id, item_name, str(quantity), str(unit_price), notes or "", now),
+        )
+        self._conn().execute("UPDATE restaurant_sessions SET modification_count=COALESCE(modification_count, 0)+1, last_activity_at=? WHERE id=?", (now, int(session_id)))
+        self._conn().execute("INSERT INTO restaurant_service_events(session_id, event_type, line_id, notes, created_at) VALUES (?, 'order_line_added', ?, ?, ?)", (int(session_id), int(cur.lastrowid), notes or "", now))
+        self._conn().commit()
+        return self._get_order_line(int(cur.lastrowid))
+
+    def _get_order_line(self, line_id: int) -> dict[str, Any]:
+        row = self._conn().execute("SELECT * FROM restaurant_order_lines WHERE id=?", (int(line_id),)).fetchone()
+        if not row:
+            raise ValueError("Restaurant order line not found")
+        return dict(row)
+
+    def _list_session_lines(self, session_id: int) -> list[dict[str, Any]]:
+        rows = self._conn().execute("SELECT * FROM restaurant_order_lines WHERE session_id=? ORDER BY id", (int(session_id),)).fetchall()
+        return [dict(row) for row in rows]
+
+    def send_to_kitchen(self, session_id: int, notes: str = "") -> dict[str, Any]:
+        self._ensure_kitchen_station_schema()
+        conn = self._conn()
+        session_id = int(session_id)
+        raw_lines = conn.execute("SELECT * FROM restaurant_order_lines WHERE session_id=? AND kitchen_status='new' ORDER BY id", (session_id,)).fetchall()
+        if not raw_lines:
+            return {"tickets": [], "ticket": None, "lines": [], "message": "no_new_lines"}
+        lines = [dict(row) for row in raw_lines]
+        grouped: dict[int | None, list[dict[str, Any]]] = {}
+        station_payloads: dict[int | None, dict[str, Any]] = {}
+        for line in lines:
+            station = self._station_for_order_line(line)
+            station_id = station.get("id")
+            grouped.setdefault(station_id, []).append(line)
+            station_payloads[station_id] = station
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        tickets = []
+        for station_id, station_lines in grouped.items():
+            cur = conn.execute(
+                "INSERT INTO kitchen_tickets(session_id, station_id, status, sent_at, notes) VALUES (?, ?, 'sent', ?, ?)",
+                (session_id, station_id, now, notes or ""),
+            )
+            ticket_id = int(cur.lastrowid)
+            for line in station_lines:
+                conn.execute(
+                    "INSERT INTO kitchen_ticket_lines(ticket_id, order_line_id, station_id, item_name, quantity, notes) VALUES (?, ?, ?, ?, ?, ?)",
+                    (ticket_id, int(line["id"]), station_id, line.get("item_name"), line.get("quantity"), line.get("notes")),
+                )
+                conn.execute("UPDATE restaurant_order_lines SET kitchen_station_id=?, kitchen_status='sent' WHERE id=?", (station_id, int(line["id"])))
+            ticket = conn.execute("SELECT * FROM kitchen_tickets WHERE id=?", (ticket_id,)).fetchone()
+            payload = dict(ticket) if ticket else {}
+            payload["station"] = station_payloads.get(station_id)
+            payload["line_count"] = len(station_lines)
+            tickets.append(payload)
+        conn.commit()
+        return {"tickets": tickets, "ticket": tickets[0] if tickets else None, "lines": lines}
+
+
+    def _status_counts(self, session_id: int) -> dict[str, int]:
+        rows = self._conn().execute(
+            "SELECT kitchen_status, COUNT(*) AS c FROM restaurant_order_lines WHERE session_id=? GROUP BY kitchen_status",
+            (int(session_id),),
+        ).fetchall()
+        return {str(row["kitchen_status"] or "new"): int(row["c"] or 0) for row in rows}
+
+    def update_line_status(self, line_id: int, status: str) -> dict[str, Any]:
+        self._ensure_schema()
+        allowed = {"new", "sent", "preparing", "ready", "served", "cancelled"}
+        status = str(status or "").strip().lower()
+        if status not in allowed:
+            raise ValueError("Invalid restaurant line status")
+        conn = self._conn()
+        line = self._get_order_line(int(line_id))
+        conn.execute("UPDATE restaurant_order_lines SET kitchen_status=? WHERE id=?", (status, int(line_id)))
+        if status == "cancelled":
+            session = self.get_session(int(line["session_id"]))
+            now_event = datetime.datetime.now().isoformat(timespec="seconds")
+            conn.execute("UPDATE restaurant_tables SET status='occupied', updated_at=? WHERE id=?", (now_event, int(session["table_id"])))
+            conn.execute("UPDATE restaurant_sessions SET cancelled_line_count=COALESCE(cancelled_line_count, 0)+1, modification_count=COALESCE(modification_count, 0)+1, last_activity_at=? WHERE id=?", (now_event, int(line["session_id"])))
+            conn.execute("INSERT INTO restaurant_service_events(session_id, event_type, line_id, notes, created_at) VALUES (?, 'line_cancelled', ?, '', ?)", (int(line["session_id"]), int(line_id), now_event))
+        conn.commit()
+        return self._get_order_line(int(line_id))
+
+    def mark_payment_pending(self, session_id: int) -> dict[str, Any]:
+        self._ensure_schema()
+        conn = self._conn()
+        session = self.get_session(int(session_id))
+        if session.get("status") != "open":
+            raise ValueError("Restaurant session is not open")
+        counts = self._status_counts(int(session_id))
+        total_lines = sum(counts.values())
+        if total_lines <= 0:
+            raise ValueError("Cannot request payment for an empty table")
+        if counts.get("new", 0) > 0:
+            raise ValueError("Send new order lines to kitchen before requesting payment")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn.execute("UPDATE restaurant_tables SET status='payment', updated_at=? WHERE id=?", (now, int(session["table_id"])))
+        conn.commit()
+        updated = self.get_session(int(session_id))
+        updated["payment_pending"] = True
+        return updated
+
+
+    def list_menu_items(self, search: str = "", category_id: int | None = None, limit: int = 48) -> list[dict[str, Any]]:
+        """Return touch POS menu candidates from the existing item catalog.
+
+        The restaurant UI must not query items directly.  This keeps product
+        discovery behind the restaurant gateway while reusing the current ERP
+        catalog and prices.
+        """
+        self._ensure_schema()
+        conn = self._conn()
+        limit = max(1, min(int(limit or 48), 96))
+        where = ["COALESCE(deleted_at, '') = ''"]
+        params: list[Any] = []
+        if search:
+            where.append("(name LIKE ? OR barcode LIKE ?)")
+            like = f"%{search}%"
+            params.extend([like, like])
+        if category_id is not None:
+            where.append("category_id = ?")
+            params.append(int(category_id))
+        sql = f"""
+            SELECT id, name, category_id, selling_price, unit, barcode, quantity
+            FROM items
+            WHERE {' AND '.join(where)}
+            ORDER BY name COLLATE NOCASE
+            LIMIT ?
+        """
+        params.append(limit)
+        try:
+            rows = conn.execute(sql, params).fetchall()
+        except Exception:
+            return []
+        return [dict(row) for row in rows]
+
+
+    def _decimal(self, value: Any, default: str = "0") -> Decimal:
+        try:
+            return Decimal(str(value if value not in (None, "") else default))
+        except (InvalidOperation, TypeError, ValueError):
+            return Decimal(default)
+
+    def _current_user_id(self) -> str:
+        try:
+            from auth.session import UserSession
+            user_id = UserSession.get_current_user_id()
+            if user_id:
+                return str(user_id)
+        except Exception:
+            pass
+        return "restaurant"
+
+    def _next_restaurant_reference(self, conn) -> str:
+        prefix = "RST-"
+        row = conn.execute("SELECT MAX(reference) AS ref FROM invoices WHERE reference LIKE ?", (prefix + "%",)).fetchone()
+        ref = row["ref"] if row else None
+        try:
+            import re
+            match = re.search(r"(\d+)$", str(ref or ""))
+            number = int(match.group(1)) + 1 if match else 1
+        except Exception:
+            number = 1
+        return f"{prefix}{number:05d}"
+
+
+    def _session_total(self, session_id: int) -> Decimal:
+        billable = [line for line in self._list_session_lines(int(session_id)) if (line.get("kitchen_status") or "new") != "cancelled"]
+        return sum((self._decimal(line.get("quantity"), "0") * self._decimal(line.get("unit_price"), "0") for line in billable), Decimal("0"))
+
+    def _session_paid(self, session_id: int) -> Decimal:
+        rows = self._conn().execute(
+            "SELECT amount FROM restaurant_payments WHERE session_id=? AND status='posted'",
+            (int(session_id),),
+        ).fetchall()
+        return sum((self._decimal(row["amount"], "0") for row in rows), Decimal("0"))
+
+    def session_balance(self, session_id: int) -> dict[str, Any]:
+        self._ensure_schema()
+        session = self.get_session(int(session_id))
+        total = self._session_total(int(session_id))
+        paid = self._session_paid(int(session_id))
+        remaining = total - paid
+        if remaining < Decimal("0"):
+            remaining = Decimal("0")
+        payments = self._conn().execute(
+            "SELECT * FROM restaurant_payments WHERE session_id=? ORDER BY id",
+            (int(session_id),),
+        ).fetchall()
+        return {
+            "session_id": int(session_id),
+            "table_id": session.get("table_id"),
+            "table_name": session.get("table_name"),
+            "total": str(total),
+            "paid": str(paid),
+            "remaining": str(remaining),
+            "is_fully_paid": paid >= total and total > Decimal("0"),
+            "payments": [dict(row) for row in payments],
+        }
+
+    def record_payment(self, session_id: int, amount: Any, payment_method: str = "cash", notes: str = "") -> dict[str, Any]:
+        self._ensure_schema()
+        conn = self._conn()
+        session = self.get_session(int(session_id))
+        if session.get("status") != "open":
+            raise ValueError("Restaurant session is not open")
+        counts = self._status_counts(int(session_id))
+        if sum(counts.values()) <= 0:
+            raise ValueError("Cannot record payment for an empty table")
+        if counts.get("new", 0) > 0:
+            raise ValueError("Send new order lines to kitchen before recording payment")
+        amount_value = self._decimal(amount, "0")
+        if amount_value <= Decimal("0"):
+            raise ValueError("Payment amount must be greater than zero")
+        balance = self.session_balance(int(session_id))
+        remaining = self._decimal(balance.get("remaining"), "0")
+        if amount_value > remaining:
+            amount_value = remaining
+        if amount_value <= Decimal("0"):
+            raise ValueError("Restaurant session is already fully paid")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        cur = conn.execute(
+            "INSERT INTO restaurant_payments(session_id, invoice_id, amount, payment_method, status, notes, created_at) VALUES (?, NULL, ?, ?, 'posted', ?, ?)",
+            (int(session_id), str(amount_value), payment_method or "cash", notes or "", now),
+        )
+        conn.execute("UPDATE restaurant_tables SET status='payment', updated_at=? WHERE id=?", (now, int(session["table_id"])))
+        conn.commit()
+        payload = self.session_balance(int(session_id))
+        payload["payment_id"] = int(cur.lastrowid)
+        return payload
+
+    def _checkout_lines(self, session_id: int) -> list[dict[str, Any]]:
+        lines = self._list_session_lines(int(session_id))
+        billable = [line for line in lines if (line.get("kitchen_status") or "new") != "cancelled"]
+        if not billable:
+            raise ValueError("Cannot checkout an empty restaurant session")
+        if any((line.get("kitchen_status") or "new") == "new" for line in billable):
+            raise ValueError("Send new order lines to kitchen before checkout")
+        return billable
+
+    def checkout_session(self, session_id: int, paid_amount: Any | None = None, payment_method: str = "cash") -> dict[str, Any]:
+        """Convert an open restaurant session into a real sales invoice.
+
+        The restaurant workflow remains separate while ordering is active. This
+        method is the commercial closing point: it creates an invoice, links it
+        back to the session, marks served lines, and frees the table in one
+        transaction.
+        """
+        self._ensure_schema()
+        conn = self._conn()
+        session = self.get_session(int(session_id))
+        if session.get("status") != "open":
+            raise ValueError("Restaurant session is not open")
+        billable = self._checkout_lines(int(session_id))
+        total = sum((self._decimal(line.get("quantity"), "0") * self._decimal(line.get("unit_price"), "0") for line in billable), Decimal("0"))
+        existing_paid = self._session_paid(int(session_id))
+        extra_paid = self._decimal(paid_amount, "0") if paid_amount is not None else Decimal("0")
+        if extra_paid < Decimal("0"):
+            raise ValueError("Paid amount cannot be negative")
+        if existing_paid == Decimal("0") and paid_amount is None:
+            extra_paid = total
+        paid = existing_paid + extra_paid
+        if paid < total:
+            raise ValueError("Cannot checkout before the restaurant session is fully paid")
+        if paid > total:
+            paid = total
+        now_date = datetime.date.today().isoformat()
+        now_ts = datetime.datetime.now().isoformat(timespec="seconds")
+        reference = self._next_restaurant_reference(conn)
+        cur = conn.execute(
+            """
+            INSERT INTO invoices (user_id, type, date, reference, notes, total, paid, status, workflow_status, original_currency, payment_method)
+            VALUES (?, 'sale', ?, ?, ?, ?, ?, 'active', 'POSTED', 'USD', ?)
+            """,
+            (
+                self._current_user_id(),
+                now_date,
+                reference,
+                f"Restaurant table {session.get('table_name') or session.get('table_id')} / session {session_id}",
+                str(total),
+                str(paid),
+                payment_method or "cash",
+            ),
+        )
+        invoice_id = int(cur.lastrowid)
+        if extra_paid > Decimal("0"):
+            conn.execute(
+                "INSERT INTO restaurant_payments(session_id, invoice_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, ?, 'posted', ?, ?)",
+                (int(session_id), invoice_id, str(extra_paid), payment_method or "cash", "checkout", now_ts),
+            )
+        conn.execute("UPDATE restaurant_payments SET invoice_id=? WHERE session_id=? AND invoice_id IS NULL", (invoice_id, int(session_id)))
+        for line in billable:
+            quantity = self._decimal(line.get("quantity"), "0")
+            unit_price = self._decimal(line.get("unit_price"), "0")
+            line_total = quantity * unit_price
+            item_id = line.get("item_id")
+            conn.execute(
+                """
+                INSERT INTO invoice_lines (invoice_id, item_id, description, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
+                VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, '0', 1.0)
+                """,
+                (
+                    invoice_id,
+                    item_id,
+                    line.get("item_name") or "Restaurant item",
+                    str(quantity),
+                    str(unit_price),
+                    str(line_total),
+                    str(quantity),
+                    str(unit_price),
+                ),
+            )
+        conn.execute("UPDATE restaurant_order_lines SET kitchen_status='served' WHERE session_id=? AND kitchen_status IN ('sent','preparing','ready')", (int(session_id),))
+        conn.execute("UPDATE restaurant_sessions SET status='closed', closed_at=?, invoice_id=? WHERE id=?", (now_ts, invoice_id, int(session_id)))
+        conn.execute("UPDATE restaurant_tables SET status='free', updated_at=? WHERE id=?", (now_ts, int(session["table_id"])))
+        conn.commit()
+        closed = self.get_session(int(session_id))
+        closed["invoice_id"] = invoice_id
+        closed["invoice_reference"] = reference
+        closed["invoice_total"] = str(total)
+        closed["paid_amount"] = str(paid)
+        return closed
+
+
+    def list_kitchen_tickets(self, status: str = "sent", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
+        self._ensure_kitchen_station_schema()
+        conn = self._conn()
+        limit = max(1, min(int(limit or 50), 200))
+        status = str(status or "sent").strip().lower()
+        where = []
+        params: list[Any] = []
+        if status and status != "all":
+            where.append("kt.status=?")
+            params.append(status)
+        if station_id is not None:
+            where.append("kt.station_id=?")
+            params.append(int(station_id))
+        where_sql = "WHERE " + " AND ".join(where) if where else ""
+        params.append(limit)
+        rows = conn.execute(
+            f"""
+            SELECT kt.*, s.table_id, t.name AS table_name, st.name AS station_name, st.code AS station_code,
+                   COUNT(ktl.id) AS line_count
+            FROM kitchen_tickets kt
+            LEFT JOIN restaurant_sessions s ON s.id=kt.session_id
+            LEFT JOIN restaurant_tables t ON t.id=s.table_id
+            LEFT JOIN restaurant_kitchen_stations st ON st.id=kt.station_id
+            LEFT JOIN kitchen_ticket_lines ktl ON ktl.ticket_id=kt.id
+            {where_sql}
+            GROUP BY kt.id
+            ORDER BY kt.id DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+
+    def get_kitchen_ticket(self, ticket_id: int) -> dict[str, Any]:
+        self._ensure_kitchen_station_schema()
+        conn = self._conn()
+        row = conn.execute(
+            """
+            SELECT kt.*, s.table_id, t.name AS table_name, st.name AS station_name, st.code AS station_code
+            FROM kitchen_tickets kt
+            LEFT JOIN restaurant_sessions s ON s.id=kt.session_id
+            LEFT JOIN restaurant_tables t ON t.id=s.table_id
+            LEFT JOIN restaurant_kitchen_stations st ON st.id=kt.station_id
+            WHERE kt.id=?
+            """,
+            (int(ticket_id),),
+        ).fetchone()
+        if not row:
+            raise ValueError("Kitchen ticket not found")
+        lines = conn.execute(
+            """
+            SELECT ktl.*, rol.kitchen_status, rol.unit_price, st.name AS station_name, st.code AS station_code
+            FROM kitchen_ticket_lines ktl
+            LEFT JOIN restaurant_order_lines rol ON rol.id=ktl.order_line_id
+            LEFT JOIN restaurant_kitchen_stations st ON st.id=ktl.station_id
+            WHERE ktl.ticket_id=?
+            ORDER BY ktl.id
+            """,
+            (int(ticket_id),),
+        ).fetchall()
+        payload = dict(row)
+        payload["lines"] = [dict(line) for line in lines]
+        return payload
+
+
+    def update_kitchen_ticket_status(self, ticket_id: int, status: str) -> dict[str, Any]:
+        self._ensure_schema()
+        allowed = {"sent", "preparing", "ready", "served", "cancelled"}
+        status = str(status or "").strip().lower()
+        if status not in allowed:
+            raise ValueError("Invalid kitchen ticket status")
+        conn = self._conn()
+        ticket = self.get_kitchen_ticket(int(ticket_id))
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn.execute("UPDATE kitchen_tickets SET status=? WHERE id=?", (status, int(ticket_id)))
+        if status in {"preparing", "ready", "served", "cancelled"}:
+            conn.execute(
+                """
+                UPDATE restaurant_order_lines
+                SET kitchen_status=?
+                WHERE id IN (SELECT order_line_id FROM kitchen_ticket_lines WHERE ticket_id=?)
+                """,
+                (status, int(ticket_id)),
+            )
+        if status == "served":
+            conn.execute("UPDATE kitchen_tickets SET printed_at=COALESCE(printed_at, ?) WHERE id=?", (now, int(ticket_id)))
+        conn.commit()
+        return self.get_kitchen_ticket(int(ticket_id))
+
+    def close_session(self, session_id: int, invoice_id: int | None = None) -> dict[str, Any]:
+        self._ensure_schema()
+        conn = self._conn()
+        session = self.get_session(int(session_id))
+        if session.get("status") != "open":
+            raise ValueError("Restaurant session is not open")
+        counts = self._status_counts(int(session_id))
+        if counts.get("new", 0) > 0:
+            raise ValueError("Cannot close table while new order lines have not been sent to kitchen")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn.execute("UPDATE restaurant_order_lines SET kitchen_status='served' WHERE session_id=? AND kitchen_status IN ('sent','preparing','ready')", (int(session_id),))
+        conn.execute("UPDATE restaurant_sessions SET status='closed', closed_at=?, invoice_id=? WHERE id=?", (now, invoice_id, int(session_id)))
+        conn.execute("UPDATE restaurant_tables SET status='free', updated_at=? WHERE id=?", (now, int(session["table_id"])))
+        conn.commit()
+        return self.get_session(int(session_id))
+
+
+    def _ensure_table_operations_schema(self) -> None:
+        self._ensure_schema()
+        conn = self._conn()
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS restaurant_reservations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                table_id INTEGER NOT NULL,
+                customer_name TEXT,
+                phone TEXT,
+                guests INTEGER DEFAULT 1,
+                reserved_at TEXT,
+                status TEXT NOT NULL DEFAULT 'reserved',
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                cancelled_at TEXT,
+                FOREIGN KEY(table_id) REFERENCES restaurant_tables(id)
+            )
+        """)
+        conn.commit()
+
+    def reserve_table(self, table_id: int, customer_name: str = "", phone: str = "", reserved_at: str = "", guests: int = 1, notes: str = "") -> dict[str, Any]:
+        self._ensure_table_operations_schema()
+        conn = self._conn()
+        self._get_table(int(table_id))
+        active = conn.execute("SELECT id FROM restaurant_sessions WHERE table_id=? AND status='open' LIMIT 1", (int(table_id),)).fetchone()
+        if active:
+            raise ValueError("Cannot reserve an occupied restaurant table")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        cur = conn.execute(
+            "INSERT INTO restaurant_reservations(table_id, customer_name, phone, guests, reserved_at, status, notes, created_at) VALUES (?, ?, ?, ?, ?, 'reserved', ?, ?)",
+            (int(table_id), customer_name or '', phone or '', max(1, int(guests or 1)), reserved_at or now, notes or '', now),
+        )
+        conn.execute("UPDATE restaurant_tables SET status='reserved', updated_at=? WHERE id=?", (now, int(table_id)))
+        conn.commit()
+        row = conn.execute("SELECT * FROM restaurant_reservations WHERE id=?", (int(cur.lastrowid),)).fetchone()
+        return dict(row) if row else {}
+
+    def cancel_reservation(self, reservation_id: int) -> dict[str, Any]:
+        self._ensure_table_operations_schema()
+        conn = self._conn()
+        row = conn.execute("SELECT * FROM restaurant_reservations WHERE id=?", (int(reservation_id),)).fetchone()
+        if not row:
+            raise ValueError("Restaurant reservation not found")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn.execute("UPDATE restaurant_reservations SET status='cancelled', cancelled_at=? WHERE id=?", (now, int(reservation_id)))
+        active = conn.execute("SELECT id FROM restaurant_sessions WHERE table_id=? AND status='open' LIMIT 1", (int(row['table_id']),)).fetchone()
+        if not active:
+            conn.execute("UPDATE restaurant_tables SET status='free', updated_at=? WHERE id=?", (now, int(row['table_id'])))
+        conn.commit()
+        result = conn.execute("SELECT * FROM restaurant_reservations WHERE id=?", (int(reservation_id),)).fetchone()
+        return dict(result) if result else {}
+
+    def transfer_session(self, session_id: int, target_table_id: int) -> dict[str, Any]:
+        self._ensure_table_operations_schema()
+        conn = self._conn()
+        session = self.get_session(int(session_id))
+        if session.get('status') != 'open':
+            raise ValueError("Restaurant session is not open")
+        self._get_table(int(target_table_id))
+        active_target = conn.execute("SELECT id FROM restaurant_sessions WHERE table_id=? AND status='open' LIMIT 1", (int(target_table_id),)).fetchone()
+        if active_target:
+            raise ValueError("Target restaurant table is already occupied")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        old_table_id = int(session['table_id'])
+        conn.execute("UPDATE restaurant_sessions SET table_id=? WHERE id=?", (int(target_table_id), int(session_id)))
+        conn.execute("UPDATE restaurant_tables SET status='free', updated_at=? WHERE id=?", (now, old_table_id))
+        conn.execute("UPDATE restaurant_tables SET status='occupied', updated_at=? WHERE id=?", (now, int(target_table_id)))
+        conn.commit()
+        payload = self.get_session(int(session_id))
+        payload['transferred_from_table_id'] = old_table_id
+        payload['transferred_to_table_id'] = int(target_table_id)
+        return payload
+
+    def merge_sessions(self, source_session_id: int, target_session_id: int) -> dict[str, Any]:
+        self._ensure_table_operations_schema()
+        if int(source_session_id) == int(target_session_id):
+            raise ValueError("Cannot merge a restaurant session into itself")
+        conn = self._conn()
+        source = self.get_session(int(source_session_id))
+        target = self.get_session(int(target_session_id))
+        if source.get('status') != 'open' or target.get('status') != 'open':
+            raise ValueError("Both restaurant sessions must be open before merge")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn.execute("UPDATE restaurant_order_lines SET session_id=? WHERE session_id=?", (int(target_session_id), int(source_session_id)))
+        conn.execute("UPDATE kitchen_tickets SET session_id=? WHERE session_id=?", (int(target_session_id), int(source_session_id)))
+        conn.execute("UPDATE restaurant_payments SET session_id=? WHERE session_id=?", (int(target_session_id), int(source_session_id)))
+        conn.execute("UPDATE restaurant_sessions SET status='merged', closed_at=? WHERE id=?", (now, int(source_session_id)))
+        conn.execute("UPDATE restaurant_tables SET status='free', updated_at=? WHERE id=?", (now, int(source['table_id'])))
+        conn.execute("UPDATE restaurant_tables SET status='occupied', updated_at=? WHERE id=?", (now, int(target['table_id'])))
+        conn.commit()
+        payload = self.get_session(int(target_session_id))
+        payload['merged_source_session_id'] = int(source_session_id)
+        return payload
+
+    def split_lines_to_table(self, session_id: int, line_ids: list[int], target_table_id: int, guests: int = 1, notes: str = "") -> dict[str, Any]:
+        self._ensure_table_operations_schema()
+        conn = self._conn()
+        source = self.get_session(int(session_id))
+        if source.get('status') != 'open':
+            raise ValueError("Restaurant session is not open")
+        ids = [int(x) for x in (line_ids or [])]
+        if not ids:
+            raise ValueError("Select at least one restaurant order line to split")
+        placeholders = ','.join('?' for _ in ids)
+        rows = conn.execute(f"SELECT id FROM restaurant_order_lines WHERE session_id=? AND id IN ({placeholders})", [int(session_id), *ids]).fetchall()
+        if len(rows) != len(set(ids)):
+            raise ValueError("One or more selected order lines do not belong to this restaurant session")
+        active_target = conn.execute("SELECT * FROM restaurant_sessions WHERE table_id=? AND status='open' LIMIT 1", (int(target_table_id),)).fetchone()
+        if active_target:
+            target_session_id = int(active_target['id'])
+        else:
+            target_session_id = int(self.open_table(int(target_table_id), guests=max(1, int(guests or 1)), notes=notes or 'split')['id'])
+        conn.execute(f"UPDATE restaurant_order_lines SET session_id=? WHERE id IN ({placeholders})", [target_session_id, *ids])
+        conn.commit()
+        return {
+            'source_session': self.get_session(int(session_id)),
+            'target_session': self.get_session(target_session_id),
+            'moved_line_ids': ids,
+        }
+
+    def _ensure_waiter_workflow_schema(self) -> None:
+        self._ensure_table_operations_schema()
+        conn = self._conn()
+        for ddl in (
+            "ALTER TABLE restaurant_sessions ADD COLUMN service_started_at TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN last_activity_at TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN waiter_call_at TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN waiter_call_status TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN modification_count INTEGER DEFAULT 0",
+            "ALTER TABLE restaurant_sessions ADD COLUMN cancelled_line_count INTEGER DEFAULT 0",
+        ):
+            try:
+                conn.execute(ddl)
+            except Exception:
+                pass
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS restaurant_service_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                event_type TEXT NOT NULL,
+                waiter_id TEXT,
+                line_id INTEGER,
+                notes TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(session_id) REFERENCES restaurant_sessions(id) ON DELETE CASCADE
+            )
+        """)
+        conn.commit()
+
+    def _record_service_event(self, session_id: int, event_type: str, waiter_id: str | None = None, line_id: int | None = None, notes: str = "") -> None:
+        self._ensure_waiter_workflow_schema()
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        self._conn().execute(
+            "INSERT INTO restaurant_service_events(session_id, event_type, waiter_id, line_id, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (int(session_id), event_type, waiter_id, line_id, notes or "", now),
+        )
+        self._conn().execute("UPDATE restaurant_sessions SET last_activity_at=? WHERE id=?", (now, int(session_id)))
+        self._conn().commit()
+
+    def assign_waiter(self, session_id: int, waiter_id: str, notes: str = "") -> dict[str, Any]:
+        self._ensure_waiter_workflow_schema()
+        session = self.get_session(int(session_id))
+        if session.get("status") != "open":
+            raise ValueError("Restaurant session is not open")
+        waiter_id = str(waiter_id or "").strip()
+        if not waiter_id:
+            raise ValueError("Waiter id is required")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn = self._conn()
+        conn.execute(
+            "UPDATE restaurant_sessions SET waiter_id=?, service_started_at=COALESCE(service_started_at, ?), last_activity_at=? WHERE id=?",
+            (waiter_id, now, now, int(session_id)),
+        )
+        conn.execute(
+            "INSERT INTO restaurant_service_events(session_id, event_type, waiter_id, notes, created_at) VALUES (?, 'waiter_assigned', ?, ?, ?)",
+            (int(session_id), waiter_id, notes or "", now),
+        )
+        conn.commit()
+        return self.get_session(int(session_id))
+
+    def call_waiter(self, session_id: int, notes: str = "") -> dict[str, Any]:
+        self._ensure_waiter_workflow_schema()
+        session = self.get_session(int(session_id))
+        if session.get("status") != "open":
+            raise ValueError("Restaurant session is not open")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn = self._conn()
+        conn.execute(
+            "UPDATE restaurant_sessions SET waiter_call_at=?, waiter_call_status='open', last_activity_at=? WHERE id=?",
+            (now, now, int(session_id)),
+        )
+        conn.execute(
+            "INSERT INTO restaurant_service_events(session_id, event_type, waiter_id, notes, created_at) VALUES (?, 'waiter_called', ?, ?, ?)",
+            (int(session_id), session.get("waiter_id"), notes or "", now),
+        )
+        conn.commit()
+        payload = self.get_session(int(session_id))
+        payload["waiter_call_pending"] = True
+        return payload
+
+    def resolve_waiter_call(self, session_id: int, notes: str = "") -> dict[str, Any]:
+        self._ensure_waiter_workflow_schema()
+        session = self.get_session(int(session_id))
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn = self._conn()
+        conn.execute(
+            "UPDATE restaurant_sessions SET waiter_call_status='resolved', last_activity_at=? WHERE id=?",
+            (now, int(session_id)),
+        )
+        conn.execute(
+            "INSERT INTO restaurant_service_events(session_id, event_type, waiter_id, notes, created_at) VALUES (?, 'waiter_call_resolved', ?, ?, ?)",
+            (int(session_id), session.get("waiter_id"), notes or "", now),
+        )
+        conn.commit()
+        return self.get_session(int(session_id))
+
+
+
+    def _ensure_kitchen_station_schema(self) -> None:
+        self._ensure_waiter_workflow_schema()
+        conn = self._conn()
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS restaurant_kitchen_stations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
+                sort_order INTEGER DEFAULT 0,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT,
+                updated_at TEXT
+            );
+            CREATE TABLE IF NOT EXISTS restaurant_menu_station_map (
+                item_id INTEGER PRIMARY KEY,
+                station_id INTEGER NOT NULL,
+                updated_at TEXT,
+                FOREIGN KEY(station_id) REFERENCES restaurant_kitchen_stations(id)
+            );
+        """)
+        for ddl in (
+            "ALTER TABLE kitchen_tickets ADD COLUMN station_id INTEGER",
+            "ALTER TABLE kitchen_ticket_lines ADD COLUMN station_id INTEGER",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN kitchen_station_id INTEGER",
+        ):
+            try:
+                conn.execute(ddl)
+            except Exception:
+                pass
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        defaults = [("bar", "Bar", 10), ("grill", "Grill", 20), ("hot", "Hot Kitchen", 30), ("dessert", "Dessert", 40)]
+        for code, name, order in defaults:
+            conn.execute(
+                "INSERT OR IGNORE INTO restaurant_kitchen_stations(code, name, sort_order, is_active, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)",
+                (code, name, order, now, now),
+            )
+        conn.commit()
+
+    def list_kitchen_stations(self, include_inactive: bool = False) -> list[dict[str, Any]]:
+        self._ensure_kitchen_station_schema()
+        where = "" if include_inactive else "WHERE is_active=1"
+        rows = self._conn().execute(
+            f"SELECT * FROM restaurant_kitchen_stations {where} ORDER BY sort_order, id"
+        ).fetchall()
+        return [dict(row) for row in rows]
+
+    def upsert_kitchen_station(self, name: str, code: str = "", sort_order: int = 0, station_id: int | None = None, is_active: bool = True) -> dict[str, Any]:
+        self._ensure_kitchen_station_schema()
+        name = str(name or "").strip()
+        if not name:
+            raise ValueError("Kitchen station name is required")
+        code = str(code or name).strip().lower().replace(" ", "_")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn = self._conn()
+        if station_id:
+            conn.execute(
+                "UPDATE restaurant_kitchen_stations SET code=?, name=?, sort_order=?, is_active=?, updated_at=? WHERE id=?",
+                (code, name, int(sort_order or 0), 1 if is_active else 0, now, int(station_id)),
+            )
+            new_id = int(station_id)
+        else:
+            cur = conn.execute(
+                "INSERT INTO restaurant_kitchen_stations(code, name, sort_order, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (code, name, int(sort_order or 0), 1 if is_active else 0, now, now),
+            )
+            new_id = int(cur.lastrowid)
+        conn.commit()
+        row = conn.execute("SELECT * FROM restaurant_kitchen_stations WHERE id=?", (new_id,)).fetchone()
+        return dict(row) if row else {}
+
+    def assign_menu_item_station(self, item_id: int, station_id: int) -> dict[str, Any]:
+        self._ensure_kitchen_station_schema()
+        conn = self._conn()
+        station = conn.execute("SELECT * FROM restaurant_kitchen_stations WHERE id=? AND is_active=1", (int(station_id),)).fetchone()
+        if not station:
+            raise ValueError("Kitchen station not found")
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn.execute(
+            "INSERT INTO restaurant_menu_station_map(item_id, station_id, updated_at) VALUES (?, ?, ?) ON CONFLICT(item_id) DO UPDATE SET station_id=excluded.station_id, updated_at=excluded.updated_at",
+            (int(item_id), int(station_id), now),
+        )
+        conn.commit()
+        return {"item_id": int(item_id), "station_id": int(station_id), "station": dict(station)}
+
+    def _station_for_order_line(self, line: dict[str, Any]) -> dict[str, Any]:
+        self._ensure_kitchen_station_schema()
+        conn = self._conn()
+        station = None
+        if line.get("item_id"):
+            station = conn.execute(
+                """
+                SELECT s.* FROM restaurant_menu_station_map m
+                JOIN restaurant_kitchen_stations s ON s.id=m.station_id
+                WHERE m.item_id=? AND s.is_active=1
+                """,
+                (int(line["item_id"]),),
+            ).fetchone()
+        if not station:
+            station = conn.execute(
+                "SELECT * FROM restaurant_kitchen_stations WHERE code='hot' AND is_active=1 LIMIT 1"
+            ).fetchone()
+        if not station:
+            station = conn.execute("SELECT * FROM restaurant_kitchen_stations WHERE is_active=1 ORDER BY sort_order, id LIMIT 1").fetchone()
+        return dict(station) if station else {"id": None, "name": "Kitchen"}
+
+    def waiter_session_summary(self, session_id: int) -> dict[str, Any]:
+        self._ensure_waiter_workflow_schema()
+        session = self.get_session(int(session_id))
+        rows = self._conn().execute(
+            "SELECT event_type, COUNT(*) AS c FROM restaurant_service_events WHERE session_id=? GROUP BY event_type",
+            (int(session_id),),
+        ).fetchall()
+        event_counts = {str(row["event_type"]): int(row["c"] or 0) for row in rows}
+        opened_at = session.get("opened_at")
+        minutes_open = 0
+        try:
+            opened = datetime.datetime.fromisoformat(str(opened_at))
+            minutes_open = int((datetime.datetime.now() - opened).total_seconds() // 60)
+        except Exception:
+            minutes_open = 0
+        return {
+            "session_id": int(session_id),
+            "table_id": session.get("table_id"),
+            "table_name": session.get("table_name"),
+            "waiter_id": session.get("waiter_id"),
+            "minutes_open": minutes_open,
+            "modification_count": int(session.get("modification_count") or 0),
+            "cancelled_line_count": int(session.get("cancelled_line_count") or 0),
+            "waiter_call_status": session.get("waiter_call_status") or "none",
+            "event_counts": event_counts,
+        }
+

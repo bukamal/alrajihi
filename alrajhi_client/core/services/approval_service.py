@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 from decimal import Decimal, InvalidOperation
-from datetime import datetime
 from typing import Any, Dict, Optional
 from auth.session import UserSession
 from core.services.settings_service import settings_service
 from core.services.audit_service import audit_service
 from core.services.permission_service import permission_service
 from core.services.rbac_service import rbac_service
+from gateways.approval_gateway import create_approval_gateway
 
 class ApprovalService:
     STATUS_PENDING = 'PENDING'; STATUS_APPROVED = 'APPROVED'; STATUS_REJECTED = 'REJECTED'; STATUS_CANCELLED = 'CANCELLED'
-    def _db(self):
-        from database.connection import DatabaseConnection
-        return DatabaseConnection()
+    def __init__(self, gateway=None):
+        self.gateway = gateway or create_approval_gateway()
     def _decimal(self, value: Any) -> Decimal:
         try: return Decimal(str(value or '0'))
         except (InvalidOperation, ValueError): return Decimal('0')
@@ -21,55 +20,23 @@ class ApprovalService:
         key = 'workflow/sales_approval_threshold' if inv_type == 'sale' else 'workflow/purchase_approval_threshold'
         return self._decimal(settings_service.get(key, '0'))
     def ensure_schema(self, conn=None) -> None:
-        owns = conn is None
-        if owns:
-            db = self._db()
-            if db.is_remote(): return
-            conn = db.get_connection()
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS approval_requests (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                entity_type TEXT NOT NULL,
-                entity_id INTEGER NOT NULL,
-                amount TEXT DEFAULT '0',
-                threshold_amount TEXT DEFAULT '0',
-                status TEXT NOT NULL DEFAULT 'PENDING',
-                requested_by TEXT,
-                requested_at TEXT,
-                decided_by TEXT,
-                decided_at TEXT,
-                decision_notes TEXT,
-                created_at TEXT NOT NULL,
-                updated_at TEXT,
-                UNIQUE(entity_type, entity_id)
-            )
-        """)
-        conn.execute('CREATE INDEX IF NOT EXISTS idx_approval_requests_status ON approval_requests(status, entity_type)')
-        if owns: conn.commit()
+        self.gateway.ensure_schema(conn)
     def requires_approval(self, invoice: Dict[str, Any]) -> bool:
         threshold = self._threshold((invoice or {}).get('type'))
         return threshold > 0 and self._decimal((invoice or {}).get('total')) >= threshold
     def ensure_invoice_request(self, invoice: Dict[str, Any], notes: str = '') -> Optional[int]:
         if not invoice or not invoice.get('id') or not self.requires_approval(invoice): return None
-        db = self._db()
-        if db.is_remote(): return None
-        conn = db.get_connection(); self.ensure_schema(conn)
-        now = datetime.now().isoformat(timespec='seconds')
         username = UserSession.get_current_username() or UserSession.get_current_user_id() or ''
-        row = conn.execute("SELECT id FROM approval_requests WHERE entity_type='INVOICE' AND entity_id=?", (invoice['id'],)).fetchone()
-        if row: return int(row['id'])
-        cur = conn.execute("""
-            INSERT INTO approval_requests(entity_type, entity_id, amount, threshold_amount, status, requested_by, requested_at, created_at, updated_at, decision_notes)
-            VALUES ('INVOICE', ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?)
-        """, (invoice['id'], str(invoice.get('total', 0)), str(self._threshold(invoice.get('type'))), username, now, now, now, notes or ''))
-        conn.commit()
+        request_id = self.gateway.ensure_invoice_request(invoice, self._threshold(invoice.get('type')), username, notes)
+        if request_id is None:
+            return None
         try:
             from core.services.advanced_approval_service import advanced_approval_service
-            advanced_approval_service.ensure_steps_for_request(int(cur.lastrowid), 'INVOICE', invoice.get('type'), invoice.get('total'))
+            advanced_approval_service.ensure_steps_for_request(int(request_id), 'INVOICE', invoice.get('type'), invoice.get('total'))
         except Exception:
             pass
         audit_service.log('REQUEST_APPROVAL', 'INVOICE', invoice['id'], new_values={'approval_status':'PENDING'}, details=notes or 'طلب اعتماد فاتورة')
-        return int(cur.lastrowid)
+        return int(request_id)
     def assert_can_approve_invoice(self, invoice: Dict[str, Any]) -> None:
         if not invoice: raise ValueError('الفاتورة غير موجودة')
         role = (UserSession.get_current_user_role() or 'admin').lower()
@@ -102,15 +69,10 @@ class ApprovalService:
             raise
         except Exception:
             pass
-        db = self._db()
-        if db.is_remote(): return
-        conn = db.get_connection(); self.ensure_schema(conn); self.ensure_invoice_request(invoice, notes)
-        now = datetime.now().isoformat(timespec='seconds'); username = UserSession.get_current_username() or UserSession.get_current_user_id() or ''
-        conn.execute("""
-            UPDATE approval_requests SET status='APPROVED', decided_by=?, decided_at=?, decision_notes=?, updated_at=?
-            WHERE entity_type='INVOICE' AND entity_id=?
-        """, (username, now, notes or 'تم اعتماد الفاتورة', now, invoice['id']))
-        conn.commit(); audit_service.log('APPROVE', 'INVOICE_APPROVAL', invoice['id'], new_values={'approval_status':'APPROVED'}, details=notes or 'اعتماد فاتورة')
+        self.ensure_invoice_request(invoice, notes)
+        username = UserSession.get_current_username() or UserSession.get_current_user_id() or ''
+        self.gateway.set_invoice_request_status(invoice['id'], self.STATUS_APPROVED, username, notes)
+        audit_service.log('APPROVE', 'INVOICE_APPROVAL', invoice['id'], new_values={'approval_status':'APPROVED'}, details=notes or 'اعتماد فاتورة')
     def reject_invoice(self, invoice: Dict[str, Any], notes: str = '') -> None:
         if not invoice: raise ValueError('الفاتورة غير موجودة')
         try:
@@ -121,19 +83,11 @@ class ApprovalService:
             raise
         except Exception:
             pass
-        db = self._db()
-        if db.is_remote(): return
-        conn = db.get_connection(); self.ensure_schema(conn); self.ensure_invoice_request(invoice, notes)
-        now = datetime.now().isoformat(timespec='seconds'); username = UserSession.get_current_username() or UserSession.get_current_user_id() or ''
-        conn.execute("""
-            UPDATE approval_requests SET status='REJECTED', decided_by=?, decided_at=?, decision_notes=?, updated_at=?
-            WHERE entity_type='INVOICE' AND entity_id=?
-        """, (username, now, notes or 'رفض الفاتورة', now, invoice['id']))
-        conn.commit(); audit_service.log('REJECT', 'INVOICE_APPROVAL', invoice['id'], new_values={'approval_status':'REJECTED'}, details=notes or 'رفض فاتورة')
+        self.ensure_invoice_request(invoice, notes)
+        username = UserSession.get_current_username() or UserSession.get_current_user_id() or ''
+        self.gateway.set_invoice_request_status(invoice['id'], self.STATUS_REJECTED, username, notes)
+        audit_service.log('REJECT', 'INVOICE_APPROVAL', invoice['id'], new_values={'approval_status':'REJECTED'}, details=notes or 'رفض فاتورة')
     def pending(self, limit: int = 200):
-        db = self._db()
-        if db.is_remote(): return []
-        conn = db.get_connection(); self.ensure_schema(conn)
-        return [dict(r) for r in conn.execute("SELECT * FROM approval_requests WHERE status='PENDING' ORDER BY id DESC LIMIT ?", (int(limit or 200),)).fetchall()]
+        return self.gateway.pending(limit)
 
 approval_service = ApprovalService()

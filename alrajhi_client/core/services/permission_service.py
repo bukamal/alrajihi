@@ -13,6 +13,7 @@ from typing import Dict, Iterable
 from auth.session import UserSession
 from core.services.settings_service import settings_service
 from core.services.rbac_service import rbac_service
+from gateways.system_gateway import create_system_gateway
 
 
 class PermissionService:
@@ -35,6 +36,9 @@ class PermissionService:
         ACTION_VIEW_ALL_BRANCHES: False,
         ACTION_MANAGE_ALL_BRANCHES: False,
     }
+
+    def __init__(self, system_gateway=None):
+        self.system_gateway = system_gateway or create_system_gateway()
 
     def current_role(self) -> str:
         return (UserSession.get_current_user_role() or 'admin').strip().lower()
@@ -152,77 +156,27 @@ class PermissionService:
         return (not self.is_admin(role)) and settings_service.get_bool('security/hide_profit_for_non_admin', False)
 
     # ========== Security event log (Phase 147) ==========
-    def _ensure_security_event_table(self, conn) -> None:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS security_events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_type TEXT NOT NULL,
-                action TEXT,
-                role TEXT,
-                username TEXT,
-                allowed INTEGER NOT NULL DEFAULT 0,
-                reason TEXT,
-                context TEXT,
-                created_at TEXT NOT NULL
-            )
-        """)
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_security_events_time ON security_events(created_at)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_security_events_action ON security_events(action, role)")
-
     def log_event(self, event_type: str, action: str = '', allowed: bool = False,
                   reason: str = '', context: str = '', role: str | None = None) -> None:
-        """Write a local, non-blocking security event.
-
-        This intentionally never raises to the UI; permission checks must not fail
-        just because the audit table is unavailable.
-        """
         try:
-            from datetime import datetime
-            from database.connection import DatabaseConnection
-            db = DatabaseConnection()
-            if db.is_remote():
-                return
-            conn = db.get_connection()
-            self._ensure_security_event_table(conn)
             username = ''
             try:
                 username = UserSession.get_current_username() or ''
             except Exception:
                 username = ''
-            conn.execute("""
-                INSERT INTO security_events(event_type, action, role, username, allowed, reason, context, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (str(event_type or 'SECURITY'), str(action or ''), str(role or self.current_role()),
-                  str(username or ''), 1 if allowed else 0, str(reason or ''), str(context or ''),
-                  datetime.now().isoformat(timespec='seconds')))
-            conn.commit()
+            self.system_gateway.log_security_event(
+                event_type=event_type, action=action, allowed=allowed,
+                reason=reason, context=context, role=role or self.current_role(),
+                username=username,
+            )
         except Exception:
             pass
 
     def security_events(self, limit: int = 200):
-        try:
-            from database.connection import DatabaseConnection
-            db = DatabaseConnection()
-            if db.is_remote():
-                return []
-            conn = db.get_connection()
-            self._ensure_security_event_table(conn)
-            rows = conn.execute("SELECT * FROM security_events ORDER BY id DESC LIMIT ?", (int(limit or 200),)).fetchall()
-            return [dict(r) for r in rows]
-        except Exception:
-            return []
+        return self.system_gateway.security_events(limit)
 
     def denied_events_count(self) -> int:
-        try:
-            from database.connection import DatabaseConnection
-            db = DatabaseConnection()
-            if db.is_remote():
-                return 0
-            conn = db.get_connection()
-            self._ensure_security_event_table(conn)
-            return int(conn.execute("SELECT COUNT(*) FROM security_events WHERE allowed=0").fetchone()[0])
-        except Exception:
-            return 0
+        return self.system_gateway.denied_security_events_count()
 
     def denied_message(self, action: str) -> str:
         labels = {

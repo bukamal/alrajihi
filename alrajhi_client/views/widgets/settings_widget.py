@@ -1134,10 +1134,9 @@ class SettingsWidget(QWidget):
     def refresh_diagnostics(self):
         lines = []
         try:
-            from database.connection import DatabaseConnection
-            import os, sqlite3
-            db = DatabaseConnection()
-            lines.append('وضع الاتصال: ' + ('Remote API' if db.is_remote() else 'Local SQLite'))
+            snapshot = system_service.local_diagnostics_snapshot()
+            is_remote = snapshot.get('mode') == 'remote'
+            lines.append('وضع الاتصال: ' + ('Remote API' if is_remote else 'Local SQLite'))
             lines.append('مصدر البيانات: ' + system_service.data_source_label())
             try:
                 phealth = settings_service.profile_health()
@@ -1175,52 +1174,25 @@ class SettingsWidget(QWidget):
                     lines.append('- آخر نسخة: ' + (latest.get('created_at') + ' / ' + latest.get('filename') if latest else 'لا يوجد'))
             except Exception as exc:
                 lines.append('- فحص النسخ الاحتياطي: فشل (' + str(exc) + ')')
-            conn = db.get_connection() if not db.is_remote() else None
-            if conn is not None:
-                try:
-                    db_path = conn.execute('PRAGMA database_list').fetchone()[2]
-                    lines.append('مسار قاعدة البيانات: ' + str(db_path))
-                    if db_path and os.path.exists(db_path):
-                        lines.append('حجم قاعدة البيانات: %.2f MB' % (os.path.getsize(db_path) / (1024 * 1024)))
-                except Exception:
-                    pass
-                table_map = [
-                    ('customers', 'عدد العملاء'), ('suppliers', 'عدد الموردين'), ('items', 'عدد المواد'),
-                    ('invoices', 'عدد الفواتير'), ('purchase_invoices', 'عدد فواتير الشراء'),
-                    ('sales_returns', 'عدد مرتجعات المبيعات'), ('purchase_returns', 'عدد مرتجعات الشراء'),
-                    ('production_orders', 'عدد أوامر التصنيع'), ('branches', 'عدد الفروع'), ('warehouses', 'عدد المستودعات'), ('settings', 'عدد الإعدادات'),
-                ]
+            if not is_remote:
+                if snapshot.get('db_path'):
+                    lines.append('مسار قاعدة البيانات: ' + str(snapshot.get('db_path')))
+                if snapshot.get('db_size_mb') is not None:
+                    lines.append('حجم قاعدة البيانات: %.2f MB' % float(snapshot.get('db_size_mb')))
                 lines.append('')
                 lines.append('الإحصاءات:')
-                for table, label in table_map:
-                    try:
-                        count = conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
-                        lines.append(f'- {label}: {count}')
-                    except Exception:
-                        lines.append(f'- {label}: الجدول غير موجود أو غير قابل للقراءة')
+                for item in (snapshot.get('table_counts') or {}).values():
+                    lines.append(f"- {item.get('label')}: {item.get('value')}")
                 lines.append('')
                 lines.append('فحص الجداول الأساسية:')
-                required = ['settings', 'items', 'customers', 'suppliers', 'invoices', 'inventory_ledger', 'audit_log']
-                existing = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-                for table in required:
-                    lines.append(f'- {table}: ' + ('OK' if table in existing else 'MISSING'))
+                for table, exists in (snapshot.get('required_tables') or {}).items():
+                    lines.append(f'- {table}: ' + ('OK' if exists else 'MISSING'))
                 lines.append('')
                 lines.append('فحص الاتساق:')
-                try:
-                    neg = conn.execute("SELECT COUNT(*) FROM items WHERE CAST(COALESCE(quantity, '0') AS REAL) < 0").fetchone()[0]
-                    lines.append(f'- مواد بمخزون سالب: {neg}')
-                except Exception:
-                    lines.append('- مواد بمخزون سالب: غير قابل للفحص')
-                try:
-                    orphan = conn.execute("SELECT COUNT(*) FROM invoice_lines ii LEFT JOIN invoices i ON i.id = ii.invoice_id WHERE i.id IS NULL").fetchone()[0]
-                    lines.append(f'- أسطر فواتير بلا فاتورة: {orphan}')
-                except Exception:
-                    lines.append('- أسطر فواتير بلا فاتورة: غير قابل للفحص')
-                try:
-                    quick = conn.execute('PRAGMA quick_check').fetchone()[0]
-                    lines.append(f'- PRAGMA quick_check: {quick}')
-                except Exception as exc:
-                    lines.append(f'- PRAGMA quick_check: فشل ({exc})')
+                consistency = snapshot.get('consistency') or {}
+                lines.append(f"- مواد بمخزون سالب: {consistency.get('negative_items_stock', 'غير قابل للفحص')}")
+                lines.append(f"- أسطر فواتير بلا فاتورة: {consistency.get('orphan_invoice_lines', 'غير قابل للفحص')}")
+                lines.append(f"- PRAGMA quick_check: {consistency.get('sqlite_quick_check', 'غير قابل للفحص')}")
                 try:
                     integrity = system_service.integrity_checks()
                     lines.append('')
@@ -1239,11 +1211,11 @@ class SettingsWidget(QWidget):
                 except Exception as exc:
                     lines.append('- فحص الاتساق المتقدم: فشل (' + str(exc) + ')')
             else:
-                status = system_service.debug_status()
-                lines.append('حالة الخادم: ' + str(status))
+                lines.append('حالة الخادم: ' + str(snapshot.get('remote_status') or system_service.debug_status()))
         except Exception as exc:
             lines.append('فشل التشخيص: ' + str(exc))
         self.diagnostics_text.setPlainText('\n'.join(lines))
+
 
 
     def _refresh_language_texts(self):

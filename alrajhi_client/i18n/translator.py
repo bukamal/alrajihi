@@ -3174,3 +3174,315 @@ _translations['en'].update({
     'workflow_action_done':'Workflow action completed', 'select_invoice_first':'Select an invoice first',
     'permission_denied':'You do not have permission for this action',
 })
+
+
+# Phase 20: industry profile, touch mode, and restaurant vertical keys.
+_translations['ar'].update({
+    'industry.profile': 'نوع النشاط',
+    'industry.general': 'عام',
+    'industry.pharmacy': 'صيدلية',
+    'industry.restaurant': 'مطعم',
+    'industry.apparel': 'ألبسة',
+    'industry.mixed': 'مختلط',
+    'ui.mode.classic': 'واجهة كلاسيكية',
+    'ui.mode.touch_pos': 'واجهة لمس POS',
+    'ui.mode.compact': 'واجهة مضغوطة',
+    'restaurant.dashboard': 'لوحة المطعم',
+    'restaurant.tables': 'الطاولات',
+    'restaurant.open_table': 'فتح طاولة',
+    'restaurant.table_opened': 'تم فتح {table} - جلسة {session}',
+    'restaurant.send_to_kitchen': 'إرسال للمطبخ',
+    'restaurant.kitchen_ticket': 'تذكرة مطبخ',
+    'common.refresh': 'تحديث',
+})
+_translations['de'].update({
+    'industry.profile': 'Branche',
+    'industry.general': 'Allgemein',
+    'industry.pharmacy': 'Apotheke',
+    'industry.restaurant': 'Restaurant',
+    'industry.apparel': 'Bekleidung',
+    'industry.mixed': 'Gemischt',
+    'ui.mode.classic': 'Klassische Oberfläche',
+    'ui.mode.touch_pos': 'Touch-POS-Oberfläche',
+    'ui.mode.compact': 'Kompakte Oberfläche',
+    'restaurant.dashboard': 'Restaurant-Dashboard',
+    'restaurant.tables': 'Tische',
+    'restaurant.open_table': 'Tisch öffnen',
+    'restaurant.table_opened': '{table} geöffnet - Sitzung {session}',
+    'restaurant.send_to_kitchen': 'An Küche senden',
+    'restaurant.kitchen_ticket': 'Küchenbon',
+    'common.refresh': 'Aktualisieren',
+})
+_translations['en'].update({
+    'industry.profile': 'Industry profile',
+    'industry.general': 'General',
+    'industry.pharmacy': 'Pharmacy',
+    'industry.restaurant': 'Restaurant',
+    'industry.apparel': 'Apparel',
+    'industry.mixed': 'Mixed',
+    'ui.mode.classic': 'Classic UI',
+    'ui.mode.touch_pos': 'Touch POS UI',
+    'ui.mode.compact': 'Compact UI',
+    'restaurant.dashboard': 'Restaurant Dashboard',
+    'restaurant.tables': 'Tables',
+    'restaurant.open_table': 'Open table',
+    'restaurant.table_opened': 'Opened {table} - session {session}',
+    'restaurant.send_to_kitchen': 'Send to kitchen',
+    'restaurant.kitchen_ticket': 'Kitchen ticket',
+    'common.refresh': 'Refresh',
+})
+
+# Phase 21: restaurant UI shell, touch table workflow, and KOT POS keys.
+_translations['ar'].update({
+    'nav_restaurant': 'المطعم',
+    'restaurant.table': 'طاولة',
+    'restaurant.status.free': 'فارغة',
+    'restaurant.status.occupied': 'مشغولة',
+    'restaurant.status.reserved': 'محجوزة',
+    'restaurant.status.payment': 'بانتظار الدفع',
+    'restaurant.guests': 'الضيوف',
+    'restaurant.guests_count': '{guests} ضيف',
+    'restaurant.seats_count': '{seats} مقاعد',
+    'restaurant.no_open_session': 'لا توجد طاولة مفتوحة',
+    'restaurant.active_session': '{table} — جلسة {session}',
+    'restaurant.add_item': 'إضافة صنف',
+    'restaurant.item_name': 'اسم الصنف',
+    'restaurant.item_required': 'اسم الصنف مطلوب',
+    'restaurant.line_added': 'تمت إضافة الصنف',
+    'restaurant.kitchen_sent': 'تم إرسال الطلب للمطبخ',
+    'restaurant.close_table': 'إغلاق الطاولة',
+    'restaurant.table_closed': 'تم إغلاق الطاولة',
+    'restaurant.current_total': 'إجمالي الطلب الحالي',
+    'unit_price': 'سعر الوحدة',
+})
+_translations['de'].update({
+    'nav_restaurant': 'Restaurant',
+    'restaurant.table': 'Tisch',
+    'restaurant.status.free': 'Frei',
+    'restaurant.status.occupied': 'Belegt',
+    'restaurant.status.reserved': 'Reserviert',
+    'restaurant.status.payment': 'Zahlung offen',
+    'restaurant.guests': 'Gäste',
+    'restaurant.guests_count': '{guests} Gäste',
+    'restaurant.seats_count': '{seats} Plätze',
+    'restaurant.no_open_session': 'Keine offene Tischsitzung',
+    'restaurant.active_session': '{table} — Sitzung {session}',
+    'restaurant.add_item': 'Artikel hinzufügen',
+    'restaurant.item_name': 'Artikelname',
+    'restaurant.item_required': 'Artikelname ist erforderlich',
+    'restaurant.line_added': 'Artikel wurde hinzugefügt',
+    'restaurant.kitchen_sent': 'Bestellung wurde an die Küche gesendet',
+    'restaurant.close_table': 'Tisch schließen',
+    'restaurant.table_closed': 'Tisch wurde geschlossen',
+    'restaurant.current_total': 'Aktuelle Auftragssumme',
+    'unit_price': 'Einzelpreis',
+})
+_translations['en'].update({
+    'nav_restaurant': 'Restaurant',
+    'restaurant.table': 'Table',
+    'restaurant.status.free': 'Free',
+    'restaurant.status.occupied': 'Occupied',
+    'restaurant.status.reserved': 'Reserved',
+    'restaurant.status.payment': 'Awaiting payment',
+    'restaurant.guests': 'Guests',
+    'restaurant.guests_count': '{guests} guests',
+    'restaurant.seats_count': '{seats} seats',
+    'restaurant.no_open_session': 'No open table session',
+    'restaurant.active_session': '{table} — session {session}',
+    'restaurant.add_item': 'Add item',
+    'restaurant.item_name': 'Item name',
+    'restaurant.item_required': 'Item name is required',
+    'restaurant.line_added': 'Item added',
+    'restaurant.kitchen_sent': 'Order sent to kitchen',
+    'restaurant.close_table': 'Close table',
+    'restaurant.table_closed': 'Table closed',
+    'restaurant.current_total': 'Current order total',
+    'unit_price': 'Unit price',
+})
+
+# Phase 23: restaurant order lifecycle and payment-state keys.
+_translations['ar'].update({
+    'restaurant.mark_payment_pending': 'طلب الدفع',
+    'restaurant.payment_pending': 'الطاولة بانتظار الدفع',
+    'restaurant.line_status.new': 'جديد',
+    'restaurant.line_status.sent': 'مرسل للمطبخ',
+    'restaurant.line_status.preparing': 'قيد التحضير',
+    'restaurant.line_status.ready': 'جاهز',
+    'restaurant.line_status.served': 'مُقدّم',
+    'restaurant.line_status.cancelled': 'ملغى',
+})
+_translations['de'].update({
+    'restaurant.mark_payment_pending': 'Zahlung anfordern',
+    'restaurant.payment_pending': 'Tisch wartet auf Zahlung',
+    'restaurant.line_status.new': 'Neu',
+    'restaurant.line_status.sent': 'An Küche gesendet',
+    'restaurant.line_status.preparing': 'In Zubereitung',
+    'restaurant.line_status.ready': 'Fertig',
+    'restaurant.line_status.served': 'Serviert',
+    'restaurant.line_status.cancelled': 'Storniert',
+})
+_translations['en'].update({
+    'restaurant.mark_payment_pending': 'Request payment',
+    'restaurant.payment_pending': 'Table awaiting payment',
+    'restaurant.line_status.new': 'New',
+    'restaurant.line_status.sent': 'Sent to kitchen',
+    'restaurant.line_status.preparing': 'Preparing',
+    'restaurant.line_status.ready': 'Ready',
+    'restaurant.line_status.served': 'Served',
+    'restaurant.line_status.cancelled': 'Cancelled',
+})
+
+
+# Phase 24: modern restaurant touch UI keys.
+_translations['ar'].update({
+    'restaurant.touch_mode': 'وضع لمس المطاعم',
+    'restaurant.ui.free_hint': 'اضغط لفتح الطاولة',
+    'restaurant.ui.occupied_hint': 'اضغط لإدارة الطلب',
+    'restaurant.ui.payment_hint': 'بانتظار الدفع',
+})
+_translations['de'].update({
+    'restaurant.touch_mode': 'Restaurant-Touchmodus',
+    'restaurant.ui.free_hint': 'Tippen, um Tisch zu öffnen',
+    'restaurant.ui.occupied_hint': 'Tippen, um Bestellung zu verwalten',
+    'restaurant.ui.payment_hint': 'Wartet auf Zahlung',
+})
+_translations['en'].update({
+    'restaurant.touch_mode': 'Restaurant touch mode',
+    'restaurant.ui.free_hint': 'Tap to open table',
+    'restaurant.ui.occupied_hint': 'Tap to manage order',
+    'restaurant.ui.payment_hint': 'Awaiting payment',
+})
+
+# Phase 25: restaurant product-card ordering keys.
+_translations['ar'].update({
+    'restaurant.search_menu': 'ابحث في قائمة المطعم...',
+    'restaurant.manual_item': 'إدخال يدوي',
+    'restaurant.no_menu_items': 'لا توجد مواد مطعم. أضف موادًا أو استخدم الإدخال اليدوي.',
+    'restaurant.open_table_first': 'افتح طاولة أولًا قبل إضافة الأصناف',
+})
+_translations['de'].update({
+    'restaurant.search_menu': 'Restaurantkarte durchsuchen...',
+    'restaurant.manual_item': 'Manuelle Position',
+    'restaurant.no_menu_items': 'Keine Restaurantartikel vorhanden. Artikel anlegen oder manuell erfassen.',
+    'restaurant.open_table_first': 'Öffnen Sie zuerst einen Tisch, bevor Artikel hinzugefügt werden',
+})
+_translations['en'].update({
+    'restaurant.search_menu': 'Search restaurant menu...',
+    'restaurant.manual_item': 'Manual item',
+    'restaurant.no_menu_items': 'No restaurant items. Add items or use manual entry.',
+    'restaurant.open_table_first': 'Open a table before adding items',
+})
+
+# Phase 26: restaurant checkout to sales invoice.
+_translations['ar'].update({
+    'restaurant.checkout': 'إصدار فاتورة وإغلاق الطاولة',
+    'restaurant.checkout_done': 'تم إصدار الفاتورة وإغلاق الطاولة',
+})
+_translations['de'].update({
+    'restaurant.checkout': 'Rechnung erstellen und Tisch schließen',
+    'restaurant.checkout_done': 'Rechnung wurde erstellt und der Tisch geschlossen',
+})
+_translations['en'].update({
+    'restaurant.checkout': 'Create invoice and close table',
+    'restaurant.checkout_done': 'Invoice created and table closed',
+})
+
+# Phase 27: restaurant split-payment workflow keys.
+_translations['ar'].update({
+    'restaurant.record_payment': 'تسجيل دفعة',
+    'restaurant.payment_recorded': 'تم تسجيل الدفعة',
+    'restaurant.paid': 'المدفوع',
+    'restaurant.remaining': 'المتبقي',
+    'payment.cash': 'نقدي',
+    'payment.card': 'بطاقة',
+    'payment.bank': 'تحويل/بنك',
+})
+_translations['de'].update({
+    'restaurant.record_payment': 'Zahlung buchen',
+    'restaurant.payment_recorded': 'Zahlung wurde gebucht',
+    'restaurant.paid': 'Bezahlt',
+    'restaurant.remaining': 'Offen',
+    'payment.cash': 'Bar',
+    'payment.card': 'Karte',
+    'payment.bank': 'Bank/Überweisung',
+})
+_translations['en'].update({
+    'restaurant.record_payment': 'Record payment',
+    'restaurant.payment_recorded': 'Payment recorded',
+    'restaurant.paid': 'Paid',
+    'restaurant.remaining': 'Remaining',
+    'payment.cash': 'Cash',
+    'payment.card': 'Card',
+    'payment.bank': 'Bank transfer',
+})
+
+# Phase 28: kitchen display system (KDS) keys.
+_translations['ar'].update({
+    'restaurant.kds.title': 'شاشة المطبخ',
+        'restaurant.kds.stations': 'محطات المطبخ',
+        'restaurant.kds.all_stations': 'كل المحطات',
+    'restaurant.kds.no_ticket': 'لا توجد تذكرة محددة',
+    'restaurant.kds.loaded': 'تم تحديث تذاكر المطبخ',
+    'restaurant.kds.updated': 'تم تحديث حالة التذكرة',
+    'restaurant.kds.preparing': 'قيد التحضير',
+    'restaurant.kds.ready': 'جاهز',
+    'restaurant.kds.served': 'تم التقديم',
+    'restaurant.kds.status.sent': 'مرسل',
+    'restaurant.kds.status.preparing': 'قيد التحضير',
+    'restaurant.kds.status.ready': 'جاهز',
+    'restaurant.kds.status.served': 'مُقدّم',
+    'restaurant.kds.status.cancelled': 'ملغى',
+})
+_translations['de'].update({
+    'restaurant.kds.title': 'Küchenanzeige',
+        'restaurant.kds.stations': 'Küchenstationen',
+        'restaurant.kds.all_stations': 'Alle Stationen',
+    'restaurant.kds.no_ticket': 'Kein Ticket ausgewählt',
+    'restaurant.kds.loaded': 'Küchentickets wurden aktualisiert',
+    'restaurant.kds.updated': 'Ticketstatus wurde aktualisiert',
+    'restaurant.kds.preparing': 'In Zubereitung',
+    'restaurant.kds.ready': 'Fertig',
+    'restaurant.kds.served': 'Serviert',
+    'restaurant.kds.status.sent': 'Gesendet',
+    'restaurant.kds.status.preparing': 'In Zubereitung',
+    'restaurant.kds.status.ready': 'Fertig',
+    'restaurant.kds.status.served': 'Serviert',
+    'restaurant.kds.status.cancelled': 'Storniert',
+})
+_translations['en'].update({
+    'restaurant.kds.title': 'Kitchen display',
+        'restaurant.kds.stations': 'Kitchen stations',
+        'restaurant.kds.all_stations': 'All stations',
+    'restaurant.kds.no_ticket': 'No ticket selected',
+    'restaurant.kds.loaded': 'Kitchen tickets refreshed',
+    'restaurant.kds.updated': 'Ticket status updated',
+    'restaurant.kds.preparing': 'Preparing',
+    'restaurant.kds.ready': 'Ready',
+    'restaurant.kds.served': 'Served',
+    'restaurant.kds.status.sent': 'Sent',
+    'restaurant.kds.status.preparing': 'Preparing',
+    'restaurant.kds.status.ready': 'Ready',
+    'restaurant.kds.status.served': 'Served',
+    'restaurant.kds.status.cancelled': 'Cancelled',
+})
+
+
+# Phase 30: waiter workflow keys.
+_translations['ar'].update({
+    'restaurant.waiter.assign': 'تعيين نادل',
+    'restaurant.waiter.call': 'استدعاء النادل',
+    'restaurant.waiter.resolve_call': 'إغلاق استدعاء النادل',
+    'restaurant.waiter.summary': 'ملخص خدمة الطاولة',
+})
+_translations['de'].update({
+    'restaurant.waiter.assign': 'Kellner zuweisen',
+    'restaurant.waiter.call': 'Kellner rufen',
+    'restaurant.waiter.resolve_call': 'Kellnerruf erledigen',
+    'restaurant.waiter.summary': 'Serviceübersicht',
+})
+_translations['en'].update({
+    'restaurant.waiter.assign': 'Assign waiter',
+    'restaurant.waiter.call': 'Call waiter',
+    'restaurant.waiter.resolve_call': 'Resolve waiter call',
+    'restaurant.waiter.summary': 'Table service summary',
+})
