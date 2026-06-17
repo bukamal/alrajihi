@@ -49,7 +49,7 @@ def _recalculate_average_cost(db, item_id, user_id):
         SELECT SUM(CAST(quantity AS REAL)) AS total_qty,
                SUM(CAST(quantity AS REAL) * CAST(unit_cost AS REAL)) AS total_cost
         FROM inventory_movements
-        WHERE item_id=? AND user_id=? AND movement_type IN ('opening','purchase','adjustment','production_out','sales_return')
+        WHERE item_id=? AND user_id=? AND movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse')
     """, (item_id, user_id)).fetchone()
     total_qty = _dec(row['total_qty']) if row and row['total_qty'] is not None else Decimal('0')
     total_cost = _dec(row['total_cost']) if row and row['total_cost'] is not None else Decimal('0')
@@ -446,7 +446,11 @@ def sales_returnable_lines(invoice_id):
         row.update({'sold_qty': str(sold_base / factor), 'returned_qty': str(returned_base / factor),
                     'returnable_qty': str(remaining_base / factor), 'sold_qty_base': str(sold_base),
                     'returned_qty_base': str(returned_base), 'returnable_qty_base': str(remaining_base),
-                    'conversion_factor': str(factor)})
+                    'conversion_factor': str(factor),
+                    'invoice_currency': inv.get('original_currency') or 'USD',
+                    'invoice_exchange_rate_to_usd': inv.get('exchange_rate_to_usd') or 1,
+                    'line_currency': 'USD',
+                    'unit_price_usd': str(line.get('unit_price') or line.get('price') or 0)})
         result.append(row)
     return jsonify({'lines': result})
 
@@ -471,7 +475,11 @@ def purchase_returnable_lines(invoice_id):
         row.update({'purchased_qty': str(purchased_base / factor), 'returned_qty': str(returned_base / factor),
                     'returnable_qty': str(remaining_base / factor), 'purchased_qty_base': str(purchased_base),
                     'returned_qty_base': str(returned_base), 'returnable_qty_base': str(remaining_base),
-                    'conversion_factor': str(factor)})
+                    'conversion_factor': str(factor),
+                    'invoice_currency': inv.get('original_currency') or 'USD',
+                    'invoice_exchange_rate_to_usd': inv.get('exchange_rate_to_usd') or 1,
+                    'line_currency': 'USD',
+                    'unit_price_usd': str(line.get('unit_price') or line.get('price') or 0)})
         result.append(row)
     return jsonify({'lines': result})
 

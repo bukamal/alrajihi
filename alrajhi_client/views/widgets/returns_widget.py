@@ -112,10 +112,42 @@ def _ret_selected_unit_data(table, row, line):
     }
 
 
+def _ret_money_value_to_usd(line, value):
+    """Return a monetary value in canonical USD.
+
+    Current invoices store invoice_lines.unit_price and total in USD. Some
+    upgraded/legacy rows, especially high-rate local currencies such as SYP,
+    may still carry invoice-line amounts in the invoice/original currency.
+    Without this guard the sales-return dialog converts those values from USD
+    to the display currency again, producing very large nonsensical prices and
+    totals.
+    """
+    raw = _ret_dec(value)
+    explicit_currency = (line.get('line_currency') or line.get('amount_currency') or '').strip().upper()
+    if explicit_currency and explicit_currency != 'USD':
+        return currency.convert(raw, explicit_currency, 'USD')
+    if explicit_currency == 'USD':
+        return raw
+
+    inv_currency = (line.get('original_currency') or line.get('invoice_currency') or '').strip().upper()
+    rate = _ret_dec(line.get('exchange_rate_to_usd') or line.get('invoice_exchange_rate_to_usd') or 1, '1')
+    # High-rate-currency legacy heuristic: if a line from an invoice marked as
+    # SYP-like currency already looks scaled by the exchange rate, normalize it
+    # back to USD before the UI converts it to the selected display currency.
+    if inv_currency and inv_currency != 'USD' and rate >= Decimal('100') and abs(raw) >= (rate / Decimal('10')):
+        try:
+            return currency.convert(raw, inv_currency, 'USD')
+        except Exception:
+            return raw / rate if rate else raw
+    return raw
+
+
 def _ret_unit_price_usd_for_factor(line, factor):
     orig_factor = _ret_original_factor(line)
+    raw_unit_price = line.get('unit_price_usd', line.get('unit_price', line.get('price', 0)))
+    price_usd = _ret_money_value_to_usd(line, raw_unit_price)
     # invoice line unit_price is stored per original invoice display unit.
-    return (_ret_dec(line.get('unit_price') or line.get('price') or 0) / orig_factor) * factor
+    return (price_usd / orig_factor) * factor
 
 
 def _ret_prepare_line_base_fields(line, qty_kind):
@@ -423,16 +455,20 @@ def _ret_apply_existing_return(dialog, service, return_data, qty_kind):
         if factor <= 0:
             factor = Decimal('1')
         unit_data = {'unit': old.get('unit') or line.get('unit') or '', 'factor': str(factor), 'unit_id': old.get('unit_id')}
-        unit_item = dialog.lines_table.item(row, RET_COL_UNIT) or QTableWidgetItem()
-        dialog.lines_table.setItem(row, RET_COL_UNIT, unit_item)
+        unit_item = dialog.lines_table.item(row, RET_COL_UNIT)
+        if unit_item is None:
+            unit_item = QTableWidgetItem()
+            dialog.lines_table.setItem(row, RET_COL_UNIT, unit_item)
         unit_item.setText(str(unit_data['unit'] or ''))
         unit_item.setData(Qt.UserRole, unit_data)
         unit_item.setFlags(unit_item.flags() | Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable)
         line['_selected_factor'] = factor
         line['_selected_unit'] = unit_data['unit']
         line['_selected_unit_id'] = unit_data['unit_id']
-        qty_item = dialog.lines_table.item(row, RET_COL_RETURN_QTY) or QTableWidgetItem()
-        dialog.lines_table.setItem(row, RET_COL_RETURN_QTY, qty_item)
+        qty_item = dialog.lines_table.item(row, RET_COL_RETURN_QTY)
+        if qty_item is None:
+            qty_item = QTableWidgetItem()
+            dialog.lines_table.setItem(row, RET_COL_RETURN_QTY, qty_item)
         qty_item.setText(_ret_fmt_qty(old_base / factor))
         dialog._unit_changed(row, recalc=False)
     dialog.lines_table.blockSignals(False)

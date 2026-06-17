@@ -361,7 +361,7 @@ class InventoryLedgerDAO:
                 skipped += 1
                 continue
             movement_type = row['movement_type']
-            direction = 'in' if movement_type in ('opening', 'purchase', 'adjustment', 'production_out') else 'out' if movement_type in ('sale', 'production_consume') else 'neutral'
+            direction = 'in' if movement_type in ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') else 'out' if movement_type in ('sale','production_consume','purchase_return') else 'neutral'
             payload = {
                 'item_id': row['item_id'],
                 'movement_type': f'legacy_{movement_type}',

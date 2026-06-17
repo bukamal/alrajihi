@@ -125,8 +125,8 @@ class ItemsWidget(BaseWidget):
         sold_map = product_service.sold_quantities(item_ids)
         for it in items:
             item_id = it.get('id')
-            opening_qty = Decimal(str(it.get('opening_quantity', it.get('quantity', 0)) or 0))
-            available_qty = Decimal(str(it.get('available', it.get('quantity', 0)) or 0))
+            current_qty = Decimal(str(it.get('quantity', it.get('available', 0)) or 0))
+            available_qty = Decimal(str(it.get('available', current_qty) or 0))
             sold_qty = Decimal(str(sold_map.get(int(item_id), 0))) if item_id is not None else Decimal('0')
             unit_cost_usd = Decimal(str(it.get('average_cost', it.get('purchase_price', 0)) or 0))
             total_value_usd = available_qty * unit_cost_usd
@@ -137,7 +137,7 @@ class ItemsWidget(BaseWidget):
             data.append({
                 'id': it['id'],
                 'name': it.get('name', ''),
-                'quantity': f"{opening_qty:.2f}",
+                'quantity': f"{current_qty:.2f}",
                 'unit': it.get('unit') or translate('unit_piece'),
                 'sold_quantity': f"{sold_qty:.2f}",
                 'available_quantity': f"{available_qty:.2f}",

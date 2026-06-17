@@ -594,16 +594,16 @@ class ManufacturingDAO:
             VALUES (?,?,?,?,?,?,?)
         """, (item_id, uid, movement_type, str(quantity), str(unit_cost), reference_id, now))
         self._update_item_quantity(item_id)
-        if movement_type in ('opening', 'purchase', 'adjustment', 'production_out', 'consumption_reverse'):
+        if movement_type in ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse'):
             self._recalculate_average_cost(item_id)
 
     def _update_item_quantity(self, item_id):
         cur = self.db.execute("""
             SELECT SUM(
                 CASE 
-                    WHEN movement_type IN ('opening','purchase','adjustment','production_out','consumption_reverse') 
+                    WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') 
                     THEN CAST(quantity AS REAL)
-                    WHEN movement_type IN ('sale','production_consume') 
+                    WHEN movement_type IN ('sale','production_consume','purchase_return') 
                     THEN -CAST(quantity AS REAL)
                     ELSE 0
                 END
@@ -622,7 +622,7 @@ class ManufacturingDAO:
                 SUM(CAST(quantity AS REAL)) as total_qty,
                 SUM(CAST(quantity AS REAL) * CAST(unit_cost AS REAL)) as total_cost
             FROM inventory_movements
-            WHERE item_id = ? AND movement_type IN ('opening', 'purchase', 'adjustment', 'production_out', 'consumption_reverse')
+            WHERE item_id = ? AND movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse')
         """, (item_id,))
         row = cur.fetchone()
         total_qty = Decimal(str(row[0])) if row[0] else Decimal('0')

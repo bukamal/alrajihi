@@ -45,7 +45,7 @@ def _invoice_has_returns(db, invoice_id, user_id):
 def _update_item_quantity(db, item_id, user_id):
     row = db.execute('''
         SELECT SUM(CASE
-            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return') THEN CAST(quantity AS REAL)
+            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
             WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
             ELSE 0 END) AS total_qty
         FROM inventory_movements
@@ -60,7 +60,7 @@ def _recalculate_average_cost(db, item_id, user_id):
         SELECT SUM(CAST(quantity AS REAL)) AS total_qty,
                SUM(CAST(quantity AS REAL) * CAST(unit_cost AS REAL)) AS total_cost
         FROM inventory_movements
-        WHERE item_id=? AND user_id=? AND movement_type IN ('opening','purchase','adjustment','production_out')
+        WHERE item_id=? AND user_id=? AND movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse')
     ''', (item_id, user_id)).fetchone()
     total_qty = Decimal(str(row['total_qty'])) if row and row['total_qty'] is not None else Decimal('0')
     total_cost = Decimal(str(row['total_cost'])) if row and row['total_cost'] is not None else Decimal('0')
@@ -71,7 +71,7 @@ def _recalculate_average_cost(db, item_id, user_id):
 def _available_item_quantity(db, item_id, user_id):
     row = db.execute('''
         SELECT SUM(CASE
-            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return') THEN CAST(quantity AS REAL)
+            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
             WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
             ELSE 0 END) AS total_qty
         FROM inventory_movements

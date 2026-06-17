@@ -182,6 +182,10 @@ class LocalPurchaseReturnGateway(PurchaseReturnGateway):
                 'returnable_qty_base': str(remaining_base),
                 'warehouse_available_base': str(available_base),
                 'conversion_factor': str(factor),
+                'invoice_currency': inv.get('original_currency') or 'USD',
+                'invoice_exchange_rate_to_usd': inv.get('exchange_rate_to_usd') or 1,
+                'line_currency': 'USD',
+                'unit_price_usd': str(line.get('unit_price') or line.get('price') or 0),
             })
             result.append(row)
         return result

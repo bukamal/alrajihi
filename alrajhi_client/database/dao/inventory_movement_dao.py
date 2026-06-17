@@ -41,9 +41,9 @@ class InventoryMovementDAO:
         cur = self.db.execute("""
             SELECT SUM(
                 CASE 
-                    WHEN movement_type IN ('opening','purchase','adjustment','production_out') 
+                    WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') 
                     THEN CAST(quantity AS REAL)
-                    WHEN movement_type IN ('sale','production_consume') 
+                    WHEN movement_type IN ('sale','production_consume','purchase_return') 
                     THEN -CAST(quantity AS REAL)
                     ELSE 0
                 END
@@ -62,7 +62,7 @@ class InventoryMovementDAO:
                 SUM(CAST(quantity AS REAL)) as total_qty,
                 SUM(CAST(quantity AS REAL) * CAST(unit_cost AS REAL)) as total_cost
             FROM inventory_movements
-            WHERE item_id = ? AND movement_type IN ('opening', 'purchase', 'adjustment', 'production_out')
+            WHERE item_id = ? AND movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse')
         """, (item_id,))
         row = cur.fetchone()
         total_qty = Decimal(str(row[0])) if row[0] else Decimal('0')
