@@ -269,3 +269,19 @@ def db_execute_scalar(sql, params):
     db = DatabaseConnection()
     row = db.execute(sql, params).fetchone()
     return row[0] if row else None
+
+
+# Backward-compatible singleton for legacy imports.
+reporting_dao = ReportingDAO()
+
+
+# Keep legacy ``from database.dao import reporting_dao`` imports returning the
+# singleton object even after Python has attached the submodule object to the
+# package during import.
+try:
+    import sys
+    _dao_pkg = sys.modules.get("database.dao")
+    if _dao_pkg is not None:
+        setattr(_dao_pkg, "reporting_dao", reporting_dao)
+except Exception:
+    pass

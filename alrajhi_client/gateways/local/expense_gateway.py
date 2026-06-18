@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 
 from core.compat import pair
-from database import expense_dao
+from database.dao.expense_dao import expense_dao
 from gateways.expense_gateway import ExpenseGateway
 
 

@@ -30,3 +30,17 @@ class ExpenseDAO:
         self.repo.delete(expense_id)
 
 
+# Backward-compatible singleton for legacy imports.
+expense_dao = ExpenseDAO()
+
+
+# Keep legacy ``from database.dao import expense_dao`` imports returning the
+# singleton object even after Python has attached the submodule object to the
+# package during import.
+try:
+    import sys
+    _dao_pkg = sys.modules.get("database.dao")
+    if _dao_pkg is not None:
+        setattr(_dao_pkg, "expense_dao", expense_dao)
+except Exception:
+    pass

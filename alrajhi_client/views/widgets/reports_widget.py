@@ -439,6 +439,16 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         except Exception:
             pass
 
+    def _refresh_phase36_reports(self, start, end, display_curr):
+        """Compatibility wrapper for static reports contract checks.
+
+        The implementation lives in ReportsPhase36Mixin; keeping this explicit
+        method on ReportsWidget preserves the public/private widget contract
+        expected by tools/reports_contract_check.py while avoiding duplicate
+        report logic.
+        """
+        return super()._refresh_phase36_reports(start, end, display_curr)
+
     def refresh_report(self):
         """Refresh the active report tab only.
 

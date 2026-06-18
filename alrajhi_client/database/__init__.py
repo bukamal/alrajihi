@@ -38,16 +38,21 @@ _EXPORTS: Dict[str, Tuple[str, str]] = {
     'AuditRepository': ('database.repositories.audit_repo', 'AuditRepository'),
 
     # Legacy DAO singletons
-    'reporting_dao': ('database.dao', 'reporting_dao'),
-    'expense_dao': ('database.dao', 'expense_dao'),
-    'voucher_dao': ('database.dao', 'voucher_dao'),
-    'invoice_dao': ('database.dao', 'invoice_dao'),
-    'item_dao': ('database.dao', 'item_dao'),
-    'category_dao': ('database.dao', 'category_dao'),
-    'inventory_dao': ('database.dao', 'inventory_dao'),
-    'customer_dao': ('database.dao', 'customer_dao'),
-    'supplier_dao': ('database.dao', 'supplier_dao'),
-    'manufacturing_dao': ('database.dao', 'manufacturing_dao'),
+    # Legacy DAO singletons.  Point directly to the concrete submodule rather
+    # than the ``database.dao`` package: importing a DAO submodule causes Python
+    # to set e.g. ``database.dao.expense_dao`` to the *module* object on the
+    # package, which can shadow the lazy package attribute and leak a module
+    # where callers expect a singleton instance.
+    'reporting_dao': ('database.dao.reporting_dao', 'reporting_dao'),
+    'expense_dao': ('database.dao.expense_dao', 'expense_dao'),
+    'voucher_dao': ('database.dao.voucher_dao', 'voucher_dao'),
+    'invoice_dao': ('database.dao.invoice_dao', 'invoice_dao'),
+    'item_dao': ('database.dao.item_dao', 'item_dao'),
+    'category_dao': ('database.dao.category_dao', 'category_dao'),
+    'inventory_dao': ('database.dao.inventory_dao', 'inventory_dao'),
+    'customer_dao': ('database.dao.customer_dao', 'customer_dao'),
+    'supplier_dao': ('database.dao.supplier_dao', 'supplier_dao'),
+    'manufacturing_dao': ('database.dao.manufacturing_dao', 'manufacturing_dao'),
 }
 
 __all__ = list(_EXPORTS.keys())
