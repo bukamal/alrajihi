@@ -21,11 +21,26 @@ class RemoteItemGateway(ItemGateway):
         return item if isinstance(item, dict) else None
 
     def get_by_barcode(self, barcode: str) -> Optional[Dict]:
-        items, _ = self.list()
-        for item in items:
-            if str(item.get('barcode') or '') == str(barcode or ''):
-                return item
-        return None
+        """Return a material by exact barcode without downloading the catalog.
+
+        Barcode scanner flows must be deterministic: no loose search and no
+        first-row fallback.  The preferred API endpoint is /api/items/by-barcode.
+        The bounded fallback below exists only for old servers and still keeps
+        exact-match semantics.
+        """
+        value = str(barcode or '').strip()
+        if not value:
+            return None
+        try:
+            item = self.rest_client.get_item_by_barcode(value)
+            return item if isinstance(item, dict) else None
+        except Exception:
+            # Backward compatibility with older servers: use a bounded server-side
+            # text search and accept only an exact barcode match.  Never call
+            # self.list() without filters here.
+            items, _ = self.list(search=value, limit=10, offset=0)
+            exact = [item for item in (items or []) if str(item.get('barcode') or '').strip() == value]
+            return exact[0] if len(exact) == 1 else None
 
     def create(self, data: Dict[str, Any]) -> int:
         return self.rest_client.add_item(data)
@@ -40,17 +55,28 @@ class RemoteItemGateway(ItemGateway):
         item = self.get(item_id) or {}
         return item.get('units', []) or []
 
-    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float):
+    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float, barcode: str | None = None, notes: str = ''):
         raise NotImplementedError("Remote item units are saved atomically through item create/update payloads.")
 
     def clear_units(self, item_id: int):
         raise NotImplementedError("Remote item units are saved atomically through item create/update payloads.")
 
     def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
-        # No remote aggregate endpoint exists yet. Preserve the previous remote
-        # behavior by returning zero quantities until the API adds this read model.
         ids = [int(x) for x in (item_ids or []) if x is not None]
-        return {i: Decimal('0') for i in ids}
+        if not ids:
+            return {}
+        try:
+            values = self.rest_client.get_item_sold_quantities(ids)
+            return {i: Decimal(str(values.get(i, 0))) for i in ids}
+        except Exception:
+            return {i: Decimal('0') for i in ids}
+
+
+    def activity_summary(self, item_id: int) -> Dict[str, Any]:
+        try:
+            return self.rest_client.get_item_activity_summary(int(item_id or 0)) or {}
+        except Exception:
+            return {'blocking_total': 0, 'has_movements': False}
 
     def is_remote(self) -> bool:
         return True
@@ -81,6 +107,13 @@ class RemoteCategoryGateway(CategoryGateway):
 
     def restore(self, category_id: int):
         return self.rest_client.restore_category(category_id)
+
+
+    def activity_summary(self, item_id: int) -> Dict[str, Any]:
+        try:
+            return self.rest_client.get_item_activity_summary(int(item_id or 0)) or {}
+        except Exception:
+            return {'blocking_total': 0, 'has_movements': False}
 
     def is_remote(self) -> bool:
         return True

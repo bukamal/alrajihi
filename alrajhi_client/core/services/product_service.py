@@ -28,14 +28,52 @@ class ProductService:
         if not normalized:
             return None
         existing = self.item_by_barcode(normalized)
-        if existing and int(existing.get('id', 0)) != int(item_id or 0):
-            raise ValueError(f"الباركود '{normalized}' مستخدم بالفعل للمادة: {existing.get('name', existing.get('id'))}")
+        if existing:
+            same_item = int(existing.get('id', 0)) == int(item_id or 0)
+            if not same_item or existing.get('barcode_scope') == 'unit':
+                raise ValueError(f"الباركود '{normalized}' مستخدم بالفعل للمادة: {existing.get('name', existing.get('id'))}")
         return normalized
 
-    def generate_barcode(self, symbology: str = 'EAN13') -> str:
+    def _normalize_unit_barcode(self, barcode: str | None) -> str | None:
+        info = barcode_service.validate(barcode, allow_empty=True)
+        return info.value if info and info.value else None
+
+    def _validate_unit_barcodes(self, item_id: int, base_barcode: str | None, units: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Normalize and validate sub-unit barcodes without changing API keys.
+
+        A barcode can identify either the base material or one of its units, but
+        it must not identify two different materials/units.  During an item
+        update we allow a currently existing barcode that belongs to the same
+        item because replace_units() deletes/reinserts unit rows atomically.
+        """
+        normalized_units: List[Dict[str, Any]] = []
+        seen = set()
+        base_value = str(base_barcode or '').strip()
+        if base_value:
+            seen.add(base_value)
+        for unit in units or []:
+            row = dict(unit or {})
+            value = self._normalize_unit_barcode(row.get('barcode') or row.get('unit_barcode'))
+            if value:
+                if value in seen:
+                    raise ValueError(f"الباركود '{value}' مكرر بين المادة أو وحداتها")
+                existing = self.item_by_barcode(value)
+                if existing and int(existing.get('id', 0)) != int(item_id or 0):
+                    raise ValueError(f"الباركود '{value}' مستخدم بالفعل للمادة: {existing.get('name', existing.get('id'))}")
+                seen.add(value)
+            row['barcode'] = value
+            row['unit_barcode'] = value
+            normalized_units.append(row)
+        return normalized_units
+
+    def generate_barcode(self, symbology: str = 'EAN13', prefix: str | None = None) -> str:
         symbology = (symbology or 'EAN13').upper()
         for _ in range(100):
-            candidate = barcode_service.generate_code128() if symbology == 'CODE128' else barcode_service.generate_ean13()
+            candidate = (
+                barcode_service.generate_code128(prefix or 'ITM')
+                if symbology == 'CODE128'
+                else barcode_service.generate_ean13(prefix or '290')
+            )
             if not self.item_by_barcode(candidate):
                 return candidate
         raise ValueError("تعذر توليد باركود غير مكرر. حاول مرة أخرى.")
@@ -58,6 +96,8 @@ class ProductService:
     def add_item(self, data: Dict[str, Any]) -> int:
         data = dict(data)
         data['barcode'] = self._validate_item_barcode(data.get('barcode'))
+        if data.get('units'):
+            data['units'] = self._validate_unit_barcodes(0, data.get('barcode'), data.get('units') or [])
         item_id = self.item_gateway.create(data)
         audit_service.log('CREATE', 'ITEM', item_id, new_values=data, details='إنشاء مادة')
         return item_id
@@ -66,6 +106,8 @@ class ProductService:
         old = self.item_by_id(item_id)
         data = dict(data)
         data['barcode'] = self._validate_item_barcode(data.get('barcode'), item_id=item_id)
+        if data.get('units'):
+            data['units'] = self._validate_unit_barcodes(item_id, data.get('barcode'), data.get('units') or [])
         self.item_gateway.update(item_id, data)
         new = self.item_by_id(item_id)
         audit_service.log('UPDATE', 'ITEM', item_id, old_values=old, new_values=new or data, details='تعديل مادة')
@@ -79,13 +121,15 @@ class ProductService:
     def item_units(self, item_id: int) -> List[Dict]:
         return records(self.item_gateway.get_units(item_id), 'units')
 
-    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float) -> None:
-        self.item_gateway.add_unit(item_id, unit_name, conversion_factor)
+    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float, barcode: str | None = None, notes: str = '') -> None:
+        self.item_gateway.add_unit(item_id, unit_name, conversion_factor, barcode, notes)
 
     def clear_units(self, item_id: int) -> None:
         self.item_gateway.clear_units(item_id)
 
     def replace_units(self, item_id: int, units: List[Dict[str, Any]]) -> None:
+        item = self.item_by_id(item_id) or {}
+        units = self._validate_unit_barcodes(item_id, item.get('barcode'), units)
         # In remote mode item units are persisted atomically by POST/PUT /api/items.
         # Calling clear_units/add_unit would intentionally fail because the client
         # must not manipulate SQLite directly.
@@ -107,8 +151,10 @@ class ProductService:
             if not name:
                 continue
             factor = float(unit.get('conversion_factor', 1))
-            self.add_unit(item_id, name, factor)
-            saved_units.append({'unit_name': name, 'conversion_factor': factor})
+            barcode = unit.get('barcode') or unit.get('unit_barcode') or None
+            notes = str(unit.get('notes') or '')
+            self.add_unit(item_id, name, factor, barcode, notes)
+            saved_units.append({'unit_name': name, 'conversion_factor': factor, 'barcode': barcode, 'notes': notes})
         audit_service.log(
             'UPDATE_UNITS', 'ITEM', item_id,
             old_values={'units': old_units},
@@ -117,18 +163,41 @@ class ProductService:
         )
 
 
+
+
+    def item_activity_summary(self, item_id: int) -> Dict[str, Any]:
+        """Return usage counts for a material through the active gateway."""
+        try:
+            summary = self.item_gateway.activity_summary(int(item_id or 0)) or {}
+        except Exception:
+            summary = {}
+        if 'blocking_total' not in summary:
+            summary['blocking_total'] = sum(int(v or 0) for k, v in summary.items() if k not in ('blocking_total', 'has_movements'))
+        summary['has_movements'] = bool(summary.get('blocking_total'))
+        return summary
+
+    def item_has_activity(self, item_id: int) -> bool:
+        return bool(self.item_activity_summary(item_id).get('has_movements'))
+
     def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
         """Return net sold quantities per item in base unit through ItemGateway."""
         return self.item_gateway.sold_quantities(item_ids)
 
+    def _category_policy(self):
+        from core.services.category_operation_policy import category_operation_policy
+        return category_operation_policy
+
     # ---------- Categories ----------
     def categories(self, search: str | None = None, include_inactive: bool = False, include_deleted: bool = False) -> List[Dict]:
+        self._category_policy().require(self._category_policy().OP_USE, context='categories.list')
         return records(self.category_gateway.list(search=search, include_inactive=include_inactive, include_deleted=include_deleted), 'categories')
 
     def category_by_id(self, category_id: int) -> Optional[Dict]:
+        self._category_policy().require(self._category_policy().OP_USE, context='categories.get', payload={'category_id': category_id})
         return self.category_gateway.get(category_id)
 
     def add_category(self, data_or_name, parent_id=None, description: str = '', color: str = '#64748B', icon: str = 'folder', is_active: int = 1) -> int:
+        self._category_policy().require(self._category_policy().OP_CREATE, context='categories.create')
         if isinstance(data_or_name, dict):
             data = dict(data_or_name)
             category_id = self.category_gateway.create(data)
@@ -140,6 +209,7 @@ class ProductService:
         return category_id
 
     def update_category(self, category_id: int, data_or_name, **kwargs) -> None:
+        self._category_policy().require(self._category_policy().OP_EDIT, context='categories.edit', payload={'category_id': category_id})
         old = self.category_by_id(category_id)
         if isinstance(data_or_name, dict):
             self.category_gateway.update(category_id, data_or_name)
@@ -150,11 +220,13 @@ class ProductService:
         audit_service.log('UPDATE', 'CATEGORY', category_id, old_values=old, new_values=new_values, details='تعديل تصنيف')
 
     def delete_category(self, category_id: int) -> None:
+        self._category_policy().require(self._category_policy().OP_ARCHIVE, context='categories.archive', payload={'category_id': category_id})
         old = self.category_by_id(category_id)
         self.category_gateway.delete(category_id)
         audit_service.log('SOFT_DELETE', 'CATEGORY', category_id, old_values=old, details='أرشفة تصنيف')
 
     def restore_category(self, category_id: int) -> None:
+        self._category_policy().require(self._category_policy().OP_RESTORE, context='categories.restore', payload={'category_id': category_id})
         old = self.category_by_id(category_id)
         self.category_gateway.restore(category_id)
         audit_service.log('RESTORE', 'CATEGORY', category_id, old_values=old, new_values=self.category_by_id(category_id), details='استعادة تصنيف')

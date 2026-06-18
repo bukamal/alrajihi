@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QFormLayout, QLineEdit, QDoubleSpinBox, QComboBox, QPushButton,
-                             QHBoxLayout, QVBoxLayout, QMessageBox, QTableWidget, QTableWidgetItem,
+                             QHBoxLayout, QVBoxLayout, QMessageBox, QTableWidgetItem,
                              QHeaderView, QLabel, QWidget, QSplitter, QGroupBox, QApplication, QDialog,
                              QShortcut, QFrame, QInputDialog)
 from PyQt5.QtCore import Qt
@@ -13,6 +13,7 @@ from currency import currency
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
 from theme_manager import ThemeManager
+from ui.editable_smart_grid import EditableSmartGrid
 
 class ItemDialog(CenteredDialog):
     def __init__(self, parent=None, item_id=None):
@@ -223,7 +224,7 @@ class ItemDialog(CenteredDialog):
         units_group = QGroupBox(translate("sub_units_group"))
         units_group.setObjectName("FormCard")
         units_layout = QVBoxLayout(units_group)
-        self.units_table = QTableWidget()
+        self.units_table = EditableSmartGrid(identity='item_dialog.units')
         self.units_table.setColumnCount(3)
         self.units_table.setHorizontalHeaderLabels([translate("unit"), translate("conversion_factor"), ""])
         self.units_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)

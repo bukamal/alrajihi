@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QMessageBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidgetItem, QMessageBox
 from PyQt5.QtCore import Qt
 import json
 from core.services.offline_queue_service import offline_queue_service
 from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate, qt_layout_direction
+from ui.editable_smart_grid import EditableSmartGrid
 
 
 class OfflineQueueWidget(QWidget):
@@ -40,7 +41,7 @@ class OfflineQueueWidget(QWidget):
         self.info_label.setObjectName('ModernInfoBox')
         layout.addWidget(self.info_label)
 
-        self.table = QTableWidget(0, 8, self)
+        self.table = EditableSmartGrid(0, 8, self, identity='offline_queue.list')
         self.table.setHorizontalHeaderLabels(['#', translate('status'), translate('operation'), translate('entity'), translate('endpoint'), translate('attempts'), translate('created_at'), translate('last_error')])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setSelectionBehavior(self.table.SelectRows)

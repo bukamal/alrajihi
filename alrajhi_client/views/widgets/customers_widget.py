@@ -4,15 +4,15 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLi
 from PyQt5.QtCore import Qt
 from decimal import Decimal
 from core.services.entity_service import entity_service
+from core.services.party_operation_policy import party_operation_policy
 from currency import currency
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
-from views.centered_dialog import CenteredDialog
-from views.dialogs.add_entity_dialog import AddEntityDialog
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
-from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
+from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate as tr, qt_layout_direction
+from ui.components.responsive_master_detail import DetailPlaceholder, ResponsiveMasterDetail
 
 class CustomersWidget(QWidget):
     def __init__(self, parent=None):
@@ -46,11 +46,13 @@ class CustomersWidget(QWidget):
 
         layout.addLayout(top_layout)
 
-        # الجدول
-        self.table = CustomTableView()
-        self.table.setSelectionBehavior(CustomTableView.SelectRows)
+        # الجدول والمعاينة بنمط Master-Detail responsive
+        self.table = SmartTableView(identity="customers")
+        self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.doubleClicked.connect(self.edit_customer)
-        layout.addWidget(self.table)
+        self.detail_panel = DetailPlaceholder(tr('customer_details') if tr('customer_details') != 'customer_details' else tr('customer'))
+        self.master_detail = ResponsiveMasterDetail(self.table, self.detail_panel, self)
+        layout.addWidget(self.master_detail, 1)
 
         # شريط التنقل بين الصفحات
         pagination_layout = QHBoxLayout()
@@ -66,7 +68,12 @@ class CustomersWidget(QWidget):
         layout.addLayout(pagination_layout)
 
         apply_modern_widget(self, tr('customers_title'), tr('customers_subtitle'))
+        self._apply_operation_policy()
         self.refresh()
+
+
+    def _apply_operation_policy(self):
+        self.add_btn.setEnabled(party_operation_policy.can(party_operation_policy.OP_CUSTOMER_CREATE))
 
     def set_global_filter(self, text: str):
         text = text or ''
@@ -114,60 +121,70 @@ class CustomersWidget(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.refresh_style()
+        self._connect_selection_preview()
 
         total_pages = (self.total_count + self.page_size - 1) // self.page_size
         self.page_label.setText(tr("page_of", page=self.current_page + 1, pages=total_pages))
         self.prev_btn.setEnabled(self.current_page > 0)
         self.next_btn.setEnabled(self.current_page + 1 < total_pages)
 
+    def _connect_selection_preview(self):
+        sm = self.table.selectionModel() if self.table else None
+        if sm is None:
+            return
+        try:
+            sm.selectionChanged.disconnect(self._update_detail_preview)
+        except Exception:
+            pass
+        sm.selectionChanged.connect(self._update_detail_preview)
+        self._update_detail_preview()
+
+    def _update_detail_preview(self, *args):
+        sm = self.table.selectionModel() if self.table else None
+        if sm is None or not sm.selectedRows() or not self.model:
+            self.detail_panel.clear_summary()
+            return
+        row = self.table.current_source_row() if hasattr(self.table, 'current_source_row') else sm.selectedRows()[0].row()
+        data = self.model.get_row(row) if hasattr(self.model, 'get_row') else {}
+        self.detail_panel.set_summary(data.get('name', tr('customer')), [
+            f"{tr('phone')}: {data.get('phone', '')}",
+            f"{tr('address')}: {data.get('address', '')}",
+            f"{tr('balance')}: {data.get('balance', '')}",
+            tr('double_click_to_open_document') if tr('double_click_to_open_document') != 'double_click_to_open_document' else 'انقر مرتين لفتح تبويب المستند',
+        ])
+
+    def _main_window(self):
+        widget = self
+        while widget is not None:
+            if hasattr(widget, 'open_party_document'):
+                return widget
+            widget = widget.parent()
+        return None
+
     def add_customer(self):
-        dialog = AddEntityDialog(self, 'sale')
-        if dialog.exec():
-            self.refresh()
+        main = self._main_window()
+        if main is not None:
+            tab = main.open_party_document('customer')
+            if hasattr(tab, 'saved'):
+                tab.saved.connect(lambda *_: self.refresh())
+            return
+        show_toast(tr('party_document_unavailable') if tr('party_document_unavailable') != 'party_document_unavailable' else 'تعذر فتح تبويب العميل', 'error', self)
 
     def edit_customer(self, index):
-        row = index.row()
+        row = self.table.current_source_row() if hasattr(self.table, 'current_source_row') else index.row()
         cust_id = self.model.get_id(row)
         if not cust_id:
             return
-        cust = entity_service.customer_by_id(cust_id)
-        if not cust:
+        main = self._main_window()
+        if main is not None:
+            tab = main.open_party_document('customer', party_id=cust_id)
+            if hasattr(tab, 'saved'):
+                tab.saved.connect(lambda *_: self.refresh())
             return
-        dialog = CenteredDialog(self)
-        dialog.setLayoutDirection(qt_layout_direction())
-        dialog.setWindowTitle(tr("edit_customer"))
-        dialog.resize(400, 300)
-        layout = QFormLayout(dialog.content_widget)
-        name_edit = QLineEdit()
-        name_edit.setPlaceholderText(tr('name'))
-        name_edit.setText(cust.get('name', ''))
-        phone_edit = QLineEdit()
-        phone_edit.setPlaceholderText(tr('phone_optional'))
-        phone_edit.setText(cust.get('phone', ''))
-        address_edit = QLineEdit()
-        address_edit.setPlaceholderText(tr('address_optional'))
-        address_edit.setText(cust.get('address', ''))
-        layout.addRow(tr("name_label"), name_edit)
-        layout.addRow(tr("phone_label"), phone_edit)
-        layout.addRow(tr("address_label"), address_edit)
-        btn_layout = QHBoxLayout()
-        save_btn = QPushButton(tr("save"))
-        cancel_btn = QPushButton(tr("cancel"))
-        btn_layout.addWidget(save_btn)
-        btn_layout.addWidget(cancel_btn)
-        layout.addRow(btn_layout)
-        def save():
-            try:
-                entity_service.update_customer(cust_id, name_edit.text().strip(), phone_edit.text().strip(), address_edit.text().strip())
-                show_toast(tr("update_done"), "success", dialog)
-                dialog.accept()
-                self.refresh()
-            except Exception as e:
-                show_toast(str(e), "error", dialog)
-        save_btn.clicked.connect(save)
-        cancel_btn.clicked.connect(dialog.reject)
-        apply_modern_dialog(dialog, tr('edit_customer'))
-        dialog.exec()
+        main = self._main_window()
+        if main is not None:
+            return main.open_party_document('customer', cust_id)
+        show_toast(tr('party_document_unavailable') if tr('party_document_unavailable') != 'party_document_unavailable' else 'تعذر فتح تبويب العميل', 'error', self)
 
     def prev_page(self):
         if self.current_page > 0:

@@ -10,10 +10,16 @@ from PyQt5.QtCore import Qt
 from i18n import translate, qt_layout_direction
 
 from core.services.warehouse_service import warehouse_service
+from core.services.inventory_operation_policy import inventory_operation_policy
 from core.services.branch_service import branch_service
 from currency import currency
 from models.table_models import GenericTableModel
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
+from features.inventory.inventory_printing_bridge import inventory_printing_bridge
+from features.inventory.inventory_workspace_schema import (
+    columns_for, headers_and_keys, visible_keys_for,
+    inventory_workspace_preset_names, inventory_workspace_preset_title,
+)
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
 from views.widgets.modern_ui import apply_modern_widget
@@ -54,21 +60,30 @@ class WarehousesWidget(QWidget):
         self.wh_search.textChanged.connect(self.refresh_warehouses)
         self.show_archived = QCheckBox(translate('show_archived'))
         self.show_archived.stateChanged.connect(self.refresh_warehouses)
+        self.wh_preset = self._toolbar_preset_combo('warehouses')
+        self.wh_density = self._toolbar_density_combo('warehouses')
         add_btn = QPushButton(translate('new_warehouse'))
         add_btn.setObjectName('primary')
         add_btn.clicked.connect(self.add_warehouse)
+        self.add_warehouse_btn = add_btn
         edit_btn = QPushButton('✏️ ' + translate('edit'))
         edit_btn.clicked.connect(self.edit_warehouse)
+        self.edit_warehouse_btn = edit_btn
         archive_btn = QPushButton(translate('archive'))
         archive_btn.clicked.connect(self.archive_warehouse)
+        self.archive_warehouse_btn = archive_btn
         tools.addWidget(QLabel(translate('warehouses')))
         tools.addWidget(self.wh_search, 1)
         tools.addWidget(self.show_archived)
+        tools.addWidget(QLabel(translate('view_preset_label')))
+        tools.addWidget(self.wh_preset)
+        tools.addWidget(QLabel(translate('row_density')))
+        tools.addWidget(self.wh_density)
         tools.addWidget(add_btn)
         tools.addWidget(edit_btn)
         tools.addWidget(archive_btn)
         layout.addLayout(tools)
-        self.wh_table = CustomTableView()
+        self.wh_table = SmartTableView(identity="warehouses.list")
         self.wh_table.setSelectionBehavior(QTableView.SelectRows)
         self.wh_table.doubleClicked.connect(lambda _idx: self.edit_warehouse())
         layout.addWidget(self.wh_table)
@@ -83,12 +98,30 @@ class WarehousesWidget(QWidget):
         self.balance_search.textChanged.connect(self.refresh_balances)
         self.warehouse_filter = QComboBox()
         self.warehouse_filter.currentIndexChanged.connect(self.refresh_balances)
+        self.balance_stock_filter = QComboBox()
+        self.balance_stock_filter.addItem(translate('inventory_stock_all'), 'all')
+        self.balance_stock_filter.addItem(translate('inventory_stock_positive'), 'positive')
+        self.balance_stock_filter.addItem(translate('inventory_stock_zero'), 'zero')
+        self.balance_stock_filter.addItem(translate('inventory_stock_negative'), 'negative')
+        self.balance_stock_filter.currentIndexChanged.connect(self.refresh_balances)
+        self.balance_preset = self._toolbar_preset_combo('balances')
+        self.balance_density = self._toolbar_density_combo('balances')
         tools.addWidget(QLabel(translate('item_balances')))
         tools.addWidget(self.balance_search, 1)
         tools.addWidget(QLabel(translate('warehouse_label')))
         tools.addWidget(self.warehouse_filter)
+        tools.addWidget(QLabel(translate('inventory_stock_status')))
+        tools.addWidget(self.balance_stock_filter)
+        tools.addWidget(QLabel(translate('view_preset_label')))
+        tools.addWidget(self.balance_preset)
+        print_btn = QPushButton(translate('print_preview'))
+        print_btn.clicked.connect(self.print_balances)
+        self.print_balances_btn = print_btn
+        tools.addWidget(QLabel(translate('row_density')))
+        tools.addWidget(self.balance_density)
+        tools.addWidget(print_btn)
         layout.addLayout(tools)
-        self.balance_table = CustomTableView()
+        self.balance_table = SmartTableView(identity="warehouses.balances")
         self.balance_table.setSelectionBehavior(QTableView.SelectRows)
         layout.addWidget(self.balance_table)
         self.balance_status = QLabel()
@@ -100,17 +133,34 @@ class WarehousesWidget(QWidget):
         page = QWidget()
         layout = QVBoxLayout(page)
         tools = QHBoxLayout()
+        self.mov_search = QLineEdit()
+        self.mov_search.setClearButtonEnabled(True)
+        self.mov_search.setPlaceholderText(translate('inventory_search_movements'))
+        self.mov_search.textChanged.connect(self.refresh_movements)
         self.mov_warehouse_filter = QComboBox()
         self.mov_warehouse_filter.currentIndexChanged.connect(self.refresh_movements)
+        self.mov_type_filter = QComboBox()
+        self.mov_type_filter.addItem(translate('inventory_movement_all_types'), 'all')
+        for code in ('purchase', 'sale', 'transfer', 'manufacturing', 'adjustment'):
+            self.mov_type_filter.addItem(translate(f'inventory_movement_type_{code}'), code)
+        self.mov_type_filter.currentIndexChanged.connect(self.refresh_movements)
+        self.mov_preset = self._toolbar_preset_combo('movements')
+        self.mov_density = self._toolbar_density_combo('movements')
         refresh_btn = QPushButton(translate('refresh_report'))
         refresh_btn.clicked.connect(self.refresh_movements)
         tools.addWidget(QLabel(translate('recent_warehouse_movements')))
-        tools.addStretch()
+        tools.addWidget(self.mov_search, 1)
         tools.addWidget(QLabel(translate('warehouse_label')))
         tools.addWidget(self.mov_warehouse_filter)
+        tools.addWidget(QLabel(translate('type')))
+        tools.addWidget(self.mov_type_filter)
+        tools.addWidget(QLabel(translate('view_preset_label')))
+        tools.addWidget(self.mov_preset)
+        tools.addWidget(QLabel(translate('row_density')))
+        tools.addWidget(self.mov_density)
         tools.addWidget(refresh_btn)
         layout.addLayout(tools)
-        self.mov_table = CustomTableView()
+        self.mov_table = SmartTableView(identity="warehouses.movements")
         self.mov_table.setSelectionBehavior(QTableView.SelectRows)
         layout.addWidget(self.mov_table)
         self.tabs.addTab(page, translate('movements_tab'))
@@ -119,48 +169,161 @@ class WarehousesWidget(QWidget):
         page = QWidget()
         layout = QVBoxLayout(page)
         tools = QHBoxLayout()
+        self.transfer_search = QLineEdit()
+        self.transfer_search.setClearButtonEnabled(True)
+        self.transfer_search.setPlaceholderText(translate('inventory_search_transfers'))
+        self.transfer_search.textChanged.connect(self.refresh_transfers)
+        self.transfer_status_filter = QComboBox()
+        self.transfer_status_filter.addItem(translate('all'), 'all')
+        self.transfer_status_filter.addItem(translate('active'), 'active')
+        self.transfer_status_filter.addItem(translate('cancel'), 'cancelled')
+        self.transfer_status_filter.currentIndexChanged.connect(self.refresh_transfers)
+        self.transfer_preset = self._toolbar_preset_combo('transfers')
+        self.transfer_density = self._toolbar_density_combo('transfers')
         add_btn = QPushButton(translate('new_transfer'))
         add_btn.setObjectName('primary')
         add_btn.clicked.connect(self.add_transfer)
+        self.add_transfer_btn = add_btn
         cancel_btn = QPushButton(translate('cancel_transfer'))
         cancel_btn.clicked.connect(self.cancel_transfer)
+        self.cancel_transfer_btn = cancel_btn
+        print_btn = QPushButton(translate('print_preview'))
+        print_btn.clicked.connect(self.print_selected_transfer)
+        self.print_transfer_btn = print_btn
         refresh_btn = QPushButton(translate('refresh_report'))
         refresh_btn.clicked.connect(self.refresh_transfers)
         tools.addWidget(QLabel(translate('warehouse_transfers')))
-        tools.addStretch()
+        tools.addWidget(self.transfer_search, 1)
+        tools.addWidget(QLabel(translate('status')))
+        tools.addWidget(self.transfer_status_filter)
+        tools.addWidget(QLabel(translate('view_preset_label')))
+        tools.addWidget(self.transfer_preset)
+        tools.addWidget(QLabel(translate('row_density')))
+        tools.addWidget(self.transfer_density)
         tools.addWidget(add_btn)
         tools.addWidget(cancel_btn)
+        tools.addWidget(print_btn)
         tools.addWidget(refresh_btn)
         layout.addLayout(tools)
-        self.transfer_table = CustomTableView()
+        self.transfer_table = SmartTableView(identity="warehouses.transfers")
         self.transfer_table.setSelectionBehavior(QTableView.SelectRows)
         layout.addWidget(self.transfer_table)
         self.tabs.addTab(page, translate('transfers_tab'))
 
+    def _apply_inventory_operation_state(self):
+        pairs = (
+            ('add_warehouse_btn', inventory_operation_policy.OP_WAREHOUSE_CREATE),
+            ('edit_warehouse_btn', inventory_operation_policy.OP_WAREHOUSE_EDIT),
+            ('archive_warehouse_btn', inventory_operation_policy.OP_WAREHOUSE_ARCHIVE),
+            ('add_transfer_btn', inventory_operation_policy.OP_TRANSFER_CREATE),
+            ('cancel_transfer_btn', inventory_operation_policy.OP_TRANSFER_CANCEL),
+            ('print_balances_btn', inventory_operation_policy.OP_PRINT),
+            ('print_movements_btn', inventory_operation_policy.OP_PRINT),
+            ('print_transfer_btn', inventory_operation_policy.OP_PRINT),
+        )
+        for attr, op in pairs:
+            btn = getattr(self, attr, None)
+            if btn is not None:
+                try:
+                    btn.setEnabled(inventory_operation_policy.can(op))
+                except Exception:
+                    btn.setEnabled(True)
+
+    def _require_inventory_operation(self, op_key: str) -> bool:
+        try:
+            inventory_operation_policy.require(op_key, context='warehouses_widget')
+            return True
+        except PermissionError as exc:
+            show_toast(str(exc), 'warning', self)
+            return False
+
+    def _toolbar_preset_combo(self, target: str):
+        combo = QComboBox()
+        for name in inventory_workspace_preset_names():
+            combo.addItem(inventory_workspace_preset_title(name), name)
+        combo.setCurrentIndex(max(0, combo.findData('manager')))
+        combo.currentIndexChanged.connect(lambda _=0, t=target: self._apply_workspace_preset(t))
+        return combo
+
+    def _toolbar_density_combo(self, target: str):
+        combo = QComboBox()
+        for key in ('compact', 'comfortable', 'touch'):
+            label = translate(f'density_{key}')
+            combo.addItem(label if label != f'density_{key}' else key.title(), key)
+        combo.setCurrentIndex(max(0, combo.findData('comfortable')))
+        combo.currentIndexChanged.connect(lambda _=0, t=target: self._apply_density(t))
+        return combo
+
+    def _table_for_target(self, target: str):
+        return {
+            'warehouses': getattr(self, 'wh_table', None),
+            'balances': getattr(self, 'balance_table', None),
+            'movements': getattr(self, 'mov_table', None),
+            'transfers': getattr(self, 'transfer_table', None),
+        }.get(target)
+
+    def _preset_for_target(self, target: str):
+        return {
+            'warehouses': getattr(self, 'wh_preset', None),
+            'balances': getattr(self, 'balance_preset', None),
+            'movements': getattr(self, 'mov_preset', None),
+            'transfers': getattr(self, 'transfer_preset', None),
+        }.get(target)
+
+    def _density_for_target(self, target: str):
+        return {
+            'warehouses': getattr(self, 'wh_density', None),
+            'balances': getattr(self, 'balance_density', None),
+            'movements': getattr(self, 'mov_density', None),
+            'transfers': getattr(self, 'transfer_density', None),
+        }.get(target)
+
+    def _apply_workspace_preset(self, target: str):
+        table = self._table_for_target(target)
+        combo = self._preset_for_target(target)
+        if table is None or combo is None:
+            return
+        columns = columns_for(target)
+        visible = visible_keys_for(target, combo.currentData() or 'manager')
+        for col, column in enumerate(columns):
+            table.setColumnHidden(col, column.key not in visible)
+        try:
+            table.save_layout()
+            table.fit_columns_to_view()
+        except Exception:
+            pass
+
+    def _apply_density(self, target: str):
+        table = self._table_for_target(target)
+        combo = self._density_for_target(target)
+        if table is None or combo is None:
+            return
+        try:
+            table.set_density(combo.currentData() or 'comfortable')
+        except Exception:
+            pass
+
+    def _source_row_for_table(self, table):
+        if table is None:
+            return None
+        try:
+            if hasattr(table, 'current_source_row'):
+                return table.current_source_row()
+            idx = table.currentIndex()
+            if not idx or not idx.isValid():
+                return None
+            if hasattr(table, 'source_model') and table.source_model() is not None and table.model() is not table.source_model():
+                idx = table.model().mapToSource(idx)
+            return idx.row()
+        except Exception:
+            return None
+
     def set_global_filter(self, text: str):
-        text = (text or '').strip().lower()
-        # Generic visual filter for widgets that expose one or more Qt tables.
-        for name, table in self.__dict__.items():
-            if not hasattr(table, 'rowCount') or not hasattr(table, 'setRowHidden'):
-                continue
-            try:
-                rows = table.rowCount()
-                cols = table.columnCount()
-            except Exception:
-                continue
-            for row in range(rows):
-                hay = []
-                for col in range(cols):
-                    try:
-                        item = table.item(row, col) if hasattr(table, 'item') else None
-                        if item is not None:
-                            hay.append(item.text())
-                        elif hasattr(table, 'model') and table.model() is not None:
-                            idx = table.model().index(row, col)
-                            hay.append(str(table.model().data(idx) or ''))
-                    except Exception:
-                        pass
-                table.setRowHidden(row, bool(text) and text not in ' '.join(hay).lower())
+        text = text or ''
+        for attr in ('wh_search', 'balance_search', 'mov_search', 'transfer_search'):
+            widget = getattr(self, attr, None)
+            if widget is not None:
+                widget.setText(text)
 
 
     def refresh(self):
@@ -169,6 +332,7 @@ class WarehousesWidget(QWidget):
         self.refresh_warehouses()
         self.refresh_balances()
         self.refresh_movements()
+        self._apply_inventory_operation_state()
         if hasattr(self, 'transfer_table'):
             self.refresh_transfers()
 
@@ -208,16 +372,17 @@ class WarehousesWidget(QWidget):
                 'status': translate('archived') if archived else translate('active'),
                 'notes': wh.get('notes') or '',
             })
-        headers = [translate('warehouse'), translate('warehouse_code'), translate('branch'), translate('location'), translate('items_count'), translate('total_quantities'), translate('default'), translate('status'), translate('notes')]
-        keys = ['name', 'code', 'branch_name', 'location', 'item_count', 'total_qty', 'is_default', 'status', 'notes']
+        headers, keys = headers_and_keys(columns_for('warehouses'))
         self.wh_model = GenericTableModel(rows, headers, key_fields=['id'], data_keys=keys)
         self.wh_table.setModel(self.wh_model)
         self.wh_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.wh_table.horizontalHeader().setStretchLastSection(True)
+        self._apply_workspace_preset('warehouses')
 
     def refresh_balances(self):
         search = self.balance_search.text().strip() if hasattr(self, 'balance_search') else None
         wh_id = self.warehouse_filter.currentData() if hasattr(self, 'warehouse_filter') else None
+        stock_filter = self.balance_stock_filter.currentData() if hasattr(self, 'balance_stock_filter') else 'all'
         try:
             balances = warehouse_service.balances(search=search, warehouse_id=wh_id)
         except Exception as exc:
@@ -230,8 +395,15 @@ class WarehousesWidget(QWidget):
         for b in balances:
             qty = Decimal(str(b.get('quantity') or 0))
             avg = Decimal(str(b.get('average_cost') or 0))
+            if stock_filter == 'positive' and qty <= 0:
+                continue
+            if stock_filter == 'zero' and qty != 0:
+                continue
+            if stock_filter == 'negative' and qty >= 0:
+                continue
             value = qty * avg
             total_value += value
+            stock_status = translate('inventory_stock_negative') if qty < 0 else (translate('inventory_stock_zero') if qty == 0 else translate('inventory_stock_positive'))
             rows.append({
                 'id': b.get('id'),
                 'warehouse_name': b.get('warehouse_name', ''),
@@ -239,20 +411,23 @@ class WarehousesWidget(QWidget):
                 'barcode': b.get('barcode') or '—',
                 'quantity': f'{qty:.2f}',
                 'unit': b.get('unit') or '',
+                'stock_status': stock_status,
                 'average_cost': currency.format_amount(avg),
                 'stock_value': currency.format_amount(value),
                 'updated_at': b.get('updated_at') or '',
             })
-        headers = [translate('warehouse'), translate('item'), translate('barcode'), translate('quantity'), translate('unit'), translate('unit_cost'), translate('stock_value'), translate('last_update')]
-        keys = ['warehouse_name', 'item_name', 'barcode', 'quantity', 'unit', 'average_cost', 'stock_value', 'updated_at']
+        headers, keys = headers_and_keys(columns_for('balances'))
         self.balance_model = GenericTableModel(rows, headers, key_fields=['id'], data_keys=keys)
         self.balance_table.setModel(self.balance_model)
         self.balance_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.balance_table.horizontalHeader().setStretchLastSection(True)
+        self._apply_workspace_preset('balances')
         self.balance_status.setText(translate('records_count_value', count=len(rows), value=currency.format_amount(total_value)))
 
     def refresh_movements(self):
         wh_id = self.mov_warehouse_filter.currentData() if hasattr(self, 'mov_warehouse_filter') else None
+        text = (self.mov_search.text() if hasattr(self, 'mov_search') else '').strip().casefold()
+        type_filter = self.mov_type_filter.currentData() if hasattr(self, 'mov_type_filter') else 'all'
         rows = []
         try:
             movements = warehouse_service.movements(warehouse_id=wh_id, limit=200)
@@ -262,6 +437,13 @@ class WarehousesWidget(QWidget):
                 return
             raise
         for m in movements:
+            movement_type = m.get('movement_type') or ''
+            family = self._movement_family(movement_type)
+            if type_filter != 'all' and family != type_filter:
+                continue
+            haystack = ' '.join(str(m.get(k) or '') for k in ('warehouse_name', 'item_name', 'movement_type', 'reference_type', 'notes')).casefold()
+            if text and text not in haystack:
+                continue
             rows.append({
                 'id': m.get('id'),
                 'date': m.get('movement_date') or m.get('created_at') or '',
@@ -273,12 +455,26 @@ class WarehousesWidget(QWidget):
                 'reference': m.get('reference_type') or '—',
                 'notes': m.get('notes') or '',
             })
-        headers = [translate('date'), translate('warehouse'), translate('item'), translate('type'), translate('quantity'), translate('unit_cost'), translate('reference'), translate('notes')]
-        keys = ['date', 'warehouse_name', 'item_name', 'type', 'quantity', 'unit_cost', 'reference', 'notes']
+        headers, keys = headers_and_keys(columns_for('movements'))
         self.mov_model = GenericTableModel(rows, headers, key_fields=['id'], data_keys=keys)
         self.mov_table.setModel(self.mov_model)
         self.mov_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.mov_table.horizontalHeader().setStretchLastSection(True)
+        self._apply_workspace_preset('movements')
+
+    def _movement_family(self, mtype):
+        mtype = (mtype or '').strip()
+        if mtype in ('purchase',):
+            return 'purchase'
+        if mtype in ('sale',):
+            return 'sale'
+        if mtype.startswith('transfer_'):
+            return 'transfer'
+        if mtype.startswith('production_'):
+            return 'manufacturing'
+        if mtype in ('adjustment', 'opening', 'migration_opening'):
+            return 'adjustment'
+        return mtype or 'other'
 
     def _movement_label(self, mtype):
         return {
@@ -306,7 +502,15 @@ class WarehousesWidget(QWidget):
                 show_toast(offline_read_message(translate('warehouse_transfers')), 'warning', self)
                 return
             raise
+        text = (self.transfer_search.text() if hasattr(self, 'transfer_search') else '').strip().casefold()
+        status_filter = self.transfer_status_filter.currentData() if hasattr(self, 'transfer_status_filter') else 'all'
         for t in transfers:
+            status_code = t.get('status') or 'active'
+            if status_filter != 'all' and status_code != status_filter:
+                continue
+            haystack = ' '.join(str(t.get(k) or '') for k in ('transfer_no', 'item_name', 'from_warehouse_name', 'to_warehouse_name', 'notes')).casefold()
+            if text and text not in haystack:
+                continue
             rows.append({
                 'id': t.get('id'),
                 'transfer_no': t.get('transfer_no') or '',
@@ -315,22 +519,69 @@ class WarehousesWidget(QWidget):
                 'from_warehouse': t.get('from_warehouse_name') or '',
                 'to_warehouse': t.get('to_warehouse_name') or '',
                 'quantity': t.get('quantity') or '0',
+                'unit_name': t.get('unit_name') or t.get('unit') or '',
+                'base_qty': t.get('base_qty') or t.get('quantity') or '0',
                 'unit_cost': currency.format_amount(t.get('unit_cost') or 0),
-                'status': translate('cancel') if t.get('status') == 'cancelled' else translate('active'),
+                'status': translate('cancel') if status_code == 'cancelled' else translate('active'),
                 'notes': t.get('notes') or '',
             })
-        headers = [translate('reference'), translate('date'), translate('item'), translate('from_warehouse').rstrip(':'), translate('to_warehouse').rstrip(':'), translate('quantity'), translate('unit_cost'), translate('status'), translate('notes')]
-        keys = ['transfer_no', 'created_at', 'item_name', 'from_warehouse', 'to_warehouse', 'quantity', 'unit_cost', 'status', 'notes']
+        headers, keys = headers_and_keys(columns_for('transfers'))
         self.transfer_model = GenericTableModel(rows, headers, key_fields=['id'], data_keys=keys)
         self.transfer_table.setModel(self.transfer_model)
         self.transfer_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.transfer_table.horizontalHeader().setStretchLastSection(True)
+        self._apply_workspace_preset('transfers')
 
     def current_transfer_id(self):
         idx = self.transfer_table.currentIndex() if hasattr(self, 'transfer_table') else None
         if not idx or not idx.isValid() or not hasattr(self, 'transfer_model'):
             return None
-        return self.transfer_model.get_id(idx.row())
+        row = self._source_row_for_table(self.transfer_table)
+        return self.transfer_model.get_id(row) if row is not None else None
+
+
+    def _table_rows_for_print(self, model_attr: str) -> list:
+        model = getattr(self, model_attr, None)
+        if model is None:
+            return []
+        return [dict(model.get_row(row) or {}) for row in range(model.rowCount())]
+
+    def _selected_transfer_row(self) -> dict:
+        if not hasattr(self, 'transfer_model'):
+            return {}
+        row = self._source_row_for_table(self.transfer_table)
+        return dict(self.transfer_model.get_row(row) or {}) if row is not None else {}
+
+    def print_balances(self):
+        if not self._require_inventory_operation(inventory_operation_policy.OP_PRINT):
+            return
+        try:
+            payload = inventory_printing_bridge.balances_payload(self._table_rows_for_print('balance_model'), warehouse=self.warehouse_filter.currentText() if hasattr(self, 'warehouse_filter') else '')
+            inventory_printing_bridge.balances_preview(payload, self)
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
+
+    def print_movements(self):
+        if not self._require_inventory_operation(inventory_operation_policy.OP_PRINT):
+            return
+        try:
+            payload = inventory_printing_bridge.movements_payload(self._table_rows_for_print('mov_model'), warehouse=self.mov_warehouse_filter.currentText() if hasattr(self, 'mov_warehouse_filter') else '', movement_type=self.mov_type_filter.currentText() if hasattr(self, 'mov_type_filter') else '')
+            inventory_printing_bridge.movements_preview(payload, self)
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
+
+    def print_selected_transfer(self):
+        if not self._require_inventory_operation(inventory_operation_policy.OP_PRINT):
+            return
+        transfer = self._selected_transfer_row()
+        if not transfer:
+            show_toast(translate('select_transfer_first'), 'warning', self)
+            return
+        try:
+            payload = inventory_printing_bridge.transfer_payload(transfer, [transfer])
+            inventory_printing_bridge.transfer_preview(payload, self)
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
 
     def _transfer_dialog(self):
         dialog = QDialog(self)
@@ -389,6 +640,14 @@ class WarehousesWidget(QWidget):
         return None
 
     def add_transfer(self):
+        if not self._require_inventory_operation(inventory_operation_policy.OP_TRANSFER_CREATE):
+            return
+        main_window = self.window()
+        if hasattr(main_window, 'open_inventory_transfer_document'):
+            try:
+                return main_window.open_inventory_transfer_document()
+            except Exception as exc:
+                show_toast(str(exc), 'warning', self)
         payload = self._transfer_dialog()
         if not payload:
             return
@@ -401,6 +660,8 @@ class WarehousesWidget(QWidget):
             show_toast(str(e), 'error', self)
 
     def cancel_transfer(self):
+        if not self._require_inventory_operation(inventory_operation_policy.OP_TRANSFER_CANCEL):
+            return
         transfer_id = self.current_transfer_id()
         if not transfer_id:
             show_toast(translate('select_transfer_first'), 'warning', self)
@@ -419,7 +680,8 @@ class WarehousesWidget(QWidget):
         idx = self.wh_table.currentIndex()
         if not idx.isValid() or not hasattr(self, 'wh_model'):
             return None
-        return self.wh_model.get_id(idx.row())
+        row = self._source_row_for_table(self.wh_table)
+        return self.wh_model.get_id(row) if row is not None else None
 
     def _warehouse_dialog(self, title, warehouse=None):
         dialog = QDialog(self)
@@ -448,7 +710,7 @@ class WarehousesWidget(QWidget):
                     break
             notes.setPlainText(warehouse.get('notes') or '')
             active.setChecked(int(warehouse.get('is_active') or 0) == 1 and not warehouse.get('deleted_at'))
-        layout.addRow(translate('item_name_label'), name)
+        layout.addRow(translate('warehouse_name_label'), name)
         layout.addRow(translate('warehouse_code') + ':', code)
         layout.addRow(translate('branch') + ':', branch_combo)
         layout.addRow(translate('location') + ':', location)
@@ -483,6 +745,14 @@ class WarehousesWidget(QWidget):
         return None
 
     def add_warehouse(self):
+        if not self._require_inventory_operation(inventory_operation_policy.OP_WAREHOUSE_CREATE):
+            return
+        main_window = self.window()
+        if hasattr(main_window, 'open_warehouse_document'):
+            try:
+                return main_window.open_warehouse_document()
+            except Exception as exc:
+                show_toast(str(exc), 'warning', self)
         payload = self._warehouse_dialog(translate('add_warehouse_title'))
         if not payload:
             return
@@ -494,10 +764,18 @@ class WarehousesWidget(QWidget):
             show_toast(str(e), 'error', self)
 
     def edit_warehouse(self):
+        if not self._require_inventory_operation(inventory_operation_policy.OP_WAREHOUSE_EDIT):
+            return
         wh_id = self.current_warehouse_id()
         if not wh_id:
             show_toast(translate('select_warehouse_first'), 'warning', self)
             return
+        main_window = self.window()
+        if hasattr(main_window, 'open_warehouse_document'):
+            try:
+                return main_window.open_warehouse_document(wh_id)
+            except Exception as exc:
+                show_toast(str(exc), 'warning', self)
         wh = warehouse_service.warehouse_by_id(wh_id)
         if not wh:
             show_toast(translate('warehouse_not_found'), 'error', self)
@@ -513,6 +791,8 @@ class WarehousesWidget(QWidget):
             show_toast(str(e), 'error', self)
 
     def archive_warehouse(self):
+        if not self._require_inventory_operation(inventory_operation_policy.OP_WAREHOUSE_ARCHIVE):
+            return
         wh_id = self.current_warehouse_id()
         if not wh_id:
             show_toast(translate('select_warehouse_first'), 'warning', self)

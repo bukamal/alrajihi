@@ -1,9 +1,26 @@
 # -*- coding: utf-8 -*-
 from gateways.currency_gateway import create_currency_gateway
-from core.services.settings_service import settings_service
 from decimal import Decimal
 import json
 from PyQt5.QtCore import QSettings
+
+
+def _settings_service():
+    """Return the settings service lazily.
+
+    currency.py is imported by some repository modules while settings_service is
+    still being initialized during application startup.  Importing
+    settings_service at module load time creates a circular import:
+
+        settings_service -> local settings gateway -> settings repository package
+        -> expense_repo -> currency -> settings_service
+
+    Keeping this import lazy preserves the existing CurrencyManager API while
+    making startup deterministic.
+    """
+    from core.services.settings_service import settings_service
+    return settings_service
+
 
 class CurrencyManager:
     _instance = None
@@ -16,15 +33,21 @@ class CurrencyManager:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.gateway = create_currency_gateway()
+            cls._instance._gateway = None
             cls._instance._settings = QSettings("Alrajhi", "Accounting")
         return cls._instance
+
+    @property
+    def gateway(self):
+        if self._gateway is None:
+            self._gateway = create_currency_gateway()
+        return self._gateway
     
     def get_base_currency(self) -> str:
-        return settings_service.get('base_currency', 'USD')
+        return _settings_service().get('base_currency', 'USD')
     
     def get_display_currency(self) -> str:
-        return settings_service.get('display_currency', 'USD')
+        return _settings_service().get('display_currency', 'USD')
     
     def get_currency_symbol(self, currency_code: str = None) -> str:
         if currency_code is None:
@@ -36,13 +59,13 @@ class CurrencyManager:
         return symbols.get(currency_code, currency_code)
     
     def get_currency_decimals(self) -> int:
-        return int(settings_service.get('currency_decimals', '2'))
+        return int(_settings_service().get('currency_decimals', '2'))
     
     def get_number_format(self) -> str:
-        return settings_service.get('number_format', 'western')
+        return _settings_service().get('number_format', 'western')
     
     def abbreviate_numbers(self) -> bool:
-        return settings_service.get('abbreviate_numbers', 'false').lower() == 'true'
+        return str(_settings_service().get('abbreviate_numbers', 'false')).lower() == 'true'
     
     def _load_rate_cache(self) -> dict:
         raw = self._settings.value('currency/rate_cache_json', '{}')

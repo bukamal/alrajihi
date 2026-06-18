@@ -9,7 +9,7 @@ from core.services.catalog_service import catalog_service
 from core.services.manufacturing_service import manufacturing_service
 from core.services.warehouse_service import warehouse_service
 from models.table_models import GenericTableModel
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from currency import currency
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
@@ -88,7 +88,7 @@ class ProductionOrderDialog(CenteredDialog):
 
         self.materials_group = QGroupBox(translate("required_materials_group"))
         materials_layout = QVBoxLayout(self.materials_group)
-        self.materials_table = CustomTableView()
+        self.materials_table = SmartTableView(identity='production_order.materials')
         self.materials_table.setMinimumHeight(200)
         materials_layout.addWidget(self.materials_table)
         layout.addRow(self.materials_group)

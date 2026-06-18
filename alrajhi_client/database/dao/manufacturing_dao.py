@@ -37,6 +37,60 @@ class ManufacturingDAO:
             raise ValueError(f"{label} يجب أن تكون أكبر من صفر")
         return qty
 
+    def _unit_factor(self, item_id, unit_id, fallback='1') -> Decimal:
+        """Return the selected unit conversion factor for an item.
+
+        Manufacturing stores operational quantities in base units, but the UI
+        may enter component quantities in a secondary unit. This helper keeps
+        BOM, reservations, consumptions, and outputs aligned with the material
+        unit system used by invoices/POS.
+        """
+        if unit_id:
+            try:
+                row = self.db.execute(
+                    "SELECT conversion_factor FROM item_units WHERE id=? AND item_id=?",
+                    (unit_id, item_id),
+                ).fetchone()
+                if row:
+                    val = self._to_decimal(row['conversion_factor'], fallback)
+                    return val if val > 0 else Decimal(str(fallback))
+            except Exception:
+                pass
+        val = self._to_decimal(fallback, '1')
+        return val if val > 0 else Decimal('1')
+
+    def _unit_name(self, item_id, unit_id, fallback='') -> str:
+        if unit_id:
+            try:
+                row = self.db.execute(
+                    "SELECT unit_name FROM item_units WHERE id=? AND item_id=?",
+                    (unit_id, item_id),
+                ).fetchone()
+                if row:
+                    return row['unit_name'] or fallback or ''
+            except Exception:
+                pass
+        return fallback or ''
+
+    def _manufacturing_line_unit_payload(self, line: Dict, qty_key: str = 'quantity') -> Dict:
+        item_id = line.get('item_id')
+        unit_id = line.get('unit_id')
+        qty = self._to_decimal(line.get(qty_key, line.get('qty', '0')))
+        factor = self._to_decimal(line.get('conversion_factor') or '0')
+        if factor <= 0:
+            factor = self._unit_factor(item_id, unit_id, '1')
+        base_qty = self._to_decimal(line.get('base_qty') or line.get('quantity_in_base') or line.get(f'{qty_key}_base_qty') or '0')
+        if base_qty <= 0 and qty > 0:
+            base_qty = qty * factor
+        return {
+            'unit_id': unit_id,
+            'unit_name': self._unit_name(item_id, unit_id, line.get('unit_name') or line.get('unit') or ''),
+            'conversion_factor': factor,
+            'base_qty': base_qty,
+            'barcode_scope': line.get('barcode_scope') or ('unit' if unit_id else 'base'),
+            'matched_barcode': line.get('matched_barcode') or line.get('barcode') or '',
+        }
+
     def _validate_bom_payload(self, bom_data: Dict):
         product_id = bom_data.get('product_id')
         if not product_id:
@@ -174,7 +228,10 @@ class ManufacturingDAO:
             return None
         bom = dict(row)
         lines = self.db.execute("""
-            SELECT bl.*, i.name as item_name, u.unit_name, CAST(u.conversion_factor AS TEXT) as conversion_factor
+            SELECT bl.*, i.name as item_name,
+                   COALESCE(u.unit_name, bl.unit_name, '') as unit_name,
+                   CAST(COALESCE(bl.conversion_factor, u.conversion_factor, 1) AS TEXT) as conversion_factor,
+                   CAST(COALESCE(NULLIF(bl.base_qty, ''), CAST(bl.quantity AS REAL) * COALESCE(bl.conversion_factor, u.conversion_factor, 1)) AS TEXT) as base_qty
             FROM bom_lines bl
             JOIN items i ON bl.item_id = i.id
             LEFT JOIN item_units u ON bl.unit_id = u.id AND u.item_id = bl.item_id
@@ -213,9 +270,9 @@ class ManufacturingDAO:
             bom_id = cur.lastrowid
         for line in bom_data.get('lines', []):
             self.db.execute("""
-                INSERT INTO bom_lines (bom_id, item_id, quantity, unit_id, waste_percent)
-                VALUES (?,?,?,?,?)
-            """, (bom_id, line['item_id'], str(line['quantity']), line.get('unit_id'), str(line.get('waste_percent', 0))))
+                INSERT INTO bom_lines (bom_id, item_id, quantity, unit_id, conversion_factor, base_qty, barcode_scope, matched_barcode, waste_percent)
+                VALUES (?,?,?,?,?,?,?,?,?)
+            """, (bom_id, line['item_id'], str(line['quantity']), line.get('unit_id'), str(self._manufacturing_line_unit_payload(line)['conversion_factor']), str(self._manufacturing_line_unit_payload(line)['base_qty']), self._manufacturing_line_unit_payload(line)['barcode_scope'], self._manufacturing_line_unit_payload(line)['matched_barcode'], str(line.get('waste_percent', 0))))
         self.db.commit()
         return bom_id
 
@@ -305,18 +362,19 @@ class ManufacturingDAO:
             return
         for mat in required_materials:
             self.db.execute("""
-                INSERT INTO material_reservations (order_id, item_id, reserved_qty, consumed_qty)
-                VALUES (?,?,?,?)
-            """, (order_id, mat['item_id'], str(mat['required_qty']), '0'))
+                INSERT INTO material_reservations (order_id, item_id, reserved_qty, consumed_qty, unit_id, unit_name, conversion_factor, reserved_base_qty, consumed_base_qty, barcode_scope)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
+            """, (order_id, mat['item_id'], str(mat['required_qty']), '0', mat.get('unit_id'), mat.get('unit_name', ''), str(mat.get('conversion_factor') or '1'), str(mat.get('base_qty') or mat.get('required_qty')), '0', mat.get('barcode_scope') or ('unit' if mat.get('unit_id') else 'base')))
         self.db.commit()
 
     def get_reservations(self, order_id: int) -> List[Dict]:
         if self.db.is_remote():
             return self.db.get_rest_client().get_reservations(order_id)
         rows = self.db.execute("""
-            SELECT r.*, i.name as item_name 
+            SELECT r.*, i.name as item_name, COALESCE(r.unit_name, u.unit_name, '') AS unit_name
             FROM material_reservations r
             JOIN items i ON r.item_id = i.id
+            LEFT JOIN item_units u ON u.id = r.unit_id AND u.item_id = r.item_id
             WHERE r.order_id = ?
             ORDER BY r.id
         """, (order_id,)).fetchall()
@@ -325,9 +383,10 @@ class ManufacturingDAO:
     def update_reservation_consumed(self, order_id: int, item_id: int, consumed_qty: Decimal):
         self.db.execute("""
             UPDATE material_reservations 
-            SET consumed_qty = CAST(consumed_qty AS REAL) + ?
+            SET consumed_qty = CAST(consumed_qty AS REAL) + ?,
+                consumed_base_qty = CAST(COALESCE(consumed_base_qty, 0) AS REAL) + ?
             WHERE order_id = ? AND item_id = ?
-        """, (str(consumed_qty), order_id, item_id))
+        """, (str(consumed_qty), str(consumed_qty), order_id, item_id))
         self.db.commit()
 
     # ========== أوامر الإنتاج ==========
@@ -416,9 +475,9 @@ class ManufacturingDAO:
         snapshot_id = cur.lastrowid
         for line in bom.get('lines', []):
             self.db.execute("""
-                INSERT INTO bom_snapshot_lines (snapshot_id, item_id, item_name, quantity, unit_name, conversion_factor, waste_percent)
-                VALUES (?,?,?,?,?,?,?)
-            """, (snapshot_id, line['item_id'], line.get('item_name', ''), str(line['quantity']), line.get('unit_name', ''), str(line.get('conversion_factor') or '1'), str(line.get('waste_percent', 0))))
+                INSERT INTO bom_snapshot_lines (snapshot_id, item_id, item_name, quantity, unit_name, unit_id, conversion_factor, base_qty, barcode_scope, matched_barcode, waste_percent)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
+            """, (snapshot_id, line['item_id'], line.get('item_name', ''), str(line['quantity']), line.get('unit_name', ''), line.get('unit_id'), str(line.get('conversion_factor') or '1'), str(line.get('base_qty') or self._bom_line_required_base_qty(bom, line, self._to_decimal(bom.get('quantity', 1)))), line.get('barcode_scope') or ('unit' if line.get('unit_id') else 'base'), line.get('matched_barcode') or '', str(line.get('waste_percent', 0))))
         cur = self.db.execute("""
             INSERT INTO production_orders (order_number, product_id, planned_qty, status, user_id, created_at, notes, bom_snapshot_id, raw_warehouse_id, output_warehouse_id)
             VALUES (?,?,?,?,?,?,?,?,?,?)
@@ -487,7 +546,7 @@ class ManufacturingDAO:
         if unit_cost == 0:
             unit_cost = self._get_item_average_cost(item_id)
         reservation = self.db.execute("""
-            SELECT reserved_qty, consumed_qty FROM material_reservations 
+            SELECT reserved_qty, consumed_qty, unit_id, unit_name, conversion_factor, barcode_scope FROM material_reservations 
             WHERE order_id = ? AND item_id = ?
         """, (order_id, item_id)).fetchone()
         if not reservation:
@@ -502,14 +561,15 @@ class ManufacturingDAO:
             return False, f"المخزون غير كافٍ. المطلوب {consumed_qty}، المتوفر {available}"
         self.db.execute("""
             UPDATE material_reservations 
-            SET consumed_qty = CAST(consumed_qty AS REAL) + ?
+            SET consumed_qty = CAST(consumed_qty AS REAL) + ?,
+                consumed_base_qty = CAST(COALESCE(consumed_base_qty, 0) AS REAL) + ?
             WHERE order_id = ? AND item_id = ?
-        """, (str(consumed_qty), order_id, item_id))
+        """, (str(consumed_qty), str(consumed_qty), order_id, item_id))
         now = datetime.datetime.now().isoformat()
         cur = self.db.execute("""
-            INSERT INTO production_consumptions (order_id, item_id, consumed_qty, unit_cost, movement_date)
-            VALUES (?,?,?,?,?)
-        """, (order_id, item_id, str(consumed_qty), str(unit_cost), now))
+            INSERT INTO production_consumptions (order_id, item_id, consumed_qty, unit_id, unit_name, conversion_factor, consumed_base_qty, barcode_scope, unit_cost, movement_date)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+        """, (order_id, item_id, str(consumed_qty), reservation['unit_id'], reservation['unit_name'] or '', str(reservation['conversion_factor'] or '1'), str(consumed_qty), reservation['barcode_scope'] or ('unit' if reservation['unit_id'] else 'base'), str(unit_cost), now))
         consumption_id = getattr(cur, 'lastrowid', None)
         self._record_inventory_movement(item_id, 'production_consume', consumed_qty, unit_cost, order_id)
         self._record_warehouse_movement(item_id, order.get('raw_warehouse_id'), 'production_consume_out', -consumed_qty, unit_cost, order_id, 'استهلاك مواد أمر إنتاج')
@@ -544,9 +604,9 @@ class ManufacturingDAO:
         unit_cost = total_cost / produced_qty
         now = datetime.datetime.now().isoformat()
         cur = self.db.execute("""
-            INSERT INTO production_outputs (order_id, item_id, produced_qty, unit_cost, output_date)
-            VALUES (?,?,?,?,?)
-        """, (order_id, order['product_id'], str(produced_qty), str(unit_cost), now))
+            INSERT INTO production_outputs (order_id, item_id, produced_qty, unit_id, unit_name, conversion_factor, produced_base_qty, barcode_scope, unit_cost, output_date)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+        """, (order_id, order['product_id'], str(produced_qty), None, '', '1', str(produced_qty), 'base', str(unit_cost), now))
         output_id = getattr(cur, 'lastrowid', None)
         self._record_inventory_movement(order['product_id'], 'production_out', produced_qty, unit_cost, order_id)
         self._record_warehouse_movement(order['product_id'], order.get('output_warehouse_id'), 'production_output_in', produced_qty, unit_cost, order_id, 'إدخال منتج نهائي من أمر إنتاج')
@@ -673,9 +733,10 @@ class ManufacturingDAO:
         if self.db.is_remote():
             return self.db.get_rest_client().get_consumptions(order_id)
         rows = self.db.execute("""
-            SELECT pc.*, i.name as item_name
+            SELECT pc.*, i.name as item_name, COALESCE(pc.unit_name, u.unit_name, '') AS unit_name
             FROM production_consumptions pc
             JOIN items i ON pc.item_id = i.id
+            LEFT JOIN item_units u ON u.id = pc.unit_id AND u.item_id = pc.item_id
             WHERE pc.order_id = ?
             ORDER BY pc.id
         """, (order_id,)).fetchall()
@@ -685,9 +746,10 @@ class ManufacturingDAO:
         if self.db.is_remote():
             return self.db.get_rest_client().get_outputs(order_id)
         rows = self.db.execute("""
-            SELECT po.*, i.name as item_name
+            SELECT po.*, i.name as item_name, COALESCE(po.unit_name, u.unit_name, '') AS unit_name
             FROM production_outputs po
             JOIN items i ON po.item_id = i.id
+            LEFT JOIN item_units u ON u.id = po.unit_id AND u.item_id = po.item_id
             WHERE po.order_id = ?
             ORDER BY po.id
         """, (order_id,)).fetchall()
@@ -747,9 +809,10 @@ class ManufacturingDAO:
             return False, f"لا يمكن حذف استهلاك من أمر {order['status']}"
         self.db.execute("""
             UPDATE material_reservations 
-            SET consumed_qty = CAST(consumed_qty AS REAL) - ?
+            SET consumed_qty = CAST(consumed_qty AS REAL) - ?,
+                consumed_base_qty = CAST(COALESCE(consumed_base_qty, 0) AS REAL) - ?
             WHERE order_id = ? AND item_id = ?
-        """, (consumption['consumed_qty'], consumption['order_id'], consumption['item_id']))
+        """, (consumption['consumed_qty'], consumption.get('consumed_base_qty') or consumption['consumed_qty'], consumption['order_id'], consumption['item_id']))
         qty = self._to_decimal(consumption['consumed_qty'])
         cost = self._to_decimal(consumption['unit_cost'])
         self._record_inventory_movement(consumption['item_id'], 'consumption_reverse', qty, cost, None)

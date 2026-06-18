@@ -20,7 +20,8 @@ from currency import currency
 from models.table_models import GenericTableModel
 from utils import show_toast
 from brand_assets import logo_png
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
+from ui.dashboard_components import ModernKpiCard, DashboardChartPanel
 
 try:
     from theme_manager import ThemeManager
@@ -44,133 +45,7 @@ def _dashboard_product_name():
 # Branding assets are used in login/splash/application icon.
 
 
-class KPIStatCard(QFrame):
-    clicked = pyqtSignal()
-
-    def __init__(self, title, value='0', icon_name='chart-line', color=None, hint='', parent=None):
-        super().__init__(parent)
-        color = color or _dc('primary', '#0F3D75')
-        self.color = color
-        self.setObjectName('KPIStatCard')
-        self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(116)
-        self.setStyleSheet(f'''
-            QFrame#KPIStatCard {{
-                background: {_dc('card_bg', '#FFFFFF')};
-                border: 1px solid {_dc('border', '#E2E8F0')};
-                border-radius: 18px;
-            }}
-            QFrame#KPIStatCard:hover {{
-                border: 1px solid {color};
-                background: {_dc('brand_soft', '#EAF1F8')};
-            }}
-            QLabel#KpiTitle {{
-                color: {_dc('text_secondary', '#4A5568')};
-                font-size: 13px;
-                font-weight: 700;
-            }}
-            QLabel#KpiValue {{
-                color: {_dc('text_primary', '#1A202C')};
-                font-size: 24px;
-                font-weight: 900;
-            }}
-            QLabel#KpiHint {{
-                color: {_dc('text_muted', '#718096')};
-                font-size: 11px;
-            }}
-            QLabel#KpiIcon {{
-                background: {color};
-                border-radius: 15px;
-                padding: 8px;
-            }}
-        ''')
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 12, 14, 12)
-        layout.setSpacing(8)
-
-        top = QHBoxLayout()
-        self.icon_label = QLabel()
-        self.icon_label.setObjectName('KpiIcon')
-        self.icon_label.setAlignment(Qt.AlignCenter)
-        self.icon_label.setFixedSize(42, 42)
-        self.icon_label.setPixmap(qta.icon(f'fa5s.{icon_name}', color='white').pixmap(QSize(22, 22)))
-        self.title_label = QLabel(title)
-        self.title_label.setObjectName('KpiTitle')
-        self.title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        top.addWidget(self.icon_label)
-        top.addWidget(self.title_label, 1)
-        layout.addLayout(top)
-
-        self.value_label = QLabel(value)
-        self.value_label.setObjectName('KpiValue')
-        self.value_label.setAlignment(Qt.AlignRight)
-        layout.addWidget(self.value_label)
-
-        self.hint_label = QLabel(hint)
-        self.hint_label.setObjectName('KpiHint')
-        self.hint_label.setAlignment(Qt.AlignRight)
-        layout.addWidget(self.hint_label)
-
-    def set_value(self, text):
-        self.value_label.setText(text)
-
-    def set_hint(self, text):
-        self.hint_label.setText(text or '')
-
-    def mouseReleaseEvent(self, event):
-        self.clicked.emit()
-        super().mouseReleaseEvent(event)
-
-
-class QuickActionButton(QPushButton):
-    def __init__(self, text, icon_name, color, parent=None):
-        super().__init__(qta.icon(f'fa5s.{icon_name}', color='white'), f'  {text}', parent)
-        self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(46)
-        self.setStyleSheet(f'''
-            QPushButton {{
-                background: {color};
-                color: white;
-                border: none;
-                border-radius: 14px;
-                padding: 9px 13px;
-                font-size: 13px;
-                font-weight: 800;
-                text-align: right;
-            }}
-            QPushButton:hover {{ background: {_dc('primary_hover', '#1E5AA8')}; }}
-        ''')
-
-
-class DashboardPanel(QFrame):
-    def __init__(self, title, icon_name='circle', parent=None):
-        super().__init__(parent)
-        self.setObjectName('DashboardPanel')
-        self.setStyleSheet(f'''
-            QFrame#DashboardPanel {{
-                background: {_dc('card_bg', '#FFFFFF')};
-                border: 1px solid {_dc('border', '#E2E8F0')};
-                border-radius: 18px;
-            }}
-            QLabel#PanelTitle {{
-                color: {_dc('text_primary', '#1A202C')};
-                font-size: 16px;
-                font-weight: 900;
-            }}
-        ''')
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(16, 14, 16, 16)
-        self.layout.setSpacing(12)
-        header = QHBoxLayout()
-        icon = QLabel()
-        icon.setPixmap(qta.icon(f'fa5s.{icon_name}', color=_dc('primary', '#0F3D75')).pixmap(QSize(18, 18)))
-        title_label = QLabel(title)
-        title_label.setObjectName('PanelTitle')
-        title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        header.addWidget(icon)
-        header.addWidget(title_label)
-        header.addStretch()
-        self.layout.addLayout(header)
+from views.widgets.dashboard_legacy_components import KPIStatCard, QuickActionButton, DashboardPanel
 
 
 class DashboardWidget(QWidget):
@@ -211,7 +86,7 @@ class DashboardWidget(QWidget):
         self.main_layout.setContentsMargins(22, 22, 22, 22)
         self.main_layout.setSpacing(18)
 
-        # Phase 100: remove the first hero card under the global search bar.
+        self._build_kpi_grid()
         self._build_middle_grid()
         self._build_bottom_grid()
 
@@ -282,9 +157,22 @@ class DashboardWidget(QWidget):
         self.main_layout.addWidget(hero)
 
     def _build_kpi_grid(self):
-        # Phase 40: KPI cards removed by request. The project/cash card and
-        # monitoring panel now carry the essential operational summary.
-        return
+        row = QHBoxLayout()
+        row.setSpacing(14)
+        specs = [
+            ('sales', translate('sales'), 'cash-register', 'success'),
+            ('purchases', translate('purchases'), 'shopping-cart', 'warning'),
+            ('expenses', translate('expenses'), 'file-invoice', 'danger'),
+            ('profit', translate('net_profit'), 'chart-line', 'primary'),
+        ]
+        for key, title, icon, tone in specs:
+            card = ModernKpiCard(title, icon, tone)
+            row.addWidget(card, 1)
+            self.cards[key] = card
+        self.main_layout.addLayout(row)
+
+        self.trend_panel = DashboardChartPanel(translate('dashboard_monthly_trend'))
+        self.main_layout.addWidget(self.trend_panel)
 
     def _build_middle_grid(self):
         row = QHBoxLayout()
@@ -336,7 +224,7 @@ class DashboardWidget(QWidget):
         panel = DashboardPanel(translate('alerts_bar'), 'bell')
         panel.setMaximumHeight(150)
         panel.setMinimumHeight(118)
-        self.alerts_table = CustomTableView()
+        self.alerts_table = SmartTableView()
         self.alerts_table.setMinimumHeight(58)
         self.alerts_table.setMaximumHeight(82)
         panel.layout.addWidget(self.alerts_table)
@@ -671,8 +559,27 @@ class DashboardWidget(QWidget):
         self._refresh_health()
 
     def _refresh_kpis(self, display_curr):
-        # KPI cards were intentionally removed in Phase 40.
-        return
+        summary = self._snapshot.get('summary', {}) if isinstance(self._snapshot, dict) else {}
+
+        def amount(key):
+            raw = Decimal(str(summary.get(key, 0) or 0))
+            return currency.format_amount(currency.convert(raw, 'USD', display_curr))
+
+        mapping = {
+            'sales': ('total_sales', translate('dashboard_total_sales_hint')),
+            'purchases': ('total_purchases', translate('dashboard_total_purchases_hint')),
+            'expenses': ('total_expenses', translate('dashboard_total_expenses_hint')),
+            'profit': ('net_profit', translate('dashboard_net_profit_hint')),
+        }
+        for card_key, (summary_key, hint) in mapping.items():
+            card = self.cards.get(card_key)
+            if card:
+                card.set_value(amount(summary_key))
+                card.set_hint(hint)
+
+        if hasattr(self, 'trend_panel'):
+            rows = self._snapshot.get('monthly_trend', []) if isinstance(self._snapshot, dict) else []
+            self.trend_panel.set_trend(rows, translate('incoming'), translate('outgoing'))
 
     def _refresh_alerts(self):
         try:
@@ -894,12 +801,13 @@ class DashboardWidget(QWidget):
 
     def _open_add_item(self):
         try:
-            from views.dialogs.item_dialog import ItemDialog
-            dialog = ItemDialog(self)
-            if dialog.exec():
-                page = (self._main_window().pages.get('items') if self._main_window() else None)
-                if page and hasattr(page, 'refresh'):
-                    page.refresh()
+            main = self._main_window()
+            if main and hasattr(main, 'open_item_document'):
+                main.open_item_document()
+                return
+            from features.items import ItemEditorTab
+            tab = ItemEditorTab(self)
+            tab.show()
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 

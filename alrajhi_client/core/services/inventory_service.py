@@ -12,6 +12,7 @@ from typing import Dict, List
 from core.compat import records
 from gateways.inventory_gateway import create_inventory_gateway
 from core.services.audit_service import audit_service
+from core.services.inventory_operation_policy import inventory_operation_policy
 
 
 class InventoryService:
@@ -22,9 +23,13 @@ class InventoryService:
         return records(self.gateway.movements(item_id), 'movements')
 
     def ledger_entries(self, **filters) -> List[Dict]:
+        inventory_operation_policy.require(inventory_operation_policy.OP_LEDGER_VIEW, context='inventory_service.ledger_entries', payload=filters)
         return records(self.gateway.ledger_entries(**filters), 'ledger')
 
     def record_ledger_entry(self, **data):
+        system_refs = {'invoice', 'sales_return', 'purchase_return', 'warehouse_movement', 'warehouse_transfer', 'warehouse_transfer_cancel', 'production_order', 'manufacturing', 'restaurant', 'pos'}
+        if data.get('reference_type') not in system_refs:
+            inventory_operation_policy.require(inventory_operation_policy.OP_DIRECT_MOVEMENT, context='inventory_service.record_ledger_entry', payload=data)
         entry_id = self.gateway.record_ledger_entry(data)
         audit_service.log(
             'POST', 'INVENTORY_LEDGER', entry_id,
@@ -37,6 +42,7 @@ class InventoryService:
         return self.gateway.ledger_balance(item_id, warehouse_id)
 
     def ledger_reconciliation(self, item_id=None, warehouse_id=None, tolerance='0') -> Dict:
+        inventory_operation_policy.require(inventory_operation_policy.OP_RECONCILE, context='inventory_service.ledger_reconciliation', payload={'item_id': item_id, 'warehouse_id': warehouse_id})
         """Compare operational stock with shadow inventory ledger balances.
 
         Phase 27 is diagnostic-only. It does not change stock quantities and does
@@ -80,6 +86,7 @@ class InventoryService:
         return self.gateway.ledger_controlled_read(item_id=item_id, warehouse_id=warehouse_id, mode=mode, tolerance=tolerance)
 
     def ledger_backfill(self, dry_run=True, item_id=None, warehouse_id=None, clear_existing=False, include_item_movements=True, include_warehouse_movements=True) -> Dict:
+        inventory_operation_policy.require(inventory_operation_policy.OP_LEDGER_BACKFILL, context='inventory_service.ledger_backfill', payload={'dry_run': dry_run, 'item_id': item_id, 'warehouse_id': warehouse_id, 'clear_existing': clear_existing})
         """Backfill shadow ledger from legacy inventory movements.
 
         Phase 28 migration-preparation only. The operation never changes current
@@ -95,6 +102,7 @@ class InventoryService:
         )
 
     def record_movement(self, item_id: int, movement_type: str, quantity, unit_cost, reference_id=None):
+        inventory_operation_policy.require(inventory_operation_policy.OP_DIRECT_MOVEMENT, context='inventory_service.record_movement', payload={'item_id': item_id, 'movement_type': movement_type, 'quantity': str(quantity), 'reference_id': reference_id})
         movement_id = self.gateway.record_movement(item_id, movement_type, quantity, unit_cost, reference_id)
         audit_service.log(
             'POST', 'INVENTORY_MOVEMENT', movement_id,

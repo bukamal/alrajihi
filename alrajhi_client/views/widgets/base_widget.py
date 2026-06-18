@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLin
 from PyQt5.QtCore import Qt
 from i18n import translate
 from action_handler import BaseActionHandler
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 from views.widgets.components.table_toolbar import TableToolbar
@@ -23,6 +23,7 @@ class BaseWidget(QWidget, BaseActionHandler):
     has_pagination = False
     page_size = 50
     extra_buttons = []
+    edit_permission_action = permission_service.ACTION_EDIT_INVOICES
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -82,10 +83,10 @@ class BaseWidget(QWidget, BaseActionHandler):
             extra_layout.addStretch()
             layout.addLayout(extra_layout)
 
-        self.table = CustomTableView()
+        self.table = SmartTableView()
         self.table.set_table_identity(f"{self.__class__.__name__}.main")
         self.toolbar.set_table(self.table)
-        self.table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.setAlternatingRowColors(True)
         # doubleClicked is connected once by BaseActionHandler.setup_base_actions().
         self.table.clicked.connect(self._on_table_clicked)
@@ -144,8 +145,9 @@ class BaseWidget(QWidget, BaseActionHandler):
         self.open_dialog(is_edit=False)
 
     def edit_item(self, index):
-        if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):
-            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_EDIT_INVOICES))
+        action = getattr(self, 'edit_permission_action', permission_service.ACTION_EDIT_INVOICES)
+        if not permission_service.can(action):
+            QMessageBox.warning(self, translate('permissions'), permission_service.denied_message(action))
             return
         row = index.row()
         item_id = self.model.get_id(row) if self.model else None

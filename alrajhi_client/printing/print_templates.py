@@ -89,6 +89,12 @@ def _normalize_paper(paper: str = "default", settings: Optional[Dict[str, Any]] 
             paper = settings.get("voucher_template") or settings.get("invoice_template") or "a4"
         elif doc_type == "return":
             paper = settings.get("return_template") or settings.get("invoice_template") or "a4"
+        elif doc_type in ("restaurant_receipt", "restaurant_kitchen"):
+            paper = settings.get("restaurant_receipt_template") or settings.get("restaurant_template") or settings.get("receipt_template") or settings.get("invoice_template") or "thermal"
+        elif doc_type in ("inventory", "inventory_transfer", "inventory_balances", "inventory_movements", "inventory_ledger"):
+            paper = settings.get("inventory_print_template") or settings.get("report_template") or settings.get("default_paper") or "a4"
+        elif doc_type in ("manufacturing", "manufacturing_bom", "manufacturing_pick_ticket", "manufacturing_cost_report"):
+            paper = settings.get("manufacturing_print_template") or settings.get("production_order_template") or settings.get("report_template") or settings.get("default_paper") or "a4"
         else:
             paper = settings.get("invoice_template") or settings.get("default_paper") or "a4"
     return str(paper or "a4").lower()
@@ -161,6 +167,8 @@ _TITLE_MAP = {
     "returns": _tr("returns"),
     "sales_returns": _tr("sales_returns"),
     "purchase_returns": _tr("purchase_returns"),
+    "restaurant_receipt": _tr("restaurant_receipt"),
+    "restaurant_kitchen_ticket": _tr("restaurant_kitchen_ticket"),
 }
 
 def _human_title(title: Any, fallback: str = _tr("print_report_default")) -> str:
@@ -513,48 +521,366 @@ def report_html(title: str, rows: List[List[Any]], headers: List[str], subtitle:
     return base_document(title, body, paper, settings)
 
 
-def production_order_html(data: Dict[str, Any], paper: str = "default") -> str:
-    """Professional HTML for production order details.
 
-    Data accepts: order, consumptions, outputs, reservations or flat keys.
-    """
+def _restaurant_line_total(line: Dict[str, Any]) -> Any:
+    try:
+        from decimal import Decimal
+        return str(Decimal(str(line.get("quantity") or "0")) * Decimal(str(line.get("unit_price") or "0")))
+    except Exception:
+        return line.get("total") or line.get("line_total") or "0"
+
+
+def restaurant_receipt_html(data: Dict[str, Any], paper: str = "default") -> str:
+    """Settings-driven customer receipt for Restaurant POS sessions."""
     settings = _settings()
-    paper = _normalize_paper(paper, settings, "report")
+    paper = _normalize_paper(paper, settings, "restaurant_receipt")
+    session = dict((data or {}).get("session") or data or {})
+    balance = dict((data or {}).get("balance") or {})
+    lines = list(session.get("lines") or (data or {}).get("lines") or [])
+    payments = list(session.get("payments") or (data or {}).get("payments") or [])
+    title = _tr("restaurant_receipt")
+    ref = session.get("invoice_reference") or session.get("invoice_id") or session.get("id") or ""
+    table = session.get("table_name") or session.get("table_id") or ""
+    opened = session.get("opened_at") or session.get("created_at") or ""
+    closed = session.get("closed_at") or ""
+    guests = session.get("guests") or ""
+    waiter = session.get("waiter_name") or session.get("waiter_id") or session.get("user_name") or ""
+
+    rows: List[List[Any]] = []
+    for i, raw in enumerate(lines, 1):
+        line = raw if isinstance(raw, dict) else {}
+        status = line.get("kitchen_status") or ""
+        rows.append([
+            i,
+            _line_value(line, "item_name", "name", "description"),
+            _line_value(line, "unit", "unit_name"),
+            _line_value(line, "quantity", "qty"),
+            _line_value(line, "base_qty", "quantity_in_base"),
+            _line_value(line, "unit_price", "price"),
+            _restaurant_line_total(line),
+            _tr(f"restaurant.line_status.{status}") if status else "",
+        ])
+
+    payment_rows: List[List[Any]] = []
+    for i, raw in enumerate(payments, 1):
+        pay = raw if isinstance(raw, dict) else {}
+        payment_rows.append([
+            i,
+            pay.get("payment_method") or pay.get("method") or "",
+            pay.get("amount") or "",
+            pay.get("created_at") or pay.get("date") or "",
+            pay.get("notes") or "",
+        ])
+
+    subtotal = balance.get("subtotal", session.get("subtotal", ""))
+    discount = balance.get("discount_amount", session.get("discount_amount", "0"))
+    service_charge = balance.get("service_charge_amount", session.get("service_charge_amount", "0"))
+    tax = balance.get("tax_amount", session.get("tax_amount", "0"))
+    total = balance.get("total", session.get("invoice_total", session.get("total", "")))
+    paid = balance.get("paid", session.get("paid_amount", "0"))
+    remaining = balance.get("remaining", session.get("remaining", "0"))
+
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {_meta_table([
+        [(_tr("print_document_number"), ref), (_tr("restaurant_table"), table), (_tr("restaurant_guests"), guests)],
+        [(_tr("restaurant_opened_at"), opened), (_tr("restaurant_closed_at"), closed), (_tr("restaurant_waiter"), waiter)],
+    ])}
+    {_table(["#", _tr("print_item"), _tr("print_unit"), _tr("print_quantity"), _tr("pos_column_base_qty"), _tr("print_price"), _tr("print_total"), _tr("restaurant_column_status")], rows, _tr("print_no_lines"))}
+    {_totals_table([
+        (_tr("print_subtotal"), subtotal, ""),
+        (_tr("print_discount"), discount, ""),
+        (_tr("restaurant.service_charge"), service_charge, ""),
+        (_tr("print_tax"), tax, ""),
+        (_tr("print_total"), total, "final"),
+        (_tr("restaurant.paid"), paid, ""),
+        (_tr("restaurant.remaining"), remaining, "due"),
+    ])}
+    <div class='notes-box'><strong>{_s(_tr("print_notes"))}</strong>: {_s(session.get("notes") or "")}</div>
+    {_table(["#", _tr("print_payment_method"), _tr("restaurant.payment_amount"), _tr("print_document_date"), _tr("print_notes")], payment_rows, _tr("restaurant.no_payments")) if payment_rows else ""}
+    {_footer(settings)}
+    """
+    return base_document(title, body, paper, settings)
+
+
+def restaurant_kitchen_ticket_html(data: Dict[str, Any], paper: str = "default") -> str:
+    """Settings-driven kitchen order ticket (KOT)."""
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "restaurant_kitchen")
+    ticket = dict(data or {})
+    lines = list(ticket.get("lines") or [])
+    title = _tr("restaurant_kitchen_ticket")
+    rows: List[List[Any]] = []
+    for i, raw in enumerate(lines, 1):
+        line = raw if isinstance(raw, dict) else {}
+        rows.append([
+            i,
+            _line_value(line, "item_name", "name"),
+            _line_value(line, "quantity", "qty"),
+            _line_value(line, "unit", "unit_name", default=""),
+            _line_value(line, "station_name", "station_code", default=""),
+            _line_value(line, "notes", "kitchen_label", default=""),
+        ])
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {_meta_table([
+        [(_tr("print_document_number"), ticket.get("id") or ""), (_tr("restaurant_table"), ticket.get("table_name") or ticket.get("table_id") or ""), (_tr("restaurant_station"), ticket.get("station_name") or ticket.get("station_code") or "")],
+        [(_tr("restaurant_sent_at"), ticket.get("sent_at") or ""), (_tr("restaurant_ticket_status"), ticket.get("status") or ""), (_tr("print_notes"), ticket.get("notes") or "")],
+    ])}
+    {_table(["#", _tr("print_item"), _tr("print_quantity"), _tr("print_unit"), _tr("restaurant_station"), _tr("print_notes")], rows, _tr("print_no_lines"))}
+    {_footer(settings, _tr("restaurant_kitchen_ticket_footer"))}
+    """
+    return base_document(title, body, paper, settings)
+
+
+def _manufacturing_status(value: Any) -> str:
+    status_map = {
+        'planned': _tr('status_planned'),
+        'in_progress': _tr('status_in_progress'),
+        'completed': _tr('status_completed'),
+        'cancelled': _tr('status_cancelled'),
+    }
+    return status_map.get(str(value or ''), str(value or ''))
+
+
+def manufacturing_bom_html(data: Dict[str, Any], paper: str = "default") -> str:
+    """BOM / manufacturing recipe print template."""
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "manufacturing_bom")
+    payload = dict(data or {})
+    bom = payload.get('bom') or payload
+    lines = list(payload.get('lines') or bom.get('lines') or bom.get('components') or [])
+    summary = payload.get('summary') or {}
+    title = _tr('manufacturing_bom_document')
+    rows: List[List[Any]] = []
+    for i, row in enumerate(lines, 1):
+        qty = _line_value(row, 'quantity', 'qty', 'component_qty')
+        base_qty = _line_value(row, 'base_qty', 'required_base_qty')
+        rows.append([
+            i,
+            _line_value(row, 'barcode', 'matched_barcode'),
+            _line_value(row, 'item_name', 'name', 'item', 'component_name', default=row.get('item_id', '')),
+            _line_value(row, 'unit_name', 'unit', default=''),
+            qty,
+            base_qty,
+            _line_value(row, 'waste_percent', default=''),
+            _line_value(row, 'unit_cost', 'cost', default=''),
+            _line_value(row, 'total_cost', default=''),
+            _line_value(row, 'notes', default=''),
+        ])
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {_meta_table([
+        [(_tr('print_product'), bom.get('product_name') or bom.get('item_name') or bom.get('product_id') or ''), (_tr('print_quantity'), bom.get('output_qty') or bom.get('quantity') or 1), (_tr('status'), bom.get('status') or '')],
+        [(_tr('print_document_number'), bom.get('id') or bom.get('bom_id') or ''), (_tr('print_unit'), bom.get('unit_name') or bom.get('unit') or ''), (_tr('print_notes'), bom.get('notes') or '')],
+    ])}
+    {_table(['#', _tr('print_barcode'), _tr('print_item'), _tr('print_unit'), _tr('print_quantity'), _tr('manufacturing_column_base_qty'), _tr('manufacturing_column_waste_percent'), _tr('unit_cost'), _tr('print_total'), _tr('print_notes')], rows, _tr('print_no_lines'))}
+    {_summary_cards({
+        _tr('manufacturing_material_cost'): summary.get('material_cost', ''),
+        _tr('manufacturing_waste_cost'): summary.get('waste_cost', ''),
+        _tr('print_total'): summary.get('total_cost', ''),
+        _tr('manufacturing_unit_cost_output'): summary.get('unit_cost_output', ''),
+        _tr('manufacturing_component_count'): summary.get('line_count', len(lines)),
+    })}
+    <table class='signatures hide-thermal'><tr><td>{_s(_tr('production_manager'))}</td><td>{_s(_tr('print_accountant_signature'))}</td></tr></table>
+    {_footer(settings, _tr('manufacturing_bom_generated_by'))}
+    """
+    return base_document(title, body, paper, settings)
+
+
+def production_order_html(data: Dict[str, Any], paper: str = "default") -> str:
+    """Professional HTML for production order details."""
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "manufacturing")
     payload = dict(data or {})
     order = payload.get("order") or payload
     consumptions = payload.get("consumptions") or []
     outputs = payload.get("outputs") or []
     reservations = payload.get("reservations") or []
-    status_map = {'planned': 'مخطط', 'in_progress': 'قيد التنفيذ', 'completed': 'مكتمل', 'cancelled': 'ملغي'}
     title = _tr("production_order")
     meta = _meta_table([
-        [(_tr("order_number"), order.get("order_number") or order.get("id") or ""), (_tr("product"), order.get("product_name") or order.get("item_name") or ""), (_tr("status"), status_map.get(order.get("status"), order.get("status", "")))],
+        [(_tr("order_number"), order.get("order_number") or order.get("id") or ""), (_tr("product"), order.get("product_name") or order.get("item_name") or ""), (_tr("status"), _manufacturing_status(order.get("status")))],
         [(_tr("planned_quantity"), order.get("planned_qty", "")), (_tr("produced_quantity"), order.get("produced_qty", "")), (_tr("start_date"), order.get("start_date", ""))],
         [(_tr("raw_warehouse"), order.get("raw_warehouse_name") or ""), (_tr("output_warehouse"), order.get("output_warehouse_name") or ""), (_tr("print_notes"), order.get("notes", ""))],
     ])
     cons_rows = []
     for i, c in enumerate(consumptions, 1):
-        cons_rows.append([i, c.get('item_name') or c.get('name') or c.get('item') or c.get('item_id') or '', c.get('consumed_qty') or c.get('quantity') or '', c.get('unit_cost') or c.get('cost') or '', c.get('movement_date') or c.get('date') or ''])
+        cons_rows.append([i, _line_value(c, 'item_name', 'name', 'item', default=c.get('item_id', '')), _line_value(c, 'unit_name', 'unit'), _line_value(c, 'consumed_qty', 'quantity', 'qty'), _line_value(c, 'consumed_base_qty', 'base_qty'), _line_value(c, 'unit_cost', 'cost'), _line_value(c, 'total_cost'), _line_value(c, 'movement_date', 'date')])
     out_rows = []
     for i, o in enumerate(outputs, 1):
-        out_rows.append([i, o.get('product_name') or o.get('item_name') or o.get('item') or o.get('product_id') or '', o.get('produced_qty') or o.get('quantity') or '', o.get('unit_cost') or o.get('cost') or '', o.get('output_date') or o.get('date') or ''])
+        out_rows.append([i, _line_value(o, 'product_name', 'item_name', 'name', 'item', default=o.get('product_id', '')), _line_value(o, 'unit_name', 'unit'), _line_value(o, 'produced_qty', 'quantity', 'qty'), _line_value(o, 'produced_base_qty', 'base_qty'), _line_value(o, 'unit_cost', 'cost'), _line_value(o, 'total_cost'), _line_value(o, 'output_date', 'date')])
     res_rows = []
     for i, r in enumerate(reservations, 1):
-        reserved = r.get('reserved_qty') or r.get('reserved') or ''
-        consumed = r.get('consumed_qty') or r.get('consumed') or ''
-        remaining = r.get('remaining_qty') or r.get('remaining') or ''
-        res_rows.append([i, r.get('item_name') or r.get('name') or r.get('item') or r.get('item_id') or '', reserved, consumed, remaining])
+        reserved = _line_value(r, 'reserved_qty', 'reserved', 'required_qty')
+        consumed = _line_value(r, 'consumed_qty', 'consumed')
+        remaining = _line_value(r, 'remaining_qty', 'remaining')
+        res_rows.append([i, _line_value(r, 'item_name', 'name', 'item', default=r.get('item_id', '')), _line_value(r, 'unit_name', 'unit'), reserved, consumed, remaining, _line_value(r, 'base_qty', 'reserved_base_qty'), _line_value(r, 'conversion_factor')])
     body = f"""
     {_company_header(settings, title)}
     <div class='document-title'>{_s(title)}</div>
     {meta}
-    <h3>المواد المستهلكة</h3>
-    {_table(['#','المادة','الكمية','تكلفة الوحدة','التاريخ'], cons_rows, 'لا توجد مواد مستهلكة')}
-    <h3>المنتج النهائي</h3>
-    {_table(['#','المنتج','الكمية','تكلفة الوحدة','التاريخ'], out_rows, 'لا توجد مخرجات إنتاج')}
-    <h3>الحجوزات والمتبقي</h3>
-    {_table(['#','المادة','المحجوز','المستهلك','المتبقي'], res_rows, 'لا توجد حجوزات')}
-    <table class='signatures hide-thermal'><tr><td>مسؤول الإنتاج</td><td>المحاسبة</td></tr></table>
-    {_footer(settings, 'تم إنشاء أمر الإنتاج بواسطة نظام الراجحي')}
+    <h3>{_s(_tr('consumed_materials'))}</h3>
+    {_table(['#', _tr('print_item'), _tr('print_unit'), _tr('print_quantity'), _tr('manufacturing_column_base_qty'), _tr('unit_cost'), _tr('print_total'), _tr('print_document_date')], cons_rows, _tr('print_no_consumed_materials'))}
+    <h3>{_s(_tr('finished_product'))}</h3>
+    {_table(['#', _tr('print_product'), _tr('print_unit'), _tr('print_quantity'), _tr('manufacturing_column_base_qty'), _tr('unit_cost'), _tr('print_total'), _tr('print_document_date')], out_rows, _tr('print_no_production_outputs'))}
+    <h3>{_s(_tr('reservations_remaining'))}</h3>
+    {_table(['#', _tr('print_item'), _tr('print_unit'), _tr('reserved'), _tr('consumed'), _tr('print_remaining'), _tr('manufacturing_column_base_qty'), _tr('manufacturing_column_conversion_factor')], res_rows, _tr('print_no_reservations'))}
+    <table class='signatures hide-thermal'><tr><td>{_s(_tr('production_manager'))}</td><td>{_s(_tr('print_accountant_signature'))}</td></tr></table>
+    {_footer(settings, _tr('production_order_generated_by'))}
+    """
+    return base_document(title, body, paper, settings)
+
+
+def manufacturing_pick_ticket_html(data: Dict[str, Any], paper: str = "default") -> str:
+    """Raw-material pick ticket for production."""
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "manufacturing_pick_ticket")
+    payload = dict(data or {})
+    order = payload.get('order') or {}
+    lines = list(payload.get('lines') or payload.get('reservations') or [])
+    title = _tr('manufacturing_pick_ticket')
+    rows: List[List[Any]] = []
+    for i, row in enumerate(lines, 1):
+        rows.append([i, _line_value(row, 'item_name', 'name', 'item', default=row.get('item_id', '')), _line_value(row, 'barcode', 'matched_barcode'), _line_value(row, 'unit_name', 'unit'), _line_value(row, 'pick_qty', 'remaining_qty'), _line_value(row, 'reserved_qty'), _line_value(row, 'consumed_qty'), _line_value(row, 'base_qty', 'reserved_base_qty'), _line_value(row, 'raw_warehouse_name', 'warehouse_name')])
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {_meta_table([
+        [(_tr('order_number'), order.get('order_number') or order.get('id') or ''), (_tr('product'), order.get('product_name') or order.get('item_name') or ''), (_tr('status'), _manufacturing_status(order.get('status')))],
+        [(_tr('raw_warehouse'), order.get('raw_warehouse_name') or ''), (_tr('planned_quantity'), order.get('planned_qty') or ''), (_tr('print_notes'), order.get('notes') or '')],
+    ])}
+    {_table(['#', _tr('print_item'), _tr('print_barcode'), _tr('print_unit'), _tr('manufacturing_pick_qty'), _tr('reserved'), _tr('consumed'), _tr('manufacturing_column_base_qty'), _tr('print_warehouse')], rows, _tr('print_no_reservations'))}
+    <table class='signatures hide-thermal'><tr><td>{_s(_tr('warehouse_keeper'))}</td><td>{_s(_tr('production_manager'))}</td></tr></table>
+    {_footer(settings, _tr('manufacturing_pick_ticket_footer'))}
+    """
+    return base_document(title, body, paper, settings)
+
+
+def manufacturing_cost_report_html(data: Dict[str, Any], paper: str = "default") -> str:
+    """Production cost report template."""
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "manufacturing_cost_report")
+    payload = dict(data or {})
+    order = payload.get('order') or {}
+    summary = payload.get('summary') or {}
+    title = _tr('manufacturing_cost_report')
+    rows = [
+        [_tr('manufacturing_consumption_cost'), summary.get('consumption_cost', '')],
+        [_tr('manufacturing_output_cost'), summary.get('output_cost', '')],
+        [_tr('manufacturing_cost_variance'), summary.get('variance_cost', '')],
+        [_tr('produced_quantity'), summary.get('produced_qty', '')],
+        [_tr('unit_cost'), summary.get('unit_cost', '')],
+    ]
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {_meta_table([
+        [(_tr('order_number'), order.get('order_number') or order.get('id') or ''), (_tr('product'), order.get('product_name') or order.get('item_name') or ''), (_tr('status'), _manufacturing_status(order.get('status')))],
+        [(_tr('planned_quantity'), order.get('planned_qty') or ''), (_tr('produced_quantity'), order.get('produced_qty') or ''), (_tr('print_notes'), order.get('notes') or '')],
+    ])}
+    {_table([_tr('print_description'), _tr('print_total')], rows, _tr('print_no_data'))}
+    {_footer(settings, _tr('manufacturing_cost_report_footer'))}
+    """
+    return base_document(title, body, paper, settings)
+
+
+# ========== Inventory / warehouse templates ==========
+def _inventory_movement_type(value: Any) -> str:
+    key = str(value or '').strip()
+    if not key:
+        return ''
+    label = _tr(f'inventory_movement_type_{key}')
+    return label if label != f'inventory_movement_type_{key}' else key
+
+
+def inventory_transfer_html(data: Dict[str, Any], paper: str = "default") -> str:
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "inventory_transfer")
+    payload = dict(data or {})
+    transfer = payload.get('transfer') or payload
+    lines = list(payload.get('lines') or ([] if transfer is payload else [transfer]))
+    title = _tr('inventory_transfer_document')
+    rows: List[List[Any]] = []
+    for i, row in enumerate(lines, 1):
+        rows.append([
+            i,
+            _line_value(row, 'item_name', 'name', 'item', default=row.get('item_id', '')),
+            _line_value(row, 'barcode', 'matched_barcode'),
+            _line_value(row, 'unit_name', 'unit'),
+            _line_value(row, 'quantity', 'qty'),
+            _line_value(row, 'base_qty', 'quantity_in_base', default=_line_value(row, 'quantity', 'qty')),
+            _line_value(row, 'unit_cost', 'cost'),
+            _line_value(row, 'notes'),
+        ])
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {_meta_table([
+        [(_tr('transfer_no'), transfer.get('transfer_no') or transfer.get('id') or ''), (_tr('status'), transfer.get('status') or ''), (_tr('print_date'), transfer.get('created_at') or '')],
+        [(_tr('from_warehouse_clean'), transfer.get('from_warehouse_name') or transfer.get('from_warehouse') or ''), (_tr('to_warehouse_clean'), transfer.get('to_warehouse_name') or transfer.get('to_warehouse') or ''), (_tr('print_notes'), transfer.get('notes') or '')],
+    ])}
+    {_table(['#', _tr('print_item'), _tr('print_barcode'), _tr('print_unit'), _tr('quantity'), _tr('inventory_column_base_qty'), _tr('unit_cost'), _tr('print_notes')], rows, _tr('print_no_data'))}
+    <table class='signatures hide-thermal'><tr><td>{_s(_tr('warehouse_keeper'))}</td><td>{_s(_tr('receiver_signature'))}</td></tr></table>
+    {_footer(settings, _tr('inventory_transfer_footer'))}
+    """
+    return base_document(title, body, paper, settings)
+
+
+def inventory_balances_html(data: Dict[str, Any], paper: str = "default") -> str:
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "inventory_balances")
+    payload = dict(data or {})
+    rows_data = list(payload.get('rows') or payload.get('balances') or [])
+    title = _tr('inventory_balances_report')
+    rows: List[List[Any]] = []
+    for i, row in enumerate(rows_data, 1):
+        rows.append([i, _line_value(row, 'item_name', 'name', default=row.get('item_id', '')), _line_value(row, 'barcode'), _line_value(row, 'warehouse_name', 'warehouse'), _line_value(row, 'quantity', 'available_qty', 'balance'), _line_value(row, 'unit_name', 'unit'), _line_value(row, 'inventory_value', 'value'), _line_value(row, 'status')])
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {_meta_table([[(_tr('print_warehouse'), payload.get('warehouse_name') or payload.get('warehouse') or _tr('all')), (_tr('print_date'), _print_meta_line()), (_tr('print_notes'), payload.get('notes') or '')]])}
+    {_table(['#', _tr('print_item'), _tr('print_barcode'), _tr('print_warehouse'), _tr('quantity'), _tr('print_unit'), _tr('inventory_value'), _tr('status')], rows, _tr('print_no_data'))}
+    {_footer(settings, _tr('inventory_balances_footer'))}
+    """
+    return base_document(title, body, paper, settings)
+
+
+def inventory_movements_html(data: Dict[str, Any], paper: str = "default") -> str:
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "inventory_movements")
+    payload = dict(data or {})
+    rows_data = list(payload.get('rows') or payload.get('movements') or [])
+    title = _tr('inventory_movements_report')
+    rows: List[List[Any]] = []
+    for i, row in enumerate(rows_data, 1):
+        rows.append([i, _line_value(row, 'created_at', 'date'), _line_value(row, 'item_name', 'name', default=row.get('item_id', '')), _line_value(row, 'warehouse_name', 'warehouse'), _inventory_movement_type(row.get('movement_type')), _line_value(row, 'quantity'), _line_value(row, 'unit_cost'), _line_value(row, 'reference_type'), _line_value(row, 'notes')])
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {_meta_table([[(_tr('print_warehouse'), payload.get('warehouse_name') or payload.get('warehouse') or _tr('all')), (_tr('status'), payload.get('movement_type') or _tr('all')), (_tr('print_date'), _print_meta_line())]])}
+    {_table(['#', _tr('print_date'), _tr('print_item'), _tr('print_warehouse'), _tr('type'), _tr('quantity'), _tr('unit_cost'), _tr('reference'), _tr('print_notes')], rows, _tr('print_no_data'))}
+    {_footer(settings, _tr('inventory_movements_footer'))}
+    """
+    return base_document(title, body, paper, settings)
+
+
+def inventory_ledger_html(data: Dict[str, Any], paper: str = "default") -> str:
+    settings = _settings()
+    paper = _normalize_paper(paper, settings, "inventory_ledger")
+    payload = dict(data or {})
+    rows_data = list(payload.get('rows') or payload.get('ledger') or [])
+    title = _tr('inventory_ledger_report')
+    rows: List[List[Any]] = []
+    for i, row in enumerate(rows_data, 1):
+        rows.append([i, _line_value(row, 'created_at', 'date'), _line_value(row, 'item_name', 'name', default=row.get('item_id', '')), _line_value(row, 'warehouse_name', 'warehouse'), _inventory_movement_type(row.get('movement_type')), _line_value(row, 'direction'), _line_value(row, 'quantity'), _line_value(row, 'unit_cost'), _line_value(row, 'reference_type'), _line_value(row, 'notes')])
+    body = f"""
+    {_company_header(settings, title)}
+    <div class='document-title'>{_s(title)}</div>
+    {_meta_table([[(_tr('print_warehouse'), payload.get('warehouse_name') or payload.get('warehouse') or _tr('all')), (_tr('print_date'), _print_meta_line()), (_tr('print_notes'), payload.get('notes') or '')]])}
+    {_table(['#', _tr('print_date'), _tr('print_item'), _tr('print_warehouse'), _tr('type'), _tr('direction'), _tr('quantity'), _tr('unit_cost'), _tr('reference'), _tr('print_notes')], rows, _tr('print_no_data'))}
+    {_footer(settings, _tr('inventory_ledger_footer'))}
     """
     return base_document(title, body, paper, settings)

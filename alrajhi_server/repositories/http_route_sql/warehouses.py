@@ -171,6 +171,12 @@ def _ensure_transfer_schema(db):
             from_warehouse_id INTEGER NOT NULL,
             to_warehouse_id INTEGER NOT NULL,
             quantity TEXT NOT NULL,
+            base_qty TEXT,
+            unit_id INTEGER,
+            unit_name TEXT,
+            conversion_factor TEXT DEFAULT '1',
+            barcode_scope TEXT,
+            matched_barcode TEXT,
             unit_cost TEXT DEFAULT '0',
             notes TEXT,
             status TEXT DEFAULT 'active',
@@ -179,6 +185,14 @@ def _ensure_transfer_schema(db):
             UNIQUE(user_id, transfer_no)
         )
     """)
+    for col_name, col_type in (
+        ('base_qty', 'TEXT'), ('unit_id', 'INTEGER'), ('unit_name', 'TEXT'),
+        ('conversion_factor', "TEXT DEFAULT '1'"), ('barcode_scope', 'TEXT'), ('matched_barcode', 'TEXT'),
+    ):
+        try:
+            db.query(f"ALTER TABLE warehouse_transfers ADD COLUMN {col_name} {col_type}")
+        except Exception:
+            pass
 
 def _warehouse_active(db, uid, warehouse_id):
     row = db.query("""
@@ -377,6 +391,10 @@ def create_warehouse_transfer():
         from_wh = int(data.get('from_warehouse_id') or 0)
         to_wh = int(data.get('to_warehouse_id') or 0)
         qty = _dec(data.get('quantity') or '0')
+        conv_factor = _dec(data.get('conversion_factor') or '1')
+        if conv_factor <= 0:
+            conv_factor = Decimal('1')
+        base_qty = _dec(data.get('base_qty') or (qty * conv_factor))
         notes = str(data.get('notes') or '').strip()
         if item_id <= 0:
             raise ValueError('اختر المادة')
@@ -384,25 +402,25 @@ def create_warehouse_transfer():
             raise ValueError('اختر مستودع المصدر والوجهة')
         if from_wh == to_wh:
             raise ValueError('لا يمكن التحويل إلى نفس المستودع')
-        if qty <= 0:
+        if qty <= 0 or base_qty <= 0:
             raise ValueError('كمية التحويل يجب أن تكون أكبر من صفر')
         if not _warehouse_active(db, uid, from_wh) or not _warehouse_active(db, uid, to_wh):
             raise ValueError('لا يمكن التحويل من أو إلى مستودع مؤرشف')
-        if _available_qty(db, uid, item_id, from_wh) < qty:
+        if _available_qty(db, uid, item_id, from_wh) < base_qty:
             raise ValueError('الرصيد غير كافٍ في المستودع المصدر')
         unit_cost = _item_cost(db, uid, item_id)
         now = _now()
         transfer_no = _next_transfer_no(db, uid)
         cur = db.query("""
             INSERT INTO warehouse_transfers
-            (user_id, transfer_no, item_id, from_warehouse_id, to_warehouse_id, quantity, unit_cost, notes, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
-        """, (uid, transfer_no, item_id, from_wh, to_wh, str(qty), str(unit_cost), notes, now))
+            (user_id, transfer_no, item_id, from_warehouse_id, to_warehouse_id, quantity, base_qty, unit_id, unit_name, conversion_factor, barcode_scope, matched_barcode, unit_cost, notes, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+        """, (uid, transfer_no, item_id, from_wh, to_wh, str(qty), str(base_qty), data.get('unit_id'), data.get('unit_name') or data.get('unit') or '', str(conv_factor), data.get('barcode_scope') or '', data.get('matched_barcode') or '', str(unit_cost), notes, now))
         tid = int(cur.lastrowid)
-        _record_warehouse_movement(db, uid, item_id, from_wh, 'transfer_out', -qty, unit_cost, 'warehouse_transfer', tid, f'تحويل إلى مستودع #{to_wh}: {notes}')
-        _record_warehouse_movement(db, uid, item_id, to_wh, 'transfer_in', qty, unit_cost, 'warehouse_transfer', tid, f'تحويل من مستودع #{from_wh}: {notes}')
-        _post_inventory_ledger_entry(db, uid, item_id, from_wh, 'transfer_out', 'out', qty, unit_cost, 'warehouse_transfer', tid, 'warehouse_transfers', tid, f'دفتر مخزون تحويل إلى مستودع #{to_wh}')
-        _post_inventory_ledger_entry(db, uid, item_id, to_wh, 'transfer_in', 'in', qty, unit_cost, 'warehouse_transfer', tid, 'warehouse_transfers', tid, f'دفتر مخزون تحويل من مستودع #{from_wh}')
+        _record_warehouse_movement(db, uid, item_id, from_wh, 'transfer_out', -base_qty, unit_cost, 'warehouse_transfer', tid, f'تحويل إلى مستودع #{to_wh}: {notes}')
+        _record_warehouse_movement(db, uid, item_id, to_wh, 'transfer_in', base_qty, unit_cost, 'warehouse_transfer', tid, f'تحويل من مستودع #{from_wh}: {notes}')
+        _post_inventory_ledger_entry(db, uid, item_id, from_wh, 'transfer_out', 'out', base_qty, unit_cost, 'warehouse_transfer', tid, 'warehouse_transfers', tid, f'دفتر مخزون تحويل إلى مستودع #{to_wh}')
+        _post_inventory_ledger_entry(db, uid, item_id, to_wh, 'transfer_in', 'in', base_qty, unit_cost, 'warehouse_transfer', tid, 'warehouse_transfers', tid, f'دفتر مخزون تحويل من مستودع #{from_wh}')
         db.commit()
         return jsonify({'id': tid}), 201
     except Exception as exc:
@@ -418,7 +436,7 @@ def cancel_warehouse_transfer(transfer_id):
         return jsonify({'error': 'التحويل غير موجود'}), 404
     if t['status'] != 'active':
         return jsonify({'error': 'التحويل ملغى مسبقاً'}), 400
-    qty = _dec(t['quantity'])
+    qty = _dec(t['base_qty'] if 'base_qty' in t.keys() and t['base_qty'] not in (None, '') else t['quantity'])
     if _available_qty(db, uid, t['item_id'], t['to_warehouse_id']) < qty:
         return jsonify({'error': 'لا يمكن إلغاء التحويل لأن رصيد المستودع المستلم غير كافٍ'}), 400
     try:

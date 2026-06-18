@@ -22,8 +22,34 @@ class RemoteRestaurantGateway(RestaurantGateway):
     def get_session(self, session_id: int) -> dict[str, Any]:
         return self.client._request("GET", f"/api/restaurant/sessions/{int(session_id)}") or {}
 
-    def add_order_line(self, session_id: int, item_name: str, item_id: int | None = None, quantity: Any = "1", unit_price: Any = "0", notes: str = "") -> dict[str, Any]:
-        return self.client._request("POST", f"/api/restaurant/sessions/{int(session_id)}/lines", {"item_id": item_id, "item_name": item_name, "quantity": quantity, "unit_price": unit_price, "notes": notes}) or {}
+    def add_order_line(
+        self,
+        session_id: int,
+        item_name: str,
+        item_id: int | None = None,
+        quantity: Any = "1",
+        unit_price: Any = "0",
+        notes: str = "",
+        unit_id: int | None = None,
+        unit: str = "",
+        conversion_factor: Any = "1",
+        base_qty: Any | None = None,
+        barcode_scope: str = "",
+        matched_barcode: str = "",
+    ) -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/sessions/{int(session_id)}/lines", {
+            "item_id": item_id,
+            "item_name": item_name,
+            "quantity": quantity,
+            "unit_price": unit_price,
+            "notes": notes,
+            "unit_id": unit_id,
+            "unit": unit,
+            "conversion_factor": conversion_factor,
+            "base_qty": base_qty,
+            "barcode_scope": barcode_scope,
+            "matched_barcode": matched_barcode,
+        }) or {}
 
     def send_to_kitchen(self, session_id: int, notes: str = "") -> dict[str, Any]:
         return self.client._request("POST", f"/api/restaurant/sessions/{int(session_id)}/send_to_kitchen", {"notes": notes}) or {}

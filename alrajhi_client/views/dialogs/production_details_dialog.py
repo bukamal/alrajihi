@@ -6,7 +6,7 @@ from PyQt5.QtCore import Qt
 from i18n import translate, qt_layout_direction
 from PyQt5.QtGui import QKeySequence
 from views.centered_dialog import CenteredDialog
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
 from core.services.manufacturing_service import manufacturing_service
 from core.services.product_service import product_service
@@ -101,18 +101,18 @@ class ProductionDetailsDialog(CenteredDialog):
 
         tabs = QTabWidget()
         # تبويب المواد المستهلكة
-        self.cons_table = CustomTableView()
+        self.cons_table = SmartTableView(identity='production_details.consumption')
         self.cons_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.cons_table.customContextMenuRequested.connect(self.show_cons_menu)
         tabs.addTab(self.cons_table, translate("consumed_materials"))
         # تبويب المنتج النهائي
-        self.out_table = CustomTableView()
+        self.out_table = SmartTableView(identity='production_details.output')
         self.out_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.out_table.customContextMenuRequested.connect(self.show_out_menu)
         tabs.addTab(self.out_table, translate("finished_product_group"))
         # تبويب الحجوزات (يظهر فقط للأوامر المخطط لها أو قيد التنفيذ)
         if order.get('status') in ('planned', 'in_progress'):
-            self.res_table = CustomTableView()
+            self.res_table = SmartTableView(identity='production_details.residuals')
             tabs.addTab(self.res_table, translate("reservations_remaining"))
         layout.addWidget(tabs)
 

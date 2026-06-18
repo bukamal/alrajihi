@@ -75,40 +75,93 @@ def _assert_unique_barcode(db, user_id, barcode, item_id=None):
     row = db.query(sql, params).fetchone()
     if row:
         raise ValueError(f"الباركود '{value}' مستخدم بالفعل للمادة: {row['name']}")
+
+    unit_params = [user_id, value]
+    unit_sql = """
+        SELECT i.id, i.name, u.unit_name
+        FROM item_units u
+        JOIN items i ON i.id = u.item_id
+        WHERE i.user_id=? AND i.deleted_at IS NULL AND u.barcode=?
+    """
+    if item_id is not None:
+        unit_sql += " AND i.id<>?"
+        unit_params.append(item_id)
+    unit_row = db.query(unit_sql, unit_params).fetchone()
+    if unit_row:
+        raise ValueError(f"الباركود '{value}' مستخدم بالفعل لوحدة '{unit_row['unit_name']}' في المادة: {unit_row['name']}")
     return value
 
 
+def _assert_unique_unit_barcode(db, user_id, barcode, item_id=None, unit_name=''):
+    value = _validate_barcode_format(barcode)
+    if not value:
+        return None
+    row = db.query(
+        "SELECT id, name FROM items WHERE user_id=? AND barcode=? AND deleted_at IS NULL" + (" AND id<>?" if item_id is not None else ""),
+        ([user_id, value, item_id] if item_id is not None else [user_id, value])
+    ).fetchone()
+    if row:
+        raise ValueError(f"باركود الوحدة '{value}' مستخدم بالفعل كمادة: {row['name']}")
+    unit_params = [user_id, value]
+    unit_sql = """
+        SELECT i.id, i.name, u.unit_name
+        FROM item_units u
+        JOIN items i ON i.id = u.item_id
+        WHERE i.user_id=? AND i.deleted_at IS NULL AND u.barcode=?
+    """
+    if item_id is not None:
+        unit_sql += " AND i.id<>?"
+        unit_params.append(item_id)
+    row = db.query(unit_sql, unit_params).fetchone()
+    if row:
+        raise ValueError(f"باركود الوحدة '{value}' مستخدم بالفعل لوحدة '{row['unit_name']}' في المادة: {row['name']}")
+    return value
 
-def _normalize_units(units):
-    """Return valid item sub-units, ignoring empty rows and validating factors."""
+def _normalize_units(db, user_id, item_id, units, base_barcode=None):
+    """Return valid item sub-units with optional unit barcodes."""
     result = []
-    seen = set()
+    seen_names = set()
+    seen_barcodes = {str(base_barcode or '').strip()} if base_barcode else set()
     for unit in units or []:
-        name = str((unit or {}).get('unit_name') or (unit or {}).get('name') or '').strip()
+        source = unit or {}
+        name = str(source.get('unit_name') or source.get('name') or '').strip()
         if not name:
             continue
         try:
-            factor = Decimal(str((unit or {}).get('conversion_factor', 1)))
+            factor = Decimal(str(source.get('conversion_factor', 1)))
         except Exception:
             raise ValueError(f"عامل التحويل للوحدة '{name}' غير صالح")
         if factor <= 0:
             raise ValueError(f"عامل التحويل للوحدة '{name}' يجب أن يكون أكبر من صفر")
         key = name.casefold()
-        if key in seen:
+        if key in seen_names:
             raise ValueError(f"الوحدة الفرعية '{name}' مكررة")
-        seen.add(key)
-        result.append({'unit_name': name, 'conversion_factor': str(factor)})
+        seen_names.add(key)
+        barcode = _assert_unique_unit_barcode(db, user_id, source.get('barcode') or source.get('unit_barcode'), item_id=item_id, unit_name=name)
+        if barcode:
+            if barcode in seen_barcodes:
+                raise ValueError(f"الباركود '{barcode}' مكرر بين المادة أو وحداتها")
+            seen_barcodes.add(barcode)
+        result.append({
+            'unit_name': name,
+            'conversion_factor': str(factor),
+            'barcode': barcode,
+            'unit_barcode': barcode,
+            'notes': str(source.get('notes') or '').strip(),
+        })
     return result
 
-
-def _save_item_units(db, item_id, units):
+def _save_item_units(db, item_id, units, user_id=None, base_barcode=None):
+    if user_id is None:
+        row = db.query('SELECT user_id, barcode FROM items WHERE id=?', (item_id,)).fetchone()
+        user_id = row['user_id'] if row else None
+        base_barcode = base_barcode if base_barcode is not None else (row['barcode'] if row else None)
     db.query('DELETE FROM item_units WHERE item_id=?', (item_id,))
-    for unit in _normalize_units(units):
+    for unit in _normalize_units(db, user_id, item_id, units, base_barcode=base_barcode):
         db.query(
-            'INSERT INTO item_units (item_id, unit_name, conversion_factor) VALUES (?,?,?)',
-            (item_id, unit['unit_name'], unit['conversion_factor'])
+            'INSERT INTO item_units (item_id, unit_name, conversion_factor, barcode, notes) VALUES (?,?,?,?,?)',
+            (item_id, unit['unit_name'], unit['conversion_factor'], unit.get('barcode'), unit.get('notes', ''))
         )
-
 
 def _attach_units(db, items):
     """Attach item_units to item dict(s) so remote invoices can use base/sub-units."""
@@ -119,7 +172,7 @@ def _attach_units(db, items):
     if ids:
         placeholders = ','.join('?' for _ in ids)
         for row in db.query(
-            f'SELECT id, item_id, unit_name, conversion_factor FROM item_units WHERE item_id IN ({placeholders}) ORDER BY id',
+            f'SELECT id, item_id, unit_name, conversion_factor, barcode, notes FROM item_units WHERE item_id IN ({placeholders}) ORDER BY id',
             ids
         ).fetchall():
             units_by_item.setdefault(int(row['item_id']), []).append(dict(row))
@@ -156,7 +209,7 @@ def get_items():
     """
     params = [user_id]
     if search:
-        query += " AND (i.name LIKE ? OR i.barcode LIKE ?)"
+        query += " AND (LOWER(COALESCE(i.name,'')) LIKE LOWER(?) OR LOWER(COALESCE(i.barcode,'')) LIKE LOWER(?))"
         params.extend([f"%{search}%", f"%{search}%"])
     query += " ORDER BY i.name"
     if limit:
@@ -168,12 +221,162 @@ def get_items():
     count_query = "SELECT COUNT(*) FROM items i WHERE i.user_id = ? AND i.deleted_at IS NULL"
     count_params = [user_id]
     if search:
-        count_query += " AND (i.name LIKE ? OR i.barcode LIKE ?)"
+        count_query += " AND (LOWER(COALESCE(i.name,'')) LIKE LOWER(?) OR LOWER(COALESCE(i.barcode,'')) LIKE LOWER(?))"
         count_params.extend([f"%{search}%", f"%{search}%"])
     total = db.query(count_query, count_params).fetchone()[0]
     rows = db.query(query, params).fetchall()
     items = _attach_units(db, [dict(row) for row in rows])
     return jsonify({'items': items, 'total': total})
+
+
+@items_bp.route('/items/sold-quantities', methods=['GET'])
+@jwt_required()
+def get_item_sold_quantities():
+    """Return net sold quantities per item in base unit for the materials grid."""
+    user_id = get_jwt_identity()
+    raw_ids = request.args.get('ids', '') or ''
+    ids = []
+    for part in raw_ids.split(','):
+        try:
+            value = int(part.strip())
+            if value not in ids:
+                ids.append(value)
+        except Exception:
+            continue
+    if not ids:
+        return jsonify({'sold_quantities': {}})
+    placeholders = ','.join('?' for _ in ids)
+    db = get_item_repository()
+    result = {str(i): '0' for i in ids}
+    rows = db.query(f"""
+        SELECT il.item_id, COALESCE(SUM(CAST(COALESCE(NULLIF(il.quantity_in_base,''), il.quantity, '0') AS REAL)), 0) AS qty
+        FROM invoice_lines il
+        JOIN invoices inv ON inv.id = il.invoice_id
+        WHERE inv.user_id=?
+          AND inv.type='sale'
+          AND COALESCE(inv.deleted_at, '') = ''
+          AND il.item_id IN ({placeholders})
+        GROUP BY il.item_id
+    """, [user_id] + ids).fetchall()
+    for row in rows:
+        result[str(row['item_id'])] = str(row['qty'] or 0)
+    try:
+        rrows = db.query(f"""
+            SELECT srl.item_id, COALESCE(SUM(CAST(COALESCE(NULLIF(srl.quantity_in_base,''), srl.quantity, '0') AS REAL)), 0) AS qty
+            FROM sales_return_lines srl
+            JOIN sales_returns sr ON sr.id = srl.sales_return_id
+            WHERE sr.user_id=?
+              AND COALESCE(sr.status, 'active') != 'cancelled'
+              AND COALESCE(sr.deleted_at, '') = ''
+              AND srl.item_id IN ({placeholders})
+            GROUP BY srl.item_id
+        """, [user_id] + ids).fetchall()
+        for row in rrows:
+            key = str(row['item_id'])
+            result[key] = str(max(Decimal(str(result.get(key, '0'))) - Decimal(str(row['qty'] or 0)), Decimal('0')))
+    except Exception:
+        pass
+    return jsonify({'sold_quantities': result})
+
+@items_bp.route('/items/by-barcode', methods=['GET'])
+@items_bp.route('/items/by-barcode/<path:barcode>', methods=['GET'])
+@jwt_required()
+def get_item_by_barcode(barcode=None):
+    """Return exactly one active material by base barcode or unit barcode.
+
+    The route remains deterministic for scanner flows.  A unit barcode match is
+    returned as the parent material enriched with matched_unit metadata so the
+    client grid can select the scanned unit and conversion_factor immediately.
+    """
+    user_id = get_jwt_identity()
+    value = str(barcode if barcode is not None else request.args.get('barcode', '')).strip()
+    if not value:
+        return jsonify({'error': 'barcode_required'}), 400
+    try:
+        value = _validate_barcode_format(value)
+    except ValueError:
+        return jsonify({'error': 'not_found', 'barcode': value}), 404
+    if not value:
+        return jsonify({'error': 'barcode_required'}), 400
+    db = get_item_repository()
+    base_sql = """
+        SELECT i.*, c.name as category_name,
+               COALESCE((
+                   SELECT SUM(CASE
+                       WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+                       WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+                       ELSE 0 END)
+                   FROM inventory_movements
+                   WHERE item_id = i.id AND user_id = i.user_id
+               ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS available,
+               COALESCE((
+                   SELECT SUM(CAST(quantity AS REAL))
+                   FROM inventory_movements
+                   WHERE item_id = i.id AND user_id = i.user_id AND movement_type = 'opening'
+               ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS opening_quantity
+        FROM items i
+        LEFT JOIN categories c ON i.category_id = c.id
+        WHERE i.user_id=? AND i.deleted_at IS NULL AND i.barcode=?
+        LIMIT 1
+    """
+    row = db.query(base_sql, (user_id, value)).fetchone()
+    if row:
+        item = _attach_units(db, dict(row))
+        item['barcode_scope'] = 'base_unit'
+        return jsonify(item)
+
+    unit_sql = """
+        SELECT u.id AS matched_unit_id, u.unit_name AS matched_unit_name,
+               u.conversion_factor AS matched_conversion_factor,
+               u.barcode AS matched_unit_barcode, u.notes AS matched_unit_notes,
+               i.*, c.name AS category_name,
+               COALESCE((
+                   SELECT SUM(CASE
+                       WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+                       WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+                       ELSE 0 END)
+                   FROM inventory_movements
+                   WHERE item_id = i.id AND user_id = i.user_id
+               ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS available,
+               COALESCE((
+                   SELECT SUM(CAST(quantity AS REAL))
+                   FROM inventory_movements
+                   WHERE item_id = i.id AND user_id = i.user_id AND movement_type = 'opening'
+               ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS opening_quantity
+        FROM item_units u
+        JOIN items i ON i.id = u.item_id
+        LEFT JOIN categories c ON i.category_id = c.id
+        WHERE i.user_id=? AND i.deleted_at IS NULL AND u.barcode=?
+        LIMIT 1
+    """
+    unit_row = db.query(unit_sql, (user_id, value)).fetchone()
+    if not unit_row:
+        return jsonify({'error': 'not_found', 'barcode': value}), 404
+    data = dict(unit_row)
+    item = {k: v for k, v in data.items() if not k.startswith('matched_')}
+    matched_unit = {
+        'id': data.get('matched_unit_id'),
+        'unit_id': data.get('matched_unit_id'),
+        'unit_name': data.get('matched_unit_name'),
+        'unit': data.get('matched_unit_name'),
+        'conversion_factor': data.get('matched_conversion_factor') or 1,
+        'factor': data.get('matched_conversion_factor') or 1,
+        'barcode': data.get('matched_unit_barcode') or value,
+        'unit_barcode': data.get('matched_unit_barcode') or value,
+        'notes': data.get('matched_unit_notes') or '',
+    }
+    item = _attach_units(db, item)
+    item.update({
+        'matched_unit': matched_unit,
+        'barcode_scope': 'unit',
+        'unit_id': matched_unit['unit_id'],
+        'unit_name': matched_unit['unit_name'],
+        'unit': matched_unit['unit_name'],
+        'conversion_factor': matched_unit['conversion_factor'],
+        'matched_barcode': value,
+        'barcode': value,
+    })
+    return jsonify(item)
 
 @items_bp.route('/items', methods=['POST'])
 @jwt_required()
@@ -196,7 +399,7 @@ def add_item():
     ))
     item_id = cursor.lastrowid
     try:
-        _save_item_units(db, item_id, data.get('units', []))
+        _save_item_units(db, item_id, data.get('units', []), user_id=user_id, base_barcode=data.get('barcode'))
     except ValueError as e:
         db.rollback()
         return jsonify({'error': str(e)}), 400
@@ -225,13 +428,21 @@ def _has_non_opening_item_movements(db, item_id, user_id):
 
 
 def _count(db, sql, params):
-    row = db.query(sql, params).fetchone()
-    return int(row[0] if row else 0)
+    try:
+        row = db.query(sql, params).fetchone()
+        return int(row[0] if row else 0)
+    except Exception:
+        # Some optional legacy tables are absent in older deployments.  Usage
+        # summary must remain non-blocking for remote compatibility.
+        return 0
 
 
 def _get_item_usage_summary(db, item_id, user_id):
     summary = {
         'invoice_lines': _count(db, "SELECT COUNT(*) FROM invoice_lines WHERE item_id=?", (item_id,)),
+        'purchase_lines': _count(db, "SELECT COUNT(*) FROM purchase_invoice_lines WHERE item_id=?", (item_id,)),
+        'sales_return_lines': _count(db, "SELECT COUNT(*) FROM sales_return_lines WHERE item_id=?", (item_id,)),
+        'purchase_return_lines': _count(db, "SELECT COUNT(*) FROM purchase_return_lines WHERE item_id=?", (item_id,)),
         'inventory_movements': _count(db, "SELECT COUNT(*) FROM inventory_movements WHERE item_id=? AND user_id=? AND movement_type <> 'opening'", (item_id, user_id)),
         'bom_products': _count(db, "SELECT COUNT(*) FROM bom WHERE product_id=? AND user_id=?", (item_id, user_id)),
         'bom_lines': _count(db, "SELECT COUNT(*) FROM bom_lines WHERE item_id=?", (item_id,)),
@@ -239,8 +450,24 @@ def _get_item_usage_summary(db, item_id, user_id):
         'production_consumptions': _count(db, "SELECT COUNT(*) FROM production_consumptions WHERE item_id=?", (item_id,)),
         'production_outputs': _count(db, "SELECT COUNT(*) FROM production_outputs WHERE item_id=?", (item_id,)),
     }
-    summary['blocking_total'] = sum(summary.values())
+    summary['blocking_total'] = sum(int(v or 0) for v in summary.values())
+    summary['has_movements'] = bool(summary['blocking_total'])
     return summary
+
+
+@items_bp.route('/items/<int:item_id>/activity-summary', methods=['GET'])
+@jwt_required()
+def get_item_activity_summary(item_id):
+    """Return material usage counts for UI security/settings enforcement."""
+    user_id = get_jwt_identity()
+    db = get_item_repository()
+    exists = db.query(
+        "SELECT id FROM items WHERE id=? AND user_id=? AND deleted_at IS NULL",
+        (item_id, user_id)
+    ).fetchone()
+    if not exists:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify(_get_item_usage_summary(db, item_id, user_id))
 
 
 
@@ -291,7 +518,7 @@ def update_item(item_id):
         data.get('barcode'), data.get('reorder_level', 0), item_id, user_id
     ))
     try:
-        _save_item_units(db, item_id, data.get('units', []))
+        _save_item_units(db, item_id, data.get('units', []), user_id=user_id, base_barcode=data.get('barcode'))
     except ValueError as e:
         db.rollback()
         return jsonify({'error': str(e)}), 400

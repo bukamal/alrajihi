@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox,
     QPushButton, QGroupBox, QLabel, QMessageBox, QTabWidget, QFileDialog,
-    QSpinBox, QCheckBox, QTableWidget, QTableWidgetItem, QHeaderView,
+    QSpinBox, QCheckBox, QTableWidgetItem, QHeaderView,
     QDialog, QDialogButtonBox, QScrollArea, QFrame, QPlainTextEdit, QInputDialog
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QSettings
@@ -16,6 +16,7 @@ from currency import currency
 from auth.activation import activate_network, check_network_activation
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
+from ui.editable_smart_grid import EditableSmartGrid
 from utils import show_toast
 from i18n.translator import translate, set_language, available_languages, normalize_language, qt_layout_direction
 import requests
@@ -638,7 +639,7 @@ class SettingsWidget(QWidget):
     def create_rates_tab(self):
         scroll, layout = self._scroll_tab()
         group, box = self._card(translate('settings_rates_title'), translate('settings_rates_help'))
-        self.rates_table = QTableWidget(); self.rates_table.setColumnCount(3); self.rates_table.setHorizontalHeaderLabels([translate('settings_rates_currency_col'), translate('settings_rates_rate_col'), translate('settings_rates_updated_col')])
+        self.rates_table = EditableSmartGrid(identity='settings.rates'); self.rates_table.setColumnCount(3); self.rates_table.setHorizontalHeaderLabels([translate('settings_rates_currency_col'), translate('settings_rates_rate_col'), translate('settings_rates_updated_col')])
         self.rates_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.rates_table.setAlternatingRowColors(True); self.rates_table.setMinimumHeight(320)
         box.addWidget(self.rates_table)
@@ -744,7 +745,7 @@ class SettingsWidget(QWidget):
         scroll, layout = self._scroll_tab()
         group, box = self._card('ملفات الإعدادات Profiles', 'تسمح بإنشاء أكثر من مجموعة إعدادات: افتراضي، تجزئة، جملة، تصنيع، أو اختبار. الملف النشط يملك أولوية عند قراءة الإعدادات.')
 
-        self.profiles_table = QTableWidget(0, 5)
+        self.profiles_table = EditableSmartGrid(0, 5, identity='settings.profiles')
         self.profiles_table.setHorizontalHeaderLabels(['ID', 'الاسم', 'الوصف', 'نشط', 'عدد الإعدادات'])
         self.profiles_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.profiles_table.setAlternatingRowColors(True)
@@ -983,7 +984,7 @@ class SettingsWidget(QWidget):
     def create_settings_audit_tab(self):
         scroll, layout = self._scroll_tab()
         group, box = self._card('سجل تغييرات الإعدادات', 'يعرض آخر تغييرات جدول settings_audit مع أدوات تصدير/استيراد الإعدادات للدعم الفني.')
-        self.settings_audit_table = QTableWidget(0, 5)
+        self.settings_audit_table = EditableSmartGrid(0, 5, identity='settings.audit')
         self.settings_audit_table.setHorizontalHeaderLabels(['الوقت', 'المفتاح', 'القيمة السابقة', 'القيمة الجديدة', 'المصدر'])
         self.settings_audit_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.settings_audit_table.setAlternatingRowColors(True)
@@ -1037,7 +1038,7 @@ class SettingsWidget(QWidget):
     def create_security_events_tab(self):
         scroll, layout = self._scroll_tab()
         group, box = self._card('سجل الصلاحيات والأمان', 'يعرض العمليات التي منعتها سياسات الصلاحيات: حذف، تعديل فواتير، تعديل مرتجعات، عرض/تصدير تقارير.')
-        self.security_events_table = QTableWidget(0, 6)
+        self.security_events_table = EditableSmartGrid(0, 6, identity='settings.security_events')
         self.security_events_table.setHorizontalHeaderLabels(['الوقت', 'الحدث', 'الإجراء', 'الدور', 'المستخدم', 'السبب'])
         self.security_events_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.security_events_table.setAlternatingRowColors(True)

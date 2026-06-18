@@ -14,6 +14,9 @@ class TableToolbar(QWidget):
     printRequested = pyqtSignal()
     refreshRequested = pyqtSignal()
     resetColumnsRequested = pyqtSignal()
+    fitColumnsRequested = pyqtSignal()
+    filtersRequested = pyqtSignal()
+    saveViewRequested = pyqtSignal()
 
     def __init__(self, entity_name=None, search_placeholder=None, parent=None):
         super().__init__(parent)
@@ -51,9 +54,19 @@ class TableToolbar(QWidget):
         self.search_edit.textChanged.connect(lambda *_: self._search_timer.start(self._search_delay_ms))
         layout.addWidget(self.search_edit, 1)
 
+        self.filter_btn = QPushButton(translate("filters") if translate("filters") != "filters" else "Filters")
+        self.filter_btn.setToolTip(translate("advanced_filters_hint") if translate("advanced_filters_hint") != "advanced_filters_hint" else "Advanced table filters")
+        self.filter_btn.clicked.connect(self._show_filters)
+        layout.addWidget(self.filter_btn)
+
         self.columns_btn = QPushButton(translate("columns"))
+        self.columns_btn.setToolTip(translate("column_chooser_hint") if translate("column_chooser_hint") != "column_chooser_hint" else "Show, hide, reorder, and save columns")
         self.columns_btn.clicked.connect(self._show_columns_menu)
         layout.addWidget(self.columns_btn)
+
+        self.fit_btn = QPushButton(translate("fit_columns") if translate("fit_columns") != "fit_columns" else "Fit")
+        self.fit_btn.clicked.connect(self._fit_columns)
+        layout.addWidget(self.fit_btn)
 
         self.export_btn = QPushButton(translate("excel"))
         self.export_btn.clicked.connect(self.exportRequested.emit)
@@ -130,15 +143,42 @@ class TableToolbar(QWidget):
     def _show_columns_menu(self):
         if not self._table or not self._table.model():
             return
-        model = self._table.model()
         menu = QMenu(self)
-        for col in range(model.columnCount()):
-            header = model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or translate("column_number", number=col + 1)
-            action = menu.addAction(str(header))
-            action.setCheckable(True)
-            action.setChecked(not self._table.isColumnHidden(col))
-            action.toggled.connect(lambda checked, c=col: self._table.set_column_visible(c, checked))
+        chooser_action = menu.addAction(translate("columns"))
+        if hasattr(self._table, "show_column_chooser"):
+            chooser_action.triggered.connect(self._table.show_column_chooser)
+        fit_action = menu.addAction(translate("fit_columns") if translate("fit_columns") != "fit_columns" else "Fit columns")
+        fit_action.triggered.connect(self._fit_columns)
+        responsive_action = menu.addAction(translate("responsive_columns") if translate("responsive_columns") != "responsive_columns" else "Responsive columns")
+        responsive_action.setCheckable(True)
+        responsive_action.setChecked(bool(getattr(self._table, "_auto_fit_columns", False)))
+        responsive_action.toggled.connect(lambda checked: getattr(self._table, "set_responsive_columns", lambda _c: None)(checked))
         menu.addSeparator()
+        export_pdf = menu.addAction(translate("export_pdf") if translate("export_pdf") != "export_pdf" else "Export PDF")
+        export_pdf.triggered.connect(lambda: getattr(self._table, "export_to_pdf", lambda: None)())
+        save_view_action = menu.addAction(translate("save_view") if translate("save_view") != "save_view" else "Save view")
+        save_view_action.triggered.connect(self._save_view)
+        if self._table and hasattr(self._table, "view_preset_names"):
+            preset_names = self._table.view_preset_names()
+            if preset_names:
+                presets_menu = menu.addMenu(translate("view_presets") if translate("view_presets") != "view_presets" else "View presets")
+                for name in preset_names:
+                    presets_menu.addAction(name, lambda n=name: getattr(self._table, "apply_view_preset", lambda _n: None)(n))
         reset_action = menu.addAction(translate("reset_columns"))
         reset_action.triggered.connect(self.resetColumnsRequested.emit)
         menu.exec_(self.columns_btn.mapToGlobal(self.columns_btn.rect().bottomLeft()))
+
+    def _fit_columns(self):
+        self.fitColumnsRequested.emit()
+        if self._table and hasattr(self._table, "fit_columns_to_view"):
+            self._table.fit_columns_to_view()
+
+    def _show_filters(self):
+        self.filtersRequested.emit()
+        if self._table and hasattr(self._table, "show_filter_builder"):
+            self._table.show_filter_builder()
+
+    def _save_view(self):
+        self.saveViewRequested.emit()
+        if self._table and hasattr(self._table, "save_view_preset"):
+            self._table.save_view_preset()

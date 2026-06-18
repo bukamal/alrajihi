@@ -241,11 +241,129 @@ class SettingsService:
         """Return whether POS cashier shifts are required. Default is disabled."""
         return str(self.get('pos/use_shifts', 'false')).lower() == 'true'
 
-    def save_pos_settings(self, use_shifts: bool = False):
-        old = {'pos/use_shifts': self.pos_shifts_enabled()}
+    def get_pos_settings(self) -> Dict[str, Any]:
+        """Return the unified settings contract for the touch POS screen.
+
+        POS must use the same barcode scanner settings, units/decimal policy,
+        stock policy, printing settings, and profile-aware settings layer as
+        invoices and materials.  UI code should not use QSettings directly.
+        """
+        units = self.get_units_settings()
+        inventory = self.get_inventory_settings()
+        printing = self.get_printing_settings()
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        density = str(self.get('pos/ui/density', 'touch') or 'touch').lower()
+        if density not in ('compact', 'comfortable', 'touch'):
+            density = 'touch'
+        payment = self.get('pos/default_payment_method', self.get('transactions/default_payment_method', 'cash')) or 'cash'
+        if payment not in ('cash', 'card', 'credit', 'bank_transfer'):
+            payment = 'cash'
+        return {
+            'use_shifts': self.pos_shifts_enabled(),
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'quantity_decimals': int(units.get('quantity_decimals', 3) or 3),
+            'price_decimals': int(units.get('price_decimals', 2) or 2),
+            'rounding_method': units.get('rounding_method', 'HALF_UP') or 'HALF_UP',
+            'allow_negative_stock': bool(inventory.get('allow_negative_stock', False)),
+            'warn_on_stock_exceed': bool(inventory.get('warn_on_stock_exceed', True)),
+            'default_warehouse_id': self.get('pos/default_warehouse_id', self.get('transactions/default_warehouse_id', self.get('warehouse/default_id', ''))),
+            'default_cashbox_id': self.get('pos/default_cashbox_id', self.get('cashbox/default_id', '')),
+            'default_payment_method': payment,
+            'touch_density': density,
+            'scan_mode': str(self.get('pos/barcode/scan_mode', 'exact') or 'exact').lower(),
+            'auto_focus_scan': self.get_bool('pos/ui/auto_focus_scan', True),
+            'receipt_paper': self.get('pos/receipt_paper', printing.get('thermal_size', '80mm')) or '80mm',
+            'printing': printing,
+            'barcode_scanner': {
+                'prefix': self.get('barcode/scanner/prefix', '') or '',
+                'suffix': self.get('barcode/scanner/suffix', '') or '',
+                'min_length': int(self.get('barcode/scanner/min_length', '6') or 6),
+                'numeric_exact': str(self.get('barcode/scanner/numeric_exact', 'true')).lower() == 'true',
+            },
+            'operations': {
+                'allow_checkout': self.get_bool('pos/operations/allow_checkout', True),
+                'allow_suspend': self.get_bool('pos/operations/allow_suspend', True),
+                'allow_resume': self.get_bool('pos/operations/allow_resume', True),
+                'allow_remove_line': self.get_bool('pos/operations/allow_remove_line', True),
+                'allow_clear_cart': self.get_bool('pos/operations/allow_clear_cart', True),
+                'allow_open_shift': self.get_bool('pos/operations/allow_open_shift', True),
+                'allow_close_shift': self.get_bool('pos/operations/allow_close_shift', True),
+                'allow_print_receipt': self.get_bool('pos/operations/allow_print_receipt', True),
+                'confirm_clear_cart': self.get_bool('pos/operations/confirm_clear_cart', True),
+                'confirm_partial_payment': self.get_bool('pos/operations/confirm_partial_payment', True),
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
+        }
+
+    def get_restaurant_settings(self) -> Dict[str, Any]:
+        """Return the unified settings contract for Restaurant POS.
+
+        Restaurant workflows must not hard-code touch density, barcode behavior,
+        payment defaults, or operation availability. This mirrors POS settings
+        while keeping restaurant-specific operations separate from normal POS.
+        """
+        units = self.get_units_settings()
+        printing = self.get_printing_settings()
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        density = str(self.get('restaurant/ui/density', self.get('pos/ui/density', 'touch')) or 'touch').lower()
+        if density not in ('compact', 'comfortable', 'touch'):
+            density = 'touch'
+        payment = self.get('restaurant/default_payment_method', self.get('pos/default_payment_method', self.get('transactions/default_payment_method', 'cash'))) or 'cash'
+        if payment not in ('cash', 'card', 'credit', 'bank_transfer', 'bank'):
+            payment = 'cash'
+        return {
+            'enabled': self.get_bool('restaurant/enabled', True),
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'quantity_decimals': int(units.get('quantity_decimals', 3) or 3),
+            'price_decimals': int(units.get('price_decimals', 2) or 2),
+            'rounding_method': units.get('rounding_method', 'HALF_UP') or 'HALF_UP',
+            'touch_density': density,
+            'default_payment_method': payment,
+            'receipt_paper': self.get('restaurant/receipt_paper', printing.get('thermal_size', '80mm')) or '80mm',
+            'kitchen_ticket_paper': self.get('restaurant/kitchen_ticket_paper', self.get('restaurant/receipt_paper', printing.get('thermal_size', '80mm'))) or '80mm',
+            'printing': printing,
+            'barcode_scanner': {
+                'prefix': self.get('barcode/scanner/prefix', '') or '',
+                'suffix': self.get('barcode/scanner/suffix', '') or '',
+                'min_length': int(self.get('barcode/scanner/min_length', '6') or 6),
+                'numeric_exact': str(self.get('barcode/scanner/numeric_exact', 'true')).lower() == 'true',
+            },
+            'operations': {
+                'allow_use': self.get_bool('restaurant/operations/allow_use', True),
+                'allow_open_session': self.get_bool('restaurant/operations/allow_open_session', True),
+                'allow_add_line': self.get_bool('restaurant/operations/allow_add_line', True),
+                'allow_send_kitchen': self.get_bool('restaurant/operations/allow_send_kitchen', True),
+                'allow_adjust_bill': self.get_bool('restaurant/operations/allow_adjust_bill', True),
+                'allow_record_payment': self.get_bool('restaurant/operations/allow_record_payment', True),
+                'allow_checkout': self.get_bool('restaurant/operations/allow_checkout', True),
+                'allow_update_kitchen_status': self.get_bool('restaurant/operations/allow_update_kitchen_status', True),
+                'allow_print_receipt': self.get_bool('restaurant/operations/allow_print_receipt', True),
+                'allow_print_kitchen_ticket': self.get_bool('restaurant/operations/allow_print_kitchen_ticket', True),
+                'auto_print_kitchen_ticket': self.get_bool('restaurant/operations/auto_print_kitchen_ticket', False),
+                'auto_print_receipt_after_checkout': self.get_bool('restaurant/operations/auto_print_receipt_after_checkout', False),
+                'confirm_checkout': self.get_bool('restaurant/operations/confirm_checkout', True),
+                'require_kitchen_before_checkout': self.get_bool('restaurant/operations/require_kitchen_before_checkout', False),
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
+        }
+
+    def save_pos_settings(self, use_shifts: bool = False, touch_density: str | None = None,
+                          default_payment_method: str | None = None):
+        old = self.get_pos_settings()
         self.set('pos/use_shifts', 'true' if use_shifts else 'false')
+        if touch_density is not None:
+            density = str(touch_density or 'touch').lower()
+            if density not in ('compact', 'comfortable', 'touch'):
+                density = 'touch'
+            self.set('pos/ui/density', density)
+        if default_payment_method is not None:
+            self.set('pos/default_payment_method', default_payment_method or 'cash')
         self.clear_cache()
-        audit_service.log('UPDATE', 'SETTINGS_POS', None, old_values=old, new_values={'pos/use_shifts': bool(use_shifts)}, details='تعديل إعدادات نقطة البيع')
+        audit_service.log('UPDATE', 'SETTINGS_POS', None, old_values=old, new_values=self.get_pos_settings(), details='تعديل إعدادات نقطة البيع')
 
 
     # ========== Inventory read mode settings ==========
@@ -298,13 +416,113 @@ class SettingsService:
     def invoice_prefix(self, inv_type: str) -> str:
         return self.get('invoice/sales_prefix', 'SAL-') if inv_type == 'sale' else self.get('invoice/purchase_prefix', 'PUR-')
 
-    def get_inventory_settings(self) -> Dict[str, Any]:
+    def get_branch_settings(self) -> Dict[str, Any]:
+        """Return the unified branch-management settings contract.
+
+        Branch screens/services use this profile-aware contract instead of
+        direct settings reads so branch master data follows the same governance
+        pattern as inventory, manufacturing, POS, and transactions.
+        """
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        density = str(self.get('branches/ui/density', self.get('inventory/ui/density', 'comfortable')) or 'comfortable').lower()
+        if density not in ('compact', 'comfortable', 'touch'):
+            density = 'comfortable'
         return {
+            'enabled': self.get_bool('branches/enabled', True),
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'touch_density': density,
+            'operations': {
+                'allow_use': self.get_bool('branches/operations/allow_use', True),
+                'allow_create': self.get_bool('branches/operations/allow_create', True),
+                'allow_edit': self.get_bool('branches/operations/allow_edit', True),
+                'allow_archive': self.get_bool('branches/operations/allow_archive', True),
+                'allow_set_default': self.get_bool('branches/operations/allow_set_default', True),
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
+        }
+
+    def get_finance_settings(self) -> Dict[str, Any]:
+        """Return the unified finance/cash-bank settings contract."""
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        density = str(self.get('finance/ui/density', self.get('inventory/ui/density', 'comfortable')) or 'comfortable').lower()
+        if density not in ('compact', 'comfortable', 'touch'):
+            density = 'comfortable'
+        return {
+            'enabled': self.get_bool('finance/enabled', True),
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'touch_density': density,
+            'operations': {
+                'allow_use': self.get_bool('finance/operations/allow_use', True),
+                'allow_cashbox_create': self.get_bool('finance/operations/allow_cashbox_create', True),
+                'allow_cashbox_edit': self.get_bool('finance/operations/allow_cashbox_edit', True),
+                'allow_cashbox_archive': self.get_bool('finance/operations/allow_cashbox_archive', True),
+                'allow_bank_create': self.get_bool('finance/operations/allow_bank_create', True),
+                'allow_bank_edit': self.get_bool('finance/operations/allow_bank_edit', True),
+                'allow_bank_archive': self.get_bool('finance/operations/allow_bank_archive', True),
+                'allow_movements_view': self.get_bool('finance/operations/allow_movements_view', True),
+                'allow_shifts_view': self.get_bool('finance/operations/allow_shifts_view', True),
+                'allow_voucher_create': self.get_bool('finance/operations/allow_voucher_create', True),
+                'allow_voucher_edit': self.get_bool('finance/operations/allow_voucher_edit', True),
+                'allow_voucher_delete': self.get_bool('finance/operations/allow_voucher_delete', True),
+                'allow_voucher_print': self.get_bool('finance/operations/allow_voucher_print', True),
+                'allow_voucher_view': self.get_bool('finance/operations/allow_voucher_view', True),
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
+        }
+
+    def get_inventory_settings(self) -> Dict[str, Any]:
+        """Return the unified inventory/warehouse settings contract.
+
+        Inventory and warehouse screens/services must use this profile-aware
+        contract instead of direct QSettings/SettingsRepository reads.
+        """
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        units = self.get_units_settings()
+        stock_read_mode = self.get_inventory_stock_read_mode()
+        cost_method = str(self.get('inventory/cost_method', 'AVERAGE') or 'AVERAGE').upper()
+        if cost_method not in ('AVERAGE', 'FIFO', 'LIFO', 'STANDARD', 'LAST_PURCHASE'):
+            cost_method = 'AVERAGE'
+        density = str(self.get('inventory/ui/density', self.get('transactions/ui/density', 'comfortable')) or 'comfortable').lower()
+        if density not in ('compact', 'comfortable', 'touch'):
+            density = 'comfortable'
+        return {
+            'enabled': self.get_bool('inventory/enabled', True),
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'quantity_decimals': int(units.get('quantity_decimals', 3) or 3),
+            'cost_decimals': int(units.get('price_decimals', 2) or 2),
+            'rounding_method': units.get('rounding_method', 'HALF_UP') or 'HALF_UP',
+            'touch_density': density,
             'allow_negative_stock': self.get_bool('inventory/allow_negative_stock', False),
             'warn_on_stock_exceed': self.get_bool('inventory/warn_on_stock_exceed', True),
             'default_reorder_level': self.get('inventory/default_reorder_level', '0'),
-            'cost_method': str(self.get('inventory/cost_method', 'AVERAGE') or 'AVERAGE').upper(),
+            'cost_method': cost_method,
             'auto_movements': self.get_bool('inventory/auto_movements', True),
+            'stock_read_mode': stock_read_mode,
+            'default_warehouse_id': self.get('inventory/default_warehouse_id', self.get('warehouse/default_id', '')),
+            'print_template': self.get('inventory/print_template', self.get('printing/report_template', 'a4')),
+            'operations': {
+                'allow_use': self.get_bool('inventory/operations/allow_use', True),
+                'allow_warehouse_create': self.get_bool('inventory/operations/allow_warehouse_create', True),
+                'allow_warehouse_edit': self.get_bool('inventory/operations/allow_warehouse_edit', True),
+                'allow_warehouse_archive': self.get_bool('inventory/operations/allow_warehouse_archive', True),
+                'allow_balance_view': self.get_bool('inventory/operations/allow_balance_view', True),
+                'allow_movement_view': self.get_bool('inventory/operations/allow_movement_view', True),
+                'allow_direct_movement': self.get_bool('inventory/operations/allow_direct_movement', True),
+                'allow_transfer_create': self.get_bool('inventory/operations/allow_transfer_create', True),
+                'allow_transfer_cancel': self.get_bool('inventory/operations/allow_transfer_cancel', True),
+                'allow_ledger_view': self.get_bool('inventory/operations/allow_ledger_view', True),
+                'allow_ledger_backfill': self.get_bool('inventory/operations/allow_ledger_backfill', False),
+                'allow_reconcile': self.get_bool('inventory/operations/allow_reconcile', True),
+                'allow_print': self.get_bool('inventory/operations/allow_print', True),
+                'confirm_transfer_cancel': self.get_bool('inventory/operations/confirm_transfer_cancel', True),
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
         }
 
     def get_units_settings(self) -> Dict[str, Any]:
@@ -314,6 +532,204 @@ class SettingsService:
             'quantity_decimals': self.get_decimal_places('units/quantity_decimals', 3),
             'price_decimals': self.get_decimal_places('units/price_decimals', 2),
             'rounding_method': self.get('units/rounding_method', 'HALF_UP') or 'HALF_UP',
+        }
+
+
+
+    def get_party_settings(self) -> Dict[str, Any]:
+        """Return settings contract for customer/supplier master-data screens."""
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        return {
+            'enabled': self.get_bool('parties/enabled', True),
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'touch_density': self.get('parties/touch_density', self.get('ui/touch_density', 'comfortable')) or 'comfortable',
+            'operations': {
+                'allow_use': self.get_bool('parties/operations/allow_use', True),
+                'allow_customer_view': self.get_bool('parties/operations/allow_customer_view', True),
+                'allow_customer_create': self.get_bool('parties/operations/allow_customer_create', True),
+                'allow_customer_edit': self.get_bool('parties/operations/allow_customer_edit', True),
+                'allow_customer_delete': self.get_bool('parties/operations/allow_customer_delete', True),
+                'allow_supplier_view': self.get_bool('parties/operations/allow_supplier_view', True),
+                'allow_supplier_create': self.get_bool('parties/operations/allow_supplier_create', True),
+                'allow_supplier_edit': self.get_bool('parties/operations/allow_supplier_edit', True),
+                'allow_supplier_delete': self.get_bool('parties/operations/allow_supplier_delete', True),
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
+        }
+
+
+    def get_category_settings(self) -> Dict[str, Any]:
+        """Return settings contract for material-category master data screens."""
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        return {
+            'enabled': self.get_bool('categories/enabled', True),
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'touch_density': self.get('categories/touch_density', self.get('ui/touch_density', 'comfortable')) or 'comfortable',
+            'operations': {
+                'allow_use': self.get_bool('categories/operations/allow_use', True),
+                'allow_create': self.get_bool('categories/operations/allow_create', True),
+                'allow_edit': self.get_bool('categories/operations/allow_edit', True),
+                'allow_archive': self.get_bool('categories/operations/allow_archive', True),
+                'allow_restore': self.get_bool('categories/operations/allow_restore', True),
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
+        }
+
+    def get_material_settings(self) -> Dict[str, Any]:
+        """Return the unified settings contract for material master-data screens.
+
+        Material editors must not hard-code barcode defaults, label options,
+        unit decimals, or inventory policy.  This contract is profile-aware
+        through SettingsService.get() and intentionally reuses the existing
+        printing/barcode settings.
+        """
+        printing = self.get_printing_settings()
+        units = self.get_units_settings()
+        inventory = self.get_inventory_settings()
+        raw_sym = str(self.get('materials/barcode/default_symbology', self.get('items/barcode/default_symbology', 'EAN13')) or 'EAN13').upper()
+        if raw_sym not in ('EAN13', 'CODE128'):
+            raw_sym = 'EAN13'
+        return {
+            'default_barcode_symbology': raw_sym,
+            'auto_generate_barcode_for_new_material': str(self.get('materials/barcode/auto_generate', self.get('items/barcode/auto_generate', 'true'))).lower() == 'true',
+            'require_barcode_for_stock_items': str(self.get('materials/barcode/require_for_stock_items', self.get('items/barcode/require_for_stock_items', 'false'))).lower() == 'true',
+            'allow_manual_barcode_edit': str(self.get('materials/barcode/allow_manual_edit', self.get('items/barcode/allow_manual_edit', 'true'))).lower() == 'true',
+            'ean13_internal_prefix': self.get('materials/barcode/ean13_prefix', self.get('items/barcode/ean13_prefix', '290')) or '290',
+            'code128_prefix': self.get('materials/barcode/code128_prefix', self.get('items/barcode/code128_prefix', 'ITM')) or 'ITM',
+            'default_unit': self.get('materials/default_unit', self.get('items/default_unit', self.get('units/default_base_unit', 'قطعة'))) or 'قطعة',
+            'default_item_type': self.get('materials/default_item_type', self.get('items/default_item_type', 'مخزون')) or 'مخزون',
+            'quantity_decimals': int(units.get('quantity_decimals', 3) or 3),
+            'price_decimals': int(units.get('price_decimals', 2) or 2),
+            'rounding_method': units.get('rounding_method', 'HALF_UP') or 'HALF_UP',
+            'default_reorder_level': inventory.get('default_reorder_level', '0'),
+            'allow_negative_stock': bool(inventory.get('allow_negative_stock', False)),
+            'prevent_opening_quantity_edit_after_activity': self.get_bool('materials/security/prevent_opening_quantity_edit_after_activity', self.get_bool('items/security/prevent_opening_quantity_edit_after_activity', True)),
+            'hide_cost_for_non_admin': self.get_bool('materials/security/hide_cost_for_non_admin', self.get_bool('security/hide_item_cost_for_non_admin', self.get_bool('security/hide_profit_for_non_admin', False))),
+            'require_unique_unit_names': self.get_bool('materials/units/require_unique_names', True),
+            'require_unit_barcode_validation': self.get_bool('materials/units/validate_unit_barcodes', True),
+            'allow_unit_barcode_duplicates': self.get_bool('materials/units/allow_barcode_duplicates', False),
+            'barcode_label_options': {
+                'label_size': printing.get('barcode_label_size', '50x30'),
+                'symbology': printing.get('barcode_symbology', 'AUTO'),
+                'copies': int(printing.get('barcode_copies', 1) or 1),
+                'columns': int(printing.get('barcode_columns', 2) or 2),
+                'show_company': bool(printing.get('barcode_show_company', True)),
+                'show_logo': bool(printing.get('barcode_show_logo', True)),
+                'show_qr': bool(printing.get('barcode_show_qr', True)),
+                'show_name': bool(printing.get('barcode_show_name', True)),
+                'show_price': bool(printing.get('barcode_show_price', True)),
+                'show_barcode_text': bool(printing.get('barcode_show_text', True)),
+            },
+        }
+
+    def get_transaction_settings(self, document_type: str = 'sales_invoice') -> Dict[str, Any]:
+        """Return the unified settings contract for invoice-like transaction screens.
+
+        UI code should not collect decimals, stock policy, default payment,
+        printing language, barcode-scanner behavior, or profile data from
+        scattered QSettings fragments.  This method centralizes that contract
+        while remaining profile-aware through SettingsService.get().
+        """
+        inventory = self.get_inventory_settings()
+        units = self.get_units_settings()
+        printing = self.get_printing_settings()
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        return {
+            'document_type': document_type or 'sales_invoice',
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'quantity_decimals': units.get('quantity_decimals', 3),
+            'price_decimals': units.get('price_decimals', 2),
+            'rounding_method': units.get('rounding_method', 'HALF_UP'),
+            'allow_negative_stock': bool(inventory.get('allow_negative_stock', False)),
+            'warn_on_stock_exceed': bool(inventory.get('warn_on_stock_exceed', True)),
+            'default_warehouse_id': self.get('transactions/default_warehouse_id', self.get('warehouse/default_id', '')),
+            'default_payment_method': self.get('transactions/default_payment_method', self.get('payment/default_method', 'cash')) or 'cash',
+            'line_grid_default_preset': self.get(f'transactions/{document_type}/default_preset', self.get('transactions/default_preset', 'manager')) or 'manager',
+            'line_grid_auto_responsive': str(self.get('transactions/grid/auto_responsive', 'true')).lower() == 'true',
+            'show_profit': str(self.get('transactions/show_profit', 'true')).lower() == 'true',
+            'show_cost': str(self.get('transactions/show_cost', 'true')).lower() == 'true',
+            'print_template': printing.get('return_template') if 'return' in str(document_type) else printing.get('invoice_template'),
+            'printing': printing,
+            'barcode_scanner': {
+                'prefix': self.get('barcode/scanner/prefix', '') or '',
+                'suffix': self.get('barcode/scanner/suffix', '') or '',
+                'min_length': int(self.get('barcode/scanner/min_length', '6') or 6),
+                'numeric_exact': str(self.get('barcode/scanner/numeric_exact', 'true')).lower() == 'true',
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
+        }
+
+
+
+    def get_manufacturing_settings(self) -> Dict[str, Any]:
+        """Return the unified settings contract for manufacturing workflows.
+
+        Manufacturing tabs and services must not read QSettings directly. This
+        contract centralizes warehouses, units, costing, barcode scanner,
+        printing, language, operation switches, and active settings profile.
+        """
+        units = self.get_units_settings()
+        inventory = self.get_inventory_settings()
+        printing = self.get_printing_settings()
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        density = str(self.get('manufacturing/ui/density', self.get('transactions/ui/density', 'comfortable')) or 'comfortable').lower()
+        if density not in ('compact', 'comfortable', 'touch'):
+            density = 'comfortable'
+        costing = str(self.get('manufacturing/costing_method', inventory.get('cost_method', 'AVERAGE')) or 'AVERAGE').upper()
+        if costing not in ('AVERAGE', 'FIFO', 'LIFO', 'STANDARD', 'LAST_PURCHASE'):
+            costing = 'AVERAGE'
+        return {
+            'enabled': self.get_bool('manufacturing/enabled', True),
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'quantity_decimals': int(units.get('quantity_decimals', 3) or 3),
+            'cost_decimals': int(units.get('price_decimals', 2) or 2),
+            'rounding_method': units.get('rounding_method', 'HALF_UP') or 'HALF_UP',
+            'touch_density': density,
+            'default_raw_warehouse_id': self.get('manufacturing/default_raw_warehouse_id', self.get('warehouse/default_id', '')),
+            'default_output_warehouse_id': self.get('manufacturing/default_output_warehouse_id', self.get('warehouse/default_id', '')),
+            'allow_negative_raw_consumption': self.get_bool('manufacturing/allow_negative_raw_consumption', inventory.get('allow_negative_stock', False)),
+            'warn_when_material_shortage': self.get_bool('manufacturing/warn_when_material_shortage', True),
+            'auto_reserve_on_order_create': self.get_bool('manufacturing/auto_reserve_on_order_create', False),
+            'allow_partial_consumption': self.get_bool('manufacturing/allow_partial_consumption', True),
+            'allow_over_consumption': self.get_bool('manufacturing/allow_over_consumption', False),
+            'allow_reverse_completed_order': self.get_bool('manufacturing/allow_reverse_completed_order', True),
+            'costing_method': costing,
+            'bom_default_unit': self.get('manufacturing/bom_default_unit', units.get('default_purchase_unit', units.get('default_sales_unit', ''))) or '',
+            'print_template': self.get('printing/manufacturing_template', printing.get('report_template', printing.get('default_paper', 'a4'))) or 'a4',
+            'printing': printing,
+            'barcode_scanner': {
+                'prefix': self.get('barcode/scanner/prefix', '') or '',
+                'suffix': self.get('barcode/scanner/suffix', '') or '',
+                'min_length': int(self.get('barcode/scanner/min_length', '6') or 6),
+                'numeric_exact': str(self.get('barcode/scanner/numeric_exact', 'true')).lower() == 'true',
+            },
+            'operations': {
+                'allow_use': self.get_bool('manufacturing/operations/allow_use', True),
+                'allow_bom_create': self.get_bool('manufacturing/operations/allow_bom_create', True),
+                'allow_bom_edit': self.get_bool('manufacturing/operations/allow_bom_edit', True),
+                'allow_bom_delete': self.get_bool('manufacturing/operations/allow_bom_delete', True),
+                'allow_order_create': self.get_bool('manufacturing/operations/allow_order_create', True),
+                'allow_order_start': self.get_bool('manufacturing/operations/allow_order_start', True),
+                'allow_material_consume': self.get_bool('manufacturing/operations/allow_material_consume', True),
+                'allow_output_complete': self.get_bool('manufacturing/operations/allow_output_complete', True),
+                'allow_order_cancel': self.get_bool('manufacturing/operations/allow_order_cancel', True),
+                'allow_order_delete': self.get_bool('manufacturing/operations/allow_order_delete', True),
+                'allow_order_reverse': self.get_bool('manufacturing/operations/allow_order_reverse', True),
+                'allow_consumption_delete': self.get_bool('manufacturing/operations/allow_consumption_delete', True),
+                'allow_output_delete': self.get_bool('manufacturing/operations/allow_output_delete', True),
+                'allow_print': self.get_bool('manufacturing/operations/allow_print', True),
+                'confirm_reverse': self.get_bool('manufacturing/operations/confirm_reverse', True),
+                'confirm_delete': self.get_bool('manufacturing/operations/confirm_delete', True),
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
         }
 
     def get_language_settings(self) -> Dict[str, str]:
@@ -431,6 +847,34 @@ class SettingsService:
             pass
         self.clear_cache()
         audit_service.log('UPDATE', 'SETTINGS_COMPANY', None, old_values=old, new_values=self.company_info(), details='تعديل بيانات الشركة')
+
+
+    # ========== User management settings (Phase 206) ==========
+    def get_user_settings(self) -> Dict[str, Any]:
+        """Return the unified user-management settings contract.
+
+        User management controls access to all modules, so it must be governed
+        centrally rather than left to legacy dialogs.
+        """
+        language = self.get_language_settings()
+        profile = self.get_active_profile()
+        density = str(self.get('users/ui/density', self.get('inventory/ui/density', 'comfortable')) or 'comfortable').lower()
+        if density not in ('compact', 'comfortable', 'touch'):
+            density = 'comfortable'
+        return {
+            'enabled': self.get_bool('users/enabled', True),
+            'ui_language': language.get('ui_language', self.get_language()),
+            'print_language': language.get('print_language', self.print_language()),
+            'touch_density': density,
+            'operations': {
+                'allow_use': self.get_bool('users/operations/allow_use', True),
+                'allow_create': self.get_bool('users/operations/allow_create', True),
+                'allow_edit': self.get_bool('users/operations/allow_edit', True),
+                'allow_delete': self.get_bool('users/operations/allow_delete', False),
+                'allow_change_password': self.get_bool('users/operations/allow_change_password', True),
+            },
+            'settings_profile_id': int((profile or {}).get('id') or 1),
+        }
 
 
     # ========== Security/Governance settings (Phase 146) ==========

@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 import json
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QTextEdit
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidgetItem, QTextEdit
 from PyQt5.QtCore import Qt, QTimer
 
 from core.services.monitoring_service import monitoring_service
 from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate, qt_layout_direction
+from ui.editable_smart_grid import EditableSmartGrid
 
 
 class MonitoringWidget(QWidget):
@@ -35,7 +36,7 @@ class MonitoringWidget(QWidget):
         self.summary = QLabel('')
         self.summary.setVisible(False)
 
-        self.table = QTableWidget(0, 4, self)
+        self.table = EditableSmartGrid(0, 4, self, identity='monitoring.overview')
         self.table.setHorizontalHeaderLabels([translate('metric'), translate('status'), translate('value'), translate('notes')])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.setEditTriggers(self.table.NoEditTriggers)

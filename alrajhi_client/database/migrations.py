@@ -94,6 +94,8 @@ def init_database():
             item_id INTEGER,
             unit_name TEXT NOT NULL,
             conversion_factor TEXT DEFAULT '1',
+            barcode TEXT,
+            notes TEXT,
             FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
         );
 
@@ -398,6 +400,10 @@ def init_database():
             item_id INTEGER NOT NULL,
             quantity TEXT NOT NULL,
             unit_id INTEGER,
+            conversion_factor TEXT DEFAULT '1',
+            base_qty TEXT DEFAULT '0',
+            barcode_scope TEXT,
+            matched_barcode TEXT,
             waste_percent TEXT DEFAULT '0',
             FOREIGN KEY (bom_id) REFERENCES bom(id) ON DELETE CASCADE,
             FOREIGN KEY (item_id) REFERENCES items(id)
@@ -419,7 +425,11 @@ def init_database():
             item_name TEXT,
             quantity TEXT NOT NULL,
             unit_name TEXT,
+            unit_id INTEGER,
             conversion_factor TEXT DEFAULT '1',
+            base_qty TEXT DEFAULT '0',
+            barcode_scope TEXT,
+            matched_barcode TEXT,
             waste_percent TEXT DEFAULT '0',
             FOREIGN KEY (snapshot_id) REFERENCES bom_snapshots(id) ON DELETE CASCADE,
             FOREIGN KEY (item_id) REFERENCES items(id)
@@ -452,6 +462,11 @@ def init_database():
             order_id INTEGER NOT NULL,
             item_id INTEGER NOT NULL,
             consumed_qty TEXT NOT NULL,
+            unit_id INTEGER,
+            unit_name TEXT,
+            conversion_factor TEXT DEFAULT '1',
+            consumed_base_qty TEXT DEFAULT '0',
+            barcode_scope TEXT,
             unit_cost TEXT,
             movement_date TEXT NOT NULL,
             FOREIGN KEY (order_id) REFERENCES production_orders(id),
@@ -463,6 +478,11 @@ def init_database():
             order_id INTEGER NOT NULL,
             item_id INTEGER NOT NULL,
             produced_qty TEXT NOT NULL,
+            unit_id INTEGER,
+            unit_name TEXT,
+            conversion_factor TEXT DEFAULT '1',
+            produced_base_qty TEXT DEFAULT '0',
+            barcode_scope TEXT,
             unit_cost TEXT,
             output_date TEXT NOT NULL,
             FOREIGN KEY (order_id) REFERENCES production_orders(id),
@@ -475,6 +495,12 @@ def init_database():
             item_id INTEGER NOT NULL,
             reserved_qty TEXT NOT NULL,
             consumed_qty TEXT DEFAULT '0',
+            unit_id INTEGER,
+            unit_name TEXT,
+            conversion_factor TEXT DEFAULT '1',
+            reserved_base_qty TEXT DEFAULT '0',
+            consumed_base_qty TEXT DEFAULT '0',
+            barcode_scope TEXT,
             FOREIGN KEY (order_id) REFERENCES production_orders(id) ON DELETE CASCADE,
             FOREIGN KEY (item_id) REFERENCES items(id)
         );
@@ -1044,6 +1070,138 @@ def _phase158_159_schema(conn):
             'system.health.view','approval.level1'
         ) WHERE r.name='accountant';
     """)
+    cur.executescript("""
+
+
+
+        -- Phase182: Restaurant operation-level permissions.
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.use','restaurant','use','Use Restaurant POS');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.session.open','restaurant','session_open','Open restaurant sessions');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.line.add','restaurant','line_add','Add restaurant order lines');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.kitchen.send','restaurant','kitchen_send','Send restaurant orders to kitchen');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.bill.adjust','restaurant','bill_adjust','Adjust restaurant bills');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.payment.record','restaurant','payment_record','Record restaurant payments');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.checkout','restaurant','checkout','Checkout restaurant sessions');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.kitchen.status.update','restaurant','kitchen_status_update','Update kitchen ticket status');
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'restaurant.use','restaurant.session.open','restaurant.line.add','restaurant.kitchen.send','restaurant.bill.adjust','restaurant.payment.record','restaurant.checkout','restaurant.kitchen.status.update'
+        ) WHERE r.name IN ('admin','manager','cashier');
+
+
+
+        -- Phase183: Restaurant print/export permissions.
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.receipt.print','restaurant','receipt_print','Print restaurant customer receipts');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('restaurant.kitchen_ticket.print','restaurant','kitchen_ticket_print','Print restaurant kitchen tickets');
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'restaurant.receipt.print','restaurant.kitchen_ticket.print'
+        ) WHERE r.name IN ('admin','manager','cashier');
+
+
+
+        -- Phase187: Manufacturing operation-level permissions.
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.use','manufacturing','use','Use manufacturing module');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.bom.create','manufacturing','bom_create','Create BOM recipes');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.bom.edit','manufacturing','bom_edit','Edit BOM recipes');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.bom.delete','manufacturing','bom_delete','Delete BOM recipes');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.order.create','manufacturing','order_create','Create production orders');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.order.start','manufacturing','order_start','Start production orders');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.material.consume','manufacturing','material_consume','Consume production materials');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.output.complete','manufacturing','output_complete','Complete production outputs');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.order.cancel','manufacturing','order_cancel','Cancel production orders');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.order.delete','manufacturing','order_delete','Delete production orders');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.order.reverse','manufacturing','order_reverse','Reverse completed production orders');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.consumption.delete','manufacturing','consumption_delete','Delete production material consumptions');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.output.delete','manufacturing','output_delete','Delete production outputs');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.cost.view','manufacturing','cost_view','View manufacturing costs');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('manufacturing.print','manufacturing','print','Print manufacturing documents');
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'manufacturing.use','manufacturing.bom.create','manufacturing.bom.edit','manufacturing.bom.delete',
+            'manufacturing.order.create','manufacturing.order.start','manufacturing.material.consume','manufacturing.output.complete',
+            'manufacturing.order.cancel','manufacturing.order.delete','manufacturing.order.reverse',
+            'manufacturing.consumption.delete','manufacturing.output.delete','manufacturing.cost.view','manufacturing.print'
+        ) WHERE r.name IN ('admin','manager');
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'manufacturing.use','manufacturing.cost.view','manufacturing.print'
+        ) WHERE r.name='accountant';
+
+
+        -- Phase194: Inventory / warehouse operation-level permissions.
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.use','inventory','use','Use inventory and warehouse workspace');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.warehouse.create','inventory','warehouse_create','Create warehouses');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.warehouse.edit','inventory','warehouse_edit','Edit warehouses');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.warehouse.archive','inventory','warehouse_archive','Archive warehouses');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.balance.view','inventory','balance_view','View item balances');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.movement.view','inventory','movement_view','View stock movements');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.movement.direct','inventory','direct_movement','Post direct inventory movements');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.transfer.create','inventory','transfer_create','Create warehouse transfers');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.transfer.cancel','inventory','transfer_cancel','Cancel warehouse transfers');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.ledger.view','inventory','ledger_view','View inventory ledger');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.ledger.backfill','inventory','ledger_backfill','Backfill inventory ledger');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.reconcile','inventory','reconcile','Run inventory reconciliation');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('inventory.print','inventory','print','Print inventory and warehouse documents');
+
+        -- Phase203/204: Finance, cashbox, bank, and voucher operation-level permissions.
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.use','finance','use','Use finance workspace');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.cashbox.create','finance','cashbox_create','Create cashboxes');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.cashbox.edit','finance','cashbox_edit','Edit cashboxes');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.cashbox.archive','finance','cashbox_archive','Archive cashboxes');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.bank.create','finance','bank_create','Create bank accounts');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.bank.edit','finance','bank_edit','Edit bank accounts');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.bank.archive','finance','bank_archive','Archive bank accounts');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.movements.view','finance','movements_view','View finance movements');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.shifts.view','finance','shifts_view','View cashbox shifts');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.voucher.view','finance','voucher_view','View vouchers');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.voucher.create','finance','voucher_create','Create vouchers');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.voucher.edit','finance','voucher_edit','Edit vouchers');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.voucher.delete','finance','voucher_delete','Delete vouchers');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.voucher.print','finance','voucher_print','Print vouchers');
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'inventory.use','inventory.warehouse.create','inventory.warehouse.edit','inventory.warehouse.archive',
+            'inventory.balance.view','inventory.movement.view','inventory.movement.direct',
+            'inventory.transfer.create','inventory.transfer.cancel','inventory.ledger.view','inventory.reconcile','inventory.print'
+        ) WHERE r.name IN ('admin','manager');
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'inventory.use','inventory.balance.view','inventory.movement.view','inventory.ledger.view','inventory.print'
+        ) WHERE r.name='accountant';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'inventory.use','inventory.balance.view','inventory.transfer.create','inventory.print'
+        ) WHERE r.name='cashier';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'finance.use','finance.cashbox.create','finance.cashbox.edit','finance.cashbox.archive',
+            'finance.bank.create','finance.bank.edit','finance.bank.archive','finance.movements.view','finance.shifts.view',
+            'finance.voucher.view','finance.voucher.create','finance.voucher.edit','finance.voucher.delete','finance.voucher.print'
+        ) WHERE r.name IN ('admin','manager');
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'finance.use','finance.movements.view','finance.voucher.view','finance.voucher.create','finance.voucher.edit','finance.voucher.print'
+        ) WHERE r.name='accountant';
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'finance.use','finance.voucher.view','finance.voucher.create','finance.voucher.print'
+        ) WHERE r.name='cashier';
+
+        -- Phase178: POS operation-level permissions.
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('pos.use','pos','use','Use POS');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('pos.suspend','pos','suspend','Suspend POS sales');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('pos.resume','pos','resume','Resume suspended POS sales');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('pos.line.remove','pos','line_remove','Remove POS lines');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('pos.cart.clear','pos','cart_clear','Clear POS carts');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('pos.shift.open','pos','shift_open','Open POS shifts');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('pos.shift.close','pos','shift_close','Close POS shifts');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('pos.receipt.print','pos','receipt_print','Print POS receipts');
+        INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
+        SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
+            'pos.use','pos.suspend','pos.resume','pos.line.remove','pos.cart.clear','pos.shift.open','pos.shift.close','pos.receipt.print'
+        ) WHERE r.name IN ('admin','manager','cashier');
+    """)
     # Default approval matrix: small -> manager/accountant level1; medium -> manager+accountant; large -> manager+accountant+admin
     cur.executescript("""
         INSERT OR IGNORE INTO approval_matrix(document_type, invoice_type, min_amount, max_amount, required_role, required_permission, approval_order, is_active)
@@ -1269,6 +1427,12 @@ def ensure_db():
                 from_warehouse_id INTEGER NOT NULL,
                 to_warehouse_id INTEGER NOT NULL,
                 quantity TEXT NOT NULL,
+                base_qty TEXT,
+                unit_id INTEGER,
+                unit_name TEXT,
+                conversion_factor TEXT DEFAULT '1',
+                barcode_scope TEXT,
+                matched_barcode TEXT,
                 unit_cost TEXT DEFAULT '0',
                 notes TEXT,
                 status TEXT DEFAULT 'active',
@@ -1872,3 +2036,16 @@ def ensure_db():
     conn.close()
 
 
+
+
+def migrate_phase205_category_permissions(conn):
+    cur = conn.cursor()
+    rows = [
+        ('categories.view','categories','view','View categories'),
+        ('categories.create','categories','create','Create categories'),
+        ('categories.edit','categories','edit','Edit categories'),
+        ('categories.archive','categories','archive','Archive categories'),
+        ('categories.restore','categories','restore','Restore categories'),
+    ]
+    cur.executemany("INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES (?,?,?,?)", rows)
+    conn.commit()

@@ -23,7 +23,21 @@ class RestaurantGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def add_order_line(self, session_id: int, item_name: str, item_id: int | None = None, quantity: Any = "1", unit_price: Any = "0", notes: str = "") -> dict[str, Any]:
+    def add_order_line(
+        self,
+        session_id: int,
+        item_name: str,
+        item_id: int | None = None,
+        quantity: Any = "1",
+        unit_price: Any = "0",
+        notes: str = "",
+        unit_id: int | None = None,
+        unit: str = "",
+        conversion_factor: Any = "1",
+        base_qty: Any | None = None,
+        barcode_scope: str = "",
+        matched_barcode: str = "",
+    ) -> dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod

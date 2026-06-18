@@ -6,7 +6,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 
 from core.services.product_service import product_service
-from views.custom_table_view import CustomTableView
+from core.services.category_operation_policy import category_operation_policy
+from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 from views.widgets.modern_ui import apply_modern_widget
@@ -23,6 +24,7 @@ class CategoriesWidget(QWidget):
         self.setObjectName('CategoriesWidget')
         self.setup_ui()
         apply_modern_widget(self, translate('categories_title_icon'), translate('categories_subtitle'))
+        self._apply_operation_state()
         self.refresh()
 
     def setup_ui(self):
@@ -36,17 +38,17 @@ class CategoriesWidget(QWidget):
         self.search_edit.textChanged.connect(self.refresh)
         self.show_archived = QCheckBox(translate('show_archived'))
         self.show_archived.stateChanged.connect(self.refresh)
-        add_btn = QPushButton(translate('new_category_btn'))
-        add_btn.setObjectName('primary')
-        add_btn.clicked.connect(self.add_category)
+        self.add_btn = QPushButton(translate('new_category_btn'))
+        self.add_btn.setObjectName('primary')
+        self.add_btn.clicked.connect(self.add_category)
         toolbar.addWidget(QLabel(translate('categories')))
         toolbar.addWidget(self.search_edit, 1)
         toolbar.addWidget(self.show_archived)
-        toolbar.addWidget(add_btn)
+        toolbar.addWidget(self.add_btn)
         layout.addLayout(toolbar)
 
-        self.table = CustomTableView()
-        self.table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.table = SmartTableView(identity="categories.list")
+        self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.doubleClicked.connect(self.edit_category)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.show_context_menu)
@@ -55,6 +57,15 @@ class CategoriesWidget(QWidget):
         hint = QLabel(translate('categories_hint'))
         hint.setObjectName('mutedLabel')
         layout.addWidget(hint)
+
+
+    def _main_window(self):
+        parent = self.parent()
+        while parent is not None:
+            if hasattr(parent, 'open_category_document'):
+                return parent
+            parent = parent.parent()
+        return None
 
     def set_global_filter(self, text: str):
         text = text or ''
@@ -96,11 +107,30 @@ class CategoriesWidget(QWidget):
         if hasattr(self.table, 'refresh_style'):
             self.table.refresh_style()
 
-    def current_category_id(self):
-        idx = self.table.currentIndex()
+    def _source_row_for_index(self, index=None):
+        idx = index if index is not None else self.table.currentIndex()
         if not idx.isValid() or not hasattr(self, 'model'):
+            return -1
+        if hasattr(self.table, 'current_source_row') and index is None:
+            return self.table.current_source_row()
+        model = self.table.model()
+        if hasattr(model, 'mapToSource'):
+            try:
+                idx = model.mapToSource(idx)
+            except Exception:
+                pass
+        return idx.row()
+
+    def current_category_id(self):
+        row = self._source_row_for_index()
+        if row < 0 or not hasattr(self, 'model'):
             return None
-        return self.model.get_id(idx.row())
+        return self.model.get_id(row)
+
+    def _apply_operation_state(self):
+        can_create = category_operation_policy.can(category_operation_policy.OP_CREATE)
+        if hasattr(self, 'add_btn'):
+            self.add_btn.setEnabled(can_create)
 
     def _category_payload_dialog(self, title, category=None):
         dialog = QDialog(self)
@@ -171,6 +201,13 @@ class CategoriesWidget(QWidget):
         return None
 
     def add_category(self):
+        if not category_operation_policy.can(category_operation_policy.OP_CREATE):
+            show_toast(translate('category_operation_denied'), 'warning', self)
+            return
+        main = self._main_window()
+        if main is not None:
+            main.open_category_document()
+            return
         payload = self._category_payload_dialog(translate('add_category'))
         if not payload:
             return
@@ -182,9 +219,17 @@ class CategoriesWidget(QWidget):
             show_toast(str(e), 'error', self)
 
     def edit_category(self, index=None):
-        cat_id = self.current_category_id() if index is None else self.model.get_id(index.row())
+        row = self._source_row_for_index(index)
+        cat_id = self.current_category_id() if index is None else (self.model.get_id(row) if row >= 0 else None)
         if not cat_id:
             show_toast(translate('select_category_first'), 'warning', self)
+            return
+        if not category_operation_policy.can(category_operation_policy.OP_EDIT):
+            show_toast(translate('category_operation_denied'), 'warning', self)
+            return
+        main = self._main_window()
+        if main is not None:
+            main.open_category_document(category_id=cat_id)
             return
         category = product_service.category_by_id(cat_id)
         if not category:
@@ -205,6 +250,9 @@ class CategoriesWidget(QWidget):
         if not cat_id:
             show_toast(translate('select_category_first'), 'warning', self)
             return
+        if not category_operation_policy.can(category_operation_policy.OP_ARCHIVE):
+            show_toast(translate('category_operation_denied'), 'warning', self)
+            return
         reply = QMessageBox.question(self, translate('confirm_archive'), translate('archive_category_confirm'), QMessageBox.Yes | QMessageBox.No)
         if reply != QMessageBox.Yes:
             return
@@ -219,6 +267,9 @@ class CategoriesWidget(QWidget):
         cat_id = self.current_category_id()
         if not cat_id:
             show_toast(translate('select_category_first'), 'warning', self)
+            return
+        if not category_operation_policy.can(category_operation_policy.OP_RESTORE):
+            show_toast(translate('category_operation_denied'), 'warning', self)
             return
         try:
             product_service.restore_category(cat_id)

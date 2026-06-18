@@ -102,6 +102,8 @@ class BranchService:
         return (branch or {}).get('name', '')
 
     def set_default_branch(self, branch_id: int) -> None:
+        from core.services.branch_operation_policy import branch_operation_policy
+        branch_operation_policy.require(branch_operation_policy.OP_SET_DEFAULT, context='BranchService.set_default_branch', payload={'branch_id': branch_id})
         old = self.default_branch()
         self.gateway.set_default(int(branch_id))
         try:
@@ -118,16 +120,22 @@ class BranchService:
             return {'mode': 'error', 'error': str(exc), 'checks': []}
 
     def add_branch(self, data: Dict) -> int:
+        from core.services.branch_operation_policy import branch_operation_policy
+        branch_operation_policy.require(branch_operation_policy.OP_CREATE, context='BranchService.add_branch', payload=data)
         branch_id = self.gateway.create(data)
         audit_service.log('CREATE', 'BRANCH', branch_id, new_values=data, details='إنشاء فرع')
         return branch_id
 
     def update_branch(self, branch_id: int, data: Dict) -> None:
+        from core.services.branch_operation_policy import branch_operation_policy
+        branch_operation_policy.require(branch_operation_policy.OP_EDIT, context='BranchService.update_branch', payload={'branch_id': branch_id, 'data': data})
         old = self.branch_by_id(branch_id)
         self.gateway.update(branch_id, data)
         audit_service.log('UPDATE', 'BRANCH', branch_id, old_values=old, new_values=self.branch_by_id(branch_id) or data, details='تعديل فرع')
 
     def archive_branch(self, branch_id: int) -> None:
+        from core.services.branch_operation_policy import branch_operation_policy
+        branch_operation_policy.require(branch_operation_policy.OP_ARCHIVE, context='BranchService.archive_branch', payload={'branch_id': branch_id})
         old = self.branch_by_id(branch_id)
         self.gateway.archive(branch_id)
         audit_service.log('SOFT_DELETE', 'BRANCH', branch_id, old_values=old, details='أرشفة فرع')

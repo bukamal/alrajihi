@@ -18,7 +18,22 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtGui import QTextDocument, QImage, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintDialog
 
-from printing.print_templates import invoice_html, voucher_html, report_html, return_html, production_order_html
+from printing.print_templates import (
+    invoice_html,
+    voucher_html,
+    report_html,
+    return_html,
+    production_order_html,
+    restaurant_receipt_html,
+    restaurant_kitchen_ticket_html,
+    manufacturing_bom_html,
+    manufacturing_pick_ticket_html,
+    manufacturing_cost_report_html,
+    inventory_transfer_html,
+    inventory_balances_html,
+    inventory_movements_html,
+    inventory_ledger_html,
+)
 from core.services.barcode_label_service import barcode_label_service
 from core.services.settings_service import settings_service
 
@@ -223,22 +238,179 @@ class PrintingService:
         ref = data.get('reference') or data.get('return_no') or data.get('id') or 'return'
         return self.save_pdf(self.return_html(data, paper), parent, f"return_{ref}.pdf")
 
+
+    def restaurant_receipt_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return restaurant_receipt_html(data, paper)
+
+    def restaurant_receipt_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.restaurant_receipt_html(data, paper), parent, "معاينة إيصال المطعم")
+
+    def restaurant_receipt_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.restaurant_receipt_html(data, paper), parent, "طباعة إيصال المطعم")
+
+    def restaurant_receipt_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.open_html_in_browser(self.restaurant_receipt_html(data, paper), parent, "معاينة HTML لإيصال المطعم")
+
+    def restaurant_receipt_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        session = (data or {}).get('session') or data or {}
+        ref = session.get('invoice_reference') or session.get('invoice_id') or session.get('id') or 'restaurant_receipt'
+        return self.save_pdf(self.restaurant_receipt_html(data, paper), parent, f"restaurant_receipt_{ref}.pdf")
+
+    def restaurant_kitchen_ticket_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return restaurant_kitchen_ticket_html(data, paper)
+
+    def restaurant_kitchen_ticket_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.restaurant_kitchen_ticket_html(data, paper), parent, "معاينة تذكرة المطبخ")
+
+    def restaurant_kitchen_ticket_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.restaurant_kitchen_ticket_html(data, paper), parent, "طباعة تذكرة المطبخ")
+
+    def restaurant_kitchen_ticket_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.open_html_in_browser(self.restaurant_kitchen_ticket_html(data, paper), parent, "معاينة HTML لتذكرة المطبخ")
+
+    def restaurant_kitchen_ticket_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        ref = (data or {}).get('id') or 'kitchen_ticket'
+        return self.save_pdf(self.restaurant_kitchen_ticket_html(data, paper), parent, f"kitchen_ticket_{ref}.pdf")
+
+    # ========== Manufacturing printing ==========
+    def manufacturing_bom_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return manufacturing_bom_html(data, paper)
+
+    def manufacturing_bom_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.manufacturing_bom_html(data, paper), parent, "معاينة تركيبة التصنيع")
+
+    def manufacturing_bom_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.manufacturing_bom_html(data, paper), parent, "طباعة تركيبة التصنيع")
+
+    def manufacturing_bom_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.open_html_in_browser(self.manufacturing_bom_html(data, paper), parent, "معاينة HTML لتركيبة التصنيع")
+
+    def manufacturing_bom_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        bom = (data or {}).get('bom') or data or {}
+        ref = bom.get('id') or bom.get('bom_id') or bom.get('product_id') or 'bom'
+        return self.save_pdf(self.manufacturing_bom_html(data, paper), parent, f"bom_{ref}.pdf")
+
     def production_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
         return production_order_html(data, paper)
 
+    def manufacturing_production_order_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return production_order_html(data, paper)
+
+    def manufacturing_production_order_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.manufacturing_production_order_html(data, paper), parent, "معاينة أمر الإنتاج")
+
+    def manufacturing_production_order_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.manufacturing_production_order_html(data, paper), parent, "طباعة أمر الإنتاج")
+
+    def manufacturing_production_order_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.open_html_in_browser(self.manufacturing_production_order_html(data, paper), parent, "معاينة HTML لأمر الإنتاج")
+
+    def manufacturing_production_order_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        order = (data or {}).get('order') or data or {}
+        ref = order.get('order_number') or order.get('id') or 'production_order'
+        return self.save_pdf(self.manufacturing_production_order_html(data, paper), parent, f"production_{ref}.pdf")
+
+    # Backward-compatible names used by older manufacturing code.
     def production_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
-        self.preview_html(self.production_html(data, paper), parent, "معاينة أمر الإنتاج")
+        self.manufacturing_production_order_preview(data, parent, paper)
 
     def production_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.production_html(data, paper), parent, "طباعة أمر الإنتاج")
+        return self.manufacturing_production_order_print(data, parent, paper)
 
     def production_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.open_html_in_browser(self.production_html(data, paper), parent, "معاينة HTML لأمر الإنتاج")
+        return self.manufacturing_production_order_browser(data, parent, paper)
 
     def production_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        order = data.get('order') or data
-        ref = order.get('order_number') or order.get('id') or 'production_order'
-        return self.save_pdf(self.production_html(data, paper), parent, f"production_{ref}.pdf")
+        return self.manufacturing_production_order_pdf(data, parent, paper)
+
+    def manufacturing_pick_ticket_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return manufacturing_pick_ticket_html(data, paper)
+
+    def manufacturing_pick_ticket_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.manufacturing_pick_ticket_html(data, paper), parent, "معاينة تذكرة سحب المواد")
+
+    def manufacturing_pick_ticket_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.manufacturing_pick_ticket_html(data, paper), parent, "طباعة تذكرة سحب المواد")
+
+    def manufacturing_pick_ticket_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.open_html_in_browser(self.manufacturing_pick_ticket_html(data, paper), parent, "معاينة HTML لتذكرة سحب المواد")
+
+    def manufacturing_pick_ticket_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        order = (data or {}).get('order') or {}
+        ref = order.get('order_number') or order.get('id') or 'pick_ticket'
+        return self.save_pdf(self.manufacturing_pick_ticket_html(data, paper), parent, f"pick_ticket_{ref}.pdf")
+
+    def manufacturing_cost_report_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return manufacturing_cost_report_html(data, paper)
+
+    def manufacturing_cost_report_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.manufacturing_cost_report_html(data, paper), parent, "معاينة تقرير تكلفة الإنتاج")
+
+    def manufacturing_cost_report_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.manufacturing_cost_report_html(data, paper), parent, "طباعة تقرير تكلفة الإنتاج")
+
+    def manufacturing_cost_report_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.open_html_in_browser(self.manufacturing_cost_report_html(data, paper), parent, "معاينة HTML لتقرير تكلفة الإنتاج")
+
+    def manufacturing_cost_report_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        order = (data or {}).get('order') or {}
+        ref = order.get('order_number') or order.get('id') or 'cost_report'
+        return self.save_pdf(self.manufacturing_cost_report_html(data, paper), parent, f"production_cost_{ref}.pdf")
+
+
+    # ========== Inventory / warehouse printing ==========
+    def inventory_transfer_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return inventory_transfer_html(data, paper)
+
+    def inventory_transfer_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.inventory_transfer_html(data, paper), parent, "معاينة تحويل مستودعي")
+
+    def inventory_transfer_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.inventory_transfer_html(data, paper), parent, "طباعة تحويل مستودعي")
+
+    def inventory_transfer_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.open_html_in_browser(self.inventory_transfer_html(data, paper), parent, "معاينة HTML لتحويل مستودعي")
+
+    def inventory_transfer_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        transfer = (data or {}).get('transfer') or data or {}
+        ref = transfer.get('transfer_no') or transfer.get('id') or 'warehouse_transfer'
+        return self.save_pdf(self.inventory_transfer_html(data, paper), parent, f"warehouse_transfer_{ref}.pdf")
+
+    def inventory_balances_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return inventory_balances_html(data, paper)
+
+    def inventory_balances_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.inventory_balances_html(data, paper), parent, "معاينة أرصدة المواد")
+
+    def inventory_balances_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.inventory_balances_html(data, paper), parent, "طباعة أرصدة المواد")
+
+    def inventory_balances_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.save_pdf(self.inventory_balances_html(data, paper), parent, "inventory_balances.pdf")
+
+    def inventory_movements_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return inventory_movements_html(data, paper)
+
+    def inventory_movements_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.inventory_movements_html(data, paper), parent, "معاينة حركات المخزون")
+
+    def inventory_movements_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.inventory_movements_html(data, paper), parent, "طباعة حركات المخزون")
+
+    def inventory_movements_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.save_pdf(self.inventory_movements_html(data, paper), parent, "inventory_movements.pdf")
+
+    def inventory_ledger_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return inventory_ledger_html(data, paper)
+
+    def inventory_ledger_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.inventory_ledger_html(data, paper), parent, "معاينة دفتر المخزون")
+
+    def inventory_ledger_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.print_html(self.inventory_ledger_html(data, paper), parent, "طباعة دفتر المخزون")
+
+    def inventory_ledger_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.save_pdf(self.inventory_ledger_html(data, paper), parent, "inventory_ledger.pdf")
 
     def report_html(self, title: str, rows: List[List[Any]], headers: List[str], subtitle: str = '', summary: Optional[Dict[str, Any]] = None, paper: str = 'default') -> str:
         return report_html(title, rows, headers, subtitle, summary, paper=paper)

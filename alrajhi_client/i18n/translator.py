@@ -3510,3 +3510,2025 @@ _translations.setdefault('en', {}).update({
     'restaurant.analytics.top_item': 'Top item',
     'restaurant.analytics.kitchen_tickets': 'Kitchen tickets',
 })
+
+# Phase UI-1: tabbed workspace shell translations.
+_translations.setdefault('ar', {}).update({
+    'workspace.unsaved_title': 'تبويب غير محفوظ',
+    'workspace.unsaved_close': 'يوجد تعديل غير محفوظ في هذا التبويب. هل تريد إغلاقه؟',
+    'workspace.close_tab': 'إغلاق التبويب',
+    'workspace.new_tab': 'تبويب جديد',
+    'workspace.no_save_action': 'لا يوجد أمر حفظ متاح لهذا التبويب.',
+    'workspace.no_print_action': 'لا يوجد أمر طباعة متاح لهذا التبويب.',
+    'workspace.no_export_action': 'لا يوجد أمر تصدير متاح لهذا التبويب.',
+})
+_translations.setdefault('de', {}).update({
+    'workspace.unsaved_title': 'Nicht gespeicherter Tab',
+    'workspace.unsaved_close': 'Dieser Tab enthält nicht gespeicherte Änderungen. Möchten Sie ihn schließen?',
+    'workspace.close_tab': 'Tab schließen',
+    'workspace.new_tab': 'Neuer Tab',
+    'workspace.no_save_action': 'Für diesen Tab ist keine Speicheraktion verfügbar.',
+    'workspace.no_print_action': 'Für diesen Tab ist keine Druckaktion verfügbar.',
+    'workspace.no_export_action': 'Für diesen Tab ist keine Exportaktion verfügbar.',
+})
+_translations.setdefault('en', {}).update({
+    'workspace.unsaved_title': 'Unsaved tab',
+    'workspace.unsaved_close': 'This tab has unsaved changes. Close it anyway?',
+    'workspace.close_tab': 'Close tab',
+    'workspace.new_tab': 'New tab',
+    'workspace.no_save_action': 'No save action is available for this tab.',
+    'workspace.no_print_action': 'No print action is available for this tab.',
+    'workspace.no_export_action': 'No export action is available for this tab.',
+})
+
+
+# Phase 40: workspace productivity translations.
+_translations.setdefault('ar', {}).update({
+    'workspace.quick_open': 'فتح سريع',
+    'workspace.quick_open_hint': 'اكتب اسم شاشة أو اختصار عمل لفتحها فورًا.',
+    'workspace.quick_open_placeholder': 'مثال: فاتورة، صنف، مطعم، تقرير...',
+    'workspace.quick_open_footer': 'Enter للفتح — Esc للإغلاق',
+    'workspace.recent_tabs': 'التبويبات الأخيرة',
+    'workspace.favorites': 'المفضلة',
+    'workspace.restore_session': 'استعادة جلسة العمل',
+})
+_translations.setdefault('de', {}).update({
+    'workspace.quick_open': 'Schnell öffnen',
+    'workspace.quick_open_hint': 'Geben Sie eine Seite oder Aktion ein, um sie sofort zu öffnen.',
+    'workspace.quick_open_placeholder': 'Beispiel: Rechnung, Artikel, Restaurant, Bericht...',
+    'workspace.quick_open_footer': 'Enter zum Öffnen — Esc zum Schließen',
+    'workspace.recent_tabs': 'Letzte Tabs',
+    'workspace.favorites': 'Favoriten',
+    'workspace.restore_session': 'Arbeitsbereich wiederherstellen',
+})
+_translations.setdefault('en', {}).update({
+    'workspace.quick_open': 'Quick open',
+    'workspace.quick_open_hint': 'Type a page or action name to open it immediately.',
+    'workspace.quick_open_placeholder': 'Example: invoice, item, restaurant, report...',
+    'workspace.quick_open_footer': 'Enter to open — Esc to close',
+    'workspace.recent_tabs': 'Recent tabs',
+    'workspace.favorites': 'Favorites',
+    'workspace.restore_session': 'Restore workspace session',
+})
+
+# Phase 43: unified workspace action bar translations.
+_translations.setdefault('ar', {}).update({
+    'workspace.actions': 'أوامر التبويب',
+    'export': 'تصدير',
+})
+_translations.setdefault('de', {}).update({
+    'workspace.actions': 'Tab-Aktionen',
+    'export': 'Exportieren',
+})
+_translations.setdefault('en', {}).update({
+    'workspace.actions': 'Tab actions',
+    'export': 'Export',
+})
+
+
+# Phase 45: notification center translations.
+_translations.setdefault('ar', {}).update({
+    'notification.center': 'مركز التنبيهات',
+    'notification.empty': 'لا توجد تنبيهات حالية.',
+    'notification.clear': 'مسح',
+    'notification.untitled': 'تنبيه',
+    'open': 'فتح',
+})
+_translations.setdefault('de', {}).update({
+    'notification.center': 'Benachrichtigungen',
+    'notification.empty': 'Keine aktuellen Benachrichtigungen.',
+    'notification.clear': 'Leeren',
+    'notification.untitled': 'Benachrichtigung',
+    'open': 'Öffnen',
+})
+_translations.setdefault('en', {}).update({
+    'notification.center': 'Notification center',
+    'notification.empty': 'No current notifications.',
+    'notification.clear': 'Clear',
+    'notification.untitled': 'Notification',
+    'open': 'Open',
+})
+
+# Phase 50: party document tabs translations.
+_translations.setdefault('ar', {}).update({
+    'customer_new_tab': 'عميل جديد',
+    'supplier_new_tab': 'مورد جديد',
+    'party_document_subtitle': 'تبويب مستند موحد: بيانات الطرف، الرصيد، كشف الحساب، الفواتير، والسندات.',
+    'profile': 'الملف',
+    'statement': 'كشف الحساب',
+    'invoices': 'الفواتير',
+    'party_statement_placeholder': 'سيعرض هذا القسم كشف الحساب التفصيلي للطرف بعد ربط محرك كشف الحساب الموحد.',
+    'party_invoices_placeholder': 'سيعرض هذا القسم فواتير الطرف المرتبطة دون فتح نافذة مستقلة.',
+    'party_vouchers_placeholder': 'سيعرض هذا القسم سندات القبض/الدفع الخاصة بالطرف.',
+    'party_balance_hint': 'الرصيد الحالي محفوظ في الخدمة، وسيُقرأ لاحقاً مع كشف حساب تفصيلي.',
+    'party_not_found': 'الطرف غير موجود',
+})
+_translations.setdefault('de', {}).update({
+    'customer_new_tab': 'Neuer Kunde',
+    'supplier_new_tab': 'Neuer Lieferant',
+    'party_document_subtitle': 'Einheitlicher Dokument-Tab: Stammdaten, Saldo, Kontoauszug, Rechnungen und Belege.',
+    'profile': 'Profil',
+    'statement': 'Kontoauszug',
+    'invoices': 'Rechnungen',
+    'party_statement_placeholder': 'Dieser Bereich zeigt später den detaillierten Kontoauszug über die einheitliche Statement-Engine.',
+    'party_invoices_placeholder': 'Dieser Bereich zeigt die zugehörigen Rechnungen ohne separates Fenster.',
+    'party_vouchers_placeholder': 'Dieser Bereich zeigt die zugehörigen Zahlungsbelege.',
+    'party_balance_hint': 'Der aktuelle Saldo kommt aus dem Service und wird später mit dem detaillierten Kontoauszug verknüpft.',
+    'party_not_found': 'Datensatz nicht gefunden',
+})
+_translations.setdefault('en', {}).update({
+    'customer_new_tab': 'New Customer',
+    'supplier_new_tab': 'New Supplier',
+    'party_document_subtitle': 'Unified document tab: profile, balance, statement, invoices, and vouchers.',
+    'profile': 'Profile',
+    'statement': 'Statement',
+    'invoices': 'Invoices',
+    'party_statement_placeholder': 'This section will show the detailed party statement once the unified statement engine is connected.',
+    'party_invoices_placeholder': 'This section will show related invoices without opening a separate window.',
+    'party_vouchers_placeholder': 'This section will show related receipt/payment vouchers.',
+    'party_balance_hint': 'The current balance is read from the service and will later be linked with the detailed statement.',
+    'party_not_found': 'Party not found',
+})
+
+# Phase 57 release hardening critical workspace/restaurant keys.
+_translations.setdefault('ar', {}).update({
+    'manufacturing': 'التصنيع',
+    'restaurant.dashboard': 'لوحة المطعم',
+    'restaurant.kitchen_display': 'شاشة المطبخ',
+    'workspace.quick_open': 'فتح سريع',
+    'workspace.recent_tabs': 'التبويبات الأخيرة',
+    'workspace.favorites': 'المفضلة',
+})
+_translations.setdefault('de', {}).update({
+    'manufacturing': 'Fertigung',
+    'restaurant.dashboard': 'Restaurant-Dashboard',
+    'restaurant.kitchen_display': 'Küchenanzeige',
+    'workspace.quick_open': 'Schnell öffnen',
+    'workspace.recent_tabs': 'Zuletzt geöffnete Tabs',
+    'workspace.favorites': 'Favoriten',
+})
+_translations.setdefault('en', {}).update({
+    'manufacturing': 'Manufacturing',
+    'restaurant.dashboard': 'Restaurant Dashboard',
+    'restaurant.kitchen_display': 'Kitchen Display',
+    'workspace.quick_open': 'Quick Open',
+    'workspace.recent_tabs': 'Recent Tabs',
+    'workspace.favorites': 'Favorites',
+})
+
+# Phase 57: keep critical extra keys stable even when load_translations()
+# resets the in-memory dictionaries.
+_phase57_original_load_translations = load_translations
+_PHASE57_TRANSLATIONS = {
+    'ar': {
+        'category.operation.restore': 'استعادة تصنيف',
+        'category.operation.archive': 'أرشفة تصنيف',
+        'category.operation.edit': 'تعديل تصنيف',
+        'category.operation.create': 'إنشاء تصنيف',
+        'category.operation.use': 'استخدام التصنيفات',
+        'category_operation_denied': 'العملية غير مسموحة للتصنيفات حسب الصلاحيات أو الإعدادات.',
+        'category_read_only': 'التصنيف للعرض فقط حسب الصلاحيات أو الإعدادات.',
+        'manufacturing': 'التصنيع',
+        'restaurant.dashboard': 'لوحة المطعم',
+        'restaurant.kitchen_display': 'شاشة المطبخ',
+        'workspace.quick_open': 'فتح سريع',
+        'workspace.recent_tabs': 'التبويبات الأخيرة',
+        'workspace.favorites': 'المفضلة',
+    },
+    'de': {
+        'manufacturing': 'Fertigung',
+        'restaurant.dashboard': 'Restaurant-Dashboard',
+        'restaurant.kitchen_display': 'Küchenanzeige',
+        'workspace.quick_open': 'Schnell öffnen',
+        'workspace.recent_tabs': 'Zuletzt geöffnete Tabs',
+        'workspace.favorites': 'Favoriten',
+    },
+    'en': {
+        'manufacturing': 'Manufacturing',
+        'restaurant.dashboard': 'Restaurant Dashboard',
+        'restaurant.kitchen_display': 'Kitchen Display',
+        'workspace.quick_open': 'Quick Open',
+        'workspace.recent_tabs': 'Recent Tabs',
+        'workspace.favorites': 'Favorites',
+    },
+}
+
+def load_translations():
+    _phase57_original_load_translations()
+    for _lang, _values in _PHASE57_TRANSLATIONS.items():
+        _translations.setdefault(_lang, {}).update(_values)
+
+# Phase 169: transaction document governance, terminology, and barcode safety keys.
+_translations['ar'].update({
+    'transaction_sales_invoice_new': 'فاتورة بيع جديدة',
+    'transaction_purchase_invoice_new': 'فاتورة شراء جديدة',
+    'transaction_sales_return_new': 'مرتجع بيع جديد',
+    'transaction_purchase_return_new': 'مرتجع شراء جديد',
+    'transaction_sales_return': 'مرتجع بيع',
+    'transaction_purchase_return': 'مرتجع شراء',
+    'transaction_column_barcode': 'باركود',
+    'transaction_column_item': 'المادة',
+    'transaction_column_unit': 'الوحدة',
+    'transaction_column_qty': 'الكمية',
+    'transaction_column_available': 'المتاح',
+    'transaction_column_price': 'السعر',
+    'transaction_column_discount': 'خصم',
+    'transaction_column_tax': 'ضريبة',
+    'transaction_column_total': 'الإجمالي',
+    'transaction_column_notes': 'ملاحظات',
+    'transaction_column_cost': 'التكلفة',
+    'transaction_column_batch': 'التشغيلة',
+    'transaction_column_expiry': 'الصلاحية',
+    'transaction_column_original_invoice': 'الفاتورة الأصلية',
+    'transaction_column_sold_qty': 'المباع',
+    'transaction_column_purchased_qty': 'المشترى',
+    'transaction_column_previous_return': 'مرتجع سابق',
+    'transaction_column_returnable': 'قابل للإرجاع',
+    'transaction_column_return_qty': 'كمية المرتجع',
+    'transaction_column_reason': 'السبب',
+    'transaction_column_restock': 'إرجاع للمخزون',
+    'transaction_column_unit_value': 'قيمة الوحدة',
+    'transaction_preset_compact': 'عرض مضغوط',
+    'transaction_preset_cashier': 'عرض كاشير',
+    'transaction_preset_accountant': 'عرض محاسب',
+    'transaction_preset_warehouse': 'عرض مخزن',
+    'transaction_preset_manager': 'عرض مدير',
+    'transaction_preset': 'نمط العرض',
+    'transaction_auto_responsive': 'تجاوب تلقائي',
+    'transaction_save_shortcut': 'حفظ Ctrl+S',
+    'transaction_columns': 'الأعمدة',
+    'transaction_reset_view': 'استعادة العرض',
+    'transaction_reference': 'المرجع',
+    'transaction_search_material_barcode': 'بحث مادة/باركود — Ctrl+F',
+    'transaction_select_original_then_load': 'اختر الفاتورة الأصلية ثم حمّل البنود القابلة للإرجاع',
+    'transaction_load_lines': 'تحميل البنود',
+    'transaction_original_invoice': 'الفاتورة الأصلية',
+    'transaction_quick_search': 'بحث سريع',
+    'transaction_notes_terms_attachments': 'ملاحظات / شروط / مرفقات',
+    'transaction_return_payment_tooltip': 'في المرتجعات يمثل المدفوع مبلغ الاسترداد النقدي/البنكي الآن. الباقي يسجل كتسوية دائنة.',
+    'transaction_credit_settlement': 'تسوية دائنة',
+    'transaction_refund_full': 'استرداد كامل',
+    'transaction_new': 'جديد',
+    'transaction_add_line_insert': 'إضافة سطر Insert',
+    'transaction_delete_line_delete': 'حذف سطر Delete',
+    'transaction_preview': 'معاينة',
+    'transaction_pdf': 'PDF',
+    'transaction_save_and_print': 'حفظ وطباعة',
+    'transaction_pay_full': 'دفع كامل',
+    'transaction_unpaid': 'غير مدفوع',
+    'transaction_hold': 'تعليق',
+    'transaction_close': 'إغلاق',
+    'transaction_load_invoice_lines': 'تحميل بنود الفاتورة',
+    'transaction_return_fill_all': 'إرجاع كامل المتاح',
+    'transaction_return_clear_qty': 'تصفير الكميات',
+    'transaction_return_tools_label': 'أدوات المرتجع:',
+    'transaction_return_summary': 'المحدد: {selected} | القابل للإرجاع: {returnable} | القيمة: {amount}',
+    'transaction_totals_summary': 'ملخص الفاتورة',
+    'transaction_subtotal': 'المجموع الفرعي',
+    'transaction_discount': 'الخصم',
+    'transaction_tax': 'الضريبة',
+    'transaction_remaining': 'المتبقي',
+    'transaction_net_total': 'الصافي',
+    'transaction_payment': 'الدفع',
+    'transaction_payment_method': 'طريقة الدفع',
+    'transaction_paid': 'المدفوع',
+    'payment_cash': 'نقدًا',
+    'payment_card': 'بطاقة',
+    'payment_bank_transfer': 'تحويل',
+    'payment_credit': 'آجل',
+    'transaction_no_party': 'بدون طرف',
+    'transaction_choose_original_invoice': 'اختر فاتورة أصلية',
+    'transaction_loaded_returnable_lines': 'تم تحميل {count} بندًا قابلًا للإرجاع',
+    'transaction_no_returnable_lines': 'لا توجد بنود قابلة للإرجاع لهذه الفاتورة',
+    'transaction_barcode_empty': 'الباركود فارغ',
+    'transaction_barcode_not_found': 'الباركود غير موجود. لم تتم إضافة أي مادة.',
+    'transaction_search_empty': 'أدخل مادة أو باركود',
+    'transaction_search_ambiguous': 'نتائج البحث متعددة. استخدم اختيارًا أدق أو الباركود.',
+    'transaction_item_not_found': 'المادة غير موجودة',
+    'transaction_return_summary_failed': 'تعذر تحديث ملخص المرتجع',
+    'transaction_no_returnable_quantities': 'لا توجد كميات قابلة للإرجاع',
+    'transaction_invoice_not_found': 'الفاتورة غير موجودة',
+    'transaction_return_not_found': 'المرتجع غير موجود',
+    'transaction_select_original_before_save': 'اختر الفاتورة الأصلية قبل الحفظ',
+    'transaction_add_at_least_one_line': 'أضف بندًا واحدًا على الأقل قبل الحفظ',
+    'transaction_select_warehouse_before_save': 'اختر المستودع قبل الحفظ',
+    'transaction_paid_exceeds_total': 'المبلغ المدفوع/المسترد أكبر من صافي المستند',
+    'transaction_save_without_party': 'لم يتم تحديد {role}. هل تريد الحفظ بدون طرف؟',
+    'transaction_qty_exceeds_available': 'الكمية المطلوبة أكبر من المتاح لهذه المواد:',
+    'transaction_return_saved': 'تم حفظ المرتجع',
+    'transaction_invoice_saved': 'تم حفظ الفاتورة',
+    'transaction_save_failed': 'تعذر حفظ المستند',
+    'transaction_no_printable_lines_output': 'لا توجد بنود صالحة للطباعة أو التصدير',
+    'transaction_no_printable_lines_preview': 'لا توجد بنود صالحة للمعاينة',
+    'transaction_save_before_output': '{title} غير محفوظ أو يحتوي تعديلات. هل تريد الحفظ قبل الإخراج؟',
+    'transaction_return_line_missing_original': 'السطر {row}: لا يوجد ربط ببند الفاتورة الأصلية',
+    'transaction_return_line_duplicate_original': 'السطر {row}: بند الفاتورة الأصلية مكرر',
+    'transaction_return_line_negative_qty': 'السطر {row}: كمية المرتجع سالبة',
+    'transaction_return_line_qty_exceeds': 'السطر {row}: كمية {item} أكبر من القابل للإرجاع',
+})
+_translations['en'].update({
+    'transaction_sales_invoice_new': 'New sales invoice',
+    'transaction_purchase_invoice_new': 'New purchase invoice',
+    'transaction_sales_return_new': 'New sales return',
+    'transaction_purchase_return_new': 'New purchase return',
+    'transaction_sales_return': 'Sales return',
+    'transaction_purchase_return': 'Purchase return',
+    'transaction_column_barcode': 'Barcode',
+    'transaction_column_item': 'Item',
+    'transaction_column_unit': 'Unit',
+    'transaction_column_qty': 'Qty',
+    'transaction_column_available': 'Available',
+    'transaction_column_price': 'Price',
+    'transaction_column_discount': 'Discount',
+    'transaction_column_tax': 'Tax',
+    'transaction_column_total': 'Total',
+    'transaction_column_notes': 'Notes',
+    'transaction_column_cost': 'Cost',
+    'transaction_column_batch': 'Batch',
+    'transaction_column_expiry': 'Expiry',
+    'transaction_column_original_invoice': 'Original invoice',
+    'transaction_column_sold_qty': 'Sold',
+    'transaction_column_purchased_qty': 'Purchased',
+    'transaction_column_previous_return': 'Previously returned',
+    'transaction_column_returnable': 'Returnable',
+    'transaction_column_return_qty': 'Return qty',
+    'transaction_column_reason': 'Reason',
+    'transaction_column_restock': 'Restock',
+    'transaction_column_unit_value': 'Unit value',
+    'transaction_preset_compact': 'Compact view',
+    'transaction_preset_cashier': 'Cashier view',
+    'transaction_preset_accountant': 'Accountant view',
+    'transaction_preset_warehouse': 'Warehouse view',
+    'transaction_preset_manager': 'Manager view',
+    'transaction_preset': 'View preset',
+    'transaction_auto_responsive': 'Auto responsive',
+    'transaction_save_shortcut': 'Save Ctrl+S',
+    'transaction_columns': 'Columns',
+    'transaction_reset_view': 'Reset view',
+    'transaction_reference': 'Reference',
+    'transaction_search_material_barcode': 'Search item/barcode — Ctrl+F',
+    'transaction_select_original_then_load': 'Select the original invoice, then load returnable lines',
+    'transaction_load_lines': 'Load lines',
+    'transaction_original_invoice': 'Original invoice',
+    'transaction_quick_search': 'Quick search',
+    'transaction_notes_terms_attachments': 'Notes / terms / attachments',
+    'transaction_return_payment_tooltip': 'For returns, paid means the immediate cash/bank refund; the rest is booked as credit settlement.',
+    'transaction_credit_settlement': 'Credit settlement',
+    'transaction_refund_full': 'Full refund',
+    'transaction_new': 'New',
+    'transaction_add_line_insert': 'Add line Insert',
+    'transaction_delete_line_delete': 'Delete line Delete',
+    'transaction_preview': 'Preview',
+    'transaction_pdf': 'PDF',
+    'transaction_save_and_print': 'Save and print',
+    'transaction_pay_full': 'Pay full',
+    'transaction_unpaid': 'Unpaid',
+    'transaction_hold': 'Hold',
+    'transaction_close': 'Close',
+    'transaction_load_invoice_lines': 'Load invoice lines',
+    'transaction_return_fill_all': 'Return all available',
+    'transaction_return_clear_qty': 'Clear quantities',
+    'transaction_return_tools_label': 'Return tools:',
+    'transaction_return_summary': 'Selected: {selected} | Returnable: {returnable} | Amount: {amount}',
+    'transaction_totals_summary': 'Invoice summary',
+    'transaction_subtotal': 'المجموع الفرعي',
+    'transaction_discount': 'الخصم',
+    'transaction_tax': 'الضريبة',
+    'transaction_remaining': 'المتبقي',
+    'transaction_net_total': 'الصافي',
+    'transaction_payment': 'Payment',
+    'transaction_payment_method': 'Payment method',
+    'transaction_paid': 'Paid',
+    'payment_cash': 'Cash',
+    'payment_card': 'Card',
+    'payment_bank_transfer': 'Bank transfer',
+    'payment_credit': 'Credit',
+    'transaction_no_party': 'No party',
+    'transaction_choose_original_invoice': 'Choose original invoice',
+    'transaction_loaded_returnable_lines': 'Loaded {count} returnable lines',
+    'transaction_no_returnable_lines': 'No returnable lines for this invoice',
+    'transaction_barcode_empty': 'Barcode is empty',
+    'transaction_barcode_not_found': 'Barcode not found. No item was added.',
+    'transaction_search_empty': 'Enter an item or barcode',
+    'transaction_search_ambiguous': 'Multiple search results. Use a more precise search or a barcode.',
+    'transaction_item_not_found': 'Item not found',
+    'transaction_return_summary_failed': 'Could not update return summary',
+    'transaction_no_returnable_quantities': 'No returnable quantities',
+    'transaction_invoice_not_found': 'Invoice not found',
+    'transaction_return_not_found': 'Return not found',
+    'transaction_select_original_before_save': 'Select the original invoice before saving',
+    'transaction_add_at_least_one_line': 'Add at least one line before saving',
+    'transaction_select_warehouse_before_save': 'Select a warehouse before saving',
+    'transaction_paid_exceeds_total': 'Paid/refund amount exceeds document net total',
+    'transaction_save_without_party': '{role} is not selected. Save without a party?',
+    'transaction_qty_exceeds_available': 'Requested quantity exceeds available stock for these items:',
+    'transaction_return_saved': 'Return saved',
+    'transaction_invoice_saved': 'Invoice saved',
+    'transaction_save_failed': 'Could not save document',
+    'transaction_no_printable_lines_output': 'No valid lines for printing or export',
+    'transaction_no_printable_lines_preview': 'No valid lines for preview',
+    'transaction_save_before_output': '{title} is unsaved or modified. Save before output?',
+    'transaction_return_line_missing_original': 'Line {row}: no link to original invoice line',
+    'transaction_return_line_duplicate_original': 'Line {row}: original invoice line is duplicated',
+    'transaction_return_line_negative_qty': 'Line {row}: return quantity is negative',
+    'transaction_return_line_qty_exceeds': 'Line {row}: quantity for {item} exceeds returnable quantity',
+})
+_translations['de'].update({
+    'transaction_sales_invoice_new': 'Neue Verkaufsrechnung',
+    'transaction_purchase_invoice_new': 'Neue Einkaufsrechnung',
+    'transaction_sales_return_new': 'Neue Verkaufsretoure',
+    'transaction_purchase_return_new': 'Neue Einkaufsretoure',
+    'transaction_sales_return': 'Verkaufsretoure',
+    'transaction_purchase_return': 'Einkaufsretoure',
+    'transaction_column_barcode': 'Barcode',
+    'transaction_column_item': 'Artikel',
+    'transaction_column_unit': 'Einheit',
+    'transaction_column_qty': 'Menge',
+    'transaction_column_available': 'Verfügbar',
+    'transaction_column_price': 'Preis',
+    'transaction_column_discount': 'Rabatt',
+    'transaction_column_tax': 'Steuer',
+    'transaction_column_total': 'Summe',
+    'transaction_column_notes': 'Notizen',
+    'transaction_column_cost': 'Kosten',
+    'transaction_column_batch': 'Charge',
+    'transaction_column_expiry': 'Ablaufdatum',
+    'transaction_column_original_invoice': 'Ursprungsrechnung',
+    'transaction_column_sold_qty': 'Verkauft',
+    'transaction_column_purchased_qty': 'Gekauft',
+    'transaction_column_previous_return': 'Bereits retourniert',
+    'transaction_column_returnable': 'Retourenfähig',
+    'transaction_column_return_qty': 'Retourenmenge',
+    'transaction_column_reason': 'Grund',
+    'transaction_column_restock': 'Zurück ins Lager',
+    'transaction_column_unit_value': 'Einzelwert',
+    'transaction_preset_compact': 'Kompakte Ansicht',
+    'transaction_preset_cashier': 'Kassiereransicht',
+    'transaction_preset_accountant': 'Buchhalteransicht',
+    'transaction_preset_warehouse': 'Lageransicht',
+    'transaction_preset_manager': 'Manageransicht',
+    'transaction_preset': 'Ansicht',
+    'transaction_auto_responsive': 'Automatisch responsiv',
+    'transaction_save_shortcut': 'Speichern Ctrl+S',
+    'transaction_columns': 'Spalten',
+    'transaction_reset_view': 'Ansicht zurücksetzen',
+    'transaction_reference': 'Referenz',
+    'transaction_search_material_barcode': 'Artikel/Barcode suchen — Ctrl+F',
+    'transaction_select_original_then_load': 'Ursprungsrechnung auswählen, dann retourenfähige Zeilen laden',
+    'transaction_load_lines': 'Zeilen laden',
+    'transaction_original_invoice': 'Ursprungsrechnung',
+    'transaction_quick_search': 'Schnellsuche',
+    'transaction_notes_terms_attachments': 'Notizen / Bedingungen / Anhänge',
+    'transaction_return_payment_tooltip': 'Bei Retouren bedeutet Bezahlt die sofortige Bar-/Bank-Erstattung; der Rest wird als Gutschrift gebucht.',
+    'transaction_credit_settlement': 'Gutschrift',
+    'transaction_refund_full': 'Voll erstatten',
+    'transaction_new': 'Neu',
+    'transaction_add_line_insert': 'Zeile hinzufügen Insert',
+    'transaction_delete_line_delete': 'Zeile löschen Delete',
+    'transaction_preview': 'Vorschau',
+    'transaction_pdf': 'PDF',
+    'transaction_save_and_print': 'Speichern und drucken',
+    'transaction_pay_full': 'Voll bezahlen',
+    'transaction_unpaid': 'Unbezahlt',
+    'transaction_hold': 'Parken',
+    'transaction_close': 'Schließen',
+    'transaction_load_invoice_lines': 'Rechnungszeilen laden',
+    'transaction_return_fill_all': 'Alles Retourenfähige übernehmen',
+    'transaction_return_clear_qty': 'Mengen leeren',
+    'transaction_return_tools_label': 'Retourenwerkzeuge:',
+    'transaction_return_summary': 'Ausgewählt: {selected} | Retourenfähig: {returnable} | Betrag: {amount}',
+    'transaction_totals_summary': 'Rechnungssumme',
+    'transaction_subtotal': 'Zwischensumme',
+    'transaction_discount': 'Rabatt',
+    'transaction_tax': 'Steuer',
+    'transaction_remaining': 'Offen',
+    'transaction_net_total': 'Nettosumme',
+    'transaction_payment': 'Zahlung',
+    'transaction_payment_method': 'Zahlungsart',
+    'transaction_paid': 'Bezahlt',
+    'payment_cash': 'Bar',
+    'payment_card': 'Karte',
+    'payment_bank_transfer': 'Überweisung',
+    'payment_credit': 'Kredit',
+    'transaction_no_party': 'Ohne Partei',
+    'transaction_choose_original_invoice': 'Ursprungsrechnung auswählen',
+    'transaction_loaded_returnable_lines': '{count} retourenfähige Zeilen geladen',
+    'transaction_no_returnable_lines': 'Keine retourenfähigen Zeilen für diese Rechnung',
+    'transaction_barcode_empty': 'Barcode ist leer',
+    'transaction_barcode_not_found': 'Barcode nicht gefunden. Kein Artikel wurde hinzugefügt.',
+    'transaction_search_empty': 'Artikel oder Barcode eingeben',
+    'transaction_search_ambiguous': 'Mehrere Suchergebnisse. Verwenden Sie eine genauere Suche oder einen Barcode.',
+    'transaction_item_not_found': 'Artikel nicht gefunden',
+    'transaction_return_summary_failed': 'Retourenzusammenfassung konnte nicht aktualisiert werden',
+    'transaction_no_returnable_quantities': 'Keine retourenfähigen Mengen',
+    'transaction_invoice_not_found': 'Rechnung nicht gefunden',
+    'transaction_return_not_found': 'Retoure nicht gefunden',
+    'transaction_select_original_before_save': 'Ursprungsrechnung vor dem Speichern auswählen',
+    'transaction_add_at_least_one_line': 'Vor dem Speichern mindestens eine Zeile hinzufügen',
+    'transaction_select_warehouse_before_save': 'Vor dem Speichern Lager auswählen',
+    'transaction_paid_exceeds_total': 'Bezahlter/erstatteter Betrag übersteigt die Dokumentsumme',
+    'transaction_save_without_party': '{role} ist nicht ausgewählt. Ohne Partei speichern?',
+    'transaction_qty_exceeds_available': 'Angeforderte Menge übersteigt den verfügbaren Bestand für diese Artikel:',
+    'transaction_return_saved': 'Retoure gespeichert',
+    'transaction_invoice_saved': 'Rechnung gespeichert',
+    'transaction_save_failed': 'Dokument konnte nicht gespeichert werden',
+    'transaction_no_printable_lines_output': 'Keine gültigen Zeilen für Druck oder Export',
+    'transaction_no_printable_lines_preview': 'Keine gültigen Zeilen für Vorschau',
+    'transaction_save_before_output': '{title} ist nicht gespeichert oder geändert. Vor Ausgabe speichern?',
+    'transaction_return_line_missing_original': 'Zeile {row}: keine Verbindung zur ursprünglichen Rechnungszeile',
+    'transaction_return_line_duplicate_original': 'Zeile {row}: ursprüngliche Rechnungszeile ist doppelt',
+    'transaction_return_line_negative_qty': 'Zeile {row}: Retourenmenge ist negativ',
+    'transaction_return_line_qty_exceeds': 'Zeile {row}: Menge für {item} überschreitet die retourenfähige Menge',
+})
+
+# Phase 171: unified material document tab, barcode and units terminology.
+_PHASE171_TRANSLATIONS = {
+    'ar': {
+        'material_title_new': 'مادة جديدة',
+        'material_title_edit': 'تعديل مادة',
+        'material_subtitle': 'واجهة موحدة للمواد: بيانات أساسية، أسعار، مخزون، باركود ووحدات.',
+        'material_basic_data': 'بيانات المادة',
+        'material_pricing_inventory': 'الأسعار والمخزون',
+        'material_barcode_panel': 'الباركود والملصقات',
+        'material_units_panel': 'وحدات المادة',
+        'material_unit': 'الوحدة',
+        'material_unit_barcode': 'باركود الوحدة',
+        'material_generate_barcode': 'توليد باركود',
+        'material_generate_unit_barcode': 'توليد باركود للوحدة',
+        'material_scan_camera': 'قراءة بالكاميرا',
+        'material_print_label': 'طباعة ملصق',
+        'material_preview_label': 'معاينة ملصق',
+        'material_save_and_print_label': 'حفظ وطباعة ملصق',
+        'material_name_placeholder': 'اسم المادة مطلوب',
+        'material_barcode_generated': 'تم توليد باركود غير مكرر',
+        'material_barcode_invalid': '✗ {error}',
+        'material_barcode_required': 'الباركود مطلوب للمواد المخزنية حسب الإعدادات',
+        'material_barcode_required_for_label': 'لا يمكن طباعة ملصق بدون باركود',
+        'material_label_preview_title': 'معاينة ملصق الباركود',
+        'material_select_unit_first': 'اختر وحدة أولًا',
+    },
+    'de': {
+        'material_title_new': 'Neuer Artikel',
+        'material_title_edit': 'Artikel bearbeiten',
+        'material_subtitle': 'Einheitliche Artikeloberfläche: Stammdaten, Preise, Bestand, Barcode und Einheiten.',
+        'material_basic_data': 'Artikeldaten',
+        'material_pricing_inventory': 'Preise und Bestand',
+        'material_barcode_panel': 'Barcode und Etiketten',
+        'material_units_panel': 'Artikeleinheiten',
+        'material_unit': 'Einheit',
+        'material_unit_barcode': 'Einheiten-Barcode',
+        'material_generate_barcode': 'Barcode erzeugen',
+        'material_generate_unit_barcode': 'Einheiten-Barcode erzeugen',
+        'material_scan_camera': 'Per Kamera scannen',
+        'material_print_label': 'Etikett drucken',
+        'material_preview_label': 'Etikettvorschau',
+        'material_save_and_print_label': 'Speichern und Etikett drucken',
+        'material_name_placeholder': 'Artikelname erforderlich',
+        'material_barcode_generated': 'Eindeutiger Barcode wurde erzeugt',
+        'material_barcode_invalid': '✗ {error}',
+        'material_barcode_required': 'Barcode ist für Lagerartikel gemäß Einstellungen erforderlich',
+        'material_barcode_required_for_label': 'Etikett kann nicht ohne Barcode gedruckt werden',
+        'material_label_preview_title': 'Barcode-Etikettvorschau',
+        'material_select_unit_first': 'Bitte zuerst eine Einheit auswählen',
+    },
+    'en': {
+        'material_title_new': 'New Item',
+        'material_title_edit': 'Edit Item',
+        'material_subtitle': 'Unified item screen: master data, prices, stock, barcode, and units.',
+        'material_basic_data': 'Item Data',
+        'material_pricing_inventory': 'Prices and Stock',
+        'material_barcode_panel': 'Barcode and Labels',
+        'material_units_panel': 'Item Units',
+        'material_unit': 'Unit',
+        'material_unit_barcode': 'Unit Barcode',
+        'material_generate_barcode': 'Generate Barcode',
+        'material_generate_unit_barcode': 'Generate Unit Barcode',
+        'material_scan_camera': 'Scan with Camera',
+        'material_print_label': 'Print Label',
+        'material_preview_label': 'Preview Label',
+        'material_save_and_print_label': 'Save and Print Label',
+        'material_name_placeholder': 'Item name is required',
+        'material_barcode_generated': 'A unique barcode was generated',
+        'material_barcode_invalid': '✗ {error}',
+        'material_barcode_required': 'Barcode is required for stock items by settings',
+        'material_barcode_required_for_label': 'Cannot print a label without a barcode',
+        'material_label_preview_title': 'Barcode Label Preview',
+        'material_select_unit_first': 'Select a unit first',
+    },
+}
+for _lang, _values in _PHASE171_TRANSLATIONS.items():
+    _translations.setdefault(_lang, {}).update(_values)
+try:
+    for _lang, _values in _PHASE171_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+# Phase 173: professional materials workspace/list grid terminology.
+_PHASE173_TRANSLATIONS = {
+    'ar': {
+        'material_list_column_name': 'اسم المادة',
+        'material_list_column_barcode': 'الباركود',
+        'material_list_column_category': 'التصنيف',
+        'material_list_column_type': 'نوع المادة',
+        'material_list_column_opening_qty': 'كمية افتتاحية',
+        'material_list_column_unit': 'الوحدة',
+        'material_list_column_sold_qty': 'المباع',
+        'material_list_column_available_qty': 'المتوفر',
+        'material_list_column_stock_status': 'حالة المخزون',
+        'material_list_column_reorder_level': 'حد إعادة الطلب',
+        'material_list_column_stock_value': 'قيمة المخزون',
+        'material_list_column_unit_cost': 'تكلفة الوحدة',
+        'material_preset_compact': 'عرض مضغوط',
+        'material_preset_cashier': 'عرض كاشير',
+        'material_preset_warehouse': 'عرض مخزن',
+        'material_preset_accountant': 'عرض محاسب',
+        'material_preset_manager': 'عرض مدير',
+        'material_stock_filter': 'المخزون',
+        'all_stock_statuses': 'كل حالات المخزون',
+        'material_view_preset': 'شكل العرض',
+        'material_workspace_unavailable': 'تبويب المادة غير متاح من هذا السياق',
+    },
+    'de': {
+        'material_list_column_name': 'Artikelname',
+        'material_list_column_barcode': 'Barcode',
+        'material_list_column_category': 'Kategorie',
+        'material_list_column_type': 'Artikeltyp',
+        'material_list_column_opening_qty': 'Anfangsmenge',
+        'material_list_column_unit': 'Einheit',
+        'material_list_column_sold_qty': 'Verkauft',
+        'material_list_column_available_qty': 'Verfügbar',
+        'material_list_column_stock_status': 'Bestandsstatus',
+        'material_list_column_reorder_level': 'Meldebestand',
+        'material_list_column_stock_value': 'Bestandswert',
+        'material_list_column_unit_cost': 'Stückkosten',
+        'material_preset_compact': 'Kompaktansicht',
+        'material_preset_cashier': 'Kassiereransicht',
+        'material_preset_warehouse': 'Lageransicht',
+        'material_preset_accountant': 'Buchhalteransicht',
+        'material_preset_manager': 'Manageransicht',
+        'material_stock_filter': 'Bestand',
+        'all_stock_statuses': 'Alle Bestandsstatus',
+        'material_view_preset': 'Ansicht',
+        'material_workspace_unavailable': 'Artikel-Tab ist in diesem Kontext nicht verfügbar',
+    },
+    'en': {
+        'material_list_column_name': 'Item Name',
+        'material_list_column_barcode': 'Barcode',
+        'material_list_column_category': 'Category',
+        'material_list_column_type': 'Item Type',
+        'material_list_column_opening_qty': 'Opening Qty',
+        'material_list_column_unit': 'Unit',
+        'material_list_column_sold_qty': 'Sold',
+        'material_list_column_available_qty': 'Available',
+        'material_list_column_stock_status': 'Stock Status',
+        'material_list_column_reorder_level': 'Reorder Level',
+        'material_list_column_stock_value': 'Stock Value',
+        'material_list_column_unit_cost': 'Unit Cost',
+        'material_preset_compact': 'Compact View',
+        'material_preset_cashier': 'Cashier View',
+        'material_preset_warehouse': 'Warehouse View',
+        'material_preset_accountant': 'Accountant View',
+        'material_preset_manager': 'Manager View',
+        'material_stock_filter': 'Stock',
+        'all_stock_statuses': 'All stock statuses',
+        'material_view_preset': 'View',
+        'material_workspace_unavailable': 'Material tab is not available from this context',
+    },
+}
+for _lang, _values in _PHASE173_TRANSLATIONS.items():
+    _translations.setdefault(_lang, {}).update(_values)
+try:
+    for _lang, _values in _PHASE173_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+for _lang, _value in {'ar': 'الصلاحيات', 'de': 'Berechtigungen', 'en': 'Permissions'}.items():
+    _translations.setdefault(_lang, {})['permissions'] = _value
+    try:
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {})['permissions'] = _value
+    except Exception:
+        pass
+
+_PHASE174_TRANSLATIONS = {
+    'ar': {
+        'material_readonly_permission': 'هذه المادة للعرض فقط؛ لا تملك صلاحية تعديل المواد.',
+        'material_opening_qty_locked': 'الكمية الافتتاحية مقفلة بعد وجود حركات. استخدم تسوية مخزون بدل تعديل الافتتاحي.',
+        'material_opening_qty_permission_locked': 'لا تملك صلاحية تعديل الكمية الافتتاحية.',
+        'material_duplicate_unit_name': 'الوحدة الفرعية مكررة: {unit}',
+        'material_invalid_unit_factor': 'عامل التحويل للوحدة {unit} يجب أن يكون أكبر من صفر.',
+        'material_invalid_unit_barcode': 'باركود الوحدة {unit} غير صالح: {error}',
+        'material_duplicate_barcode': 'الباركود مكرر بين المادة أو وحداتها: {barcode}',
+    },
+    'de': {
+        'material_readonly_permission': 'Dieser Artikel ist schreibgeschützt; Sie haben keine Berechtigung zum Bearbeiten.',
+        'material_opening_qty_locked': 'Der Anfangsbestand ist nach vorhandenen Bewegungen gesperrt. Verwenden Sie eine Bestandskorrektur.',
+        'material_opening_qty_permission_locked': 'Sie haben keine Berechtigung, den Anfangsbestand zu ändern.',
+        'material_duplicate_unit_name': 'Doppelte Untereinheit: {unit}',
+        'material_invalid_unit_factor': 'Der Umrechnungsfaktor für {unit} muss größer als null sein.',
+        'material_invalid_unit_barcode': 'Einheiten-Barcode für {unit} ist ungültig: {error}',
+        'material_duplicate_barcode': 'Barcode ist zwischen Artikel oder Einheiten doppelt: {barcode}',
+    },
+    'en': {
+        'material_readonly_permission': 'This item is read-only; you do not have permission to edit items.',
+        'material_opening_qty_locked': 'Opening quantity is locked after movements exist. Use an inventory adjustment instead.',
+        'material_opening_qty_permission_locked': 'You do not have permission to edit opening quantity.',
+        'material_duplicate_unit_name': 'Duplicate sub-unit: {unit}',
+        'material_invalid_unit_factor': 'Conversion factor for {unit} must be greater than zero.',
+        'material_invalid_unit_barcode': 'Unit barcode for {unit} is invalid: {error}',
+        'material_duplicate_barcode': 'Barcode is duplicated between the item or its units: {barcode}',
+    },
+}
+
+for _lang, _values in _PHASE174_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE174_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+_PHASE175_TRANSLATIONS = {
+    'ar': {
+        'pos_density': 'كثافة اللمس',
+        'pos_density_compact': 'مضغوط',
+        'pos_density_comfortable': 'مريح',
+        'pos_density_touch': 'لمس',
+        'unit_piece': 'قطعة',
+        'pos_scan_empty': 'أدخل أو امسح باركود المادة.',
+        'pos_barcode_not_found': 'لم يتم العثور على مادة بهذا الباركود: {code}',
+        'pos_search_ambiguous': 'البحث "{text}" أعاد أكثر من نتيجة. استخدم باركودًا دقيقًا أو افتح بحث المواد.',
+        'pos_item_not_found': 'لم يتم العثور على مادة: {text}',
+        'pos_qty_must_be_positive': 'الكمية يجب أن تكون أكبر من صفر.',
+        'pos_invalid_sale_price': 'سعر البيع غير صالح.',
+        'pos_insufficient_stock': 'المخزون غير كافٍ للمادة {item}. المتاح: {available}',
+        'pos_cannot_suspend_empty': 'لا يمكن تعليق سلة فارغة.',
+        'pos_suspended_cart_missing': 'البيع المعلق غير موجود.',
+        'pos_cannot_checkout_empty': 'لا يمكن إنهاء بيع بدون مواد.',
+        'pos_total_must_be_positive': 'إجمالي البيع يجب أن يكون أكبر من صفر.',
+        'pos_paid_cannot_be_negative': 'المدفوع لا يمكن أن يكون سالبًا.',
+    },
+    'de': {
+        'pos_density': 'Touch-Dichte',
+        'pos_density_compact': 'Kompakt',
+        'pos_density_comfortable': 'Komfortabel',
+        'pos_density_touch': 'Touch',
+        'unit_piece': 'Stück',
+        'pos_scan_empty': 'Barcode des Artikels eingeben oder scannen.',
+        'pos_barcode_not_found': 'Kein Artikel mit diesem Barcode gefunden: {code}',
+        'pos_search_ambiguous': 'Die Suche "{text}" hat mehrere Treffer ergeben. Verwenden Sie einen exakten Barcode oder die Artikelsuche.',
+        'pos_item_not_found': 'Artikel nicht gefunden: {text}',
+        'pos_qty_must_be_positive': 'Die Menge muss größer als null sein.',
+        'pos_invalid_sale_price': 'Der Verkaufspreis ist ungültig.',
+        'pos_insufficient_stock': 'Nicht genügend Bestand für {item}. Verfügbar: {available}',
+        'pos_cannot_suspend_empty': 'Ein leerer Warenkorb kann nicht geparkt werden.',
+        'pos_suspended_cart_missing': 'Der geparkte Verkauf wurde nicht gefunden.',
+        'pos_cannot_checkout_empty': 'Abschluss ohne Artikel ist nicht möglich.',
+        'pos_total_must_be_positive': 'Der Verkaufsbetrag muss größer als null sein.',
+        'pos_paid_cannot_be_negative': 'Der bezahlte Betrag darf nicht negativ sein.',
+    },
+    'en': {
+        'pos_density': 'Touch density',
+        'pos_density_compact': 'Compact',
+        'pos_density_comfortable': 'Comfortable',
+        'pos_density_touch': 'Touch',
+        'unit_piece': 'Piece',
+        'pos_scan_empty': 'Enter or scan the item barcode.',
+        'pos_barcode_not_found': 'No item found for barcode: {code}',
+        'pos_search_ambiguous': 'Search "{text}" returned more than one result. Use an exact barcode or open item search.',
+        'pos_item_not_found': 'Item not found: {text}',
+        'pos_qty_must_be_positive': 'Quantity must be greater than zero.',
+        'pos_invalid_sale_price': 'Sale price is invalid.',
+        'pos_insufficient_stock': 'Insufficient stock for {item}. Available: {available}',
+        'pos_cannot_suspend_empty': 'Cannot suspend an empty cart.',
+        'pos_suspended_cart_missing': 'Suspended sale was not found.',
+        'pos_cannot_checkout_empty': 'Cannot checkout without items.',
+        'pos_total_must_be_positive': 'Sale total must be greater than zero.',
+        'pos_paid_cannot_be_negative': 'Paid amount cannot be negative.',
+    },
+}
+
+for _lang, _values in _PHASE175_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE175_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+_PHASE176_TRANSLATIONS = {
+    'ar': {
+        'pos_column_base_qty': 'الكمية الأساسية',
+        'pos_column_barcode_scope': 'نوع الباركود',
+        'pos_barcode_scope_item': 'مادة',
+        'pos_barcode_scope_unit': 'وحدة',
+        'pos_visual_grid_unified': 'تم توحيد جدول POS مع محرك الجداول الجديد.',
+    },
+    'de': {
+        'pos_column_base_qty': 'Basismenge',
+        'pos_column_barcode_scope': 'Barcode-Typ',
+        'pos_barcode_scope_item': 'Artikel',
+        'pos_barcode_scope_unit': 'Einheit',
+        'pos_visual_grid_unified': 'Die POS-Tabelle wurde mit der neuen Tabellen-Engine vereinheitlicht.',
+    },
+    'en': {
+        'pos_column_base_qty': 'Base qty',
+        'pos_column_barcode_scope': 'Barcode type',
+        'pos_barcode_scope_item': 'Item',
+        'pos_barcode_scope_unit': 'Unit',
+        'pos_visual_grid_unified': 'The POS grid has been unified with the new table engine.',
+    },
+}
+
+for _lang, _values in _PHASE176_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE176_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+_PHASE177_TRANSLATIONS = {
+    'ar': {
+        'pos_payment_shell_title': 'الدفع والملخص',
+        'pos_total_card': 'إجمالي السلة',
+        'pos_change_card': 'الباقي / الراجع',
+        'pos_payment_shell_unified': 'تم فصل واجهة دفع POS إلى مكوّن لمس موحد.',
+    },
+    'de': {
+        'pos_payment_shell_title': 'Zahlung und Summe',
+        'pos_total_card': 'Warenkorb-Summe',
+        'pos_change_card': 'Rest / Wechselgeld',
+        'pos_payment_shell_unified': 'Die POS-Zahlungsoberfläche wurde in eine einheitliche Touch-Komponente ausgelagert.',
+    },
+    'en': {
+        'pos_payment_shell_title': 'Payment and Summary',
+        'pos_total_card': 'Cart Total',
+        'pos_change_card': 'Remaining / Change',
+        'pos_payment_shell_unified': 'The POS payment interface was extracted into a unified touch component.',
+    },
+}
+
+for _lang, _values in _PHASE177_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE177_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+_PHASE178_TRANSLATIONS = {
+    'ar': {
+        'pos_operation_checkout': 'إنهاء البيع',
+        'pos_operation_suspend': 'تعليق البيع',
+        'pos_operation_resume': 'استرجاع بيع معلق',
+        'pos_operation_remove_line': 'حذف سطر POS',
+        'pos_operation_clear_cart': 'تفريغ سلة POS',
+        'pos_operation_open_shift': 'فتح وردية POS',
+        'pos_operation_close_shift': 'إغلاق وردية POS',
+        'pos_operation_print_receipt': 'طباعة إيصال POS',
+        'pos_operation_unknown': 'عملية POS',
+        'pos_operation_disabled_by_settings': 'تم تعطيل العملية من الإعدادات: {operation}',
+        'pos_operation_denied': 'لا تملك صلاحية تنفيذ العملية: {operation}',
+        'pos_operation_governance_unified': 'تم توحيد صلاحيات وعمليات POS الحساسة.',
+    },
+    'de': {
+        'pos_operation_checkout': 'Verkauf abschließen',
+        'pos_operation_suspend': 'Verkauf parken',
+        'pos_operation_resume': 'Geparkten Verkauf fortsetzen',
+        'pos_operation_remove_line': 'POS-Zeile löschen',
+        'pos_operation_clear_cart': 'POS-Warenkorb leeren',
+        'pos_operation_open_shift': 'POS-Schicht öffnen',
+        'pos_operation_close_shift': 'POS-Schicht schließen',
+        'pos_operation_print_receipt': 'POS-Beleg drucken',
+        'pos_operation_unknown': 'POS-Vorgang',
+        'pos_operation_disabled_by_settings': 'Der Vorgang ist in den Einstellungen deaktiviert: {operation}',
+        'pos_operation_denied': 'Keine Berechtigung für diesen Vorgang: {operation}',
+        'pos_operation_governance_unified': 'POS-Berechtigungen und kritische Vorgänge wurden vereinheitlicht.',
+    },
+    'en': {
+        'pos_operation_checkout': 'Checkout sale',
+        'pos_operation_suspend': 'Suspend sale',
+        'pos_operation_resume': 'Resume suspended sale',
+        'pos_operation_remove_line': 'Remove POS line',
+        'pos_operation_clear_cart': 'Clear POS cart',
+        'pos_operation_open_shift': 'Open POS shift',
+        'pos_operation_close_shift': 'Close POS shift',
+        'pos_operation_print_receipt': 'Print POS receipt',
+        'pos_operation_unknown': 'POS operation',
+        'pos_operation_disabled_by_settings': 'This operation is disabled by settings: {operation}',
+        'pos_operation_denied': 'You do not have permission for this operation: {operation}',
+        'pos_operation_governance_unified': 'POS permissions and sensitive operations were unified.',
+    },
+}
+
+for _lang, _values in _PHASE178_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE178_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+_PHASE180_TRANSLATIONS = {
+    'ar': {
+        'restaurant.search_menu_or_barcode': 'ابحث في قائمة المطعم أو اقرأ باركود...',
+        'restaurant.barcode_line_added': 'تمت إضافة المادة عبر الباركود',
+        'restaurant.unit_barcode_scope': 'باركود وحدة',
+        'restaurant_barcode_unit_alignment_unified': 'تم توحيد باركود المواد والوحدات داخل مطعم POS.',
+    },
+    'de': {
+        'restaurant.search_menu_or_barcode': 'Restaurantkarte durchsuchen oder Barcode scannen...',
+        'restaurant.barcode_line_added': 'Artikel per Barcode hinzugefügt',
+        'restaurant.unit_barcode_scope': 'Einheiten-Barcode',
+        'restaurant_barcode_unit_alignment_unified': 'Material- und Einheiten-Barcodes wurden im Restaurant-POS vereinheitlicht.',
+    },
+    'en': {
+        'restaurant.search_menu_or_barcode': 'Search menu or scan barcode...',
+        'restaurant.barcode_line_added': 'Item added by barcode',
+        'restaurant.unit_barcode_scope': 'Unit barcode',
+        'restaurant_barcode_unit_alignment_unified': 'Material and unit barcodes were unified in Restaurant POS.',
+    },
+}
+
+for _lang, _values in _PHASE180_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE180_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+_PHASE181_TRANSLATIONS = {
+    'ar': {
+        'restaurant_column_modifiers': 'الإضافات',
+        'restaurant_column_status': 'حالة المطبخ',
+        'restaurant.barcode_scope_menu': 'قائمة المطعم',
+        'restaurant.barcode_scope_manual': 'إدخال يدوي',
+        'restaurant_order_grid_unified': 'تم تحويل طلبات المطعم إلى جدول موحد داعم للمس والباركود والوحدات.',
+    },
+    'de': {
+        'restaurant_column_modifiers': 'Optionen',
+        'restaurant_column_status': 'Küchenstatus',
+        'restaurant.barcode_scope_menu': 'Restaurantkarte',
+        'restaurant.barcode_scope_manual': 'Manuelle Eingabe',
+        'restaurant_order_grid_unified': 'Restaurantbestellungen wurden in eine einheitliche Touch-Tabelle mit Barcode- und Einheitenunterstützung überführt.',
+    },
+    'en': {
+        'restaurant_column_modifiers': 'Modifiers',
+        'restaurant_column_status': 'Kitchen status',
+        'restaurant.barcode_scope_menu': 'Menu',
+        'restaurant.barcode_scope_manual': 'Manual entry',
+        'restaurant_order_grid_unified': 'Restaurant order lines were moved to a unified touch grid with barcode and unit support.',
+    },
+}
+
+for _lang, _values in _PHASE181_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE181_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+
+_PHASE182_TRANSLATIONS = {
+    'ar': {
+        'restaurant_operation_use': 'استخدام مطعم POS',
+        'restaurant_operation_open_session': 'فتح جلسة مطعم',
+        'restaurant_operation_add_line': 'إضافة بند طلب مطعم',
+        'restaurant_operation_send_kitchen': 'إرسال الطلب للمطبخ',
+        'restaurant_operation_adjust_bill': 'تعديل فاتورة المطعم',
+        'restaurant_operation_record_payment': 'تسجيل دفعة مطعم',
+        'restaurant_operation_checkout': 'إغلاق طاولة المطعم',
+        'restaurant_operation_update_kitchen_status': 'تحديث حالة المطبخ',
+        'restaurant_operation_unknown': 'عملية مطعم',
+        'restaurant_operation_disabled': 'نظام المطعم معطل من الإعدادات.',
+        'restaurant_operation_disabled_by_settings': 'تم تعطيل العملية من الإعدادات: {operation}',
+        'restaurant_operation_denied': 'لا تملك صلاحية تنفيذ العملية: {operation}',
+        'restaurant_operation_governance_unified': 'تم توحيد صلاحيات وعمليات المطعم الحساسة.',
+    },
+    'de': {
+        'restaurant_operation_use': 'Restaurant-POS nutzen',
+        'restaurant_operation_open_session': 'Restaurant-Sitzung öffnen',
+        'restaurant_operation_add_line': 'Restaurant-Bestellzeile hinzufügen',
+        'restaurant_operation_send_kitchen': 'Bestellung an Küche senden',
+        'restaurant_operation_adjust_bill': 'Restaurant-Rechnung anpassen',
+        'restaurant_operation_record_payment': 'Restaurant-Zahlung erfassen',
+        'restaurant_operation_checkout': 'Restaurant-Tisch abschließen',
+        'restaurant_operation_update_kitchen_status': 'Küchenstatus aktualisieren',
+        'restaurant_operation_unknown': 'Restaurant-Vorgang',
+        'restaurant_operation_disabled': 'Das Restaurant-Modul ist in den Einstellungen deaktiviert.',
+        'restaurant_operation_disabled_by_settings': 'Der Vorgang ist in den Einstellungen deaktiviert: {operation}',
+        'restaurant_operation_denied': 'Keine Berechtigung für diesen Vorgang: {operation}',
+        'restaurant_operation_governance_unified': 'Restaurant-Berechtigungen und kritische Vorgänge wurden vereinheitlicht.',
+    },
+    'en': {
+        'restaurant_operation_use': 'Use Restaurant POS',
+        'restaurant_operation_open_session': 'Open restaurant session',
+        'restaurant_operation_add_line': 'Add restaurant order line',
+        'restaurant_operation_send_kitchen': 'Send order to kitchen',
+        'restaurant_operation_adjust_bill': 'Adjust restaurant bill',
+        'restaurant_operation_record_payment': 'Record restaurant payment',
+        'restaurant_operation_checkout': 'Checkout restaurant table',
+        'restaurant_operation_update_kitchen_status': 'Update kitchen status',
+        'restaurant_operation_unknown': 'Restaurant operation',
+        'restaurant_operation_disabled': 'Restaurant module is disabled in settings.',
+        'restaurant_operation_disabled_by_settings': 'This operation is disabled by settings: {operation}',
+        'restaurant_operation_denied': 'You do not have permission for this operation: {operation}',
+        'restaurant_operation_governance_unified': 'Restaurant permissions and critical operations were unified.',
+    },
+}
+
+for _lang, _values in _PHASE182_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+
+_PHASE183_TRANSLATIONS = {
+    'ar': {
+        'restaurant_receipt': 'إيصال مطعم',
+        'restaurant_kitchen_ticket': 'تذكرة المطبخ',
+        'restaurant.print_receipt': 'طباعة الإيصال',
+        'restaurant.print_kitchen_ticket': 'طباعة تذكرة المطبخ',
+        'restaurant.receipt_printed': 'تمت طباعة إيصال المطعم.',
+        'restaurant.kitchen_ticket_printed': 'تمت طباعة تذكرة المطبخ.',
+        'restaurant.no_kitchen_ticket_to_print': 'لا توجد تذكرة مطبخ لهذه الجلسة.',
+        'restaurant_table': 'الطاولة',
+        'restaurant_guests': 'الضيوف',
+        'restaurant_opened_at': 'وقت الفتح',
+        'restaurant_closed_at': 'وقت الإغلاق',
+        'restaurant_waiter': 'النادل',
+        'restaurant_station': 'محطة المطبخ',
+        'restaurant_sent_at': 'وقت الإرسال',
+        'restaurant_ticket_status': 'حالة التذكرة',
+        'restaurant.payment_amount': 'المبلغ',
+        'restaurant.no_payments': 'لا توجد دفعات مسجلة',
+        'restaurant_kitchen_ticket_footer': 'تذكرة تشغيل داخلية للمطبخ',
+        'restaurant_operation_print_receipt': 'طباعة إيصال المطعم',
+        'restaurant_operation_print_kitchen_ticket': 'طباعة تذكرة المطبخ',
+        'restaurant_printing_bridge_unified': 'تم توحيد طباعة إيصالات المطعم وتذاكر المطبخ عبر نظام الطباعة المركزي.',
+    },
+    'de': {
+        'restaurant_receipt': 'Restaurant-Beleg',
+        'restaurant_kitchen_ticket': 'Küchenbon',
+        'restaurant.print_receipt': 'Beleg drucken',
+        'restaurant.print_kitchen_ticket': 'Küchenbon drucken',
+        'restaurant.receipt_printed': 'Restaurant-Beleg wurde gedruckt.',
+        'restaurant.kitchen_ticket_printed': 'Küchenbon wurde gedruckt.',
+        'restaurant.no_kitchen_ticket_to_print': 'Für diese Sitzung gibt es keinen Küchenbon.',
+        'restaurant_table': 'Tisch',
+        'restaurant_guests': 'Gäste',
+        'restaurant_opened_at': 'Geöffnet um',
+        'restaurant_closed_at': 'Geschlossen um',
+        'restaurant_waiter': 'Kellner',
+        'restaurant_station': 'Küchenstation',
+        'restaurant_sent_at': 'Gesendet um',
+        'restaurant_ticket_status': 'Bonstatus',
+        'restaurant.payment_amount': 'Betrag',
+        'restaurant.no_payments': 'Keine Zahlungen erfasst',
+        'restaurant_kitchen_ticket_footer': 'Interner Arbeitsbon für die Küche',
+        'restaurant_operation_print_receipt': 'Restaurant-Beleg drucken',
+        'restaurant_operation_print_kitchen_ticket': 'Küchenbon drucken',
+        'restaurant_printing_bridge_unified': 'Restaurant-Belege und Küchenbons wurden über den zentralen Druckdienst vereinheitlicht.',
+    },
+    'en': {
+        'restaurant_receipt': 'Restaurant Receipt',
+        'restaurant_kitchen_ticket': 'Kitchen Ticket',
+        'restaurant.print_receipt': 'Print receipt',
+        'restaurant.print_kitchen_ticket': 'Print kitchen ticket',
+        'restaurant.receipt_printed': 'Restaurant receipt printed.',
+        'restaurant.kitchen_ticket_printed': 'Kitchen ticket printed.',
+        'restaurant.no_kitchen_ticket_to_print': 'No kitchen ticket exists for this session.',
+        'restaurant_table': 'Table',
+        'restaurant_guests': 'Guests',
+        'restaurant_opened_at': 'Opened at',
+        'restaurant_closed_at': 'Closed at',
+        'restaurant_waiter': 'Waiter',
+        'restaurant_station': 'Kitchen station',
+        'restaurant_sent_at': 'Sent at',
+        'restaurant_ticket_status': 'Ticket status',
+        'restaurant.payment_amount': 'Amount',
+        'restaurant.no_payments': 'No payments recorded',
+        'restaurant_kitchen_ticket_footer': 'Internal kitchen work ticket',
+        'restaurant_operation_print_receipt': 'Print restaurant receipt',
+        'restaurant_operation_print_kitchen_ticket': 'Print kitchen ticket',
+        'restaurant_printing_bridge_unified': 'Restaurant receipts and kitchen tickets were unified through the central printing service.',
+    },
+}
+
+for _lang, _values in _PHASE183_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE183_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+_PHASE187_TRANSLATIONS = {
+    'ar': {
+        'manufacturing.operation.use': 'استخدام التصنيع',
+        'manufacturing.operation.bom_create': 'إنشاء تركيبة تصنيع',
+        'manufacturing.operation.bom_edit': 'تعديل تركيبة تصنيع',
+        'manufacturing.operation.bom_delete': 'حذف تركيبة تصنيع',
+        'manufacturing.operation.order_create': 'إنشاء أمر إنتاج',
+        'manufacturing.operation.order_start': 'بدء أمر إنتاج',
+        'manufacturing.operation.material_consume': 'استهلاك مواد إنتاج',
+        'manufacturing.operation.output_complete': 'إتمام مخرجات الإنتاج',
+        'manufacturing.operation.order_cancel': 'إلغاء أمر إنتاج',
+        'manufacturing.operation.order_delete': 'حذف أمر إنتاج',
+        'manufacturing.operation.order_reverse': 'عكس أمر إنتاج',
+        'manufacturing.operation.consumption_delete': 'حذف استهلاك إنتاج',
+        'manufacturing.operation.output_delete': 'حذف مخرج إنتاج',
+        'manufacturing.operation.cost_view': 'عرض تكلفة التصنيع',
+        'manufacturing.operation.print': 'طباعة مستند تصنيع',
+        'manufacturing_governance_unified': 'تم توحيد حوكمة التصنيع عبر الإعدادات والصلاحيات وRBAC والتدقيق.',
+    },
+    'de': {
+        'manufacturing.operation.use': 'Fertigung verwenden',
+        'manufacturing.operation.bom_create': 'Stückliste erstellen',
+        'manufacturing.operation.bom_edit': 'Stückliste bearbeiten',
+        'manufacturing.operation.bom_delete': 'Stückliste löschen',
+        'manufacturing.operation.order_create': 'Fertigungsauftrag erstellen',
+        'manufacturing.operation.order_start': 'Fertigungsauftrag starten',
+        'manufacturing.operation.material_consume': 'Fertigungsmaterial verbrauchen',
+        'manufacturing.operation.output_complete': 'Fertigungsausstoß abschließen',
+        'manufacturing.operation.order_cancel': 'Fertigungsauftrag stornieren',
+        'manufacturing.operation.order_delete': 'Fertigungsauftrag löschen',
+        'manufacturing.operation.order_reverse': 'Fertigungsauftrag rückgängig machen',
+        'manufacturing.operation.consumption_delete': 'Materialverbrauch löschen',
+        'manufacturing.operation.output_delete': 'Fertigungsausstoß löschen',
+        'manufacturing.operation.cost_view': 'Fertigungskosten anzeigen',
+        'manufacturing.operation.print': 'Fertigungsdokument drucken',
+        'manufacturing_governance_unified': 'Die Fertigungssteuerung wurde über Einstellungen, Berechtigungen, RBAC und Audit vereinheitlicht.',
+    },
+    'en': {
+        'manufacturing.operation.use': 'Use manufacturing',
+        'manufacturing.operation.bom_create': 'Create BOM',
+        'manufacturing.operation.bom_edit': 'Edit BOM',
+        'manufacturing.operation.bom_delete': 'Delete BOM',
+        'manufacturing.operation.order_create': 'Create production order',
+        'manufacturing.operation.order_start': 'Start production order',
+        'manufacturing.operation.material_consume': 'Consume production materials',
+        'manufacturing.operation.output_complete': 'Complete production output',
+        'manufacturing.operation.order_cancel': 'Cancel production order',
+        'manufacturing.operation.order_delete': 'Delete production order',
+        'manufacturing.operation.order_reverse': 'Reverse production order',
+        'manufacturing.operation.consumption_delete': 'Delete production consumption',
+        'manufacturing.operation.output_delete': 'Delete production output',
+        'manufacturing.operation.cost_view': 'View manufacturing costs',
+        'manufacturing.operation.print': 'Print manufacturing document',
+        'manufacturing_governance_unified': 'Manufacturing governance was unified through settings, permissions, RBAC, and audit.',
+    },
+}
+
+for _lang, _values in _PHASE187_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE187_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+# Phase188 manufacturing BOM document tab additions
+_translations['ar'].update({
+    'manufacturing_component_search_placeholder': 'اكتب اسم المادة أو امسح باركود المادة/الوحدة...',
+    'manufacturing_component_lookup': 'بحث/باركود مكون',
+    'manufacturing_column_component_qty': 'كمية المكون',
+    'manufacturing_column_base_qty': 'الكمية الأساسية',
+    'manufacturing_column_waste_percent': 'هدر %',
+    'manufacturing_column_unit_cost': 'تكلفة الوحدة',
+    'manufacturing_column_total_cost': 'إجمالي التكلفة',
+    'manufacturing_bom_cost_summary': 'ملخص تكلفة التركيبة',
+    'manufacturing_material_cost': 'تكلفة المواد',
+    'manufacturing_waste_cost': 'تكلفة الهدر',
+    'manufacturing_required_base_qty': 'الكمية الأساسية المطلوبة',
+    'manufacturing_unit_cost_output': 'تكلفة وحدة المنتج',
+    'manufacturing_component_count': 'عدد المكونات',
+    'manufacturing_duplicate_component': 'يوجد مكون مكرر في التركيبة',
+    'manufacturing_printing_later': 'طباعة تركيبة التصنيع ستتم عبر جسر الطباعة الموحد في مرحلة الطباعة.',
+    'workspace.save_before_output': 'يجب حفظ المستند قبل الطباعة أو التصدير. هل تريد الحفظ الآن؟',
+})
+_translations['de'].update({
+    'manufacturing_component_search_placeholder': 'Artikelname eingeben oder Artikel-/Einheitenbarcode scannen...',
+    'manufacturing_component_lookup': 'Komponente suchen/Barcode',
+    'manufacturing_column_component_qty': 'Komponentenmenge',
+    'manufacturing_column_base_qty': 'Basismenge',
+    'manufacturing_column_waste_percent': 'Ausschuss %',
+    'manufacturing_column_unit_cost': 'Einheitskosten',
+    'manufacturing_column_total_cost': 'Gesamtkosten',
+    'manufacturing_bom_cost_summary': 'Stücklistenkosten',
+    'manufacturing_material_cost': 'Materialkosten',
+    'manufacturing_waste_cost': 'Ausschusskosten',
+    'manufacturing_required_base_qty': 'Erforderliche Basismenge',
+    'manufacturing_unit_cost_output': 'Kosten je Fertigprodukt',
+    'manufacturing_component_count': 'Komponentenanzahl',
+    'manufacturing_duplicate_component': 'Die Stückliste enthält eine doppelte Komponente',
+    'manufacturing_printing_later': 'Der Stücklistendruck wird in der zentralen Druckbrücke der Druckphase angebunden.',
+    'workspace.save_before_output': 'Das Dokument muss vor Druck oder Export gespeichert werden. Jetzt speichern?',
+})
+_translations['en'].update({
+    'manufacturing_component_search_placeholder': 'Type material name or scan material/unit barcode...',
+    'manufacturing_component_lookup': 'Component search/barcode',
+    'manufacturing_column_component_qty': 'Component Qty',
+    'manufacturing_column_base_qty': 'Base Qty',
+    'manufacturing_column_waste_percent': 'Waste %',
+    'manufacturing_column_unit_cost': 'Unit Cost',
+    'manufacturing_column_total_cost': 'Total Cost',
+    'manufacturing_bom_cost_summary': 'BOM Cost Summary',
+    'manufacturing_material_cost': 'Material Cost',
+    'manufacturing_waste_cost': 'Waste Cost',
+    'manufacturing_required_base_qty': 'Required Base Qty',
+    'manufacturing_unit_cost_output': 'Output Unit Cost',
+    'manufacturing_component_count': 'Component Count',
+    'manufacturing_duplicate_component': 'Duplicate component in BOM',
+    'manufacturing_printing_later': 'BOM printing will be connected through the unified printing bridge in the printing phase.',
+    'workspace.save_before_output': 'The document must be saved before printing or exporting. Save now?',
+})
+
+# Phase189 production-order document refactor additions
+_translations['ar'].update({
+    'manufacturing_column_required_qty': 'الكمية المطلوبة',
+    'manufacturing_column_available_qty': 'الكمية المتاحة',
+    'manufacturing_column_shortage_qty': 'النقص',
+    'manufacturing_column_conversion_factor': 'معامل التحويل',
+    'manufacturing_production_summary': 'ملخص أمر الإنتاج',
+    'manufacturing_total_required_qty': 'إجمالي المطلوب',
+    'manufacturing_total_available_qty': 'إجمالي المتاح',
+    'manufacturing_total_shortage_qty': 'إجمالي النقص',
+    'manufacturing_insufficient_lines': 'بنود غير كافية',
+    'manufacturing_materials_sufficient_short': 'المواد كافية',
+    'manufacturing_materials_insufficient_short': 'يوجد نقص مواد',
+    'no_required_materials': 'لا توجد مواد مطلوبة',
+    'manufacturing_select_raw_output_warehouses': 'يجب تحديد مستودع المواد الخام ومستودع الإنتاج.',
+    'manufacturing_material_shortage_line': 'المادة {item} غير كافية: المطلوب {required} والمتاح {available}.',
+    'quantity_positive_error': 'الكمية يجب أن تكون أكبر من صفر.',
+    'phase189_production_order_document_unified': 'تم تحويل إنشاء أمر الإنتاج إلى تبويب موحد مع جدول مواد مطلوبة واحترام المستودعات والإعدادات والصلاحيات.',
+})
+_translations['de'].update({
+    'manufacturing_column_required_qty': 'Benötigte Menge',
+    'manufacturing_column_available_qty': 'Verfügbare Menge',
+    'manufacturing_column_shortage_qty': 'Fehlmenge',
+    'manufacturing_column_conversion_factor': 'Umrechnungsfaktor',
+    'manufacturing_production_summary': 'Fertigungsauftragsübersicht',
+    'manufacturing_total_required_qty': 'Gesamt benötigt',
+    'manufacturing_total_available_qty': 'Gesamt verfügbar',
+    'manufacturing_total_shortage_qty': 'Gesamtfehlmenge',
+    'manufacturing_insufficient_lines': 'Unzureichende Positionen',
+    'manufacturing_materials_sufficient_short': 'Materialien ausreichend',
+    'manufacturing_materials_insufficient_short': 'Materialmangel vorhanden',
+    'no_required_materials': 'Keine benötigten Materialien',
+    'manufacturing_select_raw_output_warehouses': 'Rohmaterial- und Ausstoßlager müssen ausgewählt werden.',
+    'manufacturing_material_shortage_line': 'Artikel {item} ist nicht ausreichend: benötigt {required}, verfügbar {available}.',
+    'quantity_positive_error': 'Die Menge muss größer als null sein.',
+    'phase189_production_order_document_unified': 'Die Fertigungsauftragserstellung wurde in einen einheitlichen Tab mit Bedarfsmaterialien, Lagern, Einstellungen und Berechtigungen überführt.',
+})
+_translations['en'].update({
+    'manufacturing_column_required_qty': 'Required Qty',
+    'manufacturing_column_available_qty': 'Available Qty',
+    'manufacturing_column_shortage_qty': 'Shortage',
+    'manufacturing_column_conversion_factor': 'Conversion Factor',
+    'manufacturing_production_summary': 'Production Order Summary',
+    'manufacturing_total_required_qty': 'Total Required',
+    'manufacturing_total_available_qty': 'Total Available',
+    'manufacturing_total_shortage_qty': 'Total Shortage',
+    'manufacturing_insufficient_lines': 'Insufficient Lines',
+    'manufacturing_materials_sufficient_short': 'Materials sufficient',
+    'manufacturing_materials_insufficient_short': 'Material shortage exists',
+    'no_required_materials': 'No required materials',
+    'manufacturing_select_raw_output_warehouses': 'Raw-material and output warehouses must be selected.',
+    'manufacturing_material_shortage_line': 'Item {item} is insufficient: required {required}, available {available}.',
+    'quantity_positive_error': 'Quantity must be greater than zero.',
+    'phase189_production_order_document_unified': 'Production order creation was moved to a unified tab with required-material grid, warehouses, settings, and permissions.',
+})
+
+# Phase190 production-order lifecycle tab additions
+_translations['ar'].update({
+    'manufacturing_lifecycle_summary': 'ملخص دورة الإنتاج',
+    'manufacturing_summary_reserved': 'إجمالي المحجوز',
+    'manufacturing_summary_consumed': 'إجمالي المستهلك',
+    'manufacturing_summary_remaining': 'المتبقي للاستهلاك',
+    'manufacturing_summary_produced': 'إجمالي المنتج',
+    'manufacturing_summary_consumption_cost': 'تكلفة الاستهلاك',
+    'manufacturing_summary_output_cost': 'تكلفة المخرجات',
+    'phase190_production_lifecycle_unified': 'تم تحويل تفاصيل أمر الإنتاج إلى تبويب دورة حياة موحد مع جداول للحجوزات والاستهلاك والمخرجات.',
+})
+_translations['de'].update({
+    'manufacturing_lifecycle_summary': 'Fertigungsablauf-Übersicht',
+    'manufacturing_summary_reserved': 'Gesamt reserviert',
+    'manufacturing_summary_consumed': 'Gesamt verbraucht',
+    'manufacturing_summary_remaining': 'Restverbrauch',
+    'manufacturing_summary_produced': 'Gesamt produziert',
+    'manufacturing_summary_consumption_cost': 'Verbrauchskosten',
+    'manufacturing_summary_output_cost': 'Ausstoßkosten',
+    'phase190_production_lifecycle_unified': 'Die Fertigungsauftragsdetails wurden in einen einheitlichen Lebenszyklus-Tab mit Reservierungen, Verbräuchen und Ausstößen überführt.',
+})
+_translations['en'].update({
+    'manufacturing_lifecycle_summary': 'Production Lifecycle Summary',
+    'manufacturing_summary_reserved': 'Total Reserved',
+    'manufacturing_summary_consumed': 'Total Consumed',
+    'manufacturing_summary_remaining': 'Remaining to Consume',
+    'manufacturing_summary_produced': 'Total Produced',
+    'manufacturing_summary_consumption_cost': 'Consumption Cost',
+    'manufacturing_summary_output_cost': 'Output Cost',
+    'phase190_production_lifecycle_unified': 'Production order details were moved to a unified lifecycle tab with reservations, consumptions, and outputs grids.',
+})
+
+
+# Phase192 manufacturing printing bridge additions
+_translations['ar'].update({
+    'manufacturing_bom_document': 'تركيبة تصنيع',
+    'manufacturing_bom_generated_by': 'تم إنشاء تركيبة التصنيع بواسطة نظام الراجحي',
+    'manufacturing_pick_ticket': 'تذكرة سحب مواد',
+    'manufacturing_pick_qty': 'كمية السحب',
+    'manufacturing_pick_ticket_footer': 'تذكرة سحب مواد خام لأمر الإنتاج',
+    'manufacturing_cost_report': 'تقرير تكلفة الإنتاج',
+    'manufacturing_consumption_cost': 'تكلفة الاستهلاك',
+    'manufacturing_output_cost': 'تكلفة المخرجات',
+    'manufacturing_cost_variance': 'فرق التكلفة',
+    'manufacturing_cost_report_footer': 'تقرير تكلفة إنتاج صادر من نظام الراجحي',
+    'warehouse_keeper': 'أمين المستودع',
+    'phase192_manufacturing_printing_bridge': 'تم توحيد طباعة التصنيع عبر جسر الطباعة المركزي.',
+})
+_translations['de'].update({
+    'manufacturing_bom_document': 'Stückliste',
+    'manufacturing_bom_generated_by': 'Stückliste erstellt durch Al Rajhi System',
+    'manufacturing_pick_ticket': 'Materialentnahmeschein',
+    'manufacturing_pick_qty': 'Entnahmemenge',
+    'manufacturing_pick_ticket_footer': 'Materialentnahmeschein für Fertigungsauftrag',
+    'manufacturing_cost_report': 'Fertigungskostenbericht',
+    'manufacturing_consumption_cost': 'Verbrauchskosten',
+    'manufacturing_output_cost': 'Ausgangskosten',
+    'manufacturing_cost_variance': 'Kostenabweichung',
+    'manufacturing_cost_report_footer': 'Fertigungskostenbericht aus dem Al Rajhi System',
+    'warehouse_keeper': 'Lagerverantwortlicher',
+    'phase192_manufacturing_printing_bridge': 'Der Fertigungsdruck wurde über die zentrale Druckbrücke vereinheitlicht.',
+})
+_translations['en'].update({
+    'manufacturing_bom_document': 'Manufacturing BOM',
+    'manufacturing_bom_generated_by': 'BOM generated by Al Rajhi System',
+    'manufacturing_pick_ticket': 'Raw Material Pick Ticket',
+    'manufacturing_pick_qty': 'Pick Qty',
+    'manufacturing_pick_ticket_footer': 'Raw material pick ticket for production order',
+    'manufacturing_cost_report': 'Production Cost Report',
+    'manufacturing_consumption_cost': 'Consumption Cost',
+    'manufacturing_output_cost': 'Output Cost',
+    'manufacturing_cost_variance': 'Cost Variance',
+    'manufacturing_cost_report_footer': 'Production cost report generated by Al Rajhi System',
+    'warehouse_keeper': 'Warehouse Keeper',
+    'phase192_manufacturing_printing_bridge': 'Manufacturing printing was unified through the central printing bridge.',
+})
+
+
+# Phase193 manufacturing workspace professionalization additions
+_translations['ar'].update({
+    'manufacturing_search_bom': 'بحث في تركيبات التصنيع...',
+    'manufacturing_search_orders': 'بحث في أوامر الإنتاج...',
+    'manufacturing_all_statuses': 'كل الحالات',
+    'view_preset_label': 'شكل العرض:',
+    'manufacturing_components_count': 'عدد المكونات',
+    'manufacturing_workspace_preset_compact': 'عرض مضغوط',
+    'manufacturing_workspace_preset_planner': 'عرض مخطط الإنتاج',
+    'manufacturing_workspace_preset_warehouse': 'عرض المستودع',
+    'manufacturing_workspace_preset_manager': 'عرض المدير',
+    'phase193_manufacturing_workspace_professionalized': 'تمت ترقية شاشة التصنيع الرئيسية بقوائم احترافية وفلاتر وتفضيلات مستخدم وفتح تبويبات حقيقي.',
+})
+_translations['de'].update({
+    'manufacturing_search_bom': 'Stücklisten suchen...',
+    'manufacturing_search_orders': 'Fertigungsaufträge suchen...',
+    'manufacturing_all_statuses': 'Alle Status',
+    'view_preset_label': 'Ansicht:',
+    'manufacturing_components_count': 'Komponenten',
+    'manufacturing_workspace_preset_compact': 'Kompakte Ansicht',
+    'manufacturing_workspace_preset_planner': 'Planeransicht',
+    'manufacturing_workspace_preset_warehouse': 'Lageransicht',
+    'manufacturing_workspace_preset_manager': 'Manageransicht',
+    'phase193_manufacturing_workspace_professionalized': 'Der Fertigungsarbeitsbereich wurde mit professionellen Listen, Filtern, Benutzerlayouts und echten Dokument-Tabs aufgewertet.',
+})
+_translations['en'].update({
+    'manufacturing_search_bom': 'Search BOMs...',
+    'manufacturing_search_orders': 'Search production orders...',
+    'manufacturing_all_statuses': 'All Statuses',
+    'view_preset_label': 'View:',
+    'manufacturing_components_count': 'Components',
+    'manufacturing_workspace_preset_compact': 'Compact View',
+    'manufacturing_workspace_preset_planner': 'Planner View',
+    'manufacturing_workspace_preset_warehouse': 'Warehouse View',
+    'manufacturing_workspace_preset_manager': 'Manager View',
+    'phase193_manufacturing_workspace_professionalized': 'The manufacturing workspace was upgraded with professional lists, filters, user layouts, and real document tabs.',
+})
+
+
+# Phase194 inventory / warehouse governance additions
+_translations['ar'].update({
+    'inventory.operation.use': 'استخدام المخزون والمستودعات',
+    'inventory.operation.warehouse_create': 'إنشاء مستودع',
+    'inventory.operation.warehouse_edit': 'تعديل مستودع',
+    'inventory.operation.warehouse_archive': 'أرشفة مستودع',
+    'inventory.operation.balance_view': 'عرض أرصدة المواد',
+    'inventory.operation.movement_view': 'عرض حركات المخزون',
+    'inventory.operation.direct_movement': 'تسجيل حركة مخزون مباشرة',
+    'inventory.operation.transfer_create': 'إنشاء تحويل مستودعي',
+    'inventory.operation.transfer_cancel': 'إلغاء تحويل مستودعي',
+    'inventory.operation.ledger_view': 'عرض دفتر المخزون',
+    'inventory.operation.ledger_backfill': 'ترحيل دفتر المخزون',
+    'inventory.operation.reconcile': 'مطابقة المخزون',
+
+    'inventory.operation.print': 'طباعة مستندات المخزون',
+    'inventory_transfer_document': 'مستند تحويل مستودعي',
+    'inventory_balances_report': 'تقرير أرصدة المواد',
+    'inventory_movements_report': 'تقرير حركات المخزون',
+    'inventory_ledger_report': 'تقرير دفتر المخزون',
+    'inventory_column_base_qty': 'الكمية الأساسية',
+    'inventory_value': 'قيمة المخزون',
+    'receiver_signature': 'توقيع المستلم',
+    'inventory_transfer_footer': 'تم إنشاء مستند التحويل من نظام الراجحي',
+    'inventory_balances_footer': 'تقرير أرصدة المواد',
+    'inventory_movements_footer': 'تقرير حركات المخزون',
+    'inventory_ledger_footer': 'تقرير دفتر المخزون',
+    'phase194_inventory_governance_foundation': 'تم توحيد حوكمة المخزون والمستودعات عبر الإعدادات والصلاحيات وطبقة العمليات المركزية.',
+})
+_translations['de'].update({
+    'inventory.operation.use': 'Bestand und Lager verwenden',
+    'inventory.operation.warehouse_create': 'Lager erstellen',
+    'inventory.operation.warehouse_edit': 'Lager bearbeiten',
+    'inventory.operation.warehouse_archive': 'Lager archivieren',
+    'inventory.operation.balance_view': 'Artikelbestände anzeigen',
+    'inventory.operation.movement_view': 'Bestandsbewegungen anzeigen',
+    'inventory.operation.direct_movement': 'Direkte Bestandsbewegung buchen',
+    'inventory.operation.transfer_create': 'Lagerumbuchung erstellen',
+    'inventory.operation.transfer_cancel': 'Lagerumbuchung stornieren',
+    'inventory.operation.ledger_view': 'Bestandsjournal anzeigen',
+    'inventory.operation.ledger_backfill': 'Bestandsjournal nachfüllen',
+    'inventory.operation.reconcile': 'Bestand abstimmen',
+
+    'inventory.operation.print': 'Bestandsdokumente drucken',
+    'inventory_transfer_document': 'Lagerumbuchungsbeleg',
+    'inventory_balances_report': 'Artikelbestandsbericht',
+    'inventory_movements_report': 'Bestandsbewegungsbericht',
+    'inventory_ledger_report': 'Bestandsjournalbericht',
+    'inventory_column_base_qty': 'Basismenge',
+    'inventory_value': 'Bestandswert',
+    'receiver_signature': 'Empfänger-Unterschrift',
+    'inventory_transfer_footer': 'Lagerumbuchungsbeleg',
+    'inventory_balances_footer': 'Artikelbestandsbericht',
+    'inventory_movements_footer': 'Bestandsbewegungsbericht',
+    'inventory_ledger_footer': 'Bestandsjournalbericht',
+    'phase194_inventory_governance_foundation': 'Die Bestands- und Lagersteuerung wurde über Einstellungen, Berechtigungen und eine zentrale Operationsschicht vereinheitlicht.',
+})
+_translations['en'].update({
+    'inventory.operation.use': 'Use Inventory / Warehouses',
+    'inventory.operation.warehouse_create': 'Create Warehouse',
+    'inventory.operation.warehouse_edit': 'Edit Warehouse',
+    'inventory.operation.warehouse_archive': 'Archive Warehouse',
+    'inventory.operation.balance_view': 'View Item Balances',
+    'inventory.operation.movement_view': 'View Stock Movements',
+    'inventory.operation.direct_movement': 'Post Direct Stock Movement',
+    'inventory.operation.transfer_create': 'Create Warehouse Transfer',
+    'inventory.operation.transfer_cancel': 'Cancel Warehouse Transfer',
+    'inventory.operation.ledger_view': 'View Inventory Ledger',
+    'inventory.operation.ledger_backfill': 'Backfill Inventory Ledger',
+    'inventory.operation.reconcile': 'Reconcile Inventory',
+
+    'inventory.operation.print': 'Print inventory documents',
+    'inventory_transfer_document': 'Warehouse Transfer Document',
+    'inventory_balances_report': 'Item Balances Report',
+    'inventory_movements_report': 'Stock Movements Report',
+    'inventory_ledger_report': 'Inventory Ledger Report',
+    'inventory_column_base_qty': 'Base Qty',
+    'inventory_value': 'Inventory Value',
+    'receiver_signature': 'Receiver Signature',
+    'inventory_transfer_footer': 'Warehouse transfer document',
+    'inventory_balances_footer': 'Item balances report',
+    'inventory_movements_footer': 'Stock movements report',
+    'inventory_ledger_footer': 'Inventory ledger report',
+    'phase194_inventory_governance_foundation': 'Inventory and warehouse governance was unified through settings, permissions, and a central operation policy.',
+})
+
+# Phase195 inventory / warehouse workspace professionalization additions
+_translations['ar'].update({
+    'inventory_workspace_preset_compact': 'عرض مضغوط',
+    'inventory_workspace_preset_warehouse': 'عرض المستودع',
+    'inventory_workspace_preset_accountant': 'عرض محاسب',
+    'inventory_workspace_preset_manager': 'عرض مدير',
+    'inventory_stock_status': 'حالة المخزون',
+    'inventory_stock_all': 'كل الأرصدة',
+    'inventory_stock_positive': 'رصيد موجب',
+    'inventory_stock_zero': 'رصيد صفري',
+    'inventory_stock_negative': 'رصيد سالب',
+    'inventory_search_movements': 'بحث في حركات المخزون...',
+    'inventory_search_transfers': 'بحث في التحويلات...',
+    'inventory_movement_all_types': 'كل أنواع الحركة',
+    'inventory_movement_type_purchase': 'شراء',
+    'inventory_movement_type_sale': 'بيع',
+    'inventory_movement_type_transfer': 'تحويل',
+    'inventory_movement_type_manufacturing': 'تصنيع',
+    'inventory_movement_type_adjustment': 'تسوية',
+    'from_warehouse_clean': 'من مستودع',
+    'to_warehouse_clean': 'إلى مستودع',
+    'phase195_inventory_workspace_professionalized': 'تمت ترقية شاشة المستودعات والمخزون بفلاتر احترافية وPresets وكثافة صفوف واختيار صف آمن مع الفرز/البحث.',
+})
+_translations['de'].update({
+    'inventory_workspace_preset_compact': 'Kompakte Ansicht',
+    'inventory_workspace_preset_warehouse': 'Lageransicht',
+    'inventory_workspace_preset_accountant': 'Buchhaltungsansicht',
+    'inventory_workspace_preset_manager': 'Manageransicht',
+    'inventory_stock_status': 'Bestandsstatus',
+    'inventory_stock_all': 'Alle Bestände',
+    'inventory_stock_positive': 'Positiver Bestand',
+    'inventory_stock_zero': 'Nullbestand',
+    'inventory_stock_negative': 'Negativer Bestand',
+    'inventory_search_movements': 'Bestandsbewegungen suchen ...',
+    'inventory_search_transfers': 'Umbuchungen suchen ...',
+    'inventory_movement_all_types': 'Alle Bewegungsarten',
+    'inventory_movement_type_purchase': 'Einkauf',
+    'inventory_movement_type_sale': 'Verkauf',
+    'inventory_movement_type_transfer': 'Umbuchung',
+    'inventory_movement_type_manufacturing': 'Fertigung',
+    'inventory_movement_type_adjustment': 'Abstimmung',
+    'from_warehouse_clean': 'Von Lager',
+    'to_warehouse_clean': 'Zu Lager',
+    'phase195_inventory_workspace_professionalized': 'Der Lager-/Bestandsarbeitsbereich wurde mit professionellen Filtern, Presets, Zeilendichte und quellzeilensicherer Auswahl aufgewertet.',
+})
+_translations['en'].update({
+    'inventory_workspace_preset_compact': 'Compact View',
+    'inventory_workspace_preset_warehouse': 'Warehouse View',
+    'inventory_workspace_preset_accountant': 'Accountant View',
+    'inventory_workspace_preset_manager': 'Manager View',
+    'inventory_stock_status': 'Stock Status',
+    'inventory_stock_all': 'All Balances',
+    'inventory_stock_positive': 'Positive Balance',
+    'inventory_stock_zero': 'Zero Balance',
+    'inventory_stock_negative': 'Negative Balance',
+    'inventory_search_movements': 'Search stock movements...',
+    'inventory_search_transfers': 'Search transfers...',
+    'inventory_movement_all_types': 'All Movement Types',
+    'inventory_movement_type_purchase': 'Purchase',
+    'inventory_movement_type_sale': 'Sale',
+    'inventory_movement_type_transfer': 'Transfer',
+    'inventory_movement_type_manufacturing': 'Manufacturing',
+    'inventory_movement_type_adjustment': 'Adjustment',
+    'from_warehouse_clean': 'From Warehouse',
+    'to_warehouse_clean': 'To Warehouse',
+    'phase195_inventory_workspace_professionalized': 'The warehouse and inventory workspace was upgraded with professional filters, presets, row density, and source-row-safe selection under sorting/filtering.',
+})
+
+# Phase196 inventory transfer document i18n
+_translations['ar'].update({
+    'inventory_transfer_document_new': 'تحويل مستودعي جديد',
+    'inventory_transfer_lookup': 'بحث/باركود مادة',
+    'inventory_transfer_lookup_placeholder': 'اكتب اسم المادة أو امسح باركود المادة/الوحدة...',
+    'inventory_transfer_lines': 'بنود التحويل المستودعي',
+    'inventory_transfer_column_base_qty': 'الكمية الأساسية',
+    'inventory_transfer_summary': 'البنود: {count} | الكمية الأساسية: {base_qty}',
+    'inventory_transfer_missing_from': 'اختر مستودع المصدر',
+    'inventory_transfer_missing_to': 'اختر مستودع الوجهة',
+    'inventory_transfer_same_warehouse': 'لا يمكن التحويل إلى نفس المستودع',
+    'inventory_transfer_no_lines': 'أضف مادة واحدة على الأقل للتحويل',
+    'inventory_transfer_line_missing_item': 'السطر {row}: اختر المادة',
+    'inventory_transfer_line_invalid_qty': 'السطر {row}: كمية التحويل يجب أن تكون أكبر من صفر',
+    'inventory_transfer_line_shortage': 'السطر {row}: الرصيد غير كافٍ في مستودع المصدر',
+})
+_translations['de'].update({
+    'inventory_transfer_document_new': 'Neue Lagerumlagerung',
+    'inventory_transfer_lookup': 'Artikel/Barcode suchen',
+    'inventory_transfer_lookup_placeholder': 'Artikelname eingeben oder Artikel-/Einheitenbarcode scannen...',
+    'inventory_transfer_lines': 'Umlagerungspositionen',
+    'inventory_transfer_column_base_qty': 'Basismenge',
+    'inventory_transfer_summary': 'Positionen: {count} | Basismenge: {base_qty}',
+    'inventory_transfer_missing_from': 'Quelllager auswählen',
+    'inventory_transfer_missing_to': 'Ziellager auswählen',
+    'inventory_transfer_same_warehouse': 'Quelle und Ziel dürfen nicht dasselbe Lager sein',
+    'inventory_transfer_no_lines': 'Mindestens einen Artikel zur Umlagerung hinzufügen',
+    'inventory_transfer_line_missing_item': 'Zeile {row}: Artikel auswählen',
+    'inventory_transfer_line_invalid_qty': 'Zeile {row}: Menge muss größer als null sein',
+    'inventory_transfer_line_shortage': 'Zeile {row}: Nicht ausreichender Bestand im Quelllager',
+})
+_translations['en'].update({
+    'inventory_transfer_document_new': 'New Warehouse Transfer',
+    'inventory_transfer_lookup': 'Item / barcode lookup',
+    'inventory_transfer_lookup_placeholder': 'Type item name or scan item/unit barcode...',
+    'inventory_transfer_lines': 'Transfer lines',
+    'inventory_transfer_column_base_qty': 'Base Qty',
+    'inventory_transfer_summary': 'Lines: {count} | Base quantity: {base_qty}',
+    'inventory_transfer_missing_from': 'Select the source warehouse',
+    'inventory_transfer_missing_to': 'Select the destination warehouse',
+    'inventory_transfer_same_warehouse': 'Source and destination warehouses cannot be the same',
+    'inventory_transfer_no_lines': 'Add at least one item to transfer',
+    'inventory_transfer_line_missing_item': 'Row {row}: select an item',
+    'inventory_transfer_line_invalid_qty': 'Row {row}: transfer quantity must be greater than zero',
+    'inventory_transfer_line_shortage': 'Row {row}: insufficient balance in the source warehouse',
+})
+
+# Phase201 warehouse document tab i18n
+_translations['ar'].update({
+    'warehouse_document_new': 'مستودع جديد',
+    'warehouse_document_edit': 'تعديل مستودع: {name}',
+    'warehouse_document_subtitle': 'بيانات المستودع والفرع والحالة داخل تبويب موحد.',
+    'warehouse_document_hint': 'تُحفظ بيانات المستودع عبر خدمة المستودعات وتخضع لصلاحيات وإعدادات المخزون.',
+    'warehouse_name_label': 'اسم المستودع:',
+    'warehouse_name_placeholder': 'اسم المستودع مطلوب',
+    'warehouse_code_label': 'كود المستودع:',
+    'warehouse_code_placeholder': 'كود اختياري للمستودع',
+    'warehouse_location_label': 'موقع المستودع:',
+    'warehouse_location_placeholder': 'الموقع أو العنوان الداخلي',
+    'warehouse_notes_placeholder': 'ملاحظات اختيارية عن المستودع',
+    'warehouse_read_only': 'عرض فقط — لا تملك صلاحية تعديل هذا المستودع.',
+    'phase201_warehouse_document_tab': 'تم تحويل إضافة/تعديل المستودع إلى تبويب موحد وإصلاح تسمية اسم المستودع.',
+})
+_translations['de'].update({
+    'warehouse_document_new': 'Neues Lager',
+    'warehouse_document_edit': 'Lager bearbeiten: {name}',
+    'warehouse_document_subtitle': 'Lagerdaten, Filiale und Status in einem einheitlichen Tab.',
+    'warehouse_document_hint': 'Lagerdaten werden über den Lagerdienst gespeichert und unterliegen Bestandsberechtigungen und Einstellungen.',
+    'warehouse_name_label': 'Lagername:',
+    'warehouse_name_placeholder': 'Lagername ist erforderlich',
+    'warehouse_code_label': 'Lagercode:',
+    'warehouse_code_placeholder': 'Optionaler Lagercode',
+    'warehouse_location_label': 'Lagerstandort:',
+    'warehouse_location_placeholder': 'Standort oder interne Adresse',
+    'warehouse_notes_placeholder': 'Optionale Notizen zum Lager',
+    'warehouse_read_only': 'Nur Lesen — Sie haben keine Berechtigung, dieses Lager zu bearbeiten.',
+    'phase201_warehouse_document_tab': 'Lager hinzufügen/bearbeiten wurde in einen einheitlichen Tab migriert und die Lagername-Beschriftung korrigiert.',
+})
+_translations['en'].update({
+    'warehouse_document_new': 'New Warehouse',
+    'warehouse_document_edit': 'Edit Warehouse: {name}',
+    'warehouse_document_subtitle': 'Warehouse data, branch, and status in a unified tab.',
+    'warehouse_document_hint': 'Warehouse data is saved through the warehouse service and governed by inventory permissions and settings.',
+    'warehouse_name_label': 'Warehouse name:',
+    'warehouse_name_placeholder': 'Warehouse name is required',
+    'warehouse_code_label': 'Warehouse code:',
+    'warehouse_code_placeholder': 'Optional warehouse code',
+    'warehouse_location_label': 'Warehouse location:',
+    'warehouse_location_placeholder': 'Location or internal address',
+    'warehouse_notes_placeholder': 'Optional notes about the warehouse',
+    'warehouse_read_only': 'Read-only — you do not have permission to edit this warehouse.',
+    'phase201_warehouse_document_tab': 'Warehouse add/edit was migrated to a unified tab and the warehouse name label was corrected.',
+})
+
+# Phase202 branch document tab i18n
+_translations['ar'].update({
+    'branch_document_new': 'فرع جديد',
+    'branch_document_edit': 'تعديل فرع: {name}',
+    'branch_document_subtitle': 'بيانات الفرع والكود والعنوان داخل تبويب موحد.',
+    'branch_document_hint': 'تُحفظ بيانات الفرع عبر خدمة الفروع وتخضع لصلاحيات وإعدادات إدارة الفروع.',
+    'branch_name_placeholder': 'اسم الفرع مطلوب',
+    'branch_code_placeholder': 'كود اختياري للفرع',
+    'branch_address_placeholder': 'عنوان الفرع',
+    'branch_phone_placeholder': 'هاتف الفرع',
+    'branch_notes_placeholder': 'ملاحظات اختيارية عن الفرع',
+    'branch_read_only': 'عرض فقط — لا تملك صلاحية تعديل هذا الفرع.',
+    'branch_name_required': 'اسم الفرع مطلوب',
+    'set_default_branch_btn': '⭐ تعيين كفرع افتراضي',
+    'default_branch_set': 'تم تعيين الفرع الافتراضي',
+    'branches.operation.use': 'استخدام الفروع',
+    'branches.operation.create': 'إنشاء فرع',
+    'branches.operation.edit': 'تعديل فرع',
+    'branches.operation.archive': 'أرشفة فرع',
+    'branches.operation.set_default': 'تعيين الفرع الافتراضي',
+    'phase202_branch_document_tab': 'تم تحويل إضافة/تعديل الفرع إلى تبويب موحد وربطه بحوكمة الفروع.',
+})
+_translations['de'].update({
+    'branch_document_new': 'Neue Filiale',
+    'branch_document_edit': 'Filiale bearbeiten: {name}',
+    'branch_document_subtitle': 'Filialdaten, Code und Adresse in einem einheitlichen Tab.',
+    'branch_document_hint': 'Filialdaten werden über den Filialdienst gespeichert und durch Filialberechtigungen und Einstellungen gesteuert.',
+    'branch_name_placeholder': 'Filialname ist erforderlich',
+    'branch_code_placeholder': 'Optionaler Filialcode',
+    'branch_address_placeholder': 'Filialadresse',
+    'branch_phone_placeholder': 'Filialtelefon',
+    'branch_notes_placeholder': 'Optionale Notizen zur Filiale',
+    'branch_read_only': 'Nur Lesen — Sie haben keine Berechtigung, diese Filiale zu bearbeiten.',
+    'branch_name_required': 'Filialname ist erforderlich',
+    'set_default_branch_btn': '⭐ Als Standardfiliale festlegen',
+    'default_branch_set': 'Standardfiliale wurde festgelegt',
+    'branches.operation.use': 'Filialen verwenden',
+    'branches.operation.create': 'Filiale erstellen',
+    'branches.operation.edit': 'Filiale bearbeiten',
+    'branches.operation.archive': 'Filiale archivieren',
+    'branches.operation.set_default': 'Standardfiliale festlegen',
+    'phase202_branch_document_tab': 'Filiale hinzufügen/bearbeiten wurde in einen einheitlichen Tab migriert und mit Filial-Governance verbunden.',
+})
+_translations['en'].update({
+    'branch_document_new': 'New Branch',
+    'branch_document_edit': 'Edit Branch: {name}',
+    'branch_document_subtitle': 'Branch data, code, and address in a unified tab.',
+    'branch_document_hint': 'Branch data is saved through the branch service and governed by branch permissions and settings.',
+    'branch_name_placeholder': 'Branch name is required',
+    'branch_code_placeholder': 'Optional branch code',
+    'branch_address_placeholder': 'Branch address',
+    'branch_phone_placeholder': 'Branch phone',
+    'branch_notes_placeholder': 'Optional notes about the branch',
+    'branch_read_only': 'Read-only — you do not have permission to edit this branch.',
+    'branch_name_required': 'Branch name is required',
+    'set_default_branch_btn': '⭐ Set as default branch',
+    'default_branch_set': 'Default branch was set',
+    'branches.operation.use': 'Use branches',
+    'branches.operation.create': 'Create branch',
+    'branches.operation.edit': 'Edit branch',
+    'branches.operation.archive': 'Archive branch',
+    'branches.operation.set_default': 'Set default branch',
+    'phase202_branch_document_tab': 'Branch add/edit was migrated to a unified tab and linked to branch governance.',
+})
+
+
+# Phase203 finance cashbox/bank document tabs i18n
+_translations['ar'].update({
+    'cashbox_document_new': 'صندوق جديد',
+    'cashbox_document_edit': 'تعديل صندوق: {name}',
+    'cashbox_document_subtitle': 'بيانات الصندوق والفرع والحالة داخل تبويب موحد.',
+    'cashbox_document_hint': 'تُحفظ بيانات الصندوق عبر خدمة الصناديق وتخضع لصلاحيات وإعدادات المالية.',
+    'cashbox_name_placeholder': 'اسم الصندوق مطلوب',
+    'cashbox_code_placeholder': 'كود اختياري للصندوق',
+    'cashbox_notes_placeholder': 'ملاحظات اختيارية عن الصندوق',
+    'cashbox_read_only': 'عرض فقط — لا تملك صلاحية تعديل هذا الصندوق.',
+    'cashbox_name_required': 'اسم الصندوق مطلوب',
+    'cashbox_not_found': 'الصندوق غير موجود',
+    'cashbox_updated': 'تم تحديث الصندوق',
+    'bank_account_document_new': 'حساب بنكي جديد',
+    'bank_account_document_edit': 'تعديل حساب بنكي: {name}',
+    'bank_account_document_subtitle': 'بيانات البنك والحساب والفرع داخل تبويب موحد.',
+    'bank_account_document_hint': 'تُحفظ بيانات الحساب البنكي عبر خدمة الصناديق/البنوك وتخضع لصلاحيات وإعدادات المالية.',
+    'bank_name_placeholder': 'اسم البنك مطلوب',
+    'bank_account_name_placeholder': 'اسم صاحب الحساب أو الحساب الداخلي',
+    'bank_account_number_placeholder': 'رقم الحساب',
+    'bank_iban_placeholder': 'IBAN',
+    'bank_account_notes_placeholder': 'ملاحظات اختيارية عن الحساب البنكي',
+    'bank_account_read_only': 'عرض فقط — لا تملك صلاحية تعديل هذا الحساب البنكي.',
+    'bank_name_required': 'اسم البنك مطلوب',
+    'bank_account_not_found': 'الحساب البنكي غير موجود',
+    'bank_account_updated': 'تم تحديث الحساب البنكي',
+    'finance.operation.use': 'استخدام المالية والصناديق',
+    'finance.operation.cashbox_create': 'إنشاء صندوق',
+    'finance.operation.cashbox_edit': 'تعديل صندوق',
+    'finance.operation.cashbox_archive': 'أرشفة صندوق',
+    'finance.operation.bank_create': 'إنشاء حساب بنكي',
+    'finance.operation.bank_edit': 'تعديل حساب بنكي',
+    'finance.operation.bank_archive': 'أرشفة حساب بنكي',
+    'finance.operation.movements_view': 'عرض الحركات المالية',
+    'finance.operation.shifts_view': 'عرض ورديات POS',
+    'phase203_finance_cashbank_document_tabs': 'تم تحويل إضافة/تعديل الصناديق والحسابات البنكية إلى تبويبات موحدة وربطها بحوكمة المالية.',
+})
+_translations['de'].update({
+    'cashbox_document_new': 'Neue Kasse',
+    'cashbox_document_edit': 'Kasse bearbeiten: {name}',
+    'cashbox_document_subtitle': 'Kassendaten, Filiale und Status in einem einheitlichen Tab.',
+    'cashbox_document_hint': 'Kassendaten werden über den Kassen-/Bankdienst gespeichert und durch Finanzeinstellungen und Berechtigungen gesteuert.',
+    'cashbox_name_placeholder': 'Kassenname ist erforderlich',
+    'cashbox_code_placeholder': 'Optionaler Kassencode',
+    'cashbox_notes_placeholder': 'Optionale Notizen zur Kasse',
+    'cashbox_read_only': 'Nur Lesen — Sie haben keine Berechtigung, diese Kasse zu bearbeiten.',
+    'cashbox_name_required': 'Kassenname ist erforderlich',
+    'cashbox_not_found': 'Kasse nicht gefunden',
+    'cashbox_updated': 'Kasse wurde aktualisiert',
+    'bank_account_document_new': 'Neues Bankkonto',
+    'bank_account_document_edit': 'Bankkonto bearbeiten: {name}',
+    'bank_account_document_subtitle': 'Bank-, Konto- und Filialdaten in einem einheitlichen Tab.',
+    'bank_account_document_hint': 'Bankkontodaten werden über den Finanzdienst gespeichert und durch Einstellungen und Berechtigungen gesteuert.',
+    'bank_name_placeholder': 'Bankname ist erforderlich',
+    'bank_account_name_placeholder': 'Kontoinhaber oder interner Kontoname',
+    'bank_account_number_placeholder': 'Kontonummer',
+    'bank_iban_placeholder': 'IBAN',
+    'bank_account_notes_placeholder': 'Optionale Notizen zum Bankkonto',
+    'bank_account_read_only': 'Nur Lesen — Sie haben keine Berechtigung, dieses Bankkonto zu bearbeiten.',
+    'bank_name_required': 'Bankname ist erforderlich',
+    'bank_account_not_found': 'Bankkonto nicht gefunden',
+    'bank_account_updated': 'Bankkonto wurde aktualisiert',
+    'finance.operation.use': 'Finanzen/Kassen verwenden',
+    'finance.operation.cashbox_create': 'Kasse erstellen',
+    'finance.operation.cashbox_edit': 'Kasse bearbeiten',
+    'finance.operation.cashbox_archive': 'Kasse archivieren',
+    'finance.operation.bank_create': 'Bankkonto erstellen',
+    'finance.operation.bank_edit': 'Bankkonto bearbeiten',
+    'finance.operation.bank_archive': 'Bankkonto archivieren',
+    'finance.operation.movements_view': 'Finanzbewegungen anzeigen',
+    'finance.operation.shifts_view': 'POS-Schichten anzeigen',
+    'phase203_finance_cashbank_document_tabs': 'Kassen und Bankkonten wurden in einheitliche Tabs migriert und mit Finanz-Governance verbunden.',
+})
+_translations['en'].update({
+    'cashbox_document_new': 'New Cashbox',
+    'cashbox_document_edit': 'Edit Cashbox: {name}',
+    'cashbox_document_subtitle': 'Cashbox data, branch, and status in a unified tab.',
+    'cashbox_document_hint': 'Cashbox data is saved through the finance service and governed by finance permissions and settings.',
+    'cashbox_name_placeholder': 'Cashbox name is required',
+    'cashbox_code_placeholder': 'Optional cashbox code',
+    'cashbox_notes_placeholder': 'Optional notes about the cashbox',
+    'cashbox_read_only': 'Read-only — you do not have permission to edit this cashbox.',
+    'cashbox_name_required': 'Cashbox name is required',
+    'cashbox_not_found': 'Cashbox not found',
+    'cashbox_updated': 'Cashbox was updated',
+    'bank_account_document_new': 'New Bank Account',
+    'bank_account_document_edit': 'Edit Bank Account: {name}',
+    'bank_account_document_subtitle': 'Bank, account, and branch data in a unified tab.',
+    'bank_account_document_hint': 'Bank account data is saved through the finance service and governed by finance permissions and settings.',
+    'bank_name_placeholder': 'Bank name is required',
+    'bank_account_name_placeholder': 'Account holder or internal account name',
+    'bank_account_number_placeholder': 'Account number',
+    'bank_iban_placeholder': 'IBAN',
+    'bank_account_notes_placeholder': 'Optional notes about the bank account',
+    'bank_account_read_only': 'Read-only — you do not have permission to edit this bank account.',
+    'bank_name_required': 'Bank name is required',
+    'bank_account_not_found': 'Bank account not found',
+    'bank_account_updated': 'Bank account was updated',
+    'finance.operation.use': 'Use finance/cash-bank',
+    'finance.operation.cashbox_create': 'Create cashbox',
+    'finance.operation.cashbox_edit': 'Edit cashbox',
+    'finance.operation.cashbox_archive': 'Archive cashbox',
+    'finance.operation.bank_create': 'Create bank account',
+    'finance.operation.bank_edit': 'Edit bank account',
+    'finance.operation.bank_archive': 'Archive bank account',
+    'finance.operation.movements_view': 'View financial movements',
+    'finance.operation.shifts_view': 'View POS shifts',
+    'phase203_finance_cashbank_document_tabs': 'Cashboxes and bank accounts were migrated to unified tabs and linked to finance governance.',
+})
+
+
+# Phase204 voucher governance translations
+try:
+    translations['ar'].update({
+        'finance.operation.voucher_create': 'إنشاء سند',
+        'finance.operation.voucher_edit': 'تعديل سند',
+        'finance.operation.voucher_delete': 'حذف سند',
+        'finance.operation.voucher_print': 'طباعة سند',
+        'finance.operation.voucher_view': 'عرض السندات',
+        'voucher_read_only': 'السند للعرض فقط حسب الصلاحيات أو الإعدادات.',
+        'finance_setting_allow_voucher_create_disabled': 'إنشاء السندات معطل من الإعدادات.',
+        'finance_setting_allow_voucher_edit_disabled': 'تعديل السندات معطل من الإعدادات.',
+        'finance_setting_allow_voucher_delete_disabled': 'حذف السندات معطل من الإعدادات.',
+        'finance_setting_allow_voucher_print_disabled': 'طباعة السندات معطلة من الإعدادات.',
+        'finance_setting_allow_voucher_view_disabled': 'عرض السندات معطل من الإعدادات.',
+    })
+    translations['en'].update({
+        'finance.operation.voucher_create': 'Create voucher',
+        'finance.operation.voucher_edit': 'Edit voucher',
+        'finance.operation.voucher_delete': 'Delete voucher',
+        'finance.operation.voucher_print': 'Print voucher',
+        'finance.operation.voucher_view': 'View vouchers',
+        'voucher_read_only': 'Voucher is read-only due to permissions or settings.',
+        'finance_setting_allow_voucher_create_disabled': 'Voucher creation is disabled in settings.',
+        'finance_setting_allow_voucher_edit_disabled': 'Voucher editing is disabled in settings.',
+        'finance_setting_allow_voucher_delete_disabled': 'Voucher deletion is disabled in settings.',
+        'finance_setting_allow_voucher_print_disabled': 'Voucher printing is disabled in settings.',
+        'finance_setting_allow_voucher_view_disabled': 'Voucher viewing is disabled in settings.',
+    })
+    translations['de'].update({
+        'finance.operation.voucher_create': 'Beleg erstellen',
+        'finance.operation.voucher_edit': 'Beleg bearbeiten',
+        'finance.operation.voucher_delete': 'Beleg löschen',
+        'finance.operation.voucher_print': 'Beleg drucken',
+        'finance.operation.voucher_view': 'Belege anzeigen',
+        'voucher_read_only': 'Der Beleg ist aufgrund von Berechtigungen oder Einstellungen schreibgeschützt.',
+        'finance_setting_allow_voucher_create_disabled': 'Das Erstellen von Belegen ist in den Einstellungen deaktiviert.',
+        'finance_setting_allow_voucher_edit_disabled': 'Das Bearbeiten von Belegen ist in den Einstellungen deaktiviert.',
+        'finance_setting_allow_voucher_delete_disabled': 'Das Löschen von Belegen ist in den Einstellungen deaktiviert.',
+        'finance_setting_allow_voucher_print_disabled': 'Das Drucken von Belegen ist in den Einstellungen deaktiviert.',
+        'finance_setting_allow_voucher_view_disabled': 'Das Anzeigen von Belegen ist in den Einstellungen deaktiviert.',
+    })
+except Exception:
+    pass
+
+# Phase205 category governance translations
+try:
+    translations['ar'].update({
+        'category_read_only': 'التصنيف للعرض فقط حسب الصلاحيات أو الإعدادات.',
+        'category_operation_denied': 'العملية غير مسموحة للتصنيفات حسب الصلاحيات أو الإعدادات.',
+        'category.operation.use': 'استخدام التصنيفات',
+        'category.operation.create': 'إنشاء تصنيف',
+        'category.operation.edit': 'تعديل تصنيف',
+        'category.operation.archive': 'أرشفة تصنيف',
+        'category.operation.restore': 'استعادة تصنيف',
+    })
+    translations['en'].update({
+        'category_read_only': 'Category is read-only due to permissions or settings.',
+        'category_operation_denied': 'Category operation is not allowed by permissions or settings.',
+        'category.operation.use': 'Use categories',
+        'category.operation.create': 'Create category',
+        'category.operation.edit': 'Edit category',
+        'category.operation.archive': 'Archive category',
+        'category.operation.restore': 'Restore category',
+    })
+    translations['de'].update({
+        'category_read_only': 'Kategorie ist aufgrund von Berechtigungen oder Einstellungen schreibgeschützt.',
+        'category_operation_denied': 'Kategorievorgang ist aufgrund von Berechtigungen oder Einstellungen nicht erlaubt.',
+        'category.operation.use': 'Kategorien verwenden',
+        'category.operation.create': 'Kategorie erstellen',
+        'category.operation.edit': 'Kategorie bearbeiten',
+        'category.operation.archive': 'Kategorie archivieren',
+        'category.operation.restore': 'Kategorie wiederherstellen',
+    })
+except Exception:
+    pass
+
+# Phase206 user document/governance translations
+try:
+    translations['ar'].update({
+        'user_document_new': 'مستخدم جديد',
+        'user_document_edit': 'تعديل مستخدم',
+        'user_document_subtitle': 'إدارة بيانات المستخدم والفرع والدور داخل تبويب موحد.',
+        'user_read_only': 'المستخدم للعرض فقط حسب الصلاحيات أو الإعدادات.',
+        'no_branch': 'بدون فرع',
+        'users.operation.use': 'استخدام إدارة المستخدمين',
+        'users.operation.create': 'إنشاء مستخدم',
+        'users.operation.edit': 'تعديل مستخدم',
+        'users.operation.delete': 'حذف مستخدم',
+        'users.operation.change_password': 'تغيير كلمة مرور مستخدم',
+    })
+    translations['en'].update({
+        'user_document_new': 'New User',
+        'user_document_edit': 'Edit User',
+        'user_document_subtitle': 'Manage user credentials, branch, and role inside a unified tab.',
+        'user_read_only': 'User is read-only due to permissions or settings.',
+        'no_branch': 'No branch',
+        'users.operation.use': 'Use user management',
+        'users.operation.create': 'Create user',
+        'users.operation.edit': 'Edit user',
+        'users.operation.delete': 'Delete user',
+        'users.operation.change_password': 'Change user password',
+    })
+    translations['de'].update({
+        'user_document_new': 'Neuer Benutzer',
+        'user_document_edit': 'Benutzer bearbeiten',
+        'user_document_subtitle': 'Benutzerdaten, Filiale und Rolle in einem einheitlichen Tab verwalten.',
+        'user_read_only': 'Benutzer ist aufgrund von Berechtigungen oder Einstellungen schreibgeschützt.',
+        'no_branch': 'Keine Filiale',
+        'users.operation.use': 'Benutzerverwaltung verwenden',
+        'users.operation.create': 'Benutzer erstellen',
+        'users.operation.edit': 'Benutzer bearbeiten',
+        'users.operation.delete': 'Benutzer löschen',
+        'users.operation.change_password': 'Benutzerpasswort ändern',
+    })
+except Exception:
+    pass
+
+
+# Phase207 party governance translations
+try:
+    _TRANSLATIONS['ar'].update({
+        'party_read_only': 'للقراءة فقط حسب الصلاحيات أو الإعدادات',
+        'party_document_unavailable': 'تعذر فتح تبويب الطرف',
+        'party.operation.use': 'استخدام العملاء والموردين',
+        'party.operation.customer_view': 'عرض العملاء',
+        'party.operation.customer_create': 'إنشاء عميل',
+        'party.operation.customer_edit': 'تعديل عميل',
+        'party.operation.customer_delete': 'حذف عميل',
+        'party.operation.supplier_view': 'عرض الموردين',
+        'party.operation.supplier_create': 'إنشاء مورد',
+        'party.operation.supplier_edit': 'تعديل مورد',
+        'party.operation.supplier_delete': 'حذف مورد',
+    })
+    _TRANSLATIONS['de'].update({
+        'party_read_only': 'Nur lesen gemäß Berechtigungen oder Einstellungen',
+        'party_document_unavailable': 'Partner-Tab konnte nicht geöffnet werden',
+        'party.operation.use': 'Kunden/Lieferanten verwenden',
+        'party.operation.customer_view': 'Kunden anzeigen',
+        'party.operation.customer_create': 'Kunde erstellen',
+        'party.operation.customer_edit': 'Kunde bearbeiten',
+        'party.operation.customer_delete': 'Kunde löschen',
+        'party.operation.supplier_view': 'Lieferanten anzeigen',
+        'party.operation.supplier_create': 'Lieferant erstellen',
+        'party.operation.supplier_edit': 'Lieferant bearbeiten',
+        'party.operation.supplier_delete': 'Lieferant löschen',
+    })
+    _TRANSLATIONS['en'].update({
+        'party_read_only': 'Read-only according to permissions or settings',
+        'party_document_unavailable': 'Could not open party document tab',
+        'party.operation.use': 'Use customers/suppliers',
+        'party.operation.customer_view': 'View customers',
+        'party.operation.customer_create': 'Create customer',
+        'party.operation.customer_edit': 'Edit customer',
+        'party.operation.customer_delete': 'Delete customer',
+        'party.operation.supplier_view': 'View suppliers',
+        'party.operation.supplier_create': 'Create supplier',
+        'party.operation.supplier_edit': 'Edit supplier',
+        'party.operation.supplier_delete': 'Delete supplier',
+    })
+except Exception:
+    pass

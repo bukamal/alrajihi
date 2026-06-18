@@ -10,6 +10,17 @@ class ItemRepository(BaseRepository):
     def get_by_id(self, item_id: int) -> Optional[Dict]:
         return self.db.get_item_by_id(item_id)
     
+    def get_by_barcode(self, barcode: str) -> Optional[Dict]:
+        if hasattr(self.db, 'get_item_by_barcode'):
+            return self.db.get_item_by_barcode(barcode)
+        value = str(barcode or '').strip()
+        if not value:
+            return None
+        for item in records(self.get_items(search=value, limit=10), 'items'):
+            if str(item.get('barcode') or '').strip() == value:
+                return item
+        return None
+
     def add(self, data: Dict, user_id: str) -> int:
         return self.db.add_item(data)
     
@@ -27,15 +38,15 @@ class ItemRepository(BaseRepository):
             return []
         else:
             conn = self.db.get_connection()
-            rows = conn.execute("SELECT id, item_id, unit_name, conversion_factor FROM item_units WHERE item_id=?", (item_id,)).fetchall()
+            rows = conn.execute("SELECT id, item_id, unit_name, conversion_factor, barcode, notes FROM item_units WHERE item_id=?", (item_id,)).fetchall()
             return [dict(row) for row in rows]
     
-    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float) -> int:
+    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float, barcode: str = None, notes: str = '') -> int:
         if self.db.is_remote():
             raise NotImplementedError("Use REST for units")
         conn = self.db.get_connection()
-        cursor = conn.execute("INSERT INTO item_units (item_id, unit_name, conversion_factor) VALUES (?,?,?)",
-                             (item_id, unit_name, conversion_factor))
+        cursor = conn.execute("INSERT INTO item_units (item_id, unit_name, conversion_factor, barcode, notes) VALUES (?,?,?,?,?)",
+                             (item_id, unit_name, conversion_factor, barcode, notes))
         conn.commit()
         return cursor.lastrowid
     

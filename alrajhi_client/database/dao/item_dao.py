@@ -30,8 +30,8 @@ class ItemDAO:
     def get_units(self, item_id):
         return self.repo.get_units(item_id)
     
-    def add_unit(self, item_id, unit_name, conversion_factor):
-        return self.repo.add_unit(item_id, unit_name, conversion_factor)
+    def add_unit(self, item_id, unit_name, conversion_factor, barcode=None, notes=''):
+        return self.repo.add_unit(item_id, unit_name, conversion_factor, barcode, notes)
     
     def delete_unit(self, unit_id):
         return self.repo.delete_unit(unit_id)
@@ -40,10 +40,7 @@ class ItemDAO:
         return self.repo.clear_units(item_id)
     
     def get_by_barcode(self, barcode):
-        for it in records(self.get_items(), 'items'):
-            if it.get('barcode') == barcode:
-                return it
-        return None
+        return self.repo.get_by_barcode(barcode)
 
 # إنشاء كائن مفرد للاستخدام المباشر
 item_dao = ItemDAO()

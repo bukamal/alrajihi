@@ -85,6 +85,12 @@ def add_line(session_id: int):
             quantity=data.get("quantity") or "1",
             unit_price=data.get("unit_price") or "0",
             notes=data.get("notes") or "",
+            unit_id=data.get("unit_id"),
+            unit=data.get("unit") or "",
+            conversion_factor=data.get("conversion_factor") or "1",
+            base_qty=data.get("base_qty"),
+            barcode_scope=data.get("barcode_scope") or "",
+            matched_barcode=data.get("matched_barcode") or "",
         ))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400

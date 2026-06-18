@@ -21,20 +21,178 @@ class PermissionService:
     ACTION_DELETE = 'delete_records'
     ACTION_EDIT_INVOICES = 'edit_invoices'
     ACTION_EDIT_RETURNS = 'edit_returns'
+    ACTION_EDIT_ITEMS = 'edit_items'
+    ACTION_PRINT_BARCODES = 'print_barcodes'
+    ACTION_VIEW_ITEM_COSTS = 'view_item_costs'
+    ACTION_EDIT_OPENING_STOCK = 'edit_opening_stock'
+    ACTION_CATEGORY_VIEW = 'category_view'
+    ACTION_CATEGORY_CREATE = 'category_create'
+    ACTION_CATEGORY_EDIT = 'category_edit'
+    ACTION_CATEGORY_ARCHIVE = 'category_archive'
+    ACTION_CATEGORY_RESTORE = 'category_restore'
+    ACTION_USE_POS = 'use_pos'
+    ACTION_POS_SUSPEND = 'pos_suspend'
+    ACTION_POS_RESUME = 'pos_resume'
+    ACTION_POS_REMOVE_LINE = 'pos_remove_line'
+    ACTION_POS_CLEAR_CART = 'pos_clear_cart'
+    ACTION_POS_OPEN_SHIFT = 'pos_open_shift'
+    ACTION_POS_CLOSE_SHIFT = 'pos_close_shift'
+    ACTION_POS_PRINT_RECEIPT = 'pos_print_receipt'
+    ACTION_USE_RESTAURANT = 'restaurant_use'
+    ACTION_RESTAURANT_OPEN_SESSION = 'restaurant_open_session'
+    ACTION_RESTAURANT_ADD_LINE = 'restaurant_add_line'
+    ACTION_RESTAURANT_SEND_KITCHEN = 'restaurant_send_kitchen'
+    ACTION_RESTAURANT_ADJUST_BILL = 'restaurant_adjust_bill'
+    ACTION_RESTAURANT_RECORD_PAYMENT = 'restaurant_record_payment'
+    ACTION_RESTAURANT_CHECKOUT = 'restaurant_checkout'
+    ACTION_RESTAURANT_UPDATE_KITCHEN_STATUS = 'restaurant_update_kitchen_status'
+    ACTION_RESTAURANT_PRINT_RECEIPT = 'restaurant_print_receipt'
+    ACTION_RESTAURANT_PRINT_KITCHEN_TICKET = 'restaurant_print_kitchen_ticket'
+    ACTION_USE_MANUFACTURING = 'manufacturing_use'
+    ACTION_MANUFACTURING_BOM_CREATE = 'manufacturing_bom_create'
+    ACTION_MANUFACTURING_BOM_EDIT = 'manufacturing_bom_edit'
+    ACTION_MANUFACTURING_BOM_DELETE = 'manufacturing_bom_delete'
+    ACTION_MANUFACTURING_ORDER_CREATE = 'manufacturing_order_create'
+    ACTION_MANUFACTURING_ORDER_START = 'manufacturing_order_start'
+    ACTION_MANUFACTURING_MATERIAL_CONSUME = 'manufacturing_material_consume'
+    ACTION_MANUFACTURING_OUTPUT_COMPLETE = 'manufacturing_output_complete'
+    ACTION_MANUFACTURING_ORDER_CANCEL = 'manufacturing_order_cancel'
+    ACTION_MANUFACTURING_ORDER_DELETE = 'manufacturing_order_delete'
+    ACTION_MANUFACTURING_ORDER_REVERSE = 'manufacturing_order_reverse'
+    ACTION_MANUFACTURING_CONSUMPTION_DELETE = 'manufacturing_consumption_delete'
+    ACTION_MANUFACTURING_OUTPUT_DELETE = 'manufacturing_output_delete'
+    ACTION_MANUFACTURING_COST_VIEW = 'manufacturing_cost_view'
+    ACTION_MANUFACTURING_PRINT = 'manufacturing_print'
+    ACTION_USE_INVENTORY = 'inventory_use'
+    ACTION_INVENTORY_WAREHOUSE_CREATE = 'inventory_warehouse_create'
+    ACTION_INVENTORY_WAREHOUSE_EDIT = 'inventory_warehouse_edit'
+    ACTION_INVENTORY_WAREHOUSE_ARCHIVE = 'inventory_warehouse_archive'
+    ACTION_INVENTORY_BALANCE_VIEW = 'inventory_balance_view'
+    ACTION_INVENTORY_MOVEMENT_VIEW = 'inventory_movement_view'
+    ACTION_INVENTORY_DIRECT_MOVEMENT = 'inventory_direct_movement'
+    ACTION_INVENTORY_TRANSFER_CREATE = 'inventory_transfer_create'
+    ACTION_INVENTORY_TRANSFER_CANCEL = 'inventory_transfer_cancel'
+    ACTION_INVENTORY_LEDGER_VIEW = 'inventory_ledger_view'
+    ACTION_INVENTORY_LEDGER_BACKFILL = 'inventory_ledger_backfill'
+    ACTION_INVENTORY_RECONCILE = 'inventory_reconcile'
+    ACTION_INVENTORY_PRINT = 'inventory_print'
+    ACTION_USE_FINANCE = 'finance_use'
+    ACTION_CASHBOX_CREATE = 'finance_cashbox_create'
+    ACTION_CASHBOX_EDIT = 'finance_cashbox_edit'
+    ACTION_CASHBOX_ARCHIVE = 'finance_cashbox_archive'
+    ACTION_BANK_CREATE = 'finance_bank_create'
+    ACTION_BANK_EDIT = 'finance_bank_edit'
+    ACTION_BANK_ARCHIVE = 'finance_bank_archive'
+    ACTION_FINANCE_MOVEMENTS_VIEW = 'finance_movements_view'
+    ACTION_FINANCE_SHIFTS_VIEW = 'finance_shifts_view'
+    ACTION_VOUCHER_CREATE = 'finance_voucher_create'
+    ACTION_VOUCHER_EDIT = 'finance_voucher_edit'
+    ACTION_VOUCHER_DELETE = 'finance_voucher_delete'
+    ACTION_VOUCHER_PRINT = 'finance_voucher_print'
+    ACTION_VOUCHER_VIEW = 'finance_voucher_view'
     ACTION_VIEW_REPORTS = 'view_reports'
     ACTION_EXPORT_REPORTS = 'export_reports'
     ACTION_VIEW_ALL_BRANCHES = 'view_all_branches'
     ACTION_MANAGE_ALL_BRANCHES = 'manage_all_branches'
+    ACTION_USERS_MANAGE = 'users_manage'
+    ACTION_PARTY_VIEW = 'party_view'
+    ACTION_CUSTOMER_VIEW = 'customer_view'
+    ACTION_CUSTOMER_CREATE = 'customer_create'
+    ACTION_CUSTOMER_EDIT = 'customer_edit'
+    ACTION_CUSTOMER_DELETE = 'customer_delete'
+    ACTION_SUPPLIER_VIEW = 'supplier_view'
+    ACTION_SUPPLIER_CREATE = 'supplier_create'
+    ACTION_SUPPLIER_EDIT = 'supplier_edit'
+    ACTION_SUPPLIER_DELETE = 'supplier_delete'
 
     DEFAULTS = {
         ACTION_HIDE_PROFIT: False,
         ACTION_DELETE: True,
         ACTION_EDIT_INVOICES: True,
         ACTION_EDIT_RETURNS: True,
+        ACTION_EDIT_ITEMS: True,
+        ACTION_PRINT_BARCODES: True,
+        ACTION_VIEW_ITEM_COSTS: True,
+        ACTION_EDIT_OPENING_STOCK: True,
+        ACTION_CATEGORY_VIEW: True,
+        ACTION_CATEGORY_CREATE: True,
+        ACTION_CATEGORY_EDIT: True,
+        ACTION_CATEGORY_ARCHIVE: True,
+        ACTION_CATEGORY_RESTORE: True,
+        ACTION_USE_POS: True,
+        ACTION_POS_SUSPEND: True,
+        ACTION_POS_RESUME: True,
+        ACTION_POS_REMOVE_LINE: True,
+        ACTION_POS_CLEAR_CART: True,
+        ACTION_POS_OPEN_SHIFT: True,
+        ACTION_POS_CLOSE_SHIFT: True,
+        ACTION_POS_PRINT_RECEIPT: True,
+        ACTION_USE_RESTAURANT: True,
+        ACTION_RESTAURANT_OPEN_SESSION: True,
+        ACTION_RESTAURANT_ADD_LINE: True,
+        ACTION_RESTAURANT_SEND_KITCHEN: True,
+        ACTION_RESTAURANT_ADJUST_BILL: True,
+        ACTION_RESTAURANT_RECORD_PAYMENT: True,
+        ACTION_RESTAURANT_CHECKOUT: True,
+        ACTION_RESTAURANT_UPDATE_KITCHEN_STATUS: True,
+        ACTION_RESTAURANT_PRINT_RECEIPT: True,
+        ACTION_RESTAURANT_PRINT_KITCHEN_TICKET: True,
+        ACTION_USE_MANUFACTURING: True,
+        ACTION_MANUFACTURING_BOM_CREATE: True,
+        ACTION_MANUFACTURING_BOM_EDIT: True,
+        ACTION_MANUFACTURING_BOM_DELETE: True,
+        ACTION_MANUFACTURING_ORDER_CREATE: True,
+        ACTION_MANUFACTURING_ORDER_START: True,
+        ACTION_MANUFACTURING_MATERIAL_CONSUME: True,
+        ACTION_MANUFACTURING_OUTPUT_COMPLETE: True,
+        ACTION_MANUFACTURING_ORDER_CANCEL: True,
+        ACTION_MANUFACTURING_ORDER_DELETE: True,
+        ACTION_MANUFACTURING_ORDER_REVERSE: True,
+        ACTION_MANUFACTURING_CONSUMPTION_DELETE: True,
+        ACTION_MANUFACTURING_OUTPUT_DELETE: True,
+        ACTION_MANUFACTURING_COST_VIEW: True,
+        ACTION_MANUFACTURING_PRINT: True,
+        ACTION_USE_INVENTORY: True,
+        ACTION_INVENTORY_WAREHOUSE_CREATE: True,
+        ACTION_INVENTORY_WAREHOUSE_EDIT: True,
+        ACTION_INVENTORY_WAREHOUSE_ARCHIVE: True,
+        ACTION_INVENTORY_BALANCE_VIEW: True,
+        ACTION_INVENTORY_MOVEMENT_VIEW: True,
+        ACTION_INVENTORY_DIRECT_MOVEMENT: True,
+        ACTION_INVENTORY_TRANSFER_CREATE: True,
+        ACTION_INVENTORY_TRANSFER_CANCEL: True,
+        ACTION_INVENTORY_LEDGER_VIEW: True,
+        ACTION_INVENTORY_LEDGER_BACKFILL: False,
+        ACTION_INVENTORY_RECONCILE: True,
+        ACTION_INVENTORY_PRINT: True,
+        ACTION_USE_FINANCE: True,
+        ACTION_CASHBOX_CREATE: True,
+        ACTION_CASHBOX_EDIT: True,
+        ACTION_CASHBOX_ARCHIVE: True,
+        ACTION_BANK_CREATE: True,
+        ACTION_BANK_EDIT: True,
+        ACTION_BANK_ARCHIVE: True,
+        ACTION_FINANCE_MOVEMENTS_VIEW: True,
+        ACTION_FINANCE_SHIFTS_VIEW: True,
+        ACTION_VOUCHER_CREATE: True,
+        ACTION_VOUCHER_EDIT: True,
+        ACTION_VOUCHER_DELETE: True,
+        ACTION_VOUCHER_PRINT: True,
+        ACTION_VOUCHER_VIEW: True,
         ACTION_VIEW_REPORTS: True,
         ACTION_EXPORT_REPORTS: True,
         ACTION_VIEW_ALL_BRANCHES: False,
         ACTION_MANAGE_ALL_BRANCHES: False,
+        ACTION_USERS_MANAGE: False,
+        ACTION_PARTY_VIEW: True,
+        ACTION_CUSTOMER_VIEW: True,
+        ACTION_CUSTOMER_CREATE: True,
+        ACTION_CUSTOMER_EDIT: True,
+        ACTION_CUSTOMER_DELETE: True,
+        ACTION_SUPPLIER_VIEW: True,
+        ACTION_SUPPLIER_CREATE: True,
+        ACTION_SUPPLIER_EDIT: True,
+        ACTION_SUPPLIER_DELETE: True,
     }
 
     def __init__(self, system_gateway=None):
@@ -77,10 +235,89 @@ class PermissionService:
                     self.ACTION_DELETE: 'invoices.delete',
                     self.ACTION_EDIT_INVOICES: 'invoices.edit',
                     self.ACTION_EDIT_RETURNS: 'returns.edit',
+                    self.ACTION_EDIT_ITEMS: 'items.edit',
+                    self.ACTION_PRINT_BARCODES: 'items.barcodes.print',
+                    self.ACTION_VIEW_ITEM_COSTS: 'items.cost.view',
+                    self.ACTION_EDIT_OPENING_STOCK: 'items.opening_stock.edit',
+                    self.ACTION_CATEGORY_VIEW: 'categories.view',
+                    self.ACTION_CATEGORY_CREATE: 'categories.create',
+                    self.ACTION_CATEGORY_EDIT: 'categories.edit',
+                    self.ACTION_CATEGORY_ARCHIVE: 'categories.archive',
+                    self.ACTION_CATEGORY_RESTORE: 'categories.restore',
+                    self.ACTION_USE_POS: 'pos.use',
+                    self.ACTION_POS_SUSPEND: 'pos.suspend',
+                    self.ACTION_POS_RESUME: 'pos.resume',
+                    self.ACTION_POS_REMOVE_LINE: 'pos.line.remove',
+                    self.ACTION_POS_CLEAR_CART: 'pos.cart.clear',
+                    self.ACTION_POS_OPEN_SHIFT: 'pos.shift.open',
+                    self.ACTION_POS_CLOSE_SHIFT: 'pos.shift.close',
+                    self.ACTION_POS_PRINT_RECEIPT: 'pos.receipt.print',
+                    self.ACTION_USE_RESTAURANT: 'restaurant.use',
+                    self.ACTION_RESTAURANT_OPEN_SESSION: 'restaurant.session.open',
+                    self.ACTION_RESTAURANT_ADD_LINE: 'restaurant.line.add',
+                    self.ACTION_RESTAURANT_SEND_KITCHEN: 'restaurant.kitchen.send',
+                    self.ACTION_RESTAURANT_ADJUST_BILL: 'restaurant.bill.adjust',
+                    self.ACTION_RESTAURANT_RECORD_PAYMENT: 'restaurant.payment.record',
+                    self.ACTION_RESTAURANT_CHECKOUT: 'restaurant.checkout',
+                    self.ACTION_RESTAURANT_UPDATE_KITCHEN_STATUS: 'restaurant.kitchen.status.update',
+                    self.ACTION_RESTAURANT_PRINT_RECEIPT: 'restaurant.receipt.print',
+                    self.ACTION_RESTAURANT_PRINT_KITCHEN_TICKET: 'restaurant.kitchen_ticket.print',
+                    self.ACTION_USE_MANUFACTURING: 'manufacturing.use',
+                    self.ACTION_MANUFACTURING_BOM_CREATE: 'manufacturing.bom.create',
+                    self.ACTION_MANUFACTURING_BOM_EDIT: 'manufacturing.bom.edit',
+                    self.ACTION_MANUFACTURING_BOM_DELETE: 'manufacturing.bom.delete',
+                    self.ACTION_MANUFACTURING_ORDER_CREATE: 'manufacturing.order.create',
+                    self.ACTION_MANUFACTURING_ORDER_START: 'manufacturing.order.start',
+                    self.ACTION_MANUFACTURING_MATERIAL_CONSUME: 'manufacturing.material.consume',
+                    self.ACTION_MANUFACTURING_OUTPUT_COMPLETE: 'manufacturing.output.complete',
+                    self.ACTION_MANUFACTURING_ORDER_CANCEL: 'manufacturing.order.cancel',
+                    self.ACTION_MANUFACTURING_ORDER_DELETE: 'manufacturing.order.delete',
+                    self.ACTION_MANUFACTURING_ORDER_REVERSE: 'manufacturing.order.reverse',
+                    self.ACTION_MANUFACTURING_CONSUMPTION_DELETE: 'manufacturing.consumption.delete',
+                    self.ACTION_MANUFACTURING_OUTPUT_DELETE: 'manufacturing.output.delete',
+                    self.ACTION_MANUFACTURING_COST_VIEW: 'manufacturing.cost.view',
+                    self.ACTION_MANUFACTURING_PRINT: 'manufacturing.print',
+                    self.ACTION_USE_INVENTORY: 'inventory.use',
+                    self.ACTION_INVENTORY_WAREHOUSE_CREATE: 'inventory.warehouse.create',
+                    self.ACTION_INVENTORY_WAREHOUSE_EDIT: 'inventory.warehouse.edit',
+                    self.ACTION_INVENTORY_WAREHOUSE_ARCHIVE: 'inventory.warehouse.archive',
+                    self.ACTION_INVENTORY_BALANCE_VIEW: 'inventory.balance.view',
+                    self.ACTION_INVENTORY_MOVEMENT_VIEW: 'inventory.movement.view',
+                    self.ACTION_INVENTORY_DIRECT_MOVEMENT: 'inventory.movement.direct',
+                    self.ACTION_INVENTORY_TRANSFER_CREATE: 'inventory.transfer.create',
+                    self.ACTION_INVENTORY_TRANSFER_CANCEL: 'inventory.transfer.cancel',
+                    self.ACTION_INVENTORY_LEDGER_VIEW: 'inventory.ledger.view',
+                    self.ACTION_INVENTORY_LEDGER_BACKFILL: 'inventory.ledger.backfill',
+                    self.ACTION_INVENTORY_RECONCILE: 'inventory.reconcile',
+                    self.ACTION_INVENTORY_PRINT: 'inventory.print',
+                    self.ACTION_USE_FINANCE: 'finance.use',
+                    self.ACTION_CASHBOX_CREATE: 'finance.cashbox.create',
+                    self.ACTION_CASHBOX_EDIT: 'finance.cashbox.edit',
+                    self.ACTION_CASHBOX_ARCHIVE: 'finance.cashbox.archive',
+                    self.ACTION_BANK_CREATE: 'finance.bank.create',
+                    self.ACTION_BANK_EDIT: 'finance.bank.edit',
+                    self.ACTION_BANK_ARCHIVE: 'finance.bank.archive',
+                    self.ACTION_FINANCE_MOVEMENTS_VIEW: 'finance.movements.view',
+                    self.ACTION_FINANCE_SHIFTS_VIEW: 'finance.shifts.view',
+                    self.ACTION_VOUCHER_CREATE: 'finance.voucher.create',
+                    self.ACTION_VOUCHER_EDIT: 'finance.voucher.edit',
+                    self.ACTION_VOUCHER_DELETE: 'finance.voucher.delete',
+                    self.ACTION_VOUCHER_PRINT: 'finance.voucher.print',
+                    self.ACTION_VOUCHER_VIEW: 'finance.voucher.view',
                     self.ACTION_VIEW_REPORTS: 'reports.view',
                     self.ACTION_EXPORT_REPORTS: 'reports.export',
                     self.ACTION_VIEW_ALL_BRANCHES: 'branches.view_all',
                     self.ACTION_MANAGE_ALL_BRANCHES: 'branches.manage_all',
+                    self.ACTION_USERS_MANAGE: 'users.manage',
+                    self.ACTION_PARTY_VIEW: 'parties.view',
+                    self.ACTION_CUSTOMER_VIEW: 'customers.view',
+                    self.ACTION_CUSTOMER_CREATE: 'customers.create',
+                    self.ACTION_CUSTOMER_EDIT: 'customers.edit',
+                    self.ACTION_CUSTOMER_DELETE: 'customers.delete',
+                    self.ACTION_SUPPLIER_VIEW: 'suppliers.view',
+                    self.ACTION_SUPPLIER_CREATE: 'suppliers.create',
+                    self.ACTION_SUPPLIER_EDIT: 'suppliers.edit',
+                    self.ACTION_SUPPLIER_DELETE: 'suppliers.delete',
                 }.get(action)
                 if mapped:
                     allowed = rbac_service.has_permission(mapped)
@@ -95,6 +332,100 @@ class PermissionService:
             allowed, reason = False, 'prevent_invoice_edit_for_non_admin'
         elif action == self.ACTION_EDIT_RETURNS and settings_service.get_bool('security/prevent_return_edit_for_non_admin', False):
             allowed, reason = False, 'prevent_return_edit_for_non_admin'
+        elif action == self.ACTION_EDIT_ITEMS and settings_service.get_bool('security/prevent_item_edit_for_non_admin', False):
+            allowed, reason = False, 'prevent_item_edit_for_non_admin'
+        elif action == self.ACTION_PRINT_BARCODES and settings_service.get_bool('security/restrict_barcode_print_to_admin', False):
+            allowed, reason = False, 'restrict_barcode_print_to_admin'
+        elif action == self.ACTION_VIEW_ITEM_COSTS and settings_service.get_bool('security/hide_item_cost_for_non_admin', settings_service.get_bool('security/hide_profit_for_non_admin', False)):
+            allowed, reason = False, 'hide_item_cost_for_non_admin'
+        elif action == self.ACTION_EDIT_OPENING_STOCK and settings_service.get_bool('materials/security/restrict_opening_stock_edit_to_admin', False):
+            allowed, reason = False, 'restrict_opening_stock_edit_to_admin'
+        elif action == self.ACTION_CATEGORY_VIEW and settings_service.get_bool('security/restrict_categories_view_to_admin', False):
+            allowed, reason = False, 'restrict_categories_view_to_admin'
+        elif action == self.ACTION_CATEGORY_CREATE and settings_service.get_bool('security/restrict_category_create_to_admin', False):
+            allowed, reason = False, 'restrict_category_create_to_admin'
+        elif action == self.ACTION_CATEGORY_EDIT and settings_service.get_bool('security/restrict_category_edit_to_admin', False):
+            allowed, reason = False, 'restrict_category_edit_to_admin'
+        elif action == self.ACTION_CATEGORY_ARCHIVE and settings_service.get_bool('security/restrict_category_archive_to_admin', False):
+            allowed, reason = False, 'restrict_category_archive_to_admin'
+        elif action == self.ACTION_CATEGORY_RESTORE and settings_service.get_bool('security/restrict_category_restore_to_admin', False):
+            allowed, reason = False, 'restrict_category_restore_to_admin'
+        elif action == self.ACTION_USE_POS and settings_service.get_bool('security/restrict_pos_to_authorized_users', False):
+            allowed, reason = False, 'restrict_pos_to_authorized_users'
+        elif action == self.ACTION_POS_SUSPEND and settings_service.get_bool('security/restrict_pos_suspend_to_admin', False):
+            allowed, reason = False, 'restrict_pos_suspend_to_admin'
+        elif action == self.ACTION_POS_RESUME and settings_service.get_bool('security/restrict_pos_resume_to_admin', False):
+            allowed, reason = False, 'restrict_pos_resume_to_admin'
+        elif action == self.ACTION_POS_REMOVE_LINE and settings_service.get_bool('security/restrict_pos_remove_line_to_admin', False):
+            allowed, reason = False, 'restrict_pos_remove_line_to_admin'
+        elif action == self.ACTION_POS_CLEAR_CART and settings_service.get_bool('security/restrict_pos_clear_cart_to_admin', False):
+            allowed, reason = False, 'restrict_pos_clear_cart_to_admin'
+        elif action == self.ACTION_POS_OPEN_SHIFT and settings_service.get_bool('security/restrict_pos_open_shift_to_admin', False):
+            allowed, reason = False, 'restrict_pos_open_shift_to_admin'
+        elif action == self.ACTION_POS_CLOSE_SHIFT and settings_service.get_bool('security/restrict_pos_close_shift_to_admin', False):
+            allowed, reason = False, 'restrict_pos_close_shift_to_admin'
+        elif action == self.ACTION_POS_PRINT_RECEIPT and settings_service.get_bool('security/restrict_pos_receipt_print_to_admin', False):
+            allowed, reason = False, 'restrict_pos_receipt_print_to_admin'
+        elif action == self.ACTION_USE_RESTAURANT and settings_service.get_bool('security/restrict_restaurant_to_authorized_users', False):
+            allowed, reason = False, 'restrict_restaurant_to_authorized_users'
+        elif action == self.ACTION_RESTAURANT_OPEN_SESSION and settings_service.get_bool('security/restrict_restaurant_open_session_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_open_session_to_admin'
+        elif action == self.ACTION_RESTAURANT_ADD_LINE and settings_service.get_bool('security/restrict_restaurant_add_line_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_add_line_to_admin'
+        elif action == self.ACTION_RESTAURANT_SEND_KITCHEN and settings_service.get_bool('security/restrict_restaurant_send_kitchen_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_send_kitchen_to_admin'
+        elif action == self.ACTION_RESTAURANT_ADJUST_BILL and settings_service.get_bool('security/restrict_restaurant_adjust_bill_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_adjust_bill_to_admin'
+        elif action == self.ACTION_RESTAURANT_RECORD_PAYMENT and settings_service.get_bool('security/restrict_restaurant_payment_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_payment_to_admin'
+        elif action == self.ACTION_RESTAURANT_CHECKOUT and settings_service.get_bool('security/restrict_restaurant_checkout_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_checkout_to_admin'
+        elif action == self.ACTION_RESTAURANT_UPDATE_KITCHEN_STATUS and settings_service.get_bool('security/restrict_restaurant_kitchen_status_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_kitchen_status_to_admin'
+        elif action == self.ACTION_RESTAURANT_PRINT_RECEIPT and settings_service.get_bool('security/restrict_restaurant_receipt_print_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_receipt_print_to_admin'
+        elif action == self.ACTION_RESTAURANT_PRINT_KITCHEN_TICKET and settings_service.get_bool('security/restrict_restaurant_kitchen_ticket_print_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_kitchen_ticket_print_to_admin'
+        elif action == self.ACTION_USE_MANUFACTURING and settings_service.get_bool('security/restrict_manufacturing_to_authorized_users', False):
+            allowed, reason = False, 'restrict_manufacturing_to_authorized_users'
+        elif action == self.ACTION_MANUFACTURING_BOM_CREATE and settings_service.get_bool('security/restrict_manufacturing_bom_create_to_admin', False):
+            allowed, reason = False, 'restrict_manufacturing_bom_create_to_admin'
+        elif action == self.ACTION_MANUFACTURING_BOM_EDIT and settings_service.get_bool('security/restrict_manufacturing_bom_edit_to_admin', False):
+            allowed, reason = False, 'restrict_manufacturing_bom_edit_to_admin'
+        elif action == self.ACTION_MANUFACTURING_BOM_DELETE and settings_service.get_bool('security/restrict_manufacturing_bom_delete_to_admin', False):
+            allowed, reason = False, 'restrict_manufacturing_bom_delete_to_admin'
+        elif action == self.ACTION_MANUFACTURING_ORDER_CREATE and settings_service.get_bool('security/restrict_manufacturing_order_create_to_admin', False):
+            allowed, reason = False, 'restrict_manufacturing_order_create_to_admin'
+        elif action == self.ACTION_MANUFACTURING_ORDER_START and settings_service.get_bool('security/restrict_manufacturing_order_start_to_admin', False):
+            allowed, reason = False, 'restrict_manufacturing_order_start_to_admin'
+        elif action == self.ACTION_MANUFACTURING_MATERIAL_CONSUME and settings_service.get_bool('security/restrict_manufacturing_material_consume_to_admin', False):
+            allowed, reason = False, 'restrict_manufacturing_material_consume_to_admin'
+        elif action == self.ACTION_MANUFACTURING_OUTPUT_COMPLETE and settings_service.get_bool('security/restrict_manufacturing_output_complete_to_admin', False):
+            allowed, reason = False, 'restrict_manufacturing_output_complete_to_admin'
+        elif action == self.ACTION_MANUFACTURING_ORDER_REVERSE and settings_service.get_bool('security/restrict_manufacturing_reverse_to_admin', False):
+            allowed, reason = False, 'restrict_manufacturing_reverse_to_admin'
+        elif action == self.ACTION_MANUFACTURING_COST_VIEW and settings_service.get_bool('security/hide_manufacturing_cost_for_non_admin', settings_service.get_bool('security/hide_item_cost_for_non_admin', False)):
+            allowed, reason = False, 'hide_manufacturing_cost_for_non_admin'
+        elif action == self.ACTION_MANUFACTURING_PRINT and settings_service.get_bool('security/restrict_manufacturing_print_to_admin', False):
+            allowed, reason = False, 'restrict_manufacturing_print_to_admin'
+        elif action == self.ACTION_USE_INVENTORY and settings_service.get_bool('security/restrict_inventory_to_authorized_users', False):
+            allowed, reason = False, 'restrict_inventory_to_authorized_users'
+        elif action == self.ACTION_INVENTORY_WAREHOUSE_CREATE and settings_service.get_bool('security/restrict_warehouse_create_to_admin', False):
+            allowed, reason = False, 'restrict_warehouse_create_to_admin'
+        elif action == self.ACTION_INVENTORY_WAREHOUSE_EDIT and settings_service.get_bool('security/restrict_warehouse_edit_to_admin', False):
+            allowed, reason = False, 'restrict_warehouse_edit_to_admin'
+        elif action == self.ACTION_INVENTORY_WAREHOUSE_ARCHIVE and settings_service.get_bool('security/restrict_warehouse_archive_to_admin', False):
+            allowed, reason = False, 'restrict_warehouse_archive_to_admin'
+        elif action == self.ACTION_INVENTORY_DIRECT_MOVEMENT and settings_service.get_bool('security/restrict_direct_inventory_movement_to_admin', False):
+            allowed, reason = False, 'restrict_direct_inventory_movement_to_admin'
+        elif action == self.ACTION_INVENTORY_TRANSFER_CREATE and settings_service.get_bool('security/restrict_warehouse_transfer_to_admin', False):
+            allowed, reason = False, 'restrict_warehouse_transfer_to_admin'
+        elif action == self.ACTION_INVENTORY_TRANSFER_CANCEL and settings_service.get_bool('security/restrict_warehouse_transfer_cancel_to_admin', False):
+            allowed, reason = False, 'restrict_warehouse_transfer_cancel_to_admin'
+        elif action == self.ACTION_INVENTORY_LEDGER_BACKFILL and settings_service.get_bool('security/restrict_inventory_ledger_backfill_to_admin', True):
+            allowed, reason = False, 'restrict_inventory_ledger_backfill_to_admin'
+        elif action == self.ACTION_INVENTORY_PRINT and settings_service.get_bool('security/restrict_inventory_print_to_admin', False):
+            allowed, reason = False, 'restrict_inventory_print_to_admin'
         elif action == self.ACTION_VIEW_REPORTS:
             if settings_service.get_bool('security/restrict_reports_to_admin', False):
                 allowed, reason = False, 'restrict_reports_to_admin'
@@ -183,10 +514,35 @@ class PermissionService:
             self.ACTION_DELETE: 'الحذف غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_EDIT_INVOICES: 'تعديل الفواتير غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_EDIT_RETURNS: 'تعديل المرتجعات غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_EDIT_ITEMS: 'تعديل المواد غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_PRINT_BARCODES: 'طباعة الباركود غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_VIEW_ITEM_COSTS: 'عرض تكلفة المواد غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_EDIT_OPENING_STOCK: 'تعديل الكمية الافتتاحية غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_USE_POS: 'استخدام نقطة البيع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_POS_SUSPEND: 'تعليق بيع POS غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_POS_RESUME: 'استرجاع بيع POS معلق غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_POS_REMOVE_LINE: 'حذف سطر من POS غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_POS_CLEAR_CART: 'تفريغ سلة POS غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_POS_OPEN_SHIFT: 'فتح وردية POS غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_POS_CLOSE_SHIFT: 'إغلاق وردية POS غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_POS_PRINT_RECEIPT: 'طباعة إيصال POS غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_USE_MANUFACTURING: 'استخدام التصنيع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_BOM_CREATE: 'إنشاء تركيبة تصنيع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_BOM_EDIT: 'تعديل تركيبة التصنيع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_BOM_DELETE: 'حذف تركيبة التصنيع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_ORDER_CREATE: 'إنشاء أمر إنتاج غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_ORDER_START: 'بدء أمر الإنتاج غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_MATERIAL_CONSUME: 'استهلاك مواد الإنتاج غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_OUTPUT_COMPLETE: 'إتمام إنتاج المخرجات غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_ORDER_REVERSE: 'عكس أمر الإنتاج غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_COST_VIEW: 'عرض تكلفة التصنيع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_MANUFACTURING_PRINT: 'طباعة مستندات التصنيع غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_INVENTORY_PRINT: 'طباعة مستندات المخزون والمستودعات غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_VIEW_REPORTS: 'عرض التقارير غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_EXPORT_REPORTS: 'تصدير التقارير غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_VIEW_ALL_BRANCHES: 'عرض كل الفروع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_MANAGE_ALL_BRANCHES: 'إدارة كل الفروع غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_USERS_MANAGE: 'إدارة المستخدمين غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
         }
         return labels.get(action, 'لا تملك صلاحية تنفيذ هذه العملية.')
 

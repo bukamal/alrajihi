@@ -39,8 +39,8 @@ class LocalItemGateway(ItemGateway):
     def get_units(self, item_id: int) -> List[Dict]:
         return records(item_dao.get_units(item_id), 'units')
 
-    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float):
-        return item_dao.add_unit(item_id, unit_name, conversion_factor)
+    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float, barcode: str | None = None, notes: str = ''):
+        return item_dao.add_unit(item_id, unit_name, conversion_factor, barcode, notes)
 
     def clear_units(self, item_id: int):
         return item_dao.clear_units(item_id)
@@ -89,6 +89,50 @@ class LocalItemGateway(ItemGateway):
         except Exception:
             return result
 
+
+    def activity_summary(self, item_id: int) -> Dict[str, Any]:
+        """Return material usage counts without leaking SQL above the gateway."""
+        item_id = int(item_id or 0)
+        summary = {
+            'invoice_lines': 0,
+            'purchase_lines': 0,
+            'sales_return_lines': 0,
+            'purchase_return_lines': 0,
+            'inventory_movements': 0,
+            'bom_products': 0,
+            'bom_lines': 0,
+            'production_orders': 0,
+            'production_consumptions': 0,
+            'production_outputs': 0,
+        }
+        if not item_id:
+            summary['blocking_total'] = 0
+            summary['has_movements'] = False
+            return summary
+        def count(conn, sql, params):
+            try:
+                row = conn.execute(sql, params).fetchone()
+                return int(row[0] if row else 0)
+            except Exception:
+                return 0
+        try:
+            conn = item_dao.repo.db.get_connection()
+            summary['invoice_lines'] = count(conn, "SELECT COUNT(*) FROM invoice_lines WHERE item_id=?", (item_id,))
+            summary['purchase_lines'] = count(conn, "SELECT COUNT(*) FROM purchase_invoice_lines WHERE item_id=?", (item_id,))
+            summary['sales_return_lines'] = count(conn, "SELECT COUNT(*) FROM sales_return_lines WHERE item_id=?", (item_id,))
+            summary['purchase_return_lines'] = count(conn, "SELECT COUNT(*) FROM purchase_return_lines WHERE item_id=?", (item_id,))
+            summary['inventory_movements'] = count(conn, "SELECT COUNT(*) FROM inventory_movements WHERE item_id=? AND movement_type <> 'opening'", (item_id,))
+            summary['bom_products'] = count(conn, "SELECT COUNT(*) FROM bom WHERE product_id=?", (item_id,))
+            summary['bom_lines'] = count(conn, "SELECT COUNT(*) FROM bom_lines WHERE item_id=?", (item_id,))
+            summary['production_orders'] = count(conn, "SELECT COUNT(*) FROM production_orders WHERE product_id=?", (item_id,))
+            summary['production_consumptions'] = count(conn, "SELECT COUNT(*) FROM production_consumptions WHERE item_id=?", (item_id,))
+            summary['production_outputs'] = count(conn, "SELECT COUNT(*) FROM production_outputs WHERE item_id=?", (item_id,))
+        except Exception:
+            pass
+        summary['blocking_total'] = sum(int(v or 0) for k, v in summary.items() if k not in ('blocking_total', 'has_movements'))
+        summary['has_movements'] = bool(summary['blocking_total'])
+        return summary
+
     def is_remote(self) -> bool:
         return False
 
@@ -116,6 +160,50 @@ class LocalCategoryGateway(CategoryGateway):
 
     def restore(self, category_id: int):
         return category_dao.restore(category_id)
+
+
+    def activity_summary(self, item_id: int) -> Dict[str, Any]:
+        """Return material usage counts without leaking SQL above the gateway."""
+        item_id = int(item_id or 0)
+        summary = {
+            'invoice_lines': 0,
+            'purchase_lines': 0,
+            'sales_return_lines': 0,
+            'purchase_return_lines': 0,
+            'inventory_movements': 0,
+            'bom_products': 0,
+            'bom_lines': 0,
+            'production_orders': 0,
+            'production_consumptions': 0,
+            'production_outputs': 0,
+        }
+        if not item_id:
+            summary['blocking_total'] = 0
+            summary['has_movements'] = False
+            return summary
+        def count(conn, sql, params):
+            try:
+                row = conn.execute(sql, params).fetchone()
+                return int(row[0] if row else 0)
+            except Exception:
+                return 0
+        try:
+            conn = item_dao.repo.db.get_connection()
+            summary['invoice_lines'] = count(conn, "SELECT COUNT(*) FROM invoice_lines WHERE item_id=?", (item_id,))
+            summary['purchase_lines'] = count(conn, "SELECT COUNT(*) FROM purchase_invoice_lines WHERE item_id=?", (item_id,))
+            summary['sales_return_lines'] = count(conn, "SELECT COUNT(*) FROM sales_return_lines WHERE item_id=?", (item_id,))
+            summary['purchase_return_lines'] = count(conn, "SELECT COUNT(*) FROM purchase_return_lines WHERE item_id=?", (item_id,))
+            summary['inventory_movements'] = count(conn, "SELECT COUNT(*) FROM inventory_movements WHERE item_id=? AND movement_type <> 'opening'", (item_id,))
+            summary['bom_products'] = count(conn, "SELECT COUNT(*) FROM bom WHERE product_id=?", (item_id,))
+            summary['bom_lines'] = count(conn, "SELECT COUNT(*) FROM bom_lines WHERE item_id=?", (item_id,))
+            summary['production_orders'] = count(conn, "SELECT COUNT(*) FROM production_orders WHERE product_id=?", (item_id,))
+            summary['production_consumptions'] = count(conn, "SELECT COUNT(*) FROM production_consumptions WHERE item_id=?", (item_id,))
+            summary['production_outputs'] = count(conn, "SELECT COUNT(*) FROM production_outputs WHERE item_id=?", (item_id,))
+        except Exception:
+            pass
+        summary['blocking_total'] = sum(int(v or 0) for k, v in summary.items() if k not in ('blocking_total', 'has_movements'))
+        summary['has_movements'] = bool(summary['blocking_total'])
+        return summary
 
     def is_remote(self) -> bool:
         return False

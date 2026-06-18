@@ -44,6 +44,8 @@ class ItemUnit:
     item_id: int
     unit_name: str
     conversion_factor: Decimal = Decimal('1')
+    barcode: Optional[str] = None
+    notes: str = ''
 
 @dataclass
 class Item:

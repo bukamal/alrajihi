@@ -47,6 +47,12 @@ class RestaurantRepository:
                 item_name TEXT,
                 quantity TEXT DEFAULT '1',
                 unit_price TEXT DEFAULT '0',
+                unit_id INTEGER,
+                unit TEXT,
+                conversion_factor TEXT DEFAULT '1',
+                base_qty TEXT DEFAULT '1',
+                barcode_scope TEXT,
+                matched_barcode TEXT,
                 notes TEXT,
                 kitchen_status TEXT DEFAULT 'new',
                 created_at TEXT,
@@ -93,6 +99,18 @@ class RestaurantRepository:
             );
             """
         )
+        for ddl in (
+            "ALTER TABLE restaurant_order_lines ADD COLUMN unit_id INTEGER",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN unit TEXT",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN conversion_factor TEXT DEFAULT '1'",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN base_qty TEXT DEFAULT '1'",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN barcode_scope TEXT",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN matched_barcode TEXT",
+        ):
+            try:
+                db.execute(ddl)
+            except Exception:
+                pass
         db.commit()
 
     def seed_default_tables_if_empty(self) -> None:
@@ -112,6 +130,18 @@ class RestaurantRepository:
                 "INSERT INTO restaurant_tables(name, zone, seats, status, is_active, created_at, updated_at) VALUES (?, ?, 4, 'free', 1, ?, ?)",
                 (f"Table {index}", "Main", now, now),
             )
+        for ddl in (
+            "ALTER TABLE restaurant_order_lines ADD COLUMN unit_id INTEGER",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN unit TEXT",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN conversion_factor TEXT DEFAULT '1'",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN base_qty TEXT DEFAULT '1'",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN barcode_scope TEXT",
+            "ALTER TABLE restaurant_order_lines ADD COLUMN matched_barcode TEXT",
+        ):
+            try:
+                db.execute(ddl)
+            except Exception:
+                pass
         db.commit()
 
     def list_tables(self, include_inactive: bool = False) -> list[dict[str, Any]]:
@@ -198,7 +228,7 @@ class RestaurantRepository:
         where = ["COALESCE(deleted_at, '') = ''"]
         params: list[Any] = []
         if search:
-            where.append("(name LIKE ? OR barcode LIKE ?)")
+            where.append("(LOWER(COALESCE(name, '')) LIKE LOWER(?) OR LOWER(COALESCE(barcode, '')) LIKE LOWER(?))")
             like = f"%{search}%"
             params.extend([like, like])
         if category_id is not None:
@@ -218,12 +248,35 @@ class RestaurantRepository:
             return []
         return [dict(row) for row in rows]
 
-    def add_order_line(self, session_id: int, item_id: int | None, item_name: str, quantity: Any = "1", unit_price: Any = "0", notes: str = "") -> dict[str, Any]:
+    def add_order_line(
+        self,
+        session_id: int,
+        item_id: int | None,
+        item_name: str,
+        quantity: Any = "1",
+        unit_price: Any = "0",
+        notes: str = "",
+        unit_id: int | None = None,
+        unit: str = "",
+        conversion_factor: Any = "1",
+        base_qty: Any | None = None,
+        barcode_scope: str = "",
+        matched_barcode: str = "",
+    ) -> dict[str, Any]:
         self.ensure_waiter_workflow_schema()
         now = datetime.datetime.now().isoformat(timespec="seconds")
         cur = get_db().execute(
-            "INSERT INTO restaurant_order_lines(session_id, item_id, item_name, quantity, unit_price, notes, kitchen_status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'new', ?)",
-            (int(session_id), item_id, item_name, str(quantity), str(unit_price), notes or "", now),
+            """INSERT INTO restaurant_order_lines(
+                session_id, item_id, item_name, quantity, unit_price, unit_id, unit,
+                conversion_factor, base_qty, barcode_scope, matched_barcode,
+                notes, kitchen_status, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?)""",
+            (
+                int(session_id), item_id, item_name, str(quantity), str(unit_price),
+                unit_id, unit or "", str(conversion_factor or "1"),
+                str(base_qty if base_qty not in (None, "") else quantity),
+                barcode_scope or "", matched_barcode or "", notes or "", now,
+            ),
         )
         get_db().execute("UPDATE restaurant_sessions SET modification_count=COALESCE(modification_count, 0)+1, last_activity_at=? WHERE id=?", (now, int(session_id)))
         get_db().execute("INSERT INTO restaurant_service_events(session_id, event_type, line_id, notes, created_at) VALUES (?, 'order_line_added', ?, ?, ?)", (int(session_id), int(cur.lastrowid), notes or "", now))

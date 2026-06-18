@@ -43,7 +43,7 @@ class ItemGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float):
+    def add_unit(self, item_id: int, unit_name: str, conversion_factor: float, barcode: str | None = None, notes: str = ''):
         raise NotImplementedError
 
     @abstractmethod
@@ -56,6 +56,16 @@ class ItemGateway(ABC):
 
         Net sold = sale invoice quantities - non-cancelled sales returns.
         Implementations must hide local SQL/API details from ProductService.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def activity_summary(self, item_id: int) -> Dict[str, Any]:
+        """Return material usage counts used by security/settings policy.
+
+        UI code must not query invoice_lines, inventory_movements, BOM or
+        production tables directly.  Local/remote adapters are responsible for
+        translating this request to SQL or REST.
         """
         raise NotImplementedError
 

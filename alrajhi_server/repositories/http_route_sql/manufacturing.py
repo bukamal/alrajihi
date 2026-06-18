@@ -184,6 +184,49 @@ def _post_manufacturing_output_reversal_ledger(db, user_id, order, item_id, qty,
         source_id, notes
     )
 
+def _unit_factor(db, item_id, unit_id, fallback='1'):
+    if unit_id:
+        try:
+            row = db.query("SELECT conversion_factor FROM item_units WHERE id=? AND item_id=?", (unit_id, item_id)).fetchone()
+            if row:
+                val = _dec(row['conversion_factor'] or fallback)
+                return val if val > 0 else _dec(fallback)
+        except Exception:
+            pass
+    val = _dec(fallback or '1')
+    return val if val > 0 else Decimal('1')
+
+
+def _unit_name(db, item_id, unit_id, fallback=''):
+    if unit_id:
+        try:
+            row = db.query("SELECT unit_name FROM item_units WHERE id=? AND item_id=?", (unit_id, item_id)).fetchone()
+            if row:
+                return row['unit_name'] or fallback or ''
+        except Exception:
+            pass
+    return fallback or ''
+
+
+def _manufacturing_line_unit_payload(db, line, qty_key='quantity'):
+    item_id = line.get('item_id')
+    unit_id = line.get('unit_id')
+    qty = _dec(line.get(qty_key) or line.get('qty') or '0')
+    factor = _dec(line.get('conversion_factor') or '0')
+    if factor <= 0:
+        factor = _unit_factor(db, item_id, unit_id, '1')
+    base_qty = _dec(line.get('base_qty') or line.get('quantity_in_base') or '0')
+    if base_qty <= 0 and qty > 0:
+        base_qty = qty * factor
+    return {
+        'unit_id': unit_id,
+        'unit_name': _unit_name(db, item_id, unit_id, line.get('unit_name') or line.get('unit') or ''),
+        'conversion_factor': factor,
+        'base_qty': base_qty,
+        'barcode_scope': line.get('barcode_scope') or ('unit' if unit_id else 'base'),
+        'matched_barcode': line.get('matched_barcode') or line.get('barcode') or '',
+    }
+
 def _validate_bom_payload(db, data, user_id):
     product_id = data.get('product_id')
     if not product_id:
@@ -224,8 +267,9 @@ def _get_bom_for_product(db, product_id, user_id):
         bom_id = row['id']
         bom = db.query("SELECT * FROM bom WHERE id=?", (bom_id,)).fetchone()
         lines = db.query('''
-            SELECT bl.*, i.name AS item_name, u.unit_name,
-                   CAST(COALESCE(u.conversion_factor, 1) AS TEXT) AS conversion_factor
+            SELECT bl.*, i.name AS item_name, COALESCE(u.unit_name, '') AS unit_name,
+                   CAST(COALESCE(bl.conversion_factor, u.conversion_factor, 1) AS TEXT) AS conversion_factor,
+                   CAST(COALESCE(NULLIF(bl.base_qty, ''), CAST(bl.quantity AS REAL) * COALESCE(bl.conversion_factor, u.conversion_factor, 1)) AS TEXT) AS base_qty
             FROM bom_lines bl
             JOIN items i ON i.id = bl.item_id
             LEFT JOIN item_units u ON u.id = bl.unit_id AND u.item_id = bl.item_id
@@ -320,8 +364,9 @@ def get_bom(bom_id):
     if not bom:
         return jsonify({'error': 'Not found'}), 404
     lines = db.query('''
-        SELECT bl.*, i.name AS item_name, u.unit_name,
-               CAST(COALESCE(u.conversion_factor, 1) AS TEXT) AS conversion_factor
+        SELECT bl.*, i.name AS item_name, COALESCE(u.unit_name, '') AS unit_name,
+               CAST(COALESCE(bl.conversion_factor, u.conversion_factor, 1) AS TEXT) AS conversion_factor,
+               CAST(COALESCE(NULLIF(bl.base_qty, ''), CAST(bl.quantity AS REAL) * COALESCE(bl.conversion_factor, u.conversion_factor, 1)) AS TEXT) AS base_qty
         FROM bom_lines bl
         JOIN items i ON i.id = bl.item_id
         LEFT JOIN item_units u ON u.id = bl.unit_id AND u.item_id = bl.item_id
@@ -353,8 +398,9 @@ def save_bom():
                             (data['product_id'], str(data['quantity']), user_id, now, now))
         bom_id = cursor.lastrowid
     for line in data.get('lines', []):
-        db.query("INSERT INTO bom_lines (bom_id, item_id, quantity, unit_id, waste_percent) VALUES (?,?,?,?,?)",
-                   (bom_id, line['item_id'], str(line['quantity']), line.get('unit_id'), str(line.get('waste_percent', 0))))
+        unit_payload = _manufacturing_line_unit_payload(db, line)
+        db.query("INSERT INTO bom_lines (bom_id, item_id, quantity, unit_id, conversion_factor, base_qty, barcode_scope, matched_barcode, waste_percent) VALUES (?,?,?,?,?,?,?,?,?)",
+                   (bom_id, line['item_id'], str(line['quantity']), line.get('unit_id'), str(unit_payload['conversion_factor']), str(unit_payload['base_qty']), unit_payload['barcode_scope'], unit_payload['matched_barcode'], str(line.get('waste_percent', 0))))
     audit_log('CREATE', 'BOM', bom_id, new_values=data, details='حفظ BOM')
     db.commit()
     return jsonify({'id': bom_id}), 201
@@ -416,23 +462,26 @@ def get_order(order_id):
     if not order:
         return jsonify({'error': 'Not found'}), 404
     consumptions = db.query('''
-        SELECT pc.*, i.name AS item_name
+        SELECT pc.*, i.name AS item_name, COALESCE(pc.unit_name, u.unit_name, '') AS unit_name
         FROM production_consumptions pc
         JOIN items i ON i.id = pc.item_id
+        LEFT JOIN item_units u ON u.id = pc.unit_id AND u.item_id = pc.item_id
         WHERE pc.order_id=?
         ORDER BY pc.id
     ''', (order_id,)).fetchall()
     outputs = db.query('''
-        SELECT po2.*, i.name AS item_name
+        SELECT po2.*, i.name AS item_name, COALESCE(po2.unit_name, u.unit_name, '') AS unit_name
         FROM production_outputs po2
         JOIN items i ON i.id = po2.item_id
+        LEFT JOIN item_units u ON u.id = po2.unit_id AND u.item_id = po2.item_id
         WHERE po2.order_id=?
         ORDER BY po2.id
     ''', (order_id,)).fetchall()
     reservations = db.query('''
-        SELECT mr.*, i.name AS item_name
+        SELECT mr.*, i.name AS item_name, COALESCE(mr.unit_name, u.unit_name, '') AS unit_name
         FROM material_reservations mr
         JOIN items i ON i.id = mr.item_id
+        LEFT JOIN item_units u ON u.id = mr.unit_id AND u.item_id = mr.item_id
         WHERE mr.order_id=?
         ORDER BY mr.id
     ''', (order_id,)).fetchall()
@@ -482,9 +531,9 @@ def create_order():
     order_id = cursor.lastrowid
     for mat in required:
         db.query("""
-            INSERT INTO material_reservations (order_id, item_id, reserved_qty, consumed_qty)
-            VALUES (?,?,?,?)
-        """, (order_id, mat['item_id'], str(mat['required_qty']), '0'))
+            INSERT INTO material_reservations (order_id, item_id, reserved_qty, consumed_qty, unit_id, unit_name, conversion_factor, reserved_base_qty, consumed_base_qty, barcode_scope)
+            VALUES (?,?,?,?,?,?,?,?,?,?)
+        """, (order_id, mat['item_id'], str(mat['required_qty']), '0', mat.get('unit_id'), mat.get('unit_name', ''), str(mat.get('conversion_factor') or '1'), str(mat.get('base_qty') or mat.get('required_qty')), '0', mat.get('barcode_scope') or ('unit' if mat.get('unit_id') else 'base')))
     audit_log('CREATE', 'PRODUCTION_ORDER', order_id, new_values=data, details='إنشاء أمر إنتاج')
     db.commit()
     return jsonify({'id': order_id}), 201
@@ -538,7 +587,7 @@ def consume_material(order_id):
     if unit_cost == 0:
         unit_cost = _item_avg_cost(db, item_id)
     reservation = db.query("""
-        SELECT reserved_qty, consumed_qty FROM material_reservations 
+        SELECT reserved_qty, consumed_qty, unit_id, unit_name, conversion_factor, barcode_scope FROM material_reservations 
         WHERE order_id = ? AND item_id = ?
     """, (order_id, item_id)).fetchone()
     if not reservation:
@@ -551,14 +600,15 @@ def consume_material(order_id):
         return jsonify({'error': f'المخزون غير كافٍ. المطلوب {consumed_qty}، المتوفر {available}'}), 400
     db.query("""
         UPDATE material_reservations 
-        SET consumed_qty = CAST(consumed_qty AS REAL) + ?
+        SET consumed_qty = CAST(consumed_qty AS REAL) + ?,
+            consumed_base_qty = CAST(COALESCE(consumed_base_qty, 0) AS REAL) + ?
         WHERE order_id = ? AND item_id = ?
-    """, (str(consumed_qty), order_id, item_id))
+    """, (str(consumed_qty), str(consumed_qty), order_id, item_id))
     now = datetime.datetime.now().isoformat()
     cur = db.query("""
-        INSERT INTO production_consumptions (order_id, item_id, consumed_qty, unit_cost, movement_date)
-        VALUES (?,?,?,?,?)
-    """, (order_id, item_id, str(consumed_qty), str(unit_cost), now))
+        INSERT INTO production_consumptions (order_id, item_id, consumed_qty, unit_id, unit_name, conversion_factor, consumed_base_qty, barcode_scope, unit_cost, movement_date)
+        VALUES (?,?,?,?,?,?,?,?,?,?)
+    """, (order_id, item_id, str(consumed_qty), reservation['unit_id'], reservation['unit_name'] or '', str(reservation['conversion_factor'] or '1'), str(consumed_qty), reservation['barcode_scope'] or ('unit' if reservation['unit_id'] else 'base'), str(unit_cost), now))
     consumption_id = cur.lastrowid
     _record_movement(db, user_id, item_id, 'production_consume', consumed_qty, unit_cost, order_id)
     _record_warehouse_movement(db, user_id, item_id, order['raw_warehouse_id'], 'production_consume_out', -consumed_qty, unit_cost, 'production_order', order_id, 'استهلاك مواد أمر إنتاج')
@@ -598,9 +648,9 @@ def complete_order(order_id):
     unit_cost = total_cost / produced_qty
     now = datetime.datetime.now().isoformat()
     cur = db.query("""
-        INSERT INTO production_outputs (order_id, item_id, produced_qty, unit_cost, output_date)
-        VALUES (?,?,?,?,?)
-    """, (order_id, order['product_id'], str(produced_qty), str(unit_cost), now))
+        INSERT INTO production_outputs (order_id, item_id, produced_qty, unit_id, unit_name, conversion_factor, produced_base_qty, barcode_scope, unit_cost, output_date)
+        VALUES (?,?,?,?,?,?,?,?,?,?)
+    """, (order_id, order['product_id'], str(produced_qty), None, '', '1', str(produced_qty), 'base', str(unit_cost), now))
     output_id = cur.lastrowid
     _record_movement(db, user_id, order['product_id'], 'production_out', produced_qty, unit_cost, order_id)
     _record_warehouse_movement(db, user_id, order['product_id'], order['output_warehouse_id'], 'production_output_in', produced_qty, unit_cost, 'production_order', order_id, 'إدخال منتج نهائي من أمر إنتاج')
@@ -673,7 +723,9 @@ def get_bom_by_product(product_id):
         return jsonify({}), 404
     bom = db.query('SELECT * FROM bom WHERE id=? AND user_id=?', (row['id'], user_id)).fetchone()
     lines = db.query('''
-        SELECT bl.*, i.name as item_name, u.unit_name, CAST(COALESCE(u.conversion_factor, 1) AS TEXT) as conversion_factor
+        SELECT bl.*, i.name as item_name, COALESCE(u.unit_name, '') AS unit_name,
+               CAST(COALESCE(bl.conversion_factor, u.conversion_factor, 1) AS TEXT) as conversion_factor,
+               CAST(COALESCE(NULLIF(bl.base_qty, ''), CAST(bl.quantity AS REAL) * COALESCE(bl.conversion_factor, u.conversion_factor, 1)) AS TEXT) AS base_qty
         FROM bom_lines bl
         JOIN items i ON i.id=bl.item_id
         LEFT JOIN item_units u ON u.id=bl.unit_id AND u.item_id=bl.item_id
@@ -831,7 +883,7 @@ def delete_consumption_endpoint(consumption_id):
     if row['status'] != 'in_progress':
         return jsonify({'error': f"لا يمكن حذف استهلاك من أمر {row['status']}"}), 400
     qty = _dec(row['consumed_qty']); cost = _dec(row['unit_cost'])
-    db.query('UPDATE material_reservations SET consumed_qty = CAST(consumed_qty AS REAL) - ? WHERE order_id=? AND item_id=?', (str(qty), row['order_id'], row['item_id']))
+    db.query('UPDATE material_reservations SET consumed_qty = CAST(consumed_qty AS REAL) - ?, consumed_base_qty = CAST(COALESCE(consumed_base_qty, 0) AS REAL) - ? WHERE order_id=? AND item_id=?', (str(qty), str(row['consumed_base_qty'] or qty), row['order_id'], row['item_id']))
     _record_movement(db, user_id, row['item_id'], 'consumption_reverse', qty, cost, None)
     _record_warehouse_movement(db, user_id, row['item_id'], row['raw_warehouse_id'], 'production_consume_reverse_in', qty, cost, 'production_order', row['order_id'], 'عكس استهلاك مادة إنتاج')
     order_ctx = {'id': row['order_id'], 'raw_warehouse_id': row['raw_warehouse_id'], 'output_warehouse_id': row['output_warehouse_id']}

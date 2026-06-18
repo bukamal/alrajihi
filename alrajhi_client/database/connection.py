@@ -290,6 +290,22 @@ class DatabaseConnection:
         row = conn.execute(sql, params).fetchone()
         if row:
             raise ValueError(f"الباركود '{barcode}' مستخدم بالفعل للمادة: {row['name']}")
+        try:
+            unit_params = [user_id, barcode]
+            unit_sql = """
+                SELECT i.id, i.name, u.unit_name
+                FROM item_units u
+                JOIN items i ON i.id = u.item_id
+                WHERE i.user_id=? AND i.deleted_at IS NULL AND u.barcode=?
+            """
+            if item_id is not None:
+                unit_sql += " AND i.id<>?"
+                unit_params.append(item_id)
+            unit = conn.execute(unit_sql, unit_params).fetchone()
+            if unit:
+                raise ValueError(f"الباركود '{barcode}' مستخدم بالفعل لوحدة '{unit['unit_name']}' في المادة: {unit['name']}")
+        except sqlite3.OperationalError:
+            pass
 
     def _log_audit_local(self, user_id, username, action, table_name, record_id, details, ip='127.0.0.1'):
         if self.mode == "client":
@@ -312,7 +328,7 @@ class DatabaseConnection:
         count_sql = "SELECT COUNT(*) FROM items WHERE user_id = ? AND deleted_at IS NULL"
         count_params = [uid]
         if search:
-            count_sql += " AND (name LIKE ? OR barcode LIKE ?)"
+            count_sql += " AND (LOWER(COALESCE(name,'')) LIKE LOWER(?) OR LOWER(COALESCE(barcode,'')) LIKE LOWER(?))"
             count_params.extend([f"%{search}%", f"%{search}%"])
         total = conn.execute(count_sql, count_params).fetchone()[0]
         query = """
@@ -336,7 +352,7 @@ class DatabaseConnection:
         """
         params = [uid]
         if search:
-            query += " AND (i.name LIKE ? OR i.barcode LIKE ?)"
+            query += " AND (LOWER(COALESCE(i.name,'')) LIKE LOWER(?) OR LOWER(COALESCE(i.barcode,'')) LIKE LOWER(?))"
             params.extend([f"%{search}%", f"%{search}%"])
         query += " ORDER BY i.name"
         if limit is not None:
@@ -347,6 +363,124 @@ class DatabaseConnection:
             params.append(offset)
         rows = conn.execute(query, params).fetchall()
         return [dict(row) for row in rows], total
+
+    def _item_units_for_local_item(self, item_id: int) -> List[Dict]:
+        conn = self.get_connection()
+        try:
+            rows = conn.execute(
+                """SELECT id, item_id, unit_name, conversion_factor, barcode, notes
+                   FROM item_units WHERE item_id=? ORDER BY id""",
+                (item_id,),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            rows = conn.execute(
+                "SELECT id, item_id, unit_name, conversion_factor FROM item_units WHERE item_id=? ORDER BY id",
+                (item_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def _attach_item_units_local(self, item: Optional[Dict]) -> Optional[Dict]:
+        if not item or item.get('id') is None:
+            return item
+        item = dict(item)
+        item['units'] = self._item_units_for_local_item(int(item['id']))
+        return item
+
+    def get_item_by_barcode(self, barcode: str) -> Optional[Dict]:
+        """Return one active material by exact base-unit or sub-unit barcode.
+
+        Scanner flows must stay deterministic: exact barcode lookup only.  If a
+        unit barcode matches, the returned material is enriched with matched_unit,
+        unit_id, unit_name, unit, conversion_factor and barcode_scope so invoice,
+        return and later POS screens can select the correct unit automatically.
+        """
+        value = str(barcode or '').strip()
+        if not value:
+            return None
+        if self.is_remote():
+            return self._rest_client.get_item_by_barcode(value)
+        from auth.session import UserSession
+        uid = UserSession.get_current_user_id()
+        conn = self.get_connection()
+        row = conn.execute("""
+            SELECT i.*, c.name as category_name,
+                   COALESCE((
+                       SELECT SUM(CASE
+                           WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+                           WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+                           ELSE 0 END)
+                       FROM inventory_movements
+                       WHERE item_id = i.id AND user_id = i.user_id
+                   ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS available,
+                   COALESCE((
+                       SELECT SUM(CAST(quantity AS REAL))
+                       FROM inventory_movements
+                       WHERE item_id = i.id AND user_id = i.user_id AND movement_type = 'opening'
+                   ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS opening_quantity
+            FROM items i
+            LEFT JOIN categories c ON i.category_id = c.id
+            WHERE i.user_id=? AND i.deleted_at IS NULL AND i.barcode=?
+            LIMIT 1
+        """, (uid, value)).fetchone()
+        if row:
+            item = self._attach_item_units_local(dict(row))
+            item['barcode_scope'] = 'base_unit'
+            return item
+
+        try:
+            unit_row = conn.execute("""
+                SELECT u.id AS matched_unit_id, u.unit_name AS matched_unit_name,
+                       u.conversion_factor AS matched_conversion_factor,
+                       u.barcode AS matched_unit_barcode, u.notes AS matched_unit_notes,
+                       i.*, c.name AS category_name,
+                       COALESCE((
+                           SELECT SUM(CASE
+                               WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+                               WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+                               ELSE 0 END)
+                           FROM inventory_movements
+                           WHERE item_id = i.id AND user_id = i.user_id
+                       ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS available,
+                       COALESCE((
+                           SELECT SUM(CAST(quantity AS REAL))
+                           FROM inventory_movements
+                           WHERE item_id = i.id AND user_id = i.user_id AND movement_type = 'opening'
+                       ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS opening_quantity
+                FROM item_units u
+                JOIN items i ON i.id = u.item_id
+                LEFT JOIN categories c ON i.category_id = c.id
+                WHERE i.user_id=? AND i.deleted_at IS NULL AND u.barcode=?
+                LIMIT 1
+            """, (uid, value)).fetchone()
+        except sqlite3.OperationalError:
+            unit_row = None
+        if not unit_row:
+            return None
+        data = dict(unit_row)
+        item = {k: v for k, v in data.items() if not k.startswith('matched_')}
+        matched_unit = {
+            'id': data.get('matched_unit_id'),
+            'unit_id': data.get('matched_unit_id'),
+            'unit_name': data.get('matched_unit_name'),
+            'unit': data.get('matched_unit_name'),
+            'conversion_factor': data.get('matched_conversion_factor') or 1,
+            'factor': data.get('matched_conversion_factor') or 1,
+            'barcode': data.get('matched_unit_barcode') or value,
+            'unit_barcode': data.get('matched_unit_barcode') or value,
+            'notes': data.get('matched_unit_notes') or '',
+        }
+        item = self._attach_item_units_local(item)
+        item.update({
+            'matched_unit': matched_unit,
+            'barcode_scope': 'unit',
+            'unit_id': matched_unit['unit_id'],
+            'unit_name': matched_unit['unit_name'],
+            'unit': matched_unit['unit_name'],
+            'conversion_factor': matched_unit['conversion_factor'],
+            'matched_barcode': value,
+            'barcode': value,
+        })
+        return item
 
     def add_item(self, data: Dict) -> int:
         if self.is_remote():

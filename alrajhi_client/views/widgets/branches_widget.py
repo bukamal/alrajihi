@@ -7,8 +7,9 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 
 from core.services.branch_service import branch_service
+from core.services.branch_operation_policy import branch_operation_policy
 from models.table_models import GenericTableModel
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from utils import show_toast
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
@@ -64,6 +65,7 @@ class BranchesWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction())
         self._setup_ui()
         apply_modern_widget(self, translate('branches_title_icon'), translate('branches_subtitle'))
+        self._apply_operation_state()
         self.refresh()
 
     def _setup_ui(self):
@@ -76,33 +78,55 @@ class BranchesWidget(QWidget):
         self.search_edit.textChanged.connect(self.refresh)
         self.show_archived = QCheckBox(translate('show_archived'))
         self.show_archived.toggled.connect(self.refresh)
-        add_btn = QPushButton(translate('new_branch_btn'))
-        add_btn.setObjectName('primary')
-        add_btn.clicked.connect(self.add_branch)
-        edit_btn = QPushButton(translate('edit_btn'))
-        edit_btn.clicked.connect(self.edit_branch)
-        archive_btn = QPushButton(translate('archive_btn'))
-        archive_btn.clicked.connect(self.archive_branch)
-        default_btn = QPushButton('⭐ تعيين كفرع افتراضي')
-        default_btn.clicked.connect(self.set_default_branch)
+        self.add_btn = QPushButton(translate('new_branch_btn'))
+        self.add_btn.setObjectName('primary')
+        self.add_btn.clicked.connect(self.add_branch)
+        self.edit_btn = QPushButton(translate('edit_btn'))
+        self.edit_btn.clicked.connect(self.edit_branch)
+        self.archive_btn = QPushButton(translate('archive_btn'))
+        self.archive_btn.clicked.connect(self.archive_branch)
+        self.default_btn = QPushButton(translate('set_default_branch_btn'))
+        self.default_btn.clicked.connect(self.set_default_branch)
         refresh_btn = QPushButton(translate('refresh'))
         refresh_btn.clicked.connect(self.refresh)
         header.addWidget(title)
         header.addWidget(self.search_edit, 1)
         header.addWidget(self.show_archived)
-        header.addWidget(add_btn)
-        header.addWidget(edit_btn)
-        header.addWidget(archive_btn)
-        header.addWidget(default_btn)
+        header.addWidget(self.add_btn)
+        header.addWidget(self.edit_btn)
+        header.addWidget(self.archive_btn)
+        header.addWidget(self.default_btn)
         header.addWidget(refresh_btn)
         layout.addLayout(header)
-        self.table = CustomTableView()
+        self.table = SmartTableView()
         self.table.setSelectionBehavior(QTableView.SelectRows)
         self.table.doubleClicked.connect(lambda _idx: self.edit_branch())
         layout.addWidget(self.table)
         self.status = QLabel()
         self.status.setObjectName('mutedLabel')
         layout.addWidget(self.status)
+
+    def _require_branch_operation(self, operation: str) -> bool:
+        try:
+            branch_operation_policy.require(operation, context='BranchesWidget')
+            return True
+        except Exception as exc:
+            show_toast(str(exc), 'warning', self)
+            return False
+
+    def _apply_operation_state(self):
+        for attr, operation in (
+            ('add_btn', branch_operation_policy.OP_CREATE),
+            ('edit_btn', branch_operation_policy.OP_EDIT),
+            ('archive_btn', branch_operation_policy.OP_ARCHIVE),
+            ('default_btn', branch_operation_policy.OP_SET_DEFAULT),
+        ):
+            btn = getattr(self, attr, None)
+            if btn is not None:
+                try:
+                    btn.setEnabled(branch_operation_policy.can(operation))
+                except Exception:
+                    btn.setEnabled(True)
 
     def set_global_filter(self, text: str):
         text = text or ''
@@ -139,6 +163,7 @@ class BranchesWidget(QWidget):
         self.table.setModel(self.model)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
+        self._apply_operation_state()
         self.status.setText(translate('branches_count', count=len(rows)))
 
     def _selected_id(self):
@@ -147,27 +172,43 @@ class BranchesWidget(QWidget):
         rows = self.table.selectionModel().selectedRows() if self.table.selectionModel() else []
         if not rows:
             return None
-        row = rows[0].row()
+        row = self.table.current_source_row() if hasattr(self.table, 'current_source_row') else rows[0].row()
         try:
             return self.model.get_row(row).get('id')
         except Exception:
             return None
 
     def add_branch(self):
+        if not self._require_branch_operation(branch_operation_policy.OP_CREATE):
+            return
+        main_window = self.window()
+        if hasattr(main_window, 'open_branch_document'):
+            try:
+                return main_window.open_branch_document()
+            except Exception as exc:
+                show_toast(str(exc), 'warning', self)
         dlg = BranchDialog(self)
         if dlg.exec_():
             try:
                 branch_service.add_branch(dlg.payload())
-                show_toast(self, translate('branch_created'), 'success')
+                show_toast(translate('branch_created'), 'success', self)
                 self.refresh()
             except Exception as e:
                 QMessageBox.warning(self, translate('error'), str(e))
 
     def edit_branch(self):
+        if not self._require_branch_operation(branch_operation_policy.OP_EDIT):
+            return
         branch_id = self._selected_id()
         if not branch_id:
             QMessageBox.information(self, translate('edit'), translate('select_branch_first'))
             return
+        main_window = self.window()
+        if hasattr(main_window, 'open_branch_document'):
+            try:
+                return main_window.open_branch_document(branch_id)
+            except Exception as exc:
+                show_toast(str(exc), 'warning', self)
         data = branch_service.branch_by_id(branch_id)
         if not data:
             QMessageBox.warning(self, translate('error'), translate('branch_not_found'))
@@ -176,25 +217,29 @@ class BranchesWidget(QWidget):
         if dlg.exec_():
             try:
                 branch_service.update_branch(branch_id, dlg.payload())
-                show_toast(self, translate('branch_updated'), 'success')
+                show_toast(translate('branch_updated'), 'success', self)
                 self.refresh()
             except Exception as e:
                 QMessageBox.warning(self, translate('error'), str(e))
 
 
     def set_default_branch(self):
+        if not self._require_branch_operation(branch_operation_policy.OP_SET_DEFAULT):
+            return
         branch_id = self._selected_id()
         if not branch_id:
             QMessageBox.information(self, translate('branches_title'), translate('select_branch_first'))
             return
         try:
             branch_service.set_default_branch(branch_id)
-            show_toast(self, 'تم تعيين الفرع الافتراضي', 'success')
+            show_toast(translate('default_branch_set'), 'success', self)
             self.refresh()
         except Exception as e:
             QMessageBox.warning(self, translate('error'), str(e))
 
     def archive_branch(self):
+        if not self._require_branch_operation(branch_operation_policy.OP_ARCHIVE):
+            return
         branch_id = self._selected_id()
         if not branch_id:
             QMessageBox.information(self, translate('archive'), translate('select_branch_first'))
@@ -203,7 +248,7 @@ class BranchesWidget(QWidget):
             return
         try:
             branch_service.archive_branch(branch_id)
-            show_toast(self, translate('branch_archived'), 'success')
+            show_toast(translate('branch_archived'), 'success', self)
             self.refresh()
         except Exception as e:
             QMessageBox.warning(self, translate('error'), str(e))

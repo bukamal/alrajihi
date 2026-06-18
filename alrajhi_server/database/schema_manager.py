@@ -6,7 +6,7 @@ client and server migration files so old databases are upgraded to the current
 application schema before any INSERT/UPDATE statements run.
 """
 
-SCHEMA_VERSION = 20260611
+SCHEMA_VERSION = 20260618
 
 REQUIRED_COLUMNS = {
     "users": {
@@ -39,6 +39,10 @@ REQUIRED_COLUMNS = {
         "barcode": "TEXT",
         "reorder_level": "TEXT DEFAULT '0'",
         "deleted_at": "TEXT",
+    },
+    "item_units": {
+        "barcode": "TEXT",
+        "notes": "TEXT",
     },
     "categories": {
         "parent_id": "INTEGER",
@@ -146,11 +150,45 @@ REQUIRED_COLUMNS = {
         "direction": "TEXT",
         "shift_id": "INTEGER",
     },
+    "bom_lines": {
+        "conversion_factor": "TEXT DEFAULT '1'",
+        "base_qty": "TEXT DEFAULT '0'",
+        "barcode_scope": "TEXT",
+        "matched_barcode": "TEXT",
+    },
+    "bom_snapshot_lines": {
+        "unit_id": "INTEGER",
+        "base_qty": "TEXT DEFAULT '0'",
+        "barcode_scope": "TEXT",
+        "matched_barcode": "TEXT",
+    },
+    "material_reservations": {
+        "unit_id": "INTEGER",
+        "unit_name": "TEXT",
+        "conversion_factor": "TEXT DEFAULT '1'",
+        "reserved_base_qty": "TEXT DEFAULT '0'",
+        "consumed_base_qty": "TEXT DEFAULT '0'",
+        "barcode_scope": "TEXT",
+    },
     "production_orders": {
         "linked_entry_id": "INTEGER",
         "linked_entry_type": "TEXT",
         "raw_warehouse_id": "INTEGER",
         "output_warehouse_id": "INTEGER",
+    },
+    "production_consumptions": {
+        "unit_id": "INTEGER",
+        "unit_name": "TEXT",
+        "conversion_factor": "TEXT DEFAULT '1'",
+        "consumed_base_qty": "TEXT DEFAULT '0'",
+        "barcode_scope": "TEXT",
+    },
+    "production_outputs": {
+        "unit_id": "INTEGER",
+        "unit_name": "TEXT",
+        "conversion_factor": "TEXT DEFAULT '1'",
+        "produced_base_qty": "TEXT DEFAULT '0'",
+        "barcode_scope": "TEXT",
     },
     "audit_log": {
         "event_time": "TEXT",
@@ -351,6 +389,12 @@ CREATE TABLE IF NOT EXISTS warehouse_transfers (
     from_warehouse_id INTEGER NOT NULL,
     to_warehouse_id INTEGER NOT NULL,
     quantity TEXT NOT NULL,
+    base_qty TEXT,
+    unit_id INTEGER,
+    unit_name TEXT,
+    conversion_factor TEXT DEFAULT '1',
+    barcode_scope TEXT,
+    matched_barcode TEXT,
     unit_cost TEXT DEFAULT '0',
     notes TEXT,
     status TEXT DEFAULT 'active',
@@ -400,6 +444,10 @@ def apply_common_schema(conn):
         "inventory_movements": [
             "CREATE INDEX IF NOT EXISTS idx_inventory_movements_item ON inventory_movements(item_id)",
             "CREATE INDEX IF NOT EXISTS idx_inventory_movements_ref ON inventory_movements(reference_id, movement_type)",
+        ],
+        "item_units": [
+            "CREATE INDEX IF NOT EXISTS idx_item_units_item ON item_units(item_id)",
+            "CREATE INDEX IF NOT EXISTS idx_item_units_barcode ON item_units(barcode)",
         ],
         "invoices": [
             "CREATE INDEX IF NOT EXISTS idx_invoices_branch ON invoices(branch_id)",

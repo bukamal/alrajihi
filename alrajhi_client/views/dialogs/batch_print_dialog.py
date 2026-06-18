@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QVBoxLayout, QHBoxLayout, QTableWidgetItem,
 from PyQt5.QtCore import Qt
 from views.widgets.modern_ui import apply_modern_dialog
 from views.centered_dialog import CenteredDialog
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
 from core.services.catalog_service import catalog_service
 from utils import show_toast
@@ -76,7 +76,7 @@ class BatchPrintDialog(CenteredDialog):
         options_row.addStretch()
         self.content_widget.layout().addLayout(options_row)
 
-        self.table = CustomTableView()
+        self.table = SmartTableView(identity='batch_print.items')
         self.table.setSelectionBehavior(QTableView.SelectRows)
         self.table.setAlternatingRowColors(True)
         self.content_widget.layout().addWidget(self.table)

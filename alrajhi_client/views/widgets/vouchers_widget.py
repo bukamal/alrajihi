@@ -5,11 +5,12 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLi
 from PyQt5.QtCore import Qt, QDate
 from decimal import Decimal
 from core.services.voucher_service import voucher_service
+from core.services.finance_operation_policy import finance_operation_policy
 from core.services.catalog_service import catalog_service
 from core.services.invoice_service import invoice_service
 from core.services.cashbox_service import cashbox_service
 from currency import currency
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
@@ -66,8 +67,8 @@ class VouchersWidget(QWidget):
 
         layout.addLayout(top_layout)
 
-        self.table = CustomTableView()
-        self.table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.table = SmartTableView(identity="vouchers.list")
+        self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.doubleClicked.connect(self.edit_voucher)
         layout.addWidget(self.table)
 
@@ -84,7 +85,14 @@ class VouchersWidget(QWidget):
         layout.addLayout(pagination_layout)
 
         apply_modern_widget(self, tr('vouchers_title'), tr('vouchers_subtitle'))
+        self._apply_operation_state()
         self.refresh()
+
+
+    def _apply_operation_state(self):
+        self.add_btn.setEnabled(finance_operation_policy.can(finance_operation_policy.OP_VOUCHER_CREATE))
+        self.delete_btn.setEnabled(finance_operation_policy.can(finance_operation_policy.OP_VOUCHER_DELETE))
+        self.print_btn.setEnabled(finance_operation_policy.can(finance_operation_policy.OP_VOUCHER_PRINT))
 
     def set_global_filter(self, text: str):
         text = text or ''
@@ -144,12 +152,22 @@ class VouchersWidget(QWidget):
         self.next_btn.setEnabled(self.current_page + 1 < total_pages)
 
     def _selected_id(self):
-        rows = self.table.selectionModel().selectedRows() if self.table.selectionModel() else []
-        if not rows or not hasattr(self, 'model'):
+        if not hasattr(self, 'model'):
             return None
-        return self.model.get_id(rows[0].row())
+        row = self.table.current_source_row() if hasattr(self.table, 'current_source_row') else None
+        if row is None:
+            rows = self.table.selectionModel().selectedRows() if self.table.selectionModel() else []
+            row = rows[0].row() if rows else None
+        if row is None:
+            return None
+        return self.model.get_id(row)
 
     def delete_selected_voucher(self):
+        try:
+            finance_operation_policy.require(finance_operation_policy.OP_VOUCHER_DELETE, context='voucher:widget:delete')
+        except PermissionError as exc:
+            show_toast(tr(str(exc)) if str(exc) else tr('permission_denied'), 'error', self)
+            return
         vid = self._selected_id()
         if not vid:
             QMessageBox.information(self, tr("delete_voucher"), tr("select_voucher_first"))
@@ -176,6 +194,11 @@ class VouchersWidget(QWidget):
             show_toast(str(exc), "error", self)
 
     def print_selected(self, mode='preview'):
+        try:
+            finance_operation_policy.require(finance_operation_policy.OP_VOUCHER_PRINT, context='voucher:widget:print', payload={'mode': mode})
+        except PermissionError as exc:
+            show_toast(tr(str(exc)) if str(exc) else tr('permission_denied'), 'error', self)
+            return
         vid = self._selected_id()
         if not vid:
             QMessageBox.information(self, tr("print_button"), tr("select_voucher_first"))
@@ -197,16 +220,35 @@ class VouchersWidget(QWidget):
             printing_service.voucher_preview(voucher, self)
 
     def add_voucher(self):
+        try:
+            finance_operation_policy.require(finance_operation_policy.OP_VOUCHER_CREATE, context='voucher:widget:add')
+        except PermissionError as exc:
+            show_toast(tr(str(exc)) if str(exc) else tr('permission_denied'), 'error', self)
+            return
+        main = self.window()
+        if hasattr(main, 'open_quick_voucher'):
+            tab = main.open_quick_voucher('receipt')
+            if tab and hasattr(tab, 'saved'):
+                tab.saved.connect(lambda *_: self.refresh())
+            return
         dialog = VoucherDialog(self)
         if dialog.exec():
             self.refresh()
 
     def edit_voucher(self, index):
-        row = index.row()
+        row = self.table.current_source_row() if hasattr(self.table, 'current_source_row') else index.row()
+        if row is None:
+            row = index.row()
         vid = self.model.get_id(row)
         if vid:
             voucher = voucher_service.get(vid)
             if voucher:
+                main = self.window()
+                if hasattr(main, 'open_quick_voucher'):
+                    tab = main.open_quick_voucher(voucher_type=voucher.get('type') or 'receipt', voucher=voucher)
+                    if tab and hasattr(tab, 'saved'):
+                        tab.saved.connect(lambda *_: self.refresh())
+                    return
                 dialog = VoucherDialog(self, voucher)
                 if dialog.exec():
                     self.refresh()

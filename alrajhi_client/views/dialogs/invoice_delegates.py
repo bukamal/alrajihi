@@ -18,6 +18,17 @@ def _positive_decimal(value, default='1'):
     return result if result > 0 else Decimal(str(default))
 
 
+def _text_key(value):
+    return str(value or '').strip().casefold()
+
+
+def _item_matches_text(item, text):
+    needle = _text_key(text)
+    if not needle:
+        return False
+    return any(_text_key(item.get(key)) == needle for key in ('name', 'item_name', 'product_name', 'barcode', 'code'))
+
+
 class ItemComboDelegate(QStyledItemDelegate):
     def __init__(self, items_list, parent=None):
         super().__init__(parent)
@@ -26,36 +37,59 @@ class ItemComboDelegate(QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         combo = QComboBox(parent)
         combo.setEditable(True)
+        try:
+            combo.setInsertPolicy(QComboBox.NoInsert)
+        except Exception:
+            pass
         for item in self.items:
-            combo.addItem(item['name'], item)
+            combo.addItem(item.get('name') or item.get('item_name') or '', item)
         completer = QCompleter()
-        model = QStringListModel([item['name'] for item in self.items])
+        terms = []
+        seen = set()
+        for item in self.items:
+            for value in (item.get('name'), item.get('item_name'), item.get('barcode'), item.get('code')):
+                text = str(value or '').strip()
+                key = text.casefold()
+                if text and key not in seen:
+                    seen.add(key)
+                    terms.append(text)
+        model = QStringListModel(terms)
         completer.setModel(model)
         completer.setCaseSensitivity(Qt.CaseInsensitive)
+        try:
+            completer.setFilterMode(Qt.MatchContains)
+        except Exception:
+            pass
         combo.setCompleter(completer)
         combo.currentIndexChanged.connect(lambda: self.commitData.emit(combo))
         return combo
 
     def setEditorData(self, editor, index):
         value = index.model().data(index, Qt.EditRole)
-        idx = editor.findText(value)
+        current_key = _text_key(value)
+        idx = -1
+        for i in range(editor.count()):
+            if _text_key(editor.itemText(i)) == current_key:
+                idx = i
+                break
         if idx >= 0:
             editor.setCurrentIndex(idx)
         else:
-            editor.setEditText(value)
+            editor.setEditText(str(value or ''))
 
     def setModelData(self, editor, model, index):
         current_text = editor.currentText()
         item_data = editor.currentData()
-        if item_data:
-            model.set_item(index.row(), item_data['id'], item_data['name'],
-                           item_data['units_list'], item_data['price'], item_data.get('barcode', ''))
-        else:
+        if not item_data:
             for it in self.items:
-                if it['name'] == current_text:
-                    model.set_item(index.row(), it['id'], it['name'],
-                                   it['units_list'], it['price'], it.get('barcode', ''))
+                if _item_matches_text(it, current_text):
+                    item_data = it
                     break
+        if item_data:
+            model.set_item(index.row(), item_data['id'], item_data.get('name') or item_data.get('item_name') or '',
+                           item_data.get('units_list', []), item_data.get('price', 0), item_data.get('barcode', ''))
+        else:
+            model.setData(index, current_text, Qt.EditRole)
 
 class UnitComboBoxDelegate(QStyledItemDelegate):
     def __init__(self, parent=None):

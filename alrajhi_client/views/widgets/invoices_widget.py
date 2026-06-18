@@ -7,9 +7,9 @@ from core.services.invoice_service import invoice_service
 from core.services.workflow_policy_service import workflow_policy_service
 from core.services.catalog_service import catalog_service
 from currency import currency
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
-from views.dialogs.invoice_dialog import InvoiceDialog
+# InvoiceDialog is opened through workspace document tabs from MainWindow.
 from utils import show_toast
 from views.widgets.components.table_toolbar import TableToolbar
 from theme_manager import ThemeManager
@@ -273,10 +273,10 @@ class InvoicesWidget(QWidget):
         filter_card_layout.addLayout(filter_layout)
         layout.addWidget(filter_card)
 
-        self.sales_table = CustomTableView()
+        self.sales_table = SmartTableView()
         self.sales_table.set_table_identity("InvoicesWidget.sales")
         self.sales_toolbar.set_table(self.sales_table)
-        self.sales_table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.sales_table.setSelectionBehavior(SmartTableView.SelectRows)
         self.sales_table.verticalHeader().setDefaultSectionSize(38)
         self.sales_table.doubleClicked.connect(lambda idx: self.edit_invoice('sale', idx))
         layout.addWidget(self.sales_table)
@@ -341,10 +341,10 @@ class InvoicesWidget(QWidget):
         filter_card_layout.addLayout(filter_layout)
         layout.addWidget(filter_card)
 
-        self.purchases_table = CustomTableView()
+        self.purchases_table = SmartTableView()
         self.purchases_table.set_table_identity("InvoicesWidget.purchases")
         self.purchases_toolbar.set_table(self.purchases_table)
-        self.purchases_table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.purchases_table.setSelectionBehavior(SmartTableView.SelectRows)
         self.purchases_table.verticalHeader().setDefaultSectionSize(38)
         self.purchases_table.doubleClicked.connect(lambda idx: self.edit_invoice('purchase', idx))
         layout.addWidget(self.purchases_table)
@@ -542,9 +542,14 @@ class InvoicesWidget(QWidget):
             self.purchases_next.setEnabled(self.purchases_page + 1 < total_pages)
 
     def create_invoice(self, inv_type):
-        dialog = InvoiceDialog(inv_type, self)
-        if dialog.exec():
-            self.refresh_all()
+        main = self.window()
+        if hasattr(main, 'open_quick_invoice'):
+            main.open_quick_invoice(inv_type)
+        else:
+            from features.invoices import InvoiceEditorTab
+            widget = InvoiceEditorTab(self, inv_type=inv_type)
+            widget.saved.connect(lambda *_: self.refresh_all())
+            widget.show()
 
     def edit_invoice(self, inv_type, index):
         if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):
@@ -556,9 +561,14 @@ class InvoicesWidget(QWidget):
         else:
             inv_id = self.purchases_table.model().get_id(row)
         if inv_id:
-            dialog = InvoiceDialog(inv_type, self, invoice_id=inv_id)
-            if dialog.exec():
-                self.refresh_all()
+            main = self.window()
+            if hasattr(main, 'open_quick_invoice'):
+                main.open_quick_invoice(inv_type, invoice_id=inv_id)
+            else:
+                from features.invoices import InvoiceEditorTab
+                widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=inv_id)
+                widget.saved.connect(lambda *_: self.refresh_all())
+                widget.show()
 
 
     def _counter_text(self, page, visible_count, total_count):
@@ -612,9 +622,14 @@ class InvoicesWidget(QWidget):
         if not inv_id:
             show_toast(translate("select_invoice_first"), "warning", self)
             return
-        dialog = InvoiceDialog(inv_type, self, invoice_id=inv_id)
-        if dialog.exec():
-            self.refresh_all()
+        main = self.window()
+        if hasattr(main, 'open_quick_invoice'):
+            main.open_quick_invoice(inv_type, invoice_id=inv_id)
+        else:
+            from features.invoices import InvoiceEditorTab
+            widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=inv_id)
+            widget.saved.connect(lambda *_: self.refresh_all())
+            widget.show()
 
     def delete_selected_invoice(self, inv_type):
         if not permission_service.can(permission_service.ACTION_DELETE):

@@ -73,7 +73,7 @@ class RemoteManufacturingGateway(ManufacturingGateway):
         bom = self.get_bom_for_product(product_id)
         if not bom or not bom.get('id'):
             return []
-        return self.rest_client.get_required_materials(bom['id'], planned_qty)
+        return self.rest_client.get_required_materials(bom['id'], planned_qty, warehouse_id=warehouse_id)
 
     def get_required_materials(self, *args) -> List[Dict[str, Any]]:
         return self.rest_client.get_required_materials(*args)

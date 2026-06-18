@@ -6,11 +6,17 @@ from decimal import Decimal, InvalidOperation
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QComboBox, QDialog, QFormLayout, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
-    QListWidget, QListWidgetItem, QPushButton, QScrollArea, QSpinBox,
+    QPushButton, QScrollArea, QSpinBox,
     QVBoxLayout, QWidget
 )
 
 from i18n.translator import qt_layout_direction, translate as _
+from core.services.barcode_input_service import barcode_input_service
+from core.services.restaurant_operation_policy import restaurant_operation_policy
+from core.services.settings_service import settings_service
+from features.restaurant.restaurant_printing_bridge import restaurant_printing_bridge
+from features.restaurant.restaurant_order_grid import RestaurantOrderGrid
+from features.restaurant.restaurant_order_model import RestaurantOrderModel
 
 
 class RestaurantLineDialog(QDialog):
@@ -169,7 +175,7 @@ class RestaurantPOSWidget(QWidget):
         search_row = QHBoxLayout()
         self.search_edit = QLineEdit()
         self.search_edit.setObjectName("restaurantMenuSearch")
-        self.search_edit.setPlaceholderText(_("restaurant.search_menu"))
+        self.search_edit.setPlaceholderText(_("restaurant.search_menu_or_barcode"))
         self.search_edit.setMinimumHeight(50)
         self.search_button = QPushButton("🔎  " + _("search"))
         self.search_button.setObjectName("restaurantMenuSearchButton")
@@ -194,21 +200,27 @@ class RestaurantPOSWidget(QWidget):
         self.menu_scroll.setMinimumHeight(190)
         root.addWidget(self.menu_scroll)
 
-        self.lines = QListWidget()
+        self.order_model = RestaurantOrderModel([], parent=self)
+        self.lines = RestaurantOrderGrid(self)
         self.lines.setObjectName("restaurantOrderLines")
+        self.lines.setModel(self.order_model)
         self.lines.setMinimumHeight(250)
         root.addWidget(self.lines)
 
         actions = QHBoxLayout()
         self.send_kitchen_btn = QPushButton("👨‍🍳  " + _("restaurant.send_to_kitchen"))
+        self.print_kitchen_btn = QPushButton("🖨  " + _("restaurant.print_kitchen_ticket"))
         self.adjust_btn = QPushButton("%  " + _("restaurant.adjust_bill"))
         self.payment_btn = QPushButton("💳  " + _("restaurant.record_payment"))
-        self.close_btn = QPushButton("🧾  " + _("restaurant.checkout"))
+        self.print_receipt_btn = QPushButton("🧾  " + _("restaurant.print_receipt"))
+        self.close_btn = QPushButton("✅  " + _("restaurant.checkout"))
         self.send_kitchen_btn.setObjectName("restaurantKitchenButton")
+        self.print_kitchen_btn.setObjectName("restaurantKitchenPrintButton")
         self.adjust_btn.setObjectName("restaurantAdjustButton")
         self.payment_btn.setObjectName("restaurantPaymentButton")
+        self.print_receipt_btn.setObjectName("restaurantReceiptPrintButton")
         self.close_btn.setObjectName("restaurantCloseButton")
-        for button in (self.send_kitchen_btn, self.adjust_btn, self.payment_btn, self.close_btn):
+        for button in (self.send_kitchen_btn, self.print_kitchen_btn, self.adjust_btn, self.payment_btn, self.print_receipt_btn, self.close_btn):
             button.setMinimumHeight(66)
             actions.addWidget(button)
         root.addLayout(actions)
@@ -222,10 +234,12 @@ class RestaurantPOSWidget(QWidget):
 
         self.manual_button.clicked.connect(self.add_line)
         self.search_button.clicked.connect(self.reload_menu)
-        self.search_edit.returnPressed.connect(self.reload_menu)
+        self.search_edit.returnPressed.connect(self.handle_entry_return)
         self.send_kitchen_btn.clicked.connect(self.send_to_kitchen)
+        self.print_kitchen_btn.clicked.connect(self.print_last_kitchen_ticket)
         self.adjust_btn.clicked.connect(self.adjust_bill)
         self.payment_btn.clicked.connect(self.record_payment)
+        self.print_receipt_btn.clicked.connect(self.print_receipt)
         self.close_btn.clicked.connect(self.checkout_session)
         self._set_enabled(False)
         self.reload_menu()
@@ -234,7 +248,7 @@ class RestaurantPOSWidget(QWidget):
         if not session:
             self.session = None
             self.title.setText("🧾  " + _("restaurant.no_open_session"))
-            self.lines.clear()
+            self.order_model.set_lines([])
             self._set_enabled(False)
             self._update_total()
             return
@@ -249,9 +263,63 @@ class RestaurantPOSWidget(QWidget):
         self._set_enabled(True)
 
     def _set_enabled(self, enabled):
-        for widget in (self.send_kitchen_btn, self.adjust_btn, self.payment_btn, self.close_btn, self.guests, self.manual_button):
+        for widget in (self.send_kitchen_btn, self.print_kitchen_btn, self.adjust_btn, self.payment_btn, self.print_receipt_btn, self.close_btn, self.guests, self.manual_button):
             widget.setEnabled(bool(enabled))
         self.menu_scroll.setEnabled(bool(enabled))
+        self._apply_restaurant_operation_state()
+
+    def _operation_button_map(self):
+        return {
+            restaurant_operation_policy.OP_ADD_LINE: [self.manual_button],
+            restaurant_operation_policy.OP_SEND_KITCHEN: [self.send_kitchen_btn],
+            restaurant_operation_policy.OP_PRINT_KITCHEN_TICKET: [self.print_kitchen_btn],
+            restaurant_operation_policy.OP_ADJUST_BILL: [self.adjust_btn],
+            restaurant_operation_policy.OP_RECORD_PAYMENT: [self.payment_btn],
+            restaurant_operation_policy.OP_PRINT_RECEIPT: [self.print_receipt_btn],
+            restaurant_operation_policy.OP_CHECKOUT: [self.close_btn],
+        }
+
+    def _apply_restaurant_operation_state(self):
+        has_session = bool(self.session)
+        for operation, buttons in self._operation_button_map().items():
+            allowed = has_session and restaurant_operation_policy.can(operation)
+            for button in buttons:
+                button.setVisible(restaurant_operation_policy.is_enabled_by_settings(operation))
+                button.setEnabled(bool(allowed))
+
+    def _require_restaurant_operation(self, operation):
+        try:
+            restaurant_operation_policy.require(operation)
+            return True
+        except Exception as exc:
+            self.status.setText(str(exc))
+            return False
+
+    def handle_entry_return(self):
+        text = self.search_edit.text().strip()
+        if not text:
+            self.reload_menu()
+            return
+        normalized = barcode_input_service.normalize(text)
+        scan_like = barcode_input_service.looks_like_scan(normalized)
+        if not self.session:
+            self.reload_menu()
+            if scan_like:
+                self.status.setText(_("restaurant.open_table_first"))
+            return
+        if scan_like and not self._require_restaurant_operation(restaurant_operation_policy.OP_ADD_LINE):
+            return
+        if not scan_like:
+            self.reload_menu()
+            return
+        try:
+            self.service.add_entry(session_id=int(self.session["id"]), raw_entry=text, quantity="1", mode="scan")
+            self.search_edit.clear()
+            self.load_session(self.session)
+            self.status.setText(_("restaurant.barcode_line_added"))
+        except Exception as exc:
+            key = str(exc)
+            self.status.setText(_(key) if key.startswith(("transaction_", "restaurant.")) else key)
 
     def reload_menu(self):
         try:
@@ -291,17 +359,25 @@ class RestaurantPOSWidget(QWidget):
         return f"🍽  {name}\n{price} {unit}".strip()
 
     def _reload_lines(self):
-        self.lines.clear()
-        for line in self.session.get("lines") or []:
-            item = QListWidgetItem(self._line_label(line))
-            item.setData(256, line)
-            item.setData(257, line.get("kitchen_status") or "new")
-            self.lines.addItem(item)
+        self.order_model.set_lines(self.session.get("lines") or [])
+        try:
+            self.lines.apply_named_preset("cashier")
+        except Exception:
+            pass
         self._update_total()
 
     def _line_label(self, line):
         status = line.get('kitchen_status') or 'new'
-        return f"{line.get('quantity') or '1'} × {line.get('item_name') or ''} — {line.get('unit_price') or '0'} ({_(f'restaurant.line_status.{status}')})"
+        unit = line.get('unit') or ''
+        scope = line.get('barcode_scope') or ''
+        base_qty = line.get('base_qty') or ''
+        unit_part = f" {unit}" if unit else ""
+        barcode_part = ""
+        if scope == "unit":
+            barcode_part = f" — {_('restaurant.unit_barcode_scope')}"
+            if base_qty:
+                barcode_part += f" / {_('pos_column_base_qty')}: {base_qty}"
+        return f"{line.get('quantity') or '1'}{unit_part} × {line.get('item_name') or ''} — {line.get('unit_price') or '0'} ({_(f'restaurant.line_status.{status}')}){barcode_part}"
 
     def _line_amount(self, line):
         try:
@@ -329,6 +405,8 @@ class RestaurantPOSWidget(QWidget):
         if not self.session:
             self.status.setText(_("restaurant.open_table_first"))
             return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_ADD_LINE):
+            return
         try:
             self.service.add_line(
                 session_id=int(self.session["id"]),
@@ -337,6 +415,12 @@ class RestaurantPOSWidget(QWidget):
                 quantity="1",
                 unit_price=item.get("selling_price") or item.get("unit_price") or "0",
                 notes="",
+                unit_id=item.get("unit_id"),
+                unit=item.get("unit") or "",
+                conversion_factor=item.get("conversion_factor") or "1",
+                base_qty="1",
+                barcode_scope=item.get("barcode_scope") or "menu",
+                matched_barcode=item.get("barcode") or "",
             )
             self.load_session(self.session)
             self.status.setText(_("restaurant.line_added"))
@@ -345,6 +429,8 @@ class RestaurantPOSWidget(QWidget):
 
     def add_line(self):
         if not self.session:
+            return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_ADD_LINE):
             return
         dialog = RestaurantLineDialog(self)
         if dialog.exec() != QDialog.Accepted:
@@ -363,11 +449,40 @@ class RestaurantPOSWidget(QWidget):
     def send_to_kitchen(self):
         if not self.session:
             return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_SEND_KITCHEN):
+            return
         try:
             result = self.service.send_to_kitchen(int(self.session["id"]))
+            tickets = (result or {}).get("tickets") or []
+            try:
+                settings = settings_service.get_restaurant_settings()
+            except Exception:
+                settings = {}
+            if tickets and settings.get("operations", {}).get("auto_print_kitchen_ticket"):
+                try:
+                    restaurant_printing_bridge.kitchen_tickets_print(tickets, self)
+                except Exception as print_exc:
+                    self.status.setText(str(print_exc))
             self.load_session(self.session)
             self.status.setText(_("restaurant.kitchen_sent"))
             self.kitchenSent.emit(result or {})
+        except Exception as exc:
+            self.status.setText(str(exc))
+
+    def print_last_kitchen_ticket(self):
+        if not self.session:
+            return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_PRINT_KITCHEN_TICKET):
+            return
+        try:
+            tickets = self.service.list_kitchen_tickets(status="all", limit=20)
+            session_id = int(self.session.get("id"))
+            ticket = next((t for t in tickets if int(t.get("session_id") or 0) == session_id), None)
+            if not ticket:
+                self.status.setText(_("restaurant.no_kitchen_ticket_to_print"))
+                return
+            if restaurant_printing_bridge.kitchen_ticket_print(int(ticket["id"]), self):
+                self.status.setText(_("restaurant.kitchen_ticket_printed"))
         except Exception as exc:
             self.status.setText(str(exc))
 
@@ -382,6 +497,8 @@ class RestaurantPOSWidget(QWidget):
     def adjust_bill(self):
         if not self.session:
             return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_ADJUST_BILL):
+            return
         try:
             balance = self._balance()
             dialog = RestaurantAdjustmentsDialog(balance, self)
@@ -395,6 +512,8 @@ class RestaurantPOSWidget(QWidget):
 
     def record_payment(self):
         if not self.session:
+            return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_RECORD_PAYMENT):
             return
         try:
             balance = self._balance()
@@ -412,12 +531,35 @@ class RestaurantPOSWidget(QWidget):
         # Backward-compatible slot; new UI records actual split payments.
         self.record_payment()
 
+    def print_receipt(self):
+        if not self.session:
+            return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_PRINT_RECEIPT):
+            return
+        try:
+            if restaurant_printing_bridge.receipt_print(int(self.session["id"]), self):
+                self.status.setText(_("restaurant.receipt_printed"))
+        except Exception as exc:
+            self.status.setText(str(exc))
+
     def checkout_session(self):
         if not self.session:
             return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_CHECKOUT):
+            return
         try:
-            result = self.service.checkout_session(int(self.session["id"]))
+            session_id = int(self.session["id"])
+            result = self.service.checkout_session(session_id)
             reference = result.get("invoice_reference") or result.get("invoice_id") or ""
+            try:
+                settings = settings_service.get_restaurant_settings()
+            except Exception:
+                settings = {}
+            if settings.get("operations", {}).get("auto_print_receipt_after_checkout"):
+                try:
+                    restaurant_printing_bridge.receipt_print(session_id, self)
+                except Exception as print_exc:
+                    self.status.setText(str(print_exc))
             self.status.setText(_("restaurant.checkout_done") + (f": {reference}" if reference else ""))
             self.session = None
             self.load_session(None)

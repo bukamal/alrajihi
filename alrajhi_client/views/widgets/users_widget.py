@@ -3,8 +3,9 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLi
                              QHeaderView, QMessageBox, QDialog, QFormLayout, QComboBox, QLabel)
 from PyQt5.QtCore import Qt
 from core.services.user_service import user_service
+from core.services.user_operation_policy import user_operation_policy
 from auth.session import UserSession
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from utils import show_toast
@@ -33,8 +34,8 @@ class UsersWidget(QWidget):
         top_layout.addStretch()
         layout.addLayout(top_layout)
 
-        self.table = CustomTableView()
-        self.table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.table = SmartTableView(identity="users.list")
+        self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.doubleClicked.connect(self.edit_user)
         layout.addWidget(self.table)
 
@@ -52,6 +53,7 @@ class UsersWidget(QWidget):
 
         apply_modern_widget(self, translate('users_title_icon'), translate('users_subtitle'))
         self.refresh()
+        self._apply_operation_state()
 
     def set_global_filter(self, text: str):
         text = (text or '').strip().lower()
@@ -124,15 +126,54 @@ class UsersWidget(QWidget):
         self.prev_btn.setEnabled(self.current_page > 0)
         self.next_btn.setEnabled(self.current_page + 1 < total_pages)
 
+    def _main_window(self):
+        widget = self
+        while widget is not None:
+            if hasattr(widget, 'open_user_document'):
+                return widget
+            widget = widget.parent()
+        return None
+
+    def _selected_source_row(self, index=None):
+        try:
+            if index is not None and hasattr(self.table, 'mapToSource'):
+                return self.table.mapToSource(index).row()
+        except Exception:
+            pass
+        try:
+            if hasattr(self.table, 'current_source_row'):
+                return self.table.current_source_row()
+        except Exception:
+            pass
+        return index.row() if index is not None else -1
+
+    def _apply_operation_state(self):
+        try:
+            self.add_btn.setEnabled(user_operation_policy.can(user_operation_policy.OP_CREATE))
+        except Exception:
+            pass
+
     def add_user(self):
+        main = self._main_window()
+        if main is not None:
+            tab = main.open_user_document()
+            if hasattr(tab, 'saved'):
+                tab.saved.connect(lambda *_: self.refresh())
+            return
         dialog = UserDialog(self)
         if dialog.exec():
             self.refresh()
 
     def edit_user(self, index):
-        row = index.row()
+        row = self._selected_source_row(index)
         user_id = self.model.get_id(row)
         if user_id:
+            main = self._main_window()
+            if main is not None:
+                tab = main.open_user_document(user_id=user_id)
+                if hasattr(tab, 'saved'):
+                    tab.saved.connect(lambda *_: self.refresh())
+                return
             dialog = UserDialog(self, user_id=user_id)
             if dialog.exec():
                 self.refresh()

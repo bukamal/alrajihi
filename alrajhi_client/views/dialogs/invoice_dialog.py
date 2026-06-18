@@ -4,8 +4,8 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, QComboBo
                              QApplication, QTableView, QHeaderView, QAbstractItemView, QWidget,
                              QStyledItemDelegate, QCompleter, QPushButton, QSpinBox, QCheckBox, QFrame,
                              QSplitter, QSizePolicy, QMenu, QAction)
-from PyQt5.QtCore import Qt, QDate, QAbstractTableModel, QModelIndex, QStringListModel, QEvent, QTimer, QSettings
-from PyQt5.QtGui import QKeySequence, QFont
+from PyQt5.QtCore import Qt, QDate, QAbstractTableModel, QModelIndex, QStringListModel, QEvent, QTimer, QSettings, pyqtSignal
+from PyQt5.QtGui import QKeySequence, QFont, QBrush, QColor
 from decimal import Decimal
 
 from core.services.product_service import product_service
@@ -17,9 +17,19 @@ from views.centered_dialog import CenteredDialog
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
 from ui.form_validation import FormValidator, make_error_label
+from features.transactions import TransactionDocumentLayout, TransactionLineGrid
+# SmartTableView foundation is provided through TransactionLineGrid for invoice lines.
 import qtawesome as qta
 from theme_manager import ThemeManager
 from i18n import translate, qt_layout_direction
+
+from views.dialogs.invoice_document_components import (
+    InvoiceActionsComponent,
+    InvoiceHeaderComponent,
+    InvoiceLinesComponent,
+    InvoicePaymentsComponent,
+    InvoicePricingEngine,
+)
 
 
 def _money_decimal(value):
@@ -82,12 +92,50 @@ class LinesModel(QAbstractTableModel):
     def columnCount(self, parent=QModelIndex()):
         return 12
 
+    def row_validation_message(self, row):
+        if row < 0 or row >= len(self.lines):
+            return ''
+        line = self.lines[row]
+        has_text = bool(str(line.get('barcode', '')).strip() or str(line.get('item_name', '')).strip())
+        if has_text and not line.get('item_id'):
+            return translate('invoice_line_unresolved_item') if translate('invoice_line_unresolved_item') != 'invoice_line_unresolved_item' else 'Item is not resolved yet'
+        try:
+            qty = Decimal(str(line.get('qty', 0) or 0))
+        except Exception:
+            qty = Decimal('0')
+        try:
+            price = Decimal(str(line.get('price', 0) or 0))
+        except Exception:
+            price = Decimal('-1')
+        if line.get('item_id') and qty <= 0:
+            return translate('invoice_line_invalid_qty') if translate('invoice_line_invalid_qty') != 'invoice_line_invalid_qty' else 'Quantity must be greater than zero'
+        if line.get('item_id') and price < 0:
+            return translate('invoice_line_invalid_price') if translate('invoice_line_invalid_price') != 'invoice_line_invalid_price' else 'Price cannot be negative'
+        if line.get('item_id') and not str(line.get('unit_display', '')).strip():
+            return translate('invoice_line_missing_unit') if translate('invoice_line_missing_unit') != 'invoice_line_missing_unit' else 'Unit is missing'
+        return ''
+
+    def invalid_rows(self):
+        return [row for row in range(len(self.lines)) if self.row_validation_message(row)]
+
+    def total_quantity(self):
+        total = Decimal('0')
+        for line in self.lines:
+            if line.get('item_id'):
+                total += Decimal(str(line.get('qty', 0) or 0))
+        return total
+
     def data(self, index, role=Qt.DisplayRole):
         if not index.isValid():
             return None
         row = index.row()
         col = index.column()
         line = self.lines[row]
+        validation_message = self.row_validation_message(row)
+        if role == Qt.ToolTipRole and validation_message:
+            return validation_message
+        if role == Qt.BackgroundRole and validation_message:
+            return QBrush(QColor('#fff1f2'))
         if col == self.COL_DELETE:
             if role == Qt.DisplayRole:
                 return "🗑"
@@ -358,8 +406,18 @@ class LinesModel(QAbstractTableModel):
             self.dataChanged.emit(self.index(row, self.COL_TOTAL), self.index(row, self.COL_PROFIT))
 
 class InvoiceDialog(CenteredDialog):
-    def __init__(self, inv_type, parent=None, invoice_id=None):
+    dirtyChanged = pyqtSignal(bool)
+    saved = pyqtSignal(object)
+
+    def __init__(self, inv_type, parent=None, invoice_id=None, embedded=False):
         super().__init__(parent)
+        self._embedded_mode = bool(embedded)
+        if self._embedded_mode:
+            self.setModal(False)
+            self.setWindowFlags(Qt.Widget)
+            self.setAttribute(Qt.WA_TranslucentBackground, False)
+            if hasattr(self, "title_bar"):
+                self.title_bar.setVisible(False)
         self.inv_type = inv_type
         self.invoice_id = invoice_id
         self.display_curr = currency.get_display_currency()
@@ -377,12 +435,76 @@ class InvoiceDialog(CenteredDialog):
         self.setMinimumSize(1120, 680)
 
         self.init_ui()
+        self._install_document_components()
         self.setup_shortcuts()
         self.load_items_for_combo()
         self.load_entities()
         if invoice_id:
             self.load_invoice_data(invoice_id)
         self.update_total_display()
+
+
+    def _install_document_components(self):
+        """Install reusable invoice document components.
+
+        Phase 48 keeps the proven invoice controls in place but moves the
+        workspace contract to explicit component boundaries.  New sales,
+        purchase, return, restaurant checkout, and fast-POS flows should use
+        these components instead of reaching into the legacy dialog internals.
+        """
+        self.header_component = InvoiceHeaderComponent(self)
+        self.lines_component = InvoiceLinesComponent(self)
+        self.pricing_engine = InvoicePricingEngine(self)
+        self.payments_component = InvoicePaymentsComponent(self)
+        self.actions_component = InvoiceActionsComponent(self)
+
+    def invoice_document_payload(self):
+        """Return the normalized unit-aware invoice document payload."""
+        return {
+            'type': self.inv_type,
+            'invoice_id': self.invoice_id,
+            'header': self.header_component.data() if hasattr(self, 'header_component') else {},
+            'lines': self.lines_component.payload() if hasattr(self, 'lines_component') else self.lines_model.get_lines_data(),
+            'pricing': self.pricing_engine.summary() if hasattr(self, 'pricing_engine') else {},
+            'paid': self.payments_component.paid_amount() if hasattr(self, 'payments_component') else Decimal('0'),
+        }
+
+    def mark_dirty(self):
+        super().mark_dirty()
+        self.dirtyChanged.emit(True)
+
+    def reset_dirty(self):
+        super().reset_dirty()
+        self.dirtyChanged.emit(False)
+
+    def workspace_title(self):
+        prefix = translate('sales_invoice') if self.inv_type == 'sale' else translate('purchase_invoice')
+        reference = self.ref_edit.text().strip() if hasattr(self, 'ref_edit') else ''
+        if reference:
+            return f"{prefix} {reference}"
+        return self.windowTitle()
+
+    def workspace_save(self):
+        if hasattr(self, 'actions_component'):
+            self.actions_component.save()
+        else:
+            self.on_save()
+
+    def workspace_print(self):
+        if hasattr(self, 'actions_component'):
+            self.actions_component.print()
+        else:
+            self.print_invoice_professional()
+
+    def workspace_export(self):
+        if hasattr(self, 'actions_component'):
+            self.actions_component.export()
+        else:
+            self.save_invoice_pdf()
+
+    def workspace_refresh(self):
+        if self.invoice_id:
+            self.load_invoice_data(self.invoice_id)
 
     def load_invoice_data(self, invoice_id):
         inv = invoice_service.get(invoice_id)
@@ -482,11 +604,25 @@ class InvoiceDialog(CenteredDialog):
             QDialog {{ background: {c['bg_window']}; color: {c['text_primary']}; }}
             QLabel#DialogTitle {{ color: {c['primary']}; font-size: 21px; font-weight: 900; }}
             QLabel#DialogSubtitle {{ color: {c['text_secondary']}; font-size: 12px; }}
-            QFrame#HeaderCard, QFrame#TotalsCard, QFrame#ActionCard, QFrame#RightPanel {{
+            QFrame#HeaderCard, QFrame#TotalsCard, QFrame#ActionCard, QFrame#RightPanel, QFrame#BottomActionBar {{
+                background: {c['card_bg']}; border: 1px solid {c['border']}; border-radius: 14px;
+            }}
+            QTableView#TransactionLineGrid, QTableView#InvoiceLinesTable {{
+                font-size: 13px;
+                border-radius: 14px;
+            }}
+            QSplitter#TransactionDocumentSplitter::handle {{
+                background: {c['border']}; border-radius: 4px; margin: 8px 2px;
+            }}
+            QFrame#TransactionBottomActionBar {{
                 background: {c['card_bg']}; border: 1px solid {c['border']}; border-radius: 14px;
             }}
             QLabel#SectionTitle {{ color: {c['text_primary']}; font-size: 14px; font-weight: 800; }}
             QLabel#muted {{ color: {c['text_secondary']}; font-size: 11px; }}
+            QLabel#InvoiceGridStatus {{
+                color: {c['text_secondary']}; font-size: 11px; font-weight: 700;
+                padding: 4px 8px; border-radius: 8px; background: {c['card_bg']};
+            }}
             QLineEdit, QComboBox, QDateEdit, QDoubleSpinBox, QTextEdit {{
                 min-height: 34px; border: 1px solid {c['border']}; border-radius: 9px; padding: 5px 9px;
                 background: {c['input_bg']}; color: {c['text_primary']}; font-size: 13px;
@@ -535,6 +671,7 @@ class InvoiceDialog(CenteredDialog):
         root_layout.setSpacing(12)
 
         title_frame = QFrame()
+        self.title_frame = title_frame
         title_frame.setObjectName("HeaderCard")
         title_layout = QHBoxLayout(title_frame)
         title_layout.setContentsMargins(16, 12, 16, 12)
@@ -569,8 +706,7 @@ class InvoiceDialog(CenteredDialog):
         self.print_btn.setMenu(self.print_menu)
         self.cancel_btn = QPushButton(translate('cancel_shortcut'))
         for btn in (self.new_btn, self.save_btn, self.print_btn, self.cancel_btn):
-            btn.setMinimumWidth(96)
-            title_layout.addWidget(btn)
+            btn.setMinimumWidth(110)
         root_layout.addWidget(title_frame)
 
         self.form_error_label = make_error_label()
@@ -578,6 +714,7 @@ class InvoiceDialog(CenteredDialog):
 
         header_frame = QFrame()
         header_frame.setObjectName("HeaderCard")
+        header_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(14, 12, 14, 12)
         header_layout.setSpacing(10)
@@ -628,8 +765,10 @@ class InvoiceDialog(CenteredDialog):
         header_layout.addWidget(self.balance_label)
         root_layout.addWidget(header_frame)
 
-        content_layout = QHBoxLayout()
-        content_layout.setSpacing(12)
+        content_splitter = QSplitter(Qt.Horizontal)
+        self.content_splitter = content_splitter
+        content_splitter.setChildrenCollapsible(False)
+        content_splitter.setHandleWidth(8)
 
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
@@ -643,16 +782,30 @@ class InvoiceDialog(CenteredDialog):
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText(translate("barcode_search_placeholder"))
         self.search_input.returnPressed.connect(self.add_item_from_search)
+        self.quick_qty_spin = QDoubleSpinBox()
+        self.quick_qty_spin.setObjectName('InvoiceQuickQtySpin')
+        self.quick_qty_spin.setRange(0.001, 999999.0)
+        self.quick_qty_spin.setDecimals(3)
+        self.quick_qty_spin.setValue(1.0)
+        self.quick_qty_spin.setToolTip(translate('quick_qty_tooltip') if translate('quick_qty_tooltip') != 'quick_qty_tooltip' else 'Quantity used by barcode/quick add')
         self.camera_scan_btn = QPushButton(translate('scan'))
         self.camera_scan_btn.setObjectName("softAction")
         self.camera_scan_btn.setToolTip(translate("barcode_scan_tooltip"))
         self.camera_scan_btn.clicked.connect(self.scan_barcode_with_camera)
         search_layout.addWidget(self.search_input, 1)
+        search_layout.addWidget(self._make_field_block(translate('quantity'), self.quick_qty_spin), 0)
         search_layout.addWidget(self.camera_scan_btn)
         left_layout.addWidget(search_frame)
 
         self.lines_model = LinesModel(self.inv_type)
-        self.lines_table = QTableView()
+        self.lines_table = TransactionLineGrid(
+            identity=f"transaction_lines_{self.inv_type}",
+            transaction_type=self.inv_type,
+            required_columns={LinesModel.COL_ITEM_NAME, LinesModel.COL_QUANTITY, LinesModel.COL_UNIT, LinesModel.COL_TOTAL},
+            compact_columns={LinesModel.COL_BARCODE, LinesModel.COL_PRICE, LinesModel.COL_DISCOUNT, LinesModel.COL_TAX},
+        )
+        self.lines_table.setObjectName("InvoiceLinesTable")
+        self.lines_table.set_responsive_columns(False)
         self.lines_table.setModel(self.lines_model)
         self.lines_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.lines_table.setAlternatingRowColors(True)
@@ -689,13 +842,24 @@ class InvoiceDialog(CenteredDialog):
         self.lines_table.setItemDelegateForColumn(LinesModel.COL_DISCOUNT, self.double_delegate)
         self.lines_table.setItemDelegateForColumn(LinesModel.COL_TAX, self.double_delegate)
         self._restore_lines_table_layout()
+        self.lines_table.horizontalHeader().sectionMoved.connect(lambda *_: self._save_lines_table_layout())
+        self.lines_table.horizontalHeader().sectionResized.connect(lambda *_: self._save_lines_table_layout())
 
         self.lines_table.clicked.connect(self.on_table_clicked)
         if not self.invoice_id:
             self.lines_model.add_empty_row()
         self.lines_model.dataChanged.connect(self.on_line_data_changed)
         self.lines_model.dataChanged.connect(lambda *_: self.update_warehouse_availability_label())
+        self.lines_model.rowsInserted.connect(lambda *_: self.update_invoice_grid_status())
+        self.lines_model.rowsRemoved.connect(lambda *_: self.update_invoice_grid_status())
+        self.lines_table.setMinimumHeight(360)
+        self.lines_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         left_layout.addWidget(self.lines_table, 1)
+
+        self.invoice_grid_status_label = QLabel('')
+        self.invoice_grid_status_label.setObjectName('InvoiceGridStatus')
+        self.invoice_grid_status_label.setWordWrap(True)
+        left_layout.addWidget(self.invoice_grid_status_label, 0)
 
         btn_line_layout = QHBoxLayout()
         self.add_line_btn = QPushButton(translate('add_line'))
@@ -711,16 +875,24 @@ class InvoiceDialog(CenteredDialog):
         btn_line_layout.addWidget(self.remove_line_btn)
         btn_line_layout.addWidget(self.columns_btn)
         btn_line_layout.addStretch()
+        self.invoice_grid_shortcuts_label = QLabel(
+            translate('invoice_grid_shortcuts_hint')
+            if translate('invoice_grid_shortcuts_hint') != 'invoice_grid_shortcuts_hint'
+            else 'Enter: next cell • Insert: new line • Ctrl+D duplicate • Ctrl+L barcode • F6 qty • F4 columns • Ctrl+Shift+F fit columns'
+        )
+        self.invoice_grid_shortcuts_label.setObjectName('muted')
+        btn_line_layout.addWidget(self.invoice_grid_shortcuts_label)
         left_layout.addLayout(btn_line_layout)
 
         left_layout.addWidget(QLabel(translate('general_notes')))
         self.notes_edit = QTextEdit()
-        self.notes_edit.setMaximumHeight(78)
+        self.notes_edit.setMaximumHeight(68)
         left_layout.addWidget(self.notes_edit)
 
         right_panel = QFrame()
         right_panel.setObjectName("RightPanel")
-        right_panel.setFixedWidth(330)
+        right_panel.setMinimumWidth(300)
+        right_panel.setMaximumWidth(390)
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(14, 14, 14, 14)
         right_layout.setSpacing(10)
@@ -785,9 +957,27 @@ class InvoiceDialog(CenteredDialog):
         hint.setWordWrap(True)
         right_layout.addWidget(hint)
 
-        content_layout.addWidget(left_panel, 1)
-        content_layout.addWidget(right_panel)
-        root_layout.addLayout(content_layout, 1)
+        content_splitter.addWidget(left_panel)
+        content_splitter.addWidget(right_panel)
+        content_splitter.setStretchFactor(0, 5)
+        content_splitter.setStretchFactor(1, 1)
+        root_layout.addWidget(content_splitter, 1)
+
+        bottom_bar = QFrame()
+        self.bottom_action_bar = bottom_bar
+        bottom_bar.setObjectName("BottomActionBar")
+        bottom_layout = QHBoxLayout(bottom_bar)
+        bottom_layout.setContentsMargins(12, 8, 12, 8)
+        bottom_layout.setSpacing(10)
+        bottom_layout.addWidget(self.new_btn)
+        bottom_layout.addStretch(1)
+        bottom_layout.addWidget(self.save_btn)
+        bottom_layout.addWidget(self.print_btn)
+        bottom_layout.addWidget(self.cancel_btn)
+        root_layout.addWidget(bottom_bar, 0)
+
+        self.transaction_document_layout = TransactionDocumentLayout(self, transaction_type=self.inv_type)
+        self.transaction_document_layout.apply()
 
         self.discount_value.valueChanged.connect(self.update_total_display)
         self.discount_type.currentIndexChanged.connect(self.update_total_display)
@@ -802,7 +992,40 @@ class InvoiceDialog(CenteredDialog):
         self.cancel_btn.clicked.connect(self.reject)
         self.new_btn.clicked.connect(self._clear_invoice_form)
         QTimer.singleShot(0, self.focus_barcode_input)
+        QTimer.singleShot(0, self.update_invoice_grid_status)
 
+
+    def _quick_add_qty(self):
+        try:
+            if hasattr(self, 'quick_qty_spin'):
+                value = Decimal(str(self.quick_qty_spin.value()))
+                return value if value > 0 else Decimal('1')
+        except Exception:
+            pass
+        return Decimal('1')
+
+    def _reset_quick_add_qty(self):
+        try:
+            if hasattr(self, 'quick_qty_spin'):
+                self.quick_qty_spin.setValue(1.0)
+        except Exception:
+            pass
+
+    def update_invoice_grid_status(self):
+        if not hasattr(self, 'invoice_grid_status_label'):
+            return
+        model = getattr(self, 'lines_model', None)
+        if model is None:
+            self.invoice_grid_status_label.setText('')
+            return
+        active_lines = [line for line in getattr(model, 'lines', []) if line.get('item_id')]
+        invalid_rows = model.invalid_rows() if hasattr(model, 'invalid_rows') else []
+        visible_cols = len(self.lines_table.visible_columns()) if hasattr(self, 'lines_table') and hasattr(self.lines_table, 'visible_columns') else model.columnCount()
+        total_qty = model.total_quantity() if hasattr(model, 'total_quantity') else Decimal('0')
+        label = translate('invoice_grid_status', lines=len(active_lines), qty=f'{total_qty:.3f}', columns=visible_cols, invalid=len(invalid_rows))
+        if label == 'invoice_grid_status':
+            label = f'Lines: {len(active_lines)} • Qty: {total_qty:.3f} • Columns: {visible_cols} • Issues: {len(invalid_rows)}'
+        self.invoice_grid_status_label.setText(label)
 
     def focus_barcode_input(self):
         """Keep barcode/item quick-entry ready for continuous invoicing."""
@@ -824,6 +1047,9 @@ class InvoiceDialog(CenteredDialog):
         self.lines_model.lines.clear()
         self.lines_model.endResetModel()
         self.lines_model.add_empty_row()
+        if hasattr(self, 'quick_qty_spin'):
+            self.quick_qty_spin.setValue(1.0)
+        self.update_invoice_grid_status()
         self.focus_barcode_input()
         self._paid_manually_changed = False
         self.update_total_display()
@@ -876,11 +1102,36 @@ class InvoiceDialog(CenteredDialog):
     def eventFilter(self, obj, event):
         if obj is getattr(self, 'lines_table', None) and event.type() == QEvent.KeyPress:
             key = event.key()
+            modifiers = event.modifiers()
             if key in (Qt.Key_Return, Qt.Key_Enter):
                 self._move_to_next_invoice_cell()
                 return True
+            if key == Qt.Key_Insert:
+                self.add_empty_line()
+                return True
             if key == Qt.Key_Delete:
                 self.remove_selected_line()
+                return True
+            if key == Qt.Key_L and modifiers & Qt.ControlModifier:
+                self.focus_barcode_input()
+                return True
+            if key == Qt.Key_D and modifiers & Qt.ControlModifier:
+                self.duplicate_selected_line()
+                return True
+            if key == Qt.Key_F4:
+                self._show_lines_columns_menu_from_button()
+                return True
+            if key == Qt.Key_F and modifiers & Qt.ControlModifier and modifiers & Qt.ShiftModifier:
+                if hasattr(self.lines_table, 'fit_columns_to_view'):
+                    self.lines_table.fit_columns_to_view()
+                return True
+            if key == Qt.Key_F6:
+                if hasattr(self, 'quick_qty_spin'):
+                    self.quick_qty_spin.setFocus()
+                    self.quick_qty_spin.selectAll()
+                return True
+            if key == Qt.Key_Escape:
+                self.focus_barcode_input()
                 return True
         return super().eventFilter(obj, event)
 
@@ -960,11 +1211,15 @@ class InvoiceDialog(CenteredDialog):
     def _show_lines_columns_menu(self, pos, source_widget=None):
         menu = QMenu(self)
         columns_menu = menu.addMenu(translate('columns'))
+        required = self.lines_table.required_columns() if hasattr(self.lines_table, 'required_columns') else set()
         for col in range(self.lines_model.columnCount()):
             header = self.lines_model.headerData(col, Qt.Horizontal, Qt.DisplayRole) or translate('column_number', number=col + 1)
             act = QAction(str(header), self)
             act.setCheckable(True)
             act.setChecked(not self.lines_table.isColumnHidden(col))
+            if col in required:
+                act.setEnabled(False)
+                act.setToolTip(translate('required_column') if translate('required_column') != 'required_column' else 'Required column')
             act.toggled.connect(lambda checked, c=col: self._set_line_column_visible(c, checked))
             columns_menu.addAction(act)
         reset = QAction(translate('reset_columns'), self)
@@ -1179,6 +1434,25 @@ class InvoiceDialog(CenteredDialog):
         self.lines_table.scrollTo(self.lines_model.index(new_row, 0))
         self.focus_barcode_input()
 
+    def duplicate_selected_line(self):
+        selected = self.lines_table.selectionModel().selectedRows() if self.lines_table.selectionModel() else []
+        if not selected:
+            return
+        row = selected[0].row()
+        if row < 0 or row >= self.lines_model.rowCount():
+            return
+        source = dict(self.lines_model.lines[row])
+        if not source.get('item_id') and not source.get('item_name'):
+            return
+        self.mark_dirty()
+        insert_at = self.lines_model.rowCount()
+        self.lines_model.beginInsertRows(QModelIndex(), insert_at, insert_at)
+        self.lines_model.lines.append(source)
+        self.lines_model.endInsertRows()
+        self.lines_model.update_row_total(insert_at)
+        self.lines_table.selectRow(insert_at)
+        self.update_total_display()
+
     def remove_selected_line(self):
         self.mark_dirty()
         selected = self.lines_table.selectionModel().selectedRows()
@@ -1203,6 +1477,7 @@ class InvoiceDialog(CenteredDialog):
 
     def on_line_data_changed(self, topLeft, bottomRight):
         self.update_total_display()
+        self.update_invoice_grid_status()
         last_row = self.lines_model.rowCount() - 1
         if last_row >= 0 and self.lines_model.lines[last_row]['item_id'] is not None:
             self.add_empty_line()
@@ -1260,8 +1535,10 @@ class InvoiceDialog(CenteredDialog):
             if item:
                 existing_row = self._find_line_by_item_id(item['id'])
                 if existing_row is not None and product_service.item_by_barcode(text):
-                    self._increment_existing_line(existing_row, Decimal('1'))
+                    self._increment_existing_line(existing_row, self._quick_add_qty())
                     self.search_input.clear()
+                    self._reset_quick_add_qty()
+                    self.update_invoice_grid_status()
                     self.focus_barcode_input()
                     show_toast(translate("existing_item_incremented"), "success", self)
                     return
@@ -1277,10 +1554,15 @@ class InvoiceDialog(CenteredDialog):
                     units_list.append({'id': u['id'], 'unit_name': u['unit_name'], 'conversion_factor': factor})
                 barcode_value = item.get('barcode') or item.get('code') or text if product_service.item_by_barcode(text) else (item.get('barcode') or item.get('code') or '')
                 self.lines_model.set_item(last_row, item['id'], item['name'], units_list, price_display, barcode_value)
+                quick_qty = self._quick_add_qty()
+                if quick_qty != Decimal('1'):
+                    self.lines_model.setData(self.lines_model.index(last_row, LinesModel.COL_QUANTITY), str(quick_qty))
                 self.lines_table.selectRow(last_row)
                 self.search_input.clear()
+                self._reset_quick_add_qty()
                 self.focus_barcode_input()
                 self.update_total_display()
+                self.update_invoice_grid_status()
             else:
                 reply = QMessageBox.question(self, translate('item_not_found_title'), translate('item_not_found_message', text=text),
                                              QMessageBox.Yes | QMessageBox.No)
@@ -1366,10 +1648,17 @@ class InvoiceDialog(CenteredDialog):
         try:
             if self.invoice_id:
                 invoice_service.update(self.invoice_id, data)
+                saved_id = self.invoice_id
                 show_toast(translate("invoice_updated"), "success", self)
             else:
-                invoice_id = invoice_service.create(data)
+                saved_id = invoice_service.create(data)
+                self.invoice_id = saved_id
+                self.ref_edit.setText(reference)
                 show_toast(translate("invoice_saved"), "success", self)
+            if self._embedded_mode:
+                self.reset_dirty()
+                self.saved.emit(saved_id)
+                return
             self.accept()
         except Exception as e:
             show_toast(str(e), "error", self)

@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 from core.services.audit_service import audit_service
+from core.services.inventory_operation_policy import inventory_operation_policy
 from core.services.branch_service import branch_service
 from gateways.warehouse_gateway import create_warehouse_gateway
 
@@ -18,34 +19,42 @@ class WarehouseService:
     def warehouses(self, include_archived: bool = False) -> List[Dict]:
         return self.gateway.list(include_archived=include_archived)
 
+    def can_operation(self, operation: str) -> bool:
+        return inventory_operation_policy.can(operation)
+
     def warehouse_by_id(self, warehouse_id: int) -> Optional[Dict]:
         wh = self.gateway.get(warehouse_id)
         return wh if isinstance(wh, dict) else None
 
     def add_warehouse(self, data: Dict) -> int:
+        inventory_operation_policy.require(inventory_operation_policy.OP_WAREHOUSE_CREATE, context='warehouse_service.add_warehouse', payload=data)
         data = self._validate_payload(data)
         wh_id = self.gateway.create(data)
         audit_service.log('CREATE', 'WAREHOUSE', wh_id, new_values=data, details='إنشاء مستودع')
         return wh_id
 
     def update_warehouse(self, warehouse_id: int, data: Dict) -> None:
+        inventory_operation_policy.require(inventory_operation_policy.OP_WAREHOUSE_EDIT, context='warehouse_service.update_warehouse', payload={'warehouse_id': warehouse_id, **(data or {})})
         old = self.warehouse_by_id(warehouse_id)
         data = self._validate_payload(data)
         self.gateway.update(warehouse_id, data)
         audit_service.log('UPDATE', 'WAREHOUSE', warehouse_id, old_values=old, new_values=self.warehouse_by_id(warehouse_id) or data, details='تعديل مستودع')
 
     def archive_warehouse(self, warehouse_id: int) -> None:
+        inventory_operation_policy.require(inventory_operation_policy.OP_WAREHOUSE_ARCHIVE, context='warehouse_service.archive_warehouse', payload={'warehouse_id': warehouse_id})
         old = self.warehouse_by_id(warehouse_id)
         self.gateway.archive(warehouse_id)
         audit_service.log('SOFT_DELETE', 'WAREHOUSE', warehouse_id, old_values=old, details='أرشفة مستودع')
 
     def balances(self, search: str | None = None, warehouse_id: int | None = None, limit: int | None = None, offset: int | None = None) -> List[Dict]:
+        inventory_operation_policy.require(inventory_operation_policy.OP_BALANCE_VIEW, context='warehouse_service.balances', payload={'warehouse_id': warehouse_id, 'search': search})
         return self.gateway.balances(search=search, warehouse_id=warehouse_id, limit=limit, offset=offset)
 
     def balance_count(self, search: str | None = None, warehouse_id: int | None = None) -> int:
         return int(self.gateway.balance_count(search=search, warehouse_id=warehouse_id) or 0)
 
     def movements(self, item_id: int | None = None, warehouse_id: int | None = None, limit: int = 100) -> List[Dict]:
+        inventory_operation_policy.require(inventory_operation_policy.OP_MOVEMENT_VIEW, context='warehouse_service.movements', payload={'item_id': item_id, 'warehouse_id': warehouse_id})
         return self.gateway.movements(item_id=item_id, warehouse_id=warehouse_id, limit=limit)
 
     def default_warehouse_id(self) -> int | None:
@@ -71,6 +80,9 @@ class WarehouseService:
 
 
     def record_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type=None, reference_id=None, notes=''):
+        system_refs = {'invoice', 'sales_return', 'purchase_return', 'production_order', 'manufacturing', 'restaurant', 'pos'}
+        if reference_type not in system_refs:
+            inventory_operation_policy.require(inventory_operation_policy.OP_DIRECT_MOVEMENT, context='warehouse_service.record_movement', payload={'item_id': item_id, 'warehouse_id': warehouse_id, 'movement_type': movement_type, 'quantity': str(quantity), 'reference_type': reference_type})
         movement_id = self.gateway.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes)
         # Phase 25: local shadow ledger for direct warehouse movements. Remote
         # mode is posted server-side; invoice/return references have dedicated
@@ -130,7 +142,7 @@ class WarehouseService:
         item_id = data.get('item_id')
         from_wh = data.get('from_warehouse_id')
         to_wh = data.get('to_warehouse_id')
-        qty = abs(Decimal(str(data.get('quantity') or 0)))
+        qty = abs(Decimal(str(data.get('base_qty', data.get('quantity')) or 0)))
         unit_cost = data.get('unit_cost', data.get('cost', 0))
         if not item_id or not from_wh or not to_wh or qty <= 0:
             return
@@ -142,7 +154,7 @@ class WarehouseService:
         item_id = transfer.get('item_id')
         from_wh = transfer.get('from_warehouse_id')
         to_wh = transfer.get('to_warehouse_id')
-        qty = abs(Decimal(str(transfer.get('quantity') or 0)))
+        qty = abs(Decimal(str(transfer.get('base_qty', transfer.get('quantity')) or 0)))
         unit_cost = transfer.get('unit_cost', 0)
         if not item_id or not from_wh or not to_wh or qty <= 0:
             return
@@ -293,6 +305,7 @@ class WarehouseService:
         return self.gateway.transfers(limit=limit)
 
     def create_transfer(self, data: Dict) -> int:
+        inventory_operation_policy.require(inventory_operation_policy.OP_TRANSFER_CREATE, context='warehouse_service.create_transfer', payload=data)
         transfer_id = self.gateway.create_transfer(data)
         if not self.gateway.is_remote():
             self._record_transfer_ledger_entries(transfer_id, data)
@@ -300,6 +313,7 @@ class WarehouseService:
         return transfer_id
 
     def cancel_transfer(self, transfer_id: int) -> None:
+        inventory_operation_policy.require(inventory_operation_policy.OP_TRANSFER_CANCEL, context='warehouse_service.cancel_transfer', payload={'transfer_id': transfer_id})
         old = next((t for t in self.transfers(limit=500) if int(t.get('id') or 0) == int(transfer_id)), None)
         self.gateway.cancel_transfer(transfer_id)
         if old and not self.gateway.is_remote():

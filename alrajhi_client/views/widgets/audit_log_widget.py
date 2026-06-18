@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QCo
                              QDateEdit, QLabel, QHeaderView, QMessageBox, QFileDialog, QLineEdit, QDialog, QTextEdit)
 from PyQt5.QtCore import Qt, QDate
 from core.services.audit_service import audit_service
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
@@ -77,8 +77,8 @@ class AuditLogWidget(QWidget):
         btn_layout.addStretch()
         layout.addLayout(btn_layout)
 
-        self.table = CustomTableView()
-        self.table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.table = SmartTableView(identity="audit_log.list")
+        self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.doubleClicked.connect(self.show_details)
         layout.addWidget(self.table)
 

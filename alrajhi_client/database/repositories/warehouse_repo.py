@@ -82,6 +82,12 @@ class WarehouseRepository(BaseRepository):
                 from_warehouse_id INTEGER NOT NULL,
                 to_warehouse_id INTEGER NOT NULL,
                 quantity TEXT NOT NULL,
+                base_qty TEXT,
+                unit_id INTEGER,
+                unit_name TEXT,
+                conversion_factor TEXT DEFAULT '1',
+                barcode_scope TEXT,
+                matched_barcode TEXT,
                 unit_cost TEXT DEFAULT '0',
                 notes TEXT,
                 status TEXT DEFAULT 'active',
@@ -103,8 +109,16 @@ class WarehouseRepository(BaseRepository):
             conn.execute("ALTER TABLE warehouses ADD COLUMN branch_id INTEGER")
         except Exception:
             pass
+        for col_name, col_type in (
+            ('base_qty', 'TEXT'), ('unit_id', 'INTEGER'), ('unit_name', 'TEXT'),
+            ('conversion_factor', "TEXT DEFAULT '1'"), ('barcode_scope', 'TEXT'), ('matched_barcode', 'TEXT'),
+        ):
+            try:
+                conn.execute(f"ALTER TABLE warehouse_transfers ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass
         try:
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_warehouses_branch ON warehouses(branch_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_wh_transfer_unit ON warehouse_transfers(unit_id)")
         except Exception:
             pass
         conn.commit()
@@ -456,6 +470,10 @@ class WarehouseRepository(BaseRepository):
         from_wh = int(data.get('from_warehouse_id') or 0)
         to_wh = int(data.get('to_warehouse_id') or 0)
         qty = Decimal(str(data.get('quantity') or 0))
+        conv_factor = Decimal(str(data.get('conversion_factor') or 1))
+        if conv_factor <= 0:
+            conv_factor = Decimal('1')
+        base_qty = Decimal(str(data.get('base_qty', qty * conv_factor) or 0))
         notes = str(data.get('notes') or '').strip()
         if item_id <= 0:
             raise ValueError('اختر المادة')
@@ -463,12 +481,12 @@ class WarehouseRepository(BaseRepository):
             raise ValueError('اختر مستودع المصدر والوجهة')
         if from_wh == to_wh:
             raise ValueError('لا يمكن التحويل إلى نفس المستودع')
-        if qty <= 0:
+        if qty <= 0 or base_qty <= 0:
             raise ValueError('كمية التحويل يجب أن تكون أكبر من صفر')
         if not self._warehouse_active(from_wh) or not self._warehouse_active(to_wh):
             raise ValueError('لا يمكن التحويل من أو إلى مستودع مؤرشف')
         available = self.available_qty(item_id, from_wh)
-        if available < qty:
+        if available < base_qty:
             raise ValueError(f'الرصيد غير كافٍ في المستودع المصدر. المتاح: {available}')
         unit_cost = self._item_cost(item_id)
         conn = self.db.get_connection()
@@ -476,13 +494,13 @@ class WarehouseRepository(BaseRepository):
         now = self._now()
         cur = conn.execute("""
             INSERT INTO warehouse_transfers
-            (user_id, transfer_no, item_id, from_warehouse_id, to_warehouse_id, quantity, unit_cost, notes, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
-        """, (uid, transfer_no, item_id, from_wh, to_wh, str(qty), str(unit_cost), notes, now))
+            (user_id, transfer_no, item_id, from_warehouse_id, to_warehouse_id, quantity, base_qty, unit_id, unit_name, conversion_factor, barcode_scope, matched_barcode, unit_cost, notes, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+        """, (uid, transfer_no, item_id, from_wh, to_wh, str(qty), str(base_qty), data.get('unit_id'), data.get('unit_name') or data.get('unit') or '', str(conv_factor), data.get('barcode_scope') or '', data.get('matched_barcode') or '', str(unit_cost), notes, now))
         transfer_id = int(cur.lastrowid)
         conn.commit()
-        self.record_movement(item_id, from_wh, 'transfer_out', -qty, unit_cost, 'warehouse_transfer', transfer_id, f'تحويل إلى مستودع #{to_wh}: {notes}')
-        self.record_movement(item_id, to_wh, 'transfer_in', qty, unit_cost, 'warehouse_transfer', transfer_id, f'تحويل من مستودع #{from_wh}: {notes}')
+        self.record_movement(item_id, from_wh, 'transfer_out', -base_qty, unit_cost, 'warehouse_transfer', transfer_id, f'تحويل إلى مستودع #{to_wh}: {notes}')
+        self.record_movement(item_id, to_wh, 'transfer_in', base_qty, unit_cost, 'warehouse_transfer', transfer_id, f'تحويل من مستودع #{from_wh}: {notes}')
         return transfer_id
 
     def cancel_transfer(self, transfer_id: int) -> None:
@@ -498,7 +516,7 @@ class WarehouseRepository(BaseRepository):
             raise ValueError('التحويل غير موجود')
         if t['status'] != 'active':
             raise ValueError('التحويل ملغى مسبقاً')
-        qty = Decimal(str(t['quantity'] or 0))
+        qty = Decimal(str(t['base_qty'] if 'base_qty' in t.keys() and t['base_qty'] not in (None, '') else t['quantity'] or 0))
         if self.available_qty(t['item_id'], t['to_warehouse_id']) < qty:
             raise ValueError('لا يمكن إلغاء التحويل لأن رصيد المستودع المستلم غير كافٍ')
         unit_cost = Decimal(str(t['unit_cost'] or 0))

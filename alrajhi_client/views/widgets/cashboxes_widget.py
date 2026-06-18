@@ -6,10 +6,11 @@ from PyQt5.QtCore import Qt
 from decimal import Decimal
 from core.services.cashbox_service import cashbox_service
 from core.services.settings_service import settings_service
+from core.services.finance_operation_policy import finance_operation_policy
 from core.services.branch_service import branch_service
 from currency import currency
 from models.table_models import GenericTableModel
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
@@ -62,7 +63,7 @@ class BankDialog(QDialog):
     def payload(self): return {'branch_id':self.branch_combo.currentData(),'bank_name':self.bank_edit.text().strip(),'account_name':self.account_name.text().strip(),'account_number':self.account_number.text().strip(),'iban':self.iban.text().strip(),'notes':self.notes.toPlainText().strip(),'is_active':1 if self.active_check.isChecked() else 0}
 
 class CashboxesWidget(QWidget):
-    def __init__(self,parent=None): super().__init__(parent); self.setLayoutDirection(qt_layout_direction()); self._setup_ui(); apply_modern_widget(self, tr('finance_cashbanks_title'), tr('finance_cashbanks_subtitle')); self.refresh()
+    def __init__(self,parent=None): super().__init__(parent); self.setLayoutDirection(qt_layout_direction()); self._setup_ui(); self._apply_finance_policy(); apply_modern_widget(self, tr('finance_cashbanks_title'), tr('finance_cashbanks_subtitle')); self.refresh()
     def _setup_ui(self):
         layout=QVBoxLayout(self); title=QLabel(tr('finance_cashbanks_title')); title.setObjectName('sectionTitle'); layout.addWidget(title); self.tabs=QTabWidget(); layout.addWidget(self.tabs)
         self.cash_tab=QWidget(); self.bank_tab=QWidget(); self.shift_tab=QWidget(); self.mov_tab=QWidget(); self.tabs.addTab(self.cash_tab,tr('cashboxes')); self.tabs.addTab(self.bank_tab,tr('bank_accounts')); self.tabs.addTab(self.shift_tab,tr('pos_shifts')); self.tabs.addTab(self.mov_tab,tr('financial_movements'))
@@ -78,17 +79,17 @@ class CashboxesWidget(QWidget):
 
     def _cash_ui(self):
         layout=QVBoxLayout(self.cash_tab); bar=QHBoxLayout(); self.cash_search=QLineEdit(); self.cash_search.setPlaceholderText(tr('search_cashboxes')); self.cash_search.textChanged.connect(self.refresh_cashboxes)
-        add=QPushButton(tr('add_cashbox')); add.clicked.connect(self.add_cashbox); edit=QPushButton(tr('edit')); edit.clicked.connect(self.edit_cashbox); arch=QPushButton(tr('archive')); arch.clicked.connect(self.archive_cashbox)
-        bar.addWidget(self.cash_search,1); bar.addWidget(add); bar.addWidget(edit); bar.addWidget(arch); layout.addLayout(bar); self.cash_table=CustomTableView(); self.cash_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.cash_table)
+        self.add_cashbox_btn=QPushButton(tr('add_cashbox')); self.add_cashbox_btn.clicked.connect(self.add_cashbox); self.edit_cashbox_btn=QPushButton(tr('edit')); self.edit_cashbox_btn.clicked.connect(self.edit_cashbox); self.archive_cashbox_btn=QPushButton(tr('archive')); self.archive_cashbox_btn.clicked.connect(self.archive_cashbox)
+        bar.addWidget(self.cash_search,1); bar.addWidget(self.add_cashbox_btn); bar.addWidget(self.edit_cashbox_btn); bar.addWidget(self.archive_cashbox_btn); layout.addLayout(bar); self.cash_table=SmartTableView(); self.cash_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.cash_table)
     def _bank_ui(self):
         layout=QVBoxLayout(self.bank_tab); bar=QHBoxLayout(); self.bank_search=QLineEdit(); self.bank_search.setPlaceholderText(tr('search_banks')); self.bank_search.textChanged.connect(self.refresh_banks)
-        add=QPushButton(tr('add_bank_account')); add.clicked.connect(self.add_bank); edit=QPushButton(tr('edit')); edit.clicked.connect(self.edit_bank); arch=QPushButton(tr('archive')); arch.clicked.connect(self.archive_bank)
-        bar.addWidget(self.bank_search,1); bar.addWidget(add); bar.addWidget(edit); bar.addWidget(arch); layout.addLayout(bar); self.bank_table=CustomTableView(); self.bank_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.bank_table)
+        self.add_bank_btn=QPushButton(tr('add_bank_account')); self.add_bank_btn.clicked.connect(self.add_bank); self.edit_bank_btn=QPushButton(tr('edit')); self.edit_bank_btn.clicked.connect(self.edit_bank); self.archive_bank_btn=QPushButton(tr('archive')); self.archive_bank_btn.clicked.connect(self.archive_bank)
+        bar.addWidget(self.bank_search,1); bar.addWidget(self.add_bank_btn); bar.addWidget(self.edit_bank_btn); bar.addWidget(self.archive_bank_btn); layout.addLayout(bar); self.bank_table=SmartTableView(); self.bank_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.bank_table)
     def _shift_ui(self):
-        layout=QVBoxLayout(self.shift_tab); bar=QHBoxLayout(); refresh=QPushButton(tr('refresh')); refresh.clicked.connect(self.refresh_shifts); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.shift_table=CustomTableView(); self.shift_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.shift_table)
+        layout=QVBoxLayout(self.shift_tab); bar=QHBoxLayout(); refresh=QPushButton(tr('refresh')); refresh.clicked.connect(self.refresh_shifts); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.shift_table=SmartTableView(); self.shift_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.shift_table)
 
     def _mov_ui(self):
-        layout=QVBoxLayout(self.mov_tab); bar=QHBoxLayout(); refresh=QPushButton(tr('refresh')); refresh.clicked.connect(self.refresh_movements); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.mov_table=CustomTableView(); self.mov_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.mov_table)
+        layout=QVBoxLayout(self.mov_tab); bar=QHBoxLayout(); refresh=QPushButton(tr('refresh')); refresh.clicked.connect(self.refresh_movements); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.mov_table=SmartTableView(); self.mov_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.mov_table)
     def set_global_filter(self, text: str):
         text = (text or '').strip().lower()
         # Generic visual filter for widgets that expose one or more Qt tables.
@@ -114,6 +115,29 @@ class CashboxesWidget(QWidget):
                         pass
                 table.setRowHidden(row, bool(text) and text not in ' '.join(hay).lower())
 
+
+    def _apply_finance_policy(self):
+        checks = [
+            ('add_cashbox_btn', finance_operation_policy.OP_CASHBOX_CREATE),
+            ('edit_cashbox_btn', finance_operation_policy.OP_CASHBOX_EDIT),
+            ('archive_cashbox_btn', finance_operation_policy.OP_CASHBOX_ARCHIVE),
+            ('add_bank_btn', finance_operation_policy.OP_BANK_CREATE),
+            ('edit_bank_btn', finance_operation_policy.OP_BANK_EDIT),
+            ('archive_bank_btn', finance_operation_policy.OP_BANK_ARCHIVE),
+        ]
+        for attr, op in checks:
+            btn = getattr(self, attr, None)
+            if btn is not None:
+                try: btn.setEnabled(finance_operation_policy.can(op))
+                except Exception: pass
+
+    def _require_finance_operation(self, operation):
+        try:
+            finance_operation_policy.require(operation, context='CashboxesWidget')
+            return True
+        except Exception as exc:
+            QMessageBox.warning(self, tr('error'), str(exc))
+            return False
 
     def refresh(self):
         try:
@@ -181,9 +205,19 @@ class CashboxesWidget(QWidget):
             rows.append({'date':m.get('movement_date',''),'branch':m.get('branch_name',''),'account':account,'type':m.get('movement_type',''),'amount':amount,'ref':f"{m.get('reference_type') or ''} #{m.get('reference_id') or ''}",'desc':m.get('description','')})
         self.mov_model=GenericTableModel(rows,[tr('date'),tr('branch'),tr('account'),tr('type'),tr('amount'),tr('reference'),tr('description')],data_keys=['date','branch','account','type','amount','ref','desc']); self.mov_table.setModel(self.mov_model); self.mov_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
     def _selected(self, table, model_attr):
-        model=getattr(self,model_attr,None); rows=table.selectionModel().selectedRows() if table.selectionModel() else []
-        return model.get_id(rows[0].row()) if rows and model else None
+        model=getattr(self,model_attr,None)
+        if not model:
+            return None
+        row = table.current_source_row() if hasattr(table, 'current_source_row') else None
+        if row is None:
+            rows=table.selectionModel().selectedRows() if table.selectionModel() else []
+            row = rows[0].row() if rows else None
+        return model.get_id(row) if row is not None else None
     def add_cashbox(self):
+        if not self._require_finance_operation(finance_operation_policy.OP_CASHBOX_CREATE): return
+        mw=self.window()
+        if hasattr(mw,'open_cashbox_document'):
+            return mw.open_cashbox_document()
         d=CashboxDialog(self)
         if d.exec_():
             try: cashbox_service.add_cashbox(d.payload()); show_toast(tr('cashbox_created'),'success', self); self.refresh()
@@ -198,6 +232,9 @@ class CashboxesWidget(QWidget):
                 show_toast(offline_read_message(tr('cashbox')), 'warning', self)
                 return
             raise
+        mw=self.window()
+        if hasattr(mw,'open_cashbox_document'):
+            return mw.open_cashbox_document(cid)
         d=CashboxDialog(self,data)
         if d.exec_():
             try: cashbox_service.update_cashbox(cid,d.payload()); show_toast(tr('updated_successfully'),'success', self); self.refresh()
@@ -209,6 +246,10 @@ class CashboxesWidget(QWidget):
             try: cashbox_service.archive_cashbox(cid); self.refresh()
             except Exception as e: QMessageBox.warning(self,tr('error'),str(e))
     def add_bank(self):
+        if not self._require_finance_operation(finance_operation_policy.OP_BANK_CREATE): return
+        mw=self.window()
+        if hasattr(mw,'open_bank_account_document'):
+            return mw.open_bank_account_document()
         d=BankDialog(self)
         if d.exec_():
             try: cashbox_service.add_bank_account(d.payload()); show_toast(tr('bank_account_created'),'success', self); self.refresh()
@@ -223,6 +264,9 @@ class CashboxesWidget(QWidget):
                 show_toast(offline_read_message(tr('bank_account')), 'warning', self)
                 return
             raise
+        mw=self.window()
+        if hasattr(mw,'open_bank_account_document'):
+            return mw.open_bank_account_document(bid)
         d=BankDialog(self,data)
         if d.exec_():
             try: cashbox_service.update_bank_account(bid,d.payload()); show_toast(tr('updated_successfully'),'success', self); self.refresh()

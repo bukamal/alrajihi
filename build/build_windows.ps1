@@ -10,6 +10,11 @@ if (!(Test-Path $IconPath)) {
 
 python tools\verify_branding_assets.py
 python tools\phase32_windows_import_guard.py
+python tools\release_packaging_guard.py
+python tools\release_translations_guard.py
+python tools\release_theme_guard.py
+python tools\release_hidden_imports_guard.py
+python tools\unified_printing_guard.py
 
 python -m pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
@@ -41,6 +46,16 @@ pyinstaller `
   --collect-all barcode `
   --collect-all qtawesome `
   --collect-all pyqtgraph `
+  --collect-submodules alrajhi_client.features `
+  --collect-submodules alrajhi_client.workspace `
+  --collect-submodules alrajhi_client.shell `
+  --collect-submodules alrajhi_client.ui `
+  --collect-submodules alrajhi_client.views.restaurant `
+  --collect-submodules features `
+  --collect-submodules workspace `
+  --collect-submodules shell `
+  --collect-submodules ui `
+  --collect-submodules views.restaurant `
   --hidden-import pyzbar.pyzbar `
   --hidden-import cv2 `
   --hidden-import qrcode `
@@ -63,6 +78,20 @@ pyinstaller `
   --hidden-import gateways.restaurant_gateway `
   --hidden-import gateways.local.restaurant_gateway `
   --hidden-import gateways.remote.restaurant_gateway `
+  --hidden-import features.items.item_editor_tab `
+  --hidden-import features.categories.category_editor_tab `
+  --hidden-import features.invoices.invoice_editor_tab `
+  --hidden-import features.returns.return_editor_tabs `
+  --hidden-import features.parties.party_editor_tab `
+  --hidden-import features.vouchers.voucher_editor_tab `
+  --hidden-import features.manufacturing.bom_document_tab `
+  --hidden-import features.manufacturing.production_order_document_tab `
+  --hidden-import features.settings.settings_document_tabs `
+  --hidden-import features.transactions.components.transaction_document_layout `
+  --hidden-import features.transactions.grids.transaction_line_grid `
+  --hidden-import workspace.documents.base_document_tab `
+  --hidden-import shell.tab_workspace `
+  --hidden-import shell.quick_open_dialog `
   --hidden-import flask_jwt_extended `
   --add-data "$QtPlatforms;platforms" `
   --add-data "alrajhi_client\assets\brand;assets\brand" `

@@ -20,11 +20,20 @@ class VoucherService:
     def __init__(self, gateway=None):
         self.gateway = gateway or create_voucher_gateway()
 
+    def _finance_policy(self):
+        from core.services.finance_operation_policy import finance_operation_policy
+        return finance_operation_policy
+
+    def _require(self, operation_key: str, context: str = '', payload: Dict | None = None) -> None:
+        self._finance_policy().require(operation_key, context=context, payload=payload or {})
+
     def list_vouchers(self, search: str | None = None, vtype: str | None = None,
                       limit: int | None = None, offset: int | None = None) -> Tuple[List[Dict], int]:
+        self._require('voucher_view', context='voucher:list', payload={'type': vtype})
         return pair(self.gateway.list(search=search, vtype=vtype, limit=limit, offset=offset), 'vouchers')
 
     def get(self, voucher_id: int) -> Optional[Dict]:
+        self._require('voucher_view', context='voucher:get', payload={'id': voucher_id})
         voucher = self.gateway.get(voucher_id)
         return voucher if isinstance(voucher, dict) else None
 
@@ -37,6 +46,7 @@ class VoucherService:
         return 'EXPENSE_VOUCHER'
 
     def add(self, data: Dict):
+        self._require('voucher_create', context='voucher:add', payload={'type': (data or {}).get('type')})
         if data.get('invoice_id'):
             try:
                 from core.services.invoice_service import invoice_service
@@ -54,6 +64,7 @@ class VoucherService:
         return voucher_id
 
     def update(self, voucher_id: int, data: Dict):
+        self._require('voucher_edit', context='voucher:update', payload={'id': voucher_id, 'type': (data or {}).get('type')})
         data = branch_service.ensure_branch_id(data)
         data = cashbox_service.prepare_voucher_payload(data)
         old = self.get(voucher_id)
@@ -65,6 +76,7 @@ class VoucherService:
         return result
 
     def delete(self, voucher_id: int):
+        self._require('voucher_delete', context='voucher:delete', payload={'id': voucher_id})
         old = self.get(voucher_id)
         cashbox_service.reverse_voucher(voucher_id)
         result = self.gateway.delete(voucher_id)

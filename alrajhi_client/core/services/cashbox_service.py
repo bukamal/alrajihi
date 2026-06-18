@@ -13,6 +13,13 @@ class CashboxService:
     def __init__(self):
         self.gateway = create_cashbox_gateway()
 
+    def _finance_policy(self):
+        from core.services.finance_operation_policy import finance_operation_policy
+        return finance_operation_policy
+
+    def _require_finance_operation(self, operation: str, context: str = '', payload=None):
+        return self._finance_policy().require(operation, context=context, payload=payload or {})
+
     def pos_shifts_enabled(self):
         try:
             from core.services.settings_service import settings_service
@@ -24,46 +31,63 @@ class CashboxService:
         self.gateway.bootstrap()
 
     def cashboxes(self, include_archived=False) -> List[Dict]:
+        self._require_finance_operation(self._finance_policy().OP_USE, context='CashboxService.cashboxes')
         return self.gateway.cashboxes(include_archived=include_archived)
 
+    def cashbox_by_id(self, cashbox_id: int) -> Optional[Dict]:
+        self._require_finance_operation(self._finance_policy().OP_USE, context='CashboxService.cashbox_by_id', payload={'cashbox_id': cashbox_id})
+        return self.gateway.get_cashbox(cashbox_id)
+
     def bank_accounts(self, include_archived=False) -> List[Dict]:
+        self._require_finance_operation(self._finance_policy().OP_USE, context='CashboxService.bank_accounts')
         return self.gateway.bank_accounts(include_archived=include_archived)
+
+    def bank_account_by_id(self, bank_account_id: int) -> Optional[Dict]:
+        self._require_finance_operation(self._finance_policy().OP_USE, context='CashboxService.bank_account_by_id', payload={'bank_account_id': bank_account_id})
+        return self.gateway.get_bank_account(bank_account_id)
 
     def default_cashbox_id(self, branch_id=None) -> Optional[int]:
         self.bootstrap()
         return self.gateway.default_cashbox_id(branch_id or branch_service.current_branch_id())
 
     def add_cashbox(self, data):
+        self._require_finance_operation(self._finance_policy().OP_CASHBOX_CREATE, context='CashboxService.add_cashbox', payload=data)
         cid = self.gateway.add_cashbox(data)
         audit_service.log('CREATE', 'CASHBOX', cid, new_values=data, details='إنشاء صندوق')
         return cid
 
     def update_cashbox(self, cid, data):
+        self._require_finance_operation(self._finance_policy().OP_CASHBOX_EDIT, context='CashboxService.update_cashbox', payload={'id': cid, **(data or {})})
         old = self.gateway.get_cashbox(cid)
         self.gateway.update_cashbox(cid, data)
         audit_service.log('UPDATE', 'CASHBOX', cid, old_values=old, new_values=self.gateway.get_cashbox(cid), details='تعديل صندوق')
 
     def archive_cashbox(self, cid):
+        self._require_finance_operation(self._finance_policy().OP_CASHBOX_ARCHIVE, context='CashboxService.archive_cashbox', payload={'id': cid})
         old = self.gateway.get_cashbox(cid)
         self.gateway.archive_cashbox(cid)
         audit_service.log('SOFT_DELETE', 'CASHBOX', cid, old_values=old, details='أرشفة صندوق')
 
     def add_bank_account(self, data):
+        self._require_finance_operation(self._finance_policy().OP_BANK_CREATE, context='CashboxService.add_bank_account', payload=data)
         bid = self.gateway.add_bank_account(data)
         audit_service.log('CREATE', 'BANK_ACCOUNT', bid, new_values=data, details='إنشاء حساب بنكي')
         return bid
 
     def update_bank_account(self, bid, data):
+        self._require_finance_operation(self._finance_policy().OP_BANK_EDIT, context='CashboxService.update_bank_account', payload={'id': bid, **(data or {})})
         old = self.gateway.get_bank_account(bid)
         self.gateway.update_bank_account(bid, data)
         audit_service.log('UPDATE', 'BANK_ACCOUNT', bid, old_values=old, new_values=self.gateway.get_bank_account(bid), details='تعديل حساب بنكي')
 
     def archive_bank_account(self, bid):
+        self._require_finance_operation(self._finance_policy().OP_BANK_ARCHIVE, context='CashboxService.archive_bank_account', payload={'id': bid})
         old = self.gateway.get_bank_account(bid)
         self.gateway.archive_bank_account(bid)
         audit_service.log('SOFT_DELETE', 'BANK_ACCOUNT', bid, old_values=old, details='أرشفة حساب بنكي')
 
     def movements(self, limit=200, cashbox_id=None, bank_account_id=None) -> List[Dict]:
+        self._require_finance_operation(self._finance_policy().OP_MOVEMENTS_VIEW, context='CashboxService.movements')
         return self.gateway.movements(limit=limit, cashbox_id=cashbox_id, bank_account_id=bank_account_id)
 
     def prepare_voucher_payload(self, data):
@@ -149,6 +173,7 @@ class CashboxService:
             return None
 
     def shifts(self, limit=100, status=None):
+        self._require_finance_operation(self._finance_policy().OP_SHIFTS_VIEW, context='CashboxService.shifts')
         return self.gateway.shifts(limit=limit, status=status)
 
     def open_shift(self, data):

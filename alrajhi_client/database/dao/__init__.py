@@ -1,24 +1,52 @@
-from .reporting_dao import ReportingDAO
-from .expense_dao import ExpenseDAO
-from .voucher_dao import VoucherDAO, voucher_dao
-from .invoice_dao import InvoiceDAO, invoice_dao
-from .item_dao import ItemDAO, item_dao
-from .category_dao import CategoryDAO, category_dao
-from .inventory_dao import inventory_dao
-from .customer_dao import customer_dao
-from .supplier_dao import supplier_dao
-from .manufacturing_dao import ManufacturingDAO, manufacturing_dao
-from .warehouse_dao import WarehouseDAO, warehouse_dao
-from .branch_dao import BranchDAO, branch_dao
-from .cashbox_dao import CashboxDAO, cashbox_dao
+# -*- coding: utf-8 -*-
+"""Legacy DAO public API with lazy imports.
 
-reporting_dao = ReportingDAO()
-expense_dao = ExpenseDAO()
+The DAO package used to import and instantiate every DAO singleton at package
+load time.  That is unnecessary for most startup paths and can pull optional
+services into settings/bootstrap code.  Names remain backward-compatible and are
+resolved on first access.
+"""
+from __future__ import annotations
 
-__all__ = [
-    'reporting_dao', 'expense_dao', 'voucher_dao', 'invoice_dao',
-    'item_dao', 'category_dao', 'inventory_dao',
-    'customer_dao', 'supplier_dao', 'manufacturing_dao', 'warehouse_dao', 'branch_dao', 'cashbox_dao'
-]
+from importlib import import_module
+from typing import Any, Dict, Tuple
+
+_EXPORTS: Dict[str, Tuple[str, str]] = {
+    'ReportingDAO': ('database.dao.reporting_dao', 'ReportingDAO'),
+    'ExpenseDAO': ('database.dao.expense_dao', 'ExpenseDAO'),
+    'VoucherDAO': ('database.dao.voucher_dao', 'VoucherDAO'),
+    'InvoiceDAO': ('database.dao.invoice_dao', 'InvoiceDAO'),
+    'ItemDAO': ('database.dao.item_dao', 'ItemDAO'),
+    'CategoryDAO': ('database.dao.category_dao', 'CategoryDAO'),
+    'ManufacturingDAO': ('database.dao.manufacturing_dao', 'ManufacturingDAO'),
+    'WarehouseDAO': ('database.dao.warehouse_dao', 'WarehouseDAO'),
+    'BranchDAO': ('database.dao.branch_dao', 'BranchDAO'),
+    'CashboxDAO': ('database.dao.cashbox_dao', 'CashboxDAO'),
+
+    'reporting_dao': ('database.dao.reporting_dao', 'reporting_dao'),
+    'expense_dao': ('database.dao.expense_dao', 'expense_dao'),
+    'voucher_dao': ('database.dao.voucher_dao', 'voucher_dao'),
+    'invoice_dao': ('database.dao.invoice_dao', 'invoice_dao'),
+    'item_dao': ('database.dao.item_dao', 'item_dao'),
+    'category_dao': ('database.dao.category_dao', 'category_dao'),
+    'inventory_dao': ('database.dao.inventory_dao', 'inventory_dao'),
+    'customer_dao': ('database.dao.customer_dao', 'customer_dao'),
+    'supplier_dao': ('database.dao.supplier_dao', 'supplier_dao'),
+    'manufacturing_dao': ('database.dao.manufacturing_dao', 'manufacturing_dao'),
+    'warehouse_dao': ('database.dao.warehouse_dao', 'warehouse_dao'),
+    'branch_dao': ('database.dao.branch_dao', 'branch_dao'),
+    'cashbox_dao': ('database.dao.cashbox_dao', 'cashbox_dao'),
+}
+
+__all__ = list(_EXPORTS.keys())
 
 
+def __getattr__(name: str) -> Any:
+    try:
+        module_name, attr_name = _EXPORTS[name]
+    except KeyError as exc:
+        raise AttributeError(f"module 'database.dao' has no attribute {name!r}") from exc
+    module = import_module(module_name)
+    value = getattr(module, attr_name)
+    globals()[name] = value
+    return value

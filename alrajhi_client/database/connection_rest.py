@@ -359,6 +359,46 @@ class RestClient:
     def get_item(self, item_id: int) -> Dict:
         return self._request('GET', f'/api/items/{item_id}', queue_on_failure=False)
 
+    def get_item_by_barcode(self, barcode: str) -> Dict | None:
+        """Fetch one material by exact barcode through the REST API.
+
+        This endpoint is deliberately exact and read-only.  It is used by
+        barcode scanner flows where falling back to a loose text search can add
+        the wrong material to a transaction.
+        """
+        value = str(barcode or '').strip()
+        if not value:
+            return None
+        try:
+            return self._request(
+                'GET',
+                '/api/items/by-barcode',
+                params={'barcode': value},
+                queue_on_failure=False,
+            )
+        except Exception as exc:
+            if 'API error 404' in str(exc):
+                return None
+            raise
+
+    def get_item_sold_quantities(self, item_ids):
+        ids = [int(x) for x in (item_ids or []) if x is not None]
+        if not ids:
+            return {}
+        result = self._request(
+            'GET',
+            '/api/items/sold-quantities',
+            params={'ids': ','.join(str(i) for i in ids)},
+            queue_on_failure=False,
+        )
+        raw = (result or {}).get('sold_quantities', {})
+        return {int(k): Decimal(str(v or 0)) for k, v in raw.items()}
+
+
+    def get_item_activity_summary(self, item_id: int) -> Dict:
+        result = self._request('GET', f'/api/items/{int(item_id)}/activity-summary', queue_on_failure=False)
+        return result if isinstance(result, dict) else {}
+
     def add_item(self, data: Dict) -> int:
         result = self._request('POST', '/api/items', data)
         return result['id']
@@ -479,11 +519,11 @@ class RestClient:
     def start_production(self, order_id: int):
         self._request('POST', f'/api/manufacturing/orders/{order_id}/start')
 
-    def complete_production(self, order_id: int, produced_qty: float):
-        self._request('POST', f'/api/manufacturing/orders/{order_id}/complete', {'produced_qty': produced_qty})
+    def complete_production(self, order_id: int, produced_qty: float, unit_id=None, conversion_factor='1'):
+        self._request('POST', f'/api/manufacturing/orders/{order_id}/complete', {'produced_qty': produced_qty, 'unit_id': unit_id, 'conversion_factor': conversion_factor})
 
-    def consume_material(self, order_id: int, item_id: int, consumed_qty: float, unit_cost: float):
-        self._request('POST', f'/api/manufacturing/orders/{order_id}/consume', {'item_id': item_id, 'consumed_qty': consumed_qty, 'unit_cost': unit_cost})
+    def consume_material(self, order_id: int, item_id: int, consumed_qty: float, unit_cost: float, unit_id=None, conversion_factor='1'):
+        self._request('POST', f'/api/manufacturing/orders/{order_id}/consume', {'item_id': item_id, 'consumed_qty': consumed_qty, 'unit_cost': unit_cost, 'unit_id': unit_id, 'conversion_factor': conversion_factor})
 
     def delete_production_order(self, order_id: int):
         self._request('DELETE', f'/api/manufacturing/orders/{order_id}')
@@ -515,8 +555,11 @@ class RestClient:
         result = self._request('GET', f'/api/manufacturing/orders/{order_id}/outputs', queue_on_failure=False)
         return result.get('outputs', []) if isinstance(result, dict) else (result or [])
 
-    def get_required_materials(self, bom_id: int, planned_qty):
-        result = self._request('GET', f'/api/manufacturing/boms/{bom_id}/required-materials', params={'planned_qty': planned_qty}, queue_on_failure=False)
+    def get_required_materials(self, bom_id: int, planned_qty, warehouse_id=None):
+        params = {'planned_qty': planned_qty}
+        if warehouse_id not in (None, ''):
+            params['warehouse_id'] = warehouse_id
+        result = self._request('GET', f'/api/manufacturing/boms/{bom_id}/required-materials', params=params, queue_on_failure=False)
         return result.get('materials', []) if isinstance(result, dict) else (result or [])
 
     def check_materials_availability(self, bom_id: int, planned_qty):

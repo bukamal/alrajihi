@@ -1,0 +1,79 @@
+# -*- coding: utf-8 -*-
+from __future__ import annotations
+
+from typing import Optional
+
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QSplitter, QVBoxLayout, QWidget
+
+from i18n import translate
+
+
+class DetailPlaceholder(QFrame):
+    """Reusable placeholder for master-detail ERP pages.
+
+    It deliberately contains no data access. Pages pass selected-row summaries
+    into set_summary(), and document tabs remain responsible for editing.
+    """
+
+    def __init__(self, title: str = '', parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setObjectName('DetailPlaceholder')
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(10)
+        self.title_label = QLabel(title or translate('details'))
+        self.title_label.setObjectName('DetailTitle')
+        self.subtitle_label = QLabel(translate('select_record_to_preview') if translate('select_record_to_preview') != 'select_record_to_preview' else 'اختر سجلاً لعرض ملخصه')
+        self.subtitle_label.setObjectName('DetailSubtitle')
+        self.body_label = QLabel('')
+        self.body_label.setObjectName('DetailBody')
+        self.body_label.setWordWrap(True)
+        layout.addWidget(self.title_label)
+        layout.addWidget(self.subtitle_label)
+        layout.addWidget(self.body_label, 1)
+        self.setStyleSheet('''
+            QFrame#DetailPlaceholder {
+                border: 1px solid palette(mid);
+                border-radius: 14px;
+                background: palette(base);
+            }
+            QLabel#DetailTitle { font-size: 16px; font-weight: 900; }
+            QLabel#DetailSubtitle { color: palette(mid); font-weight: 700; }
+            QLabel#DetailBody { line-height: 150%; }
+        ''')
+
+    def set_summary(self, title: str, lines: list[str]) -> None:
+        self.title_label.setText(title or translate('details'))
+        self.subtitle_label.setText(translate('record_preview') if translate('record_preview') != 'record_preview' else 'معاينة السجل')
+        self.body_label.setText('\n'.join(str(line) for line in lines if line is not None))
+
+    def clear_summary(self) -> None:
+        self.title_label.setText(translate('details'))
+        self.subtitle_label.setText(translate('select_record_to_preview') if translate('select_record_to_preview') != 'select_record_to_preview' else 'اختر سجلاً لعرض ملخصه')
+        self.body_label.setText('')
+
+
+class ResponsiveMasterDetail(QWidget):
+    """Standard responsive shell for list/detail screens.
+
+    The left side is the existing list widget or table area; the right side is a
+    preview/editor panel. QSplitter gives users real resizing behavior instead
+    of dead whitespace when the main window is enlarged.
+    """
+
+    def __init__(self, master: QWidget, detail: QWidget, parent: Optional[QWidget] = None, *, master_weight: int = 3, detail_weight: int = 2) -> None:
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.splitter = QSplitter(Qt.Horizontal, self)
+        self.splitter.setObjectName('ResponsiveMasterDetailSplitter')
+        self.splitter.addWidget(master)
+        self.splitter.addWidget(detail)
+        self.splitter.setStretchFactor(0, max(1, master_weight))
+        self.splitter.setStretchFactor(1, max(1, detail_weight))
+        self.splitter.setChildrenCollapsible(False)
+        layout.addWidget(self.splitter)
+
+    def set_initial_sizes(self, total_width: int = 1200) -> None:
+        self.splitter.setSizes([int(total_width * 0.62), int(total_width * 0.38)])

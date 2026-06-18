@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from decimal import Decimal
 from PyQt5.QtCore import Qt, QDate, QSettings
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QDateEdit, QDoubleSpinBox, QTextEdit, QMessageBox, QTableWidget, QTableWidgetItem, QHeaderView, QDialogButtonBox, QMenu, QAction, QStyledItemDelegate
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QDateEdit, QDoubleSpinBox, QTextEdit, QMessageBox, QTableWidgetItem, QHeaderView, QDialogButtonBox, QMenu, QAction, QStyledItemDelegate
 from views.centered_dialog import CenteredDialog
-from views.custom_table_view import CustomTableView
+from ui.smart_table_view import SmartTableView
+from ui.editable_smart_grid import EditableSmartGrid
 from views.widgets.components.table_toolbar import TableToolbar
 from models.table_models import GenericTableModel
 from core.services.sales_return_service import sales_return_service
@@ -503,12 +504,12 @@ class SalesReturnDialog(CenteredDialog):
         top.addWidget(self.date_edit)
         layout.addLayout(top)
 
-        self.lines_table = QTableWidget(0, RET_COL_COUNT)
+        self.lines_table = EditableSmartGrid(0, RET_COL_COUNT, identity='returns.lines')
         self.lines_table.setHorizontalHeaderLabels([translate('barcode'), translate('return_item'), translate('sold_qty'), translate('previous_returned'), translate('returnable_qty'), translate('unit'), translate('return_qty'), translate('price'), translate('total'), translate('notes')])
         self.lines_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.lines_table.cellChanged.connect(lambda *_: self.recalculate())
         self.lines_table.setItemDelegateForColumn(RET_COL_UNIT, ReturnUnitDelegate(self))
-        self.lines_table.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.SelectedClicked | QTableWidget.EditKeyPressed)
+        self.lines_table.setEditTriggers(EditableSmartGrid.DoubleClicked | EditableSmartGrid.SelectedClicked | EditableSmartGrid.EditKeyPressed)
         _ret_install_return_line_column_controls(self, 'sales_return_lines')
         line_tools = QHBoxLayout()
         self.columns_btn = QPushButton(translate('columns'))
@@ -908,9 +909,9 @@ class ReturnsWidget(QWidget):
         self.toolbar.refreshRequested.connect(self.refresh)
         self.toolbar.searchChanged.connect(lambda _t: self.refresh(True))
         layout.addWidget(self.toolbar)
-        self.table = CustomTableView()
+        self.table = SmartTableView(identity="returns.list")
         self.table.set_table_identity('ReturnsWidget.sales_returns')
-        self.table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.toolbar.set_table(self.table)
         self.table.clicked.connect(lambda *_: self.toolbar.set_delete_enabled(True))
         self.table.clicked.connect(lambda *_: self.toolbar.set_edit_enabled(True))
@@ -1024,6 +1025,12 @@ class ReturnsWidget(QWidget):
             printing_service.return_preview(data, self)
 
     def add_return(self):
+        main = self.window()
+        if hasattr(main, 'open_return_document'):
+            tab = main.open_return_document('sale')
+            if tab and hasattr(tab, 'saved'):
+                tab.saved.connect(lambda *_: self.refresh(True))
+            return
         dlg = SalesReturnDialog(self)
         if dlg.exec():
             show_toast(translate('sales_return_saved'), 'success', self)
@@ -1041,6 +1048,12 @@ class ReturnsWidget(QWidget):
         data = sales_return_service.get(rid)
         if not data:
             QMessageBox.warning(self, translate('error'), translate('return_load_failed'))
+            return
+        main = self.window()
+        if hasattr(main, 'open_return_document'):
+            tab = main.open_return_document('sale', return_id=rid, return_data=data)
+            if tab and hasattr(tab, 'saved'):
+                tab.saved.connect(lambda *_: self.refresh(True))
             return
         dlg = SalesReturnDialog(self, return_id=rid, return_data=data)
         if dlg.exec():
@@ -1094,12 +1107,12 @@ class PurchaseReturnDialog(CenteredDialog):
         top.addWidget(self.date_edit)
         layout.addLayout(top)
 
-        self.lines_table = QTableWidget(0, RET_COL_COUNT)
+        self.lines_table = EditableSmartGrid(0, RET_COL_COUNT, identity='returns.lines')
         self.lines_table.setHorizontalHeaderLabels([translate('barcode'), translate('return_item'), translate('purchased_qty'), translate('previous_returned'), translate('returnable_qty'), translate('unit'), translate('return_qty'), translate('price'), translate('total'), translate('notes')])
         self.lines_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.lines_table.cellChanged.connect(lambda *_: self.recalculate())
         self.lines_table.setItemDelegateForColumn(RET_COL_UNIT, ReturnUnitDelegate(self))
-        self.lines_table.setEditTriggers(QTableWidget.DoubleClicked | QTableWidget.SelectedClicked | QTableWidget.EditKeyPressed)
+        self.lines_table.setEditTriggers(EditableSmartGrid.DoubleClicked | EditableSmartGrid.SelectedClicked | EditableSmartGrid.EditKeyPressed)
         _ret_install_return_line_column_controls(self, 'purchase_return_lines')
         line_tools = QHBoxLayout()
         self.columns_btn = QPushButton(translate('columns'))
@@ -1371,9 +1384,9 @@ class PurchaseReturnsWidget(QWidget):
         self.toolbar.refreshRequested.connect(self.refresh)
         self.toolbar.searchChanged.connect(lambda _t: self.refresh(True))
         layout.addWidget(self.toolbar)
-        self.table = CustomTableView()
+        self.table = SmartTableView()
         self.table.set_table_identity('PurchaseReturnsWidget.purchase_returns')
-        self.table.setSelectionBehavior(CustomTableView.SelectRows)
+        self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.toolbar.set_table(self.table)
         self.table.clicked.connect(lambda *_: self.toolbar.set_delete_enabled(True))
         self.table.clicked.connect(lambda *_: self.toolbar.set_edit_enabled(True))
@@ -1471,6 +1484,12 @@ class PurchaseReturnsWidget(QWidget):
             printing_service.return_preview(data, self)
 
     def add_return(self):
+        main = self.window()
+        if hasattr(main, 'open_return_document'):
+            tab = main.open_return_document('purchase')
+            if tab and hasattr(tab, 'saved'):
+                tab.saved.connect(lambda *_: self.refresh(True))
+            return
         dlg = PurchaseReturnDialog(self)
         if dlg.exec():
             show_toast(translate('purchase_return_saved'), 'success', self)
@@ -1488,6 +1507,12 @@ class PurchaseReturnsWidget(QWidget):
         data = purchase_return_service.get(rid)
         if not data:
             QMessageBox.warning(self, translate('error'), translate('return_load_failed'))
+            return
+        main = self.window()
+        if hasattr(main, 'open_return_document'):
+            tab = main.open_return_document('purchase', return_id=rid, return_data=data)
+            if tab and hasattr(tab, 'saved'):
+                tab.saved.connect(lambda *_: self.refresh(True))
             return
         dlg = PurchaseReturnDialog(self, return_id=rid, return_data=data)
         if dlg.exec():

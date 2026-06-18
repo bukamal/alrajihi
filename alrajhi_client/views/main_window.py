@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QStackedWidget, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog, QToolButton
+from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog, QToolButton
 from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer, QDateTime, QSize
 from PyQt5.QtGui import QIcon, QKeySequence
 import qtawesome as qta
@@ -25,6 +25,8 @@ from views.widgets.audit_log_widget import AuditLogWidget
 from views.widgets.offline_queue_widget import OfflineQueueWidget
 from views.widgets.monitoring_widget import MonitoringWidget
 from views.restaurant.restaurant_dashboard import RestaurantDashboard
+from shell import QuickOpenDialog, QuickOpenItem, TabbedWorkspace, WorkspaceEntry, WorkspaceStateStore, UnifiedActionBar, NotificationCenter, NotificationItem
+from shell.shortcuts import bind_workspace_shortcuts
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from views.dialogs.login_dialog import LoginDialog
 from views.modern_topbar import ModernTopBar
@@ -32,6 +34,7 @@ from i18n.translator import translate, set_language, normalize_language, qt_layo
 from core.services.settings_service import settings_service
 from core.services.system_service import system_service
 from core.services.offline_queue_service import offline_queue_service
+from core.services.global_search_service import global_search_service
 from brand_assets import app_icon, logo_png, APP_DISPLAY_NAME_AR
 
 PAGE_META_KEYS = {
@@ -193,6 +196,7 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1200, 700)
         self.resize(1400, 900)
         self.drag_pos = None
+        self.workspace_state_store = WorkspaceStateStore()
 
         set_language(self._current_language)
         theme = settings_service.get_theme()
@@ -201,10 +205,12 @@ class MainWindow(QMainWindow):
         self.setup_ui()
         self.setup_menus()
         self.setup_topbar_buttons()
+        self.setup_action_bar()
         self.setup_shell_state()
         self.setup_shortcuts()
         self.setup_offline_queue()
         self.switch_page('dashboard')
+        self.restore_workspace_session()
 
     def setup_ui(self):
         central = QWidget()
@@ -271,8 +277,23 @@ class MainWindow(QMainWindow):
         self.top_bar = ModernTopBar(self)
         main_layout.addWidget(self.top_bar)
 
-        self.stack = QStackedWidget()
-        main_layout.addWidget(self.stack)
+        self.action_bar = UnifiedActionBar(self)
+        main_layout.addWidget(self.action_bar)
+
+        workspace_shell = QWidget(self)
+        workspace_shell.setObjectName("WorkspaceShellBody")
+        workspace_shell_layout = QHBoxLayout(workspace_shell)
+        workspace_shell_layout.setContentsMargins(0, 0, 0, 0)
+        workspace_shell_layout.setSpacing(0)
+
+        self.workspace = TabbedWorkspace(workspace_shell)
+        self.stack = self.workspace  # compatibility alias during the tabbed-shell migration
+        workspace_shell_layout.addWidget(self.workspace, 1)
+
+        self.notification_center = NotificationCenter(workspace_shell)
+        self.notification_center.actionRequested.connect(self.handle_notification_action)
+        workspace_shell_layout.addWidget(self.notification_center)
+        main_layout.addWidget(workspace_shell, 1)
 
         self.pages = {}
         self.init_pages()
@@ -330,8 +351,10 @@ class MainWindow(QMainWindow):
             ('restaurant', RestaurantDashboard),
         ]
         for key, factory in page_factories:
-            self.pages[key] = self._create_page_safely(key, factory)
-            self.stack.addWidget(self.pages[key])
+            page = self._create_page_safely(key, factory)
+            page.setObjectName(key)
+            page.setWindowTitle(page_title(key))
+            self.pages[key] = page
 
     def setup_menus(self):
         """Build the primary ERP navigation menu.
@@ -415,7 +438,9 @@ class MainWindow(QMainWindow):
 
         inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), '\n' + translate('nav_inventory'))
         add_action(inventory_menu, translate('items'), 'box', 'items', shortcut='F4')
+        add_action(inventory_menu, translate('new_item'), 'box-open', callback=self.open_quick_item)
         add_action(inventory_menu, translate('categories'), 'folder', 'categories')
+        add_action(inventory_menu, translate('add_category'), 'folder-plus', callback=lambda: self.open_category_document())
         add_action(inventory_menu, translate('warehouses'), 'warehouse', 'warehouses', shortcut='F5')
 
         manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), '\n' + translate('nav_manufacturing'))
@@ -454,6 +479,8 @@ class MainWindow(QMainWindow):
             add_action(users_menu, translate('audit_log'), 'history', 'audit_log')
 
         quick_menu = self.menu_bar.addMenu(qta.icon('fa5s.bolt'), '\n' + translate('quick_actions'))
+        add_action(quick_menu, translate('workspace.quick_open'), 'search', callback=self.open_quick_open, shortcut='Ctrl+K')
+        quick_menu.addSeparator()
         add_action(quick_menu, translate('new_sales_invoice'), 'file-invoice-dollar', callback=lambda: self.open_quick_invoice('sale'), shortcut='Ctrl+N')
         add_action(quick_menu, translate('new_purchase_invoice'), 'file-invoice', callback=lambda: self.open_quick_invoice('purchase'))
         add_action(quick_menu, translate('receipt_voucher'), 'hand-holding-usd', callback=lambda: self.open_quick_voucher('receipt'))
@@ -483,6 +510,21 @@ class MainWindow(QMainWindow):
             self.top_bar.screenshot_btn.clicked.connect(self.export_screenshot)
         self.update_badges()
 
+
+
+    def setup_action_bar(self):
+        """Bind shared workspace actions without bypassing existing printing.
+
+        The print/export buttons call the same command methods used by Ctrl+P
+        and tab-specific actions. Tables still print through SmartTableView ->
+        CustomTableView.print_table -> printing.printing_service.
+        """
+        self.action_bar.bind('new', lambda: self.open_quick_invoice('sale'))
+        self.action_bar.bind('save', self.save_current_tab)
+        self.action_bar.bind('refresh', self.refresh_current_view)
+        self.action_bar.bind('print', self.print_current_tab)
+        self.action_bar.bind('export', self.export_current_tab)
+        self.action_bar.bind('quick_open', self.open_quick_open)
 
     def setup_shell_state(self):
         user = UserSession.get_current() or {}
@@ -539,31 +581,48 @@ class MainWindow(QMainWindow):
             if pixmap.isNull() or not pixmap.save(path):
                 QMessageBox.warning(self, translate('warning'), translate('screenshot_failed'))
                 return
-            QMessageBox.information(self, translate('success'), translate('screenshot_saved').format(path=path))
+            self.notify_user(translate('success'), translate('screenshot_saved').format(path=path), level='success')
         except Exception as exc:
             QMessageBox.warning(self, translate('warning'), f"{translate('screenshot_failed')}: {exc}")
 
     def show_alerts_menu(self):
-        menu = QMenu(self)
+        """Open the non-blocking notification center instead of a transient menu."""
+        self.refresh_notification_center(show=True)
+
+    def refresh_notification_center(self, show=False):
         try:
             from core.services.alert_service import alert_service
-            alerts = alert_service.dashboard_alerts(limit=8) if hasattr(alert_service, 'dashboard_alerts') else []
+            alerts = alert_service.dashboard_alerts(limit=20) if hasattr(alert_service, 'dashboard_alerts') else []
         except Exception:
             alerts = []
-        if not alerts:
-            action = menu.addAction(qta.icon('fa5s.check-circle'), translate('no_critical_alerts'))
-            action.setEnabled(False)
-        else:
-            for alert in alerts[:8]:
-                title = alert.get('title') or alert.get('message') or str(alert)
-                menu.addAction(qta.icon('fa5s.exclamation-triangle'), title)
-            menu.addSeparator()
-            menu.addAction(qta.icon('fa5s.tachometer-alt'), translate('open_dashboard')).triggered.connect(lambda: self.switch_page('dashboard'))
+        items = []
+        for alert in alerts or []:
+            title = alert.get('title') or alert.get('message') or str(alert)
+            message = alert.get('message') if isinstance(alert, dict) else ''
+            level = alert.get('level') or alert.get('severity') or 'warning' if isinstance(alert, dict) else 'warning'
+            items.append(NotificationItem(title=title, message=message if message != title else '', level=level, source=translate('alerts'), action_key='dashboard'))
+        if not items:
+            items.append(NotificationItem(title=translate('no_critical_alerts'), level='success', source=translate('alerts')))
+        if hasattr(self, 'notification_center'):
+            self.notification_center.set_notifications(items)
+            if show:
+                self.notification_center.setVisible(not self.notification_center.isVisible())
         try:
             self.update_badges()
         except Exception:
             pass
-        menu.exec_(self.top_bar.alert_btn.mapToGlobal(self.top_bar.alert_btn.rect().bottomLeft()))
+
+    def notify_user(self, title, message='', level='info'):
+        if hasattr(self, 'notification_center'):
+            self.notification_center.show_temporary(str(title), str(message or ''), level=level)
+        else:
+            QMessageBox.information(self, translate('alerts'), str(title))
+
+    def handle_notification_action(self, action_key):
+        if action_key == 'dashboard':
+            self.switch_page('dashboard')
+        elif action_key in getattr(self, 'pages', {}):
+            self.switch_page(action_key)
 
     def _set_page_context(self, pid):
         title, breadcrumb = page_title(pid), page_breadcrumb(pid)
@@ -572,6 +631,8 @@ class MainWindow(QMainWindow):
             self.top_bar.set_active(NAV_GROUP_BY_PAGE.get(pid, pid))
         if hasattr(self, 'title_label'):
             self.title_label.setText(f"{translate('app_title')} — {title}")
+        if hasattr(self, 'action_bar'):
+            self.action_bar.set_context(title)
 
     def _refresh_page_if_loaded(self, page_key):
         try:
@@ -583,52 +644,452 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
-    def open_quick_invoice(self, inv_type):
+    def open_quick_invoice(self, inv_type, invoice_id=None):
         try:
-            from views.dialogs.invoice_dialog import InvoiceDialog
-            dialog = InvoiceDialog(inv_type, self)
-            if dialog.exec():
-                self._refresh_page_if_loaded('sales_invoices' if inv_type == 'sale' else 'purchase_invoices')
+            sequence = getattr(self, '_invoice_tab_sequence', 0) + 1
+            self._invoice_tab_sequence = sequence
+            tab_id = f"invoice:{inv_type}:{invoice_id or 'new'}:{sequence if invoice_id is None else invoice_id}"
+            widget = None
+            try:
+                from features.transactions.feature_flags import (
+                    use_new_transaction_documents,
+                    use_new_transaction_documents_for_existing,
+                )
+                should_use_new = use_new_transaction_documents() and (
+                    invoice_id is None or use_new_transaction_documents_for_existing()
+                )
+                if should_use_new:
+                    if inv_type == 'purchase':
+                        from features.transactions.documents.purchase_invoice_tab import PurchaseInvoiceTab
+                        widget = PurchaseInvoiceTab(self, invoice_id=invoice_id)
+                    else:
+                        from features.transactions.documents.sales_invoice_tab import SalesInvoiceTab
+                        widget = SalesInvoiceTab(self, invoice_id=invoice_id)
+            except Exception:
+                widget = None
+            if widget is None:
+                from features.invoices import InvoiceEditorTab
+                widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=invoice_id)
+            icon = 'fa5s.file-invoice-dollar' if inv_type == 'sale' else 'fa5s.file-invoice'
+            self._open_document_tab(tab_id, widget.workspace_title(), widget, icon_name=icon, singleton=False)
+            if hasattr(widget, 'saved'):
+                def _on_invoice_saved(invoice_id, tab=widget, kind=inv_type):
+                    page_key = 'sales_invoices' if kind == 'sale' else 'purchase_invoices'
+                    self._refresh_page_if_loaded(page_key)
+                    self._rename_workspace_widget(tab, tab.workspace_title() if hasattr(tab, 'workspace_title') else tab.windowTitle())
+                widget.saved.connect(_on_invoice_saved)
+            return widget
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def _open_document_tab(self, tab_id, title, widget, icon_name='fa5s.file-alt', singleton=False):
+        self.workspace.open_tab(tab_id, title, widget, icon_name=icon_name, singleton=singleton)
+        if hasattr(widget, 'dirtyChanged'):
+            widget.dirtyChanged.connect(lambda dirty, tid=tab_id: self.workspace.mark_dirty(tid, dirty))
+        if hasattr(widget, 'titleChanged'):
+            widget.titleChanged.connect(lambda new_title, w=widget: self._rename_workspace_widget(w, new_title))
+        if hasattr(widget, 'saved'):
+            widget.saved.connect(lambda *_args: self._on_document_saved(widget))
+        return widget
+
+    def _rename_workspace_widget(self, widget, title):
+        index = self.workspace.indexOf(widget)
+        if index >= 0:
+            self.workspace.setTabText(index, title)
+
+    def _on_document_saved(self, widget):
+        try:
+            for page_key in ('items', 'categories', 'customers', 'suppliers', 'vouchers', 'manufacturing', 'warehouses'):
+                self._refresh_page_if_loaded(page_key)
+        except Exception:
+            pass
+        tab_id = self.workspace._widget_ids.get(widget) if hasattr(self.workspace, '_widget_ids') else None
+        if tab_id:
+            self.workspace.mark_dirty(tab_id, False)
+
+    def open_item_document(self, item_id=None):
+        try:
+            from features.items import ItemEditorTab
+            sequence = getattr(self, '_item_tab_sequence', 0) + 1
+            self._item_tab_sequence = sequence
+            tab_id = f"item:{item_id or 'new'}:{sequence if item_id is None else item_id}"
+            widget = ItemEditorTab(self, item_id=item_id)
+            return self._open_document_tab(tab_id, widget.windowTitle() or translate('item_add_title'), widget, icon_name='fa5s.box-open', singleton=False)
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_category_document(self, category_id=None):
+        try:
+            from features.categories import CategoryEditorTab
+            sequence = getattr(self, '_category_tab_sequence', 0) + 1
+            self._category_tab_sequence = sequence
+            tab_id = f"category:{category_id or 'new'}:{sequence if category_id is None else category_id}"
+            widget = CategoryEditorTab(self, category_id=category_id)
+            return self._open_document_tab(tab_id, widget.windowTitle() or translate('add_category'), widget, icon_name='fa5s.folder-plus', singleton=False)
         except Exception as exc:
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
 
     def open_quick_item(self):
+        self.open_item_document()
+
+    def open_party_document(self, party_type='customer', party_id=None):
         try:
-            from views.dialogs.item_dialog import ItemDialog
-            dialog = ItemDialog(self)
-            if dialog.exec():
-                self._refresh_page_if_loaded('items')
+            from features.parties import PartyEditorTab
+            party_type = party_type if party_type in ('customer', 'supplier') else 'customer'
+            sequence_name = f'_{party_type}_tab_sequence'
+            sequence = getattr(self, sequence_name, 0) + 1
+            setattr(self, sequence_name, sequence)
+            tab_id = f"{party_type}:{party_id or 'new'}:{sequence if party_id is None else party_id}"
+            widget = PartyEditorTab(self, party_type=party_type, party_id=party_id)
+            icon = 'fa5s.user-friends' if party_type == 'customer' else 'fa5s.truck-loading'
+            fallback = translate('customer_new_tab') if party_type == 'customer' else translate('supplier_new_tab')
+            return self._open_document_tab(tab_id, widget.windowTitle() or fallback, widget, icon_name=icon, singleton=False)
         except Exception as exc:
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
 
     def open_quick_customer(self):
-        try:
-            from views.dialogs.add_entity_dialog import AddEntityDialog
-            dialog = AddEntityDialog(self, 'sale')
-            if dialog.exec():
-                self._refresh_page_if_loaded('customers')
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+        return self.open_party_document('customer')
 
     def open_quick_supplier(self):
+        return self.open_party_document('supplier')
+
+    def open_quick_voucher(self, voucher_type='receipt', voucher=None):
         try:
-            from views.dialogs.add_entity_dialog import AddEntityDialog
-            dialog = AddEntityDialog(self, 'purchase')
-            if dialog.exec():
-                self._refresh_page_if_loaded('suppliers')
+            from features.vouchers import VoucherEditorTab
+            sequence = getattr(self, '_voucher_tab_sequence', 0) + 1
+            self._voucher_tab_sequence = sequence
+            voucher_id = voucher.get('id') if isinstance(voucher, dict) else None
+            tab_id = f"voucher:{voucher_id or 'new'}:{sequence if voucher_id is None else voucher_id}"
+            widget = VoucherEditorTab(self, voucher=voucher, voucher_type=voucher_type)
+            return self._open_document_tab(tab_id, widget.windowTitle() or translate('new_voucher'), widget, icon_name='fa5s.receipt', singleton=False)
         except Exception as exc:
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
 
-    def open_quick_voucher(self, voucher_type='receipt'):
+    def open_return_document(self, return_type='sale', return_id=None, return_data=None):
         try:
-            from views.widgets.vouchers_widget import VoucherDialog
-            dialog = VoucherDialog(self)
-            if hasattr(dialog, 'type_combo'):
-                dialog.type_combo.setCurrentIndex(0 if voucher_type == 'receipt' else 1)
-            if dialog.exec():
-                self._refresh_page_if_loaded('vouchers')
+            if return_type == 'purchase':
+                title = translate('purchase_return')
+                icon = 'fa5s.undo-alt'
+            else:
+                title = translate('sales_return')
+                icon = 'fa5s.undo'
+            sequence = getattr(self, '_return_tab_sequence', 0) + 1
+            self._return_tab_sequence = sequence
+            tab_id = f"return:{return_type}:{return_id or 'new'}:{sequence if return_id is None else return_id}"
+            widget = None
+            try:
+                from features.transactions.feature_flags import (
+                    use_new_transaction_returns,
+                    use_new_transaction_returns_for_existing,
+                )
+                should_use_new = use_new_transaction_returns() and (
+                    return_id is None or use_new_transaction_returns_for_existing()
+                )
+                if should_use_new:
+                    if return_type == 'purchase':
+                        from features.transactions.documents.purchase_return_tab import PurchaseReturnTab
+                        widget = PurchaseReturnTab(self, return_id=return_id, return_data=return_data)
+                    else:
+                        from features.transactions.documents.sales_return_tab import SalesReturnTab
+                        widget = SalesReturnTab(self, return_id=return_id, return_data=return_data)
+            except Exception:
+                widget = None
+            if widget is None:
+                if return_type == 'purchase':
+                    from features.returns import PurchaseReturnEditorTab as ReturnEditorTab
+                else:
+                    from features.returns import SalesReturnEditorTab as ReturnEditorTab
+                widget = ReturnEditorTab(self, return_id=return_id, return_data=return_data)
+            opened = self._open_document_tab(tab_id, widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or title), widget, icon_name=icon, singleton=False)
+            if hasattr(widget, 'saved'):
+                def _on_return_saved(_rid=None, kind=return_type):
+                    page_key = 'purchase_returns' if kind == 'purchase' else 'returns'
+                    self._refresh_page_if_loaded(page_key)
+                    self._rename_workspace_widget(widget, widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or title))
+                widget.saved.connect(_on_return_saved)
+            return opened
         except Exception as exc:
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+
+    def open_bom_document(self, bom_id=None):
+        try:
+            from features.manufacturing import BomDocumentTab
+            sequence = getattr(self, '_bom_tab_sequence', 0) + 1
+            self._bom_tab_sequence = sequence
+            tab_id = f"bom:{bom_id or 'new'}:{sequence if bom_id is None else bom_id}"
+            widget = BomDocumentTab(self, bom_id=bom_id)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('bom_recipe'))
+            return self._open_document_tab(tab_id, title, widget, icon_name='fa5s.industry', singleton=False)
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_production_order_document(self):
+        try:
+            from features.manufacturing import ProductionOrderDocumentTab
+            sequence = getattr(self, '_production_order_tab_sequence', 0) + 1
+            self._production_order_tab_sequence = sequence
+            tab_id = f"production_order:new:{sequence}"
+            widget = ProductionOrderDocumentTab(self)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('new_production_order'))
+            return self._open_document_tab(tab_id, title, widget, icon_name='fa5s.cogs', singleton=False)
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_production_order_details(self, order_id=None):
+        try:
+            from features.manufacturing import ProductionOrderDetailsTab
+            if order_id is None:
+                return None
+            tab_id = f"production_order:{order_id}"
+            widget = ProductionOrderDetailsTab(self, order_id=order_id)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('production_details'))
+            return self._open_document_tab(tab_id, title, widget, icon_name='fa5s.clipboard-list', singleton=True)
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+
+
+
+
+
+    def open_branch_document(self, branch_id=None):
+        try:
+            from features.branches import BranchDocumentTab
+            sequence = getattr(self, '_branch_tab_sequence', 0) + 1
+            self._branch_tab_sequence = sequence
+            tab_id = f"branch:{branch_id or 'new'}:{sequence if branch_id is None else branch_id}"
+            widget = BranchDocumentTab(self, branch_id=branch_id)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('branch_document_new'))
+            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.code-branch', singleton=False)
+            if hasattr(widget, 'saved'):
+                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('branches'))
+            return opened
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+
+    def open_warehouse_document(self, warehouse_id=None):
+        try:
+            from features.inventory import WarehouseDocumentTab
+            sequence = getattr(self, '_warehouse_tab_sequence', 0) + 1
+            self._warehouse_tab_sequence = sequence
+            tab_id = f"warehouse:{warehouse_id or 'new'}:{sequence if warehouse_id is None else warehouse_id}"
+            widget = WarehouseDocumentTab(self, warehouse_id=warehouse_id)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('warehouse_document_new'))
+            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.warehouse', singleton=False)
+            if hasattr(widget, 'saved'):
+                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('warehouses'))
+            return opened
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+
+
+    def open_cashbox_document(self, cashbox_id=None):
+        try:
+            from features.finance import CashboxDocumentTab
+            sequence = getattr(self, '_cashbox_tab_sequence', 0) + 1
+            self._cashbox_tab_sequence = sequence
+            tab_id = f"cashbox:{cashbox_id or 'new'}:{sequence if cashbox_id is None else cashbox_id}"
+            widget = CashboxDocumentTab(self, cashbox_id=cashbox_id)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('cashbox_document_new'))
+            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.cash-register', singleton=False)
+            if hasattr(widget, 'saved'):
+                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('cashboxes'))
+            return opened
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_bank_account_document(self, bank_account_id=None):
+        try:
+            from features.finance import BankAccountDocumentTab
+            sequence = getattr(self, '_bank_account_tab_sequence', 0) + 1
+            self._bank_account_tab_sequence = sequence
+            tab_id = f"bank_account:{bank_account_id or 'new'}:{sequence if bank_account_id is None else bank_account_id}"
+            widget = BankAccountDocumentTab(self, bank_account_id=bank_account_id)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('bank_account_document_new'))
+            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.university', singleton=False)
+            if hasattr(widget, 'saved'):
+                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('cashboxes'))
+            return opened
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_inventory_transfer_document(self):
+        try:
+            from features.inventory import InventoryTransferDocumentTab
+            sequence = getattr(self, '_inventory_transfer_tab_sequence', 0) + 1
+            self._inventory_transfer_tab_sequence = sequence
+            tab_id = f"warehouse_transfer:new:{sequence}"
+            widget = InventoryTransferDocumentTab(self)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('inventory_transfer_document_new'))
+            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.exchange-alt', singleton=False)
+            if hasattr(widget, 'saved'):
+                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('warehouses'))
+            return opened
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+
+    def open_user_document(self, user_id=None):
+        try:
+            from features.users import UserDocumentTab
+            sequence = getattr(self, '_user_tab_sequence', 0) + 1
+            self._user_tab_sequence = sequence
+            tab_id = f"user:{user_id or 'new'}:{sequence if user_id is None else user_id}"
+            widget = UserDocumentTab(self, user_id=user_id)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('user_document_new'))
+            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.user-cog', singleton=False)
+            if hasattr(widget, 'saved'):
+                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('users'))
+            return opened
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def open_settings_section_document(self, section='company'):
+        try:
+            from features.settings import SETTINGS_SECTION_TABS
+            section = section if section in SETTINGS_SECTION_TABS else 'company'
+            cls = SETTINGS_SECTION_TABS[section]
+            tab_id = f"settings:{section}"
+            widget = cls(self)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else widget.windowTitle()
+            return self._open_document_tab(tab_id, title, widget, icon_name='fa5s.sliders-h', singleton=True)
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+    def workspace_icon_for_page(self, pid):
+        icon_map = {
+            'dashboard': 'fa5s.tachometer-alt',
+            'pos': 'fa5s.barcode',
+            'restaurant': 'fa5s.utensils',
+            'sales_invoices': 'fa5s.file-invoice-dollar',
+            'purchase_invoices': 'fa5s.file-invoice',
+            'items': 'fa5s.box',
+            'categories': 'fa5s.folder',
+            'warehouses': 'fa5s.warehouse',
+            'branches': 'fa5s.code-branch',
+            'cashboxes': 'fa5s.cash-register',
+            'customers': 'fa5s.user-friends',
+            'suppliers': 'fa5s.truck-loading',
+            'vouchers': 'fa5s.receipt',
+            'returns': 'fa5s.undo',
+            'purchase_returns': 'fa5s.undo-alt',
+            'manufacturing': 'fa5s.industry',
+            'reports': 'fa5s.chart-line',
+            'settings': 'fa5s.sliders-h',
+            'users': 'fa5s.users-cog',
+            'audit_log': 'fa5s.history',
+            'offline_queue': 'fa5s.cloud-upload-alt',
+            'monitoring': 'fa5s.heartbeat',
+        }
+        return icon_map.get(pid, 'fa5s.folder-open')
+
+    def _workspace_entry_for_page(self, pid):
+        return WorkspaceEntry(pid, page_title(pid), self.workspace_icon_for_page(pid), True)
+
+    def _quick_open_items(self):
+        items = []
+        favorites = self.workspace_state_store.favorites()
+        if not favorites:
+            favorites = ['dashboard', 'restaurant', 'items', 'sales_invoices', 'reports']
+            self.workspace_state_store.set_favorites(favorites)
+        for pid in favorites:
+            if pid in self.pages:
+                items.append(QuickOpenItem(pid, f"★ {page_title(pid)}", translate('workspace.favorites'), self.workspace_icon_for_page(pid)))
+        for entry in self.workspace_state_store.recent():
+            if entry.tab_id in self.pages:
+                items.append(QuickOpenItem(entry.tab_id, f"↺ {page_title(entry.tab_id)}", translate('workspace.recent_tabs'), entry.icon_name))
+        for pid in self.pages:
+            items.append(QuickOpenItem(pid, page_title(pid), page_breadcrumb(pid), self.workspace_icon_for_page(pid)))
+        for section in ('company', 'accounting', 'inventory', 'restaurant', 'printing', 'ui', 'security'):
+            items.append(QuickOpenItem(f'settings:{section}', translate(f'settings.{section}'), translate('settings'), 'fa5s.sliders-h'))
+        seen = set()
+        unique = []
+        for item in items:
+            marker = (item.key, item.title)
+            if marker in seen:
+                continue
+            seen.add(marker)
+            unique.append(item)
+        return unique
+
+    def _global_search_items(self, text):
+        results = []
+        try:
+            for hit in global_search_service.search(text, limit_per_domain=5):
+                title = f"{hit.title}"
+                if hit.kind == 'item':
+                    title = f"{translate('items_inventory')}: {hit.title}"
+                elif hit.kind == 'customer':
+                    title = f"{translate('customers')}: {hit.title}"
+                elif hit.kind == 'supplier':
+                    title = f"{translate('suppliers')}: {hit.title}"
+                elif hit.kind == 'invoice':
+                    title = f"{translate('sales_invoices') if (hit.payload or {}).get('inv_type') == 'sale' else translate('purchase_invoices')}: {hit.title}"
+                elif hit.kind == 'voucher':
+                    title = f"{translate('vouchers')}: {hit.title}"
+                elif hit.kind == 'bom':
+                    title = f"{translate('bom_recipe')}: {hit.title}"
+                elif hit.kind == 'production_order':
+                    title = f"{translate('production_order')}: {hit.title}"
+                results.append(QuickOpenItem(hit.key, title, hit.subtitle, hit.icon_name, hit.payload or {}))
+        except Exception:
+            return []
+        return results
+
+    def _open_quick_open_item(self, item):
+        key = item.key or ''
+        payload = item.payload if isinstance(item.payload, dict) else {}
+        # Compatibility token for Phase 53 guard: item.key.startswith('settings:')
+        if key.startswith('settings:'):
+            return self.open_settings_section_document(key.split(':', 1)[1])
+        if key.startswith('search:item:'):
+            return self.open_item_document(int(key.rsplit(':', 1)[1]))
+        if key.startswith('search:customer:'):
+            return self.open_party_document('customer', int(key.rsplit(':', 1)[1]))
+        if key.startswith('search:supplier:'):
+            return self.open_party_document('supplier', int(key.rsplit(':', 1)[1]))
+        if key.startswith('search:invoice:'):
+            invoice_id = int(key.rsplit(':', 1)[1])
+            inv_type = payload.get('inv_type') or 'sale'
+            return self.open_quick_invoice(inv_type, invoice_id=invoice_id)
+        if key.startswith('search:voucher:'):
+            voucher = payload.get('voucher') if isinstance(payload, dict) else None
+            voucher_type = payload.get('voucher_type', 'receipt') if isinstance(payload, dict) else 'receipt'
+            return self.open_quick_voucher(voucher_type=voucher_type, voucher=voucher)
+        if key.startswith('search:bom:'):
+            return self.open_bom_document(int(key.rsplit(':', 1)[1]))
+        if key.startswith('search:production_order:'):
+            return self.open_production_order_details(int(key.rsplit(':', 1)[1]))
+        return self.switch_page(key)
+
+    def open_quick_open(self):
+        dialog = QuickOpenDialog(self._quick_open_items(), self, search_provider=self._global_search_items)
+        if dialog.exec():
+            item = dialog.selected_item()
+            if item:
+                self._open_quick_open_item(item)
+
+    def restore_workspace_session(self):
+        try:
+            for entry in self.workspace_state_store.session():
+                if entry.tab_id in self.pages and entry.tab_id != 'dashboard':
+                    self.switch_page(entry.tab_id)
+            self.switch_page('dashboard')
+        except Exception:
+            pass
+
+    def save_workspace_session(self):
+        try:
+            entries = []
+            if hasattr(self.workspace, 'tab_entry_data'):
+                for tab_id, title, icon_name, singleton in self.workspace.tab_entry_data():
+                    entries.append(WorkspaceEntry(tab_id, title, icon_name, singleton))
+            self.workspace_state_store.save_session(entries)
+        except Exception:
+            pass
 
     def setup_shortcuts(self):
         self.esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
@@ -647,6 +1108,35 @@ class MainWindow(QMainWindow):
         self.restaurant_shortcut.activated.connect(lambda: self.switch_page('restaurant'))
         self.legacy_pos_shortcut = QShortcut(QKeySequence('F9'), self)
         self.legacy_pos_shortcut.activated.connect(lambda: self.switch_page('pos'))
+        self.close_tab_shortcuts = bind_workspace_shortcuts(self, self.workspace)
+        self.save_tab_shortcut = QShortcut(QKeySequence('Ctrl+S'), self)
+        self.save_tab_shortcut.activated.connect(self.save_current_tab)
+        self.print_tab_shortcut = QShortcut(QKeySequence('Ctrl+P'), self)
+        self.print_tab_shortcut.activated.connect(self.print_current_tab)
+        self.quick_open_shortcut = QShortcut(QKeySequence('Ctrl+K'), self)
+        self.quick_open_shortcut.activated.connect(self.open_quick_open)
+
+    def _invoke_current_tab_command(self, command_names):
+        page = self.stack.currentWidget() if hasattr(self, 'stack') else None
+        if page is None:
+            return False
+        for name in command_names:
+            if hasattr(page, name):
+                getattr(page, name)()
+                return True
+        return False
+
+    def save_current_tab(self):
+        if not self._invoke_current_tab_command(('workspace_save', 'on_save', 'save', 'save_current')):
+            QMessageBox.information(self, translate('quick_actions'), translate('workspace.no_save_action'))
+
+    def print_current_tab(self):
+        if not self._invoke_current_tab_command(('workspace_print', 'print_invoice_professional', 'print_current', 'print_report')):
+            QMessageBox.information(self, translate('printing'), translate('workspace.no_print_action'))
+
+    def export_current_tab(self):
+        if not self._invoke_current_tab_command(('workspace_export', 'save_invoice_pdf', 'export_current', 'export')):
+            QMessageBox.information(self, translate('reports'), translate('workspace.no_export_action'))
 
     def update_badges(self):
         try:
@@ -796,15 +1286,21 @@ class MainWindow(QMainWindow):
             self.max_btn.setIcon(qta.icon('fa5s.window-restore'))
 
     def switch_page(self, pid):
+        if isinstance(pid, str) and pid.startswith('settings:'):
+            return self.open_settings_section_document(pid.split(':', 1)[1])
         if pid == 'invoices':
             pid = 'sales_invoices'
         if pid in self.pages:
-            if self.stack.currentWidget() is not self.pages[pid]:
-                self.stack.setCurrentWidget(self.pages[pid])
+            self.workspace.open_singleton(pid, page_title(pid), self.pages[pid], self.workspace_icon_for_page(pid))
+            self.workspace_state_store.add_recent(self._workspace_entry_for_page(pid))
             self._set_page_context(pid)
             self._update_global_search_context(pid)
             if hasattr(self.pages[pid], 'refresh'):
                 self.pages[pid].refresh()
+
+    def closeEvent(self, event):
+        self.save_workspace_session()
+        super().closeEvent(event)
 
     def change_password(self):
         dlg = ChangePasswordDialog(self)
@@ -855,6 +1351,6 @@ class MainWindow(QMainWindow):
                 from utils import show_toast
                 show_toast(f"{translate('sent') if False else 'تم الإرسال'}: {sent}\n{'فشل'}: {failed}", 'success' if failed == 0 else 'warning', self)
             except Exception:
-                QMessageBox.information(self, translate('offline_queue'), f'تم الإرسال: {sent}\nفشل: {failed}')
+                self.notify_user(translate('offline_queue'), f'تم الإرسال: {sent}\nفشل: {failed}', level='success' if failed == 0 else 'warning')
 
 
