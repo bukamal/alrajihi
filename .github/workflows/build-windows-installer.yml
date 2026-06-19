@@ -168,11 +168,21 @@ jobs:
             "--collect-submodules", "alrajhi_client.shell",
             "--collect-submodules", "alrajhi_client.ui",
             "--collect-submodules", "alrajhi_client.views.restaurant",
+            "--collect-submodules", "alrajhi_client.printing",
             "--collect-submodules", "features",
             "--collect-submodules", "workspace",
             "--collect-submodules", "shell",
             "--collect-submodules", "ui",
             "--collect-submodules", "views.restaurant",
+            "--collect-submodules", "printing",
+            "--hidden-import", "printing.print_templates",
+            "--hidden-import", "printing.printing_service",
+            "--hidden-import", "printing.print_manager",
+            "--hidden-import", "printing.thermal_printer",
+            "--hidden-import", "printing.label_designer",
+            "--hidden-import", "alrajhi_client.printing.print_templates",
+            "--hidden-import", "alrajhi_client.printing.printing_service",
+            "--hidden-import", "alrajhi_client.printing.print_manager",
             "--hidden-import", "pyzbar.pyzbar",
             "--hidden-import", "cv2",
             "--hidden-import", "qrcode",
@@ -247,6 +257,8 @@ jobs:
           if (!(($clientAssetCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
             throw "Portable build missing alrajhi_client project icon assets"
           }
+
+
 
       - name: Download Inno Setup
         shell: pwsh

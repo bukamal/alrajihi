@@ -51,11 +51,21 @@ pyinstaller `
   --collect-submodules alrajhi_client.shell `
   --collect-submodules alrajhi_client.ui `
   --collect-submodules alrajhi_client.views.restaurant `
+  --collect-submodules alrajhi_client.printing `
   --collect-submodules features `
   --collect-submodules workspace `
   --collect-submodules shell `
   --collect-submodules ui `
   --collect-submodules views.restaurant `
+  --collect-submodules printing `
+  --hidden-import printing.print_templates `
+  --hidden-import printing.printing_service `
+  --hidden-import printing.print_manager `
+  --hidden-import printing.thermal_printer `
+  --hidden-import printing.label_designer `
+  --hidden-import alrajhi_client.printing.print_templates `
+  --hidden-import alrajhi_client.printing.printing_service `
+  --hidden-import alrajhi_client.printing.print_manager `
   --hidden-import pyzbar.pyzbar `
   --hidden-import cv2 `
   --hidden-import qrcode `
@@ -114,6 +124,8 @@ pyinstaller `
 if (!(Test-Path "dist\AlrajhiAccounting\AlrajhiAccounting.exe")) {
     throw "PyInstaller build failed: missing EXE"
 }
+
+
 
 New-Item -ItemType Directory -Force -Path output | Out-Null
 $Inno = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"

@@ -8,7 +8,7 @@ from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintDialog
 from printer_manager import PrinterManager
 from config import get_company_info
 from utils import clean_text
-from printing.print_templates import invoice_html
+from .print_templates import invoice_html
 
 class PrintManager:
     @staticmethod
@@ -117,12 +117,12 @@ class PrintManager:
 
     @staticmethod
     def print_html(html, title, parent=None):
-        from printing.printing_service import printing_service
+        from .printing_service import printing_service
         printing_service.preview_html(html, parent, title)
 
     @staticmethod
     def print_invoice(invoice_data, parent=None):
-        from printing.printing_service import printing_service
+        from .printing_service import printing_service
         printing_service.invoice_preview(invoice_data, parent, paper='default')
 
 

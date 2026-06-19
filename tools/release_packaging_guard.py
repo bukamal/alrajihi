@@ -40,6 +40,10 @@ BUILD_FLAGS = [
     "--collect-submodules alrajhi_client.workspace",
     "--collect-submodules alrajhi_client.shell",
     "--collect-submodules alrajhi_client.views.restaurant",
+    "--collect-submodules alrajhi_client.printing",
+    "--collect-submodules printing",
+    "--hidden-import printing.print_templates",
+    "--hidden-import printing.printing_service",
     "--add-data \"alrajhi_client\\assets;assets\"",
     "--add-data \"alrajhi_client\\assets;alrajhi_client\\assets\"",
 ]

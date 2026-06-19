@@ -18,7 +18,7 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtGui import QTextDocument, QImage, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintDialog
 
-from printing.print_templates import (
+from .print_templates import (
     invoice_html,
     voucher_html,
     report_html,
