@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from database import UserRepository
+from database.repositories.user_repo import UserRepository
 from gateways.user_gateway import UserGateway
 
 

@@ -36,6 +36,9 @@ _EXPORTS: Dict[str, Tuple[str, str]] = {
     'ReportingRepository': ('database.repositories.reporting_repo', 'ReportingRepository'),
     'SettingsRepository': ('database.repositories.settings_repo', 'SettingsRepository'),
     'AuditRepository': ('database.repositories.audit_repo', 'AuditRepository'),
+    'WarehouseRepository': ('database.repositories.warehouse_repo', 'WarehouseRepository'),
+    'BranchRepository': ('database.repositories.branch_repo', 'BranchRepository'),
+    'CashboxRepository': ('database.repositories.cashbox_repo', 'CashboxRepository'),
 
     # Legacy DAO singletons
     # Legacy DAO singletons.  Point directly to the concrete submodule rather

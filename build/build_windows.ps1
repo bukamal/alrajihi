@@ -59,6 +59,14 @@ pyinstaller `
   --collect-submodules ui `
   --collect-submodules views.restaurant `
   --collect-submodules printing `
+  --collect-submodules alrajhi_client.database `
+  --collect-submodules alrajhi_client.database.repositories `
+  --collect-submodules alrajhi_client.database.dao `
+  --collect-submodules database `
+  --collect-submodules database.repositories `
+  --collect-submodules database.dao `
+  --collect-submodules alrajhi_client.gateways.local `
+  --collect-submodules gateways.local `
   --collect-data printing `
   --collect-data alrajhi_client.printing `
   --hidden-import printing._template_loader `
@@ -71,6 +79,78 @@ pyinstaller `
   --hidden-import alrajhi_client.printing.print_templates `
   --hidden-import alrajhi_client.printing.printing_service `
   --hidden-import alrajhi_client.printing.print_manager `
+  --hidden-import database.repositories.audit_repo `
+  --hidden-import database.repositories.base_repo `
+  --hidden-import database.repositories.branch_repo `
+  --hidden-import database.repositories.cashbox_repo `
+  --hidden-import database.repositories.customer_repo `
+  --hidden-import database.repositories.expense_repo `
+  --hidden-import database.repositories.inventory_movement_repo `
+  --hidden-import database.repositories.invoice_repo `
+  --hidden-import database.repositories.item_repo `
+  --hidden-import database.repositories.manufacturing_repo `
+  --hidden-import database.repositories.reporting_repo `
+  --hidden-import database.repositories.settings_repo `
+  --hidden-import database.repositories.supplier_repo `
+  --hidden-import database.repositories.user_repo `
+  --hidden-import database.repositories.voucher_repo `
+  --hidden-import database.repositories.warehouse_repo `
+  --hidden-import alrajhi_client.database.repositories.audit_repo `
+  --hidden-import alrajhi_client.database.repositories.base_repo `
+  --hidden-import alrajhi_client.database.repositories.branch_repo `
+  --hidden-import alrajhi_client.database.repositories.cashbox_repo `
+  --hidden-import alrajhi_client.database.repositories.customer_repo `
+  --hidden-import alrajhi_client.database.repositories.expense_repo `
+  --hidden-import alrajhi_client.database.repositories.inventory_movement_repo `
+  --hidden-import alrajhi_client.database.repositories.invoice_repo `
+  --hidden-import alrajhi_client.database.repositories.item_repo `
+  --hidden-import alrajhi_client.database.repositories.manufacturing_repo `
+  --hidden-import alrajhi_client.database.repositories.reporting_repo `
+  --hidden-import alrajhi_client.database.repositories.settings_repo `
+  --hidden-import alrajhi_client.database.repositories.supplier_repo `
+  --hidden-import alrajhi_client.database.repositories.user_repo `
+  --hidden-import alrajhi_client.database.repositories.voucher_repo `
+  --hidden-import alrajhi_client.database.repositories.warehouse_repo `
+  --hidden-import database.dao.branch_dao `
+  --hidden-import database.dao.cashbox_dao `
+  --hidden-import database.dao.category_dao `
+  --hidden-import database.dao.customer_dao `
+  --hidden-import database.dao.expense_dao `
+  --hidden-import database.dao.inventory_dao `
+  --hidden-import database.dao.inventory_ledger_dao `
+  --hidden-import database.dao.inventory_movement_dao `
+  --hidden-import database.dao.invoice_dao `
+  --hidden-import database.dao.item_dao `
+  --hidden-import database.dao.manufacturing_dao `
+  --hidden-import database.dao.reporting_dao `
+  --hidden-import database.dao.supplier_dao `
+  --hidden-import database.dao.voucher_dao `
+  --hidden-import database.dao.warehouse_dao `
+  --hidden-import alrajhi_client.database.dao.branch_dao `
+  --hidden-import alrajhi_client.database.dao.cashbox_dao `
+  --hidden-import alrajhi_client.database.dao.category_dao `
+  --hidden-import alrajhi_client.database.dao.customer_dao `
+  --hidden-import alrajhi_client.database.dao.expense_dao `
+  --hidden-import alrajhi_client.database.dao.inventory_dao `
+  --hidden-import alrajhi_client.database.dao.inventory_ledger_dao `
+  --hidden-import alrajhi_client.database.dao.inventory_movement_dao `
+  --hidden-import alrajhi_client.database.dao.invoice_dao `
+  --hidden-import alrajhi_client.database.dao.item_dao `
+  --hidden-import alrajhi_client.database.dao.manufacturing_dao `
+  --hidden-import alrajhi_client.database.dao.reporting_dao `
+  --hidden-import alrajhi_client.database.dao.supplier_dao `
+  --hidden-import alrajhi_client.database.dao.voucher_dao `
+  --hidden-import alrajhi_client.database.dao.warehouse_dao `
+  --hidden-import database.connection `
+  --hidden-import database.migrations `
+  --hidden-import database.models `
+  --hidden-import database.schema_manager `
+  --hidden-import alrajhi_client.database.connection `
+  --hidden-import alrajhi_client.database.migrations `
+  --hidden-import alrajhi_client.database.models `
+  --hidden-import alrajhi_client.database.schema_manager `
+  --hidden-import gateways.local.user_gateway `
+  --hidden-import alrajhi_client.gateways.local.user_gateway `
   --hidden-import pyzbar.pyzbar `
   --hidden-import cv2 `
   --hidden-import qrcode `

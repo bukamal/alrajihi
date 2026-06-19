@@ -44,6 +44,11 @@ BUILD_FLAGS = [
     "--collect-submodules printing",
     "--hidden-import printing.print_templates",
     "--hidden-import printing.printing_service",
+    "--hidden-import database.connection",
+    "--hidden-import database.repositories.user_repo",
+    "--collect-submodules database.dao",
+    "--collect-submodules database.repositories",
+    "--collect-submodules database",
     "--add-data \"alrajhi_client\\assets;assets\"",
     "--add-data \"alrajhi_client\\assets;alrajhi_client\\assets\"",
 ]
