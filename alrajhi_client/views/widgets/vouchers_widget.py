@@ -1,21 +1,14 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
-                             QDateEdit, QComboBox, QLabel, QHeaderView, QMessageBox, QFormLayout,
-                             QDoubleSpinBox, QDialog, QDialogButtonBox, QMenu)
-from PyQt5.QtCore import Qt, QDate
-from decimal import Decimal
+                             QComboBox, QLabel, QHeaderView, QMessageBox, QMenu)
 from core.services.voucher_service import voucher_service
 from core.services.finance_operation_policy import finance_operation_policy
-from core.services.catalog_service import catalog_service
-from core.services.invoice_service import invoice_service
-from core.services.cashbox_service import cashbox_service
 from currency import currency
 from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
 from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
-from offline_read import is_offline_read_error, notify_offline_read
-from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
+from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate as tr, qt_layout_direction
 
 class VouchersWidget(QWidget):
@@ -123,9 +116,7 @@ class VouchersWidget(QWidget):
             raise
 
         data = []
-        display_curr = currency.get_display_currency()
         for v in vouchers:
-            amount_display = currency.convert(Decimal(str(v['amount'])), 'USD', display_curr)
             type_text = tr("receipt") if v['type'] == 'receipt' else tr("payment") if v['type'] == 'payment' else tr("expense")
             party = voucher_service.party_name(v)
             data.append({
@@ -133,7 +124,7 @@ class VouchersWidget(QWidget):
                 'date': v['date'],
                 'type': type_text,
                 'party': party,
-                'amount': currency.format_amount(amount_display),
+                'amount': currency.format_base_amount(v.get('amount') or 0),
                 'account': v.get('cashbox_name') or v.get('bank_name') or '',
                 'description': v.get('description', '')
             })
@@ -231,9 +222,7 @@ class VouchersWidget(QWidget):
             if tab and hasattr(tab, 'saved'):
                 tab.saved.connect(lambda *_: self.refresh())
             return
-        dialog = VoucherDialog(self)
-        if dialog.exec():
-            self.refresh()
+        show_toast(tr('cannot_open_document_tab'), 'error', self)
 
     def edit_voucher(self, index):
         row = self.table.current_source_row() if hasattr(self.table, 'current_source_row') else index.row()
@@ -249,9 +238,7 @@ class VouchersWidget(QWidget):
                     if tab and hasattr(tab, 'saved'):
                         tab.saved.connect(lambda *_: self.refresh())
                     return
-                dialog = VoucherDialog(self, voucher)
-                if dialog.exec():
-                    self.refresh()
+                show_toast(tr('cannot_open_document_tab'), 'error', self)
 
     def prev_page(self):
         if self.current_page > 0:
@@ -261,279 +248,6 @@ class VouchersWidget(QWidget):
     def next_page(self):
         self.current_page += 1
         self.refresh()
-
-class VoucherDialog(QDialog):
-    # ... (نفس الكود السابق مع دعم التعديل) ...
-    # للحفاظ على الطول، سيتم تضمين نفس الكود من الإصدار السابق.
-    def __init__(self, parent=None, voucher=None):
-        super().__init__(parent)
-        self.voucher = voucher
-        self.is_edit = voucher is not None
-        self.setWindowTitle(tr("edit_voucher") if self.is_edit else tr("new_voucher"))
-        self.setLayoutDirection(qt_layout_direction())
-        self.resize(450, 500)
-        layout = QVBoxLayout(self)
-
-        form = QFormLayout()
-        self.type_combo = QComboBox()
-        self.type_combo.addItem(tr("receipt"), "receipt")
-        self.type_combo.addItem(tr("payment"), "payment")
-        self.type_combo.addItem(tr("expense"), "expense")
-        form.addRow(tr("type") + ":", self.type_combo)
-
-        self.customer_combo = QComboBox()
-        self.customer_combo.addItem(tr("no_customer"), None)
-        try:
-            customers = catalog_service.customers(limit=1000)
-        except Exception as exc:
-            if is_offline_read_error(exc):
-                notify_offline_read(self, tr('customer_voucher_list'))
-                customers = []
-            else:
-                raise
-        for c in customers:
-            self.customer_combo.addItem(c.get('name', ''), c.get('id'))
-        form.addRow(tr("customer_label"), self.customer_combo)
-
-        self.supplier_combo = QComboBox()
-        self.supplier_combo.addItem(tr("no_supplier"), None)
-        try:
-            suppliers = catalog_service.suppliers(limit=1000)
-        except Exception as exc:
-            if is_offline_read_error(exc):
-                notify_offline_read(self, tr('supplier_voucher_list'))
-                suppliers = []
-            else:
-                raise
-        for s in suppliers:
-            self.supplier_combo.addItem(s.get('name', ''), s.get('id'))
-        form.addRow(tr("supplier_label"), self.supplier_combo)
-
-        self.amount_spin = QDoubleSpinBox()
-        self.amount_spin.setRange(0, 99999999)
-        self.amount_spin.setDecimals(2)
-        form.addRow(tr("amount_label"), self.amount_spin)
-
-        self.payment_method_combo = QComboBox()
-        self.payment_method_combo.addItem(tr("cash"), 'cash')
-        self.payment_method_combo.addItem(tr("bank_payment"), 'bank')
-        form.addRow(tr("payment_method_label"), self.payment_method_combo)
-
-        self.cashbox_combo = QComboBox()
-        for c in cashbox_service.cashboxes():
-            label = f"{c.get('branch_name','')} - {c.get('name','')}"
-            self.cashbox_combo.addItem(label, c.get('id'))
-        form.addRow(tr("cashbox") + ":", self.cashbox_combo)
-
-        self.bank_combo = QComboBox()
-        self.bank_combo.addItem(tr("select_bank_account_placeholder"), None)
-        for b in cashbox_service.bank_accounts():
-            label = f"{b.get('branch_name','')} - {b.get('bank_name','')} {b.get('account_name') or ''}"
-            self.bank_combo.addItem(label, b.get('id'))
-        form.addRow(tr("bank_account") + ":", self.bank_combo)
-
-        self.date_edit = QDateEdit()
-        self.date_edit.setDate(QDate.currentDate())
-        form.addRow(tr("date_label"), self.date_edit)
-
-        self.desc_edit = QLineEdit()
-        form.addRow(tr("description_label"), self.desc_edit)
-
-        self.ref_edit = QLineEdit()
-        form.addRow(tr("reference_label"), self.ref_edit)
-
-        self.invoice_combo = QComboBox()
-        self.invoice_combo.addItem(tr("no_invoice"), None)
-        self._invoice_remaining_by_id = {}
-        self._loading_voucher = False
-        form.addRow(tr("invoice_label"), self.invoice_combo)
-
-        layout.addLayout(form)
-
-        btn_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        btn_box.accepted.connect(self.save)
-        btn_box.rejected.connect(self.reject)
-        layout.addWidget(btn_box)
-        apply_modern_dialog(self, tr('voucher_dialog_title'))
-
-        def update_visibility():
-            typ = self.type_combo.currentData() or "expense"
-            is_cash = typ in ("receipt", "payment")
-            self.customer_combo.setVisible(typ == "receipt")
-            self.supplier_combo.setVisible(typ == "payment")
-            self.invoice_combo.setVisible(is_cash)
-            self.update_invoice_list()
-        self.type_combo.currentTextChanged.connect(update_visibility)
-        self.customer_combo.currentIndexChanged.connect(self.update_invoice_list)
-        self.supplier_combo.currentIndexChanged.connect(self.update_invoice_list)
-        self.payment_method_combo.currentIndexChanged.connect(self.update_payment_visibility)
-        self.invoice_combo.currentIndexChanged.connect(self.update_amount_from_invoice)
-
-        if self.is_edit:
-            self.load_voucher_data()
-        update_visibility()
-        self.update_payment_visibility()
-
-    def update_payment_visibility(self):
-        is_bank = self.payment_method_combo.currentData() == 'bank'
-        self.bank_combo.setVisible(is_bank)
-        self.cashbox_combo.setVisible(not is_bank)
-
-    def load_voucher_data(self):
-        self._loading_voucher = True
-        v = self.voucher
-        type_map = {"receipt": 0, "payment": 1, "expense": 2}
-        self.type_combo.setCurrentIndex(type_map.get(v['type'], 2))
-        if v.get('customer_id'):
-            idx = self.customer_combo.findData(v['customer_id'])
-            if idx >= 0:
-                self.customer_combo.setCurrentIndex(idx)
-        if v.get('supplier_id'):
-            idx = self.supplier_combo.findData(v['supplier_id'])
-            if idx >= 0:
-                self.supplier_combo.setCurrentIndex(idx)
-        amount_display = currency.convert(Decimal(str(v['amount'])), 'USD', currency.get_display_currency())
-        self.amount_spin.setValue(float(amount_display))
-        self.date_edit.setDate(QDate.fromString(v['date'], "yyyy-MM-dd"))
-        self.desc_edit.setText(v.get('description', ''))
-        self.ref_edit.setText(v.get('reference', ''))
-        if v.get('payment_method') == 'bank':
-            self.payment_method_combo.setCurrentIndex(self.payment_method_combo.findData('bank'))
-        else:
-            self.payment_method_combo.setCurrentIndex(self.payment_method_combo.findData('cash'))
-        if v.get('cashbox_id'):
-            idx = self.cashbox_combo.findData(v.get('cashbox_id'))
-            if idx >= 0:
-                self.cashbox_combo.setCurrentIndex(idx)
-        if v.get('bank_account_id'):
-            idx = self.bank_combo.findData(v.get('bank_account_id'))
-            if idx >= 0:
-                self.bank_combo.setCurrentIndex(idx)
-        self.update_payment_visibility()
-        if v.get('invoice_id'):
-            self.update_invoice_list()
-            idx = self.invoice_combo.findData(v['invoice_id'])
-            if idx >= 0:
-                self.invoice_combo.setCurrentIndex(idx)
-        self._loading_voucher = False
-
-    def _voucher_old_amount_for_invoice(self, invoice_id):
-        if not self.is_edit or not self.voucher:
-            return Decimal('0')
-        if self.voucher.get('invoice_id') != invoice_id:
-            return Decimal('0')
-        try:
-            return Decimal(str(self.voucher.get('amount') or 0))
-        except Exception:
-            return Decimal('0')
-
-    def _add_invoice_option(self, inv):
-        try:
-            inv_id = inv.get('id')
-            remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0))) + self._voucher_old_amount_for_invoice(inv_id)
-        except Exception:
-            remaining = Decimal('0')
-        if remaining <= 0:
-            return
-        self._invoice_remaining_by_id[inv_id] = remaining
-        amount_label = currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))
-        self.invoice_combo.addItem(tr("remaining_invoice_amount", reference=inv.get('reference', inv_id), amount=amount_label), inv_id)
-
-    def update_invoice_list(self):
-        typ = self.type_combo.currentData() or "expense"
-        entity_id = None
-        if typ == "receipt":
-            entity_id = self.customer_combo.currentData()
-        elif typ == "payment":
-            entity_id = self.supplier_combo.currentData()
-        self.invoice_combo.blockSignals(True)
-        self.invoice_combo.clear()
-        self._invoice_remaining_by_id = {}
-        self.invoice_combo.addItem(tr("no_invoice"), None)
-        if not entity_id:
-            self.invoice_combo.blockSignals(False)
-            return
-        invoices = invoice_service.unpaid_invoices(
-            inv_type='sale' if typ == "receipt" else 'purchase',
-            customer_id=entity_id if typ == "receipt" else None,
-            supplier_id=entity_id if typ == "payment" else None,
-            limit=100
-        )
-        seen = set()
-        for inv in invoices:
-            seen.add(inv.get('id'))
-            self._add_invoice_option(inv)
-        current_invoice_id = self.voucher.get('invoice_id') if self.is_edit and self.voucher else None
-        if current_invoice_id and current_invoice_id not in seen:
-            current = invoice_service.get(current_invoice_id)
-            if current:
-                expected_type = 'sale' if typ == "receipt" else 'purchase'
-                party_ok = (
-                    (typ == "receipt" and current.get('customer_id') == entity_id) or
-                    (typ == "payment" and current.get('supplier_id') == entity_id)
-                )
-                if current.get('type') == expected_type and party_ok:
-                    self._add_invoice_option(current)
-        self.invoice_combo.blockSignals(False)
-        self.update_amount_from_invoice()
-
-    def update_amount_from_invoice(self):
-        if getattr(self, '_loading_voucher', False):
-            return
-        invoice_id = self.invoice_combo.currentData()
-        if not invoice_id:
-            return
-        remaining = self._invoice_remaining_by_id.get(invoice_id)
-        if remaining is None or remaining <= 0:
-            return
-        amount_display = currency.convert(remaining, 'USD', currency.get_display_currency())
-        self.amount_spin.setValue(float(amount_display))
-
-    def save(self):
-        typ = self.type_combo.currentData() or "expense"
-        if typ == "receipt" and not self.customer_combo.currentData():
-            show_toast(tr("select_customer"), "error", self)
-            return
-        if typ == "payment" and not self.supplier_combo.currentData():
-            show_toast(tr("select_supplier"), "error", self)
-            return
-        if self.payment_method_combo.currentData() == 'cash' and not self.cashbox_combo.currentData():
-            show_toast(tr("select_cashbox_required"), "error", self)
-            return
-        if self.payment_method_combo.currentData() == 'bank' and not self.bank_combo.currentData():
-            show_toast(tr("select_bank_required"), "error", self)
-            return
-        amount_display = self.amount_spin.value()
-        if amount_display <= 0:
-            show_toast(tr("amount_positive_required"), "error", self)
-            return
-        amount_usd = currency.convert(Decimal(str(amount_display)), currency.get_display_currency(), 'USD')
-        data = {
-            'type': typ,
-            'amount': amount_usd,
-            'date': self.date_edit.date().toString("yyyy-MM-dd"),
-            'description': self.desc_edit.text().strip(),
-            'reference': self.ref_edit.text().strip(),
-            'customer_id': self.customer_combo.currentData() if typ == "receipt" else None,
-            'supplier_id': self.supplier_combo.currentData() if typ == "payment" else None,
-            'invoice_id': self.invoice_combo.currentData() or None,
-            'exchange_rate_to_usd': float(currency.get_current_rate(currency.get_display_currency())),
-            'original_currency': currency.get_display_currency(),
-            'payment_method': self.payment_method_combo.currentData(),
-            'cashbox_id': self.cashbox_combo.currentData() if self.payment_method_combo.currentData() == 'cash' else None,
-            'bank_account_id': self.bank_combo.currentData() if self.payment_method_combo.currentData() == 'bank' else None
-        }
-        try:
-            if self.is_edit:
-                voucher_service.update(self.voucher['id'], data)
-                show_toast(tr("voucher_updated"), "success", self)
-            else:
-                voucher_service.add(data)
-                show_toast(tr("voucher_added"), "success", self)
-            self.accept()
-        except Exception as e:
-            show_toast(str(e), "error", self)
-
 
 
 # Phase110 offline guard markers: السندات

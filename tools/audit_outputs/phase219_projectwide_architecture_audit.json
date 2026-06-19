@@ -1,10 +1,10 @@
 {
   "summary": {
-    "medium": 89,
+    "medium": 80,
     "low": 1,
-    "inventory": 13
+    "inventory": 10
   },
-  "finding_count": 103,
+  "finding_count": 91,
   "findings": [
     {
       "severity": "medium",
@@ -232,20 +232,20 @@
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
     {
-      "severity": "medium",
-      "area": "legacy-dialog",
-      "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
-      "line": 1575,
-      "title": "Legacy dialog reference: ItemDialog",
-      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
-      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
-    },
-    {
       "severity": "inventory",
       "area": "legacy-dialog",
       "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
       "line": 408,
       "title": "Legacy dialog reference: InvoiceDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
+      "line": 1575,
+      "title": "Legacy dialog reference: ItemDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
@@ -376,78 +376,6 @@
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
     },
     {
-      "severity": "inventory",
-      "area": "legacy-dialog",
-      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
-      "line": 43,
-      "title": "Legacy dialog reference: BankDialog",
-      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
-      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
-    },
-    {
-      "severity": "inventory",
-      "area": "legacy-dialog",
-      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
-      "line": 19,
-      "title": "Legacy dialog reference: CashboxDialog",
-      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
-      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
-    },
-    {
-      "severity": "medium",
-      "area": "qdialog-class",
-      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
-      "line": 19,
-      "title": "QDialog class: CashboxDialog",
-      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
-      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
-    },
-    {
-      "severity": "medium",
-      "area": "qdialog-class",
-      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
-      "line": 43,
-      "title": "QDialog class: BankDialog",
-      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
-      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
-    },
-    {
-      "severity": "medium",
-      "area": "dialog-exec",
-      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
-      "line": 222,
-      "title": "Dialog exec() call",
-      "detail": "Modal dialog execution detected outside low-level dialog modules.",
-      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
-    },
-    {
-      "severity": "medium",
-      "area": "dialog-exec",
-      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
-      "line": 239,
-      "title": "Dialog exec() call",
-      "detail": "Modal dialog execution detected outside low-level dialog modules.",
-      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
-    },
-    {
-      "severity": "medium",
-      "area": "dialog-exec",
-      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
-      "line": 254,
-      "title": "Dialog exec() call",
-      "detail": "Modal dialog execution detected outside low-level dialog modules.",
-      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
-    },
-    {
-      "severity": "medium",
-      "area": "dialog-exec",
-      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
-      "line": 271,
-      "title": "Dialog exec() call",
-      "detail": "Modal dialog execution detected outside low-level dialog modules.",
-      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
-    },
-    {
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/categories_widget.py",
@@ -496,8 +424,8 @@
       "severity": "medium",
       "area": "legacy-dialog",
       "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
-      "line": 456,
-      "title": "Legacy dialog reference: ProductionOrderDialog",
+      "line": 478,
+      "title": "Legacy dialog reference: ProductionDetailsDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
@@ -514,8 +442,8 @@
       "severity": "medium",
       "area": "legacy-dialog",
       "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
-      "line": 478,
-      "title": "Legacy dialog reference: ProductionDetailsDialog",
+      "line": 456,
+      "title": "Legacy dialog reference: ProductionOrderDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
@@ -577,8 +505,8 @@
       "severity": "inventory",
       "area": "legacy-dialog",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 1087,
-      "title": "Legacy dialog reference: PurchaseReturnDialog",
+      "line": 484,
+      "title": "Legacy dialog reference: SalesReturnDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
@@ -586,8 +514,8 @@
       "severity": "inventory",
       "area": "legacy-dialog",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 484,
-      "title": "Legacy dialog reference: SalesReturnDialog",
+      "line": 1087,
+      "title": "Legacy dialog reference: PurchaseReturnDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
@@ -727,42 +655,6 @@
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
     },
     {
-      "severity": "inventory",
-      "area": "legacy-dialog",
-      "file": "alrajhi_client/views/widgets/vouchers_widget.py",
-      "line": 234,
-      "title": "Legacy dialog reference: VoucherDialog",
-      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
-      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
-    },
-    {
-      "severity": "medium",
-      "area": "qdialog-class",
-      "file": "alrajhi_client/views/widgets/vouchers_widget.py",
-      "line": 265,
-      "title": "QDialog class: VoucherDialog",
-      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
-      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
-    },
-    {
-      "severity": "medium",
-      "area": "dialog-exec",
-      "file": "alrajhi_client/views/widgets/vouchers_widget.py",
-      "line": 235,
-      "title": "Dialog exec() call",
-      "detail": "Modal dialog execution detected outside low-level dialog modules.",
-      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
-    },
-    {
-      "severity": "medium",
-      "area": "dialog-exec",
-      "file": "alrajhi_client/views/widgets/vouchers_widget.py",
-      "line": 253,
-      "title": "Dialog exec() call",
-      "detail": "Modal dialog execution detected outside low-level dialog modules.",
-      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
-    },
-    {
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/warehouses_widget.py",
@@ -838,8 +730,8 @@
       "severity": "medium",
       "area": "legacy-dialog",
       "file": "alrajhi_client/features/manufacturing/production_order_document_tab.py",
-      "line": 41,
-      "title": "Legacy dialog reference: ProductionOrderDialog",
+      "line": 40,
+      "title": "Legacy dialog reference: ProductionDetailsDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
@@ -847,8 +739,8 @@
       "severity": "medium",
       "area": "legacy-dialog",
       "file": "alrajhi_client/features/manufacturing/production_order_document_tab.py",
-      "line": 40,
-      "title": "Legacy dialog reference: ProductionDetailsDialog",
+      "line": 41,
+      "title": "Legacy dialog reference: ProductionOrderDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
@@ -901,8 +793,8 @@
       "severity": "medium",
       "area": "legacy-dialog",
       "file": "alrajhi_client/features/returns/return_editor_tabs.py",
-      "line": 12,
-      "title": "Legacy dialog reference: PurchaseReturnDialog",
+      "line": 11,
+      "title": "Legacy dialog reference: SalesReturnDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
@@ -910,8 +802,8 @@
       "severity": "medium",
       "area": "legacy-dialog",
       "file": "alrajhi_client/features/returns/return_editor_tabs.py",
-      "line": 11,
-      "title": "Legacy dialog reference: SalesReturnDialog",
+      "line": 12,
+      "title": "Legacy dialog reference: PurchaseReturnDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },

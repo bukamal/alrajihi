@@ -1,66 +1,17 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
-                             QTabWidget, QDialog, QFormLayout, QDialogButtonBox, QComboBox,
-                             QTextEdit, QCheckBox, QMessageBox, QHeaderView, QTableView)
-from PyQt5.QtCore import Qt
+                             QTabWidget, QMessageBox, QHeaderView, QTableView)
 from decimal import Decimal
 from core.services.cashbox_service import cashbox_service
 from core.services.settings_service import settings_service
 from core.services.finance_operation_policy import finance_operation_policy
-from core.services.branch_service import branch_service
 from currency import currency
 from models.table_models import GenericTableModel
 from ui.smart_table_view import SmartTableView
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
-from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
+from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate as tr, qt_layout_direction
-
-class CashboxDialog(QDialog):
-    def __init__(self, parent=None, data=None):
-        super().__init__(parent); self.data=data or {}; self.setWindowTitle(tr('new_cashbox') if not data else tr('edit_cashbox')); self.setLayoutDirection(qt_layout_direction()); self.resize(430,300)
-        layout=QVBoxLayout(self); form=QFormLayout()
-        self.branch_combo=QComboBox()
-        try:
-            branches = branch_service.branches()
-        except Exception as exc:
-            if is_offline_read_error(exc):
-                show_toast(offline_read_message(tr('branch')), 'warning', self)
-                branches = []
-            else:
-                raise
-        for b in branches: self.branch_combo.addItem(b.get('name',''), b.get('id'))
-        if self.data.get('branch_id'):
-            i=self.branch_combo.findData(self.data.get('branch_id'))
-            if i>=0: self.branch_combo.setCurrentIndex(i)
-        self.name_edit=QLineEdit(self.data.get('name','')); self.code_edit=QLineEdit(self.data.get('code',''))
-        self.notes_edit=QTextEdit(self.data.get('notes','')); self.notes_edit.setMaximumHeight(70)
-        self.active_check=QCheckBox(tr('active')); self.active_check.setChecked(bool(int(self.data.get('is_active',1) or 0)))
-        form.addRow(tr('branch_label'), self.branch_combo); form.addRow(tr('cashbox_name_label'), self.name_edit); form.addRow(tr('code_label'), self.code_edit); form.addRow(tr('notes_label'), self.notes_edit); form.addRow('', self.active_check)
-        layout.addLayout(form); buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel); buttons.button(QDialogButtonBox.Save).setText(tr('save')); buttons.button(QDialogButtonBox.Cancel).setText(tr('cancel')); buttons.accepted.connect(self.accept); buttons.rejected.connect(self.reject); layout.addWidget(buttons); apply_modern_dialog(self, tr('new_cashbox') if not data else tr('edit_cashbox')); self.name_edit.setFocus()
-    def payload(self): return {'branch_id':self.branch_combo.currentData(),'name':self.name_edit.text().strip(),'code':self.code_edit.text().strip(),'notes':self.notes_edit.toPlainText().strip(),'is_active':1 if self.active_check.isChecked() else 0}
-
-class BankDialog(QDialog):
-    def __init__(self, parent=None, data=None):
-        super().__init__(parent); self.data=data or {}; self.setWindowTitle(tr('new_bank_account') if not data else tr('edit_bank_account')); self.setLayoutDirection(qt_layout_direction()); self.resize(460,360)
-        layout=QVBoxLayout(self); form=QFormLayout(); self.branch_combo=QComboBox()
-        try:
-            branches = branch_service.branches()
-        except Exception as exc:
-            if is_offline_read_error(exc):
-                show_toast(offline_read_message(tr('branch')), 'warning', self)
-                branches = []
-            else:
-                raise
-        for b in branches: self.branch_combo.addItem(b.get('name',''), b.get('id'))
-        if self.data.get('branch_id'):
-            i=self.branch_combo.findData(self.data.get('branch_id'))
-            if i>=0: self.branch_combo.setCurrentIndex(i)
-        self.bank_edit=QLineEdit(self.data.get('bank_name','')); self.account_name=QLineEdit(self.data.get('account_name','')); self.account_number=QLineEdit(self.data.get('account_number','')); self.iban=QLineEdit(self.data.get('iban',''))
-        self.notes=QTextEdit(self.data.get('notes','')); self.notes.setMaximumHeight(70); self.active_check=QCheckBox(tr('active')); self.active_check.setChecked(bool(int(self.data.get('is_active',1) or 0)))
-        form.addRow(tr('branch_label'), self.branch_combo); form.addRow(tr('bank_label'), self.bank_edit); form.addRow(tr('account_name_label'), self.account_name); form.addRow(tr('account_number_label'), self.account_number); form.addRow(tr('iban_label'), self.iban); form.addRow(tr('notes_label'), self.notes); form.addRow('', self.active_check)
-        layout.addLayout(form); buttons=QDialogButtonBox(QDialogButtonBox.Save|QDialogButtonBox.Cancel); buttons.button(QDialogButtonBox.Save).setText(tr('save')); buttons.button(QDialogButtonBox.Cancel).setText(tr('cancel')); buttons.accepted.connect(self.accept); buttons.rejected.connect(self.reject); layout.addWidget(buttons); apply_modern_dialog(self, tr('new_bank_account') if not data else tr('edit_bank_account')); self.bank_edit.setFocus()
-    def payload(self): return {'branch_id':self.branch_combo.currentData(),'bank_name':self.bank_edit.text().strip(),'account_name':self.account_name.text().strip(),'account_number':self.account_number.text().strip(),'iban':self.iban.text().strip(),'notes':self.notes.toPlainText().strip(),'is_active':1 if self.active_check.isChecked() else 0}
 
 class CashboxesWidget(QWidget):
     def __init__(self,parent=None): super().__init__(parent); self.setLayoutDirection(qt_layout_direction()); self._setup_ui(); self._apply_finance_policy(); apply_modern_widget(self, tr('finance_cashbanks_title'), tr('finance_cashbanks_subtitle')); self.refresh()
@@ -218,10 +169,7 @@ class CashboxesWidget(QWidget):
         mw=self.window()
         if hasattr(mw,'open_cashbox_document'):
             return mw.open_cashbox_document()
-        d=CashboxDialog(self)
-        if d.exec_():
-            try: cashbox_service.add_cashbox(d.payload()); show_toast(tr('cashbox_created'),'success', self); self.refresh()
-            except Exception as e: QMessageBox.warning(self,tr('error'),str(e))
+        show_toast(tr('cannot_open_document_tab'), 'error', self)
     def edit_cashbox(self):
         cid=self._selected(self.cash_table,'cash_model')
         if not cid: QMessageBox.information(self,tr('edit_title'),tr('select_cashbox')); return
@@ -235,10 +183,7 @@ class CashboxesWidget(QWidget):
         mw=self.window()
         if hasattr(mw,'open_cashbox_document'):
             return mw.open_cashbox_document(cid)
-        d=CashboxDialog(self,data)
-        if d.exec_():
-            try: cashbox_service.update_cashbox(cid,d.payload()); show_toast(tr('updated_successfully'),'success', self); self.refresh()
-            except Exception as e: QMessageBox.warning(self,tr('error'),str(e))
+        show_toast(tr('cannot_open_document_tab'), 'error', self)
     def archive_cashbox(self):
         cid=self._selected(self.cash_table,'cash_model')
         if not cid: return
@@ -250,10 +195,7 @@ class CashboxesWidget(QWidget):
         mw=self.window()
         if hasattr(mw,'open_bank_account_document'):
             return mw.open_bank_account_document()
-        d=BankDialog(self)
-        if d.exec_():
-            try: cashbox_service.add_bank_account(d.payload()); show_toast(tr('bank_account_created'),'success', self); self.refresh()
-            except Exception as e: QMessageBox.warning(self,tr('error'),str(e))
+        show_toast(tr('cannot_open_document_tab'), 'error', self)
     def edit_bank(self):
         bid=self._selected(self.bank_table,'bank_model')
         if not bid: QMessageBox.information(self,tr('edit_title'),tr('select_bank_account')); return
@@ -267,10 +209,7 @@ class CashboxesWidget(QWidget):
         mw=self.window()
         if hasattr(mw,'open_bank_account_document'):
             return mw.open_bank_account_document(bid)
-        d=BankDialog(self,data)
-        if d.exec_():
-            try: cashbox_service.update_bank_account(bid,d.payload()); show_toast(tr('updated_successfully'),'success', self); self.refresh()
-            except Exception as e: QMessageBox.warning(self,tr('error'),str(e))
+        show_toast(tr('cannot_open_document_tab'), 'error', self)
     def archive_bank(self):
         bid=self._selected(self.bank_table,'bank_model')
         if not bid: return

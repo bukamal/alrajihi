@@ -84,6 +84,18 @@ pyinstaller `
   --hidden-import features.returns.return_editor_tabs `
   --hidden-import features.parties.party_editor_tab `
   --hidden-import features.vouchers.voucher_editor_tab `
+  --hidden-import features.finance.documents.cashbox_document_tab `
+  --hidden-import features.finance.documents.bank_account_document_tab `
+  --hidden-import features.finance.documents.expense_document_tab `
+  --hidden-import features.branches.documents.branch_document_tab `
+  --hidden-import features.inventory.documents.warehouse_document_tab `
+  --hidden-import features.inventory.documents.inventory_transfer_document_tab `
+  --hidden-import features.users.documents.user_document_tab `
+  --hidden-import features.transactions.transaction_document_tab `
+  --hidden-import features.transactions.documents.sales_invoice_tab `
+  --hidden-import features.transactions.documents.purchase_invoice_tab `
+  --hidden-import features.transactions.documents.sales_return_tab `
+  --hidden-import features.transactions.documents.purchase_return_tab `
   --hidden-import features.manufacturing.bom_document_tab `
   --hidden-import features.manufacturing.production_order_document_tab `
   --hidden-import features.settings.settings_document_tabs `
@@ -94,7 +106,8 @@ pyinstaller `
   --hidden-import shell.quick_open_dialog `
   --hidden-import flask_jwt_extended `
   --add-data "$QtPlatforms;platforms" `
-  --add-data "alrajhi_client\assets\brand;assets\brand" `
+  --add-data "alrajhi_client\assets;assets" `
+  --add-data "alrajhi_client\assets;alrajhi_client\assets" `
   @extra `
   alrajhi_client\main.py
 
