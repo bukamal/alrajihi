@@ -17,6 +17,34 @@ from core.services.settings_service import settings_service
 from features.restaurant.restaurant_printing_bridge import restaurant_printing_bridge
 from features.restaurant.restaurant_order_grid import RestaurantOrderGrid
 from features.restaurant.restaurant_order_model import RestaurantOrderModel
+from currency import currency
+
+
+def _dec(value, default="0") -> Decimal:
+    try:
+        return Decimal(str(value if value not in (None, "") else default))
+    except (InvalidOperation, TypeError, ValueError):
+        return Decimal(default)
+
+
+def _display_money(value) -> str:
+    return currency.format_display_amount(currency.to_display(_dec(value)))
+
+
+def _base_to_display_text(value) -> str:
+    try:
+        converted = currency.to_display(_dec(value))
+        return format(converted.normalize(), 'f').rstrip('0').rstrip('.') or '0'
+    except Exception:
+        return str(value or '0')
+
+
+def _display_to_base_text(value) -> str:
+    try:
+        converted = currency.from_display(_dec(value))
+        return str(converted)
+    except Exception:
+        return str(value or '0')
 
 
 class RestaurantLineDialog(QDialog):
@@ -55,7 +83,7 @@ class RestaurantLineDialog(QDialog):
         return {
             "item_name": self.name_edit.text().strip(),
             "quantity": self.qty_edit.text().strip() or "1",
-            "unit_price": self.price_edit.text().strip() or "0",
+            "unit_price": _display_to_base_text(self.price_edit.text().strip() or "0"),
             "notes": self.notes_edit.text().strip(),
         }
 
@@ -71,9 +99,9 @@ class RestaurantAdjustmentsDialog(QDialog):
         self.setLayoutDirection(qt_layout_direction())
         layout = QVBoxLayout(self)
         form = QFormLayout()
-        self.discount_edit = QLineEdit(str(balance.get("discount_amount") or "0"))
-        self.service_edit = QLineEdit(str(balance.get("service_charge_amount") or "0"))
-        self.tax_edit = QLineEdit(str(balance.get("tax_amount") or "0"))
+        self.discount_edit = QLineEdit(_base_to_display_text(balance.get("discount_amount") or "0"))
+        self.service_edit = QLineEdit(_base_to_display_text(balance.get("service_charge_amount") or "0"))
+        self.tax_edit = QLineEdit(_base_to_display_text(balance.get("tax_amount") or "0"))
         self.notes_edit = QLineEdit(str(balance.get("adjustment_notes") or ""))
         for field in (self.discount_edit, self.service_edit, self.tax_edit, self.notes_edit):
             field.setMinimumHeight(48)
@@ -95,9 +123,9 @@ class RestaurantAdjustmentsDialog(QDialog):
 
     def payload(self):
         return {
-            "discount_amount": self.discount_edit.text().strip() or "0",
-            "service_charge_amount": self.service_edit.text().strip() or "0",
-            "tax_amount": self.tax_edit.text().strip() or "0",
+            "discount_amount": _display_to_base_text(self.discount_edit.text().strip() or "0"),
+            "service_charge_amount": _display_to_base_text(self.service_edit.text().strip() or "0"),
+            "tax_amount": _display_to_base_text(self.tax_edit.text().strip() or "0"),
             "notes": self.notes_edit.text().strip(),
         }
 
@@ -112,7 +140,7 @@ class RestaurantPaymentDialog(QDialog):
         self.setLayoutDirection(qt_layout_direction())
         layout = QVBoxLayout(self)
         form = QFormLayout()
-        self.amount_edit = QLineEdit(str(remaining or "0"))
+        self.amount_edit = QLineEdit(_base_to_display_text(remaining or "0"))
         self.method_combo = QComboBox()
         self.method_combo.addItem(_("payment.cash"), "cash")
         self.method_combo.addItem(_("payment.card"), "card")
@@ -137,7 +165,7 @@ class RestaurantPaymentDialog(QDialog):
 
     def payload(self):
         return {
-            "amount": self.amount_edit.text().strip() or "0",
+            "amount": _display_to_base_text(self.amount_edit.text().strip() or "0"),
             "payment_method": self.method_combo.currentData() or "cash",
             "notes": self.notes_edit.text().strip(),
         }
@@ -377,7 +405,7 @@ class RestaurantPOSWidget(QWidget):
             barcode_part = f" — {_('restaurant.unit_barcode_scope')}"
             if base_qty:
                 barcode_part += f" / {_('pos_column_base_qty')}: {base_qty}"
-        return f"{line.get('quantity') or '1'}{unit_part} × {line.get('item_name') or ''} — {line.get('unit_price') or '0'} ({_(f'restaurant.line_status.{status}')}){barcode_part}"
+        return f"{line.get('quantity') or '1'}{unit_part} × {line.get('item_name') or ''} — {_display_money(line.get('unit_price') or '0')} ({_(f'restaurant.line_status.{status}')}){barcode_part}"
 
     def _line_amount(self, line):
         try:
@@ -392,13 +420,13 @@ class RestaurantPOSWidget(QWidget):
                 subtotal += self._line_amount(line)
         balance = self._balance() if self.session else {"total": str(subtotal), "paid": "0", "remaining": "0", "discount_amount": "0", "service_charge_amount": "0", "tax_amount": "0"}
         self.total_label.setText(
-            _("restaurant.subtotal") + f": {balance.get('subtotal', subtotal)}  |  "
-            + _("restaurant.discount") + f": {balance.get('discount_amount', '0')}  |  "
-            + _("restaurant.service_charge") + f": {balance.get('service_charge_amount', '0')}  |  "
-            + _("restaurant.tax") + f": {balance.get('tax_amount', '0')}  |  "
-            + _("restaurant.current_total") + f": {balance.get('total', subtotal)}  |  "
-            + _("restaurant.paid") + f": {balance.get('paid', '0')}  |  "
-            + _("restaurant.remaining") + f": {balance.get('remaining', '0')}"
+            _("restaurant.subtotal") + f": {_display_money(balance.get('subtotal', subtotal))}  |  "
+            + _("restaurant.discount") + f": {_display_money(balance.get('discount_amount', '0'))}  |  "
+            + _("restaurant.service_charge") + f": {_display_money(balance.get('service_charge_amount', '0'))}  |  "
+            + _("restaurant.tax") + f": {_display_money(balance.get('tax_amount', '0'))}  |  "
+            + _("restaurant.current_total") + f": {_display_money(balance.get('total', subtotal))}  |  "
+            + _("restaurant.paid") + f": {_display_money(balance.get('paid', '0'))}  |  "
+            + _("restaurant.remaining") + f": {_display_money(balance.get('remaining', '0'))}"
         )
 
     def add_menu_item(self, item):
@@ -506,7 +534,7 @@ class RestaurantPOSWidget(QWidget):
                 return
             result = self.service.set_session_adjustments(session_id=int(self.session["id"]), **dialog.payload())
             self.load_session(self.session)
-            self.status.setText(_("restaurant.adjustments_saved") + f" — {_('restaurant.current_total')}: {result.get('total', '0')}")
+            self.status.setText(_("restaurant.adjustments_saved") + f" — {_('restaurant.current_total')}: {_display_money(result.get('total', '0'))}")
         except Exception as exc:
             self.status.setText(str(exc))
 
@@ -523,7 +551,7 @@ class RestaurantPOSWidget(QWidget):
             result = self.service.record_payment(session_id=int(self.session["id"]), **dialog.payload())
             self.load_session(self.session)
             remaining_label = _("restaurant.remaining")
-            self.status.setText(_("restaurant.payment_recorded") + f" — {remaining_label}: {result.get('remaining', '0')}")
+            self.status.setText(_("restaurant.payment_recorded") + f" — {remaining_label}: {_display_money(result.get('remaining', '0'))}")
         except Exception as exc:
             self.status.setText(str(exc))
 

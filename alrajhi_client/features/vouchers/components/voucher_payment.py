@@ -67,7 +67,7 @@ class VoucherPaymentPanel(QWidget):
 
     def load(self, voucher: dict) -> None:
         try:
-            amount_display = currency.convert(Decimal(str(voucher.get('amount') or 0)), 'USD', currency.get_display_currency())
+            amount_display = currency.to_display(Decimal(str(voucher.get('amount') or 0)))
         except Exception:
             amount_display = Decimal('0')
         self.amount_spin.setValue(float(amount_display))
@@ -86,14 +86,14 @@ class VoucherPaymentPanel(QWidget):
 
     def set_amount_usd(self, amount: Decimal) -> None:
         try:
-            display_amount = currency.convert(amount, 'USD', currency.get_display_currency())
+            display_amount = currency.to_display(amount)
             self.amount_spin.setValue(float(display_amount))
         except Exception:
             self.amount_spin.setValue(float(amount))
 
     def amount_usd(self) -> Decimal:
         amount_display = Decimal(str(self.amount_spin.value()))
-        return currency.convert(amount_display, currency.get_display_currency(), 'USD')
+        return currency.from_display(amount_display)
 
     def payload(self) -> dict:
         method = self.payment_method_combo.currentData() or 'cash'

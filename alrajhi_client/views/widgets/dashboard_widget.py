@@ -210,6 +210,7 @@ class DashboardWidget(QWidget):
             (translate('new_item'), 'box', '#0ea5e9', self._open_add_item),
             (translate('receipt_voucher'), 'hand-holding-usd', '#10b981', lambda: self._open_voucher('receipt')),
             (translate('payment_voucher'), 'money-bill-wave', '#ef4444', lambda: self._open_voucher('payment')),
+            (translate('expense'), 'file-invoice', '#dc2626', lambda: self._open_voucher('expense')),
             (translate('monitoring_short'), 'heartbeat', '#64748b', lambda: self._switch_page('monitoring')),
         ]
         for i, (text, icon, color, callback) in enumerate(actions):
@@ -786,16 +787,19 @@ class DashboardWidget(QWidget):
             show_toast(translate('cannot_navigate_to_page'), 'error', self)
 
     def _open_invoice(self, inv_type):
-        # Daily shortcuts must open modal dialogs only; they must not navigate to
-        # the underlying management page. Refresh the page silently if it exists.
-        page_key = 'sales_invoices' if inv_type == 'sale' else 'purchase_invoices'
+        """Open invoice shortcuts through the workspace document system.
+
+        Dashboard quick actions are document actions, not modal-dialog actions.
+        Keep the old modal dialog path out of the dashboard so invoices use the
+        same TransactionDocumentTab/InvoiceEditorTab routing as the rest of the
+        application.
+        """
         try:
-            from views.dialogs.invoice_dialog import InvoiceDialog
-            dialog = InvoiceDialog(inv_type, self)
-            if dialog.exec():
-                page = (self._main_window().pages.get(page_key) if self._main_window() else None)
-                if page and hasattr(page, 'refresh_all'):
-                    page.refresh_all()
+            main = self._main_window()
+            if main and hasattr(main, 'open_quick_invoice'):
+                main.open_quick_invoice(inv_type)
+                return
+            show_toast(translate('cannot_open_document_tab'), 'error', self)
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 
@@ -813,23 +817,21 @@ class DashboardWidget(QWidget):
 
     def _open_add_customer(self):
         try:
-            from views.dialogs.add_entity_dialog import AddEntityDialog
-            dialog = AddEntityDialog(self, 'sale')
-            if dialog.exec():
-                page = (self._main_window().pages.get('customers') if self._main_window() else None)
-                if page and hasattr(page, 'refresh'):
-                    page.refresh()
+            main = self._main_window()
+            if main and hasattr(main, 'open_party_document'):
+                main.open_party_document('customer')
+                return
+            show_toast(translate('cannot_open_document_tab'), 'error', self)
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 
     def _open_add_supplier(self):
         try:
-            from views.dialogs.add_entity_dialog import AddEntityDialog
-            dialog = AddEntityDialog(self, 'purchase')
-            if dialog.exec():
-                page = (self._main_window().pages.get('suppliers') if self._main_window() else None)
-                if page and hasattr(page, 'refresh'):
-                    page.refresh()
+            main = self._main_window()
+            if main and hasattr(main, 'open_party_document'):
+                main.open_party_document('supplier')
+                return
+            show_toast(translate('cannot_open_document_tab'), 'error', self)
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 
@@ -851,14 +853,15 @@ class DashboardWidget(QWidget):
 
     def _open_voucher(self, voucher_type='receipt'):
         try:
-            from views.widgets.vouchers_widget import VoucherDialog
-            dialog = VoucherDialog(self)
-            if hasattr(dialog, 'type_combo'):
-                dialog.type_combo.setCurrentIndex(0 if voucher_type == 'receipt' else 1)
-            if dialog.exec():
-                page = (self._main_window().pages.get('vouchers') if self._main_window() else None)
-                if page and hasattr(page, 'refresh'):
-                    page.refresh()
+            main = self._main_window()
+            if main and hasattr(main, 'open_quick_voucher'):
+                tab = main.open_quick_voucher(voucher_type=voucher_type)
+                if tab and hasattr(tab, 'saved'):
+                    page = (main.pages.get('vouchers') if hasattr(main, 'pages') else None)
+                    if page and hasattr(page, 'refresh'):
+                        tab.saved.connect(lambda *_: page.refresh())
+                return
+            show_toast(translate('cannot_open_document_tab'), 'error', self)
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 

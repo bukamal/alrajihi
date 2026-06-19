@@ -104,7 +104,7 @@ class VoucherLinkPanel(QWidget):
         if remaining <= 0:
             return
         self._invoice_remaining_by_id[inv_id] = remaining
-        amount_label = currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency()))
+        amount_label = currency.format_base_amount(remaining)
         self.invoice_combo.addItem(tr('remaining_invoice_amount', reference=inv.get('reference', inv_id), amount=amount_label), inv_id)
 
     def update_invoice_list(self, voucher_type: str | None = None) -> None:

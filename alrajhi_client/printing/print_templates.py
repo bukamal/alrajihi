@@ -153,8 +153,8 @@ _TITLE_MAP = {
     "products": _tr("items"),
     "customers": _tr("customers"),
     "suppliers": _tr("suppliers"),
-    "categories": "التصنيفات",
-    "users": "المستخدمون",
+    "categories": _tr("categories"),
+    "users": _tr("users"),
     "vouchers": _tr("vouchers"),
     "warehouses": _tr("warehouses"),
     "cashboxes": _tr("cashboxes"),
@@ -221,8 +221,8 @@ def _company_header(settings: Dict[str, Any], title: str = "") -> str:
 
     tax_line = ""
     if data["tax_number"] and _bool_setting(settings, "show_tax_number", True):
-        tax_line = f"<div class='muted'>الرقم الضريبي: {_s(data['tax_number'])}</div>"
-    cr_line = f"<div class='muted'>السجل التجاري: {_s(data['commercial_register'])}</div>" if data.get("commercial_register") else ""
+        tax_line = f"<div class='muted'>{_s(_tr('print_tax_number'))}: {_s(data['tax_number'])}</div>"
+    cr_line = f"<div class='muted'>{_s(_tr('print_commercial_register'))}: {_s(data['commercial_register'])}</div>" if data.get("commercial_register") else ""
     website_line = f"<div class='muted'>{_s(data['website'])}</div>" if data.get("website") else ""
 
     contacts = []
@@ -246,7 +246,7 @@ def _company_header(settings: Dict[str, Any], title: str = "") -> str:
             </td>
             <td class='brand-meta'>
                 <div class='document-badge'>{_s(title)}</div>
-                <div class='muted'>تاريخ الطباعة</div>
+                <div class='muted'>{_s(_tr("print_date_label"))}</div>
                 <div class='strong'>{_print_meta_line()}</div>
             </td>
         </tr>
@@ -451,7 +451,7 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
         qr_payload = f"INV|{ref}|{date}|{invoice.get('total', '')}|{party}"
         qr_uri = _qr_data_uri(qr_payload)
         if qr_uri:
-            qr_html = f"<table class='qr-table'><tr><td><img src='{qr_uri}'><div>رمز المستند</div></td></tr></table>"
+            qr_html = f"<table class='qr-table'><tr><td><img src='{qr_uri}'><div>{_s(_tr("print_document_qr"))}</div></td></tr></table>"
 
     body = f"""
     {_company_header(settings, title)}
@@ -471,7 +471,7 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
     ])}
     <div class='notes-box'><b>{_s(_tr("print_notes"))}:</b> {_s(invoice.get('notes', ''))}</div>
     {qr_html}
-    <table class='signatures hide-thermal'><tr><td>توقيع المستلم</td><td>المحاسب</td></tr></table>
+    <table class='signatures hide-thermal'><tr><td>{_s(_tr("print_receiver_signature"))}</td><td>{_s(_tr("print_accountant_signature"))}</td></tr></table>
     {_footer(settings, _tr("print_thanks"))}
     """
     return base_document(f"{title} {ref}", body, paper, settings)
@@ -490,7 +490,7 @@ def voucher_html(voucher: Dict[str, Any], paper: str = "default") -> str:
         [(_tr("print_party"), voucher.get("party_name", "")), (_tr("print_account"), voucher.get("account_name", "")), (_tr("print_user"), voucher.get("user_name", ""))],
     ])}
     <div class='notes-box'><b>{_s(_tr("print_description"))}:</b> {_s(voucher.get('description', ''))}</div>
-    <table class='signatures'><tr><td>المستلم</td><td>المحاسب</td></tr></table>
+    <table class='signatures'><tr><td>{_s(_tr("print_receiver"))}</td><td>{_s(_tr("print_accountant_signature"))}</td></tr></table>
     {_footer(settings, title)}
     """
     return base_document(title, body, paper, settings)

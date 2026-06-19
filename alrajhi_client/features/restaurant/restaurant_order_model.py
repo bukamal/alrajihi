@@ -100,7 +100,7 @@ class RestaurantOrderModel(QAbstractTableModel):
 
     def _display_money(self, amount_usd: Any) -> str:
         try:
-            amount = currency.convert(self._decimal(amount_usd), 'USD', self.display_currency)
+            amount = currency.convert(self._decimal(amount_usd), currency.storage_currency(), self.display_currency)
             return currency.format_amount(amount)
         except Exception:
             return currency.format_amount(Decimal('0'))

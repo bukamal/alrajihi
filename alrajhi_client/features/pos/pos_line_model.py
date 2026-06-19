@@ -94,7 +94,7 @@ class POSLineModel(QAbstractTableModel):
 
     def _display_money(self, amount_usd) -> str:
         try:
-            amount = currency.convert(Decimal(str(amount_usd or 0)), 'USD', self.display_currency)
+            amount = currency.convert(Decimal(str(amount_usd or 0)), currency.storage_currency(), self.display_currency)
             return currency.format_amount(amount)
         except Exception:
             return currency.format_amount(Decimal('0'))

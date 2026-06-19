@@ -31,6 +31,11 @@ class FinanceOperationPolicy:
     OP_VOUCHER_DELETE = 'voucher_delete'
     OP_VOUCHER_PRINT = 'voucher_print'
     OP_VOUCHER_VIEW = 'voucher_view'
+    OP_EXPENSE_CREATE = 'expense_create'
+    OP_EXPENSE_EDIT = 'expense_edit'
+    OP_EXPENSE_DELETE = 'expense_delete'
+    OP_EXPENSE_PRINT = 'expense_print'
+    OP_EXPENSE_VIEW = 'expense_view'
 
     def _permission_service(self):
         from core.services.permission_service import permission_service
@@ -57,6 +62,11 @@ class FinanceOperationPolicy:
             self.OP_VOUCHER_DELETE: FinanceOperation(self.OP_VOUCHER_DELETE, 'allow_voucher_delete', ps.ACTION_VOUCHER_DELETE, 'finance.operation.voucher_delete'),
             self.OP_VOUCHER_PRINT: FinanceOperation(self.OP_VOUCHER_PRINT, 'allow_voucher_print', ps.ACTION_VOUCHER_PRINT, 'finance.operation.voucher_print'),
             self.OP_VOUCHER_VIEW: FinanceOperation(self.OP_VOUCHER_VIEW, 'allow_voucher_view', ps.ACTION_VOUCHER_VIEW, 'finance.operation.voucher_view'),
+            self.OP_EXPENSE_CREATE: FinanceOperation(self.OP_EXPENSE_CREATE, 'allow_expense_create', ps.ACTION_EXPENSE_CREATE, 'finance.operation.expense_create'),
+            self.OP_EXPENSE_EDIT: FinanceOperation(self.OP_EXPENSE_EDIT, 'allow_expense_edit', ps.ACTION_EXPENSE_EDIT, 'finance.operation.expense_edit'),
+            self.OP_EXPENSE_DELETE: FinanceOperation(self.OP_EXPENSE_DELETE, 'allow_expense_delete', ps.ACTION_EXPENSE_DELETE, 'finance.operation.expense_delete'),
+            self.OP_EXPENSE_PRINT: FinanceOperation(self.OP_EXPENSE_PRINT, 'allow_expense_print', ps.ACTION_EXPENSE_PRINT, 'finance.operation.expense_print'),
+            self.OP_EXPENSE_VIEW: FinanceOperation(self.OP_EXPENSE_VIEW, 'allow_expense_view', ps.ACTION_EXPENSE_VIEW, 'finance.operation.expense_view'),
         }
 
     def settings(self) -> Dict[str, Any]:

@@ -29,13 +29,16 @@ class VoucherService:
 
     def list_vouchers(self, search: str | None = None, vtype: str | None = None,
                       limit: int | None = None, offset: int | None = None) -> Tuple[List[Dict], int]:
-        self._require('voucher_view', context='voucher:list', payload={'type': vtype})
+        self._require(self._operation_for_type('view', vtype), context='voucher:list', payload={'type': vtype})
         return pair(self.gateway.list(search=search, vtype=vtype, limit=limit, offset=offset), 'vouchers')
 
     def get(self, voucher_id: int) -> Optional[Dict]:
-        self._require('voucher_view', context='voucher:get', payload={'id': voucher_id})
         voucher = self.gateway.get(voucher_id)
-        return voucher if isinstance(voucher, dict) else None
+        if not isinstance(voucher, dict):
+            self._require('voucher_view', context='voucher:get', payload={'id': voucher_id})
+            return None
+        self._require(self._operation_for_type('view', voucher.get('type')), context='voucher:get', payload={'id': voucher_id, 'type': voucher.get('type')})
+        return voucher
 
     def _entity_type(self, voucher: Dict) -> str:
         vtype = (voucher or {}).get('type')
@@ -45,8 +48,21 @@ class VoucherService:
             return 'PAYMENT_VOUCHER'
         return 'EXPENSE_VOUCHER'
 
+    def _operation_for_type(self, base_operation: str, voucher_type: str | None) -> str:
+        if voucher_type == 'expense':
+            if base_operation == 'create':
+                return 'expense_create'
+            if base_operation == 'edit':
+                return 'expense_edit'
+            if base_operation == 'delete':
+                return 'expense_delete'
+            if base_operation == 'view':
+                return 'expense_view'
+        return f'voucher_{base_operation}'
+
     def add(self, data: Dict):
-        self._require('voucher_create', context='voucher:add', payload={'type': (data or {}).get('type')})
+        vtype = (data or {}).get('type')
+        self._require(self._operation_for_type('create', vtype), context='voucher:add', payload={'type': vtype})
         if data.get('invoice_id'):
             try:
                 from core.services.invoice_service import invoice_service
@@ -64,10 +80,11 @@ class VoucherService:
         return voucher_id
 
     def update(self, voucher_id: int, data: Dict):
-        self._require('voucher_edit', context='voucher:update', payload={'id': voucher_id, 'type': (data or {}).get('type')})
+        vtype = (data or {}).get('type')
+        self._require(self._operation_for_type('edit', vtype), context='voucher:update', payload={'id': voucher_id, 'type': vtype})
         data = branch_service.ensure_branch_id(data)
         data = cashbox_service.prepare_voucher_payload(data)
-        old = self.get(voucher_id)
+        old = self.gateway.get(voucher_id)
         cashbox_service.reverse_voucher(voucher_id)
         result = self.gateway.update(voucher_id, data)
         cashbox_service.record_voucher(voucher_id, data)
@@ -76,8 +93,9 @@ class VoucherService:
         return result
 
     def delete(self, voucher_id: int):
-        self._require('voucher_delete', context='voucher:delete', payload={'id': voucher_id})
-        old = self.get(voucher_id)
+        old = self.gateway.get(voucher_id)
+        vtype = (old or {}).get('type')
+        self._require(self._operation_for_type('delete', vtype), context='voucher:delete', payload={'id': voucher_id, 'type': vtype})
         cashbox_service.reverse_voucher(voucher_id)
         result = self.gateway.delete(voucher_id)
         audit_service.log('DELETE', self._entity_type(old or {}), voucher_id, old_values=old, details='حذف سند')

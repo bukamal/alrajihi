@@ -9,6 +9,9 @@ from gateways.approval_gateway import ApprovalGateway
 
 
 class LocalApprovalGateway(ApprovalGateway):
+    def is_remote(self) -> bool:
+        return False
+
     def _db(self):
         return DatabaseConnection()
 

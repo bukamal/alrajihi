@@ -10,6 +10,9 @@ from gateways.restaurant_gateway import RestaurantGateway
 
 
 class LocalRestaurantGateway(RestaurantGateway):
+    def is_remote(self) -> bool:
+        return False
+
     """Local SQLite adapter for restaurant tables/sessions/KOT."""
 
     def __init__(self):

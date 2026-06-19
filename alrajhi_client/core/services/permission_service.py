@@ -90,6 +90,11 @@ class PermissionService:
     ACTION_VOUCHER_DELETE = 'finance_voucher_delete'
     ACTION_VOUCHER_PRINT = 'finance_voucher_print'
     ACTION_VOUCHER_VIEW = 'finance_voucher_view'
+    ACTION_EXPENSE_CREATE = 'finance_expense_create'
+    ACTION_EXPENSE_EDIT = 'finance_expense_edit'
+    ACTION_EXPENSE_DELETE = 'finance_expense_delete'
+    ACTION_EXPENSE_PRINT = 'finance_expense_print'
+    ACTION_EXPENSE_VIEW = 'finance_expense_view'
     ACTION_VIEW_REPORTS = 'view_reports'
     ACTION_EXPORT_REPORTS = 'export_reports'
     ACTION_VIEW_ALL_BRANCHES = 'view_all_branches'
@@ -179,6 +184,11 @@ class PermissionService:
         ACTION_VOUCHER_DELETE: True,
         ACTION_VOUCHER_PRINT: True,
         ACTION_VOUCHER_VIEW: True,
+        ACTION_EXPENSE_CREATE: True,
+        ACTION_EXPENSE_EDIT: True,
+        ACTION_EXPENSE_DELETE: True,
+        ACTION_EXPENSE_PRINT: True,
+        ACTION_EXPENSE_VIEW: True,
         ACTION_VIEW_REPORTS: True,
         ACTION_EXPORT_REPORTS: True,
         ACTION_VIEW_ALL_BRANCHES: False,
@@ -304,6 +314,11 @@ class PermissionService:
                     self.ACTION_VOUCHER_DELETE: 'finance.voucher.delete',
                     self.ACTION_VOUCHER_PRINT: 'finance.voucher.print',
                     self.ACTION_VOUCHER_VIEW: 'finance.voucher.view',
+                    self.ACTION_EXPENSE_CREATE: 'finance.expense.create',
+                    self.ACTION_EXPENSE_EDIT: 'finance.expense.edit',
+                    self.ACTION_EXPENSE_DELETE: 'finance.expense.delete',
+                    self.ACTION_EXPENSE_PRINT: 'finance.expense.print',
+                    self.ACTION_EXPENSE_VIEW: 'finance.expense.view',
                     self.ACTION_VIEW_REPORTS: 'reports.view',
                     self.ACTION_EXPORT_REPORTS: 'reports.export',
                     self.ACTION_VIEW_ALL_BRANCHES: 'branches.view_all',

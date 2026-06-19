@@ -1159,6 +1159,11 @@ def _phase158_159_schema(conn):
         INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.voucher.edit','finance','voucher_edit','Edit vouchers');
         INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.voucher.delete','finance','voucher_delete','Delete vouchers');
         INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.voucher.print','finance','voucher_print','Print vouchers');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.expense.view','finance','expense_view','View expenses');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.expense.create','finance','expense_create','Create expenses');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.expense.edit','finance','expense_edit','Edit expenses');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.expense.delete','finance','expense_delete','Delete expenses');
+        INSERT OR IGNORE INTO permissions(key,module,action,description) VALUES ('finance.expense.print','finance','expense_print','Print expenses');
         INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
         SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
             'inventory.use','inventory.warehouse.create','inventory.warehouse.edit','inventory.warehouse.archive',
@@ -1177,15 +1182,18 @@ def _phase158_159_schema(conn):
         SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
             'finance.use','finance.cashbox.create','finance.cashbox.edit','finance.cashbox.archive',
             'finance.bank.create','finance.bank.edit','finance.bank.archive','finance.movements.view','finance.shifts.view',
-            'finance.voucher.view','finance.voucher.create','finance.voucher.edit','finance.voucher.delete','finance.voucher.print'
+            'finance.voucher.view','finance.voucher.create','finance.voucher.edit','finance.voucher.delete','finance.voucher.print',
+            'finance.expense.view','finance.expense.create','finance.expense.edit','finance.expense.delete','finance.expense.print'
         ) WHERE r.name IN ('admin','manager');
         INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
         SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
-            'finance.use','finance.movements.view','finance.voucher.view','finance.voucher.create','finance.voucher.edit','finance.voucher.print'
+            'finance.use','finance.movements.view','finance.voucher.view','finance.voucher.create','finance.voucher.edit','finance.voucher.print',
+            'finance.expense.view','finance.expense.create','finance.expense.edit','finance.expense.print'
         ) WHERE r.name='accountant';
         INSERT OR IGNORE INTO role_permissions(role_id, permission_key, allowed)
         SELECT r.id, p.key, 1 FROM roles r JOIN permissions p ON p.key IN (
-            'finance.use','finance.voucher.view','finance.voucher.create','finance.voucher.print'
+            'finance.use','finance.voucher.view','finance.voucher.create','finance.voucher.print',
+            'finance.expense.view','finance.expense.create','finance.expense.print'
         ) WHERE r.name='cashier';
 
         -- Phase178: POS operation-level permissions.

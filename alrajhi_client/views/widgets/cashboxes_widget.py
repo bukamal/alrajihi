@@ -160,7 +160,7 @@ class CashboxesWidget(QWidget):
             raise
         for c in cashboxes:
             if text and text not in str(c.get('name','')).lower() and text not in str(c.get('code','')).lower(): continue
-            bal=currency.format_amount(currency.convert(Decimal(str(c.get('balance') or 0)),'USD',currency.get_display_currency()))
+            bal=currency.format_amount(currency.to_display(Decimal(str(c.get('balance') or 0))))
             rows.append({'id':c.get('id'),'branch':c.get('branch_name',''),'name':c.get('name',''),'code':c.get('code') or '—','balance':bal,'default':tr('yes') if int(c.get('is_default') or 0)==1 else tr('no'),'status':tr('archived') if c.get('deleted_at') or int(c.get('is_active') or 0)==0 else tr('active_status')})
         self.cash_model=GenericTableModel(rows,[tr('branch'),tr('cashbox'),tr('code'),tr('balance'),tr('default'),tr('status')],key_fields=['id'],data_keys=['branch','name','code','balance','default','status']); self.cash_table.setModel(self.cash_model); self.cash_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
     def refresh_banks(self):
@@ -174,7 +174,7 @@ class CashboxesWidget(QWidget):
             raise
         for b in bank_accounts:
             if text and text not in str(b.get('bank_name','')).lower() and text not in str(b.get('account_name','')).lower(): continue
-            bal=currency.format_amount(currency.convert(Decimal(str(b.get('balance') or 0)),'USD',currency.get_display_currency()))
+            bal=currency.format_amount(currency.to_display(Decimal(str(b.get('balance') or 0))))
             rows.append({'id':b.get('id'),'branch':b.get('branch_name',''),'bank':b.get('bank_name',''),'account':b.get('account_name') or '—','number':b.get('account_number') or '—','balance':bal,'status':tr('archived') if b.get('deleted_at') or int(b.get('is_active') or 0)==0 else tr('active_status')})
         self.bank_model=GenericTableModel(rows,[tr('branch'),tr('bank'),tr('account'),tr('account_number'),tr('balance'),tr('status')],key_fields=['id'],data_keys=['branch','bank','account','number','balance','status']); self.bank_table.setModel(self.bank_model); self.bank_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
     def refresh_shifts(self):
@@ -187,8 +187,8 @@ class CashboxesWidget(QWidget):
                 return
             raise
         for sh in shifts:
-            diff=currency.format_amount(currency.convert(Decimal(str(sh.get('difference_amount') or 0)),'USD',currency.get_display_currency())) if sh.get('difference_amount') not in (None,'') else '—'
-            rows.append({'id':sh.get('id'),'branch':sh.get('branch_name',''),'cashbox':sh.get('cashbox_name',''),'opened':sh.get('opened_at',''),'closed':sh.get('closed_at') or '—','status':tr('open_status') if sh.get('status')=='open' else tr('closed_status'),'sales':currency.format_amount(currency.convert(Decimal(str(sh.get('total_sales') or 0)),'USD',currency.get_display_currency())),'diff':diff})
+            diff=currency.format_amount(currency.to_display(Decimal(str(sh.get('difference_amount') or 0)))) if sh.get('difference_amount') not in (None,'') else '—'
+            rows.append({'id':sh.get('id'),'branch':sh.get('branch_name',''),'cashbox':sh.get('cashbox_name',''),'opened':sh.get('opened_at',''),'closed':sh.get('closed_at') or '—','status':tr('open_status') if sh.get('status')=='open' else tr('closed_status'),'sales':currency.format_amount(currency.to_display(Decimal(str(sh.get('total_sales') or 0)))),'diff':diff})
         self.shift_model=GenericTableModel(rows,[tr('line_no'),tr('branch'),tr('cashbox'),tr('open_time'),tr('close_time'),tr('status'),tr('sales_total'),tr('difference')],data_keys=['id','branch','cashbox','opened','closed','status','sales','diff']); self.shift_table.setModel(self.shift_model); self.shift_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
 
     def refresh_movements(self):
@@ -201,7 +201,7 @@ class CashboxesWidget(QWidget):
                 return
             raise
         for m in movements:
-            amount=currency.format_amount(currency.convert(Decimal(str(m.get('amount') or 0)),'USD',currency.get_display_currency())); account=m.get('cashbox_name') or f"{m.get('bank_name') or ''} {m.get('account_name') or ''}".strip()
+            amount=currency.format_amount(currency.to_display(Decimal(str(m.get('amount') or 0)))); account=m.get('cashbox_name') or f"{m.get('bank_name') or ''} {m.get('account_name') or ''}".strip()
             rows.append({'date':m.get('movement_date',''),'branch':m.get('branch_name',''),'account':account,'type':m.get('movement_type',''),'amount':amount,'ref':f"{m.get('reference_type') or ''} #{m.get('reference_id') or ''}",'desc':m.get('description','')})
         self.mov_model=GenericTableModel(rows,[tr('date'),tr('branch'),tr('account'),tr('type'),tr('amount'),tr('reference'),tr('description')],data_keys=['date','branch','account','type','amount','ref','desc']); self.mov_table.setModel(self.mov_model); self.mov_table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
     def _selected(self, table, model_attr):

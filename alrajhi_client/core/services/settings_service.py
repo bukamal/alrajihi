@@ -470,6 +470,11 @@ class SettingsService:
                 'allow_voucher_delete': self.get_bool('finance/operations/allow_voucher_delete', True),
                 'allow_voucher_print': self.get_bool('finance/operations/allow_voucher_print', True),
                 'allow_voucher_view': self.get_bool('finance/operations/allow_voucher_view', True),
+                'allow_expense_create': self.get_bool('finance/operations/allow_expense_create', True),
+                'allow_expense_edit': self.get_bool('finance/operations/allow_expense_edit', True),
+                'allow_expense_delete': self.get_bool('finance/operations/allow_expense_delete', True),
+                'allow_expense_print': self.get_bool('finance/operations/allow_expense_print', True),
+                'allow_expense_view': self.get_bool('finance/operations/allow_expense_view', True),
             },
             'settings_profile_id': int((profile or {}).get('id') or 1),
         }
@@ -782,6 +787,26 @@ class SettingsService:
     def report_language(self) -> str:
         """Language used by reports, independent from UI."""
         return self.get_language_settings().get('report_language', self.get_language())
+
+    def get_report_settings(self) -> Dict[str, Any]:
+        """Central settings contract for reports and report exports."""
+        printing = self.get_printing_settings()
+        ui_lang = self.get_language()
+        return {
+            'enabled': self.get_bool('reports/enabled', True),
+            'ui_language': ui_lang,
+            'report_language': self.report_language(),
+            'print_language': self.print_language(),
+            'display_currency': self.get('display_currency', 'USD') or 'USD',
+            'base_currency': self.get('base_currency', 'USD') or 'USD',
+            'print_template': self.get('printing/report_template', printing.get('report_template', 'a4')) or 'a4',
+            'default_export_format': self.get('reports/default_export_format', 'pdf') or 'pdf',
+            'operations': {
+                'allow_view': self.get_bool('reports/operations/allow_view', True),
+                'allow_export': self.get_bool('reports/operations/allow_export', True),
+            },
+            'settings_profile_id': int((self.get_active_profile() or {}).get('id') or 1),
+        }
 
     def quantity_decimals(self) -> int:
         return self.get_units_settings().get('quantity_decimals', 3)

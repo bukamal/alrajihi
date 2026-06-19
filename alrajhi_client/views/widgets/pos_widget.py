@@ -369,11 +369,11 @@ class POSWidget(QWidget):
             expected = Decimal(str(summary.get('expected_amount') or 0))
         except Exception:
             expected = Decimal('0')
-        actual, ok = QInputDialog.getDouble(self, translate("close_shift"), translate("expected_actual_balance", expected=currency.format_amount(currency.convert(expected, 'USD', self.display_curr))), float(currency.convert(expected, 'USD', self.display_curr)), 0, 999999999, 2)
+        actual, ok = QInputDialog.getDouble(self, translate("close_shift"), translate("expected_actual_balance", expected=currency.format_amount(currency.convert(expected, currency.storage_currency(), self.display_curr))), float(currency.convert(expected, currency.storage_currency(), self.display_curr)), 0, 999999999, 2)
         if not ok:
             return
         try:
-            actual_usd = currency.convert(Decimal(str(actual)), self.display_curr, 'USD')
+            actual_usd = currency.convert(Decimal(str(actual)), self.display_curr, currency.storage_currency())
             summary = cashbox_service.close_shift(shift['id'], actual_usd)
             diff = Decimal(str(summary.get('difference_amount') or 0))
             QMessageBox.information(self, translate("shift_close_report"), translate("shift_closed_report_msg", id=shift['id'], sales=summary.get('total_sales'), cash=summary.get('total_cash'), card=summary.get('total_card'), diff=diff))
@@ -560,7 +560,7 @@ class POSWidget(QWidget):
         if hasattr(self, 'table_model'):
             self.table_model.set_display_currency(self.display_curr)
             self.table_model.set_cart(self.cart)
-        total_display = currency.convert(self.cart.total_usd, 'USD', self.display_curr)
+        total_display = currency.convert(self.cart.total_usd, currency.storage_currency(), self.display_curr)
         self.total_label.setText(translate("total_amount", amount=currency.format_amount(total_display)))
         if self.payment_combo.currentData() in ('cash', 'card'):
             self.paid_spin.setValue(float(total_display))
@@ -576,7 +576,7 @@ class POSWidget(QWidget):
     def update_change_due(self):
         try:
             paid_display = Decimal(str(self.paid_spin.value()))
-            total_display = currency.convert(self.cart.total_usd, 'USD', self.display_curr)
+            total_display = currency.convert(self.cart.total_usd, currency.storage_currency(), self.display_curr)
             change = paid_display - total_display
             if change > 0:
                 self.change_label.setText(translate("change_due_customer", amount=currency.format_amount(change)))
@@ -604,7 +604,7 @@ class POSWidget(QWidget):
         if self.payment_combo.currentData() == 'credit':
             self.paid_spin.setValue(0)
         else:
-            total_display = currency.convert(self.cart.total_usd, 'USD', self.display_curr)
+            total_display = currency.convert(self.cart.total_usd, currency.storage_currency(), self.display_curr)
             self.paid_spin.setValue(float(total_display))
 
     def pay_cash_full(self):
@@ -660,7 +660,7 @@ class POSWidget(QWidget):
         if not pos_service.suspended_carts:
             show_toast(translate("no_suspended_sales"), "info", self)
             return
-        labels = [f"{i+1}. {cart.note or cart.created_at} - {currency.format_amount(currency.convert(cart.total_usd, 'USD', self.display_curr))}" for i, cart in enumerate(pos_service.suspended_carts)]
+        labels = [f"{i+1}. {cart.note or cart.created_at} - {currency.format_amount(currency.convert(cart.total_usd, currency.storage_currency(), self.display_curr))}" for i, cart in enumerate(pos_service.suspended_carts)]
         choice, ok = QInputDialog.getItem(self, translate("resume_suspended_sale"), translate("choose_cart"), labels, 0, False)
         if not ok:
             return
@@ -685,7 +685,7 @@ class POSWidget(QWidget):
                 raise POSException(translate('open_shift_before_checkout'))
             payment_method = self.payment_combo.currentData() or 'cash'
             paid_display = Decimal(str(self.paid_spin.value()))
-            paid_usd = currency.convert(paid_display, self.display_curr, 'USD')
+            paid_usd = currency.convert(paid_display, self.display_curr, currency.storage_currency())
             if payment_method in ('cash', 'card') and paid_usd < self.cart.total_usd:
                 reply = QMessageBox.question(self, translate("incomplete_payment"), translate("partial_payment_confirm"), QMessageBox.Yes | QMessageBox.No)
                 if reply != QMessageBox.Yes:

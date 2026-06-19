@@ -396,6 +396,8 @@ class ReportsPhase36Mixin:
             return
 
     def print_report(self, mode='preview'):
+        from core.services.report_operation_policy import report_operation_policy
+        report_operation_policy.require(report_operation_policy.OP_EXPORT, context=f'report_print:{mode}')
         from printing.printing_service import printing_service
         start, end = self.get_date_range()
         tab = self.tabs.currentWidget()

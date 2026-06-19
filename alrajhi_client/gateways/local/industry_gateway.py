@@ -11,6 +11,9 @@ ALLOWED_UI_MODES = {"classic", "touch_pos", "compact"}
 
 
 class LocalIndustryGateway(IndustryGateway):
+    def is_remote(self) -> bool:
+        return False
+
     def __init__(self):
         self.settings = create_settings_gateway()
 

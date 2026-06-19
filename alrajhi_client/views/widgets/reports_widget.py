@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt, QDate
 from i18n import translate as tr, qt_layout_direction
 from decimal import Decimal
 from core.services.reporting_service import reporting_service
+from core.services.report_operation_policy import report_operation_policy
 from core.services.settings_service import settings_service
 from core.services.warehouse_service import warehouse_service
 from core.services.entity_service import entity_service
@@ -86,22 +87,22 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         self._load_items()
         period_layout.addWidget(self.item_filter)
 
-        refresh_btn = QPushButton(tr("refresh_report"))
-        refresh_btn.clicked.connect(self.refresh_report)
-        period_layout.addWidget(refresh_btn)
+        self.refresh_btn = QPushButton(tr("refresh_report"))
+        self.refresh_btn.clicked.connect(self.refresh_report)
+        period_layout.addWidget(self.refresh_btn)
 
         reset_btn = QPushButton(tr("reset_filters"))
         reset_btn.clicked.connect(self.reset_report_filters)
         period_layout.addWidget(reset_btn)
 
-        print_btn = QPushButton(tr("printing"))
-        print_menu = QMenu(print_btn)
+        self.print_btn = QPushButton(tr("printing"))
+        print_menu = QMenu(self.print_btn)
         print_menu.addAction(tr("preview_in_app"), lambda: self.print_report('preview'))
         print_menu.addAction(tr("open_html_browser"), lambda: self.print_report('browser'))  # فتح HTML في المتصفح
         print_menu.addAction(tr("direct_print"), lambda: self.print_report('direct'))
         print_menu.addAction(tr("export_pdf"), lambda: self.print_report('pdf'))
-        print_btn.setMenu(print_menu)
-        period_layout.addWidget(print_btn)
+        self.print_btn.setMenu(print_menu)
+        period_layout.addWidget(self.print_btn)
 
         layout.addLayout(period_layout)
 
@@ -191,6 +192,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         self._install_report_table_identities()
         self.on_period_type_changed()
         apply_modern_widget(self, tr('reports_page_title'), tr('reports_page_subtitle'))
+        self._apply_report_operation_state()
         self.refresh_report()
 
     def _load_warehouses(self):
@@ -439,6 +441,24 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         except Exception:
             pass
 
+    def _apply_report_operation_state(self):
+        can_view = report_operation_policy.can(report_operation_policy.OP_VIEW)
+        can_export = report_operation_policy.can(report_operation_policy.OP_EXPORT)
+        for widget_name in ('refresh_btn', 'period_type', 'year_combo', 'month_combo', 'start_date', 'end_date',
+                            'warehouse_filter', 'cashbox_filter', 'bank_filter', 'customer_filter', 'supplier_filter', 'item_filter'):
+            widget = getattr(self, widget_name, None)
+            if widget is not None:
+                widget.setEnabled(can_view)
+        if hasattr(self, 'tabs'):
+            self.tabs.setEnabled(can_view)
+        if hasattr(self, 'print_btn'):
+            self.print_btn.setEnabled(can_view and can_export)
+        if not can_view:
+            self._set_summary(tr('reports_access_denied'))
+
+    def _require_report_operation(self, operation_key, context=''):
+        return report_operation_policy.require(operation_key, context=context or 'ReportsWidget')
+
     def _refresh_phase36_reports(self, start, end, display_curr):
         """Compatibility wrapper for static reports contract checks.
 
@@ -457,6 +477,12 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         report failures and slow server responses. The page now opens with the
         active tab only, while tab changes trigger this same method lazily.
         """
+        try:
+            self._require_report_operation(report_operation_policy.OP_VIEW, 'refresh_report')
+        except PermissionError as exc:
+            self._set_summary(tr('reports_access_denied'))
+            print('⚠️ ' + tr('reports_refresh_failed', error=str(exc)))
+            return
         start, end = self.get_date_range()
         self._set_summary('')
         display_curr = currency.get_display_currency()
@@ -487,6 +513,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
 
     def refresh_all_reports(self):
         """Developer/test helper to refresh every report group defensively."""
+        self._require_report_operation(report_operation_policy.OP_VIEW, 'refresh_all_reports')
         start, end = self.get_date_range()
         display_curr = currency.get_display_currency()
         for fn in (

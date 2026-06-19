@@ -47,6 +47,7 @@ class SettingsWidget(QWidget):
         self.tabs.addTab(self.create_appearance_tab(), '🎨 ' + translate('appearance'))
         self.tabs.addTab(self.create_language_settings_tab(), '🌍 اللغات')
         self.tabs.addTab(self.create_profiles_tab(), '🧩 ملفات الإعدادات')
+        self.tabs.addTab(self.create_contracts_tab(), '⚙️ ' + translate('settings_contracts_tab'))
         self.tabs.addTab(self.create_company_tab(), '🏢 ' + translate('company'))
         self.tabs.addTab(self.create_invoice_settings_tab(), '🧾 الفواتير')
         self.tabs.addTab(self.create_units_settings_tab(), '📏 الوحدات')
@@ -276,6 +277,145 @@ class SettingsWidget(QWidget):
         layout.addWidget(group)
         layout.addStretch()
         return scroll
+
+
+    # ========== Phase215: consolidated settings contracts ==========
+    def _make_bool_row(self, form, attr_name, key, label_key, default=True):
+        widget = QCheckBox(translate(label_key))
+        widget.setChecked(self._bool_setting(key, 'true' if default else 'false'))
+        setattr(self, attr_name, widget)
+        form.addRow('', widget)
+        return widget
+
+    def _make_density_row(self, form, attr_name, key, default='comfortable'):
+        combo = QComboBox()
+        combo.addItem(translate('density_compact'), 'compact')
+        combo.addItem(translate('density_comfortable'), 'comfortable')
+        combo.addItem(translate('density_touch'), 'touch')
+        idx = combo.findData(settings_service.get(key, default) or default)
+        combo.setCurrentIndex(max(0, idx))
+        setattr(self, attr_name, combo)
+        form.addRow(translate('settings_touch_density'), combo)
+        return combo
+
+    def _make_payment_row(self, form, attr_name, key, default='cash'):
+        combo = QComboBox()
+        combo.addItem(translate('cash'), 'cash')
+        combo.addItem(translate('card'), 'card')
+        combo.addItem(translate('bank_transfer'), 'bank_transfer')
+        combo.addItem(translate('credit'), 'credit')
+        idx = combo.findData(settings_service.get(key, default) or default)
+        combo.setCurrentIndex(max(0, idx))
+        setattr(self, attr_name, combo)
+        form.addRow(translate('settings_default_payment_method'), combo)
+        return combo
+
+    def create_contracts_tab(self):
+        scroll, layout = self._scroll_tab()
+        intro_group, intro_box = self._card(translate('settings_contracts_title'), translate('settings_contracts_help'))
+        profile = settings_service.get_active_profile() or {}
+        intro_box.addWidget(self._note(translate('settings_contracts_profile_note', profile=profile.get('name') or profile.get('id') or 'default'), 'info'))
+        layout.addWidget(intro_group)
+
+        modules_group, form = self._form_card(translate('settings_modules_title'), translate('settings_modules_help'))
+        self._make_bool_row(form, 'contract_restaurant_enabled', 'restaurant/enabled', 'settings_module_restaurant', True)
+        self._make_bool_row(form, 'contract_manufacturing_enabled', 'manufacturing/enabled', 'settings_module_manufacturing', True)
+        self._make_bool_row(form, 'contract_inventory_enabled', 'inventory/enabled', 'settings_module_inventory', True)
+        self._make_bool_row(form, 'contract_finance_enabled', 'finance/enabled', 'settings_module_finance', True)
+        self._make_bool_row(form, 'contract_reports_enabled', 'reports/enabled', 'settings_module_reports', True)
+        self._make_bool_row(form, 'contract_users_enabled', 'users/enabled', 'settings_module_users', True)
+        self._make_bool_row(form, 'contract_parties_enabled', 'parties/enabled', 'settings_module_parties', True)
+        self._make_bool_row(form, 'contract_categories_enabled', 'categories/enabled', 'settings_module_categories', True)
+        self._make_bool_row(form, 'contract_branches_enabled', 'branches/enabled', 'settings_module_branches', True)
+        layout.addWidget(modules_group)
+
+        pos_group, pform = self._form_card(translate('settings_pos_contract_title'), translate('settings_pos_contract_help'))
+        self._make_density_row(pform, 'contract_pos_density', 'pos/ui/density', 'touch')
+        self._make_payment_row(pform, 'contract_pos_payment', 'pos/default_payment_method', 'cash')
+        self._make_bool_row(pform, 'contract_pos_checkout', 'pos/operations/allow_checkout', 'settings_operation_pos_checkout', True)
+        self._make_bool_row(pform, 'contract_pos_suspend', 'pos/operations/allow_suspend', 'settings_operation_pos_suspend', True)
+        self._make_bool_row(pform, 'contract_pos_print', 'pos/operations/allow_print_receipt', 'settings_operation_pos_print', True)
+        layout.addWidget(pos_group)
+
+        restaurant_group, rform = self._form_card(translate('settings_restaurant_contract_title'), translate('settings_restaurant_contract_help'))
+        self._make_density_row(rform, 'contract_restaurant_density', 'restaurant/ui/density', 'touch')
+        self._make_payment_row(rform, 'contract_restaurant_payment', 'restaurant/default_payment_method', 'cash')
+        self._make_bool_row(rform, 'contract_restaurant_checkout', 'restaurant/operations/allow_checkout', 'settings_operation_restaurant_checkout', True)
+        self._make_bool_row(rform, 'contract_restaurant_kitchen', 'restaurant/operations/allow_send_kitchen', 'settings_operation_restaurant_kitchen', True)
+        self._make_bool_row(rform, 'contract_restaurant_print_receipt', 'restaurant/operations/allow_print_receipt', 'settings_operation_restaurant_print_receipt', True)
+        self._make_bool_row(rform, 'contract_restaurant_print_kitchen', 'restaurant/operations/allow_print_kitchen_ticket', 'settings_operation_restaurant_print_kitchen', True)
+        layout.addWidget(restaurant_group)
+
+        operations_group, oform = self._form_card(translate('settings_operations_title'), translate('settings_operations_help'))
+        self._make_bool_row(oform, 'contract_inventory_transfer', 'inventory/operations/allow_transfer_create', 'settings_operation_inventory_transfer', True)
+        self._make_bool_row(oform, 'contract_inventory_print', 'inventory/operations/allow_print', 'settings_operation_inventory_print', True)
+        self._make_bool_row(oform, 'contract_manufacturing_print', 'manufacturing/operations/allow_print', 'settings_operation_manufacturing_print', True)
+        self._make_bool_row(oform, 'contract_reports_export', 'reports/operations/allow_export', 'settings_operation_reports_export', True)
+        self._make_bool_row(oform, 'contract_finance_expense', 'finance/operations/allow_expense_create', 'settings_operation_finance_expense', True)
+        self._make_bool_row(oform, 'contract_finance_voucher', 'finance/operations/allow_voucher_create', 'settings_operation_finance_voucher', True)
+        layout.addWidget(operations_group)
+
+        barcode_group, bform = self._form_card(translate('settings_barcode_contract_title'), translate('settings_barcode_contract_help'))
+        self.contract_barcode_min_length = QSpinBox(); self.contract_barcode_min_length.setRange(1, 64); self.contract_barcode_min_length.setValue(int(settings_service.get('barcode/scanner/min_length', '6') or 6))
+        bform.addRow(translate('settings_barcode_min_length'), self.contract_barcode_min_length)
+        self.contract_barcode_numeric_exact = QCheckBox(translate('settings_barcode_numeric_exact'))
+        self.contract_barcode_numeric_exact.setChecked(self._bool_setting('barcode/scanner/numeric_exact', 'true'))
+        bform.addRow('', self.contract_barcode_numeric_exact)
+        self.contract_barcode_auto_generate = QCheckBox(translate('settings_barcode_auto_generate_material'))
+        self.contract_barcode_auto_generate.setChecked(self._bool_setting('materials/barcode/auto_generate', 'true'))
+        bform.addRow('', self.contract_barcode_auto_generate)
+        self.contract_barcode_symbology = QComboBox(); self.contract_barcode_symbology.addItems(['EAN13', 'CODE128'])
+        self.contract_barcode_symbology.setCurrentText(settings_service.get('materials/barcode/default_symbology', 'EAN13') or 'EAN13')
+        bform.addRow(translate('settings_default_barcode_symbology'), self.contract_barcode_symbology)
+        layout.addWidget(barcode_group)
+
+        save_btn = QPushButton(translate('settings_contracts_save'))
+        save_btn.setObjectName('primary')
+        save_btn.clicked.connect(self.save_contracts_settings)
+        row = QHBoxLayout(); row.addStretch(); row.addWidget(save_btn)
+        layout.addLayout(row)
+        layout.addStretch()
+        return scroll
+
+    def save_contracts_settings(self):
+        mapping = {
+            'restaurant/enabled': self.contract_restaurant_enabled.isChecked(),
+            'manufacturing/enabled': self.contract_manufacturing_enabled.isChecked(),
+            'inventory/enabled': self.contract_inventory_enabled.isChecked(),
+            'finance/enabled': self.contract_finance_enabled.isChecked(),
+            'reports/enabled': self.contract_reports_enabled.isChecked(),
+            'users/enabled': self.contract_users_enabled.isChecked(),
+            'parties/enabled': self.contract_parties_enabled.isChecked(),
+            'categories/enabled': self.contract_categories_enabled.isChecked(),
+            'branches/enabled': self.contract_branches_enabled.isChecked(),
+            'pos/operations/allow_checkout': self.contract_pos_checkout.isChecked(),
+            'pos/operations/allow_suspend': self.contract_pos_suspend.isChecked(),
+            'pos/operations/allow_print_receipt': self.contract_pos_print.isChecked(),
+            'restaurant/operations/allow_checkout': self.contract_restaurant_checkout.isChecked(),
+            'restaurant/operations/allow_send_kitchen': self.contract_restaurant_kitchen.isChecked(),
+            'restaurant/operations/allow_print_receipt': self.contract_restaurant_print_receipt.isChecked(),
+            'restaurant/operations/allow_print_kitchen_ticket': self.contract_restaurant_print_kitchen.isChecked(),
+            'inventory/operations/allow_transfer_create': self.contract_inventory_transfer.isChecked(),
+            'inventory/operations/allow_print': self.contract_inventory_print.isChecked(),
+            'manufacturing/operations/allow_print': self.contract_manufacturing_print.isChecked(),
+            'reports/operations/allow_export': self.contract_reports_export.isChecked(),
+            'finance/operations/allow_expense_create': self.contract_finance_expense.isChecked(),
+            'finance/operations/allow_voucher_create': self.contract_finance_voucher.isChecked(),
+            'barcode/scanner/numeric_exact': self.contract_barcode_numeric_exact.isChecked(),
+            'materials/barcode/auto_generate': self.contract_barcode_auto_generate.isChecked(),
+        }
+        for key, value in mapping.items():
+            self._set_bool_setting(key, value)
+        settings_service.set('pos/ui/density', self.contract_pos_density.currentData())
+        settings_service.set('restaurant/ui/density', self.contract_restaurant_density.currentData())
+        settings_service.set('pos/default_payment_method', self.contract_pos_payment.currentData())
+        settings_service.set('restaurant/default_payment_method', self.contract_restaurant_payment.currentData())
+        settings_service.set('barcode/scanner/min_length', str(self.contract_barcode_min_length.value()))
+        settings_service.set('materials/barcode/default_symbology', self.contract_barcode_symbology.currentText())
+        settings_service.clear_cache()
+        audit_service.log('UPDATE', 'SETTINGS_CONTRACTS', None, details='تعديل إعدادات العقود الموحدة')
+        show_toast(translate('settings_contracts_saved'), 'success', self)
+
 
     # ========== Professional ERP settings tabs ==========
     def _bool_setting(self, key, default='false'):

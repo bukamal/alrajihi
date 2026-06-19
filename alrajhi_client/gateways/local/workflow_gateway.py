@@ -10,6 +10,9 @@ from gateways.workflow_gateway import WorkflowGateway
 
 
 class LocalWorkflowGateway(WorkflowGateway):
+    def is_remote(self) -> bool:
+        return False
+
     DRAFT = 'DRAFT'
     SUBMITTED = 'SUBMITTED'
     APPROVED = 'APPROVED'

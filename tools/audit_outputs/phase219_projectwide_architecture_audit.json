@@ -1,0 +1,937 @@
+{
+  "summary": {
+    "medium": 89,
+    "low": 1,
+    "inventory": 13
+  },
+  "finding_count": 103,
+  "findings": [
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/action_handler.py",
+      "line": 122,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/main.py",
+      "line": 38,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/main.py",
+      "line": 215,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/main.py",
+      "line": 325,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/main.py",
+      "line": 338,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/main.py",
+      "line": 345,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/main.py",
+      "line": 363,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/database/connection.py",
+      "line": 1269,
+      "title": "Legacy dialog reference: ItemDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "low",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/shell/quick_open_dialog.py",
+      "line": 23,
+      "title": "QDialog class: QuickOpenDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/ui/editable_smart_grid.py",
+      "line": 166,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/ui/editable_smart_grid.py",
+      "line": 275,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/ui/smart_table_view.py",
+      "line": 70,
+      "title": "QDialog class: ColumnChooserDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/ui/smart_table_view.py",
+      "line": 137,
+      "title": "QDialog class: FilterBuilderDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/ui/smart_table_view.py",
+      "line": 420,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/ui/smart_table_view.py",
+      "line": 425,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/ui/smart_table_view.py",
+      "line": 536,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/custom_table_view.py",
+      "line": 141,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/views/frameless_dialog.py",
+      "line": 7,
+      "title": "QDialog class: FramelessDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/frameless_dialog.py",
+      "line": 139,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/main_window.py",
+      "line": 1097,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/main_window.py",
+      "line": 1334,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/main_window.py",
+      "line": 1348,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/add_entity_dialog.py",
+      "line": 11,
+      "title": "Legacy dialog reference: AddEntityDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/bom_dialog.py",
+      "line": 16,
+      "title": "Legacy dialog reference: BOMDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
+      "line": 1383,
+      "title": "Legacy dialog reference: AddEntityDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
+      "line": 1575,
+      "title": "Legacy dialog reference: ItemDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
+      "line": 408,
+      "title": "Legacy dialog reference: InvoiceDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/item_dialog.py",
+      "line": 18,
+      "title": "Legacy dialog reference: ItemDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/production_details_dialog.py",
+      "line": 36,
+      "title": "Legacy dialog reference: ProductionDetailsDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/production_order_dialog.py",
+      "line": 37,
+      "title": "Legacy dialog reference: ProductionOrderDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/views/restaurant/restaurant_pos_widget.py",
+      "line": 50,
+      "title": "QDialog class: RestaurantLineDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/views/restaurant/restaurant_pos_widget.py",
+      "line": 91,
+      "title": "QDialog class: RestaurantAdjustmentsDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/views/restaurant/restaurant_pos_widget.py",
+      "line": 133,
+      "title": "QDialog class: RestaurantPaymentDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/restaurant/restaurant_pos_widget.py",
+      "line": 464,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/restaurant/restaurant_pos_widget.py",
+      "line": 533,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/restaurant/restaurant_pos_widget.py",
+      "line": 549,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/audit_log_widget.py",
+      "line": 198,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/branches_widget.py",
+      "line": 18,
+      "title": "Legacy dialog reference: BranchDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/views/widgets/branches_widget.py",
+      "line": 18,
+      "title": "QDialog class: BranchDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/branches_widget.py",
+      "line": 191,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/branches_widget.py",
+      "line": 217,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
+      "line": 43,
+      "title": "Legacy dialog reference: BankDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
+      "line": 19,
+      "title": "Legacy dialog reference: CashboxDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
+      "line": 19,
+      "title": "QDialog class: CashboxDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
+      "line": 43,
+      "title": "QDialog class: BankDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
+      "line": 222,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
+      "line": 239,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
+      "line": 254,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/cashboxes_widget.py",
+      "line": 271,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/categories_widget.py",
+      "line": 199,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/categories_widget.py",
+      "line": 286,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/invoices_widget.py",
+      "line": 12,
+      "title": "Legacy dialog reference: InvoiceDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/items_widget.py",
+      "line": 336,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/items_widget.py",
+      "line": 343,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
+      "line": 456,
+      "title": "Legacy dialog reference: ProductionOrderDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
+      "line": 404,
+      "title": "Legacy dialog reference: BOMDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
+      "line": 478,
+      "title": "Legacy dialog reference: ProductionDetailsDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
+      "line": 363,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
+      "line": 383,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
+      "line": 406,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
+      "line": 458,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/manufacturing_widget.py",
+      "line": 480,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/pos_widget.py",
+      "line": 539,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 1087,
+      "title": "Legacy dialog reference: PurchaseReturnDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 484,
+      "title": "Legacy dialog reference: SalesReturnDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 411,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 635,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 689,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 1035,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 1059,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 1494,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 1518,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "settings-boundary",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 3,
+      "title": "Direct QSettings in UI/feature layer",
+      "detail": "UI/feature layer should use settings_service/preferences wrappers, not QSettings directly.",
+      "recommendation": "Move persistence to settings_service or a scoped preferences helper using user/branch/profile."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/settings_widget.py",
+      "line": 1638,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/settings_widget.py",
+      "line": 1782,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/users_widget.py",
+      "line": 163,
+      "title": "Legacy dialog reference: UserDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/views/widgets/users_widget.py",
+      "line": 191,
+      "title": "QDialog class: UserDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/users_widget.py",
+      "line": 164,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/users_widget.py",
+      "line": 178,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/users_widget.py",
+      "line": 308,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "inventory",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/widgets/vouchers_widget.py",
+      "line": 234,
+      "title": "Legacy dialog reference: VoucherDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "qdialog-class",
+      "file": "alrajhi_client/views/widgets/vouchers_widget.py",
+      "line": 265,
+      "title": "QDialog class: VoucherDialog",
+      "detail": "Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.",
+      "recommendation": "If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/vouchers_widget.py",
+      "line": 235,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/vouchers_widget.py",
+      "line": 253,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/warehouses_widget.py",
+      "line": 638,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/warehouses_widget.py",
+      "line": 743,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "settings-boundary",
+      "file": "alrajhi_client/views/widgets/components/table_preferences.py",
+      "line": 4,
+      "title": "Direct QSettings in UI/feature layer",
+      "detail": "UI/feature layer should use settings_service/preferences wrappers, not QSettings directly.",
+      "recommendation": "Move persistence to settings_service or a scoped preferences helper using user/branch/profile."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/views/widgets/components/table_toolbar.py",
+      "line": 169,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/features/invoices/invoice_editor_tab.py",
+      "line": 4,
+      "title": "Legacy dialog reference: InvoiceDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/features/items/item_editor_tab.py",
+      "line": 47,
+      "title": "Legacy dialog reference: ItemDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/features/items/item_editor_tab.py",
+      "line": 637,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/features/manufacturing/bom_document_tab.py",
+      "line": 29,
+      "title": "Legacy dialog reference: BOMDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/features/manufacturing/production_order_document_tab.py",
+      "line": 41,
+      "title": "Legacy dialog reference: ProductionOrderDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/features/manufacturing/production_order_document_tab.py",
+      "line": 40,
+      "title": "Legacy dialog reference: ProductionDetailsDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/features/manufacturing/production_order_lifecycle_tab.py",
+      "line": 42,
+      "title": "Legacy dialog reference: ProductionDetailsDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/features/manufacturing/production_order_lifecycle_tab.py",
+      "line": 399,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/features/manufacturing/production_order_lifecycle_tab.py",
+      "line": 441,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/features/manufacturing/production_order_lifecycle_tab.py",
+      "line": 465,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "dialog-exec",
+      "file": "alrajhi_client/features/manufacturing/production_order_lifecycle_tab.py",
+      "line": 477,
+      "title": "Dialog exec() call",
+      "detail": "Modal dialog execution detected outside low-level dialog modules.",
+      "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/features/returns/return_editor_tabs.py",
+      "line": 12,
+      "title": "Legacy dialog reference: PurchaseReturnDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/features/returns/return_editor_tabs.py",
+      "line": 11,
+      "title": "Legacy dialog reference: SalesReturnDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "settings-boundary",
+      "file": "alrajhi_client/features/pos/pos_preferences.py",
+      "line": 7,
+      "title": "Direct QSettings in UI/feature layer",
+      "detail": "UI/feature layer should use settings_service/preferences wrappers, not QSettings directly.",
+      "recommendation": "Move persistence to settings_service or a scoped preferences helper using user/branch/profile."
+    },
+    {
+      "severity": "medium",
+      "area": "settings-boundary",
+      "file": "alrajhi_client/features/transactions/grids/transaction_grid_preferences.py",
+      "line": 12,
+      "title": "Direct QSettings in UI/feature layer",
+      "detail": "UI/feature layer should use settings_service/preferences wrappers, not QSettings directly.",
+      "recommendation": "Move persistence to settings_service or a scoped preferences helper using user/branch/profile."
+    }
+  ]
+}

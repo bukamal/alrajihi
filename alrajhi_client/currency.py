@@ -130,6 +130,8 @@ class CurrencyManager:
     def convert(self, amount, from_currency: str, to_currency: str, date: str = None):
         if not isinstance(amount, Decimal):
             amount = Decimal(str(amount))
+        from_currency = str(from_currency or self.get_base_currency() or 'USD')
+        to_currency = str(to_currency or self.get_display_currency() or from_currency)
         if from_currency == to_currency:
             return amount
         if date:
@@ -140,8 +142,34 @@ class CurrencyManager:
             rate_to = self.get_current_rate(to_currency)
         if rate_from == 0 or rate_to == 0:
             return amount
-        amount_usd = amount / rate_from
-        return amount_usd * rate_to
+        amount_base = amount / rate_from
+        return amount_base * rate_to
+
+    def storage_currency(self) -> str:
+        """Currency used by persisted monetary amounts.
+
+        Older code historically used USD directly.  New UI code should call this
+        method instead of hard-coding USD so future base-currency changes stay
+        localized.
+        """
+        return str(self.get_base_currency() or 'USD')
+
+    def display_currency(self) -> str:
+        return str(self.get_display_currency() or self.storage_currency())
+
+    def to_display(self, amount, from_currency: str = None, date: str = None):
+        """Convert a persisted/base amount to the current display currency."""
+        return self.convert(amount, from_currency or self.storage_currency(), self.display_currency(), date=date)
+
+    def from_display(self, amount, to_currency: str = None, date: str = None):
+        """Convert a UI/display amount back to the persisted/base currency."""
+        return self.convert(amount, self.display_currency(), to_currency or self.storage_currency(), date=date)
+
+    def format_display_amount(self, amount, currency_code: str = None, decimals: int = None) -> str:
+        return self.format_amount(amount, currency_code or self.display_currency(), decimals=decimals)
+
+    def format_base_amount(self, amount, from_currency: str = None, decimals: int = None) -> str:
+        return self.format_amount(self.to_display(amount, from_currency=from_currency), self.display_currency(), decimals=decimals)
     
     def update_rate(self, currency_code: str, rate_to_usd: float):
         """تحديث سعر الصرف الحالي (يُستخدم من settings_widget.py)"""

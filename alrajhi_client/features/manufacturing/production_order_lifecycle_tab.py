@@ -372,7 +372,7 @@ class ProductionOrderDetailsTab(BaseDocumentTab):
                 it = product_service.item_by_id(item_id) if item_id else None
                 if it:
                     price = _num(it.get('average_cost'), 0) or _num(it.get('purchase_price'), 0)
-                    price_display = currency.convert(price, 'USD', currency.get_display_currency())
+                    price_display = currency.to_display(price)
                     cost_spin.setValue(_num(price_display, 0))
             except Exception:
                 pass
@@ -382,7 +382,7 @@ class ProductionOrderDetailsTab(BaseDocumentTab):
             item_id = row.get('item_id')
             if not item_id:
                 return
-            cost_usd = currency.convert(cost_spin.value(), currency.get_display_currency(), 'USD')
+            cost_usd = currency.from_display(cost_spin.value())
             ok, msg = _result_ok(self.service.consume_material(self.order_id, item_id, qty_spin.value(), cost_usd))
             if ok:
                 show_toast(translate('consumption_registered'), 'success', self)

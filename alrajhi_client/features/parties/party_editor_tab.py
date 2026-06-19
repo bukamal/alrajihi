@@ -20,8 +20,8 @@ from PyQt5.QtWidgets import (
 )
 
 from core.services.entity_service import entity_service
-from core.services.party_operation_policy import party_operation_policy
 from core.services.invoice_service import invoice_service
+from core.services.party_operation_policy import party_operation_policy
 from core.services.reporting_service import reporting_service
 from core.services.voucher_service import voucher_service
 from currency import currency
@@ -37,12 +37,49 @@ def _tr(key: str, fallback: str) -> str:
     return fallback if value == key else value
 
 
-class PartyEditorTab(BaseDocumentTab):
-    """Customer/supplier document tab.
+def _dec(value) -> Decimal:
+    try:
+        return Decimal(str(value or 0))
+    except Exception:
+        return Decimal('0')
 
-    Phase 50 turns parties into workspace documents instead of modal add/edit
-    dialogs. The tab keeps persistence behind EntityService and read-only
-    business context behind Reporting/Invoice services.
+
+def _money(value) -> str:
+    try:
+        return currency.format_base_amount(_dec(value))
+    except Exception:
+        return currency.format_amount(_dec(value))
+
+
+class _MetricCard(QFrame):
+    """Small side-panel metric card used by party document shell."""
+
+    def __init__(self, title: str, parent=None) -> None:
+        super().__init__(parent)
+        self.setObjectName('MetricCard')
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 10, 12, 10)
+        layout.setSpacing(4)
+        self.title_label = QLabel(title, self)
+        self.title_label.setObjectName('MetricTitle')
+        self.value_label = QLabel(_money(0), self)
+        self.value_label.setObjectName('MetricValue')
+        self.value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        layout.addWidget(self.title_label)
+        layout.addWidget(self.value_label)
+
+    def set_value(self, value) -> None:
+        self.value_label.setText(_money(value))
+
+
+class PartyEditorTab(BaseDocumentTab):
+    """Customer/supplier document shell.
+
+    Phase 220 upgrades the party editor from a simple form-with-tabs into a
+    document shell aligned with the transaction documents: header, identity and
+    contact panels, financial summary side panel, related-data grids, and fixed
+    bottom actions.  Persistence remains behind EntityService and all access is
+    governed by party_operation_policy.
     """
 
     def __init__(self, parent=None, party_type: str = 'customer', party_id: Optional[int] = None) -> None:
@@ -51,6 +88,11 @@ class PartyEditorTab(BaseDocumentTab):
         self.party_type = party_type
         self.party_id = party_id
         self.is_edit = party_id is not None
+        self._statement_balance = Decimal('0')
+        self._invoice_total = Decimal('0')
+        self._invoice_paid = Decimal('0')
+        self._invoice_remaining = Decimal('0')
+        self._voucher_total = Decimal('0')
         self._build_ui()
         self._apply_operation_policy()
         if self.is_edit:
@@ -72,66 +114,151 @@ class PartyEditorTab(BaseDocumentTab):
         self.setLayoutDirection(qt_layout_direction())
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 14, 14, 14)
-        root.setSpacing(12)
+        root.setSpacing(10)
 
+        root.addWidget(self._build_header())
+        root.addWidget(self._build_body(), 0)
+
+        context_label = QLabel(_tr('party_context_title', 'السجل المرتبط بالطرف'), self)
+        context_label.setObjectName('SectionTitle')
+        root.addWidget(context_label)
+
+        self.tabs = QTabWidget(self)
+        self.statement_table = SmartTableView(identity=f'{self.party_type}_statement_document')
+        self.invoices_table = SmartTableView(identity=f'{self.party_type}_invoices_document')
+        self.vouchers_table = SmartTableView(identity=f'{self.party_type}_vouchers_document')
+        self.tabs.addTab(self.statement_table, _tr('statement', 'كشف الحساب'))
+        self.tabs.addTab(self.invoices_table, _tr('invoices', 'الفواتير'))
+        self.tabs.addTab(self.vouchers_table, _tr('vouchers', 'السندات'))
+        root.addWidget(self.tabs, 1)
+
+        root.addWidget(self._build_bottom_actions())
+        self._apply_shell_styles()
+
+    def _build_header(self) -> QFrame:
         header = QFrame(self)
         header.setObjectName('DocumentHeaderCard')
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(16, 12, 16, 12)
+        layout = QHBoxLayout(header)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(10)
+
         titles = QVBoxLayout()
-        self.title_label = QLabel(self._new_title())
+        titles.setSpacing(4)
+        self.title_label = QLabel(self._new_title(), header)
         self.title_label.setObjectName('DocumentTitle')
-        self.subtitle_label = QLabel(_tr('party_document_subtitle', 'بيانات الطرف وكشف الحساب والفواتير المرتبطة في تبويب واحد'))
+        self.subtitle_label = QLabel(_tr('party_document_subtitle', 'تبويب مستند موحد: بيانات الطرف، الرصيد، كشف الحساب، الفواتير، والسندات.'), header)
         self.subtitle_label.setObjectName('DocumentSubtitle')
         titles.addWidget(self.title_label)
         titles.addWidget(self.subtitle_label)
-        header_layout.addLayout(titles, 1)
-        self.save_btn = QPushButton(translate('save'))
+        layout.addLayout(titles, 1)
+
+        self.header_refresh_btn = QPushButton(_tr('refresh', 'تحديث'), header)
+        self.header_refresh_btn.clicked.connect(self.refresh_context_tables)
+        self.header_print_btn = QPushButton(_tr('print', 'طباعة'), header)
+        self.header_print_btn.clicked.connect(self.workspace_print)
+        self.header_export_btn = QPushButton(_tr('export', 'تصدير'), header)
+        self.header_export_btn.clicked.connect(self.workspace_export)
+        self.save_btn = QPushButton(translate('save'), header)
         self.save_btn.setObjectName('primary')
         self.save_btn.clicked.connect(self.workspace_save)
-        header_layout.addWidget(self.save_btn)
-        root.addWidget(header)
+        for btn in (self.header_refresh_btn, self.header_print_btn, self.header_export_btn, self.save_btn):
+            layout.addWidget(btn)
+        return header
 
-        self.tabs = QTabWidget(self)
-        root.addWidget(self.tabs, 1)
+    def _build_body(self) -> QWidget:
+        body = QWidget(self)
+        layout = QHBoxLayout(body)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(10)
 
-        self.details_page = QWidget(self)
-        details_layout = QVBoxLayout(self.details_page)
+        details = QFrame(body)
+        details.setObjectName('DocumentPanel')
+        details_layout = QHBoxLayout(details)
         details_layout.setContentsMargins(12, 12, 12, 12)
-        details_card = QGroupBox(_tr('party_basic_data', 'البيانات الأساسية'), self.details_page)
-        details_card.setObjectName('FormCard')
-        form = QFormLayout(details_card)
-        form.setLabelAlignment(Qt.AlignRight)
-        self.name_edit = QLineEdit()
-        self.phone_edit = QLineEdit()
-        self.address_edit = QLineEdit()
+        details_layout.setSpacing(10)
+
+        identity_card = QGroupBox(_tr('party_identity_panel', 'هوية الطرف'), details)
+        identity_card.setObjectName('FormCard')
+        identity_form = QFormLayout(identity_card)
+        identity_form.setLabelAlignment(Qt.AlignRight)
+        self.name_edit = QLineEdit(identity_card)
         self.name_edit.setPlaceholderText(_tr('name_required', 'الاسم مطلوب'))
+        identity_form.addRow(translate('name'), self.name_edit)
+
+        contact_card = QGroupBox(_tr('party_contact_panel', 'التواصل والعنوان'), details)
+        contact_card.setObjectName('FormCard')
+        contact_form = QFormLayout(contact_card)
+        contact_form.setLabelAlignment(Qt.AlignRight)
+        self.phone_edit = QLineEdit(contact_card)
+        self.address_edit = QLineEdit(contact_card)
         self.phone_edit.setPlaceholderText(_tr('phone_optional', 'الهاتف اختياري'))
         self.address_edit.setPlaceholderText(_tr('address_optional', 'العنوان اختياري'))
-        form.addRow(translate('name'), self.name_edit)
-        form.addRow(translate('phone'), self.phone_edit)
-        form.addRow(translate('address'), self.address_edit)
-        details_layout.addWidget(details_card)
-        details_layout.addStretch(1)
-        self.tabs.addTab(self.details_page, _tr('party_details_tab', 'البيانات'))
+        contact_form.addRow(translate('phone'), self.phone_edit)
+        contact_form.addRow(translate('address'), self.address_edit)
 
-        self.statement_table = SmartTableView(identity=f'{self.party_type}_statement_document')
-        self.tabs.addTab(self.statement_table, _tr('statement', 'كشف الحساب'))
+        details_layout.addWidget(identity_card, 1)
+        details_layout.addWidget(contact_card, 1)
+        layout.addWidget(details, 3)
 
-        self.invoices_table = SmartTableView(identity=f'{self.party_type}_invoices_document')
-        self.tabs.addTab(self.invoices_table, _tr('invoices', 'الفواتير'))
+        summary = QFrame(body)
+        summary.setObjectName('SummaryPanel')
+        summary_layout = QVBoxLayout(summary)
+        summary_layout.setContentsMargins(12, 12, 12, 12)
+        summary_layout.setSpacing(8)
+        summary_title = QLabel(_tr('party_balance_panel', 'ملخص الرصيد والائتمان'), summary)
+        summary_title.setObjectName('SectionTitle')
+        summary_layout.addWidget(summary_title)
+        self.balance_metric = _MetricCard(_tr('party_current_balance', 'الرصيد الحالي'), summary)
+        self.invoice_total_metric = _MetricCard(_tr('party_invoice_total', 'إجمالي الفواتير'), summary)
+        self.invoice_paid_metric = _MetricCard(_tr('party_invoice_paid', 'المدفوع من الفواتير'), summary)
+        self.invoice_remaining_metric = _MetricCard(_tr('party_invoice_remaining', 'المتبقي على الفواتير'), summary)
+        self.voucher_total_metric = _MetricCard(_tr('party_voucher_total', 'إجمالي السندات'), summary)
+        for metric in (
+            self.balance_metric,
+            self.invoice_total_metric,
+            self.invoice_paid_metric,
+            self.invoice_remaining_metric,
+            self.voucher_total_metric,
+        ):
+            summary_layout.addWidget(metric)
+        summary_layout.addStretch(1)
+        layout.addWidget(summary, 1)
+        return body
 
-        self.vouchers_table = SmartTableView(identity=f'{self.party_type}_vouchers_document')
-        self.tabs.addTab(self.vouchers_table, _tr('vouchers', 'السندات'))
+    def _build_bottom_actions(self) -> QFrame:
+        bar = QFrame(self)
+        bar.setObjectName('BottomActionBar')
+        layout = QHBoxLayout(bar)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(8)
+        self.bottom_refresh_btn = QPushButton(_tr('refresh', 'تحديث'), bar)
+        self.bottom_refresh_btn.clicked.connect(self.refresh_context_tables)
+        self.bottom_print_btn = QPushButton(_tr('print', 'طباعة'), bar)
+        self.bottom_print_btn.clicked.connect(self.workspace_print)
+        self.bottom_export_btn = QPushButton(_tr('export', 'تصدير'), bar)
+        self.bottom_export_btn.clicked.connect(self.workspace_export)
+        self.bottom_save_btn = QPushButton(translate('save'), bar)
+        self.bottom_save_btn.setObjectName('primary')
+        self.bottom_save_btn.clicked.connect(self.workspace_save)
+        for btn in (self.bottom_refresh_btn, self.bottom_print_btn, self.bottom_export_btn):
+            layout.addWidget(btn)
+        layout.addStretch(1)
+        layout.addWidget(self.bottom_save_btn)
+        return bar
 
+    def _apply_shell_styles(self) -> None:
         self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QGroupBox#FormCard {
+            QFrame#DocumentHeaderCard, QFrame#DocumentPanel, QFrame#SummaryPanel, QFrame#BottomActionBar, QGroupBox#FormCard, QFrame#MetricCard {
                 border: 1px solid palette(mid);
                 border-radius: 14px;
                 background: palette(base);
             }
+            QFrame#BottomActionBar { background: palette(window); }
             QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
             QLabel#DocumentSubtitle { color: palette(mid); }
+            QLabel#SectionTitle { font-weight: 900; }
+            QLabel#MetricTitle { color: palette(mid); font-size: 11px; }
+            QLabel#MetricValue { font-size: 15px; font-weight: 900; }
             QPushButton#primary { font-weight: 900; padding: 8px 16px; }
         ''')
 
@@ -143,6 +270,7 @@ class PartyEditorTab(BaseDocumentTab):
         for widget in (self.name_edit, self.phone_edit, self.address_edit):
             widget.setReadOnly(not allowed)
         self.save_btn.setEnabled(allowed)
+        self.bottom_save_btn.setEnabled(allowed)
         if not allowed:
             self.subtitle_label.setText(_tr('party_read_only', 'للقراءة فقط حسب الصلاحيات أو الإعدادات'))
 
@@ -204,6 +332,14 @@ class PartyEditorTab(BaseDocumentTab):
         self._load_statement()
         self._load_invoices()
         self._load_vouchers()
+        self._refresh_summary_panel()
+
+    def _refresh_summary_panel(self) -> None:
+        self.balance_metric.set_value(self._statement_balance)
+        self.invoice_total_metric.set_value(self._invoice_total)
+        self.invoice_paid_metric.set_value(self._invoice_paid)
+        self.invoice_remaining_metric.set_value(self._invoice_remaining)
+        self.voucher_total_metric.set_value(self._voucher_total)
 
     def _load_statement(self) -> None:
         rows: List[Dict] = []
@@ -216,16 +352,18 @@ class PartyEditorTab(BaseDocumentTab):
             except Exception:
                 rows = []
         data = []
+        self._statement_balance = Decimal('0')
         for row in rows:
-            debit = Decimal(str(row.get('debit', row.get('Debit', 0)) or 0))
-            credit = Decimal(str(row.get('credit', row.get('Credit', 0)) or 0))
-            balance = Decimal(str(row.get('balance', row.get('Balance', debit - credit)) or 0))
+            debit = _dec(row.get('debit', row.get('Debit', 0)))
+            credit = _dec(row.get('credit', row.get('Credit', 0)))
+            balance = _dec(row.get('balance', row.get('Balance', debit - credit)))
+            self._statement_balance = balance
             data.append({
                 'date': row.get('date') or row.get('created_at') or row.get('Date') or '',
                 'reference': row.get('reference') or row.get('description') or row.get('Reference') or '',
-                'debit': currency.format_amount(debit),
-                'credit': currency.format_amount(credit),
-                'balance': currency.format_amount(balance),
+                'debit': _money(debit),
+                'credit': _money(credit),
+                'balance': _money(balance),
             })
         headers = ['date', 'reference', 'debit', 'credit', 'balance']
         labels = [_tr('date', 'التاريخ'), _tr('reference', 'المرجع'), _tr('debit', 'مدين'), _tr('credit', 'دائن'), _tr('balance', 'الرصيد')]
@@ -244,16 +382,23 @@ class PartyEditorTab(BaseDocumentTab):
             except Exception:
                 records = []
         data = []
+        self._invoice_total = Decimal('0')
+        self._invoice_paid = Decimal('0')
+        self._invoice_remaining = Decimal('0')
         for inv in records:
-            total = Decimal(str(inv.get('total', 0) or 0))
-            paid = Decimal(str(inv.get('paid', 0) or 0))
+            total = _dec(inv.get('total', 0))
+            paid = _dec(inv.get('paid', 0))
+            remaining = total - paid
+            self._invoice_total += total
+            self._invoice_paid += paid
+            self._invoice_remaining += remaining
             data.append({
                 'id': inv.get('id', ''),
                 'date': inv.get('date') or inv.get('created_at') or '',
                 'reference': inv.get('reference') or inv.get('invoice_number') or '',
-                'total': currency.format_amount(total),
-                'paid': currency.format_amount(paid),
-                'remaining': currency.format_amount(total - paid),
+                'total': _money(total),
+                'paid': _money(paid),
+                'remaining': _money(remaining),
                 'status': inv.get('workflow_status') or inv.get('status') or '',
             })
         headers = ['id', 'date', 'reference', 'total', 'paid', 'remaining', 'status']
@@ -272,14 +417,16 @@ class PartyEditorTab(BaseDocumentTab):
             except Exception:
                 records = []
         data = []
+        self._voucher_total = Decimal('0')
         for voucher in records:
-            amount = Decimal(str(voucher.get('amount', 0) or 0))
+            amount = _dec(voucher.get('amount', 0))
+            self._voucher_total += amount
             data.append({
                 'id': voucher.get('id', ''),
                 'date': voucher.get('date') or voucher.get('created_at') or '',
                 'type': voucher.get('type') or '',
                 'reference': voucher.get('reference') or voucher.get('description') or '',
-                'amount': currency.format_amount(amount),
+                'amount': _money(amount),
                 'method': voucher.get('payment_method') or voucher.get('method') or '',
             })
         headers = ['id', 'date', 'type', 'reference', 'amount', 'method']

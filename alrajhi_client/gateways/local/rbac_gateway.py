@@ -8,6 +8,9 @@ from gateways.rbac_gateway import RBACGateway
 
 
 class LocalRBACGateway(RBACGateway):
+    def is_remote(self) -> bool:
+        return False
+
     def __init__(self, conn):
         self.conn = conn
 

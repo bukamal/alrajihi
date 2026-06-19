@@ -9,6 +9,9 @@ from core.services.rbac_service import rbac_service
 from core.services.permission_service import permission_service
 
 class LocalAccountingGateway:
+    def is_remote(self) -> bool:
+        return False
+
     DEFAULT_ACCOUNTS = [('1000','Cash / صندوق','ASSET'),('1100','Accounts Receivable / ذمم العملاء','ASSET'),('1200','Inventory / مخزون','ASSET'),('2000','Accounts Payable / ذمم الموردين','LIABILITY'),('3000','Owner Equity / حقوق الملكية','EQUITY'),('3100','Retained Earnings / أرباح مرحلة','EQUITY'),('3900','Current Year Earnings / أرباح السنة الحالية','EQUITY'),('4000','Sales Revenue / إيرادات المبيعات','REVENUE'),('5000','Purchases / مشتريات','EXPENSE'),('5900','Closing Summary / ملخص الإقفال','EQUITY')]
     def _db(self):
         from database.connection import DatabaseConnection

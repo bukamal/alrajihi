@@ -755,6 +755,10 @@ class MainWindow(QMainWindow):
 
     def open_quick_voucher(self, voucher_type='receipt', voucher=None):
         try:
+            voucher_type = voucher_type or (voucher.get('type') if isinstance(voucher, dict) else 'receipt') or 'receipt'
+            if voucher_type == 'expense':
+                voucher_id = voucher.get('id') if isinstance(voucher, dict) else None
+                return self.open_expense_document(expense_id=voucher_id)
             from features.vouchers import VoucherEditorTab
             sequence = getattr(self, '_voucher_tab_sequence', 0) + 1
             self._voucher_tab_sequence = sequence
@@ -912,6 +916,29 @@ class MainWindow(QMainWindow):
             opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.university', singleton=False)
             if hasattr(widget, 'saved'):
                 widget.saved.connect(lambda *_: self._refresh_page_if_loaded('cashboxes'))
+            return opened
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+
+
+    def open_expense_document(self, expense_id=None):
+        try:
+            from features.finance import ExpenseDocumentTab
+            expense = None
+            if expense_id:
+                try:
+                    from core.services.voucher_service import voucher_service
+                    expense = voucher_service.get(int(expense_id))
+                except Exception:
+                    expense = {'id': expense_id, 'type': 'expense'}
+            sequence = getattr(self, '_expense_tab_sequence', 0) + 1
+            self._expense_tab_sequence = sequence
+            tab_id = f"expense:{expense_id or 'new'}:{sequence if expense_id is None else expense_id}"
+            widget = ExpenseDocumentTab(self, expense=expense)
+            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('expense_document_new'))
+            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.file-invoice-dollar', singleton=False)
+            if hasattr(widget, 'saved'):
+                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('vouchers'))
             return opened
         except Exception as exc:
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
