@@ -484,6 +484,7 @@ class ReportsPhase36Mixin:
         elif mode == 'direct':
             printing_service.report_print(title, rows, headers, self, subtitle=subtitle)
         elif mode == 'pdf':
-            printing_service.report_pdf(title, rows, headers, self, subtitle=subtitle)
+            # Phase 235: legacy PDF mode follows unified print output.
+            printing_service.report_print(title, rows, headers, self, subtitle=subtitle)
         else:
             printing_service.report_preview(title, rows, headers, self, subtitle=subtitle)

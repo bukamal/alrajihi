@@ -8,7 +8,7 @@
       "area": "button-duplication",
       "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
       "file": "alrajhi_client/views/dialogs/batch_print_dialog.py",
-      "line": 92,
+      "line": 96,
       "pattern": "print_btn = QPushButton",
       "text": "print_btn = QPushButton(translate('phase233_ui_019'))"
     },
@@ -17,7 +17,7 @@
       "area": "button-duplication",
       "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
       "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
-      "line": 694,
+      "line": 692,
       "pattern": "print_btn = QPushButton",
       "text": "self.print_btn = QPushButton(translate('print_shortcut'))"
     },
@@ -53,7 +53,7 @@
       "area": "button-duplication",
       "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 333,
+      "line": 334,
       "pattern": "QPushButton(translate('print'",
       "text": "print_btn = QPushButton(translate('print'))"
     },
@@ -62,7 +62,7 @@
       "area": "button-duplication",
       "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 333,
+      "line": 334,
       "pattern": "print_btn = QPushButton",
       "text": "print_btn = QPushButton(translate('print'))"
     },

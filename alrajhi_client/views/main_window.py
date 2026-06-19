@@ -1169,7 +1169,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, translate('printing'), translate('workspace.no_print_action'))
 
     def export_current_tab(self):
-        if not self._invoke_current_tab_command(('workspace_export', 'save_invoice_pdf', 'export_current', 'export')):
+        if not self._invoke_current_tab_command(('workspace_export', 'export_current', 'export')):
             QMessageBox.information(self, translate('reports'), translate('workspace.no_export_action'))
 
     def update_badges(self):

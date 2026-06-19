@@ -497,10 +497,8 @@ class InvoiceDialog(CenteredDialog):
             self.print_invoice_professional()
 
     def workspace_export(self):
-        if hasattr(self, 'actions_component'):
-            self.actions_component.export()
-        else:
-            self.save_invoice_pdf()
+        # Phase 235: route legacy export requests to the unified print action.
+        self.workspace_print()
 
     def workspace_refresh(self):
         if self.invoice_id:
@@ -693,17 +691,13 @@ class InvoiceDialog(CenteredDialog):
         self.save_btn.setObjectName("primary")
         self.print_btn = QPushButton(translate('print_shortcut'))
         self.print_btn.setObjectName("softAction")
-        self.print_menu = QMenu(self.print_btn)
-        self.print_preview_action = QAction(translate("preview_in_app"), self)
-        self.print_browser_action = QAction(translate("open_html_browser"), self)
-        self.print_direct_action = QAction(translate("direct_print"), self)
-        self.print_pdf_action = QAction(translate("export_pdf"), self)
-        self.print_menu.addAction(self.print_preview_action)
-        self.print_menu.addAction(self.print_browser_action)
-        self.print_menu.addSeparator()
-        self.print_menu.addAction(self.print_direct_action)
-        self.print_menu.addAction(self.print_pdf_action)
-        self.print_btn.setMenu(self.print_menu)
+        # Phase 235: one unified print button; no preview/PDF menu in invoice creation.
+        self.print_menu = None
+        self.print_preview_action = None
+        self.print_browser_action = None
+        self.print_direct_action = None
+        self.print_pdf_action = None
+        self.print_btn.clicked.connect(self.direct_print_invoice)
         self.cancel_btn = QPushButton(translate('cancel_shortcut'))
         for btn in (self.new_btn, self.save_btn, self.print_btn, self.cancel_btn):
             btn.setMinimumWidth(110)
@@ -985,10 +979,7 @@ class InvoiceDialog(CenteredDialog):
         self.full_payment_btn.clicked.connect(self.set_paid_full)
         self.no_payment_btn.clicked.connect(self.set_paid_zero)
         self.save_btn.clicked.connect(self.on_save)
-        self.print_preview_action.triggered.connect(self.print_invoice_professional)
-        self.print_browser_action.triggered.connect(self.open_invoice_html_in_browser)
-        self.print_direct_action.triggered.connect(self.direct_print_invoice)
-        self.print_pdf_action.triggered.connect(self.save_invoice_pdf)
+        # Phase 235: print_btn is connected directly to unified print.
         self.cancel_btn.clicked.connect(self.reject)
         self.new_btn.clicked.connect(self._clear_invoice_form)
         QTimer.singleShot(0, self.focus_barcode_input)
@@ -1711,14 +1702,14 @@ class InvoiceDialog(CenteredDialog):
 
 
     def _setup_print_menu(self):
-        """Attach unified print options to the existing print button."""
+        """Attach the single unified print action to the existing print button."""
         try:
-            menu = QMenu(self)
-            menu.addAction(translate("preview_in_app"), self.print_invoice_professional)
-            menu.addAction(translate("open_html_browser"), self.open_invoice_html_in_browser)
-            menu.addAction(translate("save_pdf"), self.save_invoice_pdf)
-            menu.addAction(translate("direct_print"), self.direct_print_invoice)
-            self.print_btn.setMenu(menu)
+            self.print_btn.setMenu(None)
+            try:
+                self.print_btn.clicked.disconnect()
+            except Exception:
+                pass
+            self.print_btn.clicked.connect(self.direct_print_invoice)
             self.print_btn.setText(translate("print_button"))
             self.print_btn.setToolTip(translate("print_tooltip"))
         except Exception:
@@ -1771,16 +1762,16 @@ class InvoiceDialog(CenteredDialog):
         }
 
     def print_invoice_professional(self):
-        from printing.printing_service import printing_service
-        printing_service.invoice_preview(self._invoice_print_payload(), self, paper='default')
+        # Phase 235: legacy method name now uses the single unified print path.
+        return self.direct_print_invoice()
 
     def open_invoice_html_in_browser(self):
         from printing.printing_service import printing_service
         printing_service.invoice_browser(self._invoice_print_payload(), self, paper='default')
 
     def save_invoice_pdf(self):
-        from printing.printing_service import printing_service
-        printing_service.invoice_pdf(self._invoice_print_payload(), self, paper='default')
+        # Phase 235: no separate PDF button/path from invoice creation.
+        return self.direct_print_invoice()
 
     def direct_print_invoice(self):
         from printing.printing_service import printing_service

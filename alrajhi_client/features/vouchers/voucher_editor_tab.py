@@ -387,4 +387,4 @@ class VoucherEditorTab(BaseDocumentTab):
         if not voucher:
             QMessageBox.information(self, tr('print_button'), tr('select_voucher_first'))
             return
-        printing_service.voucher_pdf(voucher, self)
+        printing_service.voucher_print(voucher, self)

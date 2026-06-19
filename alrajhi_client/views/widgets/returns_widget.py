@@ -324,7 +324,8 @@ def _ret_print_dialog(dialog, qty_kind, mode='preview'):
     elif mode == 'direct':
         printing_service.return_print(data, dialog)
     elif mode == 'pdf':
-        printing_service.return_pdf(data, dialog)
+        # Phase 235: no PDF export from return print buttons; keep legacy callers on unified print.
+        printing_service.return_print(data, dialog)
     else:
         printing_service.return_preview(data, dialog)
 
@@ -332,12 +333,7 @@ def _ret_print_dialog(dialog, qty_kind, mode='preview'):
 def _ret_install_dialog_print_button(dialog, button_box, qty_kind):
     print_btn = QPushButton(translate('print'))
     print_btn.setObjectName('secondary')
-    menu = QMenu(print_btn)
-    menu.addAction(translate('preview_in_app'), lambda: _ret_print_dialog(dialog, qty_kind, 'preview'))
-    menu.addAction(translate('open_html_browser'), lambda: _ret_print_dialog(dialog, qty_kind, 'browser'))
-    menu.addAction(translate('direct_print'), lambda: _ret_print_dialog(dialog, qty_kind, 'direct'))
-    menu.addAction(translate('export_pdf'), lambda: _ret_print_dialog(dialog, qty_kind, 'pdf'))
-    print_btn.setMenu(menu)
+    print_btn.clicked.connect(lambda: _ret_print_dialog(dialog, qty_kind, 'direct'))
     button_box.addButton(print_btn, QDialogButtonBox.ActionRole)
     dialog.print_btn = print_btn
 
@@ -995,12 +991,15 @@ class ReturnsWidget(QWidget):
     def _install_print_menu(self):
         if not hasattr(self.toolbar, 'print_btn'):
             return
-        menu = QMenu(self.toolbar.print_btn)
-        menu.addAction(translate('preview_in_app'), lambda: self.print_selected_return('preview'))
-        menu.addAction(translate('open_html_browser'), lambda: self.print_selected_return('browser'))
-        menu.addAction(translate('direct_print'), lambda: self.print_selected_return('direct'))
-        menu.addAction(translate('export_pdf'), lambda: self.print_selected_return('pdf'))
-        self.toolbar.print_btn.setMenu(menu)
+        try:
+            self.toolbar.print_btn.setMenu(None)
+        except Exception:
+            pass
+        try:
+            self.toolbar.print_btn.clicked.disconnect()
+        except Exception:
+            pass
+        self.toolbar.print_btn.clicked.connect(lambda: self.print_selected_return('direct'))
 
     def print_selected_return(self, mode='preview'):
         rid = self._selected_id()
@@ -1020,7 +1019,8 @@ class ReturnsWidget(QWidget):
         elif mode == 'direct':
             printing_service.return_print(data, self)
         elif mode == 'pdf':
-            printing_service.return_pdf(data, self)
+            # Phase 235: no PDF export from return print buttons; keep legacy callers on unified print.
+            printing_service.return_print(data, self)
         else:
             printing_service.return_preview(data, self)
 
@@ -1454,12 +1454,15 @@ class PurchaseReturnsWidget(QWidget):
     def _install_print_menu(self):
         if not hasattr(self.toolbar, 'print_btn'):
             return
-        menu = QMenu(self.toolbar.print_btn)
-        menu.addAction(translate('preview_in_app'), lambda: self.print_selected_return('preview'))
-        menu.addAction(translate('open_html_browser'), lambda: self.print_selected_return('browser'))
-        menu.addAction(translate('direct_print'), lambda: self.print_selected_return('direct'))
-        menu.addAction(translate('export_pdf'), lambda: self.print_selected_return('pdf'))
-        self.toolbar.print_btn.setMenu(menu)
+        try:
+            self.toolbar.print_btn.setMenu(None)
+        except Exception:
+            pass
+        try:
+            self.toolbar.print_btn.clicked.disconnect()
+        except Exception:
+            pass
+        self.toolbar.print_btn.clicked.connect(lambda: self.print_selected_return('direct'))
 
     def print_selected_return(self, mode='preview'):
         rid = self._selected_id()
@@ -1479,7 +1482,8 @@ class PurchaseReturnsWidget(QWidget):
         elif mode == 'direct':
             printing_service.return_print(data, self)
         elif mode == 'pdf':
-            printing_service.return_pdf(data, self)
+            # Phase 235: no PDF export from return print buttons; keep legacy callers on unified print.
+            printing_service.return_print(data, self)
         else:
             printing_service.return_preview(data, self)
 

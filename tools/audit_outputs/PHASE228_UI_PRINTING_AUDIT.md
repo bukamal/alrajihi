@@ -12,13 +12,13 @@
 - The next UX cleanup should standardize document-shell action placement: one top-level workspace action bar plus one local document bottom bar, not scattered print/save buttons.
 
 ## Findings
-- [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/dialogs/batch_print_dialog.py:92)
-- [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/dialogs/invoice_dialog.py:694)
+- [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/dialogs/batch_print_dialog.py:96)
+- [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/dialogs/invoice_dialog.py:692)
 - [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/dialogs/production_details_dialog.py:88)
 - [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/dialogs/production_details_dialog.py:88)
 - [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/widgets/reports_widget.py:98)
-- [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/widgets/returns_widget.py:333)
-- [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/widgets/returns_widget.py:333)
+- [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/widgets/returns_widget.py:334)
+- [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/widgets/returns_widget.py:334)
 - [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/widgets/vouchers_widget.py:52)
 - [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/widgets/warehouses_widget.py:117)
 - [low] button-duplication — Potential local print button; prefer workspace/action-shell or document shell print menu. (alrajhi_client/views/widgets/warehouses_widget.py:190)

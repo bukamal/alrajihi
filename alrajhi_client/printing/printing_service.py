@@ -182,6 +182,26 @@ class PrintingService:
             opts.update({k: v for k, v in overrides.items() if v is not None})
         return opts
 
+
+    def barcode_default_printer_name(self) -> str:
+        """Return the configured Qt printer name for barcode labels, if any.
+
+        The UI no longer exposes PDF/PNG pseudo-printer buttons. If settings still
+        contain a legacy pdf:/image: value, fall back to the normal print dialog.
+        """
+        try:
+            cfg = settings_service.get_printing_settings()
+            printer_id = str(cfg.get('barcode_default_printer') or '').strip()
+            if printer_id.startswith('qt:'):
+                return printer_id[3:]
+        except Exception:
+            pass
+        return ''
+
+    def barcode_labels_print_settings(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None) -> bool:
+        """Print barcode labels using project printing settings and no separate PDF route."""
+        return self.barcode_labels_print(items, parent, options, self.barcode_default_printer_name())
+
     def barcode_labels_html(self, items: List[Dict[str, Any]], options: Optional[Dict[str, Any]] = None) -> str:
         return barcode_label_service.labels_document_html(items or [], self.barcode_label_options(options))
 

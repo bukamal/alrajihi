@@ -6668,3 +6668,35 @@ try:
         _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
 except Exception:
     pass
+
+# Phase 235: unified print button labels and messages.
+PHASE235_UNIFIED_PRINT_TRANSLATIONS = {
+    'ar': {
+        'phase235_system_print_dialog': 'طابعة النظام / اختيار عند الطباعة',
+        'phase235_barcode_print_success': 'تمت الطباعة بنجاح',
+        'phase235_barcode_print_failed': 'فشل طباعة الباركود',
+        'phase235_no_items_to_print': 'لا توجد مواد للطباعة',
+        'phase235_copies': 'عدد النسخ',
+    },
+    'en': {
+        'phase235_system_print_dialog': 'System printer / choose when printing',
+        'phase235_barcode_print_success': 'Printed successfully',
+        'phase235_barcode_print_failed': 'Barcode printing failed',
+        'phase235_no_items_to_print': 'No items to print',
+        'phase235_copies': 'Copies',
+    },
+    'de': {
+        'phase235_system_print_dialog': 'Systemdrucker / beim Drucken auswählen',
+        'phase235_barcode_print_success': 'Erfolgreich gedruckt',
+        'phase235_barcode_print_failed': 'Barcode-Druck fehlgeschlagen',
+        'phase235_no_items_to_print': 'Keine Artikel zum Drucken',
+        'phase235_copies': 'Kopien',
+    },
+}
+for _lang, _values in PHASE235_UNIFIED_PRINT_TRANSLATIONS.items():
+    _translations.setdefault(_lang, {}).update(_values)
+try:
+    for _lang, _values in PHASE235_UNIFIED_PRINT_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass

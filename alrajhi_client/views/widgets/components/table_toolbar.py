@@ -105,7 +105,6 @@ class TableToolbar(QWidget):
         menu.addAction(translate('open_html_browser'), lambda: self._table.print_table('browser'))
         menu.addSeparator()
         menu.addAction(translate('direct_print'), lambda: self._table.print_table('direct'))
-        menu.addAction(translate('export_pdf'), lambda: self._table.print_table('pdf'))
         self.print_btn.setMenu(menu)
 
     def search_text(self):
@@ -154,8 +153,7 @@ class TableToolbar(QWidget):
         responsive_action.setChecked(bool(getattr(self._table, "_auto_fit_columns", False)))
         responsive_action.toggled.connect(lambda checked: getattr(self._table, "set_responsive_columns", lambda _c: None)(checked))
         menu.addSeparator()
-        export_pdf = menu.addAction(translate("export_pdf") if translate("export_pdf") != "export_pdf" else "Export PDF")
-        export_pdf.triggered.connect(lambda: getattr(self._table, "export_to_pdf", lambda: None)())
+        # Phase 235: no PDF action in table print menus.
         save_view_action = menu.addAction(translate("save_view") if translate("save_view") != "save_view" else "Save view")
         save_view_action.triggered.connect(self._save_view)
         if self._table and hasattr(self._table, "view_preset_names"):

@@ -15,7 +15,8 @@ class InvoiceActionsComponent:
         self.host.print_invoice_professional()
 
     def export(self) -> None:
-        self.host.save_invoice_pdf()
+        # Phase 235: document export no longer exposes a separate PDF path; use the unified print contract.
+        self.print()
 
     def refresh(self) -> None:
         if hasattr(self.host, 'workspace_refresh'):

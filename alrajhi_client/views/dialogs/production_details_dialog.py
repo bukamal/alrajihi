@@ -90,7 +90,6 @@ class ProductionDetailsDialog(CenteredDialog):
         print_menu.addAction(translate("preview_inside_app"), lambda: self.print_order('preview'))
         print_menu.addAction(translate("open_html_browser"), lambda: self.print_order('browser'))
         print_menu.addAction(translate("direct_print"), lambda: self.print_order('direct'))
-        print_menu.addAction(translate("export_pdf"), lambda: self.print_order('pdf'))
         print_btn.setMenu(print_menu)
         btn_layout.addWidget(print_btn)
 
@@ -198,7 +197,7 @@ class ProductionDetailsDialog(CenteredDialog):
         elif mode == 'direct':
             printing_service.production_print(data, self)
         elif mode == 'pdf':
-            printing_service.production_pdf(data, self)
+            printing_service.production_print(data, self)
         else:
             printing_service.production_preview(data, self)
 

@@ -255,9 +255,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         actions.extend([
             ("transaction_delete_line_delete", self._remove_current_line),
             ("save", self.workspace_save),
-            ("transaction_preview", self._preview_document),
-            ("transaction_pdf", self.workspace_export),
-            ("transaction_save_and_print", self._save_and_print_placeholder),
+            ("print", self.workspace_print),
             ("transaction_pay_full" if not self.is_return else "transaction_refund_full", self._mark_paid_full),
             ("transaction_hold" if not self.is_return else "transaction_credit_settlement", self._mark_unpaid),
             ("transaction_close", self.close),
@@ -1001,9 +999,8 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.printing_bridge.print()
 
     def workspace_export(self) -> None:
-        if not self._ensure_saved_for_output():
-            return
-        self.printing_bridge.pdf()
+        # Phase 235: no independent PDF button/path from transaction documents.
+        self.workspace_print()
 
     def _save_and_print_placeholder(self) -> None:
         self.workspace_save()

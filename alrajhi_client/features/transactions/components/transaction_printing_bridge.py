@@ -40,10 +40,8 @@ class TransactionPrintingBridge:
         return bool(self._service_call("return_browser" if self.host.is_return else "invoice_browser", payload))
 
     def pdf(self) -> bool:
-        payload = self._payload()
-        if not payload:
-            return False
-        return bool(self._service_call("return_pdf" if self.host.is_return else "invoice_pdf", payload))
+        # Phase 235: legacy callers that still ask for PDF use the unified print route.
+        return self.print()
 
     def _service_call(self, method_name: str, payload: Dict[str, Any]):
         try:

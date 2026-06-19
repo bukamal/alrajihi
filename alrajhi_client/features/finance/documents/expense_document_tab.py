@@ -413,4 +413,4 @@ class ExpenseDocumentTab(BaseDocumentTab):
         if not expense:
             QMessageBox.information(self, tr('print_button'), tr('select_voucher_first'))
             return
-        printing_service.voucher_pdf(expense, self)
+        printing_service.voucher_print(expense, self)

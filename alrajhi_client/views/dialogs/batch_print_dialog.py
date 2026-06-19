@@ -32,9 +32,13 @@ class BatchPrintDialog(CenteredDialog):
         toolbar = QHBoxLayout()
         toolbar.addWidget(QLabel(translate('phase233_ui_022')))
         self.printer_combo = QComboBox()
-        default_printer = self.print_cfg.get('barcode_default_printer', 'pdf:default')
+        default_printer = self.print_cfg.get('barcode_default_printer', '')
+        self.printer_combo.addItem(translate('phase235_system_print_dialog'), '')
         for p in self.printer_manager.printers:
-            self.printer_combo.addItem(p.name, p.id)
+            # Phase 235: no visible PDF/PNG pseudo-printer choices from barcode print buttons.
+            if getattr(p.type, 'value', '') in {'pdf', 'image'}:
+                continue
+            self.printer_combo.addItem(p.name, p.connection_string or p.id)
         idx = self.printer_combo.findData(default_printer)
         if idx >= 0:
             self.printer_combo.setCurrentIndex(idx)
@@ -105,7 +109,7 @@ class BatchPrintDialog(CenteredDialog):
         data = []
         for idx, it in enumerate(self.items_data):
             data.append([idx, it['name'], it['barcode'], it['price'], it['copies']])
-        headers = ["#", "المادة", "الباركود", translate('phase233_ui_015'), "عدد النسخ"]
+        headers = ['#', translate('item'), translate('barcode'), translate('phase233_ui_015'), translate('phase235_copies')]
         self.model = GenericTableModel(data, headers, data_keys=['id', 'name', 'barcode', 'price', 'copies'])
         self.table.setModel(self.model)
         self.table.setColumnHidden(0, True)
@@ -166,7 +170,7 @@ class BatchPrintDialog(CenteredDialog):
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
-        apply_modern_dialog(self, 'طباعة دفعة')
+        apply_modern_dialog(self, translate('batch_print'))
         if dialog.exec():
             for list_item in list_widget.selectedItems():
                 item_id = list_item.data(Qt.UserRole)
@@ -201,13 +205,9 @@ class BatchPrintDialog(CenteredDialog):
 
     def do_print(self):
         if not self.items_data:
-            show_toast("لا توجد مواد للطباعة", "error", self)
+            show_toast(translate('phase235_no_items_to_print'), 'error', self)
             return
-        printer_id = self.printer_combo.currentData()
-        printer_info = self.printer_manager.get_printer(printer_id)
-        if not printer_info:
-            show_toast("لم يتم اختيار طابعة", "error", self)
-            return
+        printer_name = self.printer_combo.currentData() or ''
         items_for_print = []
         for it in self.items_data:
             items_for_print.append({
@@ -216,27 +216,11 @@ class BatchPrintDialog(CenteredDialog):
                 'price': it['price'],
                 'copies': it.get('copies', self.copies_spin.value())
             })
-        # Phase 99: all barcode outputs now use the same HTML renderer.
-        # PDF keeps selectable/printable HTML; PNG renders the exact same HTML sheet
-        # to an image so Arabic/German/English, logo, QR and barcode stay identical.
-        if printer_info.type.value == 'pdf':
-            if printing_service.barcode_labels_pdf(items_for_print, self, 'barcodes_batch.pdf', self._print_options()):
-                show_toast("تم حفظ PDF بنجاح", "success", self)
-                self.accept()
-            else:
-                show_toast("فشل حفظ PDF", "error", self)
-            return
-        if printer_info.type.value == 'image':
-            if printing_service.barcode_labels_png(items_for_print, self, 'barcodes_batch.png', self._print_options()):
-                show_toast("تم حفظ PNG بنجاح", "success", self)
-                self.accept()
-            else:
-                show_toast("فشل حفظ PNG", "error", self)
-            return
-        if printing_service.barcode_labels_print(items_for_print, self, self._print_options(), printer_info.connection_string):
-            show_toast("تمت الطباعة بنجاح", "success", self)
+        # Phase 235: single unified barcode print path; options come from project settings and dialog overrides.
+        if printing_service.barcode_labels_print(items_for_print, self, self._print_options(), printer_name):
+            show_toast(translate('phase235_barcode_print_success'), "success", self)
             self.accept()
         else:
-            show_toast("فشل طباعة الباركود", "error", self)
+            show_toast(translate('phase235_barcode_print_failed'), "error", self)
 
 

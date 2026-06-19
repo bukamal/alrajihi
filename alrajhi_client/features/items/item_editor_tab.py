@@ -825,8 +825,7 @@ class MaterialDocumentTab(BaseDocumentTab):
             return
         try:
             copies = int(self.material_settings.get('barcode_label_options', {}).get('copies', settings_service.get_printing_settings().get('barcode_copies', 1)) or 1)
-            html = barcode_label_service.labels_document_html([{**item, 'copies': max(1, copies)}], self._label_options())
-            printing_service.print_html(html, self, tr('material_print_label'))
+            printing_service.barcode_labels_print_settings([{**item, 'copies': max(1, copies)}], self, self._label_options())
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 

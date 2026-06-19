@@ -116,9 +116,9 @@ class CustomTableView(QTableView):
         export_excel = QAction(translate("excel"), self)
         export_excel.triggered.connect(self.export_to_excel)
         menu.addAction(export_excel)
-        export_pdf = QAction(translate("print"), self)
-        export_pdf.triggered.connect(self.print_table)
-        menu.addAction(export_pdf)
+        print_action = QAction(translate("print"), self)
+        print_action.triggered.connect(self.print_table)
+        menu.addAction(print_action)
         menu.addSeparator()
         copy_act = QAction(translate("copy"), self)
         copy_act.triggered.connect(self.copy_selection)
@@ -210,7 +210,8 @@ class CustomTableView(QTableView):
             elif mode == 'direct':
                 printing_service.report_print(str(title), rows, headers, self, subtitle=subtitle)
             elif mode == 'pdf':
-                printing_service.report_pdf(str(title), rows, headers, self, subtitle=subtitle)
+                # Phase 235: legacy PDF mode follows unified print output.
+                printing_service.report_print(str(title), rows, headers, self, subtitle=subtitle)
             else:
                 printing_service.report_preview(str(title), rows, headers, self, subtitle=subtitle)
         except Exception as exc:

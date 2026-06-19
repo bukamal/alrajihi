@@ -122,10 +122,10 @@ class _ReturnDocumentMixin:
         self.actions_component.save()
 
     def workspace_print(self) -> None:
-        _ret_print_dialog(self, self.return_kind, 'preview')
+        _ret_print_dialog(self, self.return_kind, 'direct')
 
     def workspace_export(self) -> None:
-        _ret_print_dialog(self, self.return_kind, 'pdf')
+        _ret_print_dialog(self, self.return_kind, 'direct')
 
     def accept(self):
         ok, error_key = self.lines_component.validate()

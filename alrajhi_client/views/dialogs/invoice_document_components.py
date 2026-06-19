@@ -88,4 +88,4 @@ class InvoiceActionsComponent:
         self.host.print_invoice_professional()
 
     def export(self) -> None:
-        self.host.save_invoice_pdf()
+        self.print()

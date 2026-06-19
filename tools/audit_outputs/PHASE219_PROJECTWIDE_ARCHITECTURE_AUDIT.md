@@ -98,7 +98,7 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/ui/smart_table_view.py:536`
+- File: `alrajhi_client/ui/smart_table_view.py:534`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
@@ -140,13 +140,13 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Legacy dialog reference: AddEntityDialog
-- File: `alrajhi_client/views/dialogs/invoice_dialog.py:1383`
+- File: `alrajhi_client/views/dialogs/invoice_dialog.py:1374`
 - Area: `legacy-dialog`
 - Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
 - Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
 
 ### [medium] Legacy dialog reference: ItemDialog
-- File: `alrajhi_client/views/dialogs/invoice_dialog.py:1575`
+- File: `alrajhi_client/views/dialogs/invoice_dialog.py:1566`
 - Area: `legacy-dialog`
 - Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
 - Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
@@ -241,6 +241,12 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
+### [medium] Legacy dialog reference: ProductionOrderDialog
+- File: `alrajhi_client/views/widgets/manufacturing_widget.py:456`
+- Area: `legacy-dialog`
+- Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
+- Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
+
 ### [medium] Legacy dialog reference: ProductionDetailsDialog
 - File: `alrajhi_client/views/widgets/manufacturing_widget.py:478`
 - Area: `legacy-dialog`
@@ -249,12 +255,6 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 
 ### [medium] Legacy dialog reference: BOMDialog
 - File: `alrajhi_client/views/widgets/manufacturing_widget.py:404`
-- Area: `legacy-dialog`
-- Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
-- Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
-
-### [medium] Legacy dialog reference: ProductionOrderDialog
-- File: `alrajhi_client/views/widgets/manufacturing_widget.py:456`
 - Area: `legacy-dialog`
 - Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
 - Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
@@ -296,19 +296,19 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/widgets/returns_widget.py:411`
+- File: `alrajhi_client/views/widgets/returns_widget.py:407`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/widgets/returns_widget.py:635`
+- File: `alrajhi_client/views/widgets/returns_widget.py:631`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/widgets/returns_widget.py:689`
+- File: `alrajhi_client/views/widgets/returns_widget.py:685`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
@@ -326,13 +326,13 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/widgets/returns_widget.py:1494`
+- File: `alrajhi_client/views/widgets/returns_widget.py:1498`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/widgets/returns_widget.py:1518`
+- File: `alrajhi_client/views/widgets/returns_widget.py:1522`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
@@ -398,7 +398,7 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Recommendation: Move persistence to settings_service or a scoped preferences helper using user/branch/profile.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/widgets/components/table_toolbar.py:169`
+- File: `alrajhi_client/views/widgets/components/table_toolbar.py:167`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
@@ -427,14 +427,14 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
 - Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
 
-### [medium] Legacy dialog reference: ProductionDetailsDialog
-- File: `alrajhi_client/features/manufacturing/production_order_document_tab.py:40`
+### [medium] Legacy dialog reference: ProductionOrderDialog
+- File: `alrajhi_client/features/manufacturing/production_order_document_tab.py:41`
 - Area: `legacy-dialog`
 - Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
 - Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
 
-### [medium] Legacy dialog reference: ProductionOrderDialog
-- File: `alrajhi_client/features/manufacturing/production_order_document_tab.py:41`
+### [medium] Legacy dialog reference: ProductionDetailsDialog
+- File: `alrajhi_client/features/manufacturing/production_order_document_tab.py:40`
 - Area: `legacy-dialog`
 - Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
 - Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.

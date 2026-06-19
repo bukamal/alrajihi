@@ -145,9 +145,11 @@ class DialogDocumentTab(BaseDocumentTab):
         super().workspace_print()
 
     def workspace_export(self) -> None:
-        for name in ('workspace_export', 'save_invoice_pdf', 'export_current', 'export'):
+        # Phase 235: generic document export must not route to legacy PDF buttons.
+        # If a hosted dialog has a business export (Excel/JSON), it may still expose export_current/export.
+        for name in ('export_current', 'export'):
             method = getattr(self.dialog, name, None)
             if callable(method):
                 method()
                 return
-        super().workspace_export()
+        self.workspace_print()

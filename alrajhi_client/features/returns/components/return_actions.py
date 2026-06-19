@@ -15,4 +15,5 @@ class ReturnActionsComponent:
         self.host.workspace_print()
 
     def export(self) -> None:
-        self.host.workspace_export()
+        # Phase 235: no separate PDF export button/path from return documents.
+        self.print()

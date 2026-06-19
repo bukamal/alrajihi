@@ -463,7 +463,8 @@ class SmartTableView(CustomTableView):
             QTimer.singleShot(0, self.fit_columns_to_view)
 
     def export_to_pdf(self) -> None:
-        self.print_table('pdf')
+        # Phase 235: legacy API name uses unified print, not PDF export.
+        self.print_table('direct')
 
     def print_preview(self) -> None:
         self.print_table('preview')
@@ -530,7 +531,5 @@ class SmartTableView(CustomTableView):
             density_action.triggered.connect(lambda _checked=False, d=density_name: self.set_density(d))
             density_menu.addAction(density_action)
 
-        export_pdf = QAction(translate("export_pdf") if translate("export_pdf") != "export_pdf" else "Export PDF", self)
-        export_pdf.triggered.connect(self.export_to_pdf)
-        menu.addAction(export_pdf)
+        # Phase 235: no PDF action in table context menus.
         menu.exec(self.viewport().mapToGlobal(pos))

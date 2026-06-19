@@ -54,7 +54,6 @@ class VouchersWidget(QWidget):
         print_menu.addAction(tr("preview_inside_app"), lambda: self.print_selected('preview'))
         print_menu.addAction(tr("open_html_browser"), lambda: self.print_selected('browser'))
         print_menu.addAction(tr("direct_print"), lambda: self.print_selected('direct'))
-        print_menu.addAction(tr("export_pdf"), lambda: self.print_selected('pdf'))
         self.print_btn.setMenu(print_menu)
         top_layout.addWidget(self.print_btn)
 
@@ -206,7 +205,8 @@ class VouchersWidget(QWidget):
         elif mode == 'direct':
             printing_service.voucher_print(voucher, self)
         elif mode == 'pdf':
-            printing_service.voucher_pdf(voucher, self)
+            # Phase 235: legacy PDF mode follows unified print output.
+            printing_service.voucher_print(voucher, self)
         else:
             printing_service.voucher_preview(voucher, self)
 
