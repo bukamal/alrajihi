@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QToolButton, QMenu, QLineEdit, QScrollArea, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QToolButton, QMenu, QScrollArea, QSizePolicy
 from PyQt5.QtCore import Qt, QSize, pyqtSignal, QTimer
 from PyQt5.QtGui import QIcon
 import qtawesome as qta
@@ -71,25 +71,15 @@ class ModernTopBar(QWidget):
         utility_layout.setContentsMargins(12, 6, 12, 6)
         utility_layout.setSpacing(10)
 
-        self.search_box = QLineEdit()
-        self.search_box.setObjectName("GlobalSearchBox")
-        self.search_box.setPlaceholderText(translate('global_search_placeholder'))
-        self.search_box.setMinimumWidth(360)
-        self.search_box.setMaximumWidth(620)
-        self.search_box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        utility_layout.addWidget(self.search_box, 2)
-
+        # Phase 228: the global top search card was removed from the visible
+        # shell. Page-local searches remain inside each workspace where they
+        # have clear business meaning.
+        self.search_box = None
         utility_layout.addStretch(1)
 
-        self.refresh_btn = QToolButton()
-        self.refresh_btn.setObjectName("ShellIconButton")
-        self.refresh_btn.setIcon(qta.icon('fa5s.sync-alt'))
-        self.refresh_btn.setIconSize(QSize(20, 20))
-        self.refresh_btn.setText('')
-        self.refresh_btn.setToolButtonStyle(Qt.ToolButtonIconOnly)
-        self.refresh_btn.setToolTip(translate('refresh_now'))
-        self.refresh_btn.setFixedSize(48, 48)
-        utility_layout.addWidget(self.refresh_btn)
+        # Refresh lives only in UnifiedActionBar/F5 after Phase 228 to avoid
+        # duplicate command buttons in the shell.
+        self.refresh_btn = None
 
         self.alert_btn = QToolButton()
         self.alert_btn.setObjectName("ShellIconButton")
@@ -317,15 +307,6 @@ class ModernTopBar(QWidget):
                 border-color: {c['primary']};
                 color: {c['primary']};
             }}
-            #GlobalSearchBox {{
-                background-color: {c['input_bg']};
-                border: 1px solid {c['border']};
-                border-radius: 16px;
-                padding: 7px 12px;
-                color: {c['text_primary']};
-                selection-background-color: {c['selection_bg']};
-            }}
-            #GlobalSearchBox:focus {{ border: 1px solid {c['primary']}; }}
             #TopBarButton, QToolButton#TopBarButton {{
                 background-color: transparent;
                 border: none;

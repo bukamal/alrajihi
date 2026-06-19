@@ -57,9 +57,8 @@ class BankAccountDocumentTab(BaseDocumentTab):
         header = QHBoxLayout(); self.title_label = QLabel(); self.title_label.setObjectName('DocumentTitle')
         self.subtitle_label = QLabel(translate('bank_account_document_subtitle')); self.subtitle_label.setObjectName('mutedLabel')
         text = QVBoxLayout(); text.addWidget(self.title_label); text.addWidget(self.subtitle_label); header.addLayout(text, 1)
-        self.save_btn = QPushButton(translate('save_ctrl_s')); self.save_btn.setObjectName('primary'); self.save_btn.clicked.connect(self.workspace_save)
-        self.close_btn = QPushButton(translate('close')); self.close_btn.clicked.connect(self._close_parent_tab)
-        header.addWidget(self.save_btn); header.addWidget(self.close_btn); root.addLayout(header)
+        # Phase 229: header is informational; save/close live in bottom action bar.
+        root.addLayout(header)
         panel = QFrame(self); panel.setObjectName('DocumentPanel'); form = QGridLayout(panel); form.setContentsMargins(14,14,14,14); form.setHorizontalSpacing(12); form.setVerticalSpacing(10)
         self.branch_combo = QComboBox(self)
         self.bank_edit = QLineEdit(self); self.bank_edit.setPlaceholderText(translate('bank_name_placeholder'))
@@ -77,7 +76,7 @@ class BankAccountDocumentTab(BaseDocumentTab):
         form.addWidget(QLabel(translate('status')), 4, 0); form.addWidget(self.active_check, 4, 1)
         form.setColumnStretch(1, 1); form.setColumnStretch(3, 1); root.addWidget(panel)
         hint = QLabel(translate('bank_account_document_hint')); hint.setObjectName('mutedLabel'); hint.setWordWrap(True); root.addWidget(hint); root.addStretch(1)
-        bottom = QHBoxLayout(); bottom.addStretch(1); self.bottom_save_btn = QPushButton(translate('save_ctrl_s')); self.bottom_save_btn.setObjectName('primary'); self.bottom_save_btn.clicked.connect(self.workspace_save); bottom.addWidget(self.bottom_save_btn); root.addLayout(bottom)
+        bottom = QHBoxLayout(); bottom.addStretch(1); self.bottom_close_btn = QPushButton(translate('close')); self.bottom_close_btn.clicked.connect(self._close_parent_tab); self.bottom_save_btn = QPushButton(translate('save_ctrl_s')); self.bottom_save_btn.setObjectName('primary'); self.bottom_save_btn.clicked.connect(self.workspace_save); bottom.addWidget(self.bottom_close_btn); bottom.addWidget(self.bottom_save_btn); root.addLayout(bottom); self.close_btn = self.bottom_close_btn; self.save_btn = self.bottom_save_btn
 
     def _load_branches(self) -> None:
         self.branch_combo.clear()
@@ -108,7 +107,7 @@ class BankAccountDocumentTab(BaseDocumentTab):
 
     def _apply_permissions(self) -> None:
         for widget in (self.branch_combo, self.bank_edit, self.account_name, self.account_number, self.iban, self.notes, self.active_check): widget.setEnabled(self._can_edit)
-        self.save_btn.setEnabled(self._can_edit); self.bottom_save_btn.setEnabled(self._can_edit)
+        self.bottom_save_btn.setEnabled(self._can_edit)
         if not self._can_edit: self.subtitle_label.setText(translate('bank_account_read_only'))
 
     def _connect_dirty_tracking(self) -> None:

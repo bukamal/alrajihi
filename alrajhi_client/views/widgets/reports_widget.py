@@ -532,16 +532,16 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         stmt = reporting_service.income_statement(start, end)
         income_list = []
         for inc in stmt.get('income', []):
-            amount = currency.convert(Decimal(str(inc.get('balance', 0))), 'USD', display_curr)
+            amount = currency.convert(Decimal(str(inc.get('balance', 0))), currency.storage_currency(), display_curr)
             income_list.append({'statement': inc.get('name', ''), 'amount': currency.format_amount(amount)})
-        total_income = currency.convert(Decimal(str(stmt.get('total_income', 0))), 'USD', display_curr)
+        total_income = currency.convert(Decimal(str(stmt.get('total_income', 0))), currency.storage_currency(), display_curr)
         income_list.append({'statement': 'إجمالي الإيرادات', 'amount': currency.format_amount(total_income)})
         income_list.append({'statement': '', 'amount': ''})
         for exp in stmt.get('expenses', []):
-            amount = currency.convert(Decimal(str(exp.get('balance', 0))), 'USD', display_curr)
+            amount = currency.convert(Decimal(str(exp.get('balance', 0))), currency.storage_currency(), display_curr)
             income_list.append({'statement': exp.get('name', ''), 'amount': currency.format_amount(amount)})
-        total_expenses = currency.convert(Decimal(str(stmt.get('total_expenses', 0))), 'USD', display_curr)
-        net_profit = currency.convert(Decimal(str(stmt.get('net_profit', 0))), 'USD', display_curr)
+        total_expenses = currency.convert(Decimal(str(stmt.get('total_expenses', 0))), currency.storage_currency(), display_curr)
+        net_profit = currency.convert(Decimal(str(stmt.get('net_profit', 0))), currency.storage_currency(), display_curr)
         income_list.append({'statement': 'إجمالي المصروفات', 'amount': currency.format_amount(total_expenses)})
         income_list.append({'statement': 'صافي الربح', 'amount': currency.format_amount(net_profit)})
         self._set_table(self.income_table, income_list, [tr('statement'), tr('amount')], ['statement', 'amount'])
@@ -550,9 +550,9 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         bs = reporting_service.balance_sheet(start, end)
         rows = []
         for a in bs.get('assets', []):
-            amount = currency.convert(Decimal(str(a.get('debit', 0))), 'USD', display_curr)
+            amount = currency.convert(Decimal(str(a.get('debit', 0))), currency.storage_currency(), display_curr)
             rows.append({'account': a.get('name', ''), 'amount': currency.format_amount(amount)})
-        total_assets = currency.convert(Decimal(str(bs.get('total_assets', 0))), 'USD', display_curr)
+        total_assets = currency.convert(Decimal(str(bs.get('total_assets', 0))), currency.storage_currency(), display_curr)
         rows.append({'account': 'إجمالي الأصول', 'amount': currency.format_amount(total_assets)})
         self._set_table(self.balance_table, rows, ['الحساب', 'المبلغ'], ['account', 'amount'])
 
@@ -561,15 +561,15 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         valuation = reporting_service.warehouse_valuation(warehouse_id=wh_id)
         val_rows = []
         for wh in valuation.get('warehouses', []):
-            val = currency.convert(Decimal(str(wh.get('total_value', 0))), 'USD', display_curr)
+            val = currency.convert(Decimal(str(wh.get('total_value', 0))), currency.storage_currency(), display_curr)
             val_rows.append({
                 'warehouse': wh.get('warehouse_name', ''),
                 'item_count': wh.get('item_count', 0),
                 'total_qty': f"{Decimal(str(wh.get('total_qty', 0))):.2f}",
                 'total_value': currency.format_amount(val),
             })
-        grand = currency.convert(Decimal(str(valuation.get('grand_total', 0))), 'USD', display_curr)
-        self.wh_valuation_status.setText(f"إجمالي قيمة المخزون: {currency.format_amount(grand)}")
+        grand = currency.convert(Decimal(str(valuation.get('grand_total', 0))), currency.storage_currency(), display_curr)
+        self.wh_valuation_status.setText(tr('reports_inventory_total_value', amount=currency.format_amount(grand)))
         self._set_table(self.wh_valuation_table, val_rows, ['المستودع', 'عدد المواد', 'إجمالي الكميات', 'قيمة المخزون'], ['warehouse', 'item_count', 'total_qty', 'total_value'])
 
         bal_rows = []
@@ -588,7 +588,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 'avg': currency.format_amount(avg),
                 'value': currency.format_amount(value),
             })
-        self.wh_balances_status.setText(f"عدد السجلات: {len(bal_rows)} | إجمالي القيمة: {currency.format_amount(total_value)}")
+        self.wh_balances_status.setText(tr('reports_records_total_value', count=len(bal_rows), amount=currency.format_amount(total_value)))
         self._set_table(self.wh_balances_table, bal_rows, ['المستودع', 'المادة', 'الباركود', 'الكمية', 'الوحدة', 'متوسط التكلفة', 'قيمة المخزون'], ['warehouse', 'item', 'barcode', 'qty', 'unit', 'avg', 'value'])
 
         mov_rows = []
@@ -616,7 +616,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 'from': t.get('from_warehouse_name') or '',
                 'to': t.get('to_warehouse_name') or '',
                 'qty': t.get('quantity') or '0',
-                'status': 'ملغى' if t.get('status') == 'cancelled' else 'نشط',
+                'status': tr('cancelled') if t.get('status') == 'cancelled' else tr('active'),
                 'notes': t.get('notes') or '',
             })
         self._set_table(self.wh_transfers_table, trans_rows, ['رقم التحويل', 'التاريخ', 'المادة', 'من', 'إلى', 'الكمية', 'الحالة', 'ملاحظات'], ['no', 'date', 'item', 'from', 'to', 'qty', 'status', 'notes'])
@@ -625,17 +625,17 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         cashbox_id = self.cashbox_filter.currentData() if hasattr(self, 'cashbox_filter') else None
         bank_id = self.bank_filter.currentData() if hasattr(self, 'bank_filter') else None
         summary = reporting_service.cash_bank_summary()
-        cash_total = currency.convert(Decimal(str(summary.get('cash_total') or 0)), 'USD', display_curr)
-        bank_total = currency.convert(Decimal(str(summary.get('bank_total') or 0)), 'USD', display_curr)
-        available = currency.convert(Decimal(str(summary.get('available_total') or 0)), 'USD', display_curr)
+        cash_total = currency.convert(Decimal(str(summary.get('cash_total') or 0)), currency.storage_currency(), display_curr)
+        bank_total = currency.convert(Decimal(str(summary.get('bank_total') or 0)), currency.storage_currency(), display_curr)
+        available = currency.convert(Decimal(str(summary.get('available_total') or 0)), currency.storage_currency(), display_curr)
         self.cash_summary_status.setText(
-            f"الصناديق: {currency.format_amount(cash_total)} | البنوك: {currency.format_amount(bank_total)} | الإجمالي المتاح: {currency.format_amount(available)}"
+            tr('reports_cash_bank_available', cash=currency.format_amount(cash_total), bank=currency.format_amount(bank_total), total=currency.format_amount(available))
         )
         summary_rows = []
         for c in reporting_service.cashboxes_report():
-            bal = currency.convert(Decimal(str(c.get('balance') or 0)), 'USD', display_curr)
+            bal = currency.convert(Decimal(str(c.get('balance') or 0)), currency.storage_currency(), display_curr)
             summary_rows.append({
-                'type': 'صندوق',
+                'type': tr('cashbox'),
                 'branch': c.get('branch_name') or '',
                 'name': c.get('name') or '',
                 'code': c.get('code') or '',
@@ -643,7 +643,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 'status': 'نشط' if int(c.get('is_active') or 0) else 'مؤرشف',
             })
         for b in reporting_service.bank_accounts_report():
-            bal = currency.convert(Decimal(str(b.get('balance') or 0)), 'USD', display_curr)
+            bal = currency.convert(Decimal(str(b.get('balance') or 0)), currency.storage_currency(), display_curr)
             summary_rows.append({
                 'type': 'بنك',
                 'branch': b.get('branch_name') or '',
@@ -661,8 +661,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 continue
             raw_amount = Decimal(str(m.get('amount') or 0))
             cash_running += raw_amount
-            amount = currency.convert(raw_amount, 'USD', display_curr)
-            running_display = currency.convert(cash_running, 'USD', display_curr)
+            amount = currency.convert(raw_amount, currency.storage_currency(), display_curr)
+            running_display = currency.convert(cash_running, currency.storage_currency(), display_curr)
             cash_rows.append({
                 'date': m.get('movement_date') or m.get('created_at') or '',
                 'branch': m.get('branch_name') or '',
@@ -683,8 +683,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 continue
             raw_amount = Decimal(str(m.get('amount') or 0))
             bank_running += raw_amount
-            amount = currency.convert(raw_amount, 'USD', display_curr)
-            running_display = currency.convert(bank_running, 'USD', display_curr)
+            amount = currency.convert(raw_amount, currency.storage_currency(), display_curr)
+            running_display = currency.convert(bank_running, currency.storage_currency(), display_curr)
             bank_rows.append({
                 'date': m.get('movement_date') or m.get('created_at') or '',
                 'branch': m.get('branch_name') or '',

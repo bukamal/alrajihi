@@ -77,13 +77,7 @@ class BranchDocumentTab(BaseDocumentTab):
         header_text.addWidget(self.title_label)
         header_text.addWidget(self.subtitle_label)
         header.addLayout(header_text, 1)
-        self.save_btn = QPushButton(translate('save_ctrl_s'))
-        self.save_btn.setObjectName('primary')
-        self.save_btn.clicked.connect(self.workspace_save)
-        self.close_btn = QPushButton(translate('close'))
-        self.close_btn.clicked.connect(self._close_parent_tab)
-        header.addWidget(self.save_btn)
-        header.addWidget(self.close_btn)
+        # Phase 229: header is informational; save/close live in the bottom action bar.
         root.addLayout(header)
 
         panel = QFrame(self)
@@ -131,10 +125,15 @@ class BranchDocumentTab(BaseDocumentTab):
 
         bottom = QHBoxLayout()
         bottom.addStretch(1)
+        self.bottom_close_btn = QPushButton(translate('close'))
+        self.bottom_close_btn.clicked.connect(self._close_parent_tab)
         self.bottom_save_btn = QPushButton(translate('save_ctrl_s'))
         self.bottom_save_btn.setObjectName('primary')
         self.bottom_save_btn.clicked.connect(self.workspace_save)
+        bottom.addWidget(self.bottom_close_btn)
         bottom.addWidget(self.bottom_save_btn)
+        self.close_btn = self.bottom_close_btn
+        self.save_btn = self.bottom_save_btn
         root.addLayout(bottom)
 
     def _set_new_defaults(self) -> None:
@@ -162,7 +161,6 @@ class BranchDocumentTab(BaseDocumentTab):
     def _apply_permissions(self) -> None:
         for widget in (self.name_edit, self.code_edit, self.address_edit, self.phone_edit, self.notes_edit, self.active_check):
             widget.setEnabled(self._can_edit)
-        self.save_btn.setEnabled(self._can_edit)
         self.bottom_save_btn.setEnabled(self._can_edit)
         if not self._can_edit:
             self.subtitle_label.setText(translate('branch_read_only'))

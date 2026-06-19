@@ -28,6 +28,7 @@ from core.services.barcode_input_service import barcode_input_service
 from core.services.permission_service import permission_service
 from core.services.product_service import product_service
 from core.services.settings_service import settings_service
+from i18n import translate
 from currency import currency
 from i18n import qt_layout_direction, translate
 from printing.printing_service import printing_service
@@ -89,7 +90,7 @@ class MaterialDocumentTab(BaseDocumentTab):
                 'ean13_internal_prefix': '290',
                 'code128_prefix': 'ITM',
                 'default_unit': tr('unit_piece'),
-                'default_item_type': 'مخزون',
+                'default_item_type': translate('phase233_ui_031'),
                 'quantity_decimals': 2,
                 'price_decimals': 2,
                 'barcode_label_options': {
@@ -175,13 +176,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         title_box.addWidget(subtitle)
         layout.addLayout(title_box, 1)
 
-        self.header_generate_btn = QPushButton(tr('material_generate_barcode'))
-        self.header_generate_btn.clicked.connect(self.generate_barcode)
-        self.header_save_btn = QPushButton(tr('save'))
-        self.header_save_btn.setObjectName('primary')
-        self.header_save_btn.clicked.connect(self.workspace_save)
-        layout.addWidget(self.header_generate_btn)
-        layout.addWidget(self.header_save_btn)
+        # Phase 229: document headers are informational; commands live in BottomActionBar.
         return header
 
     def _build_basic_panel(self) -> QGroupBox:
@@ -200,9 +195,9 @@ class MaterialDocumentTab(BaseDocumentTab):
         form.addRow(tr('category_label'), self.category_combo)
 
         self.type_combo = QComboBox()
-        self.type_combo.addItem(tr('stock_item_type'), 'مخزون')
-        self.type_combo.addItem(tr('finished_product_type'), 'منتج نهائي')
-        self.type_combo.addItem(tr('service_item_type'), 'خدمة')
+        self.type_combo.addItem(tr('stock_item_type'), translate('phase233_ui_031'))
+        self.type_combo.addItem(tr('finished_product_type'), translate('phase233_ui_032'))
+        self.type_combo.addItem(tr('service_item_type'), translate('phase233_ui_033'))
         form.addRow(tr('item_type_field'), self.type_combo)
 
         self.unit_edit = QLineEdit()
@@ -341,15 +336,18 @@ class MaterialDocumentTab(BaseDocumentTab):
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(8)
         self.new_btn = QPushButton(tr('new'))
+        self.generate_barcode_btn = QPushButton(tr('material_generate_barcode'))
         self.save_btn = QPushButton(tr('save'))
         self.save_btn.setObjectName('primary')
         self.save_label_btn = QPushButton(tr('material_save_and_print_label'))
         self.close_btn = QPushButton(tr('close'))
         self.new_btn.clicked.connect(self.clear_for_new)
+        self.generate_barcode_btn.clicked.connect(self.generate_barcode)
         self.save_btn.clicked.connect(self.workspace_save)
         self.save_label_btn.clicked.connect(self.save_and_print_label)
         self.close_btn.clicked.connect(self.request_close)
         layout.addWidget(self.new_btn)
+        layout.addWidget(self.generate_barcode_btn)
         layout.addStretch(1)
         layout.addWidget(self.save_label_btn)
         layout.addWidget(self.save_btn)
@@ -399,7 +397,7 @@ class MaterialDocumentTab(BaseDocumentTab):
             self.purchase_spin, self.selling_spin, self.qty_spin, self.reorder_spin,
             self.barcode_edit, self.barcode_type_combo, self.units_table,
             self.add_unit_btn, self.remove_unit_btn, self.generate_unit_barcode_btn,
-            self.generate_btn, self.scan_camera_btn, self.header_generate_btn,
+            self.generate_btn, self.scan_camera_btn, self.generate_barcode_btn,
         ]
 
     def _apply_security_policy(self) -> None:
@@ -416,13 +414,11 @@ class MaterialDocumentTab(BaseDocumentTab):
                 except Exception:
                     pass
             self.save_btn.setEnabled(False)
-            self.header_save_btn.setEnabled(False)
             self.save_label_btn.setEnabled(False)
             self.stock_warning_label.setText(tr('material_readonly_permission'))
             self.stock_warning_label.setStyleSheet('color: #b91c1c; font-weight: 700;')
         else:
             self.save_btn.setEnabled(True)
-            self.header_save_btn.setEnabled(True)
             self.save_label_btn.setEnabled(can_print)
 
         if not can_print:
@@ -459,7 +455,7 @@ class MaterialDocumentTab(BaseDocumentTab):
             self.generate_barcode(silent=True)
         self.unit_edit.setText(str(self.material_settings.get('default_unit') or tr('unit_piece')))
         self.add_unit_row(tr('unit_box') if tr('unit_box') != 'unit_box' else 'علبة', 1)
-        default_type = str(self.material_settings.get('default_item_type') or 'مخزون')
+        default_type = str(self.material_settings.get('default_item_type') or translate('phase233_ui_031'))
         idx = self.type_combo.findData(default_type)
         if idx >= 0:
             self.type_combo.setCurrentIndex(idx)
@@ -564,8 +560,8 @@ class MaterialDocumentTab(BaseDocumentTab):
         if idx >= 0:
             self.type_combo.setCurrentIndex(idx)
         self.unit_edit.setText(item.get('unit') or tr('unit_piece'))
-        self.purchase_spin.setValue(float(currency.convert(item.get('purchase_price') or 0, 'USD', self.display_curr)))
-        self.selling_spin.setValue(float(currency.convert(item.get('selling_price') or 0, 'USD', self.display_curr)))
+        self.purchase_spin.setValue(float(currency.convert(item.get('purchase_price') or 0, currency.storage_currency(), self.display_curr)))
+        self.selling_spin.setValue(float(currency.convert(item.get('selling_price') or 0, currency.storage_currency(), self.display_curr)))
         self.qty_spin.setValue(float(item.get('opening_quantity', item.get('quantity') or 0) or 0))
         self.reorder_spin.setValue(float(item.get('reorder_level') or 0))
         self._load_item_units()
@@ -728,7 +724,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         validator.positive(self.qty_spin, self.qty_error, tr('opening_quantity').rstrip(':'), allow_zero=True)
         validator.positive(self.reorder_spin, self.reorder_error, tr('reorder_level').rstrip(':'), allow_zero=True)
         barcode = barcode_input_service.normalize(self.barcode_edit.text())
-        stock_type = self.type_combo.currentData() == 'مخزون'
+        stock_type = self.type_combo.currentData() == translate('phase233_ui_031')
         if stock_type and bool(self.material_settings.get('require_barcode_for_stock_items', False)) and not barcode:
             validator.custom(False, self.barcode_edit, self.barcode_error, tr('material_barcode_required'))
         elif barcode:
@@ -752,11 +748,11 @@ class MaterialDocumentTab(BaseDocumentTab):
             'category_id': self.category_combo.currentData(),
             'item_type': self.type_combo.currentData() or self.type_combo.currentText(),
             'unit': self.unit_edit.text().strip() or tr('unit_piece'),
-            'purchase_price': currency.convert(self.purchase_spin.value(), self.display_curr, 'USD'),
-            'selling_price': currency.convert(self.selling_spin.value(), self.display_curr, 'USD'),
+            'purchase_price': currency.convert(self.purchase_spin.value(), self.display_curr, currency.storage_currency()),
+            'selling_price': currency.convert(self.selling_spin.value(), self.display_curr, currency.storage_currency()),
             'quantity': self.qty_spin.value(),
             'opening_quantity': self.qty_spin.value(),
-            'average_cost': currency.convert(self.purchase_spin.value(), self.display_curr, 'USD'),
+            'average_cost': currency.convert(self.purchase_spin.value(), self.display_curr, currency.storage_currency()),
             'reorder_level': self.reorder_spin.value(),
             'units': units,
         }
@@ -797,7 +793,7 @@ class MaterialDocumentTab(BaseDocumentTab):
             'id': self.item_id,
             'name': self.name_edit.text().strip(),
             'barcode': barcode_input_service.normalize(self.barcode_edit.text()) or '',
-            'selling_price': currency.convert(self.selling_spin.value(), self.display_curr, 'USD'),
+            'selling_price': currency.convert(self.selling_spin.value(), self.display_curr, currency.storage_currency()),
             'price': self.selling_spin.value(),
             'unit': self.unit_edit.text().strip(),
         }

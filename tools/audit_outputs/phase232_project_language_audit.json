@@ -1,0 +1,8 @@
+{
+  "phase": 232,
+  "title": "Project UI language audit",
+  "total_findings": 0,
+  "top_files": [],
+  "sample_findings": [],
+  "note": "Informational only. Some findings are valid domain values; migrate user-visible literals gradually to translate()/tr()."
+}

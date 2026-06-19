@@ -130,7 +130,7 @@ class ProductionDetailsDialog(CenteredDialog):
                 'id': c['id'],
                 'item': _item_label(c),
                 'quantity': f"{_num(c.get('consumed_qty')):.2f}",
-                'cost': currency.format_amount(currency.convert(_num(c.get('unit_cost')), 'USD', currency.get_display_currency())),
+                'cost': currency.format_amount(currency.convert(_num(c.get('unit_cost')), currency.storage_currency(), currency.get_display_currency())),
                 'date': c.get('movement_date', '')
             })
         headers = ['item', 'quantity', 'cost', 'date']
@@ -149,7 +149,7 @@ class ProductionDetailsDialog(CenteredDialog):
                 'id': o['id'],
                 'item': _item_label(o),
                 'quantity': f"{_num(o.get('produced_qty')):.2f}",
-                'cost': currency.format_amount(currency.convert(_num(o.get('unit_cost')), 'USD', currency.get_display_currency())),
+                'cost': currency.format_amount(currency.convert(_num(o.get('unit_cost')), currency.storage_currency(), currency.get_display_currency())),
                 'date': o.get('output_date', '')
             })
         headers = ['item', 'quantity', 'cost', 'date']
@@ -272,7 +272,7 @@ class ProductionDetailsDialog(CenteredDialog):
                     average_cost = _num(it.get('average_cost'), 0)
                     purchase_price = _num(it.get('purchase_price'), 0)
                     price = average_cost if average_cost > 0 else purchase_price
-                    price_display = currency.convert(price, 'USD', currency.get_display_currency())
+                    price_display = currency.convert(price, currency.storage_currency(), currency.get_display_currency())
                     cost_spin.setValue(_num(price_display, 0))
         item_combo.currentIndexChanged.connect(update_cost)
         update_cost()
@@ -286,7 +286,7 @@ class ProductionDetailsDialog(CenteredDialog):
             item_id = item_combo.currentData()
             qty = qty_spin.value()
             cost_display = cost_spin.value()
-            cost_usd = currency.convert(cost_display, currency.get_display_currency(), 'USD')
+            cost_usd = currency.convert(cost_display, currency.get_display_currency(), currency.storage_currency())
             success, msg = self.service.consume_material(self.order_id, item_id, qty, cost_usd)
             if success:
                 show_toast(translate("consumption_registered"), "success", dlg)

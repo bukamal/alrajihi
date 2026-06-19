@@ -216,18 +216,38 @@ class ReportingService:
             return []
 
     def cash_bank_summary(self) -> Dict:
-        """Financial liquidity summary from cashboxes and bank accounts."""
+        """Financial liquidity summary from cashboxes and bank accounts.
+
+        Remote and legacy adapters do not always agree on the balance field
+        name.  The dashboard and reports must therefore normalize all known
+        names before falling back to zero.
+        """
         from decimal import Decimal
+
+        def _amount(row, *keys):
+            if not isinstance(row, dict):
+                return Decimal('0')
+            for key in keys:
+                value = row.get(key)
+                if value not in (None, ''):
+                    try:
+                        return Decimal(str(value or 0))
+                    except Exception:
+                        return Decimal('0')
+            return Decimal('0')
+
         cashboxes = self.cashboxes_report()
         banks = self.bank_accounts_report()
-        cash_total = sum(Decimal(str(c.get('balance') or 0)) for c in cashboxes)
-        bank_total = sum(Decimal(str(b.get('balance') or 0)) for b in banks)
+        cash_total = sum((_amount(c, 'balance', 'current_balance', 'cash_balance', 'amount') for c in cashboxes), Decimal('0'))
+        bank_total = sum((_amount(b, 'balance', 'current_balance', 'account_balance', 'amount') for b in banks), Decimal('0'))
         return {
             'cash_total': cash_total,
             'bank_total': bank_total,
             'available_total': cash_total + bank_total,
             'cashbox_count': len(cashboxes),
             'bank_count': len(banks),
+            'cashboxes': cashboxes,
+            'bank_accounts': banks,
         }
 
 

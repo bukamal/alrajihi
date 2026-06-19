@@ -172,15 +172,7 @@ class ExpenseDocumentTab(BaseDocumentTab):
         title_box.addWidget(self.subtitle_label)
         layout.addLayout(title_box, 1)
 
-        self.header_print_btn = QPushButton(_tr('print_button', 'طباعة'), header)
-        self.header_print_btn.clicked.connect(self.workspace_print)
-        self.header_export_btn = QPushButton(_tr('export', 'تصدير'), header)
-        self.header_export_btn.clicked.connect(self.workspace_export)
-        self.header_save_btn = QPushButton(_tr('save', 'حفظ'), header)
-        self.header_save_btn.setObjectName('primary')
-        self.header_save_btn.clicked.connect(self.workspace_save)
-        for btn in (self.header_print_btn, self.header_export_btn, self.header_save_btn):
-            layout.addWidget(btn)
+        # Phase 229: header is informational; commands live in ExpenseBottomActionBar.
         return header
 
     def _build_body(self) -> QWidget:
@@ -287,9 +279,8 @@ class ExpenseDocumentTab(BaseDocumentTab):
         can_print = finance_operation_policy.can(finance_operation_policy.OP_EXPENSE_PRINT)
         self.identity_panel.set_read_only(not can_save)
         self.payment_panel.setEnabled(can_save)
-        for btn in (self.header_save_btn, self.bottom_save_btn):
-            btn.setEnabled(can_save)
-        for btn in (self.header_print_btn, self.bottom_print_btn, self.header_export_btn, self.bottom_export_btn):
+        self.bottom_save_btn.setEnabled(can_save)
+        for btn in (self.bottom_print_btn, self.bottom_export_btn):
             btn.setEnabled(can_print)
         if not can_save:
             self.subtitle_label.setText(_tr('expense_read_only', 'المصروف للقراءة فقط حسب الصلاحيات أو الإعدادات.'))

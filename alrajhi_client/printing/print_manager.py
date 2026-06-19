@@ -9,6 +9,7 @@ from printer_manager import PrinterManager
 from config import get_company_info
 from utils import clean_text
 from ._template_loader import require_template
+from i18n import translate
 
 invoice_html = require_template("invoice_html")
 
@@ -16,29 +17,29 @@ class PrintManager:
     @staticmethod
     def get_printer_settings(parent=None):
         dialog = QDialog(parent)
-        dialog.setWindowTitle("إعدادات الطباعة")
+        dialog.setWindowTitle(translate('phase233_allui_022'))
         dialog.setLayoutDirection(Qt.RightToLeft)
         dialog.resize(450, 400)
         layout = QVBoxLayout(dialog)
 
-        printer_group = QGroupBox("إعدادات الطابعة")
+        printer_group = QGroupBox(translate('phase233_allui_023'))
         printer_layout = QFormLayout(printer_group)
         pm = PrinterManager()
         pm.load_default_printer()
         printer_combo = QComboBox()
         for p in pm.printers:
             printer_combo.addItem(p.name, p.id)
-        printer_layout.addRow("الطابعة:", printer_combo)
+        printer_layout.addRow(translate('phase233_ui_023'), printer_combo)
         copies_spin = QSpinBox()
         copies_spin.setRange(1, 99)
         copies_spin.setValue(1)
-        printer_layout.addRow("عدد النسخ:", copies_spin)
-        color_check = QCheckBox("طباعة بالألوان")
+        printer_layout.addRow(translate('phase233_ui_024'), copies_spin)
+        color_check = QCheckBox(translate('phase233_allui_024'))
         color_check.setChecked(True)
         printer_layout.addRow(color_check)
         layout.addWidget(printer_group)
 
-        paper_group = QGroupBox("إعدادات الورق")
+        paper_group = QGroupBox(translate('phase233_allui_025'))
         paper_layout = QFormLayout(paper_group)
         paper_size_combo = QComboBox()
         paper_size_combo.addItems(["A4", "A5", "Letter", "Legal", "B5"])
@@ -49,21 +50,21 @@ class PrintManager:
         paper_layout.addRow("الاتجاه:", orientation_combo)
         layout.addWidget(paper_group)
 
-        options_group = QGroupBox("خيارات إضافية")
+        options_group = QGroupBox(translate('phase233_allui_026'))
         options_layout = QFormLayout(options_group)
-        show_logo_check = QCheckBox("إظهار شعار الشركة")
+        show_logo_check = QCheckBox(translate('phase233_allui_027'))
         show_logo_check.setChecked(True)
         options_layout.addRow(show_logo_check)
-        show_footer_check = QCheckBox("إظهار التذييل")
+        show_footer_check = QCheckBox(translate('phase233_allui_028'))
         show_footer_check.setChecked(True)
         options_layout.addRow(show_footer_check)
         layout.addWidget(options_group)
 
         btn_layout = QHBoxLayout()
-        preview_btn = QPushButton("معاينة")
+        preview_btn = QPushButton(translate('phase233_allui_029'))
         preview_btn.setObjectName("primary")
-        print_btn = QPushButton("طباعة")
-        cancel_btn = QPushButton("إلغاء")
+        print_btn = QPushButton(translate('phase233_allui_004'))
+        cancel_btn = QPushButton(translate('phase233_ui_020'))
         btn_layout.addWidget(preview_btn)
         btn_layout.addWidget(print_btn)
         btn_layout.addWidget(cancel_btn)

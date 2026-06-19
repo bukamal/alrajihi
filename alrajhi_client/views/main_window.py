@@ -274,7 +274,12 @@ class MainWindow(QMainWindow):
         self.menu_bar.setFixedHeight(74)
         main_layout.addWidget(self.menu_bar)
 
+        # Phase 234: the old utility top bar is kept as a compatibility object
+        # but removed from the visible shell. Its notifications/theme/screenshot
+        # and user identity controls now live in UnifiedActionBar below.
         self.top_bar = ModernTopBar(self)
+        self.top_bar.setVisible(False)
+        self.top_bar.setFixedHeight(0)
         main_layout.addWidget(self.top_bar)
 
         self.action_bar = UnifiedActionBar(self)
@@ -308,9 +313,7 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(w)
         layout.setContentsMargins(36, 36, 36, 36)
         msg = QLabel(
-            f"تعذر تحميل صفحة {title}.\n\n"
-            f"السبب: {exc}\n\n"
-            "لن يتم إغلاق البرنامج. تحقق من اتصال الخادم أو من توفر واجهة REST المطلوبة ثم افتح الصفحة مرة أخرى."
+            translate('remote_page_load_failed', page=title, reason=exc)
         )
         msg.setWordWrap(True)
         msg.setAlignment(Qt.AlignCenter)
@@ -496,18 +499,24 @@ class MainWindow(QMainWindow):
         Primary navigation is now in setup_menus(). This avoids duplicated menu
         rows and keeps the shell visually clean.
         """
-        self._global_search_timer = QTimer(self)
-        self._global_search_timer.setSingleShot(True)
-        self._global_search_timer.setInterval(220)
-        self._global_search_timer.timeout.connect(self._apply_global_filter)
-        self.top_bar.search_box.textChanged.connect(lambda _text: self._global_search_timer.start())
-        self.top_bar.search_box.returnPressed.connect(self.global_search)
-        self.top_bar.theme_btn.clicked.connect(self.toggle_theme)
-        self.top_bar.alert_btn.clicked.connect(self.show_alerts_menu)
-        if hasattr(self.top_bar, 'refresh_btn'):
-            self.top_bar.refresh_btn.clicked.connect(self.refresh_current_view)
-        if hasattr(self.top_bar, 'screenshot_btn'):
-            self.top_bar.screenshot_btn.clicked.connect(self.export_screenshot)
+        # Phase 228/234: no visible global shell search. Utility controls now
+        # live in UnifiedActionBar below the hidden compatibility top bar.
+        self._global_search_timer = None
+        utility_bar = getattr(self, 'action_bar', None)
+        if utility_bar is not None:
+            utility_bar.theme_btn.clicked.connect(self.toggle_theme)
+            utility_bar.alert_btn.clicked.connect(self.show_alerts_menu)
+            utility_bar.screenshot_btn.clicked.connect(self.export_screenshot)
+
+        # Phase 230: Phase 228/229 intentionally removed the top-bar refresh
+        # button. ModernTopBar keeps refresh_btn = None for compatibility, so
+        # hasattr() is not enough here; connect only real button objects. The
+        # shared refresh command remains available through UnifiedActionBar and
+        # F5.
+        refresh_btn = getattr(self.top_bar, 'refresh_btn', None)
+        if refresh_btn is not None:
+            refresh_btn.clicked.connect(self.refresh_current_view)
+
         self.update_badges()
 
 
@@ -528,9 +537,10 @@ class MainWindow(QMainWindow):
 
     def setup_shell_state(self):
         user = UserSession.get_current() or {}
-        self.top_bar.set_user(user.get('username', ''), user.get('role', ''))
-        if hasattr(self.top_bar, 'apply_styles'):
-            self.top_bar.apply_styles()
+        if hasattr(self.action_bar, 'set_user'):
+            self.action_bar.set_user(user.get('username', ''), user.get('role', ''))
+        if hasattr(self.action_bar, 'apply_styles'):
+            self.action_bar.apply_styles()
 
     def toggle_theme(self):
         current = settings_service.get_theme() or 'light'
@@ -626,9 +636,6 @@ class MainWindow(QMainWindow):
 
     def _set_page_context(self, pid):
         title, breadcrumb = page_title(pid), page_breadcrumb(pid)
-        if hasattr(self, 'top_bar'):
-            self.top_bar.set_page_context(title, breadcrumb)
-            self.top_bar.set_active(NAV_GROUP_BY_PAGE.get(pid, pid))
         if hasattr(self, 'title_label'):
             self.title_label.setText(f"{translate('app_title')} — {title}")
         if hasattr(self, 'action_bar'):
@@ -1167,28 +1174,14 @@ class MainWindow(QMainWindow):
 
     def update_badges(self):
         try:
-            from core.services.invoice_service import invoice_service
-            pending = invoice_service.pending_count()
-            self.top_bar.set_badge("فواتير البيع", pending)
-        except Exception:
-            pass
-        try:
-            pending_offline = offline_queue_service.count_pending()
-            self.top_bar.set_badge(translate('offline_queue'), pending_offline)
-        except Exception:
-            pass
-        try:
             from core.services.alert_service import alert_service
             alerts = alert_service.dashboard_alerts(limit=99) if hasattr(alert_service, 'dashboard_alerts') else []
             count = len(alerts or [])
-            if hasattr(self.top_bar, 'set_alert_badge'):
-                self.top_bar.set_alert_badge(count)
-            if hasattr(self.top_bar, 'alert_btn'):
-                base = translate('alerts')
-                self.top_bar.alert_btn.setToolTip(f"{base} ({count})" if count else base)
+            if hasattr(self.action_bar, 'set_alert_badge'):
+                self.action_bar.set_alert_badge(count)
         except Exception:
-            if hasattr(self.top_bar, 'set_alert_badge'):
-                self.top_bar.set_alert_badge(0)
+            if hasattr(self.action_bar, 'set_alert_badge'):
+                self.action_bar.set_alert_badge(0)
 
     def _current_page_id(self):
         current = self.stack.currentWidget() if hasattr(self, 'stack') else None
@@ -1210,62 +1203,24 @@ class MainWindow(QMainWindow):
         )
 
     def _update_global_search_context(self, pid):
-        box = getattr(getattr(self, 'top_bar', None), 'search_box', None)
-        if box is None:
-            return
-        page = self.pages.get(pid) if hasattr(self, 'pages') else None
-        supported = pid in GLOBAL_SEARCH_PLACEHOLDERS and self._page_supports_global_filter(page)
-        box.blockSignals(True)
-        try:
-            box.clear()
-            box.setVisible(bool(supported))
-            box.setEnabled(bool(supported))
-            if supported:
-                box.setPlaceholderText(translate(GLOBAL_SEARCH_PLACEHOLDERS.get(pid, 'global_search_placeholder')))
-            else:
-                box.setPlaceholderText('')
-        finally:
-            box.blockSignals(False)
+        """Global top search was removed in Phase 228.
+
+        The method remains a no-op so older shell lifecycle code can still call
+        it without reintroducing the removed widget.
+        """
+        return
 
     def _apply_global_filter(self):
-        pid = self._current_page_id()
-        if not pid or pid not in GLOBAL_SEARCH_PLACEHOLDERS:
-            return
-        page = self.pages.get(pid)
-        text = self.top_bar.search_box.text().strip()
-        if page is None:
-            return
-        if hasattr(page, 'set_global_filter'):
-            page.set_global_filter(text)
-            return
-        for attr in ('search_edit', 'sales_search', 'purchases_search'):
-            field = getattr(page, attr, None)
-            if field is not None and hasattr(field, 'setText'):
-                if field.text() != text:
-                    field.setText(text)
-                elif hasattr(page, 'refresh'):
-                    page.refresh()
-                return
-        toolbar = getattr(page, 'toolbar', None)
-        field = getattr(toolbar, 'search_edit', None) if toolbar is not None else None
-        if field is not None and hasattr(field, 'setText'):
-            if field.text() != text:
-                field.setText(text)
-            elif hasattr(page, 'refresh'):
-                page.refresh()
-            return
-        barcode = getattr(page, 'barcode_input', None)
-        if barcode is not None and hasattr(barcode, 'setText'):
-            barcode.setText(text)
-            barcode.setFocus()
+        # Removed with the visible global search card in Phase 228.
+        return
 
     def global_search(self):
-        self._apply_global_filter()
+        # Kept for Ctrl/legacy integrations; Quick Open remains the global finder.
+        return
 
     def show_global_search(self, text=None):
-        if text is not None and hasattr(self.top_bar, 'search_box'):
-            self.top_bar.search_box.setText(text)
-        self._apply_global_filter()
+        # Kept as compatibility no-op.
+        return
 
     def show_print_dialog(self):
         from PyQt5.QtWidgets import QMessageBox
@@ -1288,8 +1243,8 @@ class MainWindow(QMainWindow):
         for page in self.pages.values():
             if hasattr(page, 'apply_theme_colors'):
                 page.apply_theme_colors()
-        if hasattr(self.top_bar, 'apply_styles'):
-            self.top_bar.apply_styles()
+        if hasattr(self.action_bar, 'apply_styles'):
+            self.action_bar.apply_styles()
 
     def _mouse_press(self, event):
         if event.button() == Qt.LeftButton:

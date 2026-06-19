@@ -21,7 +21,6 @@ from models.table_models import GenericTableModel
 from utils import show_toast
 from brand_assets import logo_png
 from ui.smart_table_view import SmartTableView
-from ui.dashboard_components import ModernKpiCard, DashboardChartPanel
 
 try:
     from theme_manager import ThemeManager
@@ -57,6 +56,8 @@ class DashboardWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction())
         self.setObjectName('DashboardWidget')
         self._loading_currencies = False
+        # Phase 228: dashboard no longer renders the top KPI-card strip or the
+        # trend chart. Keep only the operational panels users act on daily.
         self.cards = {}
         self._snapshot = {}
         self._build_ui()
@@ -86,7 +87,6 @@ class DashboardWidget(QWidget):
         self.main_layout.setContentsMargins(22, 22, 22, 22)
         self.main_layout.setSpacing(18)
 
-        self._build_kpi_grid()
         self._build_middle_grid()
         self._build_bottom_grid()
 
@@ -125,11 +125,11 @@ class DashboardWidget(QWidget):
         text_col.addStretch()
 
         pills = QHBoxLayout()
-        self.api_status = QLabel('API: —')
+        self.api_status = QLabel(translate('api_status_placeholder'))
         self.api_status.setObjectName('StatusPill')
-        self.queue_status = QLabel('Queue: —')
+        self.queue_status = QLabel(translate('queue_status_placeholder'))
         self.queue_status.setObjectName('StatusPill')
-        self.ledger_status = QLabel('Ledger: —')
+        self.ledger_status = QLabel(translate('ledger_status_placeholder'))
         self.ledger_status.setObjectName('StatusPill')
         pills.addWidget(self.api_status)
         pills.addWidget(self.queue_status)
@@ -157,22 +157,13 @@ class DashboardWidget(QWidget):
         self.main_layout.addWidget(hero)
 
     def _build_kpi_grid(self):
-        row = QHBoxLayout()
-        row.setSpacing(14)
-        specs = [
-            ('sales', translate('sales'), 'cash-register', 'success'),
-            ('purchases', translate('purchases'), 'shopping-cart', 'warning'),
-            ('expenses', translate('expenses'), 'file-invoice', 'danger'),
-            ('profit', translate('net_profit'), 'chart-line', 'primary'),
-        ]
-        for key, title, icon, tone in specs:
-            card = ModernKpiCard(title, icon, tone)
-            row.addWidget(card, 1)
-            self.cards[key] = card
-        self.main_layout.addLayout(row)
+        """Deprecated dashboard KPI/chart section.
 
-        self.trend_panel = DashboardChartPanel(translate('dashboard_monthly_trend'))
-        self.main_layout.addWidget(self.trend_panel)
+        Phase 228 removed the top KPI card row and monthly chart from the
+        dashboard UX. The method remains as a no-op for compatibility with
+        older plugins/tests that may still call it.
+        """
+        return
 
     def _build_middle_grid(self):
         row = QHBoxLayout()
@@ -560,27 +551,8 @@ class DashboardWidget(QWidget):
         self._refresh_health()
 
     def _refresh_kpis(self, display_curr):
-        summary = self._snapshot.get('summary', {}) if isinstance(self._snapshot, dict) else {}
-
-        def amount(key):
-            raw = Decimal(str(summary.get(key, 0) or 0))
-            return currency.format_amount(currency.convert(raw, 'USD', display_curr))
-
-        mapping = {
-            'sales': ('total_sales', translate('dashboard_total_sales_hint')),
-            'purchases': ('total_purchases', translate('dashboard_total_purchases_hint')),
-            'expenses': ('total_expenses', translate('dashboard_total_expenses_hint')),
-            'profit': ('net_profit', translate('dashboard_net_profit_hint')),
-        }
-        for card_key, (summary_key, hint) in mapping.items():
-            card = self.cards.get(card_key)
-            if card:
-                card.set_value(amount(summary_key))
-                card.set_hint(hint)
-
-        if hasattr(self, 'trend_panel'):
-            rows = self._snapshot.get('monthly_trend', []) if isinstance(self._snapshot, dict) else []
-            self.trend_panel.set_trend(rows, translate('incoming'), translate('outgoing'))
+        """Dashboard KPI cards and trend chart were removed in Phase 228."""
+        return
 
     def _refresh_alerts(self):
         try:
@@ -634,8 +606,7 @@ class DashboardWidget(QWidget):
                 label.setText(self._masked_amount())
             else:
                 amount = Decimal(str(selected.get(key, 0) or 0))
-                converted = currency.convert(amount, 'USD', display_curr)
-                label.setText(currency.format_amount(converted))
+                label.setText(currency.format_base_amount(amount))
 
         balance_label = self.cash_labels.get('cash_balance')
         if balance_label:
@@ -643,63 +614,17 @@ class DashboardWidget(QWidget):
                 balance_label.setText(self._masked_amount())
             else:
                 amount = Decimal(str(raw_values.get('cash_balance', 0) or 0))
-                converted = currency.convert(amount, 'USD', display_curr)
-                balance_label.setText(currency.format_amount(converted))
-
-    def _toggle_cash_movement_mode(self):
-        self._cash_view_mode = 'general' if getattr(self, '_cash_view_mode', 'today') == 'today' else 'today'
-        self._render_cash_amounts(currency.get_display_currency())
-
-    def _toggle_cash_visibility(self):
-        self._cash_balances_hidden = not getattr(self, '_cash_balances_hidden', False)
-        if hasattr(self, 'cash_visibility_btn'):
-            icon_name = 'eye-slash' if self._cash_balances_hidden else 'eye'
-            self.cash_visibility_btn.setIcon(qta.icon(f'fa5s.{icon_name}', color='#334155'))
-        self._render_cash_amounts(currency.get_display_currency())
-
-    def _masked_amount(self):
-        return '••••••'
-
-    def _render_cash_amounts(self, display_curr):
-        if not hasattr(self, 'cash_labels'):
-            return
-        mode = getattr(self, '_cash_view_mode', 'today')
-        raw_values = getattr(self, '_cash_raw_values', {}) or {}
-        selected = raw_values.get(mode, {})
-        section_title = translate('general_movement') if mode == 'general' else translate('today_movement')
-        if hasattr(self, 'cash_section_title'):
-            self.cash_section_title.setText(section_title)
-        if hasattr(self, 'cash_mode_btn'):
-            self.cash_mode_btn.setText(section_title)
-
-        hidden = getattr(self, '_cash_balances_hidden', False)
-        for key in ('received', 'paid', 'net'):
-            label = self.cash_labels.get(key)
-            if not label:
-                continue
-            if hidden:
-                label.setText(self._masked_amount())
-            else:
-                amount = Decimal(str(selected.get(key, 0) or 0))
-                converted = currency.convert(amount, 'USD', display_curr)
-                label.setText(currency.format_amount(converted))
-
-        balance_label = self.cash_labels.get('cash_balance')
-        if balance_label:
-            if hidden:
-                balance_label.setText(self._masked_amount())
-            else:
-                amount = Decimal(str(raw_values.get('cash_balance', 0) or 0))
-                converted = currency.convert(amount, 'USD', display_curr)
-                balance_label.setText(currency.format_amount(converted))
+                balance_label.setText(currency.format_base_amount(amount))
 
     def _refresh_project_card(self, display_curr):
         if not hasattr(self, 'cash_labels'):
             return
         summary = self._snapshot.get('summary', {}) if isinstance(self._snapshot, dict) else {}
+        liquidity = self._snapshot.get('cash_bank_summary', {}) if isinstance(self._snapshot, dict) else {}
         cashbox_movement = self._snapshot.get('cashbox_movement', {}) if isinstance(self._snapshot, dict) else {}
         today = cashbox_movement.get('today', {}) if isinstance(cashbox_movement, dict) else {}
         general = cashbox_movement.get('general', {}) if isinstance(cashbox_movement, dict) else {}
+        cash_balance = liquidity.get('cash_total') if isinstance(liquidity, dict) and liquidity.get('cash_total') is not None else summary.get('cash_balance', 0)
 
         self._cash_raw_values = {
             'today': {
@@ -712,7 +637,7 @@ class DashboardWidget(QWidget):
                 'paid': Decimal(str(general.get('paid', 0) or 0)),
                 'net': Decimal(str(general.get('net', 0) or 0)),
             },
-            'cash_balance': Decimal(str(summary.get('cash_balance', 0) or 0)),
+            'cash_balance': Decimal(str(cash_balance or 0)),
         }
         self._render_cash_amounts(display_curr)
         self._refresh_cash_currency_info(display_curr)
@@ -721,9 +646,10 @@ class DashboardWidget(QWidget):
         if not hasattr(self, 'exchange_rate_label'):
             return
         try:
-            syp_rate = currency.get_current_rate('SYP')
-            syp_text = currency.format_amount(syp_rate, 'SYP', decimals=2)
-            self.exchange_rate_label.setText(f'1 USD = {syp_text}')
+            base_curr = currency.storage_currency()
+            syp_value = currency.convert(Decimal('1'), base_curr, 'SYP')
+            syp_text = currency.format_amount(syp_value, 'SYP', decimals=2)
+            self.exchange_rate_label.setText(translate('exchange_rate_value', base=base_curr, amount=syp_text))
         except Exception as exc:
             self.exchange_rate_label.setText(translate('not_available'))
             print(f'⚠️ تعذر تحميل سعر صرف الليرة السورية: {exc}')
@@ -757,7 +683,7 @@ class DashboardWidget(QWidget):
         recent_errors = requests.get('errors', requests.get('recent_errors', 0)) or 0
 
         self.api_status.setText(translate('api_connected') if api_ok else translate('api_check'))
-        self.queue_status.setText(f'Queue: {queue_pending}')
+        self.queue_status.setText(translate('queue_pending_short', pending=queue_pending))
         self.ledger_status.setText(translate('ledger_ready') if not ledger_blockers else translate('ledger_blockers', count=ledger_blockers))
         self.health_labels['api'].setText(translate('connected') if api_ok else translate('uncertain'))
         self.health_labels['queue'].setText(translate('queue_pending_failed', pending=queue_pending, failed=queue_failed))

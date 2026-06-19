@@ -136,9 +136,9 @@ class ItemsWidget(BaseWidget):
         filter_layout.addWidget(QLabel(translate("item_type_label")))
         if self.type_filter.count() == 0:
             self.type_filter.addItem(translate("all_types"), None)
-            self.type_filter.addItem(translate("stock_item_type"), "مخزون")
-            self.type_filter.addItem(translate("finished_product_type"), "منتج نهائي")
-            self.type_filter.addItem(translate("service_item_type"), "خدمة")
+            self.type_filter.addItem(translate("stock_item_type"), translate('phase233_ui_031'))
+            self.type_filter.addItem(translate("finished_product_type"), translate('phase233_ui_032'))
+            self.type_filter.addItem(translate("service_item_type"), translate('phase233_ui_033'))
         filter_layout.addWidget(self.type_filter)
 
         filter_layout.addWidget(QLabel(translate('material_stock_filter')))
@@ -273,8 +273,8 @@ class ItemsWidget(BaseWidget):
             sold_qty = Decimal(str(sold_map.get(int(item_id), 0))) if item_id is not None else Decimal('0')
             unit_cost_usd = Decimal(str(it.get('average_cost', it.get('purchase_price', 0)) or 0))
             total_value_usd = available_qty * unit_cost_usd
-            unit_cost_display = currency.convert(unit_cost_usd, 'USD', display_curr)
-            total_value_display = currency.convert(total_value_usd, 'USD', display_curr)
+            unit_cost_display = currency.convert(unit_cost_usd, currency.storage_currency(), display_curr)
+            total_value_display = currency.convert(total_value_usd, currency.storage_currency(), display_curr)
             reorder_level = Decimal(str(it.get('reorder_level', 0) or 0))
             status_label, severity = self._stock_status(available_qty, reorder_level)
             data.append({

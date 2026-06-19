@@ -40,9 +40,15 @@ def main() -> int:
         'OP_EXPENSE_CREATE',
         'OP_EXPENSE_EDIT',
         'OP_EXPENSE_PRINT',
-        'header_save_btn',
         'bottom_save_btn',
     ])
+    for path in (voucher_tab, expense_tab):
+        text = path.read_text(encoding='utf-8')
+        forbidden = ['header_save_btn', 'header_print_btn', 'header_export_btn']
+        present = [token for token in forbidden if token in text]
+        if present:
+            raise AssertionError(f'{path.relative_to(ROOT)} still has header document action buttons: {present}')
+
     assert_contains(translator, [
         '_PHASE221_VOUCHER_SHELL_TRANSLATIONS',
         'voucher_document_subtitle',

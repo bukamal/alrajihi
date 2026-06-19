@@ -1,0 +1,202 @@
+{
+  "summary": {
+    "low": 21
+  },
+  "findings": [
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/dialogs/batch_print_dialog.py",
+      "line": 92,
+      "pattern": "print_btn = QPushButton",
+      "text": "print_btn = QPushButton(translate('phase233_ui_019'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
+      "line": 694,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.print_btn = QPushButton(translate('print_shortcut'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/dialogs/production_details_dialog.py",
+      "line": 88,
+      "pattern": "QPushButton(translate(\"print\"",
+      "text": "print_btn = QPushButton(translate(\"print\"))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/dialogs/production_details_dialog.py",
+      "line": 88,
+      "pattern": "print_btn = QPushButton",
+      "text": "print_btn = QPushButton(translate(\"print\"))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/widgets/reports_widget.py",
+      "line": 98,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.print_btn = QPushButton(tr(\"printing\"))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 333,
+      "pattern": "QPushButton(translate('print'",
+      "text": "print_btn = QPushButton(translate('print'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/widgets/returns_widget.py",
+      "line": 333,
+      "pattern": "print_btn = QPushButton",
+      "text": "print_btn = QPushButton(translate('print'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/widgets/vouchers_widget.py",
+      "line": 52,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.print_btn = QPushButton(tr(\"print_button\"))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/widgets/warehouses_widget.py",
+      "line": 117,
+      "pattern": "print_btn = QPushButton",
+      "text": "print_btn = QPushButton(translate('print_preview'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/widgets/warehouses_widget.py",
+      "line": 190,
+      "pattern": "print_btn = QPushButton",
+      "text": "print_btn = QPushButton(translate('print_preview'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/widgets/components/table_toolbar.py",
+      "line": 75,
+      "pattern": "QPushButton(translate(\"print\"",
+      "text": "self.print_btn = QPushButton(translate(\"print\"))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/views/widgets/components/table_toolbar.py",
+      "line": 75,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.print_btn = QPushButton(translate(\"print\"))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/features/manufacturing/bom_document_tab.py",
+      "line": 160,
+      "pattern": "QPushButton(translate('print'",
+      "text": "self.bottom_print_btn = QPushButton(translate('print'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/features/manufacturing/bom_document_tab.py",
+      "line": 160,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.bottom_print_btn = QPushButton(translate('print'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/features/manufacturing/production_order_lifecycle_tab.py",
+      "line": 136,
+      "pattern": "QPushButton(translate('print'",
+      "text": "self.print_btn = QPushButton(translate('print'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/features/manufacturing/production_order_lifecycle_tab.py",
+      "line": 136,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.print_btn = QPushButton(translate('print'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/features/parties/party_editor_tab.py",
+      "line": 227,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.bottom_print_btn = QPushButton(_tr('print', 'طباعة'), bar)"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/features/vouchers/voucher_editor_tab.py",
+      "line": 179,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.bottom_print_btn = QPushButton(_tr('print_button', 'طباعة'), bar)"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/features/finance/documents/expense_document_tab.py",
+      "line": 231,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.bottom_print_btn = QPushButton(_tr('print_button', 'طباعة'), bar)"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/features/inventory/documents/inventory_transfer_document_tab.py",
+      "line": 92,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.bottom_print_btn = QPushButton(translate('print_preview'))"
+    },
+    {
+      "severity": "low",
+      "area": "button-duplication",
+      "message": "Potential local print button; prefer workspace/action-shell or document shell print menu.",
+      "file": "alrajhi_client/features/vouchers/components/voucher_actions.py",
+      "line": 22,
+      "pattern": "print_btn = QPushButton",
+      "text": "self.print_btn = QPushButton(tr('print_button'))"
+    }
+  ],
+  "opinion": [
+    "Dashboard simplification is correct: the removed KPI/chart layer was visually heavy and duplicated deeper reports.",
+    "The global top search should stay removed; page-local search is clearer and less surprising in an ERP shell.",
+    "Printing is now mostly centralized around HTML via printing_service, but the remaining thermal/barcode internals should stay isolated in the printing package only.",
+    "The next UX cleanup should standardize document-shell action placement: one top-level workspace action bar plus one local document bottom bar, not scattered print/save buttons."
+  ]
+}

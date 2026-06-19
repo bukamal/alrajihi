@@ -336,8 +336,8 @@ class LinesModel(QAbstractTableModel):
             quantity = _decimal_value(val(line, 'quantity', val(line, 'qty', 0)), '0')
             unit_price = _decimal_value(val(line, 'unit_price', val(line, 'price', 0)), '0')
             total = _decimal_value(val(line, 'total', 0), '0')
-            price_display = _decimal_value(currency.convert(unit_price, 'USD', self.display_curr), '0')
-            total_display = _decimal_value(currency.convert(total, 'USD', self.display_curr), '0')
+            price_display = _decimal_value(currency.convert(unit_price, currency.storage_currency(), self.display_curr), '0')
+            total_display = _decimal_value(currency.convert(total, currency.storage_currency(), self.display_curr), '0')
             self.lines.append({
                 'item_id': item_id,
                 'barcode': val(line, 'barcode', '') or (item or {}).get('barcode', '') or (item or {}).get('code', '') or '',
@@ -367,8 +367,8 @@ class LinesModel(QAbstractTableModel):
             if Decimal(str(line.get('qty', 0))) <= 0:
                 continue
             base_qty = line['qty'] * line.get('conversion_factor', Decimal('1'))
-            price_usd = currency.convert(line['price'], self.display_curr, 'USD')
-            total_usd = currency.convert(line['total'], self.display_curr, 'USD')
+            price_usd = currency.convert(line['price'], self.display_curr, currency.storage_currency())
+            total_usd = currency.convert(line['total'], self.display_curr, currency.storage_currency())
             result.append({
                 'item_id': line['item_id'],
                 'item_name': line.get('item_name', ''),
@@ -397,7 +397,7 @@ class LinesModel(QAbstractTableModel):
             try:
                 if self.inv_type == 'sale':
                     factor = _positive_decimal(line.get('conversion_factor', 1), '1')
-                    unit_cost_display = currency.convert(_decimal_value(line.get('item_cost_base', 0), '0') * factor, 'USD', self.display_curr)
+                    unit_cost_display = currency.convert(_decimal_value(line.get('item_cost_base', 0), '0') * factor, currency.storage_currency(), self.display_curr)
                     line['profit'] = (_decimal_value(line.get('price', 0), '0') - _decimal_value(unit_cost_display, '0')) * _decimal_value(line.get('qty', 0), '0')
                 else:
                     line['profit'] = Decimal('0')
@@ -575,9 +575,9 @@ class InvoiceDialog(CenteredDialog):
             if not item:
                 continue
             current_price_usd = self._item_current_unit_price_usd(item, line, inv_type)
-            current_price_display = _decimal_value(currency.convert(current_price_usd, 'USD', self.display_curr), '0')
+            current_price_display = _decimal_value(currency.convert(current_price_usd, currency.storage_currency(), self.display_curr), '0')
             old_price = _decimal_value(self._invoice_line_value(line, 'unit_price', 0), '0')
-            old_price_display = _decimal_value(currency.convert(old_price, 'USD', self.display_curr), '0')
+            old_price_display = _decimal_value(currency.convert(old_price, currency.storage_currency(), self.display_curr), '0')
             if abs(current_price_display - old_price_display) > Decimal('0.01'):
                 changes.append(translate('was_now', item=item['name'], old=currency.format_amount(old_price_display), new=currency.format_amount(current_price_display)))
         if changes:
@@ -589,7 +589,7 @@ class InvoiceDialog(CenteredDialog):
                         item = product_service.item_by_id(line['item_id'])
                         if item:
                             new_price_usd = self._item_current_unit_price_usd(item, line, self.inv_type)
-                            new_price_display = currency.convert(new_price_usd, 'USD', self.display_curr)
+                            new_price_display = currency.convert(new_price_usd, currency.storage_currency(), self.display_curr)
                             self.lines_model.setData(self.lines_model.index(idx, LinesModel.COL_PRICE), new_price_display, Qt.EditRole)
                 self.update_total_display()
 
@@ -1362,14 +1362,14 @@ class InvoiceDialog(CenteredDialog):
             for c in self.customers:
                 if c['name'] == text.strip():
                     self.selected_entity_id = c['id']
-                    balance_display = currency.convert(c['balance'], 'USD', self.display_curr)
+                    balance_display = currency.convert(c['balance'], currency.storage_currency(), self.display_curr)
                     self.balance_label.setText(translate('customer_balance', amount=currency.format_amount(balance_display)))
                     return
         else:
             for s in self.suppliers:
                 if s['name'] == text.strip():
                     self.selected_entity_id = s['id']
-                    balance_display = currency.convert(s['balance'], 'USD', self.display_curr)
+                    balance_display = currency.convert(s['balance'], currency.storage_currency(), self.display_curr)
                     self.balance_label.setText(translate('supplier_balance', amount=currency.format_amount(balance_display)))
                     return
         self.selected_entity_id = None
@@ -1399,7 +1399,7 @@ class InvoiceDialog(CenteredDialog):
         self.items_for_combo = []
         for it in items:
             price = it.get('selling_price', 0) if self.inv_type == 'sale' else it.get('purchase_price', 0)
-            price_display = currency.convert(price, 'USD', self.display_curr)
+            price_display = currency.convert(price, currency.storage_currency(), self.display_curr)
             units = catalog_service.item_units(it['id'])
             units_list = [{'id': None, 'unit_name': it.get('unit', translate('unit_piece')), 'conversion_factor': Decimal('1')}]
             for u in units:
@@ -1544,7 +1544,7 @@ class InvoiceDialog(CenteredDialog):
                     return
                 last_row = self._target_line_for_new_item()
                 price = item.get('selling_price', 0) if self.inv_type == 'sale' else item.get('purchase_price', 0)
-                price_display = currency.convert(price, 'USD', self.display_curr)
+                price_display = currency.convert(price, currency.storage_currency(), self.display_curr)
                 units = catalog_service.item_units(item['id'])
                 units_list = [{'id': None, 'unit_name': item.get('unit', translate('unit_piece')), 'conversion_factor': Decimal('1')}]
                 for u in units:
@@ -1618,9 +1618,9 @@ class InvoiceDialog(CenteredDialog):
         FormValidator.clear(self.form_error_label, self.search_input)
         if not self._validate_stock_before_save():
             return
-        total_usd = currency.convert(self.total_after_discount, self.display_curr, 'USD')
+        total_usd = currency.convert(self.total_after_discount, self.display_curr, currency.storage_currency())
         paid_display = Decimal(str(self.paid_spin.value()))
-        paid_usd = currency.convert(paid_display, self.display_curr, 'USD')
+        paid_usd = currency.convert(paid_display, self.display_curr, currency.storage_currency())
         if paid_usd > total_usd:
             paid_usd = total_usd
         entity_id = self.selected_entity_id

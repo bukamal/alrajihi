@@ -40,6 +40,7 @@ class DashboardService:
             'monthly_trend': self._safe_call(self.monthly_trend, []),
             'recent_entries': self._safe_call(lambda: self.recent_entries(limit=5), []),
             'cashbox_movement': self._safe_call(self.cashbox_movement, {}),
+            'cash_bank_summary': self._safe_call(reporting_service.cash_bank_summary, {}),
         }
         self._cache = data
         self._cache_time = datetime.now()
@@ -63,19 +64,49 @@ class DashboardService:
         keys = ('cash_balance', 'total_sales', 'total_purchases', 'total_expenses',
                 'receivables', 'payables', 'net_profit', 'total_incoming',
                 'total_outgoing', 'cash_received', 'cash_paid', 'cash_net_movement')
-        return {k: self._decimal(summary.get(k, 0)) for k in keys}
+        normalized = {k: self._decimal(summary.get(k, 0)) for k in keys}
+        # The modern cashbox subsystem stores live balances in cashboxes and
+        # cash_bank_movements.  The legacy users.cash_balance field is not a
+        # reliable source after the finance migration, so prefer the liquidity
+        # summary when cashboxes exist.
+        liquidity = reporting_service.cash_bank_summary()
+        if isinstance(liquidity, dict) and int(liquidity.get('cashbox_count') or 0) > 0:
+            normalized['cash_balance'] = self._decimal(liquidity.get('cash_total', 0))
+        return normalized
 
     def cashbox_movement(self) -> Dict:
         """Return today and all-time cash movement summaries.
 
-        Amounts are kept in the system base currency. The dashboard converts
-        them to the selected display currency, keeping exchange-rate edits in
-        settings only.
+        Amounts are kept in the system base currency.  Prefer the normalized
+        cash/bank movement ledger because it is the finance source of truth after
+        cashbox governance. Fall back to legacy reporting summary only when the
+        ledger is empty or unavailable.
         """
         today = date.today().isoformat()
+        movements = reporting_service.cash_bank_movements(limit=5000)
+        if movements:
+            return {
+                'today': self._summarize_movements(movements, date_prefix=today),
+                'general': self._summarize_movements(movements),
+            }
         today_summary = self._normalize_cash_movement(reporting_service.summary(today, today))
         total_summary = self._normalize_cash_movement(reporting_service.summary())
         return {'today': today_summary, 'general': total_summary}
+
+    def _summarize_movements(self, movements: List[Dict], date_prefix: str | None = None) -> Dict:
+        received = Decimal('0')
+        paid = Decimal('0')
+        for row in movements or []:
+            movement_date = str(row.get('movement_date') or row.get('created_at') or '')
+            if date_prefix and not movement_date.startswith(date_prefix):
+                continue
+            amount = self._decimal(row.get('amount', 0))
+            direction = str(row.get('direction') or '').lower()
+            if direction == 'in' or amount >= 0:
+                received += abs(amount)
+            else:
+                paid += abs(amount)
+        return {'received': received, 'paid': paid, 'net': received - paid}
 
     def _normalize_cash_movement(self, summary: Dict) -> Dict:
         if not isinstance(summary, dict):

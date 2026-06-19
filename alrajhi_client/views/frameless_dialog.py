@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QDialog, QHBoxLayout, QVBoxLayout, QPushButton, QLab
 from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QEasingCurve, QTimer
 import qtawesome as qta
 from theme_manager import ThemeManager
+from i18n import translate
 
 class FramelessDialog(QDialog):
     def __init__(self, parent=None):
@@ -40,7 +41,7 @@ class FramelessDialog(QDialog):
         self.icon_label.setFixedSize(24, 24)
         title_layout.addWidget(self.icon_label)
         
-        self.title_label = QLabel("نافذة")
+        self.title_label = QLabel(translate('phase233_ui_001'))
         self.title_label.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {ThemeManager.get('text_primary')};")
         title_layout.addWidget(self.title_label)
         title_layout.addStretch()

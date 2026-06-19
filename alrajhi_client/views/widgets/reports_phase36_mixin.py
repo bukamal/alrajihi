@@ -35,9 +35,9 @@ class ReportsPhase36Mixin:
                 rows.append({
                     'account': r.get('account_name') or r.get('name') or r.get('account') or '',
                     'code': r.get('code') or r.get('account_code') or '',
-                    'debit': currency.format_amount(currency.convert(debit, 'USD', display_curr)),
-                    'credit': currency.format_amount(currency.convert(credit, 'USD', display_curr)),
-                    'balance': currency.format_amount(currency.convert(debit - credit, 'USD', display_curr)),
+                    'debit': currency.format_amount(currency.convert(debit, currency.storage_currency(), display_curr)),
+                    'credit': currency.format_amount(currency.convert(credit, currency.storage_currency(), display_curr)),
+                    'balance': currency.format_amount(currency.convert(debit - credit, currency.storage_currency(), display_curr)),
                 })
             self._set_table(self.trial_balance_table, rows, ['الحساب', 'الكود', 'مدين', 'دائن', 'الرصيد'], ['account', 'code', 'debit', 'credit', 'balance'])
         except Exception:
@@ -51,9 +51,9 @@ class ReportsPhase36Mixin:
                     debit = Decimal(str(r.get('debit') or 0))
                     credit = Decimal(str(r.get('credit') or 0))
                     balance = Decimal(str(r.get('balance') if r.get('balance') is not None else debit - credit))
-                    debit_display = currency.convert(debit, 'USD', display_curr)
-                    credit_display = currency.convert(credit, 'USD', display_curr)
-                    balance_display = currency.convert(balance, 'USD', display_curr)
+                    debit_display = currency.convert(debit, currency.storage_currency(), display_curr)
+                    credit_display = currency.convert(credit, currency.storage_currency(), display_curr)
+                    balance_display = currency.convert(balance, currency.storage_currency(), display_curr)
                     rows.append({
                         'date': r.get('date') or r.get('created_at') or r.get('invoice_date') or '',
                         'type': self._report_source_label(r.get('source_type') or r.get('type') or r.get('source') or r.get('movement_type')),
@@ -82,9 +82,9 @@ class ReportsPhase36Mixin:
                     debit = Decimal(str(r.get('debit') or 0))
                     credit = Decimal(str(r.get('credit') or 0))
                     balance = Decimal(str(r.get('balance') if r.get('balance') is not None else credit - debit))
-                    debit_display = currency.convert(debit, 'USD', display_curr)
-                    credit_display = currency.convert(credit, 'USD', display_curr)
-                    balance_display = currency.convert(balance, 'USD', display_curr)
+                    debit_display = currency.convert(debit, currency.storage_currency(), display_curr)
+                    credit_display = currency.convert(credit, currency.storage_currency(), display_curr)
+                    balance_display = currency.convert(balance, currency.storage_currency(), display_curr)
                     rows.append({
                         'date': r.get('date') or r.get('created_at') or r.get('invoice_date') or '',
                         'type': self._report_source_label(r.get('source_type') or r.get('type') or r.get('source') or r.get('movement_type')),
@@ -110,7 +110,7 @@ class ReportsPhase36Mixin:
             rows = []
             for r in reporting_service.customer_balances():
                 bal = Decimal(str(r.get('balance') or r.get('current_balance') or 0))
-                rows.append({'name': r.get('name') or r.get('customer_name') or '', 'phone': r.get('phone') or '', 'balance': currency.format_amount(currency.convert(bal, 'USD', display_curr))})
+                rows.append({'name': r.get('name') or r.get('customer_name') or '', 'phone': r.get('phone') or '', 'balance': currency.format_amount(currency.convert(bal, currency.storage_currency(), display_curr))})
             self._set_table(self.customer_balances_table, rows, ['العميل', 'الهاتف', 'الرصيد'], ['name','phone','balance'])
         except Exception:
             self._set_table(self.customer_balances_table, [], ['العميل', 'الهاتف', 'الرصيد'], ['name','phone','balance'])
@@ -118,7 +118,7 @@ class ReportsPhase36Mixin:
             rows = []
             for r in reporting_service.supplier_balances():
                 bal = Decimal(str(r.get('balance') or r.get('current_balance') or 0))
-                rows.append({'name': r.get('name') or r.get('supplier_name') or '', 'phone': r.get('phone') or '', 'balance': currency.format_amount(currency.convert(bal, 'USD', display_curr))})
+                rows.append({'name': r.get('name') or r.get('supplier_name') or '', 'phone': r.get('phone') or '', 'balance': currency.format_amount(currency.convert(bal, currency.storage_currency(), display_curr))})
             self._set_table(self.supplier_balances_table, rows, ['المورد', 'الهاتف', 'الرصيد'], ['name','phone','balance'])
         except Exception:
             self._set_table(self.supplier_balances_table, [], ['المورد', 'الهاتف', 'الرصيد'], ['name','phone','balance'])
@@ -129,12 +129,12 @@ class ReportsPhase36Mixin:
             for r in reporting_service.customer_aging(end):
                 rows.append({
                     'name': r.get('name') or r.get('customer_name') or '',
-                    'current': currency.format_amount(currency.convert(Decimal(str(r.get('current') or r.get('not_due') or 0)), 'USD', display_curr)),
-                    'd30': currency.format_amount(currency.convert(Decimal(str(r.get('days_1_30') or r.get('d30') or 0)), 'USD', display_curr)),
-                    'd60': currency.format_amount(currency.convert(Decimal(str(r.get('days_31_60') or r.get('d60') or 0)), 'USD', display_curr)),
-                    'd90': currency.format_amount(currency.convert(Decimal(str(r.get('days_61_90') or r.get('d90') or 0)), 'USD', display_curr)),
-                    'over': currency.format_amount(currency.convert(Decimal(str(r.get('over_90') or r.get('older') or 0)), 'USD', display_curr)),
-                    'total': currency.format_amount(currency.convert(Decimal(str(r.get('total') or r.get('balance') or 0)), 'USD', display_curr)),
+                    'current': currency.format_amount(currency.convert(Decimal(str(r.get('current') or r.get('not_due') or 0)), currency.storage_currency(), display_curr)),
+                    'd30': currency.format_amount(currency.convert(Decimal(str(r.get('days_1_30') or r.get('d30') or 0)), currency.storage_currency(), display_curr)),
+                    'd60': currency.format_amount(currency.convert(Decimal(str(r.get('days_31_60') or r.get('d60') or 0)), currency.storage_currency(), display_curr)),
+                    'd90': currency.format_amount(currency.convert(Decimal(str(r.get('days_61_90') or r.get('d90') or 0)), currency.storage_currency(), display_curr)),
+                    'over': currency.format_amount(currency.convert(Decimal(str(r.get('over_90') or r.get('older') or 0)), currency.storage_currency(), display_curr)),
+                    'total': currency.format_amount(currency.convert(Decimal(str(r.get('total') or r.get('balance') or 0)), currency.storage_currency(), display_curr)),
                 })
             self._set_table(self.customer_aging_table, rows, ['العميل', 'حالي', '1-30', '31-60', '61-90', '+90', 'الإجمالي'], ['name','current','d30','d60','d90','over','total'])
         except Exception:
@@ -144,12 +144,12 @@ class ReportsPhase36Mixin:
             for r in reporting_service.supplier_aging(end):
                 rows.append({
                     'name': r.get('name') or r.get('supplier_name') or '',
-                    'current': currency.format_amount(currency.convert(Decimal(str(r.get('current') or r.get('not_due') or 0)), 'USD', display_curr)),
-                    'd30': currency.format_amount(currency.convert(Decimal(str(r.get('days_1_30') or r.get('d30') or 0)), 'USD', display_curr)),
-                    'd60': currency.format_amount(currency.convert(Decimal(str(r.get('days_31_60') or r.get('d60') or 0)), 'USD', display_curr)),
-                    'd90': currency.format_amount(currency.convert(Decimal(str(r.get('days_61_90') or r.get('d90') or 0)), 'USD', display_curr)),
-                    'over': currency.format_amount(currency.convert(Decimal(str(r.get('over_90') or r.get('older') or 0)), 'USD', display_curr)),
-                    'total': currency.format_amount(currency.convert(Decimal(str(r.get('total') or r.get('balance') or 0)), 'USD', display_curr)),
+                    'current': currency.format_amount(currency.convert(Decimal(str(r.get('current') or r.get('not_due') or 0)), currency.storage_currency(), display_curr)),
+                    'd30': currency.format_amount(currency.convert(Decimal(str(r.get('days_1_30') or r.get('d30') or 0)), currency.storage_currency(), display_curr)),
+                    'd60': currency.format_amount(currency.convert(Decimal(str(r.get('days_31_60') or r.get('d60') or 0)), currency.storage_currency(), display_curr)),
+                    'd90': currency.format_amount(currency.convert(Decimal(str(r.get('days_61_90') or r.get('d90') or 0)), currency.storage_currency(), display_curr)),
+                    'over': currency.format_amount(currency.convert(Decimal(str(r.get('over_90') or r.get('older') or 0)), currency.storage_currency(), display_curr)),
+                    'total': currency.format_amount(currency.convert(Decimal(str(r.get('total') or r.get('balance') or 0)), currency.storage_currency(), display_curr)),
                 })
             self._set_table(self.supplier_aging_table, rows, ['المورد', 'حالي', '1-30', '31-60', '61-90', '+90', 'الإجمالي'], ['name','current','d30','d60','d90','over','total'])
         except Exception:
@@ -223,8 +223,8 @@ class ReportsPhase36Mixin:
                     'in_qty': f"{in_qty:.4f}".rstrip('0').rstrip('.'),
                     'out_qty': f"{out_qty:.4f}".rstrip('0').rstrip('.'),
                     'balance': f"{Decimal(str(r.get('balance_qty') or 0)):.4f}".rstrip('0').rstrip('.'),
-                    'unit_cost': currency.format_amount(currency.convert(Decimal(str(r.get('unit_cost') or 0)), 'USD', display_curr)),
-                    'total_cost': currency.format_amount(currency.convert(Decimal(str(r.get('total_cost') or 0)), 'USD', display_curr)),
+                    'unit_cost': currency.format_amount(currency.convert(Decimal(str(r.get('unit_cost') or 0)), currency.storage_currency(), display_curr)),
+                    'total_cost': currency.format_amount(currency.convert(Decimal(str(r.get('total_cost') or 0)), currency.storage_currency(), display_curr)),
                     'notes': r.get('notes') or '',
                 })
             self._set_table(
@@ -255,9 +255,9 @@ class ReportsPhase36Mixin:
                     'date': r.get('date') or '',
                     'reference': r.get('reference') or r.get('id') or '',
                     'customer': r.get('customer_name') or '',
-                    'sales': currency.format_amount(currency.convert(invoice_total, 'USD', display_curr)),
-                    'cost': currency.format_amount(currency.convert(cost_total, 'USD', display_curr)),
-                    'profit': currency.format_amount(currency.convert(profit, 'USD', display_curr)),
+                    'sales': currency.format_amount(currency.convert(invoice_total, currency.storage_currency(), display_curr)),
+                    'cost': currency.format_amount(currency.convert(cost_total, currency.storage_currency(), display_curr)),
+                    'profit': currency.format_amount(currency.convert(profit, currency.storage_currency(), display_curr)),
                     'margin': f"{Decimal(str(r.get('profit_margin') or 0)):.2f}%",
                 })
             self._set_table(
@@ -267,7 +267,7 @@ class ReportsPhase36Mixin:
                 ['date', 'reference', 'customer', 'sales', 'cost', 'profit', 'margin']
             )
             if self.tabs.currentWidget() is self.invoice_profit_tab:
-                self._set_summary(f"{tr('rows_count')}: {len(rows)} | {tr('sales_value')}: {currency.format_amount(currency.convert(total_sales, 'USD', display_curr))} | {tr('cost')}: {currency.format_amount(currency.convert(total_cost, 'USD', display_curr))} | {tr('profit')}: {currency.format_amount(currency.convert(total_profit, 'USD', display_curr))}")
+                self._set_summary(f"{tr('rows_count')}: {len(rows)} | {tr('sales_value')}: {currency.format_amount(currency.convert(total_sales, currency.storage_currency(), display_curr))} | {tr('cost')}: {currency.format_amount(currency.convert(total_cost, currency.storage_currency(), display_curr))} | {tr('profit')}: {currency.format_amount(currency.convert(total_profit, currency.storage_currency(), display_curr))}")
         except Exception:
             self._set_table(self.invoice_profit_table, [], [tr('date'), tr('reference'), tr('customer_label'), tr('sales_value'), tr('cost'), tr('profit'), tr('profit_margin')], ['date','reference','customer','sales','cost','profit','margin'])
 
@@ -329,9 +329,9 @@ class ReportsPhase36Mixin:
                     'account': f"{r.get('account_code') or ''} {r.get('account_name') or ''}".strip(),
                     'reference': r.get('reference') or r.get('entry_id') or '',
                     'description': r.get('description') or '',
-                    'debit': currency.format_amount(currency.convert(Decimal(str(r.get('debit') or 0)), 'USD', display_curr)),
-                    'credit': currency.format_amount(currency.convert(Decimal(str(r.get('credit') or 0)), 'USD', display_curr)),
-                    'balance': currency.format_amount(currency.convert(Decimal(str(r.get('balance') or 0)), 'USD', display_curr)),
+                    'debit': currency.format_amount(currency.convert(Decimal(str(r.get('debit') or 0)), currency.storage_currency(), display_curr)),
+                    'credit': currency.format_amount(currency.convert(Decimal(str(r.get('credit') or 0)), currency.storage_currency(), display_curr)),
+                    'balance': currency.format_amount(currency.convert(Decimal(str(r.get('balance') or 0)), currency.storage_currency(), display_curr)),
                 })
             self._set_table(self.general_ledger_table, rows, [tr('date'), tr('account'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','account','reference','description','debit','credit','balance'])
             self._set_summary(f"{tr('rows_count')}: {len(rows)}")
@@ -344,12 +344,12 @@ class ReportsPhase36Mixin:
                 rows.append({
                     'code': r.get('code') or r.get('account_code') or '',
                     'account': r.get('account_name') or r.get('name') or r.get('account') or '',
-                    'debit': currency.format_amount(currency.convert(Decimal(str(r.get('debit') or 0)), 'USD', display_curr)),
-                    'credit': currency.format_amount(currency.convert(Decimal(str(r.get('credit') or 0)), 'USD', display_curr)),
-                    'balance': currency.format_amount(currency.convert(Decimal(str(r.get('balance') or 0)), 'USD', display_curr)),
+                    'debit': currency.format_amount(currency.convert(Decimal(str(r.get('debit') or 0)), currency.storage_currency(), display_curr)),
+                    'credit': currency.format_amount(currency.convert(Decimal(str(r.get('credit') or 0)), currency.storage_currency(), display_curr)),
+                    'balance': currency.format_amount(currency.convert(Decimal(str(r.get('balance') or 0)), currency.storage_currency(), display_curr)),
                 })
             self._set_table(self.full_trial_balance_table, rows, [tr('code'), tr('account'), tr('debit'), tr('credit'), tr('balance')], ['code','account','debit','credit','balance'])
-            self._set_summary(f"{tr('debit')}: {currency.format_amount(currency.convert(Decimal(str(tb.get('total_debit') or 0)), 'USD', display_curr))} | {tr('credit')}: {currency.format_amount(currency.convert(Decimal(str(tb.get('total_credit') or 0)), 'USD', display_curr))} | {tr('difference')}: {currency.format_amount(currency.convert(Decimal(str(tb.get('difference') or 0)), 'USD', display_curr))}")
+            self._set_summary(f"{tr('debit')}: {currency.format_amount(currency.convert(Decimal(str(tb.get('total_debit') or 0)), currency.storage_currency(), display_curr))} | {tr('credit')}: {currency.format_amount(currency.convert(Decimal(str(tb.get('total_credit') or 0)), currency.storage_currency(), display_curr))} | {tr('difference')}: {currency.format_amount(currency.convert(Decimal(str(tb.get('difference') or 0)), currency.storage_currency(), display_curr))}")
             return
         # Smart item reports
         smart_map = {
@@ -371,8 +371,8 @@ class ReportsPhase36Mixin:
                     'shortage': str(r.get('shortage') or ''),
                     'last_sale': r.get('last_sale_date') or '',
                     'days': str(r.get('days_without_movement') if r.get('days_without_movement') is not None else ''),
-                    'sales': currency.format_amount(currency.convert(Decimal(str(r.get('sales_value') or 0)), 'USD', display_curr)),
-                    'profit': currency.format_amount(currency.convert(Decimal(str(r.get('profit') or 0)), 'USD', display_curr)),
+                    'sales': currency.format_amount(currency.convert(Decimal(str(r.get('sales_value') or 0)), currency.storage_currency(), display_curr)),
+                    'profit': currency.format_amount(currency.convert(Decimal(str(r.get('profit') or 0)), currency.storage_currency(), display_curr)),
                 })
             if kind == 'reorder':
                 headers=[tr('print_item'), tr('barcode'), tr('warehouse_label'), tr('quantity'), tr('min_stock'), tr('shortage')]

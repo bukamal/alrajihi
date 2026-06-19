@@ -1,0 +1,9 @@
+{
+  "summary": {},
+  "findings": [],
+  "opinion": [
+    "The clean rule is now: header = identity/context, bottom bar = local document actions, UnifiedActionBar = workspace-level shortcuts.",
+    "The remaining risk is not function but consistency: dialogs and lifecycle operation screens may still carry contextual buttons that should be treated separately from save/print/export document commands.",
+    "HTML printing should stay centralized; thermal/barcode internals may remain specialized inside the printing package only."
+  ]
+}

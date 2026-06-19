@@ -105,10 +105,8 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         top.addWidget(self.title_label)
         top.addStretch(1)
         self.refresh_btn = QPushButton(translate('refresh'))
-        self.save_btn = QPushButton(translate('create_ctrl_s'))
-        self.save_btn.setObjectName('primary')
         top.addWidget(self.refresh_btn)
-        top.addWidget(self.save_btn)
+        # Phase 229: create/save lives in the bottom action bar.
         header.addLayout(top)
 
         meta = QGridLayout()
@@ -182,8 +180,8 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         bottom.addWidget(self.bottom_save_btn)
         root.addLayout(bottom)
 
-        self.save_btn.clicked.connect(self.workspace_save)
         self.bottom_save_btn.clicked.connect(self.workspace_save)
+        self.save_btn = self.bottom_save_btn
         self.refresh_btn.clicked.connect(self._refresh_required_materials)
         self.cancel_btn.clicked.connect(self._close_parent_tab)
         self.product_combo.currentIndexChanged.connect(self._refresh_required_materials)
@@ -216,7 +214,6 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
 
     def _apply_operation_state(self) -> None:
         can_create = self.service.can_operation(manufacturing_operation_policy.OP_ORDER_CREATE)
-        self.save_btn.setEnabled(can_create)
         self.bottom_save_btn.setEnabled(can_create)
         self.product_combo.setEnabled(can_create)
         self.qty_spin.setEnabled(can_create)

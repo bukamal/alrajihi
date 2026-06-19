@@ -79,13 +79,7 @@ class UserDocumentTab(BaseDocumentTab):
         header_text.addWidget(self.title_label)
         header_text.addWidget(self.subtitle_label)
         header.addLayout(header_text, 1)
-        self.save_btn = QPushButton(translate('save_ctrl_s'))
-        self.save_btn.setObjectName('primary')
-        self.save_btn.clicked.connect(self.workspace_save)
-        self.close_btn = QPushButton(translate('close'))
-        self.close_btn.clicked.connect(self._close_parent_tab)
-        header.addWidget(self.save_btn)
-        header.addWidget(self.close_btn)
+        # Phase 229: header is informational; save/close live in bottom action bar.
         root.addLayout(header)
 
         panel = QFrame(self)
@@ -132,6 +126,18 @@ class UserDocumentTab(BaseDocumentTab):
         form.addWidget(self.confirm_edit, 2, 3)
         root.addWidget(panel)
         root.addStretch(1)
+        bottom = QHBoxLayout()
+        bottom.addStretch(1)
+        self.bottom_close_btn = QPushButton(translate('close'))
+        self.bottom_close_btn.clicked.connect(self._close_parent_tab)
+        self.bottom_save_btn = QPushButton(translate('save_ctrl_s'))
+        self.bottom_save_btn.setObjectName('primary')
+        self.bottom_save_btn.clicked.connect(self.workspace_save)
+        bottom.addWidget(self.bottom_close_btn)
+        bottom.addWidget(self.bottom_save_btn)
+        root.addLayout(bottom)
+        self.close_btn = self.bottom_close_btn
+        self.save_btn = self.bottom_save_btn
 
     def _load_branches(self):
         self.branch_combo.clear()
@@ -182,7 +188,7 @@ class UserDocumentTab(BaseDocumentTab):
         editable = bool(self._can_edit)
         for widget in (self.username_edit, self.fullname_edit, self.role_combo, self.branch_combo, self.password_edit, self.confirm_edit):
             widget.setEnabled(editable and widget.isVisible())
-        self.save_btn.setEnabled(editable)
+        self.bottom_save_btn.setEnabled(editable)
         if not editable:
             self.subtitle_label.setText(translate('user_read_only'))
 

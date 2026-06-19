@@ -116,6 +116,24 @@ class PrintingService:
         return True
 
 
+
+    def render_html(self, html: str, parent=None, title: str = None, mode: str = 'preview', default_name: str = 'document.pdf') -> bool:
+        """Single HTML rendering dispatcher for preview/browser/print/pdf.
+
+        Phase 228 makes every project print path converge here. Domain helpers
+        such as invoice_print(), voucher_pdf(), and report_preview() should only
+        build HTML, then call this dispatcher.
+        """
+        action = (mode or 'preview').lower().strip()
+        if action in {'browser', 'html', 'open'}:
+            return self.open_html_in_browser(html, parent, title)
+        if action in {'direct', 'print', 'printer'}:
+            return self.print_html(html, parent, title)
+        if action in {'pdf', 'save_pdf', 'export'}:
+            return self.save_pdf(html, parent, default_name)
+        self.preview_html(html, parent, title)
+        return True
+
     def save_html_png(self, html: str, parent=None, default_name: str = "document.png") -> bool:
         """Render printable HTML to a PNG image using Qt's text engine.
 
@@ -218,17 +236,17 @@ class PrintingService:
         return voucher_html(voucher, paper)
 
     def voucher_preview(self, voucher: Dict[str, Any], parent=None, paper: str = 'default') -> None:
-        self.preview_html(self.voucher_html(voucher, paper), parent, _tr("voucher_preview_title"))
+        self.render_html(self.voucher_html(voucher, paper), parent, _tr("voucher_preview_title"), mode='preview')
 
     def voucher_print(self, voucher: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.voucher_html(voucher, paper), parent, _tr("voucher_print_title"))
+        return self.render_html(self.voucher_html(voucher, paper), parent, _tr("voucher_print_title"), mode='print')
 
     def voucher_browser(self, voucher: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.open_html_in_browser(self.voucher_html(voucher, paper), parent, _tr("voucher_html_preview_title"))
+        return self.render_html(self.voucher_html(voucher, paper), parent, _tr("voucher_html_preview_title"), mode='browser')
 
     def voucher_pdf(self, voucher: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         ref = voucher.get('reference') or voucher.get('id') or 'voucher'
-        return self.save_pdf(self.voucher_html(voucher, paper), parent, f"voucher_{ref}.pdf")
+        return self.render_html(self.voucher_html(voucher, paper), parent, _tr("voucher_preview_title"), mode='pdf', default_name=f"voucher_{ref}.pdf")
 
     def return_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
         return return_html(data, paper)
@@ -425,20 +443,20 @@ class PrintingService:
 
     def report_preview(self, title: str, rows: List[List[Any]], headers: List[str], parent=None, subtitle: str = '', summary: Optional[Dict[str, Any]] = None, paper: str = 'default') -> None:
         html = self.report_html(title, rows, headers, subtitle, summary, paper)
-        self.preview_html(html, parent, _tr("report_preview_title", title=title))
+        self.render_html(html, parent, _tr("report_preview_title", title=title), mode='preview')
 
     def report_print(self, title: str, rows: List[List[Any]], headers: List[str], parent=None, subtitle: str = '', summary: Optional[Dict[str, Any]] = None, paper: str = 'default') -> bool:
         html = self.report_html(title, rows, headers, subtitle, summary, paper)
-        return self.print_html(html, parent, _tr("report_print_title", title=title))
+        return self.render_html(html, parent, _tr("report_print_title", title=title), mode='print')
 
     def report_browser(self, title: str, rows: List[List[Any]], headers: List[str], parent=None, subtitle: str = '', summary: Optional[Dict[str, Any]] = None, paper: str = 'default') -> bool:
         html = self.report_html(title, rows, headers, subtitle, summary, paper)
-        return self.open_html_in_browser(html, parent, str(title or 'report'))
+        return self.render_html(html, parent, str(title or 'report'), mode='browser')
 
     def report_pdf(self, title: str, rows: List[List[Any]], headers: List[str], parent=None, subtitle: str = '', summary: Optional[Dict[str, Any]] = None, paper: str = 'default') -> bool:
         html = self.report_html(title, rows, headers, subtitle, summary, paper)
         safe_title = ''.join(ch if ch.isalnum() or ch in ('_', '-') else '_' for ch in title).strip('_') or 'report'
-        return self.save_pdf(html, parent, f"{safe_title}.pdf")
+        return self.render_html(html, parent, str(title or 'report'), mode='pdf', default_name=f"{safe_title}.pdf")
 
 
 printing_service = PrintingService()

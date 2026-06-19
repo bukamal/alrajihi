@@ -24,6 +24,7 @@ from utils import enable_auto_select_all, install_non_blocking_message_boxes
 from theme_manager import ThemeManager
 from brand_assets import app_icon
 from offline_read import install_offline_exception_hook
+from i18n import translate
 
 
 _backup_stop_event = None
@@ -33,8 +34,8 @@ def on_license_invalid():
     def show():
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Critical)
-        msg.setWindowTitle("ترخيص منتهي")
-        msg.setText("انتهت صلاحية الترخيص.\nسيتم إغلاق التطبيق.")
+        msg.setWindowTitle(translate('phase233_allui_012'))
+        msg.setText(translate('phase233_allui_013'))
         msg.exec()
         sys.exit(1)
     QTimer.singleShot(0, show)
@@ -127,7 +128,7 @@ def open_network_settings():
     )
 
     dialog = QDialog()
-    dialog.setWindowTitle("إعدادات الشبكة")
+    dialog.setWindowTitle(translate('phase233_allui_005'))
     dialog.setLayoutDirection(Qt.RightToLeft)
     dialog.resize(520, 260)
 
@@ -137,10 +138,7 @@ def open_network_settings():
     layout.setContentsMargins(18, 18, 18, 18)
     layout.setSpacing(12)
 
-    note = QLabel(
-        "لا يمكن الاتصال بالخادم الحالي. عدّل وضع التشغيل أو عنوان الخادم هنا. "
-        "هذه النافذة تستخدم إعدادات محلية فقط ولا تحتاج إلى اتصال بالخادم."
-    )
+    note = QLabel(translate('network_settings_connection_note'))
     note.setWordWrap(True)
     note.setStyleSheet(
         "QLabel { background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; "
@@ -152,30 +150,30 @@ def open_network_settings():
     form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
     mode_combo = QComboBox()
-    mode_combo.addItem("محلي (بدون شبكة)", "local")
-    mode_combo.addItem("عميل (اتصال بخادم)", "client")
-    mode_combo.addItem("خادم (تشغيل خدمة)", "server")
+    mode_combo.addItem(translate('phase233_allui_007'), "local")
+    mode_combo.addItem(translate('phase233_allui_008'), "client")
+    mode_combo.addItem(translate('phase233_allui_009'), "server")
     current_mode = qsettings.value("network/mode", "local")
     idx = mode_combo.findData(current_mode)
     mode_combo.setCurrentIndex(idx if idx >= 0 else 0)
-    form.addRow("وضع التشغيل:", mode_combo)
+    form.addRow(translate('network_mode_label'), mode_combo)
 
     server_url_edit = QLineEdit(qsettings.value("network/server_url", "http://localhost:8000"))
     server_url_edit.setPlaceholderText("10.98.199.132 أو http://10.98.199.132:8000")
-    form.addRow("عنوان الخادم:", server_url_edit)
+    form.addRow(translate('server_address_label'), server_url_edit)
 
     server_port_spin = QSpinBox()
     server_port_spin.setRange(1024, 65535)
     server_port_spin.setValue(int(qsettings.value("server/port", system_service.default_port())))
-    form.addRow("منفذ الخادم المحلي:", server_port_spin)
+    form.addRow(translate('local_server_port_label'), server_port_spin)
 
-    auto_start_check = QCheckBox("تشغيل الخادم المحلي تلقائياً عند بدء التطبيق")
+    auto_start_check = QCheckBox(translate('phase233_allui_010'))
     auto_start_check.setChecked(qsettings.value("server/auto_start", False, type=bool))
     form.addRow(auto_start_check)
 
     status = QLabel("")
     status.setWordWrap(True)
-    form.addRow("الحالة:", status)
+    form.addRow(translate('status_label'), status)
 
     layout.addLayout(form)
 
@@ -188,10 +186,10 @@ def open_network_settings():
             status.setText(f"✅ {message}\n{url}")
             status.setStyleSheet("color:#15803d;")
         else:
-            status.setText(f"❌ {message}\nالعنوان المستخدم: {url}")
+            status.setText(translate('server_test_failed_used_address', message=message, url=url))
             status.setStyleSheet("color:#b91c1c;")
 
-    test_btn = QPushButton("اختبار الاتصال")
+    test_btn = QPushButton(translate('phase233_allui_011'))
     test_btn.clicked.connect(test_current_server)
     btn_row = QHBoxLayout()
     btn_row.addStretch()

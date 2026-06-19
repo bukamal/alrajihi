@@ -65,7 +65,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.is_return = context.is_return
         self.inv_type = context.invoice_type
         self.transaction_settings = settings_service.get_transaction_settings(context.document_type)
-        self.storage_currency = "USD"
+        self.storage_currency = currency.storage_currency()
         self.display_currency = currency.get_display_currency()
         self.columns = schema_for(context.document_type)
         self.lines_model = TransactionLineModel(self.columns, self)
@@ -549,7 +549,7 @@ class TransactionDocumentTab(BaseDocumentTab):
             symbol = currency.get_currency_symbol(self.display_currency)
             return f"{self.display_currency} {symbol}".strip()
         except Exception:
-            return str(getattr(self, "display_currency", "USD") or "USD")
+            return str(getattr(self, "display_currency", currency.display_currency()) or currency.display_currency())
 
     def _to_display_money(self, value) -> Decimal:
         try:

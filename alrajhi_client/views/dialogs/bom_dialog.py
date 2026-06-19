@@ -39,7 +39,7 @@ class BOMDialog(CenteredDialog):
         self.product_map = {}
         for it in items:
             if it.get('item_type') == 'منتج نهائي':
-                price_display = currency.format_amount(currency.convert(it.get('selling_price', 0), 'USD', currency.get_display_currency()))
+                price_display = currency.format_amount(currency.convert(it.get('selling_price', 0), currency.storage_currency(), currency.get_display_currency()))
                 self.product_combo.addItem(f"{it['name']} ({price_display})", it['id'])
                 self.product_map[it['id']] = it
         form.addRow(translate("finished_product"), self.product_combo)
@@ -104,7 +104,7 @@ class BOMDialog(CenteredDialog):
                 raise
         for it in items:
             if it.get('item_type') in ('مخزون', 'منتج نهائي') and it['id'] != self.product_combo.currentData():
-                item_combo.addItem(f"{it['name']} ({currency.format_amount(currency.convert(it.get('selling_price', 0), 'USD', currency.get_display_currency()))})", it['id'])
+                item_combo.addItem(f"{it['name']} ({currency.format_amount(currency.convert(it.get('selling_price', 0), currency.storage_currency(), currency.get_display_currency()))})", it['id'])
         sub_layout.addRow(translate("material_label"), item_combo)
 
         qty_edit = QDoubleSpinBox()

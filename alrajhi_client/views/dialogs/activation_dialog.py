@@ -6,6 +6,7 @@ from views.frameless_dialog import FramelessDialog
 from auth.activation import activate
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
+from i18n import translate
 
 
 class ActivationThread(QThread):
@@ -18,14 +19,14 @@ class ActivationThread(QThread):
 
     def run(self):
         try:
-            self.progress.emit(20, "فحص صيغة مفتاح الترخيص...")
-            self.progress.emit(45, "جاري الاتصال بخادم التفعيل...")
+            self.progress.emit(20, translate('phase233_ui_118'))
+            self.progress.emit(45, translate('phase233_ui_119'))
             success, msg = activate(self.key)
             if success:
-                self.progress.emit(100, "تم التفعيل بنجاح")
+                self.progress.emit(100, translate('phase233_ui_116'))
                 self.finished.emit(True, "")
             else:
-                self.finished.emit(False, msg or "فشل التفعيل")
+                self.finished.emit(False, msg or translate('phase233_ui_117'))
         except Exception as e:
             self.finished.emit(False, str(e))
 
@@ -33,7 +34,7 @@ class ActivationThread(QThread):
 class ActivationDialog(FramelessDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("تفعيل النظام")
+        self.setWindowTitle(translate('phase233_ui_006'))
         self.resize(520, 460)
         self.setMinimumSize(460, 420)
 
@@ -53,27 +54,27 @@ class ActivationDialog(FramelessDialog):
         logo.setStyleSheet("font-size: 48px;")
         layout.addWidget(logo)
 
-        title = QLabel("تفعيل نظام الراجحي للمحاسبة")
+        title = QLabel(translate('phase233_ui_007'))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet(f"font-size: 22px; font-weight: bold; color: {ThemeManager.get('primary')};")
         layout.addWidget(title)
 
-        desc = QLabel("أدخل مفتاح الترخيص. يلزم اتصال بالإنترنت لإتمام التفعيل.")
+        desc = QLabel(translate('phase233_ui_008'))
         desc.setWordWrap(True)
         desc.setAlignment(Qt.AlignCenter)
         desc.setStyleSheet(f"color: {ThemeManager.get('text_secondary')};")
         layout.addWidget(desc)
 
-        activation_mode_hint = DesignSystem.status_pill("سيتم حفظ الترخيص محليًا وربطه بالجهاز", "info")
+        activation_mode_hint = DesignSystem.status_pill(translate('phase233_ui_120'), "info")
         layout.addWidget(activation_mode_hint)
 
         self.key_edit = QLineEdit()
-        self.key_edit.setPlaceholderText("أدخل مفتاح الترخيص — مثال: XXXX-XXXX-XXXX-XXXX")
+        self.key_edit.setPlaceholderText(translate('phase233_ui_121'))
         self.key_edit.setEchoMode(QLineEdit.Password)
         self.key_edit.returnPressed.connect(self._activate)
         layout.addWidget(self.key_edit)
 
-        self.show_key = QCheckBox("إظهار المفتاح")
+        self.show_key = QCheckBox(translate('phase233_ui_009'))
         self.show_key.toggled.connect(lambda checked: self.key_edit.setEchoMode(QLineEdit.Normal if checked else QLineEdit.Password))
         layout.addWidget(self.show_key)
 
@@ -82,14 +83,14 @@ class ActivationDialog(FramelessDialog):
         self.progress.setRange(0, 100)
         layout.addWidget(self.progress)
 
-        self.status_label = QLabel("جاهز للتفعيل")
+        self.status_label = QLabel(translate('phase233_ui_010'))
         self.status_label.setStyleSheet(f"color: {ThemeManager.get('text_muted')}; font-size: 12px;")
         self.status_label.setWordWrap(True)
         self.status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.status_label)
 
         btn_layout = QHBoxLayout()
-        self.activate_btn = DesignSystem.primary_button("تفعيل")
+        self.activate_btn = DesignSystem.primary_button(translate('phase233_ui_122'))
         self.activate_btn.setObjectName("primary")
         self.activate_btn.setIcon(qta.icon('fa5s.check'))
         self.activate_btn.clicked.connect(self._activate)
@@ -99,7 +100,7 @@ class ActivationDialog(FramelessDialog):
         self.retry_btn.setEnabled(False)
         self.retry_btn.clicked.connect(self._activate)
 
-        cancel_btn = DesignSystem.secondary_button("إلغاء")
+        cancel_btn = DesignSystem.secondary_button(translate('phase233_ui_020'))
         cancel_btn.setIcon(qta.icon('fa5s.times'))
         cancel_btn.clicked.connect(self.reject)
 

@@ -143,9 +143,9 @@ class ItemDialog(CenteredDialog):
         general_form.addRow(translate("category_label"), category_widget)
 
         self.type_combo = QComboBox()
-        self.type_combo.addItem(translate("stock_item_type"), "مخزون")
-        self.type_combo.addItem(translate("finished_product_type"), "منتج نهائي")
-        self.type_combo.addItem(translate("service_item_type"), "خدمة")
+        self.type_combo.addItem(translate("stock_item_type"), translate('phase233_ui_031'))
+        self.type_combo.addItem(translate("finished_product_type"), translate('phase233_ui_032'))
+        self.type_combo.addItem(translate("service_item_type"), translate('phase233_ui_033'))
         general_form.addRow(translate("item_type_field"), self.type_combo)
 
         self.unit_edit = QLineEdit()
@@ -570,13 +570,13 @@ class ItemDialog(CenteredDialog):
             idx = self.category_combo.findData(item.get('category_id'))
             if idx >= 0:
                 self.category_combo.setCurrentIndex(idx)
-        idx = self.type_combo.findData(item.get('item_type', 'مخزون'))
+        idx = self.type_combo.findData(item.get('item_type', translate('phase233_ui_031')))
         if idx >= 0:
             self.type_combo.setCurrentIndex(idx)
         self.unit_edit.setText(item.get('unit') or translate('unit_piece'))
 
-        purchase_display = currency.convert(item.get('purchase_price', 0), 'USD', self.display_curr)
-        selling_display = currency.convert(item.get('selling_price', 0), 'USD', self.display_curr)
+        purchase_display = currency.convert(item.get('purchase_price', 0), currency.storage_currency(), self.display_curr)
+        selling_display = currency.convert(item.get('selling_price', 0), currency.storage_currency(), self.display_curr)
         self.purchase_spin.setValue(float(purchase_display))
         self.selling_spin.setValue(float(selling_display))
         self.qty_spin.setValue(float(item.get('opening_quantity', item.get('quantity', 0))))
@@ -633,8 +633,8 @@ class ItemDialog(CenteredDialog):
 
         purchase_display = self.purchase_spin.value()
         selling_display = self.selling_spin.value()
-        purchase_usd = currency.convert(purchase_display, self.display_curr, 'USD')
-        selling_usd = currency.convert(selling_display, self.display_curr, 'USD')
+        purchase_usd = currency.convert(purchase_display, self.display_curr, currency.storage_currency())
+        selling_usd = currency.convert(selling_display, self.display_curr, currency.storage_currency())
         qty = self.qty_spin.value()
 
         data = {

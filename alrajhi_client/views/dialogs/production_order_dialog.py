@@ -56,7 +56,7 @@ class ProductionOrderDialog(CenteredDialog):
         for it in items:
             if it.get('item_type') == 'منتج نهائي':
                 bom = self.service.get_bom_for_product(it['id'])
-                price_display = currency.format_amount(currency.convert(it.get('selling_price', 0), 'USD', currency.get_display_currency()))
+                price_display = currency.format_amount(currency.convert(it.get('selling_price', 0), currency.storage_currency(), currency.get_display_currency()))
                 if bom:
                     self.product_combo.addItem(f"{it['name']} ({price_display})", it['id'])
                 else:

@@ -12,11 +12,12 @@ from utils import show_toast
 from printing.printing_service import printing_service
 from printer_manager import PrinterManager
 from core.services.settings_service import settings_service
+from i18n import translate
 
 class BatchPrintDialog(CenteredDialog):
     def __init__(self, parent=None, selected_items=None):
         super().__init__(parent)
-        self.setWindowTitle("طباعة الباركود")
+        self.setWindowTitle(translate('phase233_ui_011'))
         self.resize(750, 550)
         self.selected_items = selected_items or []
         self.printer_manager = PrinterManager()
@@ -29,7 +30,7 @@ class BatchPrintDialog(CenteredDialog):
             QVBoxLayout(self.content_widget)
 
         toolbar = QHBoxLayout()
-        toolbar.addWidget(QLabel("الطابعة:"))
+        toolbar.addWidget(QLabel(translate('phase233_ui_022')))
         self.printer_combo = QComboBox()
         default_printer = self.print_cfg.get('barcode_default_printer', 'pdf:default')
         for p in self.printer_manager.printers:
@@ -42,34 +43,34 @@ class BatchPrintDialog(CenteredDialog):
         self.copies_spin = QSpinBox()
         self.copies_spin.setRange(1, 10)
         self.copies_spin.setValue(int(self.print_cfg.get('barcode_copies', 1) or 1))
-        toolbar.addWidget(QLabel("عدد النسخ:"))
+        toolbar.addWidget(QLabel(translate('phase233_ui_023')))
         toolbar.addWidget(self.copies_spin)
 
         self.label_size_combo = QComboBox()
         self.label_size_combo.addItems(["40x30", "50x30", "60x40", "80mm"])
         self.label_size_combo.setCurrentText(self.print_cfg.get('barcode_label_size', '50x30'))
-        toolbar.addWidget(QLabel("حجم الملصق:"))
+        toolbar.addWidget(QLabel(translate('phase233_ui_024')))
         toolbar.addWidget(self.label_size_combo)
 
         self.symbology_combo = QComboBox()
         self.symbology_combo.addItems(["AUTO", "EAN13", "CODE128"])
         self.symbology_combo.setCurrentText(self.print_cfg.get('barcode_symbology', 'AUTO'))
-        toolbar.addWidget(QLabel("النوع:"))
+        toolbar.addWidget(QLabel(translate('phase233_ui_025')))
         toolbar.addWidget(self.symbology_combo)
         self.content_widget.layout().addLayout(toolbar)
 
         options_row = QHBoxLayout()
-        self.show_company_check = QCheckBox("اسم الشركة")
+        self.show_company_check = QCheckBox(translate('phase233_ui_012'))
         self.show_company_check.setChecked(bool(self.print_cfg.get('barcode_show_company', True)))
-        self.show_logo_check = QCheckBox("الشعار")
+        self.show_logo_check = QCheckBox(translate('phase233_ui_013'))
         self.show_logo_check.setChecked(bool(self.print_cfg.get('barcode_show_logo', self.print_cfg.get('show_logo', True))))
         self.show_qr_check = QCheckBox("QR")
         self.show_qr_check.setChecked(bool(self.print_cfg.get('barcode_show_qr', True)))
-        self.show_name_check = QCheckBox("اسم المادة")
+        self.show_name_check = QCheckBox(translate('phase233_ui_014'))
         self.show_name_check.setChecked(bool(self.print_cfg.get('barcode_show_name', True)))
-        self.show_price_check = QCheckBox("السعر")
+        self.show_price_check = QCheckBox(translate('phase233_ui_015'))
         self.show_price_check.setChecked(bool(self.print_cfg.get('barcode_show_price', True)))
-        self.show_text_check = QCheckBox("رقم الباركود")
+        self.show_text_check = QCheckBox(translate('phase233_ui_016'))
         self.show_text_check.setChecked(bool(self.print_cfg.get('barcode_show_text', True)))
         for chk in (self.show_company_check, self.show_logo_check, self.show_qr_check, self.show_name_check, self.show_price_check, self.show_text_check):
             options_row.addWidget(chk)
@@ -84,13 +85,13 @@ class BatchPrintDialog(CenteredDialog):
         self.update_table_model()
 
         btn_row = QHBoxLayout()
-        select_btn = QPushButton("➕ إضافة مواد")
+        select_btn = QPushButton(translate('phase233_ui_017'))
         select_btn.clicked.connect(self.select_items)
-        remove_btn = QPushButton("🗑 حذف المحدد")
+        remove_btn = QPushButton(translate('phase233_ui_018'))
         remove_btn.clicked.connect(self.remove_selected)
-        print_btn = QPushButton("🖨️ طباعة")
+        print_btn = QPushButton(translate('phase233_ui_019'))
         print_btn.clicked.connect(self.do_print)
-        cancel_btn = QPushButton("إلغاء")
+        cancel_btn = QPushButton(translate('phase233_ui_020'))
         cancel_btn.clicked.connect(self.reject)
         btn_row.addWidget(select_btn)
         btn_row.addWidget(remove_btn)
@@ -104,7 +105,7 @@ class BatchPrintDialog(CenteredDialog):
         data = []
         for idx, it in enumerate(self.items_data):
             data.append([idx, it['name'], it['barcode'], it['price'], it['copies']])
-        headers = ["#", "المادة", "الباركود", "السعر", "عدد النسخ"]
+        headers = ["#", "المادة", "الباركود", translate('phase233_ui_015'), "عدد النسخ"]
         self.model = GenericTableModel(data, headers, data_keys=['id', 'name', 'barcode', 'price', 'copies'])
         self.table.setModel(self.model)
         self.table.setColumnHidden(0, True)
@@ -136,7 +137,7 @@ class BatchPrintDialog(CenteredDialog):
             if it['id'] == item_id:
                 return
         from currency import currency
-        price_display = currency.format_amount(currency.convert(selling_price, 'USD', currency.get_display_currency()))
+        price_display = currency.format_amount(currency.convert(selling_price, currency.storage_currency(), currency.get_display_currency()))
         self.items_data.append({
             'id': item_id,
             'name': item_name,
@@ -148,7 +149,7 @@ class BatchPrintDialog(CenteredDialog):
 
     def select_items(self):
         dialog = CenteredDialog(self)
-        dialog.setWindowTitle("اختر المواد")
+        dialog.setWindowTitle(translate('phase233_ui_021'))
         dialog.resize(550, 450)
         layout = QVBoxLayout(dialog.content_widget)
         items = catalog_service.items(limit=1000)  # قائمة موحدة من المواد

@@ -7,6 +7,7 @@ from views.frameless_dialog import FramelessDialog
 from utils import show_toast
 
 from core.app_paths import barcode_templates_dir
+from i18n import translate
 
 TEMPLATES_DIR = str(barcode_templates_dir())
 
@@ -41,24 +42,24 @@ class LabelDesigner(FramelessDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("محرر قوالب الباركود")
+        self.setWindowTitle(translate('phase233_allui_015'))
         self.resize(900, 650)
         self.settings = QSettings("Alrajhi", "Accounting")
         self.current_template_name = self.settings.value("barcode_template", "default")
 
         layout = QVBoxLayout(self.content_widget)
         toolbar = QHBoxLayout()
-        toolbar.addWidget(QLabel("القالب:"))
+        toolbar.addWidget(QLabel(translate('phase233_allui_021')))
         self.template_combo = QComboBox()
         self.template_combo.currentTextChanged.connect(self.load_template_by_name)
         toolbar.addWidget(self.template_combo)
-        self.save_btn = QPushButton("💾 حفظ")
+        self.save_btn = QPushButton(translate('phase233_allui_016'))
         self.save_btn.clicked.connect(self.save_current_template)
         toolbar.addWidget(self.save_btn)
-        self.save_as_btn = QPushButton("📄 حفظ باسم")
+        self.save_as_btn = QPushButton(translate('phase233_allui_017'))
         self.save_as_btn.clicked.connect(self.save_template_as)
         toolbar.addWidget(self.save_as_btn)
-        self.delete_btn = QPushButton("🗑 حذف")
+        self.delete_btn = QPushButton(translate('phase233_allui_018'))
         self.delete_btn.clicked.connect(self.delete_current_template)
         toolbar.addWidget(self.delete_btn)
         layout.addLayout(toolbar)
@@ -75,9 +76,9 @@ class LabelDesigner(FramelessDialog):
         self.editor.textChanged.connect(self.update_preview)
 
         btn_layout = QHBoxLayout()
-        reset_btn = QPushButton("🔄 إعادة ضبط")
+        reset_btn = QPushButton(translate('phase233_allui_019'))
         reset_btn.clicked.connect(self.reset_to_default)
-        close_btn = QPushButton("إغلاق")
+        close_btn = QPushButton(translate('phase233_allui_020'))
         close_btn.clicked.connect(self.accept)
         btn_layout.addWidget(reset_btn)
         btn_layout.addWidget(close_btn)

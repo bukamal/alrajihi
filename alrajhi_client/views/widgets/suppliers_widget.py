@@ -94,7 +94,7 @@ class SuppliersWidget(QWidget):
         display_curr = currency.get_display_currency()
         data = []
         for s in suppliers:
-            balance_display = currency.convert(Decimal(str(s.get('balance', 0))), 'USD', display_curr)
+            balance_display = currency.convert(Decimal(str(s.get('balance', 0))), currency.storage_currency(), display_curr)
             filter_idx = self.balance_filter.currentIndex()
             if filter_idx == 1 and balance_display <= 0:
                 continue

@@ -59,6 +59,46 @@ class UnifiedActionBar(QFrame):
             layout.addWidget(button)
             self._buttons[key] = button
 
+        self.alert_btn = QToolButton(self)
+        self.alert_btn.setObjectName("ActionBarUtilityButton_alert")
+        self.alert_btn.setCursor(Qt.PointingHandCursor)
+        self.alert_btn.setIcon(qta.icon("fa5s.bell"))
+        self.alert_btn.setIconSize(QSize(16, 16))
+        self.alert_btn.setText(translate("alerts"))
+        self.alert_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        layout.addWidget(self.alert_btn)
+
+        self.alert_badge = QLabel("", self.alert_btn)
+        self.alert_badge.setObjectName("ActionBarAlertBadge")
+        self.alert_badge.setAlignment(Qt.AlignCenter)
+        self.alert_badge.setFixedHeight(18)
+        self.alert_badge.setMinimumWidth(18)
+        self.alert_badge.hide()
+
+        self.theme_btn = QToolButton(self)
+        self.theme_btn.setObjectName("ActionBarUtilityButton_theme")
+        self.theme_btn.setCursor(Qt.PointingHandCursor)
+        self.theme_btn.setIcon(qta.icon("fa5s.adjust"))
+        self.theme_btn.setIconSize(QSize(16, 16))
+        self.theme_btn.setText(translate("toggle_theme"))
+        self.theme_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        layout.addWidget(self.theme_btn)
+
+        self.screenshot_btn = QToolButton(self)
+        self.screenshot_btn.setObjectName("ActionBarUtilityButton_screenshot")
+        self.screenshot_btn.setCursor(Qt.PointingHandCursor)
+        self.screenshot_btn.setIcon(qta.icon("fa5s.camera"))
+        self.screenshot_btn.setIconSize(QSize(16, 16))
+        self.screenshot_btn.setText(translate("export_screenshot"))
+        self.screenshot_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        layout.addWidget(self.screenshot_btn)
+
+        self.user_label = QLabel(translate("user"), self)
+        self.user_label.setObjectName("ActionBarUserLabel")
+        self.user_label.setMinimumHeight(30)
+        self.user_label.setToolTip(translate("current_user"))
+        layout.addWidget(self.user_label)
+
         self.setStyleSheet("""
             QFrame#UnifiedActionBar {
                 background: palette(base);
@@ -78,7 +118,64 @@ class UnifiedActionBar(QFrame):
             }
             QToolButton:hover { background: palette(alternate-base); }
             QToolButton:disabled { color: palette(mid); }
+            QLabel#ActionBarUserLabel {
+                border: 1px solid palette(mid);
+                border-radius: 9px;
+                padding: 5px 10px;
+                background: palette(window);
+                font-weight: 800;
+            }
+            QLabel#ActionBarAlertBadge {
+                background-color: #ef4444;
+                color: white;
+                border: 1px solid white;
+                border-radius: 9px;
+                padding: 0 5px;
+                font-size: 10px;
+                font-weight: 800;
+            }
         """)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._position_alert_badge()
+
+    def _position_alert_badge(self) -> None:
+        try:
+            self.alert_badge.adjustSize()
+            w = max(18, self.alert_badge.width())
+            self.alert_badge.setFixedWidth(w)
+            self.alert_badge.move(self.alert_btn.width() - w - 3, 2)
+        except Exception:
+            pass
+
+    def set_alert_badge(self, count: int) -> None:
+        try:
+            count = int(count or 0)
+        except Exception:
+            count = 0
+        if count <= 0:
+            self.alert_badge.hide()
+            self.alert_btn.setToolTip(translate("alerts"))
+            return
+        text = "99+" if count > 99 else str(count)
+        self.alert_badge.setText(text)
+        self.alert_badge.show()
+        self.alert_badge.raise_()
+        self.alert_btn.setToolTip(f"{translate('alerts')} ({count})")
+        self._position_alert_badge()
+
+    def set_user(self, username: str, role: str = "") -> None:
+        label = username or translate("user")
+        display = f"👤 {label}"
+        if role:
+            display += f" · {role}"
+        self.user_label.setText(display)
+        self.user_label.setToolTip(display)
+
+    def apply_styles(self) -> None:
+        self.style().unpolish(self)
+        self.style().polish(self)
 
     def bind(self, action: str, callback: Callable[[], None]) -> None:
         self._callbacks[action] = callback

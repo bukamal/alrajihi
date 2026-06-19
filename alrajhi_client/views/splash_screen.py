@@ -5,6 +5,7 @@ from PyQt5.QtGui import QPixmap
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from brand_assets import logo_png, APP_DISPLAY_NAME_AR, APP_DESCRIPTION_AR
+from i18n import translate
 
 
 class ModernSplashScreen(QSplashScreen):
@@ -55,7 +56,7 @@ class ModernSplashScreen(QSplashScreen):
             self.boot_chips.append(chip)
         layout.addLayout(chips)
 
-        self.step_label = QLabel("تهيئة بدء التشغيل")
+        self.step_label = QLabel(translate('phase233_ui_002'))
         self.step_label.setAlignment(Qt.AlignCenter)
         self.step_label.setStyleSheet("font-size: 13px; font-weight: bold; color: white;")
         layout.addWidget(self.step_label)
@@ -79,13 +80,13 @@ class ModernSplashScreen(QSplashScreen):
         """)
         layout.addWidget(self.progress, alignment=Qt.AlignCenter)
 
-        self.status_label = QLabel("جاري تهيئة النظام...")
+        self.status_label = QLabel(translate('phase233_ui_003'))
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setWordWrap(True)
         self.status_label.setStyleSheet("color: rgba(255,255,255,0.78); font-size: 12px;")
         layout.addWidget(self.status_label)
 
-        self.detail_label = QLabel("الرجاء عدم إغلاق التطبيق أثناء التحميل")
+        self.detail_label = QLabel(translate('phase233_ui_004'))
         self.detail_label.setAlignment(Qt.AlignCenter)
         self.detail_label.setWordWrap(True)
         self.detail_label.setStyleSheet("color: rgba(255,255,255,0.62); font-size: 11px;")
@@ -128,7 +129,7 @@ class ModernSplashScreen(QSplashScreen):
             QProgressBar::chunk { background-color: #ef4444; border-radius: 6px; }
         """)
         self.progress.setValue(max(self.progress.value(), 5))
-        self.step_label.setText("تعذر إكمال التشغيل")
+        self.step_label.setText(translate('phase233_ui_005'))
         self.status_label.setText(message)
         self.detail_label.setText(detail or "راجع الرسالة ثم أعد المحاولة.")
         QApplication.processEvents()

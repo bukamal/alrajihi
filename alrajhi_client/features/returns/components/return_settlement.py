@@ -15,7 +15,7 @@ class ReturnSettlementComponent:
         method = self.host.payment_method_combo.currentData() if hasattr(self.host, 'payment_method_combo') else 'credit_only'
         refund = '0'
         if method != 'credit_only' and hasattr(self.host, 'refund_spin'):
-            refund = str(currency.convert(_ret_dec(self.host.refund_spin.value()), currency.get_display_currency(), 'USD'))
+            refund = str(currency.convert(_ret_dec(self.host.refund_spin.value()), currency.get_display_currency(), currency.storage_currency()))
         return {
             'refund_amount': refund,
             'payment_method': method,

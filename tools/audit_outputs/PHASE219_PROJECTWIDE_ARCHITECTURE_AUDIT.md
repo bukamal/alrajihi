@@ -14,43 +14,43 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 ## Findings
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/action_handler.py:122`
+- File: `alrajhi_client/action_handler.py:123`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/main.py:38`
+- File: `alrajhi_client/main.py:39`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/main.py:215`
+- File: `alrajhi_client/main.py:213`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/main.py:325`
+- File: `alrajhi_client/main.py:323`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/main.py:338`
+- File: `alrajhi_client/main.py:336`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/main.py:345`
+- File: `alrajhi_client/main.py:343`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/main.py:363`
+- File: `alrajhi_client/main.py:361`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
@@ -110,31 +110,31 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] QDialog class: FramelessDialog
-- File: `alrajhi_client/views/frameless_dialog.py:7`
+- File: `alrajhi_client/views/frameless_dialog.py:8`
 - Area: `qdialog-class`
 - Detail: Class inherits QDialog. This may be acceptable for small utility dialogs, but CRUD/document screens should be tabs.
 - Recommendation: If this is CRUD/document/edit workflow, migrate to BaseDocumentTab; otherwise document it as allowed utility dialog.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/frameless_dialog.py:139`
+- File: `alrajhi_client/views/frameless_dialog.py:140`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/main_window.py:1097`
+- File: `alrajhi_client/views/main_window.py:1104`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/main_window.py:1334`
+- File: `alrajhi_client/views/main_window.py:1289`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/views/main_window.py:1348`
+- File: `alrajhi_client/views/main_window.py:1303`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
@@ -224,7 +224,7 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.
 
 ### [medium] Legacy dialog reference: InvoiceDialog
-- File: `alrajhi_client/views/widgets/invoices_widget.py:12`
+- File: `alrajhi_client/views/widgets/invoices_widget.py:13`
 - Area: `legacy-dialog`
 - Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
 - Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
@@ -410,13 +410,13 @@ PartyEditorTab was refactored in Phase 220, VoucherEditorTab in Phase 221, and E
 - Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
 
 ### [medium] Legacy dialog reference: ItemDialog
-- File: `alrajhi_client/features/items/item_editor_tab.py:47`
+- File: `alrajhi_client/features/items/item_editor_tab.py:48`
 - Area: `legacy-dialog`
 - Detail: Large modal dialog is still present or referenced. Some references may be explicit fallback paths.
 - Recommendation: Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs.
 
 ### [medium] Dialog exec() call
-- File: `alrajhi_client/features/items/item_editor_tab.py:637`
+- File: `alrajhi_client/features/items/item_editor_tab.py:633`
 - Area: `dialog-exec`
 - Detail: Modal dialog execution detected outside low-level dialog modules.
 - Recommendation: Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations.

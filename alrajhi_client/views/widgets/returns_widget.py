@@ -125,9 +125,9 @@ def _ret_money_value_to_usd(line, value):
     """
     raw = _ret_dec(value)
     explicit_currency = (line.get('line_currency') or line.get('amount_currency') or '').strip().upper()
-    if explicit_currency and explicit_currency != 'USD':
-        return currency.convert(raw, explicit_currency, 'USD')
-    if explicit_currency == 'USD':
+    if explicit_currency and explicit_currency != currency.storage_currency():
+        return currency.convert(raw, explicit_currency, currency.storage_currency())
+    if explicit_currency == currency.storage_currency():
         return raw
 
     inv_currency = (line.get('original_currency') or line.get('invoice_currency') or '').strip().upper()
@@ -135,9 +135,9 @@ def _ret_money_value_to_usd(line, value):
     # High-rate-currency legacy heuristic: if a line from an invoice marked as
     # SYP-like currency already looks scaled by the exchange rate, normalize it
     # back to USD before the UI converts it to the selected display currency.
-    if inv_currency and inv_currency != 'USD' and rate >= Decimal('100') and abs(raw) >= (rate / Decimal('10')):
+    if inv_currency and inv_currency != currency.storage_currency() and rate >= Decimal('100') and abs(raw) >= (rate / Decimal('10')):
         try:
-            return currency.convert(raw, inv_currency, 'USD')
+            return currency.convert(raw, inv_currency, currency.storage_currency())
         except Exception:
             return raw / rate if rate else raw
     return raw
@@ -277,8 +277,8 @@ def _ret_current_dialog_print_data(dialog, qty_kind):
             'conversion_factor': str(factor),
             'quantity': _ret_fmt_qty(qty),
             'quantity_in_base': str(base_qty),
-            'unit_price': currency.format_amount(currency.convert(unit_price_usd, 'USD', currency.get_display_currency())),
-            'line_total': currency.format_amount(currency.convert(line_total_usd, 'USD', currency.get_display_currency())),
+            'unit_price': currency.format_amount(currency.convert(unit_price_usd, currency.storage_currency(), currency.get_display_currency())),
+            'line_total': currency.format_amount(currency.convert(line_total_usd, currency.storage_currency(), currency.get_display_currency())),
             'discount_percent': '0',
             'tax_percent': '0',
         })
@@ -288,7 +288,7 @@ def _ret_current_dialog_print_data(dialog, qty_kind):
     if not party_name:
         party_name = inv.get('party_name') or inv.get('entity_name') or translate('cash_customer')
     warehouse = dialog.warehouse_combo.currentText() if hasattr(dialog, 'warehouse_combo') else ''
-    refund_usd = Decimal('0') if dialog.payment_method_combo.currentData() == 'credit_only' else currency.convert(_ret_dec(dialog.refund_spin.value()), currency.get_display_currency(), 'USD')
+    refund_usd = Decimal('0') if dialog.payment_method_combo.currentData() == 'credit_only' else currency.convert(_ret_dec(dialog.refund_spin.value()), currency.get_display_currency(), currency.storage_currency())
     ref = ''
     if getattr(dialog, 'edit_return_id', None):
         ref = (getattr(dialog, 'edit_return_data', {}) or {}).get('return_no') or (getattr(dialog, 'edit_return_data', {}) or {}).get('reference') or dialog.edit_return_id
@@ -307,9 +307,9 @@ def _ret_current_dialog_print_data(dialog, qty_kind):
         'payment_method': dialog.payment_method_combo.currentText(),
         'notes': dialog.notes_edit.toPlainText().strip(),
         'lines': lines,
-        'total': currency.format_amount(currency.convert(total_usd, 'USD', currency.get_display_currency())),
-        'paid_amount': currency.format_amount(currency.convert(refund_usd, 'USD', currency.get_display_currency())),
-        'remaining': currency.format_amount(currency.convert(total_usd - refund_usd, 'USD', currency.get_display_currency())),
+        'total': currency.format_amount(currency.convert(total_usd, currency.storage_currency(), currency.get_display_currency())),
+        'paid_amount': currency.format_amount(currency.convert(refund_usd, currency.storage_currency(), currency.get_display_currency())),
+        'remaining': currency.format_amount(currency.convert(total_usd - refund_usd, currency.storage_currency(), currency.get_display_currency())),
     }
 
 
@@ -437,7 +437,7 @@ def _ret_apply_existing_return(dialog, service, return_data, qty_kind):
     _ret_select_combo_data(dialog.bank_combo, ret.get('bank_account_id'))
     _ret_select_combo_data(dialog.payment_method_combo, ret.get('payment_method'))
     try:
-        dialog.refund_spin.setValue(float(currency.convert(_ret_dec(ret.get('refund_amount') or 0), 'USD', currency.get_display_currency())))
+        dialog.refund_spin.setValue(float(currency.convert(_ret_dec(ret.get('refund_amount') or 0), currency.storage_currency(), currency.get_display_currency())))
     except Exception:
         pass
     dialog.notes_edit.setPlainText(str(ret.get('notes') or ''))
@@ -713,7 +713,7 @@ class SalesReturnDialog(CenteredDialog):
                 return
             raise
         for inv in invoices:
-            txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('customer_name') or translate('cash_customer')} - {currency.format_amount(currency.convert(inv.get('total',0),'USD',currency.get_display_currency()))}"
+            txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('customer_name') or translate('cash_customer')} - {currency.format_amount(currency.convert(inv.get('total',0),currency.storage_currency(),currency.get_display_currency()))}"
             self.invoice_combo.addItem(txt, inv.get('id'))
             self.invoice_map[inv.get('id')] = inv
 
@@ -772,7 +772,7 @@ class SalesReturnDialog(CenteredDialog):
         line['_selected_unit_id'] = unit_data['unit_id']
         price_usd = _ret_unit_price_usd_for_factor(line, factor)
         line['_selected_unit_price_usd'] = price_usd
-        price_display = currency.convert(price_usd, 'USD', currency.get_display_currency())
+        price_display = currency.convert(price_usd, currency.storage_currency(), currency.get_display_currency())
         qty_base_key = 'sold_qty_base' if 'sold_qty_base' in line else 'purchased_qty_base'
         for col, key in ((RET_COL_ORIGINAL_QTY, qty_base_key), (RET_COL_PREVIOUS, 'returned_qty_base'), (RET_COL_RETURNABLE, 'returnable_qty_base')):
             _ret_set_readonly_item(self.lines_table, row, col, _ret_fmt_qty(_ret_dec(line.get(key) or 0) / factor))
@@ -798,7 +798,7 @@ class SalesReturnDialog(CenteredDialog):
                         self.lines_table.blockSignals(True)
                         qty_item.setText(_ret_fmt_qty(qty))
                         self.lines_table.blockSignals(False)
-                line_total = qty * currency.convert(_ret_dec(line.get('_selected_unit_price_usd') or 0), 'USD', currency.get_display_currency())
+                line_total = qty * currency.convert(_ret_dec(line.get('_selected_unit_price_usd') or 0), currency.storage_currency(), currency.get_display_currency())
                 total += line_total
                 _ret_set_readonly_item(self.lines_table, row, RET_COL_TOTAL, _ret_fmt_qty(line_total))
             except Exception:
@@ -837,7 +837,7 @@ class SalesReturnDialog(CenteredDialog):
                 'original_invoice_id': self.invoice_combo.currentData(),
                 'date': self.date_edit.date().toString('yyyy-MM-dd'),
                 'warehouse_id': self.warehouse_combo.currentData(),
-                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(currency.convert(_ret_dec(self.refund_spin.value()), currency.get_display_currency(), 'USD')),
+                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(currency.convert(_ret_dec(self.refund_spin.value()), currency.get_display_currency(), currency.storage_currency())),
                 'payment_method': self.payment_method_combo.currentData(),
                 'cashbox_id': self.cashbox_combo.currentData(),
                 'bank_account_id': self.bank_combo.currentData(),
@@ -857,7 +857,7 @@ class SalesReturnDialog(CenteredDialog):
 
 def _ret_fmt_display_amount_usd(value):
     try:
-        return currency.format_amount(currency.convert(value or 0, 'USD', currency.get_display_currency()))
+        return currency.format_amount(currency.convert(value or 0, currency.storage_currency(), currency.get_display_currency()))
     except Exception:
         try:
             return currency.format_amount(value or 0)
@@ -968,9 +968,9 @@ class ReturnsWidget(QWidget):
                 'original_invoice': r.get('invoice_reference',''),
                 'date': r.get('date',''),
                 'customer': r.get('customer_name') or translate('cash_customer'),
-                'return_total': currency.format_amount(currency.convert(total_usd,'USD',currency.get_display_currency())),
-                'refund': currency.format_amount(currency.convert(refund_usd,'USD',currency.get_display_currency())),
-                'settlement_remaining': currency.format_amount(currency.convert(settlement_remaining_usd,'USD',currency.get_display_currency())),
+                'return_total': currency.format_amount(currency.convert(total_usd,currency.storage_currency(),currency.get_display_currency())),
+                'refund': currency.format_amount(currency.convert(refund_usd,currency.storage_currency(),currency.get_display_currency())),
+                'settlement_remaining': currency.format_amount(currency.convert(settlement_remaining_usd,currency.storage_currency(),currency.get_display_currency())),
                 'notes': r.get('notes',''),
             }
             data.append(row)
@@ -1222,7 +1222,7 @@ class PurchaseReturnDialog(CenteredDialog):
                 return
             raise
         for inv in invoices:
-            txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('supplier_name') or translate('cash_customer')} - {currency.format_amount(currency.convert(inv.get('total',0),'USD',currency.get_display_currency()))}"
+            txt = f"{inv.get('reference','')} - {inv.get('date','')} - {inv.get('supplier_name') or translate('cash_customer')} - {currency.format_amount(currency.convert(inv.get('total',0),currency.storage_currency(),currency.get_display_currency()))}"
             self.invoice_combo.addItem(txt, inv.get('id'))
             self.invoice_map[inv.get('id')] = inv
 
@@ -1281,7 +1281,7 @@ class PurchaseReturnDialog(CenteredDialog):
         line['_selected_unit_id'] = unit_data['unit_id']
         price_usd = _ret_unit_price_usd_for_factor(line, factor)
         line['_selected_unit_price_usd'] = price_usd
-        price_display = currency.convert(price_usd, 'USD', currency.get_display_currency())
+        price_display = currency.convert(price_usd, currency.storage_currency(), currency.get_display_currency())
         qty_base_key = 'sold_qty_base' if 'sold_qty_base' in line else 'purchased_qty_base'
         for col, key in ((RET_COL_ORIGINAL_QTY, qty_base_key), (RET_COL_PREVIOUS, 'returned_qty_base'), (RET_COL_RETURNABLE, 'returnable_qty_base')):
             _ret_set_readonly_item(self.lines_table, row, col, _ret_fmt_qty(_ret_dec(line.get(key) or 0) / factor))
@@ -1307,7 +1307,7 @@ class PurchaseReturnDialog(CenteredDialog):
                         self.lines_table.blockSignals(True)
                         qty_item.setText(_ret_fmt_qty(qty))
                         self.lines_table.blockSignals(False)
-                line_total = qty * currency.convert(_ret_dec(line.get('_selected_unit_price_usd') or 0), 'USD', currency.get_display_currency())
+                line_total = qty * currency.convert(_ret_dec(line.get('_selected_unit_price_usd') or 0), currency.storage_currency(), currency.get_display_currency())
                 total += line_total
                 _ret_set_readonly_item(self.lines_table, row, RET_COL_TOTAL, _ret_fmt_qty(line_total))
             except Exception:
@@ -1346,7 +1346,7 @@ class PurchaseReturnDialog(CenteredDialog):
                 'original_invoice_id': self.invoice_combo.currentData(),
                 'date': self.date_edit.date().toString('yyyy-MM-dd'),
                 'warehouse_id': self.warehouse_combo.currentData(),
-                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(currency.convert(_ret_dec(self.refund_spin.value()), currency.get_display_currency(), 'USD')),
+                'refund_amount': '0' if self.payment_method_combo.currentData() == 'credit_only' else str(currency.convert(_ret_dec(self.refund_spin.value()), currency.get_display_currency(), currency.storage_currency())),
                 'payment_method': self.payment_method_combo.currentData(),
                 'cashbox_id': self.cashbox_combo.currentData(),
                 'bank_account_id': self.bank_combo.currentData(),
@@ -1427,9 +1427,9 @@ class PurchaseReturnsWidget(QWidget):
                 'original_invoice': r.get('invoice_reference',''),
                 'date': r.get('date',''),
                 'supplier': r.get('supplier_name') or translate('cash_customer'),
-                'return_total': currency.format_amount(currency.convert(total_usd,'USD',currency.get_display_currency())),
-                'refund': currency.format_amount(currency.convert(refund_usd,'USD',currency.get_display_currency())),
-                'settlement_remaining': currency.format_amount(currency.convert(settlement_remaining_usd,'USD',currency.get_display_currency())),
+                'return_total': currency.format_amount(currency.convert(total_usd,currency.storage_currency(),currency.get_display_currency())),
+                'refund': currency.format_amount(currency.convert(refund_usd,currency.storage_currency(),currency.get_display_currency())),
+                'settlement_remaining': currency.format_amount(currency.convert(settlement_remaining_usd,currency.storage_currency(),currency.get_display_currency())),
                 'notes': r.get('notes',''),
             }
             data.append(row)

@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLi
 from PyQt5.QtCore import Qt, QDate
 from decimal import Decimal
 from core.services.invoice_service import invoice_service
+from core.services.reporting_service import reporting_service
 from core.services.workflow_policy_service import workflow_policy_service
 from core.services.catalog_service import catalog_service
 from currency import currency
@@ -179,18 +180,19 @@ class InvoicesWidget(QWidget):
         except Exception:
             workflow_enabled = True
             approval_required = True
+        if not workflow_enabled:
+            # Workflow/posting is disabled from settings; hide the whole
+            # workflow block instead of showing a stray posting button.
+            return
         actions = []
-        if workflow_enabled:
-            actions.append(('workflow_submit', 'submit', 'approval.submit'))
-            if approval_required:
-                actions.extend([
-                    ('workflow_approve', 'approve', 'approval.approve'),
-                    ('workflow_reject', 'reject', 'approval.reject'),
-                ])
-            actions.append(('workflow_post', 'post', 'accounting.post'))
-            actions.append(('workflow_reopen', 'reopen', 'invoices.edit'))
-        else:
-            actions.append(('workflow_post', 'post', 'accounting.post'))
+        actions.append(('workflow_submit', 'submit', 'approval.submit'))
+        if approval_required:
+            actions.extend([
+                ('workflow_approve', 'approve', 'approval.approve'),
+                ('workflow_reject', 'reject', 'approval.reject'),
+            ])
+        actions.append(('workflow_post', 'post', 'accounting.post'))
+        actions.append(('workflow_reopen', 'reopen', 'invoices.edit'))
         for label_key, action, perm in actions:
             btn = QPushButton(translate(label_key))
             try:
@@ -457,26 +459,42 @@ class InvoicesWidget(QWidget):
                     self._notify_offline_read(translate('sales_invoices'))
                     return
                 raise
+            profit_by_invoice = {}
+            try:
+                if not permission_service.should_hide_profit():
+                    profit_rows = reporting_service.invoice_profit_report(
+                        start_date=start_date, end_date=end_date, customer_id=customer_id, limit=100000
+                    )
+                    profit_by_invoice = {int(r.get('id')): r for r in profit_rows if r.get('id') is not None}
+            except Exception:
+                profit_by_invoice = {}
+
+            def _money(value):
+                return currency.format_base_amount(Decimal(str(value or 0)))
+
             data = []
             for inv in invoices:
-                remaining = Decimal(str(inv.get('total', 0))) - Decimal(str(inv.get('paid', 0)))
-                paid_display = currency.format_amount(currency.convert(inv.get('paid', 0), 'USD', currency.get_display_currency()))
+                total = Decimal(str(inv.get('total', 0) or 0))
+                received = Decimal(str(inv.get('paid_amount', inv.get('paid', 0)) or 0))
+                remaining = total - received
+                profit_row = profit_by_invoice.get(int(inv.get('id') or 0), {})
+                profit_value = profit_row.get('profit')
                 row = {
                     'id': inv['id'],
                     'reference': inv.get('id', ''),
                     'invoice': inv.get('reference', ''),
                     'date': inv.get('date', ''),
                     'customer': inv.get('customer_name', translate('cash_customer')),
-                    'invoice_total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
-                    'paid': paid_display,
-                    'received': paid_display,
-                    'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency())),
+                    'invoice_total': _money(total),
+                    'received': _money(received),
+                    'remaining': _money(remaining),
                     'workflow_status': inv.get('workflow_status', 'DRAFT'),
+                    'invoice_profit': _money(profit_value) if profit_value is not None else '—',
                     'notes': inv.get('notes', '')
                 }
                 data.append(row)
-            headers = ['reference', 'invoice', 'invoice_total', 'customer', 'paid', 'received', 'remaining', 'workflow_status', 'invoice_profit', 'date', 'notes']
-            display_headers = [translate('reference'), translate('invoice'), translate('invoice_value'), translate('customer'), translate('paid'), translate('received'), translate('remaining'), 'Workflow', translate('invoice_profit'), translate('date'), translate('notes')]
+            headers = ['reference', 'invoice', 'invoice_total', 'customer', 'received', 'remaining', 'workflow_status', 'invoice_profit', 'date', 'notes']
+            display_headers = [translate('reference'), translate('invoice'), translate('invoice_value'), translate('customer'), translate('received'), translate('remaining'), translate('workflow_status'), translate('invoice_profit'), translate('date'), translate('notes')]
             model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
             self.sales_table.setModel(model)
             self._connect_table_selection('sale')
@@ -517,15 +535,15 @@ class InvoicesWidget(QWidget):
                     'invoice': inv.get('reference', ''),
                     'date': inv.get('date', ''),
                     'supplier': inv.get('supplier_name', translate('cash_customer')),
-                    'invoice_total': currency.format_amount(currency.convert(inv.get('total', 0), 'USD', currency.get_display_currency())),
-                    'paid': currency.format_amount(currency.convert(inv.get('paid', 0), 'USD', currency.get_display_currency())),
-                    'remaining': currency.format_amount(currency.convert(remaining, 'USD', currency.get_display_currency())),
+                    'invoice_total': currency.format_amount(currency.convert(inv.get('total', 0), currency.storage_currency(), currency.get_display_currency())),
+                    'paid': currency.format_amount(currency.convert(inv.get('paid', 0), currency.storage_currency(), currency.get_display_currency())),
+                    'remaining': currency.format_amount(currency.convert(remaining, currency.storage_currency(), currency.get_display_currency())),
                     'workflow_status': inv.get('workflow_status', 'DRAFT'),
                     'notes': inv.get('notes', '')
                 }
                 data.append(row)
             headers = ['reference', 'invoice', 'invoice_total', 'supplier', 'paid', 'remaining', 'workflow_status', 'date', 'notes']
-            display_headers = [translate('reference'), translate('invoice'), translate('invoice_value'), translate('supplier'), translate('paid'), translate('remaining'), 'Workflow', translate('date'), translate('notes')]
+            display_headers = [translate('reference'), translate('invoice'), translate('invoice_value'), translate('supplier'), translate('paid'), translate('remaining'), translate('workflow_status'), translate('date'), translate('notes')]
             model = GenericTableModel(data, display_headers, key_fields=['id'], data_keys=headers)
             self.purchases_table.setModel(model)
             self._connect_table_selection('purchase')

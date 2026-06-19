@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 import qtawesome as qta
 from utils import show_toast
+from i18n import translate
 
 class BaseActionHandler:
     """
@@ -98,15 +99,15 @@ class BaseActionHandler:
     def _show_context_menu(self, pos):
         menu = QMenu()
         if hasattr(self, 'add_item'):
-            a = QAction(qta.icon('fa5s.plus'), "إضافة", self)
+            a = QAction(qta.icon('fa5s.plus'), translate('phase233_allui_001'), self)
             a.triggered.connect(self.add_item)
             menu.addAction(a)
         if hasattr(self, 'edit_item'):
-            a = QAction(qta.icon('fa5s.edit'), "تعديل", self)
+            a = QAction(qta.icon('fa5s.edit'), translate('phase233_allui_002'), self)
             a.triggered.connect(self._on_edit_shortcut)
             menu.addAction(a)
         if hasattr(self, 'delete_item'):
-            a = QAction(qta.icon('fa5s.trash-alt'), "حذف", self)
+            a = QAction(qta.icon('fa5s.trash-alt'), translate('phase233_allui_003'), self)
             a.triggered.connect(self._on_delete_shortcut)
             menu.addAction(a)
         menu.addSeparator()
@@ -115,7 +116,7 @@ class BaseActionHandler:
             a.triggered.connect(self.export_to_excel)
             menu.addAction(a)
         if hasattr(self, 'print_table'):
-            a = QAction(qta.icon('fa5s.print'), "طباعة", self)
+            a = QAction(qta.icon('fa5s.print'), translate('phase233_allui_004'), self)
             a.triggered.connect(self.print_table)
             menu.addAction(a)
         if menu.actions():

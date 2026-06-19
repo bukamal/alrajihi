@@ -96,11 +96,7 @@ class BomDocumentTab(BaseDocumentTab):
         self.title_label.setObjectName('DocumentTitle')
         top_row.addWidget(self.title_label)
         top_row.addStretch(1)
-        self.save_btn = QPushButton(translate('save_ctrl_s'))
-        self.save_btn.setObjectName('primary')
-        self.print_btn = QPushButton(translate('print'))
-        top_row.addWidget(self.print_btn)
-        top_row.addWidget(self.save_btn)
+        # Phase 229: header is informational; print/save live in the bottom action bar.
         header_layout.addLayout(top_row)
 
         meta = QGridLayout()
@@ -161,16 +157,19 @@ class BomDocumentTab(BaseDocumentTab):
 
         bottom = QHBoxLayout()
         bottom.addStretch(1)
+        self.bottom_print_btn = QPushButton(translate('print'))
         self.cancel_btn = QPushButton(translate('close'))
         self.bottom_save_btn = QPushButton(translate('save_ctrl_s'))
         self.bottom_save_btn.setObjectName('primary')
+        bottom.addWidget(self.bottom_print_btn)
         bottom.addWidget(self.cancel_btn)
         bottom.addWidget(self.bottom_save_btn)
         root.addLayout(bottom)
 
-        self.save_btn.clicked.connect(self.workspace_save)
         self.bottom_save_btn.clicked.connect(self.workspace_save)
-        self.print_btn.clicked.connect(self.workspace_print)
+        self.bottom_print_btn.clicked.connect(self.workspace_print)
+        self.save_btn = self.bottom_save_btn
+        self.print_btn = self.bottom_print_btn
         self.add_component_btn.clicked.connect(self._add_component_from_search)
         self.search_edit.returnPressed.connect(self._add_component_from_search)
         self.add_empty_btn.clicked.connect(lambda: self.model.add_empty_line())
@@ -207,14 +206,13 @@ class BomDocumentTab(BaseDocumentTab):
         can_save = self.service.can_operation(
             manufacturing_operation_policy.OP_BOM_EDIT if self.is_edit else manufacturing_operation_policy.OP_BOM_CREATE
         )
-        self.save_btn.setEnabled(can_save)
         self.bottom_save_btn.setEnabled(can_save)
         self.add_component_btn.setEnabled(can_save)
         self.add_empty_btn.setEnabled(can_save)
         self.remove_component_btn.setEnabled(can_save)
         self.grid.setEnabled(can_save)
         can_print = self.service.can_operation(manufacturing_operation_policy.OP_PRINT)
-        self.print_btn.setEnabled(can_print)
+        self.bottom_print_btn.setEnabled(can_print)
 
     def _load_products(self) -> None:
         self.product_combo.blockSignals(True)

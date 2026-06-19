@@ -45,27 +45,27 @@ class SettingsWidget(QWidget):
         self.tabs.setObjectName('settingsTabs')
         self.tabs.setDocumentMode(True)
         self.tabs.addTab(self.create_appearance_tab(), '🎨 ' + translate('appearance'))
-        self.tabs.addTab(self.create_language_settings_tab(), '🌍 اللغات')
-        self.tabs.addTab(self.create_profiles_tab(), '🧩 ملفات الإعدادات')
+        self.tabs.addTab(self.create_language_settings_tab(), translate('phase233_ui_037'))
+        self.tabs.addTab(self.create_profiles_tab(), translate('phase233_ui_038'))
         self.tabs.addTab(self.create_contracts_tab(), '⚙️ ' + translate('settings_contracts_tab'))
         self.tabs.addTab(self.create_company_tab(), '🏢 ' + translate('company'))
-        self.tabs.addTab(self.create_invoice_settings_tab(), '🧾 الفواتير')
-        self.tabs.addTab(self.create_units_settings_tab(), '📏 الوحدات')
-        self.tabs.addTab(self.create_returns_settings_tab(), '↩️ المرتجعات')
-        self.tabs.addTab(self.create_inventory_settings_tab(), '📦 المخزون')
-        self.tabs.addTab(self.create_manufacturing_settings_tab(), '🏭 التصنيع')
-        self.tabs.addTab(self.create_reports_settings_tab(), '📊 التقارير')
+        self.tabs.addTab(self.create_invoice_settings_tab(), translate('phase233_ui_039'))
+        self.tabs.addTab(self.create_units_settings_tab(), translate('phase233_ui_040'))
+        self.tabs.addTab(self.create_returns_settings_tab(), translate('phase233_ui_041'))
+        self.tabs.addTab(self.create_inventory_settings_tab(), translate('phase233_ui_042'))
+        self.tabs.addTab(self.create_manufacturing_settings_tab(), translate('phase233_ui_043'))
+        self.tabs.addTab(self.create_reports_settings_tab(), translate('phase233_ui_044'))
         self.tabs.addTab(self.create_printing_tab(), '🖨️ ' + translate('printing_tab'))
         self.tabs.addTab(self.create_pos_tab(), '🧾 ' + translate('pos_tab'))
         self.tabs.addTab(self.create_currency_tab(), '💰 ' + translate('currencies'))
         self.tabs.addTab(self.create_rates_tab(), '💱 ' + translate('exchange_rates'))
         self.tabs.addTab(self.create_network_tab(), '🌐 ' + translate('network'))
-        self.tabs.addTab(self.create_security_tab(), '🔐 الصلاحيات')
-        self.tabs.addTab(self.create_workflow_tab(), '🔁 سير العمل')
-        self.tabs.addTab(self.create_settings_audit_tab(), '📜 سجل الإعدادات')
-        self.tabs.addTab(self.create_security_events_tab(), '🛡️ سجل الصلاحيات')
+        self.tabs.addTab(self.create_security_tab(), translate('phase233_ui_045'))
+        self.tabs.addTab(self.create_workflow_tab(), translate('phase233_ui_046'))
+        self.tabs.addTab(self.create_settings_audit_tab(), translate('phase233_ui_047'))
+        self.tabs.addTab(self.create_security_events_tab(), translate('phase233_ui_048'))
         self.tabs.addTab(self.create_backup_tab(), '💾 ' + translate('backup_data'))
-        self.tabs.addTab(self.create_diagnostics_tab(), '🩺 التشخيص')
+        self.tabs.addTab(self.create_diagnostics_tab(), translate('phase233_ui_049'))
         main.addWidget(self.tabs, 1)
 
         self._apply_local_style()
@@ -161,12 +161,10 @@ class SettingsWidget(QWidget):
         form.addRow('حجم الخط', self.ui_font_size)
         self.ui_row_height = QSpinBox(); self.ui_row_height.setRange(24, 80); self.ui_row_height.setValue(int(settings_service.get('ui/row_height', '36') or 36))
         form.addRow('حجم الصفوف', self.ui_row_height)
-        self.ui_show_global_search = QCheckBox('إظهار شريط البحث العالمي')
-        self.ui_show_global_search.setChecked(self._bool_setting('ui/show_global_search', 'true'))
-        form.addRow(self.ui_show_global_search)
+        # Phase 228: global top search is removed from the shell.
         self.ui_default_page = QLineEdit(settings_service.get('ui/default_page', 'dashboard'))
         form.addRow('الصفحة الافتراضية عند التشغيل', self.ui_default_page)
-        self.ui_remember_last_tab = QCheckBox('تذكر التبويب الأخير')
+        self.ui_remember_last_tab = QCheckBox(translate('phase233_ui_050'))
         self.ui_remember_last_tab.setChecked(self._bool_setting('ui/remember_last_tab', 'true'))
         form.addRow(self.ui_remember_last_tab)
         form.addRow(self._note(translate('language_settings_note'), 'info'))
@@ -200,7 +198,7 @@ class SettingsWidget(QWidget):
         self.lang_report_combo = self._language_combo(langs.get('report_language', self._current_language))
         form.addRow('لغة التقارير', self.lang_report_combo)
         form.addRow(self._note('يمكن ضبط الواجهة بالعربية والطباعة أو التقارير بالإنجليزية/الألمانية بشكل مستقل.', 'info'))
-        save_btn = QPushButton('حفظ إعدادات اللغات')
+        save_btn = QPushButton(translate('phase233_ui_051'))
         save_btn.setObjectName('primary')
         save_btn.clicked.connect(self.save_language_settings)
         form.addRow(self._button_row(save_btn))
@@ -429,19 +427,19 @@ class SettingsWidget(QWidget):
         sales_group, form = self._form_card('إعدادات فواتير المبيعات', 'ترقيم الفواتير وسلوك المخزون والكلفة والربح داخل شاشة البيع.')
         self.sales_prefix_edit = QLineEdit(settings_service.get('invoice/sales_prefix', 'SAL-'))
         form.addRow('بادئة رقم المبيعات', self.sales_prefix_edit)
-        self.sales_auto_numbering = QCheckBox('ترقيم تلقائي')
+        self.sales_auto_numbering = QCheckBox(translate('phase233_ui_052'))
         self.sales_auto_numbering.setChecked(self._bool_setting('invoice/auto_numbering', 'true'))
         form.addRow(self.sales_auto_numbering)
-        self.sales_show_profit = QCheckBox('إظهار الربح')
+        self.sales_show_profit = QCheckBox(translate('phase233_ui_053'))
         self.sales_show_profit.setChecked(self._bool_setting('invoice/show_profit', 'false'))
         form.addRow(self.sales_show_profit)
-        self.sales_show_cost = QCheckBox('إظهار الكلفة')
+        self.sales_show_cost = QCheckBox(translate('phase233_ui_054'))
         self.sales_show_cost.setChecked(self._bool_setting('invoice/show_cost', 'false'))
         form.addRow(self.sales_show_cost)
-        self.sales_warn_stock = QCheckBox('تحذير تجاوز المخزون')
+        self.sales_warn_stock = QCheckBox(translate('phase233_ui_055'))
         self.sales_warn_stock.setChecked(self._bool_setting('invoice/warn_stock_exceeded', 'true'))
         form.addRow(self.sales_warn_stock)
-        self.sales_round_prices = QCheckBox('تقريب الأسعار')
+        self.sales_round_prices = QCheckBox(translate('phase233_ui_056'))
         self.sales_round_prices.setChecked(self._bool_setting('invoice/round_prices', 'true'))
         form.addRow(self.sales_round_prices)
         layout.addWidget(sales_group)
@@ -449,13 +447,13 @@ class SettingsWidget(QWidget):
         purchase_group, pform = self._form_card('إعدادات فواتير المشتريات', 'سياسات تسعير الشراء والتكلفة المستخدمة لاحقًا في المخزون والتقارير.')
         self.purchase_prefix_edit = QLineEdit(settings_service.get('invoice/purchase_prefix', 'PUR-'))
         pform.addRow('بادئة رقم المشتريات', self.purchase_prefix_edit)
-        self.purchase_last_price = QCheckBox('اعتماد سعر الشراء الأخير')
+        self.purchase_last_price = QCheckBox(translate('phase233_ui_057'))
         self.purchase_last_price.setChecked(self._bool_setting('purchase/use_last_purchase_price', 'true'))
         pform.addRow(self.purchase_last_price)
-        self.purchase_avg_cost = QCheckBox('اعتماد متوسط التكلفة')
+        self.purchase_avg_cost = QCheckBox(translate('phase233_ui_058'))
         self.purchase_avg_cost.setChecked(self._bool_setting('purchase/use_average_cost', 'true'))
         pform.addRow(self.purchase_avg_cost)
-        save_btn = QPushButton('حفظ إعدادات الفواتير')
+        save_btn = QPushButton(translate('phase233_ui_059'))
         save_btn.setObjectName('primary')
         save_btn.clicked.connect(self.save_invoice_settings)
         pform.addRow(self._button_row(save_btn))
@@ -491,7 +489,7 @@ class SettingsWidget(QWidget):
         self.rounding_method = QComboBox(); self.rounding_method.addItems(['HALF_UP', 'FLOOR', 'CEIL'])
         self.rounding_method.setCurrentText(settings_service.get('units/rounding_method', 'HALF_UP'))
         form.addRow('طريقة التقريب', self.rounding_method)
-        save_btn = QPushButton('حفظ إعدادات الوحدات'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_units_settings)
+        save_btn = QPushButton(translate('phase233_ui_060')); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_units_settings)
         form.addRow(self._button_row(save_btn))
         layout.addWidget(group); layout.addStretch(); return scroll
 
@@ -508,21 +506,21 @@ class SettingsWidget(QWidget):
     def create_returns_settings_tab(self):
         scroll, layout = self._scroll_tab()
         group, form = self._form_card('إعدادات المرتجعات', 'ضوابط قبول المرتجع وأثره على المخزون والسندات.')
-        self.allow_return_without_invoice = QCheckBox('السماح بالمرتجع بدون فاتورة')
+        self.allow_return_without_invoice = QCheckBox(translate('phase233_ui_061'))
         self.allow_return_without_invoice.setChecked(self._bool_setting('returns/allow_without_invoice', 'false'))
         form.addRow(self.allow_return_without_invoice)
         self.return_max_days = QSpinBox(); self.return_max_days.setRange(0, 3650); self.return_max_days.setValue(int(settings_service.get('returns/max_days', '30') or 30))
         form.addRow('أقصى مدة للمرتجع/يوم', self.return_max_days)
-        self.return_auto_voucher = QCheckBox('إنشاء سند تلقائي عند المرتجع')
+        self.return_auto_voucher = QCheckBox(translate('phase233_ui_062'))
         self.return_auto_voucher.setChecked(self._bool_setting('returns/auto_voucher', 'true'))
         form.addRow(self.return_auto_voucher)
-        self.return_update_stock = QCheckBox('تحديث المخزون فورًا')
+        self.return_update_stock = QCheckBox(translate('phase233_ui_063'))
         self.return_update_stock.setChecked(self._bool_setting('returns/update_stock_immediately', 'true'))
         form.addRow(self.return_update_stock)
-        self.return_prevent_exceed = QCheckBox('منع تجاوز الكمية القابلة للإرجاع')
+        self.return_prevent_exceed = QCheckBox(translate('phase233_ui_064'))
         self.return_prevent_exceed.setChecked(self._bool_setting('returns/prevent_quantity_exceed', 'true'))
         form.addRow(self.return_prevent_exceed)
-        save_btn = QPushButton('حفظ إعدادات المرتجعات'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_returns_settings)
+        save_btn = QPushButton(translate('phase233_ui_065')); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_returns_settings)
         form.addRow(self._button_row(save_btn)); layout.addWidget(group); layout.addStretch(); return scroll
 
     def save_returns_settings(self):
@@ -537,7 +535,7 @@ class SettingsWidget(QWidget):
     def create_inventory_settings_tab(self):
         scroll, layout = self._scroll_tab()
         group, form = self._form_card('إعدادات المخزون', 'السياسات العامة للمخزون والتقييم وحركات المخزون.')
-        self.inv_allow_negative = QCheckBox('السماح بالمخزون السالب')
+        self.inv_allow_negative = QCheckBox(translate('phase233_ui_066'))
         self.inv_allow_negative.setChecked(self._bool_setting('inventory/allow_negative_stock', 'false'))
         form.addRow(self.inv_allow_negative)
         self.inv_reorder = QSpinBox(); self.inv_reorder.setRange(0, 100000000); self.inv_reorder.setValue(int(float(settings_service.get('inventory/default_reorder_level', '0') or 0)))
@@ -545,10 +543,10 @@ class SettingsWidget(QWidget):
         self.inv_cost_method = QComboBox(); self.inv_cost_method.addItems(['AVERAGE', 'FIFO'])
         self.inv_cost_method.setCurrentText(settings_service.get('inventory/cost_method', 'AVERAGE'))
         form.addRow('طريقة تقييم المخزون', self.inv_cost_method)
-        self.inv_auto_movements = QCheckBox('إنشاء حركات المخزون تلقائيًا')
+        self.inv_auto_movements = QCheckBox(translate('phase233_ui_067'))
         self.inv_auto_movements.setChecked(self._bool_setting('inventory/auto_movements', 'true'))
         form.addRow(self.inv_auto_movements)
-        save_btn = QPushButton('حفظ إعدادات المخزون'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_inventory_settings)
+        save_btn = QPushButton(translate('phase233_ui_068')); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_inventory_settings)
         form.addRow(self._button_row(save_btn)); layout.addWidget(group); layout.addStretch(); return scroll
 
     def save_inventory_settings(self):
@@ -562,20 +560,20 @@ class SettingsWidget(QWidget):
     def create_manufacturing_settings_tab(self):
         scroll, layout = self._scroll_tab()
         group, form = self._form_card('إعدادات التصنيع', 'سياسات التكلفة والمواد عند إنشاء أوامر التصنيع.')
-        self.mfg_auto_entries = QCheckBox('إنشاء قيود تلقائية')
+        self.mfg_auto_entries = QCheckBox(translate('phase233_ui_069'))
         self.mfg_auto_entries.setChecked(self._bool_setting('manufacturing/auto_entries', 'false'))
         form.addRow(self.mfg_auto_entries)
-        self.mfg_cost_method = QComboBox(); self.mfg_cost_method.addItem('تكلفة المواد فقط', 'MATERIALS_ONLY'); self.mfg_cost_method.addItem('المواد + التكاليف الإضافية', 'MATERIALS_PLUS_OVERHEAD')
+        self.mfg_cost_method = QComboBox(); self.mfg_cost_method.addItem(translate('phase233_ui_070'), 'MATERIALS_ONLY'); self.mfg_cost_method.addItem(translate('phase233_ui_071'), 'MATERIALS_PLUS_OVERHEAD')
         idx = self.mfg_cost_method.findData(settings_service.get('manufacturing/cost_method', 'MATERIALS_ONLY'))
         self.mfg_cost_method.setCurrentIndex(max(0, idx))
         form.addRow('طريقة التكلفة', self.mfg_cost_method)
-        self.mfg_allow_overproduction = QCheckBox('السماح بإنتاج أكبر من BOM')
+        self.mfg_allow_overproduction = QCheckBox(translate('phase233_ui_072'))
         self.mfg_allow_overproduction.setChecked(self._bool_setting('manufacturing/allow_overproduction', 'false'))
         form.addRow(self.mfg_allow_overproduction)
-        self.mfg_allow_shortage = QCheckBox('السماح بنقص المواد')
+        self.mfg_allow_shortage = QCheckBox(translate('phase233_ui_073'))
         self.mfg_allow_shortage.setChecked(self._bool_setting('manufacturing/allow_material_shortage', 'false'))
         form.addRow(self.mfg_allow_shortage)
-        save_btn = QPushButton('حفظ إعدادات التصنيع'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_manufacturing_settings)
+        save_btn = QPushButton(translate('phase233_ui_074')); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_manufacturing_settings)
         form.addRow(self._button_row(save_btn)); layout.addWidget(group); layout.addStretch(); return scroll
 
     def save_manufacturing_settings(self):
@@ -591,19 +589,19 @@ class SettingsWidget(QWidget):
         group, form = self._form_card('إعدادات التقارير', 'سلوك الفلاتر والتصدير والعدد الافتراضي للسجلات.')
         self.reports_default_limit = QSpinBox(); self.reports_default_limit.setRange(10, 100000); self.reports_default_limit.setValue(int(settings_service.get('reports/default_limit', '100') or 100))
         form.addRow('عدد السجلات الافتراضي', self.reports_default_limit)
-        self.reports_save_filters = QCheckBox('حفظ الفلاتر الأخيرة')
+        self.reports_save_filters = QCheckBox(translate('phase233_ui_075'))
         self.reports_save_filters.setChecked(self._bool_setting('reports/save_last_filters', 'true'))
         form.addRow(self.reports_save_filters)
-        self.reports_open_last = QCheckBox('فتح آخر تقرير')
+        self.reports_open_last = QCheckBox(translate('phase233_ui_076'))
         self.reports_open_last.setChecked(self._bool_setting('reports/open_last_report', 'false'))
         form.addRow(self.reports_open_last)
-        self.reports_excel = QCheckBox('تفعيل تصدير Excel')
+        self.reports_excel = QCheckBox(translate('phase233_ui_077'))
         self.reports_excel.setChecked(self._bool_setting('reports/export_excel', 'true'))
         form.addRow(self.reports_excel)
-        self.reports_pdf = QCheckBox('تفعيل تصدير PDF')
+        self.reports_pdf = QCheckBox(translate('phase233_ui_078'))
         self.reports_pdf.setChecked(self._bool_setting('reports/export_pdf', 'true'))
         form.addRow(self.reports_pdf)
-        save_btn = QPushButton('حفظ إعدادات التقارير'); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_reports_settings)
+        save_btn = QPushButton(translate('phase233_ui_079')); save_btn.setObjectName('primary'); save_btn.clicked.connect(self.save_reports_settings)
         form.addRow(self._button_row(save_btn)); layout.addWidget(group); layout.addStretch(); return scroll
 
     def save_reports_settings(self):
@@ -901,18 +899,18 @@ class SettingsWidget(QWidget):
         row.addWidget(self.profile_name, 2); row.addWidget(self.profile_desc, 3)
         box.addLayout(row)
 
-        create_btn = QPushButton('إنشاء ملف')
+        create_btn = QPushButton(translate('phase233_ui_080'))
         create_btn.clicked.connect(self.create_settings_profile)
-        activate_btn = QPushButton('تفعيل المحدد')
+        activate_btn = QPushButton(translate('phase233_ui_081'))
         activate_btn.setObjectName('primary')
         activate_btn.clicked.connect(self.activate_selected_profile)
-        clone_btn = QPushButton('نسخ المحدد')
+        clone_btn = QPushButton(translate('phase233_ui_082'))
         clone_btn.clicked.connect(self.clone_selected_profile)
-        export_btn = QPushButton('تصدير المحدد JSON')
+        export_btn = QPushButton(translate('phase233_ui_083'))
         export_btn.clicked.connect(self.export_selected_profile)
-        import_btn = QPushButton('استيراد Profile JSON')
+        import_btn = QPushButton(translate('phase233_ui_084'))
         import_btn.clicked.connect(self.import_settings_profile)
-        refresh_btn = QPushButton('تحديث')
+        refresh_btn = QPushButton(translate('phase233_ui_085'))
         refresh_btn.clicked.connect(self.refresh_profiles)
         box.addLayout(self._button_row(refresh_btn, import_btn, export_btn, clone_btn, activate_btn, create_btn))
 
@@ -944,13 +942,13 @@ class SettingsWidget(QWidget):
         active = health.get('active_profile') or {}
         missing = health.get('missing_settings') or []
         self.profile_status_label.setText(
-            f"الملف النشط: {active.get('name', 'Default')} | عدد إعدادات الملف: {active.get('settings_count', 0)} | إعدادات ناقصة: {len(missing)}"
+            translate('settings_profile_status', name=active.get('name', 'Default'), count=active.get('settings_count', 0), missing=len(missing))
         )
 
     def create_settings_profile(self):
         name = self.profile_name.text().strip()
         if not name:
-            QMessageBox.warning(self, 'تنبيه', 'أدخل اسم ملف الإعدادات أولاً.')
+            QMessageBox.warning(self, translate('warning'), translate('settings_profile_name_required'))
             return
         try:
             settings_service.create_profile(name, self.profile_desc.text().strip())
@@ -1017,29 +1015,29 @@ class SettingsWidget(QWidget):
         scroll, layout = self._scroll_tab()
         group, form = self._form_card('إعدادات المستخدمين والصلاحيات', 'سياسات تشغيلية عامة تُقرأ وقت التنفيذ عبر PermissionService. المدير admin يبقى مستثنى افتراضيًا.')
         cfg = settings_service.get_security_settings()
-        self.sec_hide_profit = QCheckBox('إخفاء الربح عن غير المدير')
+        self.sec_hide_profit = QCheckBox(translate('phase233_ui_087'))
         self.sec_hide_profit.setChecked(bool(cfg.get('hide_profit_for_non_admin')))
         form.addRow(self.sec_hide_profit)
-        self.sec_prevent_delete = QCheckBox('منع الحذف عن غير المدير')
+        self.sec_prevent_delete = QCheckBox(translate('phase233_ui_088'))
         self.sec_prevent_delete.setChecked(bool(cfg.get('prevent_delete_for_non_admin')))
         form.addRow(self.sec_prevent_delete)
-        self.sec_prevent_invoice_edit = QCheckBox('منع تعديل الفواتير عن غير المدير')
+        self.sec_prevent_invoice_edit = QCheckBox(translate('phase233_ui_089'))
         self.sec_prevent_invoice_edit.setChecked(bool(cfg.get('prevent_invoice_edit_for_non_admin')))
         form.addRow(self.sec_prevent_invoice_edit)
-        self.sec_prevent_return_edit = QCheckBox('منع تعديل المرتجعات عن غير المدير')
+        self.sec_prevent_return_edit = QCheckBox(translate('phase233_ui_090'))
         self.sec_prevent_return_edit.setChecked(bool(cfg.get('prevent_return_edit_for_non_admin')))
         form.addRow(self.sec_prevent_return_edit)
-        self.sec_reports_admin_only = QCheckBox('حصر عرض التقارير بالمدير')
+        self.sec_reports_admin_only = QCheckBox(translate('phase233_ui_091'))
         self.sec_reports_admin_only.setChecked(bool(cfg.get('restrict_reports_to_admin')))
         form.addRow(self.sec_reports_admin_only)
-        self.sec_report_export_admin_only = QCheckBox('حصر تصدير التقارير بالمدير')
+        self.sec_report_export_admin_only = QCheckBox(translate('phase233_ui_092'))
         self.sec_report_export_admin_only.setChecked(bool(cfg.get('restrict_report_export_to_admin')))
         form.addRow(self.sec_report_export_admin_only)
         self.sec_blocked_report_roles = QLineEdit(str(cfg.get('blocked_report_roles') or ''))
         self.sec_blocked_report_roles.setPlaceholderText('مثال: cashier,viewer')
         form.addRow('أدوار ممنوعة من التقارير', self.sec_blocked_report_roles)
         form.addRow(self._note('هذه المرحلة تؤسس طبقة سياسة مركزية. ربط كل زر حذف/تعديل في الشاشات سيتم تدريجيًا باستدعاء permission_service.can(...).', 'info'))
-        save_btn = QPushButton('حفظ إعدادات الصلاحيات')
+        save_btn = QPushButton(translate('phase233_ui_093'))
         save_btn.setObjectName('primary')
         save_btn.clicked.connect(self.save_security_settings)
         form.addRow(self._button_row(save_btn))
@@ -1063,8 +1061,8 @@ class SettingsWidget(QWidget):
     def create_workflow_tab(self):
         scroll, layout = self._scroll_tab()
         group, form = self._form_card('سياسات سير العمل', 'تحدد متى يسمح النظام بتعديل أو حذف الفواتير حسب حالة المستند، مع حدود اعتماد للمبيعات والمشتريات.')
-        self.workflow_enabled_cb = QCheckBox('تفعيل سير العمل على الفواتير')
-        self.workflow_approval_required_cb = QCheckBox('اشتراط الاعتماد قبل الترحيل')
+        self.workflow_enabled_cb = QCheckBox(translate('phase233_ui_094'))
+        self.workflow_approval_required_cb = QCheckBox(translate('phase233_ui_095'))
         form.addRow('تشغيل Workflow', self.workflow_enabled_cb)
         form.addRow('الاعتماد قبل الترحيل', self.workflow_approval_required_cb)
         self.workflow_sales_threshold = QLineEdit()
@@ -1080,12 +1078,12 @@ class SettingsWidget(QWidget):
             ('posted', 'Posted / مرحلة'),
             ('cancelled', 'Cancelled / ملغاة'),
         ]:
-            edit_cb = QCheckBox('السماح بالتعديل')
-            delete_cb = QCheckBox('السماح بالحذف')
+            edit_cb = QCheckBox(translate('phase233_ui_110'))
+            delete_cb = QCheckBox(translate('phase233_ui_111'))
             row = QHBoxLayout(); row.addWidget(edit_cb); row.addWidget(delete_cb); row.addStretch()
             form.addRow(label, row)
             self.workflow_checks[status] = (edit_cb, delete_cb)
-        save_btn = QPushButton('حفظ سياسات سير العمل')
+        save_btn = QPushButton(translate('phase233_ui_096'))
         save_btn.clicked.connect(self.save_workflow_settings)
         layout.addWidget(group)
         layout.addLayout(self._button_row(save_btn))
@@ -1129,11 +1127,11 @@ class SettingsWidget(QWidget):
         self.settings_audit_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.settings_audit_table.setAlternatingRowColors(True)
         box.addWidget(self.settings_audit_table)
-        refresh_btn = QPushButton('تحديث السجل')
+        refresh_btn = QPushButton(translate('phase233_ui_097'))
         refresh_btn.clicked.connect(self.refresh_settings_audit)
-        export_btn = QPushButton('تصدير الإعدادات JSON')
+        export_btn = QPushButton(translate('phase233_ui_098'))
         export_btn.clicked.connect(self.export_settings_json)
-        import_btn = QPushButton('استيراد إعدادات JSON')
+        import_btn = QPushButton(translate('phase233_ui_099'))
         import_btn.clicked.connect(self.import_settings_json)
         box.addLayout(self._button_row(import_btn, export_btn, refresh_btn))
         layout.addWidget(group)
@@ -1186,7 +1184,7 @@ class SettingsWidget(QWidget):
         self.security_events_summary = QLabel('')
         self.security_events_summary.setWordWrap(True)
         box.addWidget(self.security_events_summary)
-        refresh_btn = QPushButton('تحديث سجل الصلاحيات')
+        refresh_btn = QPushButton(translate('phase233_ui_100'))
         refresh_btn.clicked.connect(self.refresh_security_events)
         box.addLayout(self._button_row(refresh_btn))
         layout.addWidget(group)
@@ -1203,7 +1201,7 @@ class SettingsWidget(QWidget):
                 item = QTableWidgetItem(str(val if val is not None else ''))
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 self.security_events_table.setItem(r, c, item)
-        self.security_events_summary.setText(f'عدد الأحداث المعروضة: {len(rows)} | إجمالي العمليات المرفوضة: {settings_service.security_denied_count()}')
+        self.security_events_summary.setText(translate('settings_security_events_summary', count=len(rows), denied=settings_service.security_denied_count()))
 
 
     def create_backup_tab(self):
@@ -1213,10 +1211,10 @@ class SettingsWidget(QWidget):
         form.addRow(self.backup_enabled)
 
         self.backup_frequency = QComboBox()
-        self.backup_frequency.addItem('يدوي فقط', 'manual')
-        self.backup_frequency.addItem('يومي', 'daily')
-        self.backup_frequency.addItem('أسبوعي', 'weekly')
-        self.backup_frequency.addItem('كل عدد ساعات', 'interval')
+        self.backup_frequency.addItem(translate('phase233_ui_102'), 'manual')
+        self.backup_frequency.addItem(translate('phase233_ui_103'), 'daily')
+        self.backup_frequency.addItem(translate('phase233_ui_104'), 'weekly')
+        self.backup_frequency.addItem(translate('phase233_ui_105'), 'interval')
         form.addRow('التكرار', self.backup_frequency)
 
         self.backup_interval = QSpinBox(); self.backup_interval.setRange(1, 168); self.backup_interval.setSuffix(' ' + translate('hour'))
@@ -1225,7 +1223,7 @@ class SettingsWidget(QWidget):
         self.backup_retention = QSpinBox(); self.backup_retention.setRange(1, 365); self.backup_retention.setSuffix(' نسخة')
         form.addRow('عدد النسخ المحتفظ بها', self.backup_retention)
 
-        self.backup_create_on_exit = QCheckBox('إنشاء نسخة عند إغلاق البرنامج')
+        self.backup_create_on_exit = QCheckBox(translate('phase233_ui_106'))
         form.addRow(self.backup_create_on_exit)
 
         self.backup_folder = QLineEdit(); self.backup_folder.setPlaceholderText(translate('settings_backup_folder_placeholder'))
@@ -1242,8 +1240,8 @@ class SettingsWidget(QWidget):
 
         instant_group, instant_box = self._card(translate('settings_backup_instant_title'), translate('settings_backup_instant_help'))
         backup_now_btn = QPushButton(translate('settings_backup_create_now')); backup_now_btn.setObjectName('primary'); backup_now_btn.clicked.connect(self.create_backup_now)
-        cleanup_btn = QPushButton('تنظيف النسخ القديمة'); cleanup_btn.clicked.connect(self.cleanup_old_backups)
-        refresh_btn = QPushButton('تحديث الحالة'); refresh_btn.clicked.connect(self.refresh_backup_status)
+        cleanup_btn = QPushButton(translate('phase233_ui_107')); cleanup_btn.clicked.connect(self.cleanup_old_backups)
+        refresh_btn = QPushButton(translate('phase233_ui_108')); refresh_btn.clicked.connect(self.refresh_backup_status)
         instant_box.addLayout(self._button_row(refresh_btn, cleanup_btn, backup_now_btn)); layout.addWidget(instant_group)
 
         manage_group, manage_box = self._card(translate('settings_database_admin_title'), translate('settings_database_admin_help'))
@@ -1263,7 +1261,7 @@ class SettingsWidget(QWidget):
         self.diagnostics_text.setReadOnly(True)
         self.diagnostics_text.setMinimumHeight(420)
         box.addWidget(self.diagnostics_text)
-        refresh_btn = QPushButton('تحديث التشخيص')
+        refresh_btn = QPushButton(translate('phase233_ui_109'))
         refresh_btn.setObjectName('primary')
         refresh_btn.clicked.connect(self.refresh_diagnostics)
         box.addLayout(self._button_row(refresh_btn))
@@ -1364,24 +1362,24 @@ class SettingsWidget(QWidget):
         try:
             labels = [
                 '🎨 ' + translate('appearance'),
-                '🌍 اللغات',
+                translate('phase233_ui_037'),
                 '🏢 ' + translate('company'),
-                '🧾 الفواتير',
-                '📏 الوحدات',
-                '↩️ المرتجعات',
-                '📦 المخزون',
-                '🏭 التصنيع',
-                '📊 التقارير',
+                translate('phase233_ui_039'),
+                translate('phase233_ui_040'),
+                translate('phase233_ui_041'),
+                translate('phase233_ui_042'),
+                translate('phase233_ui_043'),
+                translate('phase233_ui_044'),
                 '🖨️ ' + translate('printing_tab'),
                 '🧾 ' + translate('pos_tab'),
                 '💰 ' + translate('currencies'),
                 '💱 ' + translate('exchange_rates'),
                 '🌐 ' + translate('network'),
-                '🔐 الصلاحيات',
-                '📜 سجل الإعدادات',
-                '🛡️ سجل الصلاحيات',
+                translate('phase233_ui_045'),
+                translate('phase233_ui_047'),
+                translate('phase233_ui_048'),
                 '💾 ' + translate('backup_data'),
-                '🩺 التشخيص',
+                translate('phase233_ui_049'),
             ]
             for i, label in enumerate(labels):
                 if i < self.tabs.count():
@@ -1400,7 +1398,7 @@ class SettingsWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction(lang))
         settings_service.set('ui/font_size', self.ui_font_size.value())
         settings_service.set('ui/row_height', self.ui_row_height.value())
-        self._set_bool_setting('ui/show_global_search', self.ui_show_global_search.isChecked())
+        self._set_bool_setting('ui/show_global_search', False)
         settings_service.set('ui/default_page', self.ui_default_page.text().strip() or 'dashboard')
         self._set_bool_setting('ui/remember_last_tab', self.ui_remember_last_tab.isChecked())
         settings_service.clear_cache()
@@ -1413,7 +1411,9 @@ class SettingsWidget(QWidget):
             main_window.setup_menus()
         if hasattr(main_window, 'top_bar') and hasattr(main_window.top_bar, 'apply_styles'):
             try:
-                main_window.top_bar.search_box.setPlaceholderText(translate('global_search_placeholder'))
+                box = getattr(main_window.top_bar, 'search_box', None)
+                if box is not None:
+                    box.setPlaceholderText(translate('global_search_placeholder'))
                 main_window.top_bar.alert_btn.setText('')
                 main_window.top_bar.alert_btn.setToolTip(translate('alerts'))
                 main_window.top_bar.theme_btn.setText('')
@@ -1514,20 +1514,20 @@ class SettingsWidget(QWidget):
         try:
             folder = self.backup_folder.text().strip()
             if backup_service.is_remote():
-                self.backup_status_label.setText('النسخ الاحتياطي المحلي غير متاح في وضع الاتصال بالخادم.')
+                self.backup_status_label.setText(translate('phase233_ui_112'))
                 return
             if not folder:
-                self.backup_status_label.setText('لم يتم تحديد مسار النسخ الاحتياطي بعد.')
+                self.backup_status_label.setText(translate('phase233_ui_113'))
                 return
             info = backup_service.list_backups(folder)
             latest = info.get('latest')
             if latest:
                 size_mb = float(latest.get('size_bytes', 0) or 0) / (1024 * 1024)
-                self.backup_status_label.setText(f"{latest.get('filename')} — {latest.get('created_at')} — {size_mb:.2f} MB — العدد: {info.get('count', 0)}")
+                self.backup_status_label.setText(translate('settings_backup_latest_summary', filename=latest.get('filename'), created=latest.get('created_at'), size=f'{size_mb:.2f}', count=info.get('count', 0)))
             else:
-                self.backup_status_label.setText('لا توجد نسخ احتياطية في هذا المسار.')
+                self.backup_status_label.setText(translate('phase233_ui_115'))
         except Exception as exc:
-            self.backup_status_label.setText('تعذر قراءة حالة النسخ: ' + str(exc))
+            self.backup_status_label.setText(translate('settings_backup_status_failed', error=exc))
 
 
     def create_backup_now(self):

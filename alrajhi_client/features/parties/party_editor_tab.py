@@ -152,17 +152,8 @@ class PartyEditorTab(BaseDocumentTab):
         titles.addWidget(self.subtitle_label)
         layout.addLayout(titles, 1)
 
-        self.header_refresh_btn = QPushButton(_tr('refresh', 'تحديث'), header)
-        self.header_refresh_btn.clicked.connect(self.refresh_context_tables)
-        self.header_print_btn = QPushButton(_tr('print', 'طباعة'), header)
-        self.header_print_btn.clicked.connect(self.workspace_print)
-        self.header_export_btn = QPushButton(_tr('export', 'تصدير'), header)
-        self.header_export_btn.clicked.connect(self.workspace_export)
-        self.save_btn = QPushButton(translate('save'), header)
-        self.save_btn.setObjectName('primary')
-        self.save_btn.clicked.connect(self.workspace_save)
-        for btn in (self.header_refresh_btn, self.header_print_btn, self.header_export_btn, self.save_btn):
-            layout.addWidget(btn)
+        # Phase 229: document headers are informational only; all local
+        # document commands live in BottomActionBar / UnifiedActionBar.
         return header
 
     def _build_body(self) -> QWidget:
@@ -240,6 +231,8 @@ class PartyEditorTab(BaseDocumentTab):
         self.bottom_save_btn = QPushButton(translate('save'), bar)
         self.bottom_save_btn.setObjectName('primary')
         self.bottom_save_btn.clicked.connect(self.workspace_save)
+        # Backward-compatible alias for older code/tests; no header button.
+        self.save_btn = self.bottom_save_btn
         for btn in (self.bottom_refresh_btn, self.bottom_print_btn, self.bottom_export_btn):
             layout.addWidget(btn)
         layout.addStretch(1)
@@ -269,7 +262,6 @@ class PartyEditorTab(BaseDocumentTab):
         allowed = party_operation_policy.can(operation)
         for widget in (self.name_edit, self.phone_edit, self.address_edit):
             widget.setReadOnly(not allowed)
-        self.save_btn.setEnabled(allowed)
         self.bottom_save_btn.setEnabled(allowed)
         if not allowed:
             self.subtitle_label.setText(_tr('party_read_only', 'للقراءة فقط حسب الصلاحيات أو الإعدادات'))
