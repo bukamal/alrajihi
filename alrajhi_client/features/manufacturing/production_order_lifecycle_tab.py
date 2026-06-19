@@ -284,7 +284,7 @@ class ProductionOrderDetailsTab(BaseDocumentTab):
 
     def workspace_print(self) -> None:
         try:
-            manufacturing_printing_bridge.production_order_preview(int(self.order_id), self)
+            manufacturing_printing_bridge.production_order_print(int(self.order_id), self)
         except PermissionError as exc:
             show_toast(str(exc) or translate('permission_denied'), 'warning', self)
         except Exception as exc:
@@ -292,7 +292,7 @@ class ProductionOrderDetailsTab(BaseDocumentTab):
 
     def print_pick_ticket(self) -> None:
         try:
-            manufacturing_printing_bridge.pick_ticket_preview(int(self.order_id), self)
+            manufacturing_printing_bridge.pick_ticket_print(int(self.order_id), self)
         except PermissionError as exc:
             show_toast(str(exc) or translate('permission_denied'), 'warning', self)
         except Exception as exc:
@@ -300,7 +300,7 @@ class ProductionOrderDetailsTab(BaseDocumentTab):
 
     def print_cost_report(self) -> None:
         try:
-            manufacturing_printing_bridge.cost_report_preview(int(self.order_id), self)
+            manufacturing_printing_bridge.cost_report_print(int(self.order_id), self)
         except PermissionError as exc:
             show_toast(str(exc) or translate('permission_denied'), 'warning', self)
         except Exception as exc:

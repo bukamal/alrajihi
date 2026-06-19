@@ -96,11 +96,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         period_layout.addWidget(reset_btn)
 
         self.print_btn = QPushButton(tr("printing"))
-        print_menu = QMenu(self.print_btn)
-        print_menu.addAction(tr("preview_in_app"), lambda: self.print_report('preview'))
-        print_menu.addAction(tr("open_html_browser"), lambda: self.print_report('browser'))  # فتح HTML في المتصفح
-        print_menu.addAction(tr("direct_print"), lambda: self.print_report('direct'))
-        self.print_btn.setMenu(print_menu)
+        self.print_btn.clicked.connect(lambda: self.print_report('print'))
         period_layout.addWidget(self.print_btn)
 
         layout.addLayout(period_layout)

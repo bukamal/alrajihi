@@ -985,13 +985,13 @@ class TransactionDocumentTab(BaseDocumentTab):
         if not self._has_printable_lines():
             QMessageBox.warning(self, tr("printing"), tr("transaction_no_printable_lines_preview"))
             return
-        self.printing_bridge.preview()
+        self.workspace_print()
 
     def _open_html_preview(self) -> None:
         if not self._has_printable_lines():
             QMessageBox.warning(self, tr("printing"), tr("transaction_no_printable_lines_preview"))
             return
-        self.printing_bridge.browser()
+        self.workspace_print()
 
     def workspace_print(self) -> None:
         if not self._ensure_saved_for_output():

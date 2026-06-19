@@ -319,15 +319,7 @@ def _ret_print_dialog(dialog, qty_kind, mode='preview'):
         QMessageBox.information(dialog, translate('printing'), translate('no_return_lines_to_print'))
         return
     from printing.printing_service import printing_service
-    if mode == 'browser':
-        printing_service.return_browser(data, dialog)
-    elif mode == 'direct':
-        printing_service.return_print(data, dialog)
-    elif mode == 'pdf':
-        # Phase 235: no PDF export from return print buttons; keep legacy callers on unified print.
-        printing_service.return_print(data, dialog)
-    else:
-        printing_service.return_preview(data, dialog)
+    printing_service.return_print(data, dialog)
 
 
 def _ret_install_dialog_print_button(dialog, button_box, qty_kind):
@@ -901,7 +893,7 @@ class ReturnsWidget(QWidget):
         self.toolbar.deleteRequested.connect(self.cancel_selected)
         self.toolbar.editRequested.connect(self.edit_selected)
         self.toolbar.exportRequested.connect(lambda: self.table.export_to_excel())
-        self.toolbar.printRequested.connect(lambda: self.print_selected_return('preview'))
+        self.toolbar.printRequested.connect(lambda: self.print_selected_return('print'))
         self.toolbar.refreshRequested.connect(self.refresh)
         self.toolbar.searchChanged.connect(lambda _t: self.refresh(True))
         layout.addWidget(self.toolbar)
@@ -1014,15 +1006,8 @@ class ReturnsWidget(QWidget):
         data.setdefault('return_type', 'sale_return')
         data.setdefault('customer_name', data.get('customer') or data.get('party_name') or translate('cash_customer'))
         from printing.printing_service import printing_service
-        if mode == 'browser':
-            printing_service.return_browser(data, self)
-        elif mode == 'direct':
-            printing_service.return_print(data, self)
-        elif mode == 'pdf':
-            # Phase 235: no PDF export from return print buttons; keep legacy callers on unified print.
-            printing_service.return_print(data, self)
-        else:
-            printing_service.return_preview(data, self)
+        # Phase 236: return print buttons use the single project print settings contract.
+        printing_service.return_print(data, self)
 
     def add_return(self):
         main = self.window()
@@ -1380,7 +1365,7 @@ class PurchaseReturnsWidget(QWidget):
         self.toolbar.deleteRequested.connect(self.cancel_selected)
         self.toolbar.editRequested.connect(self.edit_selected)
         self.toolbar.exportRequested.connect(lambda: self.table.export_to_excel())
-        self.toolbar.printRequested.connect(lambda: self.print_selected_return('preview'))
+        self.toolbar.printRequested.connect(lambda: self.print_selected_return('print'))
         self.toolbar.refreshRequested.connect(self.refresh)
         self.toolbar.searchChanged.connect(lambda _t: self.refresh(True))
         layout.addWidget(self.toolbar)
@@ -1477,15 +1462,8 @@ class PurchaseReturnsWidget(QWidget):
         data.setdefault('return_type', 'purchase_return')
         data.setdefault('supplier_name', data.get('supplier') or data.get('party_name') or translate('cash_customer'))
         from printing.printing_service import printing_service
-        if mode == 'browser':
-            printing_service.return_browser(data, self)
-        elif mode == 'direct':
-            printing_service.return_print(data, self)
-        elif mode == 'pdf':
-            # Phase 235: no PDF export from return print buttons; keep legacy callers on unified print.
-            printing_service.return_print(data, self)
-        else:
-            printing_service.return_preview(data, self)
+        # Phase 236: return print buttons use the single project print settings contract.
+        printing_service.return_print(data, self)
 
     def add_return(self):
         main = self.window()

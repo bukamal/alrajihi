@@ -114,7 +114,7 @@ class WarehousesWidget(QWidget):
         tools.addWidget(self.balance_stock_filter)
         tools.addWidget(QLabel(translate('view_preset_label')))
         tools.addWidget(self.balance_preset)
-        print_btn = QPushButton(translate('print_preview'))
+        print_btn = QPushButton(translate('print'))
         print_btn.clicked.connect(self.print_balances)
         self.print_balances_btn = print_btn
         tools.addWidget(QLabel(translate('row_density')))
@@ -187,7 +187,7 @@ class WarehousesWidget(QWidget):
         cancel_btn = QPushButton(translate('cancel_transfer'))
         cancel_btn.clicked.connect(self.cancel_transfer)
         self.cancel_transfer_btn = cancel_btn
-        print_btn = QPushButton(translate('print_preview'))
+        print_btn = QPushButton(translate('print'))
         print_btn.clicked.connect(self.print_selected_transfer)
         self.print_transfer_btn = print_btn
         refresh_btn = QPushButton(translate('refresh_report'))
@@ -557,7 +557,7 @@ class WarehousesWidget(QWidget):
             return
         try:
             payload = inventory_printing_bridge.balances_payload(self._table_rows_for_print('balance_model'), warehouse=self.warehouse_filter.currentText() if hasattr(self, 'warehouse_filter') else '')
-            inventory_printing_bridge.balances_preview(payload, self)
+            inventory_printing_bridge.balances_print(payload, self)
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 
@@ -566,7 +566,7 @@ class WarehousesWidget(QWidget):
             return
         try:
             payload = inventory_printing_bridge.movements_payload(self._table_rows_for_print('mov_model'), warehouse=self.mov_warehouse_filter.currentText() if hasattr(self, 'mov_warehouse_filter') else '', movement_type=self.mov_type_filter.currentText() if hasattr(self, 'mov_type_filter') else '')
-            inventory_printing_bridge.movements_preview(payload, self)
+            inventory_printing_bridge.movements_print(payload, self)
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 
@@ -579,7 +579,7 @@ class WarehousesWidget(QWidget):
             return
         try:
             payload = inventory_printing_bridge.transfer_payload(transfer, [transfer])
-            inventory_printing_bridge.transfer_preview(payload, self)
+            inventory_printing_bridge.transfer_print(payload, self)
         except Exception as exc:
             show_toast(str(exc), 'error', self)
 

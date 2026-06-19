@@ -206,14 +206,14 @@ class CustomTableView(QTableView):
         try:
             from printing.printing_service import printing_service
             if mode == 'browser':
-                printing_service.report_browser(str(title), rows, headers, self, subtitle=subtitle)
+                printing_service.report_print(str(title), rows, headers, self, subtitle=subtitle)
             elif mode == 'direct':
                 printing_service.report_print(str(title), rows, headers, self, subtitle=subtitle)
             elif mode == 'pdf':
                 # Phase 235: legacy PDF mode follows unified print output.
                 printing_service.report_print(str(title), rows, headers, self, subtitle=subtitle)
             else:
-                printing_service.report_preview(str(title), rows, headers, self, subtitle=subtitle)
+                printing_service.report_print(str(title), rows, headers, self, subtitle=subtitle)
         except Exception as exc:
             QMessageBox.warning(self, "تعذر الطباعة", str(exc))
 

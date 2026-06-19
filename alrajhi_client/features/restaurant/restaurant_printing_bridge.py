@@ -39,11 +39,8 @@ class RestaurantPrintingBridge:
     def kitchen_ticket_payload(self, ticket_id: int) -> Dict[str, Any]:
         return self.service.get_kitchen_ticket(int(ticket_id))
 
-    def receipt_preview(self, session_id: int, parent=None) -> None:
-        restaurant_operation_policy.require(restaurant_operation_policy.OP_PRINT_RECEIPT)
-        payload = self.receipt_payload(session_id)
-        self.printer.restaurant_receipt_preview(payload, parent, paper=self._paper("receipt"))
-        restaurant_operation_policy.log(restaurant_operation_policy.OP_PRINT_RECEIPT, allowed=True, context="restaurant_printing.receipt_preview", values={"session_id": session_id})
+    def receipt_preview(self, session_id: int, parent=None) -> bool:
+        return self.receipt_print(session_id, parent)
 
     def receipt_print(self, session_id: int, parent=None) -> bool:
         restaurant_operation_policy.require(restaurant_operation_policy.OP_PRINT_RECEIPT)
@@ -53,17 +50,10 @@ class RestaurantPrintingBridge:
         return bool(ok)
 
     def receipt_pdf(self, session_id: int, parent=None) -> bool:
-        restaurant_operation_policy.require(restaurant_operation_policy.OP_PRINT_RECEIPT)
-        payload = self.receipt_payload(session_id)
-        ok = self.printer.restaurant_receipt_pdf(payload, parent, paper=self._paper("receipt"))
-        restaurant_operation_policy.log(restaurant_operation_policy.OP_PRINT_RECEIPT, allowed=bool(ok), context="restaurant_printing.receipt_pdf", values={"session_id": session_id})
-        return bool(ok)
+        return self.receipt_print(session_id, parent)
 
-    def kitchen_ticket_preview(self, ticket_id: int, parent=None) -> None:
-        restaurant_operation_policy.require(restaurant_operation_policy.OP_PRINT_KITCHEN_TICKET)
-        payload = self.kitchen_ticket_payload(ticket_id)
-        self.printer.restaurant_kitchen_ticket_preview(payload, parent, paper=self._paper("kitchen"))
-        restaurant_operation_policy.log(restaurant_operation_policy.OP_PRINT_KITCHEN_TICKET, allowed=True, context="restaurant_printing.ticket_preview", values={"ticket_id": ticket_id})
+    def kitchen_ticket_preview(self, ticket_id: int, parent=None) -> bool:
+        return self.kitchen_ticket_print(ticket_id, parent)
 
     def kitchen_ticket_print(self, ticket_id: int, parent=None) -> bool:
         restaurant_operation_policy.require(restaurant_operation_policy.OP_PRINT_KITCHEN_TICKET)

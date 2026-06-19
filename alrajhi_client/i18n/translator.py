@@ -6700,3 +6700,23 @@ try:
         _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
 except Exception:
     pass
+
+# Phase 236: print buttons/settings contract labels.
+PHASE236_PRINT_SETTINGS_TRANSLATIONS = {
+    'ar': {
+        'phase236_barcode_uses_project_settings': 'تستخدم طباعة الباركود إعدادات المشروع: الطابعة، حجم الملصق، الشعار، QR، الأعمدة وعدد النسخ.',
+    },
+    'en': {
+        'phase236_barcode_uses_project_settings': 'Barcode printing uses the project settings: printer, label size, logo, QR, columns and copies.',
+    },
+    'de': {
+        'phase236_barcode_uses_project_settings': 'Der Barcode-Druck verwendet die Projekteinstellungen: Drucker, Etikettgröße, Logo, QR, Spalten und Kopien.',
+    },
+}
+for _lang, _values in PHASE236_PRINT_SETTINGS_TRANSLATIONS.items():
+    _translations.setdefault(_lang, {}).update(_values)
+try:
+    for _lang, _values in PHASE236_PRINT_SETTINGS_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass

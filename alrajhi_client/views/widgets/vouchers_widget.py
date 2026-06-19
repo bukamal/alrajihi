@@ -50,11 +50,7 @@ class VouchersWidget(QWidget):
         top_layout.addWidget(self.delete_btn)
 
         self.print_btn = QPushButton(tr("print_button"))
-        print_menu = QMenu(self.print_btn)
-        print_menu.addAction(tr("preview_inside_app"), lambda: self.print_selected('preview'))
-        print_menu.addAction(tr("open_html_browser"), lambda: self.print_selected('browser'))
-        print_menu.addAction(tr("direct_print"), lambda: self.print_selected('direct'))
-        self.print_btn.setMenu(print_menu)
+        self.print_btn.clicked.connect(lambda: self.print_selected('print'))
         top_layout.addWidget(self.print_btn)
 
         layout.addLayout(top_layout)
@@ -200,15 +196,7 @@ class VouchersWidget(QWidget):
         voucher = dict(voucher)
         voucher['party_name'] = voucher_service.party_name(voucher)
         from printing.printing_service import printing_service
-        if mode == 'browser':
-            printing_service.voucher_browser(voucher, self)
-        elif mode == 'direct':
-            printing_service.voucher_print(voucher, self)
-        elif mode == 'pdf':
-            # Phase 235: legacy PDF mode follows unified print output.
-            printing_service.voucher_print(voucher, self)
-        else:
-            printing_service.voucher_preview(voucher, self)
+        printing_service.voucher_print(voucher, self)
 
     def add_voucher(self):
         try:

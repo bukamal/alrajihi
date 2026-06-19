@@ -49,6 +49,39 @@ def _tr(key: str, **kwargs) -> str:
 class PrintingService:
     """Unified printing facade used by dialogs, widgets and table views."""
 
+    def _printing_settings(self) -> Dict[str, Any]:
+        try:
+            return dict(settings_service.get_printing_settings() or {})
+        except Exception:
+            return {}
+
+    def print_button_mode(self, document_type: str = 'document') -> str:
+        """Return the configured single print-button action.
+
+        UI print buttons must not decide between preview/browser/direct/PDF. The
+        project setting owns that decision. PDF/export is deliberately sanitized
+        back to normal print because the visible PDF buttons were removed.
+        """
+        cfg = self._printing_settings()
+        candidates = (
+            cfg.get(f'{document_type}_print_mode'),
+            cfg.get('print_button_mode'),
+            cfg.get('default_print_mode'),
+            cfg.get('print_mode'),
+            'browser',
+        )
+        mode = next((str(x).lower().strip() for x in candidates if x not in (None, '')), 'print')
+        # Phase 237: all visible print buttons open the generated HTML in the
+        # system browser.  Legacy settings such as print/preview/pdf are treated
+        # as browser output so users get one consistent path and can print from
+        # browser controls.
+        if mode in {'browser', 'html', 'open', 'print', 'printer', 'direct', 'preview', 'view', 'pdf', 'save_pdf', 'export', 'file'}:
+            return 'browser'
+        return 'browser'
+
+    def _print_button_render(self, html: str, parent=None, title: str = None, document_type: str = 'document', default_name: str = 'document.pdf') -> bool:
+        return self.render_html(html, parent, title, mode=self.print_button_mode(document_type), default_name=default_name)
+
     def _make_document(self, html: str) -> QTextDocument:
         doc = QTextDocument()
         doc.setHtml(html or "")
@@ -199,8 +232,15 @@ class PrintingService:
         return ''
 
     def barcode_labels_print_settings(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None) -> bool:
-        """Print barcode labels using project printing settings and no separate PDF route."""
-        return self.barcode_labels_print(items, parent, options, self.barcode_default_printer_name())
+        """Open barcode labels as settings-driven browser HTML.
+
+        Barcode, material-card and batch-label buttons now follow the same
+        visible print contract as invoices, returns and BOMs: generate HTML from
+        project settings, open it in the browser, and let the browser perform
+        the physical print.
+        """
+        html = self.barcode_labels_html(items, options)
+        return self._print_button_render(html, parent, _tr("barcode_print_title"), document_type='barcode_labels')
 
     def barcode_labels_html(self, items: List[Dict[str, Any]], options: Optional[Dict[str, Any]] = None) -> str:
         return barcode_label_service.labels_document_html(items or [], self.barcode_label_options(options))
@@ -246,7 +286,7 @@ class PrintingService:
         self.preview_html(html, parent, _tr("invoice_preview_title"))
 
     def invoice_print(self, invoice: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.invoice_html(invoice, paper), parent, _tr("invoice_print_title"))
+        return self._print_button_render(self.invoice_html(invoice, paper), parent, _tr("invoice_print_title"), document_type='invoice')
 
     def invoice_pdf(self, invoice: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         ref = invoice.get('reference') or invoice.get('ref') or 'invoice'
@@ -259,7 +299,7 @@ class PrintingService:
         self.render_html(self.voucher_html(voucher, paper), parent, _tr("voucher_preview_title"), mode='preview')
 
     def voucher_print(self, voucher: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.render_html(self.voucher_html(voucher, paper), parent, _tr("voucher_print_title"), mode='print')
+        return self._print_button_render(self.voucher_html(voucher, paper), parent, _tr("voucher_print_title"), document_type='voucher')
 
     def voucher_browser(self, voucher: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.render_html(self.voucher_html(voucher, paper), parent, _tr("voucher_html_preview_title"), mode='browser')
@@ -275,7 +315,7 @@ class PrintingService:
         self.preview_html(self.return_html(data, paper), parent, _tr("return_preview_title"))
 
     def return_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.return_html(data, paper), parent, _tr("return_print_title"))
+        return self._print_button_render(self.return_html(data, paper), parent, _tr("return_print_title"), document_type='return')
 
     def return_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.open_html_in_browser(self.return_html(data, paper), parent, _tr("return_html_preview_title"))
@@ -292,7 +332,7 @@ class PrintingService:
         self.preview_html(self.restaurant_receipt_html(data, paper), parent, _tr("restaurant_receipt_preview_title"))
 
     def restaurant_receipt_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.restaurant_receipt_html(data, paper), parent, _tr("restaurant_receipt_print_title"))
+        return self._print_button_render(self.restaurant_receipt_html(data, paper), parent, _tr("restaurant_receipt_print_title"), document_type='restaurant_receipt')
 
     def restaurant_receipt_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.open_html_in_browser(self.restaurant_receipt_html(data, paper), parent, _tr("restaurant_receipt_html_preview_title"))
@@ -309,7 +349,7 @@ class PrintingService:
         self.preview_html(self.restaurant_kitchen_ticket_html(data, paper), parent, _tr("restaurant_kitchen_ticket_preview_title"))
 
     def restaurant_kitchen_ticket_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.restaurant_kitchen_ticket_html(data, paper), parent, _tr("restaurant_kitchen_ticket_print_title"))
+        return self._print_button_render(self.restaurant_kitchen_ticket_html(data, paper), parent, _tr("restaurant_kitchen_ticket_print_title"), document_type='restaurant_kitchen')
 
     def restaurant_kitchen_ticket_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.open_html_in_browser(self.restaurant_kitchen_ticket_html(data, paper), parent, _tr("restaurant_kitchen_ticket_html_preview_title"))
@@ -326,7 +366,7 @@ class PrintingService:
         self.preview_html(self.manufacturing_bom_html(data, paper), parent, _tr("manufacturing_bom_preview_title"))
 
     def manufacturing_bom_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.manufacturing_bom_html(data, paper), parent, _tr("manufacturing_bom_print_title"))
+        return self._print_button_render(self.manufacturing_bom_html(data, paper), parent, _tr("manufacturing_bom_print_title"), document_type='manufacturing_bom')
 
     def manufacturing_bom_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.open_html_in_browser(self.manufacturing_bom_html(data, paper), parent, _tr("manufacturing_bom_html_preview_title"))
@@ -346,7 +386,7 @@ class PrintingService:
         self.preview_html(self.manufacturing_production_order_html(data, paper), parent, _tr("production_order_preview_title"))
 
     def manufacturing_production_order_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.manufacturing_production_order_html(data, paper), parent, _tr("production_order_print_title"))
+        return self._print_button_render(self.manufacturing_production_order_html(data, paper), parent, _tr("production_order_print_title"), document_type='production_order')
 
     def manufacturing_production_order_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.open_html_in_browser(self.manufacturing_production_order_html(data, paper), parent, _tr("production_order_html_preview_title"))
@@ -376,7 +416,7 @@ class PrintingService:
         self.preview_html(self.manufacturing_pick_ticket_html(data, paper), parent, _tr("manufacturing_pick_ticket_preview_title"))
 
     def manufacturing_pick_ticket_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.manufacturing_pick_ticket_html(data, paper), parent, _tr("manufacturing_pick_ticket_print_title"))
+        return self._print_button_render(self.manufacturing_pick_ticket_html(data, paper), parent, _tr("manufacturing_pick_ticket_print_title"), document_type='manufacturing_pick_ticket')
 
     def manufacturing_pick_ticket_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.open_html_in_browser(self.manufacturing_pick_ticket_html(data, paper), parent, _tr("manufacturing_pick_ticket_html_preview_title"))
@@ -393,7 +433,7 @@ class PrintingService:
         self.preview_html(self.manufacturing_cost_report_html(data, paper), parent, _tr("manufacturing_cost_report_preview_title"))
 
     def manufacturing_cost_report_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.manufacturing_cost_report_html(data, paper), parent, _tr("manufacturing_cost_report_print_title"))
+        return self._print_button_render(self.manufacturing_cost_report_html(data, paper), parent, _tr("manufacturing_cost_report_print_title"), document_type='manufacturing_cost_report')
 
     def manufacturing_cost_report_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.open_html_in_browser(self.manufacturing_cost_report_html(data, paper), parent, _tr("manufacturing_cost_report_html_preview_title"))
@@ -412,7 +452,7 @@ class PrintingService:
         self.preview_html(self.inventory_transfer_html(data, paper), parent, _tr("inventory_transfer_preview_title"))
 
     def inventory_transfer_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.inventory_transfer_html(data, paper), parent, _tr("inventory_transfer_print_title"))
+        return self._print_button_render(self.inventory_transfer_html(data, paper), parent, _tr("inventory_transfer_print_title"), document_type='inventory_transfer')
 
     def inventory_transfer_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.open_html_in_browser(self.inventory_transfer_html(data, paper), parent, _tr("inventory_transfer_html_preview_title"))
@@ -429,7 +469,7 @@ class PrintingService:
         self.preview_html(self.inventory_balances_html(data, paper), parent, _tr("inventory_balances_preview_title"))
 
     def inventory_balances_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.inventory_balances_html(data, paper), parent, _tr("inventory_balances_print_title"))
+        return self._print_button_render(self.inventory_balances_html(data, paper), parent, _tr("inventory_balances_print_title"), document_type='inventory_balances')
 
     def inventory_balances_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.save_pdf(self.inventory_balances_html(data, paper), parent, "inventory_balances.pdf")
@@ -441,7 +481,7 @@ class PrintingService:
         self.preview_html(self.inventory_movements_html(data, paper), parent, _tr("inventory_movements_preview_title"))
 
     def inventory_movements_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.inventory_movements_html(data, paper), parent, _tr("inventory_movements_print_title"))
+        return self._print_button_render(self.inventory_movements_html(data, paper), parent, _tr("inventory_movements_print_title"), document_type='inventory_movements')
 
     def inventory_movements_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.save_pdf(self.inventory_movements_html(data, paper), parent, "inventory_movements.pdf")
@@ -453,7 +493,7 @@ class PrintingService:
         self.preview_html(self.inventory_ledger_html(data, paper), parent, _tr("inventory_ledger_preview_title"))
 
     def inventory_ledger_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        return self.print_html(self.inventory_ledger_html(data, paper), parent, _tr("inventory_ledger_print_title"))
+        return self._print_button_render(self.inventory_ledger_html(data, paper), parent, _tr("inventory_ledger_print_title"), document_type='inventory_ledger')
 
     def inventory_ledger_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         return self.save_pdf(self.inventory_ledger_html(data, paper), parent, "inventory_ledger.pdf")
@@ -467,7 +507,7 @@ class PrintingService:
 
     def report_print(self, title: str, rows: List[List[Any]], headers: List[str], parent=None, subtitle: str = '', summary: Optional[Dict[str, Any]] = None, paper: str = 'default') -> bool:
         html = self.report_html(title, rows, headers, subtitle, summary, paper)
-        return self.render_html(html, parent, _tr("report_print_title", title=title), mode='print')
+        return self._print_button_render(html, parent, _tr("report_print_title", title=title), document_type='report')
 
     def report_browser(self, title: str, rows: List[List[Any]], headers: List[str], parent=None, subtitle: str = '', summary: Optional[Dict[str, Any]] = None, paper: str = 'default') -> bool:
         html = self.report_html(title, rows, headers, subtitle, summary, paper)

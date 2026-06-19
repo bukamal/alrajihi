@@ -661,9 +661,12 @@ class SettingsWidget(QWidget):
         self.barcode_printer_manager = PrinterManager()
         self.barcode_printer_manager.load_default_printer()
         self.barcode_default_printer = QComboBox()
+        self.barcode_default_printer.addItem(translate('phase235_system_print_dialog'), '')
         for printer in self.barcode_printer_manager.printers:
+            if getattr(printer.type, 'value', '') in {'pdf', 'image'}:
+                continue
             self.barcode_default_printer.addItem(printer.name, printer.id)
-        idx = self.barcode_default_printer.findData(cfg.get('barcode_default_printer', 'pdf:default'))
+        idx = self.barcode_default_printer.findData(cfg.get('barcode_default_printer', ''))
         if idx >= 0:
             self.barcode_default_printer.setCurrentIndex(idx)
         barcode_form.addRow(translate('settings_barcode_default_printer_label'), self.barcode_default_printer)
@@ -1447,7 +1450,7 @@ class SettingsWidget(QWidget):
             accent_color=self.print_accent_color.text().strip(),
             zebra_rows=self.print_zebra_rows.isChecked(),
             compact_tables=self.print_compact_tables.isChecked(),
-            barcode_default_printer=self.barcode_default_printer.currentData() or 'pdf:default',
+            barcode_default_printer=self.barcode_default_printer.currentData() or '',
             barcode_label_size=self.barcode_label_size.currentText(),
             barcode_symbology=self.barcode_symbology.currentText(),
             barcode_copies=self.barcode_copies.value(),

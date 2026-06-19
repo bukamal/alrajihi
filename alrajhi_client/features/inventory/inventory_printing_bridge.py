@@ -33,38 +33,45 @@ class InventoryPrintingBridge:
             rows = [transfer]
         return {'transfer': transfer, 'lines': rows}
 
-    def transfer_preview(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> None:
-        self._require({'document': 'inventory_transfer'})
-        printing_service.inventory_transfer_preview(payload, parent, self._paper(paper))
+    def transfer_preview(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.transfer_print(payload, parent, paper)
 
     def transfer_print(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         self._require({'document': 'inventory_transfer'})
         return printing_service.inventory_transfer_print(payload, parent, self._paper(paper))
 
     def transfer_pdf(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
-        self._require({'document': 'inventory_transfer'})
-        return printing_service.inventory_transfer_pdf(payload, parent, self._paper(paper))
+        return self.transfer_print(payload, parent, paper)
 
     def balances_payload(self, rows: Iterable[Dict[str, Any]], **meta: Any) -> Dict[str, Any]:
         return {'rows': [dict(row or {}) for row in rows or []], **meta}
 
-    def balances_preview(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+    def balances_preview(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.balances_print(payload, parent, paper)
+
+    def balances_print(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         self._require({'document': 'inventory_balances'})
-        printing_service.inventory_balances_preview(payload, parent, self._paper(paper))
+        return printing_service.inventory_balances_print(payload, parent, self._paper(paper))
 
     def movements_payload(self, rows: Iterable[Dict[str, Any]], **meta: Any) -> Dict[str, Any]:
         return {'rows': [dict(row or {}) for row in rows or []], **meta}
 
-    def movements_preview(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+    def movements_preview(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.movements_print(payload, parent, paper)
+
+    def movements_print(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         self._require({'document': 'inventory_movements'})
-        printing_service.inventory_movements_preview(payload, parent, self._paper(paper))
+        return printing_service.inventory_movements_print(payload, parent, self._paper(paper))
 
     def ledger_payload(self, rows: Iterable[Dict[str, Any]], **meta: Any) -> Dict[str, Any]:
         return {'rows': [dict(row or {}) for row in rows or []], **meta}
 
-    def ledger_preview(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+    def ledger_preview(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.ledger_print(payload, parent, paper)
+
+    def ledger_print(self, payload: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         self._require({'document': 'inventory_ledger'})
-        printing_service.inventory_ledger_preview(payload, parent, self._paper(paper))
+        return printing_service.inventory_ledger_print(payload, parent, self._paper(paper))
 
 
 inventory_printing_bridge = InventoryPrintingBridge()

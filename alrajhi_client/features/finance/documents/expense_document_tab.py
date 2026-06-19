@@ -401,7 +401,7 @@ class ExpenseDocumentTab(BaseDocumentTab):
         if not expense:
             QMessageBox.information(self, tr('print_button'), tr('select_voucher_first'))
             return
-        printing_service.voucher_preview(expense, self)
+        printing_service.voucher_print(expense, self)
 
     def workspace_export(self) -> None:
         try:

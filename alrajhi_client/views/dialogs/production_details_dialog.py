@@ -86,11 +86,7 @@ class ProductionDetailsDialog(CenteredDialog):
             btn_layout.addWidget(reverse_btn)
 
         print_btn = QPushButton(translate("print"))
-        print_menu = QMenu(print_btn)
-        print_menu.addAction(translate("preview_inside_app"), lambda: self.print_order('preview'))
-        print_menu.addAction(translate("open_html_browser"), lambda: self.print_order('browser'))
-        print_menu.addAction(translate("direct_print"), lambda: self.print_order('direct'))
-        print_btn.setMenu(print_menu)
+        print_btn.clicked.connect(lambda: self.print_order('print'))
         btn_layout.addWidget(print_btn)
 
         close_btn = QPushButton(translate("close"))
@@ -192,14 +188,8 @@ class ProductionDetailsDialog(CenteredDialog):
     def print_order(self, mode='preview'):
         from printing.printing_service import printing_service
         data = self._print_payload()
-        if mode == 'browser':
-            printing_service.production_browser(data, self)
-        elif mode == 'direct':
-            printing_service.production_print(data, self)
-        elif mode == 'pdf':
-            printing_service.production_print(data, self)
-        else:
-            printing_service.production_preview(data, self)
+        # Phase 236: legacy production dialog print button follows project print settings.
+        printing_service.production_print(data, self)
 
     def start_production(self):
         success, msg = self.service.start_production(self.order_id)

@@ -713,7 +713,7 @@ class POSWidget(QWidget):
             from printing.printing_service import printing_service
             inv = invoice_service.get(invoice_id)
             if inv:
-                printing_service.invoice_preview(inv, self, paper='thermal80')
+                printing_service.invoice_print(inv, self, paper='thermal80')
         except Exception as e:
             show_toast(translate("receipt_print_failed", error=e), "warning", self)
 

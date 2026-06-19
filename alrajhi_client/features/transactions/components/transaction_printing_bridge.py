@@ -25,7 +25,7 @@ class TransactionPrintingBridge:
         payload = self._payload()
         if not payload:
             return
-        self._service_call("return_preview" if self.host.is_return else "invoice_preview", payload)
+        return self.print()
 
     def print(self) -> bool:
         payload = self._payload()
@@ -37,7 +37,7 @@ class TransactionPrintingBridge:
         payload = self._payload()
         if not payload:
             return False
-        return bool(self._service_call("return_browser" if self.host.is_return else "invoice_browser", payload))
+        return self.print()
 
     def pdf(self) -> bool:
         # Phase 235: legacy callers that still ask for PDF use the unified print route.

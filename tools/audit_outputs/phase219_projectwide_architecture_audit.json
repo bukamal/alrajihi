@@ -145,7 +145,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/ui/smart_table_view.py",
-      "line": 534,
+      "line": 535,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -226,15 +226,6 @@
       "severity": "medium",
       "area": "legacy-dialog",
       "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
-      "line": 1374,
-      "title": "Legacy dialog reference: AddEntityDialog",
-      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
-      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
-    },
-    {
-      "severity": "medium",
-      "area": "legacy-dialog",
-      "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
       "line": 1566,
       "title": "Legacy dialog reference: ItemDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
@@ -246,6 +237,15 @@
       "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
       "line": 408,
       "title": "Legacy dialog reference: InvoiceDialog",
+      "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
+      "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
+    },
+    {
+      "severity": "medium",
+      "area": "legacy-dialog",
+      "file": "alrajhi_client/views/dialogs/invoice_dialog.py",
+      "line": 1374,
+      "title": "Legacy dialog reference: AddEntityDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
     },
@@ -505,7 +505,7 @@
       "severity": "inventory",
       "area": "legacy-dialog",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 480,
+      "line": 472,
       "title": "Legacy dialog reference: SalesReturnDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
@@ -514,7 +514,7 @@
       "severity": "inventory",
       "area": "legacy-dialog",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 1087,
+      "line": 1072,
       "title": "Legacy dialog reference: PurchaseReturnDialog",
       "detail": "Large modal dialog is still present or referenced. Some references may be explicit fallback paths.",
       "recommendation": "Primary workflows should open DocumentTab/MainWindow open_* methods. Keep only explicit Legacy*/fallback or small utility dialogs."
@@ -523,7 +523,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 407,
+      "line": 399,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -532,7 +532,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 631,
+      "line": 623,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -541,7 +541,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 685,
+      "line": 677,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -550,7 +550,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 1035,
+      "line": 1020,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -559,7 +559,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 1059,
+      "line": 1044,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -568,7 +568,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 1498,
+      "line": 1476,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -577,7 +577,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/returns_widget.py",
-      "line": 1522,
+      "line": 1500,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -595,7 +595,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/settings_widget.py",
-      "line": 1638,
+      "line": 1641,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -604,7 +604,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/settings_widget.py",
-      "line": 1782,
+      "line": 1785,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -685,7 +685,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/views/widgets/components/table_toolbar.py",
-      "line": 167,
+      "line": 165,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."
@@ -712,7 +712,7 @@
       "severity": "medium",
       "area": "dialog-exec",
       "file": "alrajhi_client/features/items/item_editor_tab.py",
-      "line": 633,
+      "line": 630,
       "title": "Dialog exec() call",
       "detail": "Modal dialog execution detected outside low-level dialog modules.",
       "recommendation": "Prefer MainWindow open_* document methods for business workflows; keep exec() only for small pickers/confirmations."

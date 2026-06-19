@@ -92,20 +92,18 @@ class TableToolbar(QWidget):
         self._install_unified_print_menu()
 
     def _install_unified_print_menu(self):
-        """Attach standard print modes to toolbar print button for page tables.
+        """Keep table printing on the single project print button contract.
 
-        This keeps toolbar print buttons outside dialogs on the same central
-        printing_service path used by invoice/return/report dialogs. Screens
-        with specialized documents may override the menu after set_table().
+        The visible toolbar exposes one print button only. The print mode, paper,
+        language, header/footer and typography are resolved by printing_service
+        and settings_service, not by a per-screen menu.
         """
         if not self._table or not hasattr(self._table, 'print_table'):
             return
-        menu = QMenu(self.print_btn)
-        menu.addAction(translate('preview_in_app'), lambda: self._table.print_table('preview'))
-        menu.addAction(translate('open_html_browser'), lambda: self._table.print_table('browser'))
-        menu.addSeparator()
-        menu.addAction(translate('direct_print'), lambda: self._table.print_table('direct'))
-        self.print_btn.setMenu(menu)
+        try:
+            self.print_btn.setMenu(None)
+        except Exception:
+            pass
 
     def search_text(self):
         return self.search_edit.text()

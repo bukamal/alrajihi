@@ -356,7 +356,7 @@ class BomDocumentTab(BaseDocumentTab):
                 return
         try:
             bom_data = self.service.get_bom(self.bom_id) if self.bom_id else self._payload()
-            manufacturing_printing_bridge.bom_preview(self.bom_id, bom_data, self)
+            manufacturing_printing_bridge.bom_print(self.bom_id, bom_data, self)
         except PermissionError as exc:
             show_toast(str(exc) or translate('permission_denied'), 'warning', self)
         except Exception as exc:

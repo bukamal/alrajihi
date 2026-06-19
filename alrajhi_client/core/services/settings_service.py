@@ -106,6 +106,7 @@ class SettingsService:
             'voucher_template': self.get('printing/voucher_template', 'a4'),
             'return_template': self.get('printing/return_template', 'a4'),
             'default_paper': self.get('printing/default_paper', 'a4'),
+            'print_button_mode': self.get('printing/print_button_mode', 'browser'),
             'show_logo': self.get('printing/show_logo', 'true').lower() == 'true',
             'show_tax_number': self.get('printing/show_tax_number', 'true').lower() == 'true',
             'show_qr': self.get('printing/show_qr', 'true').lower() == 'true',
@@ -116,7 +117,7 @@ class SettingsService:
             'accent_color': self.get('printing/accent_color', '#1d4ed8'),
             'zebra_rows': self.get('printing/zebra_rows', 'true').lower() == 'true',
             'compact_tables': self.get('printing/compact_tables', 'false').lower() == 'true',
-            'barcode_default_printer': self.get('printing/barcode/default_printer', 'pdf:default'),
+            'barcode_default_printer': self.get('printing/barcode/default_printer', ''),
             'barcode_label_size': self.get('printing/barcode/label_size', '50x30'),
             'barcode_symbology': self.get('printing/barcode/symbology', 'AUTO'),
             'barcode_copies': int(self.get('printing/barcode/copies', '1') or 1),
@@ -136,7 +137,7 @@ class SettingsService:
                                return_template: str = 'a4', font_family: str = '',
                                font_size: str = '10.5pt', accent_color: str = '#1d4ed8',
                                zebra_rows: bool = True, compact_tables: bool = False,
-                               barcode_default_printer: str = 'pdf:default', barcode_label_size: str = '50x30',
+                               barcode_default_printer: str = '', barcode_label_size: str = '50x30',
                                barcode_symbology: str = 'AUTO', barcode_copies: int = 1,
                                barcode_columns: int = 2, barcode_show_company: bool = True,
                                barcode_show_logo: bool = True, barcode_show_qr: bool = True,
@@ -159,7 +160,7 @@ class SettingsService:
             'accent_color': accent_color or '#1d4ed8',
             'zebra_rows': bool(zebra_rows),
             'compact_tables': bool(compact_tables),
-            'barcode_default_printer': barcode_default_printer or 'pdf:default',
+            'barcode_default_printer': barcode_default_printer or '',
             'barcode_label_size': barcode_label_size or '50x30',
             'barcode_symbology': (barcode_symbology or 'AUTO').upper(),
             'barcode_copies': max(1, int(barcode_copies or 1)),
@@ -176,6 +177,7 @@ class SettingsService:
         self.set('printing/voucher_template', new['voucher_template'])
         self.set('printing/return_template', new['return_template'])
         self.set('printing/default_paper', new['default_paper'])
+        self.set('printing/print_button_mode', 'browser')
         self.set('printing/show_logo', 'true' if show_logo else 'false')
         self.set('printing/show_tax_number', 'true' if show_tax_number else 'false')
         self.set('printing/show_qr', 'true' if show_qr else 'false')

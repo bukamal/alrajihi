@@ -479,12 +479,5 @@ class ReportsPhase36Mixin:
         for r in range(model.rowCount()):
             rows.append([model.data(model.index(r, c), Qt.DisplayRole) or '' for c in range(model.columnCount())])
         subtitle = tr('period_subtitle', start=start, end=end)
-        if mode == 'browser':
-            printing_service.report_browser(title, rows, headers, self, subtitle=subtitle)
-        elif mode == 'direct':
-            printing_service.report_print(title, rows, headers, self, subtitle=subtitle)
-        elif mode == 'pdf':
-            # Phase 235: legacy PDF mode follows unified print output.
-            printing_service.report_print(title, rows, headers, self, subtitle=subtitle)
-        else:
-            printing_service.report_preview(title, rows, headers, self, subtitle=subtitle)
+        # Phase 236: visible report print buttons always use the project print settings.
+        printing_service.report_print(title, rows, headers, self, subtitle=subtitle)

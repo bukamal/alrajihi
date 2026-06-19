@@ -89,7 +89,7 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         splitter = QSplitter(Qt.Horizontal, self); splitter.addWidget(grid_card); splitter.addWidget(notes_card)
         splitter.setStretchFactor(0, 5); splitter.setStretchFactor(1, 1); root.addWidget(splitter, 1)
         bottom = QHBoxLayout(); bottom.addStretch(1)
-        self.bottom_print_btn = QPushButton(translate('print_preview'))
+        self.bottom_print_btn = QPushButton(translate('print'))
         self.close_btn = QPushButton(translate('close'))
         self.bottom_save_btn = QPushButton(translate('execute_transfer')); self.bottom_save_btn.setObjectName('primary')
         bottom.addWidget(self.bottom_print_btn); bottom.addWidget(self.close_btn); bottom.addWidget(self.bottom_save_btn); root.addLayout(bottom)
@@ -228,7 +228,7 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         if errors:
             QMessageBox.warning(self, translate('validation_error'), '\n'.join(errors)); return
         try:
-            inventory_printing_bridge.transfer_preview(self._print_payload(), self)
+            inventory_printing_bridge.transfer_print(self._print_payload(), self)
         except Exception as exc:
             QMessageBox.warning(self, translate('printing'), str(exc))
 

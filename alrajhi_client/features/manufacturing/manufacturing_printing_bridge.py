@@ -127,56 +127,48 @@ class ManufacturingPrintingBridge:
         return payload
 
     # BOM
-    def bom_preview(self, bom_id: Optional[int] = None, bom_data: Optional[Dict[str, Any]] = None, parent=None) -> None:
-        self._require_print('bom_preview', {'bom_id': bom_id})
-        printing_service.manufacturing_bom_preview(self.bom_payload(bom_id, bom_data), parent, self._paper('bom_print_template'))
+    def bom_preview(self, bom_id: Optional[int] = None, bom_data: Optional[Dict[str, Any]] = None, parent=None) -> bool:
+        return self.bom_print(bom_id, bom_data, parent)
 
     def bom_print(self, bom_id: Optional[int] = None, bom_data: Optional[Dict[str, Any]] = None, parent=None) -> bool:
         self._require_print('bom_print', {'bom_id': bom_id})
         return printing_service.manufacturing_bom_print(self.bom_payload(bom_id, bom_data), parent, self._paper('bom_print_template'))
 
     def bom_pdf(self, bom_id: Optional[int] = None, bom_data: Optional[Dict[str, Any]] = None, parent=None) -> bool:
-        self._require_print('bom_pdf', {'bom_id': bom_id})
-        return printing_service.manufacturing_bom_pdf(self.bom_payload(bom_id, bom_data), parent, self._paper('bom_print_template'))
+        return self.bom_print(bom_id, bom_data, parent)
 
     # Production order full document
-    def production_order_preview(self, order_id: int, parent=None) -> None:
-        self._require_print('production_order_preview', {'order_id': order_id})
-        printing_service.manufacturing_production_order_preview(self.production_payload(order_id), parent, self._paper('production_order_print_template'))
+    def production_order_preview(self, order_id: int, parent=None) -> bool:
+        return self.production_order_print(order_id, parent)
 
     def production_order_print(self, order_id: int, parent=None) -> bool:
         self._require_print('production_order_print', {'order_id': order_id})
         return printing_service.manufacturing_production_order_print(self.production_payload(order_id), parent, self._paper('production_order_print_template'))
 
     def production_order_pdf(self, order_id: int, parent=None) -> bool:
-        self._require_print('production_order_pdf', {'order_id': order_id})
-        return printing_service.manufacturing_production_order_pdf(self.production_payload(order_id), parent, self._paper('production_order_print_template'))
+        return self.production_order_print(order_id, parent)
 
     # Raw material pick ticket
-    def pick_ticket_preview(self, order_id: int, parent=None) -> None:
-        self._require_print('pick_ticket_preview', {'order_id': order_id})
-        printing_service.manufacturing_pick_ticket_preview(self.pick_ticket_payload(order_id), parent, self._paper('pick_ticket_print_template'))
+    def pick_ticket_preview(self, order_id: int, parent=None) -> bool:
+        return self.pick_ticket_print(order_id, parent)
 
     def pick_ticket_print(self, order_id: int, parent=None) -> bool:
         self._require_print('pick_ticket_print', {'order_id': order_id})
         return printing_service.manufacturing_pick_ticket_print(self.pick_ticket_payload(order_id), parent, self._paper('pick_ticket_print_template'))
 
     def pick_ticket_pdf(self, order_id: int, parent=None) -> bool:
-        self._require_print('pick_ticket_pdf', {'order_id': order_id})
-        return printing_service.manufacturing_pick_ticket_pdf(self.pick_ticket_payload(order_id), parent, self._paper('pick_ticket_print_template'))
+        return self.pick_ticket_print(order_id, parent)
 
     # Cost report
-    def cost_report_preview(self, order_id: int, parent=None) -> None:
-        self._require_print('cost_report_preview', {'order_id': order_id})
-        printing_service.manufacturing_cost_report_preview(self.cost_report_payload(order_id), parent, self._paper('cost_report_print_template'))
+    def cost_report_preview(self, order_id: int, parent=None) -> bool:
+        return self.cost_report_print(order_id, parent)
 
     def cost_report_print(self, order_id: int, parent=None) -> bool:
         self._require_print('cost_report_print', {'order_id': order_id})
         return printing_service.manufacturing_cost_report_print(self.cost_report_payload(order_id), parent, self._paper('cost_report_print_template'))
 
     def cost_report_pdf(self, order_id: int, parent=None) -> bool:
-        self._require_print('cost_report_pdf', {'order_id': order_id})
-        return printing_service.manufacturing_cost_report_pdf(self.cost_report_payload(order_id), parent, self._paper('cost_report_print_template'))
+        return self.cost_report_print(order_id, parent)
 
 
 manufacturing_printing_bridge = ManufacturingPrintingBridge()

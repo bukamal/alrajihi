@@ -14,8 +14,6 @@ from io import BytesIO
 import datetime
 import os
 
-from config import get_company_info
-from core.services.settings_service import settings_service
 
 
 def _tr(key: str, **kwargs) -> str:
@@ -24,6 +22,14 @@ def _tr(key: str, **kwargs) -> str:
         return translate(key, **kwargs)
     except Exception:
         return key
+
+
+def _settings_service():
+    try:
+        from core.services.settings_service import settings_service
+        return settings_service
+    except Exception:
+        return None
 
 
 def _s(value: Any) -> str:
@@ -67,7 +73,10 @@ def _print_meta_line() -> str:
 
 def _settings() -> Dict[str, Any]:
     try:
-        cfg = settings_service.get_printing_settings()
+        svc = _settings_service()
+        if svc is None:
+            return {}
+        cfg = svc.get_printing_settings()
         return dict(cfg or {})
     except Exception:
         return {}
@@ -129,7 +138,8 @@ def _font_family(settings: Dict[str, Any]) -> str:
 def _document_language() -> str:
     try:
         from i18n.translator import normalize_language
-        return normalize_language(settings_service.print_language())
+        svc = _settings_service()
+        return normalize_language(svc.print_language() if svc is not None else "ar")
     except Exception:
         return "ar"
 
@@ -189,7 +199,11 @@ def _human_title(title: Any, fallback: str = _tr("print_report_default")) -> str
 
 
 def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
-    info = settings_service.company_info() or {}
+    svc = _settings_service()
+    try:
+        info = svc.company_info() if svc is not None else {}
+    except Exception:
+        info = {}
     logo_path = _value(info.get("logo_path") or settings.get("logo_path"))
     try:
         from pathlib import Path as _Path

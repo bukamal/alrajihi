@@ -277,14 +277,11 @@ class MaterialDocumentTab(BaseDocumentTab):
         self.generate_btn = QPushButton(tr('material_generate_barcode'))
         self.scan_camera_btn = QPushButton(tr('material_scan_camera'))
         self.print_label_btn = QPushButton(tr('material_print_label'))
-        self.preview_label_btn = QPushButton(tr('material_preview_label'))
         self.generate_btn.clicked.connect(self.generate_barcode)
         self.scan_camera_btn.clicked.connect(self.scan_barcode_with_camera)
         self.print_label_btn.clicked.connect(self.workspace_print)
-        self.preview_label_btn.clicked.connect(self.preview_barcode_label)
         btns.addWidget(self.generate_btn)
         btns.addWidget(self.scan_camera_btn)
-        btns.addWidget(self.preview_label_btn)
         btns.addWidget(self.print_label_btn)
         layout.addLayout(btns)
 
@@ -340,6 +337,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         self.save_btn = QPushButton(tr('save'))
         self.save_btn.setObjectName('primary')
         self.save_label_btn = QPushButton(tr('material_save_and_print_label'))
+        self.save_label_btn.setVisible(False)
         self.close_btn = QPushButton(tr('close'))
         self.new_btn.clicked.connect(self.clear_for_new)
         self.generate_barcode_btn.clicked.connect(self.generate_barcode)
@@ -423,7 +421,6 @@ class MaterialDocumentTab(BaseDocumentTab):
 
         if not can_print:
             self.print_label_btn.setEnabled(False)
-            self.preview_label_btn.setEnabled(False)
             self.save_label_btn.setEnabled(False)
 
         if not can_view_costs:
@@ -799,21 +796,12 @@ class MaterialDocumentTab(BaseDocumentTab):
         }
 
     def _label_options(self) -> Dict[str, Any]:
-        return dict(self.material_settings.get('barcode_label_options') or {})
+        # Phase 236: the unified material print button gets its label layout
+        # from project printing settings, not per-screen overrides.
+        return {}
 
     def preview_barcode_label(self) -> None:
-        if not self.security_policy.get('can_print_barcodes', True):
-            show_toast(permission_service.denied_message(permission_service.ACTION_PRINT_BARCODES), 'error', self)
-            return
-        item = self._label_item_payload()
-        if not item.get('barcode'):
-            show_toast(tr('material_barcode_required_for_label'), 'error', self)
-            return
-        try:
-            html = barcode_label_service.labels_document_html([{**item, 'copies': 1}], self._label_options())
-            printing_service.open_html_in_browser(html, self, tr('material_label_preview_title'))
-        except Exception as exc:
-            show_toast(str(exc), 'error', self)
+        self.workspace_print()
 
     def workspace_print(self) -> None:
         if not self.security_policy.get('can_print_barcodes', True):
@@ -824,7 +812,7 @@ class MaterialDocumentTab(BaseDocumentTab):
             show_toast(tr('material_barcode_required_for_label'), 'error', self)
             return
         try:
-            copies = int(self.material_settings.get('barcode_label_options', {}).get('copies', settings_service.get_printing_settings().get('barcode_copies', 1)) or 1)
+            copies = int(settings_service.get_printing_settings().get('barcode_copies', 1) or 1)
             printing_service.barcode_labels_print_settings([{**item, 'copies': max(1, copies)}], self, self._label_options())
         except Exception as exc:
             show_toast(str(exc), 'error', self)

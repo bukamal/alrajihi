@@ -70,8 +70,8 @@ def main() -> int:
     for forbidden in ('barcode_labels_pdf', 'barcode_labels_png', "printer_info.type.value == 'pdf'", "printer_info.type.value == 'image'"):
         if forbidden in batch:
             failures.append(f'batch_print_dialog.py still exposes legacy barcode output path: {forbidden}')
-    if 'barcode_labels_print(' not in batch:
-        failures.append('batch_print_dialog.py does not use barcode_labels_print()')
+    if 'barcode_labels_print_settings(' not in batch:
+        failures.append('batch_print_dialog.py does not use project barcode print settings')
 
     item_editor = (ROOT / 'alrajhi_client' / 'features' / 'items' / 'item_editor_tab.py').read_text(encoding='utf-8')
     if 'barcode_labels_print_settings' not in item_editor:

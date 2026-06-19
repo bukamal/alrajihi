@@ -390,7 +390,7 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         if not order_id:
             return
         try:
-            manufacturing_printing_bridge.production_order_preview(int(order_id), self)
+            manufacturing_printing_bridge.production_order_print(int(order_id), self)
         except PermissionError as exc:
             show_toast(str(exc) or translate('permission_denied'), 'warning', self)
         except Exception as exc:

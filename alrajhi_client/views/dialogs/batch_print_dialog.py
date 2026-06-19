@@ -10,7 +10,6 @@ from models.table_models import GenericTableModel
 from core.services.catalog_service import catalog_service
 from utils import show_toast
 from printing.printing_service import printing_service
-from printer_manager import PrinterManager
 from core.services.settings_service import settings_service
 from i18n import translate
 
@@ -20,8 +19,6 @@ class BatchPrintDialog(CenteredDialog):
         self.setWindowTitle(translate('phase233_ui_011'))
         self.resize(750, 550)
         self.selected_items = selected_items or []
-        self.printer_manager = PrinterManager()
-        self.printer_manager.load_default_printer()
         self.print_cfg = settings_service.get_printing_settings()
         self.items_data = []
 
@@ -30,56 +27,11 @@ class BatchPrintDialog(CenteredDialog):
             QVBoxLayout(self.content_widget)
 
         toolbar = QHBoxLayout()
-        toolbar.addWidget(QLabel(translate('phase233_ui_022')))
-        self.printer_combo = QComboBox()
-        default_printer = self.print_cfg.get('barcode_default_printer', '')
-        self.printer_combo.addItem(translate('phase235_system_print_dialog'), '')
-        for p in self.printer_manager.printers:
-            # Phase 235: no visible PDF/PNG pseudo-printer choices from barcode print buttons.
-            if getattr(p.type, 'value', '') in {'pdf', 'image'}:
-                continue
-            self.printer_combo.addItem(p.name, p.connection_string or p.id)
-        idx = self.printer_combo.findData(default_printer)
-        if idx >= 0:
-            self.printer_combo.setCurrentIndex(idx)
-        toolbar.addWidget(self.printer_combo)
-
-        self.copies_spin = QSpinBox()
-        self.copies_spin.setRange(1, 10)
-        self.copies_spin.setValue(int(self.print_cfg.get('barcode_copies', 1) or 1))
-        toolbar.addWidget(QLabel(translate('phase233_ui_023')))
-        toolbar.addWidget(self.copies_spin)
-
-        self.label_size_combo = QComboBox()
-        self.label_size_combo.addItems(["40x30", "50x30", "60x40", "80mm"])
-        self.label_size_combo.setCurrentText(self.print_cfg.get('barcode_label_size', '50x30'))
-        toolbar.addWidget(QLabel(translate('phase233_ui_024')))
-        toolbar.addWidget(self.label_size_combo)
-
-        self.symbology_combo = QComboBox()
-        self.symbology_combo.addItems(["AUTO", "EAN13", "CODE128"])
-        self.symbology_combo.setCurrentText(self.print_cfg.get('barcode_symbology', 'AUTO'))
-        toolbar.addWidget(QLabel(translate('phase233_ui_025')))
-        toolbar.addWidget(self.symbology_combo)
+        info = QLabel(translate('phase236_barcode_uses_project_settings'))
+        info.setObjectName('muted')
+        toolbar.addWidget(info)
+        toolbar.addStretch()
         self.content_widget.layout().addLayout(toolbar)
-
-        options_row = QHBoxLayout()
-        self.show_company_check = QCheckBox(translate('phase233_ui_012'))
-        self.show_company_check.setChecked(bool(self.print_cfg.get('barcode_show_company', True)))
-        self.show_logo_check = QCheckBox(translate('phase233_ui_013'))
-        self.show_logo_check.setChecked(bool(self.print_cfg.get('barcode_show_logo', self.print_cfg.get('show_logo', True))))
-        self.show_qr_check = QCheckBox("QR")
-        self.show_qr_check.setChecked(bool(self.print_cfg.get('barcode_show_qr', True)))
-        self.show_name_check = QCheckBox(translate('phase233_ui_014'))
-        self.show_name_check.setChecked(bool(self.print_cfg.get('barcode_show_name', True)))
-        self.show_price_check = QCheckBox(translate('phase233_ui_015'))
-        self.show_price_check.setChecked(bool(self.print_cfg.get('barcode_show_price', True)))
-        self.show_text_check = QCheckBox(translate('phase233_ui_016'))
-        self.show_text_check.setChecked(bool(self.print_cfg.get('barcode_show_text', True)))
-        for chk in (self.show_company_check, self.show_logo_check, self.show_qr_check, self.show_name_check, self.show_price_check, self.show_text_check):
-            options_row.addWidget(chk)
-        options_row.addStretch()
-        self.content_widget.layout().addLayout(options_row)
 
         self.table = SmartTableView(identity='batch_print.items')
         self.table.setSelectionBehavior(QTableView.SelectRows)
@@ -191,33 +143,23 @@ class BatchPrintDialog(CenteredDialog):
 
 
     def _print_options(self):
-        return {
-            'label_size': self.label_size_combo.currentText(),
-            'symbology': self.symbology_combo.currentText(),
-            'show_company': self.show_company_check.isChecked(),
-            'show_logo': self.show_logo_check.isChecked(),
-            'show_qr': self.show_qr_check.isChecked(),
-            'show_name': self.show_name_check.isChecked(),
-            'show_price': self.show_price_check.isChecked(),
-            'show_barcode_text': self.show_text_check.isChecked(),
-            'columns': int(self.print_cfg.get('barcode_columns', 1 if self.label_size_combo.currentText() == '80mm' else 2) or 2),
-        }
+        # Phase 236: barcode labels use project printing settings.
+        return {}
 
     def do_print(self):
         if not self.items_data:
             show_toast(translate('phase235_no_items_to_print'), 'error', self)
             return
-        printer_name = self.printer_combo.currentData() or ''
         items_for_print = []
         for it in self.items_data:
             items_for_print.append({
                 'barcode': it['barcode'],
                 'name': it['name'],
                 'price': it['price'],
-                'copies': it.get('copies', self.copies_spin.value())
+                'copies': it.get('copies', int(self.print_cfg.get('barcode_copies', 1) or 1))
             })
         # Phase 235: single unified barcode print path; options come from project settings and dialog overrides.
-        if printing_service.barcode_labels_print(items_for_print, self, self._print_options(), printer_name):
+        if printing_service.barcode_labels_print_settings(items_for_print, self, self._print_options()):
             show_toast(translate('phase235_barcode_print_success'), "success", self)
             self.accept()
         else:

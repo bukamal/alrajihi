@@ -1766,8 +1766,7 @@ class InvoiceDialog(CenteredDialog):
         return self.direct_print_invoice()
 
     def open_invoice_html_in_browser(self):
-        from printing.printing_service import printing_service
-        printing_service.invoice_browser(self._invoice_print_payload(), self, paper='default')
+        return self.direct_print_invoice()
 
     def save_invoice_pdf(self):
         # Phase 235: no separate PDF button/path from invoice creation.
