@@ -37,6 +37,7 @@ pyinstaller `
   --windowed `
   --name AlrajhiAccounting `
   --icon "$IconPath" `
+  --additional-hooks-dir build/hooks `
   --paths alrajhi_client `
   --paths . `
   --collect-all PyQt5 `
@@ -58,11 +59,15 @@ pyinstaller `
   --collect-submodules ui `
   --collect-submodules views.restaurant `
   --collect-submodules printing `
+  --collect-data printing `
+  --collect-data alrajhi_client.printing `
+  --hidden-import printing._template_loader `
   --hidden-import printing.print_templates `
   --hidden-import printing.printing_service `
   --hidden-import printing.print_manager `
   --hidden-import printing.thermal_printer `
   --hidden-import printing.label_designer `
+  --hidden-import alrajhi_client.printing._template_loader `
   --hidden-import alrajhi_client.printing.print_templates `
   --hidden-import alrajhi_client.printing.printing_service `
   --hidden-import alrajhi_client.printing.print_manager `
@@ -118,6 +123,8 @@ pyinstaller `
   --add-data "$QtPlatforms;platforms" `
   --add-data "alrajhi_client\assets;assets" `
   --add-data "alrajhi_client\assets;alrajhi_client\assets" `
+  --add-data "alrajhi_client\printing\print_templates.py;printing" `
+  --add-data "alrajhi_client\printing\print_templates.py;alrajhi_client\printing" `
   @extra `
   alrajhi_client\main.py
 

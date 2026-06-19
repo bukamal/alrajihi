@@ -18,22 +18,22 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtGui import QTextDocument, QImage, QPainter
 from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintDialog
 
-from .print_templates import (
-    invoice_html,
-    voucher_html,
-    report_html,
-    return_html,
-    production_order_html,
-    restaurant_receipt_html,
-    restaurant_kitchen_ticket_html,
-    manufacturing_bom_html,
-    manufacturing_pick_ticket_html,
-    manufacturing_cost_report_html,
-    inventory_transfer_html,
-    inventory_balances_html,
-    inventory_movements_html,
-    inventory_ledger_html,
-)
+from ._template_loader import require_template
+
+invoice_html = require_template("invoice_html")
+voucher_html = require_template("voucher_html")
+report_html = require_template("report_html")
+return_html = require_template("return_html")
+production_order_html = require_template("production_order_html")
+restaurant_receipt_html = require_template("restaurant_receipt_html")
+restaurant_kitchen_ticket_html = require_template("restaurant_kitchen_ticket_html")
+manufacturing_bom_html = require_template("manufacturing_bom_html")
+manufacturing_pick_ticket_html = require_template("manufacturing_pick_ticket_html")
+manufacturing_cost_report_html = require_template("manufacturing_cost_report_html")
+inventory_transfer_html = require_template("inventory_transfer_html")
+inventory_balances_html = require_template("inventory_balances_html")
+inventory_movements_html = require_template("inventory_movements_html")
+inventory_ledger_html = require_template("inventory_ledger_html")
 from core.services.barcode_label_service import barcode_label_service
 from core.services.settings_service import settings_service
 

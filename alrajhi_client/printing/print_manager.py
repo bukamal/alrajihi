@@ -8,7 +8,9 @@ from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintDialog
 from printer_manager import PrinterManager
 from config import get_company_info
 from utils import clean_text
-from .print_templates import invoice_html
+from ._template_loader import require_template
+
+invoice_html = require_template("invoice_html")
 
 class PrintManager:
     @staticmethod
