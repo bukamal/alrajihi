@@ -12,6 +12,13 @@ class LocalReportingGateway(ReportingGateway):
     def __init__(self):
         self._dao = ReportingDAO()
 
+    def _effective_branch_id(self, branch_id=None):
+        try:
+            from core.services.permission_service import permission_service
+            return permission_service.effective_branch_id(branch_id)
+        except Exception:
+            return branch_id
+
     def summary(self, start_date: str | None = None, end_date: str | None = None) -> Dict[str, Any]:
         result = self._dao.get_summary_filtered(start_date, end_date) if (start_date or end_date) else self._dao.get_summary()
         return result if isinstance(result, dict) else {}
@@ -255,7 +262,7 @@ class LocalReportingGateway(ReportingGateway):
         except Exception:
             return {}
 
-    def manufacturing_orders_report(self, start_date: str | None = None, end_date: str | None = None, limit: int = 2000) -> List[Dict]:
+    def manufacturing_orders_report(self, start_date: str | None = None, end_date: str | None = None, status: str | None = None, limit: int = 2000) -> List[Dict]:
         """Manufacturing order status and actual cost report, defensive across schema variants."""
         try:
             from database.connection import DatabaseConnection
@@ -267,19 +274,23 @@ class LocalReportingGateway(ReportingGateway):
             date_col = 'created_at' if 'created_at' in cols else ('date' if 'date' in cols else 'id')
             product_expr = 'i.name AS product_name' if 'items' in tables else "'' AS product_name"
             joins = 'LEFT JOIN items i ON i.id = po.product_id' if 'items' in tables and 'product_id' in cols else ''
-            cost_col = 'actual_cost' if 'actual_cost' in cols else ('total_cost' if 'total_cost' in cols else '0')
-            qty_col = 'quantity' if 'quantity' in cols else ('qty' if 'qty' in cols else '0')
+            cost_col = 'actual_cost' if 'actual_cost' in cols else ('total_cost' if 'total_cost' in cols else None)
+            qty_col = 'planned_qty' if 'planned_qty' in cols else ('quantity' if 'quantity' in cols else ('qty' if 'qty' in cols else None))
+            qty_expr = f"CAST(po.{qty_col} AS TEXT)" if qty_col else "'0'"
+            cost_expr = f"CAST(po.{cost_col} AS TEXT)" if cost_col else "'0'"
             status_expr = 'po.status' if 'status' in cols else "''"
-            sql=f"SELECT po.id, po.{date_col} AS date, {product_expr}, CAST(po.{qty_col} AS TEXT) AS quantity, CAST(po.{cost_col} AS TEXT) AS actual_cost, {status_expr} AS status FROM production_orders po {joins} WHERE po.user_id=?"
+            sql=f"SELECT po.id, po.{date_col} AS date, {product_expr}, {qty_expr} AS quantity, {cost_expr} AS actual_cost, {status_expr} AS status FROM production_orders po {joins} WHERE po.user_id=?"
             params=[uid]
             if date_col!='id' and start_date: sql += f" AND date(po.{date_col}) >= date(?)"; params.append(start_date)
             if date_col!='id' and end_date: sql += f" AND date(po.{date_col}) <= date(?)"; params.append(end_date)
+            if status and 'status' in cols:
+                sql += " AND po.status = ?"; params.append(status)
             sql += f" ORDER BY po.{date_col}, po.id LIMIT ?"; params.append(limit)
             return [dict(r) for r in db.execute(sql, tuple(params)).fetchall()]
         except Exception:
             return []
 
-    def product_cost_report(self, item_id: int | None = None, limit: int = 2000) -> List[Dict]:
+    def product_cost_report(self, search: str | None = None, limit: int = 1000, branch_id: int | None = None, item_id: int | None = None) -> List[Dict]:
         """Product cost report based on item average/purchase cost and optional BOM components."""
         try:
             from decimal import Decimal
@@ -295,13 +306,22 @@ class LocalReportingGateway(ReportingGateway):
                 FROM items i WHERE i.user_id=?
             """
             if item_id: sql += " AND i.id=?"; params.append(item_id)
+            if search:
+                sql += " AND (i.name LIKE ? OR COALESCE(i.barcode,'') LIKE ?)"; params.extend([f'%{search}%', f'%{search}%'])
             sql += " ORDER BY i.name LIMIT ?"; params.append(limit)
             rows=[]
             for r in db.execute(sql, tuple(params)).fetchall():
                 d=dict(r); cost=Decimal(str(d.get('unit_cost') or 0)); components=0; bom_cost=Decimal('0')
                 if 'bom_lines' in tables:
                     try:
-                        brow=db.execute("SELECT COUNT(*) AS cnt, CAST(COALESCE(SUM(CAST(quantity AS REAL)*CAST(unit_cost AS REAL)),0) AS TEXT) AS cost FROM bom_lines WHERE product_id=?", (d.get('id'),)).fetchone()
+                        brow=db.execute("""
+                            SELECT COUNT(*) AS cnt,
+                                   CAST(COALESCE(SUM(CAST(bl.base_qty AS REAL) * CAST(COALESCE(i.average_cost, i.purchase_price, 0) AS REAL)),0) AS TEXT) AS cost
+                            FROM bom b
+                            JOIN bom_lines bl ON bl.bom_id = b.id
+                            LEFT JOIN items i ON i.id = bl.item_id
+                            WHERE b.product_id=?
+                        """, (d.get('id'),)).fetchone()
                         bd=dict(brow); components=int(bd.get('cnt') or 0); bom_cost=Decimal(str(bd.get('cost') or 0))
                     except Exception: pass
                 rows.append({**d, 'components_count': components, 'bom_cost': bom_cost, 'final_cost': bom_cost if bom_cost > 0 else cost})

@@ -1,0 +1,60 @@
+{
+  "runtime_db": "/tmp/alrajhi_phase239_business_reconciliation/phase239_business.db",
+  "ids": {
+    "raw_a": 1,
+    "raw_b": 2,
+    "raw_c": 3,
+    "finished": 4,
+    "purchase_partial": 1,
+    "purchase_full": 2,
+    "sale_partial": 3,
+    "sale_full": 4,
+    "sales_return": 1,
+    "purchase_return": 1,
+    "voucher_receipt": 1,
+    "voucher_payment": 2,
+    "bom": 1,
+    "production_order": 1
+  },
+  "inventory_actual": {
+    "1": "15.00",
+    "2": "18",
+    "3": "10.0",
+    "4": "2"
+  },
+  "cash_total": "61.0",
+  "cash_movement_types": [
+    "invoice_purchase_payment",
+    "invoice_sale_payment",
+    "payment",
+    "receipt"
+  ],
+  "required_materials": [
+    {
+      "item_id": 1,
+      "item_name": "P239 Raw A opening with unit",
+      "required_qty": "20",
+      "waste_percent": "0",
+      "unit_id": 1,
+      "unit_name": "box",
+      "conversion_factor": "10",
+      "available_qty": "35.00",
+      "is_sufficient": true
+    },
+    {
+      "item_id": 2,
+      "item_name": "P239 Raw B no opening",
+      "required_qty": "4",
+      "waste_percent": "0",
+      "unit_id": null,
+      "unit_name": "",
+      "conversion_factor": "1",
+      "available_qty": "22",
+      "is_sufficient": true
+    }
+  ],
+  "profit_row_count": 2,
+  "manufacturing_report_count": 1,
+  "product_cost_report_count": 1,
+  "production_status": "completed"
+}

@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import List, Dict, Optional, Tuple
 from auth.session import UserSession
 import datetime
+from core.item_types import is_finished_product
 
 class ManufacturingDAO:
     def __init__(self):
@@ -99,7 +100,7 @@ class ManufacturingDAO:
         product = self.db.execute("SELECT id, item_type FROM items WHERE id=?", (product_id,)).fetchone()
         if not product:
             raise ValueError("المنتج النهائي غير موجود")
-        if product['item_type'] != 'منتج نهائي':
+        if not is_finished_product(product['item_type']):
             raise ValueError("يجب أن يكون المنتج من نوع منتج نهائي")
         lines = bom_data.get('lines') or []
         if not lines:
@@ -229,7 +230,7 @@ class ManufacturingDAO:
         bom = dict(row)
         lines = self.db.execute("""
             SELECT bl.*, i.name as item_name,
-                   COALESCE(u.unit_name, bl.unit_name, '') as unit_name,
+                   COALESCE(u.unit_name, '') as unit_name,
                    CAST(COALESCE(bl.conversion_factor, u.conversion_factor, 1) AS TEXT) as conversion_factor,
                    CAST(COALESCE(NULLIF(bl.base_qty, ''), CAST(bl.quantity AS REAL) * COALESCE(bl.conversion_factor, u.conversion_factor, 1)) AS TEXT) as base_qty
             FROM bom_lines bl
@@ -323,7 +324,7 @@ class ManufacturingDAO:
             item_id = line['item_id']
             item = self.db.execute("SELECT item_type FROM items WHERE id=?", (item_id,)).fetchone()
             required_qty = self._bom_line_required_base_qty(bom, line, quantity)
-            if item and item['item_type'] == 'منتج نهائي':
+            if item and is_finished_product(item['item_type']):
                 sub_items = self._expand_bom(item_id, required_qty, multiplier, visited)
                 result.extend(sub_items)
             else:
@@ -691,42 +692,151 @@ class ManufacturingDAO:
         self.db.execute("UPDATE items SET average_cost = ? WHERE id = ?", (str(avg), item_id))
         self.db.commit()
 
+    def _journal_columns(self, table: str) -> set:
+        try:
+            return {str(row[1]) for row in self.db.execute(f"PRAGMA table_info({table})").fetchall()}
+        except Exception:
+            return set()
+
+    def _ensure_accounting_schema(self) -> None:
+        """Keep manufacturing accounting optional but schema-compatible.
+
+        Older manufacturing code wrote to legacy columns (date/reference_type and
+        entry_id/account_code).  The current accounting module owns the canonical
+        journal schema (entry_date/source_type/source_id and
+        journal_entry_id/account_id).  This helper upgrades/initializes that schema
+        before manufacturing tries to post an optional accounting entry.
+        """
+        try:
+            from gateways.local.accounting_gateway import LocalAccountingGateway
+            LocalAccountingGateway().ensure_schema(self.db.get_connection())
+        except Exception:
+            pass
+
+    def _next_journal_entry_no(self) -> str:
+        try:
+            row = self.db.execute('SELECT COALESCE(MAX(id),0)+1 FROM journal_entries').fetchone()
+            n = row[0] if row else 1
+            return f'JE-{int(n):06d}'
+        except Exception:
+            return f"JE-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+    def _account_id(self, code: str):
+        row = self.db.execute('SELECT id FROM accounts WHERE code=?', (code,)).fetchone()
+        if row:
+            return int(row['id'] if hasattr(row, 'keys') else row[0])
+        return None
+
+    def _manufacturing_account_code(self, account_name: str) -> str:
+        # Current chart does not split finished/raw inventory accounts, so both
+        # map to the inventory account while preserving balanced posting.
+        mapping = {
+            'inventory': '1200',
+            'raw_materials': '1200',
+            'raw_material': '1200',
+            'manufacturing_variance': '5000',
+        }
+        return mapping.get(str(account_name or '').strip(), '1200')
+
     def _create_journal_entry(self, date, description, ref_type, ref_id, lines):
-        # بعض نسخ قاعدة البيانات لا تحتوي بعد على جدول القيود المحاسبية.
-        # لا يجوز أن يفشل إتمام الإنتاج بسبب قيد محاسبي اختياري؛ المخزون والدفتر المخزني يبقيان المصدر التشغيلي هنا.
+        # Accounting posting is optional for manufacturing completion; inventory
+        # and warehouse ledgers are the operational source of truth.  If the
+        # accounting schema is unavailable or incompatible, do not block production.
+        self._ensure_accounting_schema()
         if not (self._table_exists('journal_entries') and self._table_exists('journal_lines')):
             return None
-        cur = self.db.execute("""
-            INSERT INTO journal_entries (date, description, reference_type, reference_id, created_at)
-            VALUES (?,?,?,?,?)
-        """, (date, description, ref_type, ref_id, datetime.datetime.now().isoformat()))
-        entry_id = cur.lastrowid
-        for line in lines:
-            self.db.execute("""
-                INSERT INTO journal_lines (entry_id, account_code, debit, credit)
-                VALUES (?,?,?,?)
-            """, (entry_id, line['account'], str(line['debit']), str(line['credit'])))
-        self.db.commit()
-        return entry_id
+        entry_cols = self._journal_columns('journal_entries')
+        line_cols = self._journal_columns('journal_lines')
+        now = datetime.datetime.now().isoformat()
+        try:
+            if {'entry_date', 'source_type', 'source_id'}.issubset(entry_cols):
+                existing = self.db.execute(
+                    "SELECT id FROM journal_entries WHERE source_type=? AND source_id=?",
+                    (ref_type, ref_id)
+                ).fetchone()
+                if existing:
+                    return int(existing['id'] if hasattr(existing, 'keys') else existing[0])
+                cur = self.db.execute("""
+                    INSERT INTO journal_entries(entry_no, entry_date, source_type, source_id, description, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, 'POSTED', ?)
+                """, (self._next_journal_entry_no(), str(date)[:10], ref_type, ref_id, description, now))
+                entry_id = int(cur.lastrowid)
+                if {'journal_entry_id', 'account_id'}.issubset(line_cols):
+                    for line in lines:
+                        account_id = self._account_id(self._manufacturing_account_code(line.get('account')))
+                        if not account_id:
+                            continue
+                        self.db.execute(
+                            "INSERT INTO journal_lines(journal_entry_id, account_id, debit, credit, memo) VALUES (?,?,?,?,?)",
+                            (entry_id, account_id, str(line.get('debit') or 0), str(line.get('credit') or 0), description)
+                        )
+                elif {'entry_id', 'account_code'}.issubset(line_cols):
+                    for line in lines:
+                        self.db.execute("INSERT INTO journal_lines(entry_id, account_code, debit, credit) VALUES (?,?,?,?)", (entry_id, line.get('account'), str(line.get('debit') or 0), str(line.get('credit') or 0)))
+                self.db.commit()
+                return entry_id
+            if {'date', 'reference_type', 'reference_id'}.issubset(entry_cols):
+                cur = self.db.execute("""
+                    INSERT INTO journal_entries (date, description, reference_type, reference_id, created_at)
+                    VALUES (?,?,?,?,?)
+                """, (date, description, ref_type, ref_id, now))
+                entry_id = cur.lastrowid
+                for line in lines:
+                    self.db.execute("""
+                        INSERT INTO journal_lines (entry_id, account_code, debit, credit)
+                        VALUES (?,?,?,?)
+                    """, (entry_id, line['account'], str(line['debit']), str(line['credit'])))
+                self.db.commit()
+                return entry_id
+        except Exception as exc:
+            try:
+                print(f"⚠️ تم تخطي قيد التصنيع المحاسبي الاختياري: {exc}")
+            except Exception:
+                pass
+            return None
+        return None
 
     def _reverse_journal_entry(self, entry_id):
         if not entry_id or not (self._table_exists('journal_entries') and self._table_exists('journal_lines')):
             return
-        lines = self.db.execute("SELECT account_code, debit, credit FROM journal_lines WHERE entry_id=?", (entry_id,)).fetchall()
-        if not lines:
-            return
+        self._ensure_accounting_schema()
+        entry_cols = self._journal_columns('journal_entries')
+        line_cols = self._journal_columns('journal_lines')
         now = datetime.datetime.now().isoformat()
-        cur = self.db.execute("""
-            INSERT INTO journal_entries (date, description, reference_type, reference_id, created_at)
-            VALUES (?,?,?,?,?)
-        """, (now, f"عكس قيد رقم {entry_id}", 'reversal', entry_id, now))
-        reverse_entry_id = cur.lastrowid
-        for line in lines:
-            self.db.execute("""
-                INSERT INTO journal_lines (entry_id, account_code, debit, credit)
-                VALUES (?,?,?,?)
-            """, (reverse_entry_id, line['account_code'], str(line['credit']), str(line['debit'])))
-        self.db.commit()
+        try:
+            if {'journal_entry_id', 'account_id'}.issubset(line_cols) and {'entry_date', 'source_type', 'source_id'}.issubset(entry_cols):
+                lines = self.db.execute("SELECT account_id, debit, credit, memo FROM journal_lines WHERE journal_entry_id=?", (entry_id,)).fetchall()
+                if not lines:
+                    return
+                cur = self.db.execute("""
+                    INSERT INTO journal_entries(entry_no, entry_date, source_type, source_id, description, status, created_at)
+                    VALUES (?, ?, 'reversal', ?, ?, 'POSTED', ?)
+                """, (self._next_journal_entry_no(), now[:10], entry_id, f"عكس قيد رقم {entry_id}", now))
+                reverse_entry_id = int(cur.lastrowid)
+                for line in lines:
+                    self.db.execute("INSERT INTO journal_lines(journal_entry_id, account_id, debit, credit, memo) VALUES (?,?,?,?,?)", (reverse_entry_id, line['account_id'], str(line['credit']), str(line['debit']), line['memo']))
+                self.db.commit()
+                return
+            if {'entry_id', 'account_code'}.issubset(line_cols) and {'date', 'reference_type', 'reference_id'}.issubset(entry_cols):
+                lines = self.db.execute("SELECT account_code, debit, credit FROM journal_lines WHERE entry_id=?", (entry_id,)).fetchall()
+                if not lines:
+                    return
+                cur = self.db.execute("""
+                    INSERT INTO journal_entries (date, description, reference_type, reference_id, created_at)
+                    VALUES (?,?,?,?,?)
+                """, (now, f"عكس قيد رقم {entry_id}", 'reversal', entry_id, now))
+                reverse_entry_id = cur.lastrowid
+                for line in lines:
+                    self.db.execute("""
+                        INSERT INTO journal_lines (entry_id, account_code, debit, credit)
+                        VALUES (?,?,?,?)
+                    """, (reverse_entry_id, line['account_code'], str(line['credit']), str(line['debit'])))
+                self.db.commit()
+        except Exception as exc:
+            try:
+                print(f"⚠️ تم تخطي عكس قيد التصنيع المحاسبي الاختياري: {exc}")
+            except Exception:
+                pass
 
     # ========== دوال التوافق ==========
     def get_consumptions(self, order_id: int) -> List[Dict]:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from features.transactions.grids.transaction_line_grid import TransactionLineGrid
+from core.item_types import is_bom_component_type
 
 
 class BomComponentsGrid(TransactionLineGrid):
@@ -18,6 +19,6 @@ class BomComponentsGrid(TransactionLineGrid):
         try:
             from core.services.catalog_service import catalog_service
             rows = catalog_service.items(search=search or None, limit=limit) or []
-            return [row for row in rows if row.get('item_type') in ('مخزون', 'منتج نهائي', 'raw_material', 'finished_product', 'stock')]
+            return [row for row in rows if is_bom_component_type(row.get('item_type'))]
         except Exception:
             return []

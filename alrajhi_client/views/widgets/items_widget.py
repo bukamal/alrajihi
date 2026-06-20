@@ -6,6 +6,7 @@ from i18n import translate, qt_layout_direction
 from core.services.product_service import product_service
 from core.services.settings_service import settings_service
 from core.services.permission_service import permission_service
+from core.item_types import STOCK, FINISHED_PRODUCT, SERVICE, normalize_item_type
 from currency import currency
 from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
@@ -136,9 +137,9 @@ class ItemsWidget(BaseWidget):
         filter_layout.addWidget(QLabel(translate("item_type_label")))
         if self.type_filter.count() == 0:
             self.type_filter.addItem(translate("all_types"), None)
-            self.type_filter.addItem(translate("stock_item_type"), translate('phase233_ui_031'))
-            self.type_filter.addItem(translate("finished_product_type"), translate('phase233_ui_032'))
-            self.type_filter.addItem(translate("service_item_type"), translate('phase233_ui_033'))
+            self.type_filter.addItem(translate("stock_item_type"), STOCK)
+            self.type_filter.addItem(translate("finished_product_type"), FINISHED_PRODUCT)
+            self.type_filter.addItem(translate("service_item_type"), SERVICE)
         filter_layout.addWidget(self.type_filter)
 
         filter_layout.addWidget(QLabel(translate('material_stock_filter')))
@@ -244,7 +245,7 @@ class ItemsWidget(BaseWidget):
         stock_filter = self.stock_filter.currentData()
         if category_id and item.get('category_id') != category_id:
             return False
-        if item_type and item.get('item_type') != item_type:
+        if item_type and normalize_item_type(item.get('item_type')) != normalize_item_type(item_type):
             return False
         if stock_filter:
             available_qty = Decimal(str(item.get('available', item.get('quantity', 0)) or 0))

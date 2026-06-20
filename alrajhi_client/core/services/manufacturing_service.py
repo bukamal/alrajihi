@@ -156,7 +156,7 @@ class ManufacturingService:
 
     # Materials, reservations and outputs
     def get_required_materials_recursive(self, product_id: int, planned_qty: Decimal, warehouse_id=None) -> List[Dict]:
-        return records(self.gateway.get_required_materials_recursive(product_id, planned_qty, warehouse_id), 'materials')
+        return records(self.gateway.get_required_materials_recursive(product_id, Decimal(str(planned_qty)), warehouse_id), 'materials')
 
     def get_required_materials(self, *args) -> List[Dict]:
         return records(self.gateway.get_required_materials(*args), 'materials')

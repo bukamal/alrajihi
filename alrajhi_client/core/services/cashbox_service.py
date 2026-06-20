@@ -122,6 +122,51 @@ class CashboxService:
     def reverse_voucher(self, voucher_id: int):
         return self.gateway.delete_reference_movements('voucher', voucher_id)
 
+    def record_invoice_payment(self, invoice_id: int, invoice: Dict):
+        """Record the immediate cash/bank effect of invoice paid_amount.
+
+        Legacy invoice persistence updates users.cash_balance only.  The modern
+        dashboard, finance workspace and cash/bank reports read cash_bank_movements,
+        so invoices with an immediate payment must also post a cash/bank movement.
+        Later receipt/payment vouchers continue to use reference_type='voucher'.
+        """
+        if not invoice_id or not invoice:
+            return None
+        amount = Decimal(str(invoice.get('paid_amount', invoice.get('paid', 0)) or 0))
+        if amount <= 0:
+            self.gateway.delete_reference_movements('invoice_payment', invoice_id)
+            return None
+        v = self.prepare_voucher_payload(invoice)
+        inv_type = v.get('type')
+        if inv_type == 'sale':
+            signed = abs(amount)
+            movement_type = 'invoice_sale_payment'
+            direction = 'in'
+            description = v.get('description') or v.get('reference') or 'قبض فاتورة بيع'
+        elif inv_type == 'purchase':
+            signed = -abs(amount)
+            movement_type = 'invoice_purchase_payment'
+            direction = 'out'
+            description = v.get('description') or v.get('reference') or 'دفع فاتورة شراء'
+        else:
+            return None
+        self.gateway.delete_reference_movements('invoice_payment', invoice_id)
+        return self.gateway.record_movement({
+            'branch_id': v.get('branch_id'),
+            'cashbox_id': v.get('cashbox_id'),
+            'bank_account_id': v.get('bank_account_id'),
+            'movement_type': movement_type,
+            'amount': signed,
+            'direction': direction,
+            'reference_type': 'invoice_payment',
+            'reference_id': invoice_id,
+            'description': description,
+            'movement_date': v.get('date'),
+        })
+
+    def reverse_invoice_payment(self, invoice_id: int):
+        return self.gateway.delete_reference_movements('invoice_payment', invoice_id)
+
     def record_return_refund(self, return_id: int, data: Dict):
         v = self.prepare_voucher_payload(data)
         amount = Decimal(str(v.get('amount') or 0))

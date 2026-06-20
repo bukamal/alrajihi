@@ -99,6 +99,13 @@ class ProductService:
         if data.get('units'):
             data['units'] = self._validate_unit_barcodes(0, data.get('barcode'), data.get('units') or [])
         item_id = self.item_gateway.create(data)
+        # Persist sub-units supplied by document/service callers in the same
+        # application boundary.  Older UI flows called replace_units() after
+        # add_item(), but headless/import/API flows can legitimately submit
+        # the full material payload at once.
+        units = data.get('units') or []
+        if units:
+            self.replace_units(item_id, units)
         audit_service.log('CREATE', 'ITEM', item_id, new_values=data, details='إنشاء مادة')
         return item_id
 

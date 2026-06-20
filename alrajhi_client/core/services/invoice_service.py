@@ -96,6 +96,26 @@ class InvoiceService:
         except Exception:
             return True
 
+    def _record_invoice_payment_effect(self, invoice_id: int, data: Dict) -> None:
+        try:
+            from core.services.cashbox_service import cashbox_service
+            cashbox_service.record_invoice_payment(invoice_id, data)
+        except Exception as exc:
+            audit_service.log(
+                'INVOICE_PAYMENT_CASHBOX_FAILED',
+                'SALE_INVOICE' if (data or {}).get('type') == 'sale' else 'PURCHASE_INVOICE',
+                invoice_id,
+                new_values={'error': str(exc)},
+                details='تعذر تسجيل حركة الصندوق/البنك للدفع الفوري في الفاتورة'
+            )
+
+    def _reverse_invoice_payment_effect(self, invoice_id: int) -> None:
+        try:
+            from core.services.cashbox_service import cashbox_service
+            cashbox_service.reverse_invoice_payment(invoice_id)
+        except Exception:
+            pass
+
     def create(self, data: Dict) -> int:
         workflow_policy_service.ensure_schema()
         data = dict(data or {})
@@ -119,6 +139,7 @@ class InvoiceService:
             audit_service.log('APPROVAL_AUTO_REQUEST_FAILED', 'INVOICE', invoice_id, new_values={'error': str(exc)}, details='تعذر إنشاء طلب الاعتماد التلقائي')
         if self._client_side_movements_enabled():
             warehouse_service.record_invoice_movements(invoice_id, data)
+        self._record_invoice_payment_effect(invoice_id, data)
         # Phase160 daily-mode: when Workflow is disabled, a saved invoice must be
         # posted immediately so daily users do not need a separate Post action.
         try:
@@ -144,9 +165,11 @@ class InvoiceService:
             raise ValueError('لا يمكن تعديل فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.')
         if self._client_side_movements_enabled():
             warehouse_service.reverse_invoice_movements(invoice_id, old)
+        self._reverse_invoice_payment_effect(invoice_id)
         result = self.gateway.update(invoice_id, data)
         if self._client_side_movements_enabled():
             warehouse_service.record_invoice_movements(invoice_id, data)
+        self._record_invoice_payment_effect(invoice_id, data)
         new = self.get(invoice_id)
         entity = 'SALE_INVOICE' if (old or data).get('type') == 'sale' else 'PURCHASE_INVOICE'
         audit_service.log('UPDATE', entity, invoice_id, old_values=old, new_values=new or data, details='تعديل فاتورة')
@@ -172,6 +195,7 @@ class InvoiceService:
             raise ValueError('لا يمكن حذف فاتورة مرتبطة بمرتجعات. ألغِ المرتجعات أولاً.')
         if self._client_side_movements_enabled():
             warehouse_service.reverse_invoice_movements(invoice_id, old)
+        self._reverse_invoice_payment_effect(invoice_id)
         result = self.gateway.delete(invoice_id)
         entity = 'SALE_INVOICE' if (old or {}).get('type') == 'sale' else 'PURCHASE_INVOICE'
         audit_service.log('SOFT_DELETE', entity, invoice_id, old_values=old, details='إلغاء/حذف فاتورة')

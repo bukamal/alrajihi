@@ -14,6 +14,7 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QShortcut
 
 from core.offline_guard import is_offline_read_error, offline_read_message
+from core.item_types import is_finished_product
 from core.services.barcode_input_service import barcode_input_service
 from core.services.catalog_service import catalog_service
 from core.services.manufacturing_operation_policy import manufacturing_operation_policy
@@ -227,7 +228,7 @@ class BomDocumentTab(BaseDocumentTab):
             else:
                 raise
         for item in rows:
-            if item.get('item_type') in ('منتج نهائي', 'finished_product'):
+            if is_finished_product(item.get('item_type')):
                 self._product_items.append(item)
                 self.product_combo.addItem(str(item.get('name') or item.get('item_name') or ''), item.get('id'))
         self.product_combo.blockSignals(False)

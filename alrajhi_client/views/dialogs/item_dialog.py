@@ -9,6 +9,7 @@ from PyQt5.QtGui import QKeySequence
 from views.centered_dialog import CenteredDialog
 from core.services.product_service import product_service
 from core.services.barcode_service import barcode_service, BarcodeError
+from core.item_types import STOCK, FINISHED_PRODUCT, SERVICE, normalize_item_type
 from currency import currency
 from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
@@ -143,9 +144,9 @@ class ItemDialog(CenteredDialog):
         general_form.addRow(translate("category_label"), category_widget)
 
         self.type_combo = QComboBox()
-        self.type_combo.addItem(translate("stock_item_type"), translate('phase233_ui_031'))
-        self.type_combo.addItem(translate("finished_product_type"), translate('phase233_ui_032'))
-        self.type_combo.addItem(translate("service_item_type"), translate('phase233_ui_033'))
+        self.type_combo.addItem(translate("stock_item_type"), STOCK)
+        self.type_combo.addItem(translate("finished_product_type"), FINISHED_PRODUCT)
+        self.type_combo.addItem(translate("service_item_type"), SERVICE)
         general_form.addRow(translate("item_type_field"), self.type_combo)
 
         self.unit_edit = QLineEdit()
@@ -570,7 +571,7 @@ class ItemDialog(CenteredDialog):
             idx = self.category_combo.findData(item.get('category_id'))
             if idx >= 0:
                 self.category_combo.setCurrentIndex(idx)
-        idx = self.type_combo.findData(item.get('item_type', translate('phase233_ui_031')))
+        idx = self.type_combo.findData(normalize_item_type(item.get('item_type', STOCK)))
         if idx >= 0:
             self.type_combo.setCurrentIndex(idx)
         self.unit_edit.setText(item.get('unit') or translate('unit_piece'))

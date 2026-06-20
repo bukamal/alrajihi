@@ -170,10 +170,18 @@ class WarehouseRepository(BaseRepository):
                 ''', (uid, item['id'], wh_id)).fetchone():
                     continue
                 movement_count = conn.execute("SELECT COUNT(*) AS cnt FROM inventory_movements WHERE item_id=? AND user_id=?", (item['id'], uid)).fetchone()['cnt']
-                # If transactional inventory movements already exist, do not migrate
-                # item.quantity as an opening warehouse balance; doing so double-counts
-                # the first purchase/sale when warehouse rows are created lazily.
-                qty = '0' if movement_count else str(item['quantity'] or '0')
+                non_opening_count = conn.execute("SELECT COUNT(*) AS cnt FROM inventory_movements WHERE item_id=? AND user_id=? AND movement_type <> 'opening'", (item['id'], uid)).fetchone()['cnt']
+                opening_row = conn.execute("SELECT COALESCE(SUM(CAST(quantity AS REAL)), 0) AS qty FROM inventory_movements WHERE item_id=? AND user_id=? AND movement_type='opening'", (item['id'], uid)).fetchone()
+                # If only an opening movement exists, seed the warehouse with that
+                # opening quantity.  If transactional movements already exist, do not
+                # migrate item.quantity because invoice/return/production movements are
+                # already reflected in warehouse rows or will be reconciled separately.
+                if movement_count and not non_opening_count:
+                    qty = str(opening_row['qty'] if opening_row else item['quantity'] or '0')
+                elif movement_count:
+                    qty = '0'
+                else:
+                    qty = str(item['quantity'] or '0')
                 avg = str(item['average_cost'] or '0')
                 conn.execute('''
                     INSERT INTO item_warehouse_balances

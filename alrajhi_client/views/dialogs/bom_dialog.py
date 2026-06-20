@@ -10,6 +10,7 @@ from core.services.manufacturing_service import manufacturing_service
 from currency import currency
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
+from core.item_types import is_finished_product, is_bom_component_type
 from ui.form_validation import FormValidator, make_error_label
 from views.widgets.modern_ui import apply_modern_dialog
 
@@ -38,7 +39,7 @@ class BOMDialog(CenteredDialog):
                 raise
         self.product_map = {}
         for it in items:
-            if it.get('item_type') == 'منتج نهائي':
+            if is_finished_product(it.get('item_type')):
                 price_display = currency.format_amount(currency.convert(it.get('selling_price', 0), currency.storage_currency(), currency.get_display_currency()))
                 self.product_combo.addItem(f"{it['name']} ({price_display})", it['id'])
                 self.product_map[it['id']] = it
@@ -103,7 +104,7 @@ class BOMDialog(CenteredDialog):
             else:
                 raise
         for it in items:
-            if it.get('item_type') in ('مخزون', 'منتج نهائي') and it['id'] != self.product_combo.currentData():
+            if is_bom_component_type(it.get('item_type')) and it['id'] != self.product_combo.currentData():
                 item_combo.addItem(f"{it['name']} ({currency.format_amount(currency.convert(it.get('selling_price', 0), currency.storage_currency(), currency.get_display_currency()))})", it['id'])
         sub_layout.addRow(translate("material_label"), item_combo)
 

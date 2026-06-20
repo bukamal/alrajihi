@@ -28,6 +28,7 @@ from core.services.barcode_input_service import barcode_input_service
 from core.services.permission_service import permission_service
 from core.services.product_service import product_service
 from core.services.settings_service import settings_service
+from core.item_types import STOCK, FINISHED_PRODUCT, SERVICE, normalize_item_type, is_stock
 from i18n import translate
 from currency import currency
 from i18n import qt_layout_direction, translate
@@ -90,7 +91,7 @@ class MaterialDocumentTab(BaseDocumentTab):
                 'ean13_internal_prefix': '290',
                 'code128_prefix': 'ITM',
                 'default_unit': tr('unit_piece'),
-                'default_item_type': translate('phase233_ui_031'),
+                'default_item_type': STOCK,
                 'quantity_decimals': 2,
                 'price_decimals': 2,
                 'barcode_label_options': {
@@ -195,9 +196,9 @@ class MaterialDocumentTab(BaseDocumentTab):
         form.addRow(tr('category_label'), self.category_combo)
 
         self.type_combo = QComboBox()
-        self.type_combo.addItem(tr('stock_item_type'), translate('phase233_ui_031'))
-        self.type_combo.addItem(tr('finished_product_type'), translate('phase233_ui_032'))
-        self.type_combo.addItem(tr('service_item_type'), translate('phase233_ui_033'))
+        self.type_combo.addItem(tr('stock_item_type'), STOCK)
+        self.type_combo.addItem(tr('finished_product_type'), FINISHED_PRODUCT)
+        self.type_combo.addItem(tr('service_item_type'), SERVICE)
         form.addRow(tr('item_type_field'), self.type_combo)
 
         self.unit_edit = QLineEdit()
@@ -452,7 +453,7 @@ class MaterialDocumentTab(BaseDocumentTab):
             self.generate_barcode(silent=True)
         self.unit_edit.setText(str(self.material_settings.get('default_unit') or tr('unit_piece')))
         self.add_unit_row(tr('unit_box') if tr('unit_box') != 'unit_box' else 'علبة', 1)
-        default_type = str(self.material_settings.get('default_item_type') or translate('phase233_ui_031'))
+        default_type = normalize_item_type(self.material_settings.get('default_item_type') or STOCK)
         idx = self.type_combo.findData(default_type)
         if idx >= 0:
             self.type_combo.setCurrentIndex(idx)
@@ -552,7 +553,7 @@ class MaterialDocumentTab(BaseDocumentTab):
             idx = self.category_combo.findData(category_id)
             if idx >= 0:
                 self.category_combo.setCurrentIndex(idx)
-        item_type = item.get('item_type')
+        item_type = normalize_item_type(item.get('item_type') or STOCK)
         idx = self.type_combo.findData(item_type)
         if idx >= 0:
             self.type_combo.setCurrentIndex(idx)
@@ -721,7 +722,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         validator.positive(self.qty_spin, self.qty_error, tr('opening_quantity').rstrip(':'), allow_zero=True)
         validator.positive(self.reorder_spin, self.reorder_error, tr('reorder_level').rstrip(':'), allow_zero=True)
         barcode = barcode_input_service.normalize(self.barcode_edit.text())
-        stock_type = self.type_combo.currentData() == translate('phase233_ui_031')
+        stock_type = is_stock(self.type_combo.currentData())
         if stock_type and bool(self.material_settings.get('require_barcode_for_stock_items', False)) and not barcode:
             validator.custom(False, self.barcode_edit, self.barcode_error, tr('material_barcode_required'))
         elif barcode:

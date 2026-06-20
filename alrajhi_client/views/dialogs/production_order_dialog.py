@@ -13,6 +13,7 @@ from ui.smart_table_view import SmartTableView
 from currency import currency
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
+from core.item_types import is_finished_product
 from ui.form_validation import FormValidator, make_error_label
 from decimal import Decimal
 from views.widgets.modern_ui import apply_modern_dialog
@@ -54,7 +55,7 @@ class ProductionOrderDialog(CenteredDialog):
                 raise
         self.product_bom_map = {}
         for it in items:
-            if it.get('item_type') == 'منتج نهائي':
+            if is_finished_product(it.get('item_type')):
                 bom = self.service.get_bom_for_product(it['id'])
                 price_display = currency.format_amount(currency.convert(it.get('selling_price', 0), currency.storage_currency(), currency.get_display_currency()))
                 if bom:

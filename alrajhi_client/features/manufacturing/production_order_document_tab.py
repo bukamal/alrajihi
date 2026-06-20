@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import (
 )
 
 from core.offline_guard import is_offline_read_error, offline_read_message
+from core.item_types import is_finished_product
 from core.services.catalog_service import catalog_service
 from core.services.manufacturing_operation_policy import manufacturing_operation_policy
 from core.services.manufacturing_service import manufacturing_service
@@ -257,7 +258,7 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
             else:
                 raise
         for item in rows:
-            if item.get('item_type') not in ('منتج نهائي', 'finished_product'):
+            if not is_finished_product(item.get('item_type')):
                 continue
             item_id = item.get('id')
             bom = None
@@ -288,6 +289,28 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
                 return item.get('id')
         return None
 
+    def _latest_bom_for_product(self, product_id: int) -> dict | None:
+        """Return the latest BOM for a product without trusting the initial cache.
+
+        The production-order tab may stay open while the user creates or edits
+        the BOM in another tab.  Relying only on _product_bom_map makes the
+        order editor report "no BOM/materials" even though the BOM was just
+        saved.
+        """
+        try:
+            bom = self.service.get_bom_for_product(int(product_id))
+        except Exception:
+            bom = None
+        if bom and bom.get('lines'):
+            self._product_bom_map[int(product_id)] = bom
+            idx = self.product_combo.findData(product_id)
+            if idx >= 0:
+                base_label = str(self.product_combo.itemText(idx)).split(' - ')[0].strip()
+                if base_label:
+                    self.product_combo.setItemText(idx, base_label)
+            return bom
+        return self._product_bom_map.get(int(product_id))
+
     def _refresh_required_materials(self) -> None:
         product_id = self._current_product_id()
         if not product_id:
@@ -295,8 +318,8 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
             self.summary_panel.update_summary(self.materials_model.summary())
             self.material_state_label.setText(translate('select_finished_product'))
             return
-        bom = self._product_bom_map.get(int(product_id))
-        if not bom:
+        bom = self._latest_bom_for_product(int(product_id))
+        if not bom or not bom.get('lines'):
             self.materials_model.load_materials([])
             self.summary_panel.update_summary(self.materials_model.summary())
             self.material_state_label.setText(translate('no_bom_for_product'))
@@ -337,8 +360,10 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         product_id = self._current_product_id()
         if not product_id:
             errors.append(translate('select_finished_product'))
-        elif not self._product_bom_map.get(int(product_id)):
-            errors.append(translate('no_bom_for_product_msg'))
+        else:
+            bom = self._latest_bom_for_product(int(product_id))
+            if not bom or not bom.get('lines'):
+                errors.append(translate('no_bom_for_product_msg'))
         if Decimal(str(self.qty_spin.value())) <= 0:
             errors.append(translate('quantity_positive_error'))
         if not self.raw_warehouse_combo.currentData() or not self.output_warehouse_combo.currentData():
