@@ -1,0 +1,15 @@
+{
+  "phase": 278,
+  "checks": 9,
+  "categories": {
+    "files": 1,
+    "syntax": 1,
+    "pyinstaller": 4,
+    "ci": 1,
+    "build": 2
+  },
+  "issues": 0,
+  "issue_groups": 0,
+  "ready": true,
+  "issues_detail": {}
+}

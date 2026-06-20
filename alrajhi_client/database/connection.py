@@ -47,12 +47,39 @@ def get_session_id():
     return hashlib.md5(get_device_id().encode()).hexdigest()
 
 
+try:
+    from workspace.sync.offline_sync_contract import offline_decision_for_api, queueable_api_prefixes
+except Exception:
+    def queueable_api_prefixes():
+        return (
+            '/api/invoices', '/api/items', '/api/customers', '/api/suppliers',
+            '/api/vouchers', '/api/expenses', '/api/returns/sales', '/api/returns/purchase',
+            '/api/audit_log',
+        )
+    def offline_decision_for_api(endpoint, method):
+        class _Decision:
+            pass
+        decision = _Decision()
+        decision.queueable = any(str(endpoint or '').startswith(prefix) for prefix in queueable_api_prefixes())
+        decision.surface_key = ''
+        decision.conflict_policy = 'manual_review'
+        decision.replay_priority = 50
+        return decision
+
+try:
+    from workspace.sync.replay_safety import build_idempotency_key
+except Exception:
+    def build_idempotency_key(*, surface_key='', payload_hash='', record_id=None, data=None):
+        if record_id not in (None, ''):
+            return f"{surface_key or 'offline'}:record:{record_id}"
+        if payload_hash:
+            return f"{surface_key or 'offline'}:hash:{payload_hash}"
+        return str(surface_key or 'offline')
+
+
 class OfflineQueueManager:
     WRITE_METHODS = {'POST', 'PUT', 'PATCH', 'DELETE'}
-    QUEUEABLE_PREFIXES = (
-        '/api/invoices', '/api/items', '/api/customers', '/api/suppliers',
-        '/api/vouchers', '/api/expenses', '/api/returns/sales', '/api/returns/purchase',
-    )
+    QUEUEABLE_PREFIXES = tuple(queueable_api_prefixes())
 
     def __init__(self):
         self._init_db()
@@ -93,17 +120,31 @@ class OfflineQueueManager:
             'sent_at': "ALTER TABLE queue ADD COLUMN sent_at TEXT",
             'title': "ALTER TABLE queue ADD COLUMN title TEXT",
             'entity': "ALTER TABLE queue ADD COLUMN entity TEXT",
+            'payload_hash': "ALTER TABLE queue ADD COLUMN payload_hash TEXT",
+            'idempotency_key': "ALTER TABLE queue ADD COLUMN idempotency_key TEXT",
+            'sync_scope': "ALTER TABLE queue ADD COLUMN sync_scope TEXT",
+            'conflict_policy': "ALTER TABLE queue ADD COLUMN conflict_policy TEXT",
+            'replay_priority': "ALTER TABLE queue ADD COLUMN replay_priority INTEGER DEFAULT 50",
+            'branch_id': "ALTER TABLE queue ADD COLUMN branch_id INTEGER",
+            'replay_locked_at': "ALTER TABLE queue ADD COLUMN replay_locked_at TEXT",
+            'replay_error_category': "ALTER TABLE queue ADD COLUMN replay_error_category TEXT",
+            'manual_review_reason': "ALTER TABLE queue ADD COLUMN manual_review_reason TEXT",
         }.items():
             if col not in cols:
                 conn.execute(ddl)
         conn.execute('CREATE INDEX IF NOT EXISTS idx_offline_queue_status ON queue(status, id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_offline_queue_scope ON queue(sync_scope, status, id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_offline_queue_branch ON queue(branch_id, status, id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_offline_queue_idempotency ON queue(session_id, idempotency_key, status)')
         conn.commit(); conn.close()
 
     def is_queueable(self, endpoint: str, method: str) -> bool:
         if (method or '').upper() not in self.WRITE_METHODS:
             return False
-        endpoint = endpoint or ''
-        return any(endpoint.startswith(prefix) for prefix in self.QUEUEABLE_PREFIXES)
+        return bool(offline_decision_for_api(endpoint or '', method or '').queueable)
+
+    def queue_decision(self, endpoint: str, method: str):
+        return offline_decision_for_api(endpoint or '', method or '')
 
     def _guess_entity(self, endpoint: str) -> str:
         endpoint = endpoint or ''
@@ -128,17 +169,59 @@ class OfflineQueueManager:
                     break
         return f"{verb} {entity}{extra}"
     
+    def _guess_branch_id(self, data):
+        if isinstance(data, dict):
+            for key in ('branch_id', 'source_branch_id', 'target_branch_id'):
+                value = data.get(key)
+                try:
+                    if value not in (None, ''):
+                        return int(value)
+                except Exception:
+                    continue
+        return None
+
     def add_request(self, endpoint, method, data=None, record_id=None, etag=None, error=None):
         session_id = get_session_id()
         conn = self._connect()
         now = datetime.datetime.now().isoformat(timespec='seconds')
         safe_data = _queue_json_safe(data) if data is not None else None
+        payload_json = json.dumps(safe_data, ensure_ascii=False, sort_keys=True) if safe_data is not None else None
+        payload_hash = hashlib.sha256((payload_json or '').encode('utf-8')).hexdigest() if payload_json is not None else None
+        decision = self.queue_decision(endpoint, method)
         title = self._guess_title(endpoint, method, safe_data)
         entity = self._guess_entity(endpoint)
+        branch_id = self._guess_branch_id(safe_data)
+        idempotency_key = build_idempotency_key(
+            surface_key=getattr(decision, 'surface_key', '') or '',
+            payload_hash=payload_hash or '',
+            record_id=record_id,
+            data=safe_data,
+        )
+        if idempotency_key:
+            existing = conn.execute(
+                "SELECT id FROM queue WHERE session_id=? AND idempotency_key=? AND status='pending' ORDER BY id LIMIT 1",
+                (session_id, idempotency_key),
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    "UPDATE queue SET last_error=?, last_attempt_at=? WHERE id=?",
+                    (str(error)[:500] if error else None, now, int(existing['id'])),
+                )
+                conn.commit(); qid = int(existing['id']); conn.close()
+                return qid
         cur = conn.execute("""
-            INSERT INTO queue (session_id, endpoint, method, data, created_at, record_id, etag, status, attempts, last_error, title, entity)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-        """, (session_id, endpoint, (method or '').upper(), json.dumps(safe_data, ensure_ascii=False) if safe_data is not None else None, now, record_id, etag, 'pending', 0, str(error)[:500] if error else None, title, entity))
+            INSERT INTO queue (
+                session_id, endpoint, method, data, created_at, record_id, etag, status, attempts,
+                last_error, title, entity, payload_hash, idempotency_key, sync_scope,
+                conflict_policy, replay_priority, branch_id
+            )
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            session_id, endpoint, (method or '').upper(), payload_json, now, record_id, etag, 'pending', 0,
+            str(error)[:500] if error else None, title, entity, payload_hash, idempotency_key,
+            getattr(decision, 'surface_key', '') or None, getattr(decision, 'conflict_policy', '') or None,
+            int(getattr(decision, 'replay_priority', 50) or 50), branch_id,
+        ))
         conn.commit(); qid = int(cur.lastrowid); conn.close()
         return qid
     
@@ -148,7 +231,7 @@ class OfflineQueueManager:
     def get_pending_requests(self):
         session_id = get_session_id()
         conn = self._connect()
-        rows = conn.execute("SELECT * FROM queue WHERE session_id = ? AND status = 'pending' ORDER BY id", (session_id,)).fetchall()
+        rows = conn.execute("SELECT * FROM queue WHERE session_id = ? AND status = 'pending' ORDER BY COALESCE(replay_priority,50), id", (session_id,)).fetchall()
         conn.close(); return [dict(row) for row in rows]
 
     def get_recent_requests(self, limit=200):
@@ -175,7 +258,25 @@ class OfflineQueueManager:
 
     def mark_failed(self, req_id, error=None):
         conn = self._connect(); now = datetime.datetime.now().isoformat(timespec='seconds')
-        conn.execute("UPDATE queue SET status='failed', attempts=COALESCE(attempts,0)+1, last_attempt_at=?, last_error=? WHERE id=?", (now, str(error)[:500] if error else None, req_id))
+        conn.execute("UPDATE queue SET status='failed', attempts=COALESCE(attempts,0)+1, last_attempt_at=?, last_error=?, replay_locked_at=NULL, replay_error_category='failed' WHERE id=?", (now, str(error)[:500] if error else None, req_id))
+        conn.commit(); conn.close()
+
+    def mark_conflict(self, req_id, error=None, reason=None):
+        conn = self._connect(); now = datetime.datetime.now().isoformat(timespec='seconds')
+        conn.execute(
+            "UPDATE queue SET status='conflict', attempts=COALESCE(attempts,0)+1, last_attempt_at=?, last_error=?, replay_locked_at=NULL, replay_error_category='conflict', manual_review_reason=? WHERE id=?",
+            (now, str(error)[:500] if error else None, str(reason or '')[:500] if reason else None, req_id),
+        )
+        conn.commit(); conn.close()
+
+    def mark_replay_locked(self, req_id):
+        conn = self._connect(); now = datetime.datetime.now().isoformat(timespec='seconds')
+        conn.execute("UPDATE queue SET replay_locked_at=? WHERE id=? AND status='pending'", (now, req_id))
+        conn.commit(); conn.close()
+
+    def mark_replay_unlocked(self, req_id):
+        conn = self._connect()
+        conn.execute("UPDATE queue SET replay_locked_at=NULL WHERE id=? AND status='pending'", (req_id,))
         conn.commit(); conn.close()
     
     def delete_request(self, req_id):

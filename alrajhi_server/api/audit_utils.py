@@ -13,7 +13,8 @@ def _json(value):
         return str(value)
 
 
-def audit_log(action, entity_type, entity_id=None, old_values=None, new_values=None, details='', source='API'):
+def audit_log(action, entity_type, entity_id=None, old_values=None, new_values=None, details='', source='API',
+              audit_scope='', permission_key='', branch_id=None, event_category=''):
     try:
         repo = AuditEventRepository()
         user_id = None
@@ -36,6 +37,8 @@ def audit_log(action, entity_type, entity_id=None, old_values=None, new_values=N
             'old_values': _json(old_values) if old_values is not None else None,
             'new_values': _json(new_values) if new_values is not None else None,
             'session_id': '', 'source': source,
+            'audit_scope': audit_scope, 'permission_key': permission_key,
+            'branch_id': branch_id, 'event_category': event_category,
         })
     except Exception:
         pass

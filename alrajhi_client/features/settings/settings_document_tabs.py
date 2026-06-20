@@ -298,6 +298,8 @@ class PosSettingsTab(SettingsSectionDocumentTab):
         ('pos/default_cashbox_id', 'default_cashbox', 'string'),
         ('pos/default_payment_method', 'default_payment_method', 'choice:cash|card|credit|bank_transfer'),
         ('pos/receipt_paper', 'receipt_paper', 'choice:80mm|58mm'),
+        ('pos/receipt_show_logo', 'pos_receipt_show_logo', 'bool'),
+        ('pos/receipt_show_qr', 'pos_receipt_show_qr', 'bool'),
         ('pos/operations/allow_checkout', 'allow_checkout', 'bool'),
         ('pos/operations/allow_print_receipt', 'allow_print_receipt', 'bool'),
     )

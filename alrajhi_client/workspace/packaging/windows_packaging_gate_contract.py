@@ -1,0 +1,270 @@
+# -*- coding: utf-8 -*-
+"""Windows runtime packaging gate (Phase 278).
+
+The application has repeatedly failed in Windows one-dir builds when PyInstaller
+missed late-bound modules or packaged Python template files incorrectly.  This
+contract is intentionally stdlib-only and PyQt-free so it can run before a build,
+inside CI, and from release diagnostics.
+"""
+from __future__ import annotations
+
+import ast
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Dict, Iterable, List, Mapping, Sequence
+
+ROOT = Path(__file__).resolve().parents[3]
+
+WINDOWS_PACKAGING_GATE_PHASE = 278
+
+
+@dataclass(frozen=True)
+class PackagingGateCheck:
+    key: str
+    category: str
+    title: str
+    source_path: str = ""
+    build_tokens: Sequence[str] = ()
+    workflow_tokens: Sequence[str] = ()
+    manifest_tokens: Sequence[str] = ()
+    syntax_paths: Sequence[str] = ()
+    required: bool = True
+
+
+REQUIRED_RUNTIME_FILES: Sequence[str] = (
+    "requirements.txt",
+    "alrajhi_client/main.py",
+    "alrajhi_client/printing/_template_loader.py",
+    "alrajhi_client/printing/print_templates.py",
+    "alrajhi_client/printing/printing_service.py",
+    "alrajhi_client/database/migrations.py",
+    "alrajhi_server/database/migrations.py",
+    "build/build_windows.ps1",
+    "build/pyinstaller_hidden_imports.py",
+    "build/hooks/hook-printing.py",
+    "build/hooks/hook-alrajhi_client.printing.py",
+    ".github/workflows/build-windows-installer.yml",
+)
+
+# Source files that are especially dangerous when shipped as data files because
+# PyInstaller may not import them during analysis.  Parse them explicitly.
+REQUIRED_SYNTAX_FILES: Sequence[str] = (
+    "alrajhi_client/main.py",
+    "alrajhi_client/printing/_template_loader.py",
+    "alrajhi_client/printing/print_templates.py",
+    "alrajhi_client/printing/printing_service.py",
+    "alrajhi_client/database/migrations.py",
+    "alrajhi_server/database/migrations.py",
+    "build/pyinstaller_hidden_imports.py",
+    "build/hooks/hook-printing.py",
+    "build/hooks/hook-alrajhi_client.printing.py",
+)
+
+REQUIRED_HIDDEN_IMPORTS: Sequence[str] = (
+    "printing._template_loader",
+    "printing.print_templates",
+    "printing.printing_service",
+    "printing.print_manager",
+    "printing.thermal_printer",
+    "printing.label_designer",
+    "alrajhi_client.printing._template_loader",
+    "alrajhi_client.printing.print_templates",
+    "alrajhi_client.printing.printing_service",
+    "alrajhi_client.printing.print_manager",
+    "database.migrations",
+    "alrajhi_client.database.migrations",
+    "database.schema_manager",
+    "alrajhi_client.database.schema_manager",
+    "flask_jwt_extended",
+)
+
+REQUIRED_COLLECT_SUBMODULES: Sequence[str] = (
+    "alrajhi_client.printing",
+    "printing",
+    "alrajhi_client.database",
+    "database",
+    "alrajhi_client.database.repositories",
+    "database.repositories",
+    "alrajhi_client.database.dao",
+    "database.dao",
+    "alrajhi_client.workspace",
+    "workspace",
+    "alrajhi_client.gateways.local",
+    "gateways.local",
+)
+
+REQUIRED_ADD_DATA: Sequence[str] = (
+    "alrajhi_client\\printing\\_template_loader.py;printing",
+    "alrajhi_client\\printing\\_template_loader.py;alrajhi_client\\printing",
+    "alrajhi_client\\printing\\print_templates.py;printing",
+    "alrajhi_client\\printing\\print_templates.py;alrajhi_client\\printing",
+    "alrajhi_client\\assets;assets",
+    "alrajhi_client\\assets;alrajhi_client\\assets",
+)
+
+REQUIRED_POST_BUILD_TOKENS: Sequence[str] = (
+    "print_templates.py",
+    "_template_loader.py",
+    "Portable build missing packaged print template files",
+    "Portable build missing packaged print template loader",
+)
+
+PACKAGING_GATE_CHECKS: Sequence[PackagingGateCheck] = (
+    PackagingGateCheck("runtime_files", "files", "Required runtime files"),
+    PackagingGateCheck("source_syntax", "syntax", "Runtime source syntax"),
+    PackagingGateCheck("hidden_import_manifest", "pyinstaller", "Hidden import manifest coverage"),
+    PackagingGateCheck("collect_submodules", "pyinstaller", "Collected submodule coverage"),
+    PackagingGateCheck("printing_data_files", "pyinstaller", "Printing template data files"),
+    PackagingGateCheck("hooks", "pyinstaller", "PyInstaller hooks collect Python template files"),
+    PackagingGateCheck("workflow_gate", "ci", "GitHub workflow runs packaging gate"),
+    PackagingGateCheck("build_ps1_gate", "build", "Local Windows build runs packaging gate"),
+    PackagingGateCheck("post_build_runtime_files", "build", "Post-build packaged runtime file verification"),
+)
+
+
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
+
+
+def _load_manifest(root: Path) -> Mapping[str, Sequence[str]]:
+    manifest_path = root / "build" / "pyinstaller_hidden_imports.py"
+    ns: Dict[str, object] = {}
+    if manifest_path.exists():
+        exec(manifest_path.read_text(encoding="utf-8"), ns)
+    return {
+        "HIDDEN_IMPORTS": tuple(ns.get("HIDDEN_IMPORTS", ()) or ()),
+        "COLLECT_SUBMODULES": tuple(ns.get("COLLECT_SUBMODULES", ()) or ()),
+        "COLLECT_DATA": tuple(ns.get("COLLECT_DATA", ()) or ()),
+    }
+
+
+def _module_file_for_hidden_import(root: Path, module: str) -> Path | None:
+    rel = Path(*module.split(".")).with_suffix(".py")
+    candidates = (root / rel, root / "alrajhi_client" / rel)
+    return next((candidate for candidate in candidates if candidate.exists()), None)
+
+
+def packaging_gate_checks() -> Sequence[PackagingGateCheck]:
+    return PACKAGING_GATE_CHECKS
+
+
+def packaging_gate_matrix(root: Path | None = None) -> List[Dict[str, object]]:
+    base = root or ROOT
+    issues = validate_windows_packaging_gate(base)
+    rows: List[Dict[str, object]] = []
+    for check in PACKAGING_GATE_CHECKS:
+        rows.append({
+            "key": check.key,
+            "category": check.category,
+            "title": check.title,
+            "required": check.required,
+            "status": "fail" if check.key in issues else "pass",
+            "issues": len(issues.get(check.key, [])),
+        })
+    return rows
+
+
+def validate_windows_packaging_gate(root: Path | None = None) -> Dict[str, List[str]]:
+    base = root or ROOT
+    issues: Dict[str, List[str]] = {}
+
+    def add(key: str, message: str) -> None:
+        issues.setdefault(key, []).append(message)
+
+    workflow_path = base / ".github" / "workflows" / "build-windows-installer.yml"
+    build_path = base / "build" / "build_windows.ps1"
+    manifest_path = base / "build" / "pyinstaller_hidden_imports.py"
+    workflow = _read(workflow_path)
+    build = _read(build_path)
+    manifest_text = _read(manifest_path)
+    combined_build_text = workflow + "\n" + build
+    manifest = _load_manifest(base)
+
+    for rel in REQUIRED_RUNTIME_FILES:
+        if not (base / rel).exists():
+            add("runtime_files", f"missing {rel}")
+
+    for rel in REQUIRED_SYNTAX_FILES:
+        path = base / rel
+        if not path.exists():
+            continue
+        try:
+            ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        except SyntaxError as exc:
+            add("source_syntax", f"syntax error in {rel}: {exc}")
+
+    hidden = set(manifest.get("HIDDEN_IMPORTS", ()))
+    collect = set(manifest.get("COLLECT_SUBMODULES", ()))
+    collect_data = set(manifest.get("COLLECT_DATA", ()))
+
+    for module in REQUIRED_HIDDEN_IMPORTS:
+        if module not in hidden:
+            add("hidden_import_manifest", f"manifest missing hidden import {module}")
+        if f"--hidden-import {module}" not in build and f'"--hidden-import", "{module}"' not in workflow:
+            add("hidden_import_manifest", f"build/workflow missing hidden import {module}")
+        module_file = _module_file_for_hidden_import(base, module)
+        if module_file is not None:
+            try:
+                ast.parse(module_file.read_text(encoding="utf-8"), filename=str(module_file))
+            except SyntaxError as exc:
+                add("hidden_import_manifest", f"hidden import syntax error {module}: {exc}")
+
+    for module in REQUIRED_COLLECT_SUBMODULES:
+        if module not in collect:
+            add("collect_submodules", f"manifest missing collect-submodules {module}")
+        if f"--collect-submodules {module}" not in build and f'"--collect-submodules", "{module}"' not in workflow:
+            add("collect_submodules", f"build/workflow missing collect-submodules {module}")
+
+    for module in ("printing", "alrajhi_client.printing"):
+        if module not in collect_data:
+            add("printing_data_files", f"manifest missing collect-data {module}")
+        if f"--collect-data {module}" not in build and f'"--collect-data", "{module}"' not in workflow:
+            add("printing_data_files", f"build/workflow missing collect-data {module}")
+
+    for token in REQUIRED_ADD_DATA:
+        if token not in combined_build_text:
+            add("printing_data_files", f"missing add-data token {token}")
+
+    for rel in ("build/hooks/hook-printing.py", "build/hooks/hook-alrajhi_client.printing.py"):
+        text = _read(base / rel)
+        if "collect_submodules" not in text:
+            add("hooks", f"{rel} must collect submodules")
+        if "collect_data_files" not in text or "include_py_files=True" not in text:
+            add("hooks", f"{rel} must collect template .py files with include_py_files=True")
+
+    if "python tools\\windows_runtime_packaging_gate_audit.py" not in workflow and "python tools/windows_runtime_packaging_gate_audit.py" not in workflow:
+        add("workflow_gate", "workflow must run tools/windows_runtime_packaging_gate_audit.py before build")
+    if "python tools\\windows_runtime_packaging_gate_audit.py" not in build and "python tools/windows_runtime_packaging_gate_audit.py" not in build:
+        add("build_ps1_gate", "build_windows.ps1 must run tools/windows_runtime_packaging_gate_audit.py")
+
+    for token in REQUIRED_POST_BUILD_TOKENS:
+        if token not in combined_build_text:
+            add("post_build_runtime_files", f"missing post-build token {token}")
+
+    return issues
+
+
+def windows_packaging_gate_summary(root: Path | None = None) -> Dict[str, object]:
+    rows = packaging_gate_matrix(root)
+    issues = validate_windows_packaging_gate(root)
+    categories: Dict[str, int] = {}
+    for row in rows:
+        categories[str(row["category"])] = categories.get(str(row["category"]), 0) + 1
+    return {
+        "phase": WINDOWS_PACKAGING_GATE_PHASE,
+        "checks": len(rows),
+        "categories": categories,
+        "issues": sum(len(v) for v in issues.values()),
+        "issue_groups": len(issues),
+        "ready": not issues,
+    }
+
+
+__all__ = [
+    "WINDOWS_PACKAGING_GATE_PHASE",
+    "PackagingGateCheck",
+    "packaging_gate_checks",
+    "packaging_gate_matrix",
+    "validate_windows_packaging_gate",
+    "windows_packaging_gate_summary",
+]

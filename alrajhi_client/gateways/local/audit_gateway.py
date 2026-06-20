@@ -47,7 +47,8 @@ class LocalAuditGateway(AuditGateway):
         cols = self._columns(conn, 'audit_log')
         for col_name, col_type in [
             ('event_time', 'TEXT'), ('entity_type', 'TEXT'), ('entity_id', 'INTEGER'),
-            ('old_values', 'TEXT'), ('new_values', 'TEXT'), ('session_id', 'TEXT'), ('source', 'TEXT')
+            ('old_values', 'TEXT'), ('new_values', 'TEXT'), ('session_id', 'TEXT'), ('source', 'TEXT'),
+            ('audit_scope', 'TEXT'), ('permission_key', 'TEXT'), ('branch_id', 'INTEGER'), ('event_category', 'TEXT')
         ]:
             if col_name not in cols:
                 conn.execute(f"ALTER TABLE audit_log ADD COLUMN {col_name} {col_type}")
@@ -58,7 +59,9 @@ class LocalAuditGateway(AuditGateway):
 
     def log(self, action: str, entity_type: str, entity_id: Optional[int] = None,
             old_values: Any = None, new_values: Any = None, details: str = '',
-            source: str = 'USER', ip_address: str = '127.0.0.1') -> None:
+            source: str = 'USER', ip_address: str = '127.0.0.1',
+            audit_scope: str = '', permission_key: str = '', branch_id: Any = None,
+            event_category: str = '') -> None:
         conn = self.db.get_connection()
         self.ensure_schema(conn)
         cols = self._columns(conn, 'audit_log')
@@ -86,6 +89,10 @@ class LocalAuditGateway(AuditGateway):
             'new_values': self._json(new_values) if new_values is not None else None,
             'session_id': get_session_id(),
             'source': source,
+            'audit_scope': audit_scope,
+            'permission_key': permission_key,
+            'branch_id': branch_id,
+            'event_category': event_category,
         }
         insert_cols = [c for c in base.keys() if c in cols]
         if not insert_cols:
@@ -103,7 +110,7 @@ class LocalAuditGateway(AuditGateway):
         count_sql = "SELECT COUNT(*) FROM audit_log WHERE 1=1"
         sql = ("SELECT id, user_id, username, action, table_name, record_id, details, "
                "ip_address, timestamp, event_time, entity_type, entity_id, old_values, "
-               "new_values, session_id, source FROM audit_log WHERE 1=1")
+               "new_values, session_id, source, audit_scope, permission_key, branch_id, event_category FROM audit_log WHERE 1=1")
         params = []
         if user_id:
             count_sql += " AND user_id = ?"

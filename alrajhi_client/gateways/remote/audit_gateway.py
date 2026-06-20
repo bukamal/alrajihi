@@ -18,8 +18,26 @@ class RemoteAuditGateway(AuditGateway):
 
     def log(self, action: str, entity_type: str, entity_id: Optional[int] = None,
             old_values: Any = None, new_values: Any = None, details: str = '',
-            source: str = 'USER', ip_address: str = '127.0.0.1') -> None:
-        return None
+            source: str = 'USER', ip_address: str = '127.0.0.1',
+            audit_scope: str = '', permission_key: str = '', branch_id: Any = None,
+            event_category: str = '') -> None:
+        try:
+            DatabaseConnection().get_rest_client().post_audit_log({
+                'action': action,
+                'entity_type': entity_type,
+                'entity_id': entity_id,
+                'old_values': old_values,
+                'new_values': new_values,
+                'details': details,
+                'source': source,
+                'ip_address': ip_address,
+                'audit_scope': audit_scope,
+                'permission_key': permission_key,
+                'branch_id': branch_id,
+                'event_category': event_category,
+            })
+        except Exception:
+            return None
 
 
     def list_logs(self, limit: int = 1000, offset: int = 0, user_id: int | None = None,

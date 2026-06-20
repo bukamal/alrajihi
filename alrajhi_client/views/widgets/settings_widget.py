@@ -44,28 +44,16 @@ class SettingsWidget(QWidget):
         self.tabs = QTabWidget()
         self.tabs.setObjectName('settingsTabs')
         self.tabs.setDocumentMode(True)
-        self.tabs.addTab(self.create_appearance_tab(), '🎨 ' + translate('appearance'))
-        self.tabs.addTab(self.create_language_settings_tab(), translate('phase233_ui_037'))
-        self.tabs.addTab(self.create_profiles_tab(), translate('phase233_ui_038'))
-        self.tabs.addTab(self.create_contracts_tab(), '⚙️ ' + translate('settings_contracts_tab'))
-        self.tabs.addTab(self.create_company_tab(), '🏢 ' + translate('company'))
-        self.tabs.addTab(self.create_invoice_settings_tab(), translate('phase233_ui_039'))
-        self.tabs.addTab(self.create_units_settings_tab(), translate('phase233_ui_040'))
-        self.tabs.addTab(self.create_returns_settings_tab(), translate('phase233_ui_041'))
-        self.tabs.addTab(self.create_inventory_settings_tab(), translate('phase233_ui_042'))
-        self.tabs.addTab(self.create_manufacturing_settings_tab(), translate('phase233_ui_043'))
-        self.tabs.addTab(self.create_reports_settings_tab(), translate('phase233_ui_044'))
-        self.tabs.addTab(self.create_printing_tab(), '🖨️ ' + translate('printing_tab'))
-        self.tabs.addTab(self.create_pos_tab(), '🧾 ' + translate('pos_tab'))
-        self.tabs.addTab(self.create_currency_tab(), '💰 ' + translate('currencies'))
-        self.tabs.addTab(self.create_rates_tab(), '💱 ' + translate('exchange_rates'))
-        self.tabs.addTab(self.create_network_tab(), '🌐 ' + translate('network'))
-        self.tabs.addTab(self.create_security_tab(), translate('phase233_ui_045'))
-        self.tabs.addTab(self.create_workflow_tab(), translate('phase233_ui_046'))
-        self.tabs.addTab(self.create_settings_audit_tab(), translate('phase233_ui_047'))
-        self.tabs.addTab(self.create_security_events_tab(), translate('phase233_ui_048'))
-        self.tabs.addTab(self.create_backup_tab(), '💾 ' + translate('backup_data'))
-        self.tabs.addTab(self.create_diagnostics_tab(), translate('phase233_ui_049'))
+        self.tabs.setUsesScrollButtons(True)
+        self.tabs.setElideMode(Qt.ElideRight)
+        self._settings_tab_registry = tuple(self._settings_tab_specs())
+        self._settings_tab_lookup = {
+            tab_key: (factory, label_factory)
+            for tab_key, factory, label_factory in self._settings_tab_registry
+        }
+        self._settings_group_registry = tuple(self._settings_group_specs())
+        self._settings_group_tabs = {}
+        self._build_grouped_settings_tabs()
         main.addWidget(self.tabs, 1)
 
         self._apply_local_style()
@@ -75,6 +63,94 @@ class SettingsWidget(QWidget):
 
 
     # Phase118: settings page has no top explanatory/header card.
+
+    def _settings_tab_specs(self):
+        """Canonical settings tab registry.
+
+        The same registry is used when tabs are built and when labels are
+        refreshed after changing the UI language.  This prevents the previous
+        title/content shift caused by maintaining two different tab lists.
+        """
+        return (
+            ('appearance', self.create_appearance_tab, lambda: '🎨 ' + translate('appearance')),
+            ('languages', self.create_language_settings_tab, lambda: translate('phase233_ui_037')),
+            ('profiles', self.create_profiles_tab, lambda: translate('phase233_ui_038')),
+            ('contracts', self.create_contracts_tab, lambda: '⚙️ ' + translate('settings_contracts_tab')),
+            ('company', self.create_company_tab, lambda: '🏢 ' + translate('company')),
+            ('invoices', self.create_invoice_settings_tab, lambda: translate('phase233_ui_039')),
+            ('units', self.create_units_settings_tab, lambda: translate('phase233_ui_040')),
+            ('returns', self.create_returns_settings_tab, lambda: translate('phase233_ui_041')),
+            ('inventory', self.create_inventory_settings_tab, lambda: translate('phase233_ui_042')),
+            ('manufacturing', self.create_manufacturing_settings_tab, lambda: translate('phase233_ui_043')),
+            ('reports', self.create_reports_settings_tab, lambda: translate('phase233_ui_044')),
+            ('printing', self.create_printing_tab, lambda: '🖨️ ' + translate('printing_tab')),
+            ('pos', self.create_pos_tab, lambda: '🧾 ' + translate('pos_tab')),
+            ('currency', self.create_currency_tab, lambda: '💰 ' + translate('currencies')),
+            ('rates', self.create_rates_tab, lambda: '💱 ' + translate('exchange_rates')),
+            ('network', self.create_network_tab, lambda: '🌐 ' + translate('network')),
+            ('security', self.create_security_tab, lambda: translate('phase233_ui_045')),
+            ('workflow', self.create_workflow_tab, lambda: translate('phase233_ui_046')),
+            ('settings_audit', self.create_settings_audit_tab, lambda: translate('phase233_ui_047')),
+            ('security_events', self.create_security_events_tab, lambda: translate('phase233_ui_048')),
+            ('backup', self.create_backup_tab, lambda: '💾 ' + translate('backup_data')),
+            ('diagnostics', self.create_diagnostics_tab, lambda: translate('phase233_ui_049')),
+        )
+
+
+    def _settings_group_specs(self):
+        """Top-level grouped settings navigation.
+
+        Phase 274 keeps the Phase 273 leaf registry as the canonical source of
+        actual pages, but presents those pages under a smaller set of business
+        sections.  This prevents crowded top-level tabs while preserving every
+        existing settings page, key, API path, and save handler.
+        """
+        return (
+            ('general', lambda: translate('settings_group_general'), (
+                'company', 'appearance', 'languages', 'profiles',
+            )),
+            ('finance', lambda: translate('settings_group_finance'), (
+                'invoices', 'returns', 'currency', 'rates', 'workflow', 'reports',
+            )),
+            ('inventory', lambda: translate('settings_group_inventory'), (
+                'units', 'inventory', 'manufacturing',
+            )),
+            ('operations', lambda: translate('settings_group_operations'), (
+                'printing', 'pos', 'network',
+            )),
+            ('security', lambda: translate('settings_group_security'), (
+                'security', 'security_events', 'settings_audit', 'backup',
+            )),
+            ('diagnostics', lambda: translate('settings_group_diagnostics'), (
+                'contracts', 'diagnostics',
+            )),
+        )
+
+    def _build_grouped_settings_tabs(self):
+        """Build grouped settings tabs from the canonical leaf registry."""
+        # Phase 273 compatibility note for static guards:
+        # for _tab_key, factory, label_factory in self._settings_tab_registry:
+        #     self.tabs.addTab(factory(), label_factory())
+        self.tabs.clear()
+        self._settings_group_tabs = {}
+        for group_key, group_label_factory, child_keys in self._settings_group_registry:
+            nested = QTabWidget()
+            nested.setObjectName(f'settingsGroupTabs_{group_key}')
+            nested.setDocumentMode(True)
+            nested.setUsesScrollButtons(True)
+            nested.setElideMode(Qt.ElideRight)
+            nested.setTabPosition(QTabWidget.North)
+            for tab_key in child_keys:
+                factory, label_factory = self._settings_tab_lookup[tab_key]
+                nested.addTab(factory(), label_factory())
+            self._settings_group_tabs[group_key] = nested
+            self.tabs.addTab(nested, group_label_factory())
+
+    def _leaf_tab_keys_in_groups(self):
+        keys = []
+        for _group_key, _label_factory, child_keys in self._settings_group_specs():
+            keys.extend(child_keys)
+        return tuple(keys)
 
     def _scroll_tab(self):
         scroll = QScrollArea()
@@ -347,6 +423,7 @@ class SettingsWidget(QWidget):
         self._make_bool_row(oform, 'contract_inventory_transfer', 'inventory/operations/allow_transfer_create', 'settings_operation_inventory_transfer', True)
         self._make_bool_row(oform, 'contract_inventory_print', 'inventory/operations/allow_print', 'settings_operation_inventory_print', True)
         self._make_bool_row(oform, 'contract_manufacturing_print', 'manufacturing/operations/allow_print', 'settings_operation_manufacturing_print', True)
+        self._make_bool_row(oform, 'contract_reports_print', 'reports/operations/allow_print', 'settings_operation_reports_print', True)
         self._make_bool_row(oform, 'contract_reports_export', 'reports/operations/allow_export', 'settings_operation_reports_export', True)
         self._make_bool_row(oform, 'contract_finance_expense', 'finance/operations/allow_expense_create', 'settings_operation_finance_expense', True)
         self._make_bool_row(oform, 'contract_finance_voucher', 'finance/operations/allow_voucher_create', 'settings_operation_finance_voucher', True)
@@ -395,6 +472,7 @@ class SettingsWidget(QWidget):
             'inventory/operations/allow_transfer_create': self.contract_inventory_transfer.isChecked(),
             'inventory/operations/allow_print': self.contract_inventory_print.isChecked(),
             'manufacturing/operations/allow_print': self.contract_manufacturing_print.isChecked(),
+            'reports/operations/allow_print': self.contract_reports_print.isChecked(),
             'reports/operations/allow_export': self.contract_reports_export.isChecked(),
             'finance/operations/allow_expense_create': self.contract_finance_expense.isChecked(),
             'finance/operations/allow_voucher_create': self.contract_finance_voucher.isChecked(),
@@ -1299,7 +1377,7 @@ class SettingsWidget(QWidget):
 
     def create_diagnostics_tab(self):
         scroll, layout = self._scroll_tab()
-        group, box = self._card('تشخيص النظام', 'فحص سريع لصحة قاعدة البيانات والجداول الأساسية والإحصاءات التشغيلية.')
+        group, box = self._card(translate('settings_diagnostics_title'), translate('settings_diagnostics_help'))
         self.diagnostics_text = QPlainTextEdit()
         self.diagnostics_text.setReadOnly(True)
         self.diagnostics_text.setMinimumHeight(420)
@@ -1394,39 +1472,112 @@ class SettingsWidget(QWidget):
                     lines.append('- فحص الاتساق المتقدم: فشل (' + str(exc) + ')')
             else:
                 lines.append('حالة الخادم: ' + str(snapshot.get('remote_status') or system_service.debug_status()))
+            self._append_unification_diagnostics(lines)
         except Exception as exc:
             lines.append('فشل التشخيص: ' + str(exc))
         self.diagnostics_text.setPlainText('\n'.join(lines))
+
+    def _append_unification_diagnostics(self, lines):
+        """Append architecture-contract health to the existing diagnostics tab.
+
+        This keeps the diagnostics inside Settings, where it already exists, and
+        avoids adding yet another top-level settings tab.  Imports stay local so
+        the settings page can still open in limited/PyInstaller environments.
+        """
+        lines.append('')
+        lines.append(translate('settings_diagnostics_unification_title'))
+        checks = []
+        try:
+            from workspace.documents.document_contract import all_descriptors, validate_all_descriptors
+            issues = validate_all_descriptors()
+            checks.append(('Document Shell', len(all_descriptors()), sum(len(v) for v in issues.values())))
+        except Exception as exc:
+            checks.append(('Document Shell', 'ERR', str(exc)))
+        try:
+            from workspace.lists.list_workspace_contract import list_descriptors, validate_list_descriptors
+            issues = validate_list_descriptors()
+            checks.append(('List Workspace', len(list_descriptors()), len(issues)))
+        except Exception as exc:
+            checks.append(('List Workspace', 'ERR', str(exc)))
+        try:
+            from features.reports.report_shell_contract import all_report_descriptors, validate_all_report_descriptors
+            issues = validate_all_report_descriptors()
+            checks.append(('Report Shell', len(all_report_descriptors()), sum(len(v) for v in issues.values())))
+        except Exception as exc:
+            checks.append(('Report Shell', 'ERR', str(exc)))
+        try:
+            from workspace.operational.operational_shell_contract import operational_descriptors, validate_operational_descriptors
+            issues = validate_operational_descriptors()
+            checks.append(('Operational Shell', len(operational_descriptors()), len(issues)))
+        except Exception as exc:
+            checks.append(('Operational Shell', 'ERR', str(exc)))
+        try:
+            coverage = settings_service.settings_contract_coverage()
+            missing = coverage.get('uncovered_scopes') or []
+            checks.append(('Settings Contract', len(coverage.get('sections') or []), len(missing)))
+        except Exception as exc:
+            checks.append(('Settings Contract', 'ERR', str(exc)))
+        try:
+            from workspace.security.rbac_contract import required_permission_keys, validate_rbac_contract
+            issues = validate_rbac_contract()
+            checks.append(('RBAC Contract', len(required_permission_keys()), sum(len(v) for v in issues.values())))
+        except Exception as exc:
+            checks.append(('RBAC Contract', 'ERR', str(exc)))
+        try:
+            from workspace.branches.branch_access_contract import branch_access_descriptors, validate_branch_access_contract
+            issues = validate_branch_access_contract()
+            checks.append(('Branch Scope', len(branch_access_descriptors()), sum(len(v) for v in issues.values())))
+        except Exception as exc:
+            checks.append(('Branch Scope', 'ERR', str(exc)))
+        try:
+            from workspace.sync.offline_sync_contract import offline_sync_descriptors, validate_offline_sync_descriptors
+            issues = validate_offline_sync_descriptors()
+            checks.append(('Offline Sync', len(offline_sync_descriptors()), len(issues)))
+        except Exception as exc:
+            checks.append(('Offline Sync', 'ERR', str(exc)))
+        try:
+            from workspace.scenarios.scenario_guard_contract import all_scenario_descriptors, validate_scenario_descriptors
+            issues = validate_scenario_descriptors()
+            checks.append(('E2E Scenarios', len(all_scenario_descriptors()), len(issues)))
+        except Exception as exc:
+            checks.append(('E2E Scenarios', 'ERR', str(exc)))
+        try:
+            from workspace.scenarios.scenario_runtime_smoke import all_smoke_plans, validate_runtime_smoke_hooks
+            issues = validate_runtime_smoke_hooks()
+            checks.append(('Runtime Smoke', len(all_smoke_plans()), len(issues)))
+        except Exception as exc:
+            checks.append(('Runtime Smoke', 'ERR', str(exc)))
+        try:
+            from workspace.quality.release_gate_contract import release_gate_summary, validate_release_gate
+            issues = validate_release_gate()
+            summary = release_gate_summary()
+            checks.append(('Release Gate', summary.get('checks'), sum(len(v) for v in issues.values())))
+        except Exception as exc:
+            checks.append(('Release Gate', 'ERR', str(exc)))
+        for label, count, issues in checks:
+            lines.append(f'- {label}: {count} | issues: {issues}')
 
 
 
     def _refresh_language_texts(self):
         self.setLayoutDirection(qt_layout_direction(self._current_language))
         try:
-            labels = [
-                '🎨 ' + translate('appearance'),
-                translate('phase233_ui_037'),
-                '🏢 ' + translate('company'),
-                translate('phase233_ui_039'),
-                translate('phase233_ui_040'),
-                translate('phase233_ui_041'),
-                translate('phase233_ui_042'),
-                translate('phase233_ui_043'),
-                translate('phase233_ui_044'),
-                '🖨️ ' + translate('printing_tab'),
-                '🧾 ' + translate('pos_tab'),
-                '💰 ' + translate('currencies'),
-                '💱 ' + translate('exchange_rates'),
-                '🌐 ' + translate('network'),
-                translate('phase233_ui_045'),
-                translate('phase233_ui_047'),
-                translate('phase233_ui_048'),
-                '💾 ' + translate('backup_data'),
-                translate('phase233_ui_049'),
-            ]
-            for i, label in enumerate(labels):
-                if i < self.tabs.count():
-                    self.tabs.setTabText(i, label)
+            registry = getattr(self, '_settings_tab_registry', None) or tuple(self._settings_tab_specs())
+            tab_lookup = getattr(self, '_settings_tab_lookup', None) or {
+                tab_key: (factory, label_factory)
+                for tab_key, factory, label_factory in registry
+            }
+            group_registry = getattr(self, '_settings_group_registry', None) or tuple(self._settings_group_specs())
+            for group_index, (group_key, group_label_factory, child_keys) in enumerate(group_registry):
+                if group_index < self.tabs.count():
+                    self.tabs.setTabText(group_index, group_label_factory())
+                nested = getattr(self, '_settings_group_tabs', {}).get(group_key)
+                if nested is None:
+                    continue
+                for child_index, tab_key in enumerate(child_keys):
+                    _factory, label_factory = tab_lookup[tab_key]
+                    if child_index < nested.count():
+                        nested.setTabText(child_index, label_factory())
         except Exception:
             pass
 

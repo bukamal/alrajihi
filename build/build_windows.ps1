@@ -15,6 +15,7 @@ python tools\release_translations_guard.py
 python tools\release_theme_guard.py
 python tools\release_hidden_imports_guard.py
 python tools\unified_printing_guard.py
+python tools\windows_runtime_packaging_gate_audit.py
 
 python -m pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
@@ -212,6 +213,26 @@ pyinstaller `
 
 if (!(Test-Path "dist\AlrajhiAccounting\AlrajhiAccounting.exe")) {
     throw "PyInstaller build failed: missing EXE"
+}
+
+$printTemplateCandidates = @(
+    "dist\AlrajhiAccounting\printing\print_templates.py",
+    "dist\AlrajhiAccounting\_internal\printing\print_templates.py",
+    "dist\AlrajhiAccounting\alrajhi_client\printing\print_templates.py",
+    "dist\AlrajhiAccounting\_internal\alrajhi_client\printing\print_templates.py"
+)
+if (!(($printTemplateCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
+    throw "Portable build missing packaged print template files"
+}
+
+$printTemplateLoaderCandidates = @(
+    "dist\AlrajhiAccounting\printing\_template_loader.py",
+    "dist\AlrajhiAccounting\_internal\printing\_template_loader.py",
+    "dist\AlrajhiAccounting\alrajhi_client\printing\_template_loader.py",
+    "dist\AlrajhiAccounting\_internal\alrajhi_client\printing\_template_loader.py"
+)
+if (!(($printTemplateLoaderCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
+    throw "Portable build missing packaged print template loader"
 }
 
 

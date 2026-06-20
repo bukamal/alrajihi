@@ -351,6 +351,25 @@ class OperationalShellPermissionBinder:
         except Exception:
             return ""
 
+    def audit_operation(self, operation_key: str, *, permitted: bool = True, details: str = '', entity_id=None, payload: dict | None = None) -> None:
+        try:
+            from core.services.audit_service import audit_service
+            operation = self.descriptor.operation_for(operation_key)
+            permission_key = operation.permission_action if operation is not None else operation_key
+            audit_service.log(
+                ('DENIED_' if not permitted else 'OPERATION_') + str(operation_key or 'operation').upper(),
+                self.descriptor.document_type.upper(),
+                entity_id,
+                new_values=payload or {'operation': operation_key, 'permitted': permitted},
+                details=details or f"Operational shell {operation_key}",
+                source='OPERATIONAL_SHELL',
+                audit_scope=self.descriptor.audit_scope,
+                permission_key=permission_key,
+                event_category='operational',
+            )
+        except Exception:
+            pass
+
     def require(self, operation_key: str) -> bool:
         operation = self.descriptor.operation_for(operation_key)
         policy = self._policy()
@@ -358,8 +377,10 @@ class OperationalShellPermissionBinder:
             return True
         try:
             policy.require(operation.policy_key)
+            self.audit_operation(operation_key, permitted=True, details='Operational action allowed')
             return True
         except Exception:
+            self.audit_operation(operation_key, permitted=False, details='Operational action denied')
             return False
 
     def operation_states(self) -> Mapping[str, bool]:

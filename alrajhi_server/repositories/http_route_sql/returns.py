@@ -8,8 +8,23 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from alrajhi_server.repositories.return_repository import get_return_repository
+from alrajhi_server.services.branch_access_policy import BranchAccessError, branch_access_policy
 
 returns_bp = Blueprint('returns', __name__)
+
+
+def _branch_denied(exc):
+    return jsonify({'error': str(exc), 'code': 'BRANCH_ACCESS_DENIED'}), 403
+
+def _branch_where(user_id, alias, requested_branch_id=None):
+    sql, params = branch_access_policy.scope_sql(user_id, alias=alias, branch_column='branch_id', requested_branch_id=requested_branch_id)
+    sql = sql.strip()
+    if sql.upper().startswith('AND '):
+        sql = sql[4:]
+    return sql, params
+
+def _require_branch(user_id, branch_id, context):
+    return branch_access_policy.require(user_id, branch_id, context=context)
 
 
 def _dec(value, default='0'):
@@ -295,9 +310,13 @@ def list_sales_returns():
     search = request.args.get('search')
     limit = request.args.get('limit', type=int)
     offset = request.args.get('offset', type=int)
+    branch_id = request.args.get('branch_id', type=int)
     db = get_return_repository()
     where = ["sr.user_id=?", "sr.deleted_at IS NULL"]
     params = [user_id]
+    branch_sql, branch_params = _branch_where(user_id, 'sr', branch_id)
+    if branch_sql:
+        where.append(branch_sql); params.extend(branch_params)
     if search:
         q = f'%{search}%'
         where.append("(sr.return_no LIKE ? OR inv.reference LIKE ? OR c.name LIKE ?)")
@@ -330,9 +349,13 @@ def list_purchase_returns():
     search = request.args.get('search')
     limit = request.args.get('limit', type=int)
     offset = request.args.get('offset', type=int)
+    branch_id = request.args.get('branch_id', type=int)
     db = get_return_repository()
     where = ["pr.user_id=?", "pr.deleted_at IS NULL"]
     params = [user_id]
+    branch_sql, branch_params = _branch_where(user_id, 'pr', branch_id)
+    if branch_sql:
+        where.append(branch_sql); params.extend(branch_params)
     if search:
         q = f'%{search}%'
         where.append("(pr.return_no LIKE ? OR inv.reference LIKE ? OR s.name LIKE ?)")
@@ -366,6 +389,10 @@ def get_sales_return(return_id):
     row = db.query("SELECT * FROM sales_returns WHERE id=? AND user_id=?", (return_id, user_id)).fetchone()
     if not row:
         return jsonify({'error': 'not found'}), 404
+    try:
+        _require_branch(user_id, row['branch_id'] if 'branch_id' in row.keys() else None, 'sales_return.get')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     ret = dict(row)
     ret['lines'] = [dict(x) for x in db.query("SELECT * FROM sales_return_lines WHERE sales_return_id=?", (return_id,)).fetchall()]
     return jsonify(ret)
@@ -379,6 +406,10 @@ def get_purchase_return(return_id):
     row = db.query("SELECT * FROM purchase_returns WHERE id=? AND user_id=?", (return_id, user_id)).fetchone()
     if not row:
         return jsonify({'error': 'not found'}), 404
+    try:
+        _require_branch(user_id, row['branch_id'] if 'branch_id' in row.keys() else None, 'purchase_return.get')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     ret = dict(row)
     ret['lines'] = [dict(x) for x in db.query("SELECT * FROM purchase_return_lines WHERE purchase_return_id=?", (return_id,)).fetchall()]
     return jsonify(ret)
@@ -397,6 +428,9 @@ def sales_invoices_for_returns():
         WHERE i.user_id=? AND i.type='sale' AND i.deleted_at IS NULL
     """
     params = [user_id]
+    branch_sql, branch_params = branch_access_policy.scope_sql(user_id, alias='i', branch_column='branch_id', requested_branch_id=request.args.get('branch_id', type=int))
+    sql += branch_sql
+    params.extend(branch_params)
     if search:
         q = f'%{search}%'
         sql += " AND (i.reference LIKE ? OR c.name LIKE ?)"
@@ -418,6 +452,9 @@ def purchase_invoices_for_returns():
         WHERE i.user_id=? AND i.type='purchase' AND i.deleted_at IS NULL
     """
     params = [user_id]
+    branch_sql, branch_params = branch_access_policy.scope_sql(user_id, alias='i', branch_column='branch_id', requested_branch_id=request.args.get('branch_id', type=int))
+    sql += branch_sql
+    params.extend(branch_params)
     if search:
         q = f'%{search}%'
         sql += " AND (i.reference LIKE ? OR s.name LIKE ?)"
@@ -434,6 +471,10 @@ def sales_returnable_lines(invoice_id):
     inv = _invoice(db, invoice_id, user_id, 'sale')
     if not inv:
         return jsonify({'error': 'invalid invoice'}), 404
+    try:
+        _require_branch(user_id, inv.get('branch_id'), 'sales_return.invoice_lines')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     result = []
     for line in _invoice_lines(db, invoice_id):
         factor = _dec(line.get('conversion_factor') or 1)
@@ -463,6 +504,10 @@ def purchase_returnable_lines(invoice_id):
     inv = _invoice(db, invoice_id, user_id, 'purchase')
     if not inv:
         return jsonify({'error': 'invalid invoice'}), 404
+    try:
+        _require_branch(user_id, inv.get('branch_id'), 'purchase_return.invoice_lines')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     result = []
     for line in _invoice_lines(db, invoice_id):
         factor = _dec(line.get('conversion_factor') or 1)
@@ -559,6 +604,11 @@ def _create_return(kind):
     date = data.get('date') or datetime.datetime.now().strftime('%Y-%m-%d')
     wh_id = data.get('warehouse_id') or inv.get('warehouse_id')
     branch_id = data.get('branch_id') or inv.get('branch_id')
+    try:
+        branch_id = branch_access_policy.effective_branch_id(user_id, branch_id)
+        _require_branch(user_id, branch_id, f'{kind}_return.create')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     cashbox_id = data.get('cashbox_id') or inv.get('cashbox_id')
     bank_account_id = data.get('bank_account_id') or inv.get('bank_account_id')
     payment_method = data.get('payment_method') or inv.get('payment_method') or 'cash'
@@ -659,6 +709,10 @@ def _update_return_via_reversal(kind, return_id):
     if not old_row:
         return jsonify({'error': 'not found'}), 404
     old = dict(old_row)
+    try:
+        _require_branch(user_id, old.get('branch_id'), f'{kind}_return.update.old')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     if old.get('deleted_at') or old.get('status') == 'cancelled':
         return jsonify({'error': 'return is cancelled'}), 400
     data = dict(request.get_json() or {})
@@ -712,6 +766,10 @@ def delete_sales_return(return_id):
     ret = dict(ret)
     if ret.get('deleted_at') or ret.get('status') == 'cancelled':
         return jsonify({'ok': True})
+    try:
+        _require_branch(user_id, ret.get('branch_id'), 'sales_return.delete')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     lines = [dict(x) for x in db.query("SELECT * FROM sales_return_lines WHERE sales_return_id=?", (return_id,)).fetchall()]
     item_ids = {line.get('item_id') for line in lines if line.get('item_id')}
     _post_return_ledger_reversal(db, user_id, 'sales', return_id, ret.get('warehouse_id'), lines)
@@ -743,6 +801,10 @@ def delete_purchase_return(return_id):
     ret = dict(ret)
     if ret.get('deleted_at') or ret.get('status') == 'cancelled':
         return jsonify({'ok': True})
+    try:
+        _require_branch(user_id, ret.get('branch_id'), 'purchase_return.delete')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     lines = [dict(x) for x in db.query("SELECT * FROM purchase_return_lines WHERE purchase_return_id=?", (return_id,)).fetchall()]
     item_ids = {line.get('item_id') for line in lines if line.get('item_id')}
     _post_return_ledger_reversal(db, user_id, 'purchase', return_id, ret.get('warehouse_id'), lines)

@@ -51,10 +51,46 @@ class BranchService:
             from auth.session import UserSession
             bid = UserSession.get_current_branch_id()
             if bid:
-                return bid
+                try:
+                    from workspace.branches.branch_access_policy import branch_access_policy
+                    if branch_access_policy.can_access_branch(bid):
+                        return int(bid)
+                    allowed = branch_access_policy.allowed_branch_ids()
+                    if allowed:
+                        return int(allowed[0])
+                except Exception:
+                    return int(bid)
         except Exception:
             pass
-        return self.default_branch_id()
+        default_id = self.default_branch_id()
+        try:
+            from workspace.branches.branch_access_policy import branch_access_policy
+            if default_id and branch_access_policy.can_access_branch(default_id):
+                return int(default_id)
+            allowed = branch_access_policy.allowed_branch_ids()
+            if allowed:
+                return int(allowed[0])
+        except Exception:
+            pass
+        return default_id
+
+    def can_access_branch(self, branch_id) -> bool:
+        try:
+            from workspace.branches.branch_access_policy import branch_access_policy
+            return branch_access_policy.can_access_branch(branch_id)
+        except Exception:
+            return True
+
+    def require_branch_access(self, branch_id, *, context: str = '') -> int | None:
+        from workspace.branches.branch_access_policy import branch_access_policy
+        return branch_access_policy.require_branch_access(branch_id, context=context)
+
+    def scoped_query_params(self, requested_branch_id=None) -> Dict:
+        try:
+            from workspace.branches.branch_access_policy import branch_access_policy
+            return branch_access_policy.scope_query_params(requested_branch_id)
+        except Exception:
+            return {}
 
     def report_scope(self, requested_branch_id=None) -> Dict:
         """Return branch visibility scope used by reports and diagnostics.

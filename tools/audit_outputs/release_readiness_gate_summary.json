@@ -1,0 +1,19 @@
+{
+  "phase": 277,
+  "baseline_phase": 276,
+  "checks": 18,
+  "categories": {
+    "shell": 4,
+    "settings": 1,
+    "security": 3,
+    "sync": 2,
+    "scenario": 2,
+    "reports": 2,
+    "printing": 3,
+    "packaging": 1
+  },
+  "issues": 0,
+  "issue_groups": 0,
+  "ready": true,
+  "issues_detail": {}
+}

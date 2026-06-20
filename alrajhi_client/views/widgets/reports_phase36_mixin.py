@@ -22,7 +22,7 @@ class ReportsPhase36Mixin:
         wh_id = self.warehouse_filter.currentData() if hasattr(self, 'warehouse_filter') else None
         item_id = self.item_filter.currentData() if hasattr(self, 'item_filter') else None
 
-        if self.tabs.currentWidget() in (self.general_ledger_tab, self.full_trial_balance_tab, self.slow_items_tab, self.top_items_tab, self.low_items_tab, self.reorder_items_tab, self.report_audit_tab):
+        if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) in (self.general_ledger_tab, self.full_trial_balance_tab, self.slow_items_tab, self.top_items_tab, self.low_items_tab, self.reorder_items_tab, self.report_audit_tab):
             self._refresh_phase141_reports(start, end, display_curr)
             return
 
@@ -67,11 +67,11 @@ class ReportsPhase36Mixin:
                         'balance_raw': balance_display,
                     })
             self._set_table(self.customer_statement_table, rows, [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
-            if self.tabs.currentWidget() is self.customer_statement_tab:
+            if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.customer_statement_tab:
                 self._set_summary(self._statement_summary(rows) if rows else tr('choose_customer'))
         except Exception as exc:
             self._set_table(self.customer_statement_table, [], [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
-            if self.tabs.currentWidget() is self.customer_statement_tab:
+            if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.customer_statement_tab:
                 self._set_summary(tr('reports_refresh_failed', error=str(exc)))
 
         # Supplier statement
@@ -98,11 +98,11 @@ class ReportsPhase36Mixin:
                         'balance_raw': balance_display,
                     })
             self._set_table(self.supplier_statement_table, rows, [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
-            if self.tabs.currentWidget() is self.supplier_statement_tab:
+            if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.supplier_statement_tab:
                 self._set_summary(self._statement_summary(rows) if rows else tr('choose_supplier'))
         except Exception as exc:
             self._set_table(self.supplier_statement_table, [], [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
-            if self.tabs.currentWidget() is self.supplier_statement_tab:
+            if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.supplier_statement_tab:
                 self._set_summary(tr('reports_refresh_failed', error=str(exc)))
 
         # Customer/Supplier balances
@@ -220,11 +220,11 @@ class ReportsPhase36Mixin:
                     'barcode': r.get('barcode') or '',
                     'warehouse': r.get('warehouse_name') or '',
                     'movement': self._movement_label(r.get('movement_type')),
-                    'in_qty': f"{in_qty:.4f}".rstrip('0').rstrip('.'),
-                    'out_qty': f"{out_qty:.4f}".rstrip('0').rstrip('.'),
-                    'balance': f"{Decimal(str(r.get('balance_qty') or 0)):.4f}".rstrip('0').rstrip('.'),
-                    'unit_cost': currency.format_amount(currency.convert(Decimal(str(r.get('unit_cost') or 0)), currency.storage_currency(), display_curr)),
-                    'total_cost': currency.format_amount(currency.convert(Decimal(str(r.get('total_cost') or 0)), currency.storage_currency(), display_curr)),
+                    'in_qty': self._qty(in_qty, decimals=4) if hasattr(self, '_qty') else f"{in_qty:.4f}".rstrip('0').rstrip('.'),
+                    'out_qty': self._qty(out_qty, decimals=4) if hasattr(self, '_qty') else f"{out_qty:.4f}".rstrip('0').rstrip('.'),
+                    'balance': self._qty(r.get('balance_qty') or 0, decimals=4) if hasattr(self, '_qty') else f"{Decimal(str(r.get('balance_qty') or 0)):.4f}".rstrip('0').rstrip('.'),
+                    'unit_cost': self._money(r.get('unit_cost') or 0, display_curr) if hasattr(self, '_money') else currency.format_amount(currency.convert(Decimal(str(r.get('unit_cost') or 0)), currency.storage_currency(), display_curr)),
+                    'total_cost': self._money(r.get('total_cost') or 0, display_curr) if hasattr(self, '_money') else currency.format_amount(currency.convert(Decimal(str(r.get('total_cost') or 0)), currency.storage_currency(), display_curr)),
                     'notes': r.get('notes') or '',
                 })
             self._set_table(
@@ -233,7 +233,7 @@ class ReportsPhase36Mixin:
                 [tr('date'), tr('reference'), tr('print_item'), tr('barcode'), tr('warehouse_label'), tr('movement_type'), tr('in_qty'), tr('out_qty'), tr('balance'), tr('unit_cost'), tr('total_cost'), tr('notes')],
                 ['date', 'reference', 'item', 'barcode', 'warehouse', 'movement', 'in_qty', 'out_qty', 'balance', 'unit_cost', 'total_cost', 'notes']
             )
-            if self.tabs.currentWidget() is self.item_movement_tab:
+            if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.item_movement_tab:
                 self._set_summary(f"{tr('rows_count')}: {len(rows)} | {tr('in_qty')}: {total_in} | {tr('out_qty')}: {total_out}")
         except Exception:
             self._set_table(self.item_movement_table, [], [tr('date'), tr('reference'), tr('print_item'), tr('barcode'), tr('warehouse_label'), tr('movement_type'), tr('in_qty'), tr('out_qty'), tr('balance'), tr('unit_cost'), tr('total_cost'), tr('notes')], ['date','reference','item','barcode','warehouse','movement','in_qty','out_qty','balance','unit_cost','total_cost','notes'])
@@ -266,7 +266,7 @@ class ReportsPhase36Mixin:
                 [tr('date'), tr('reference'), tr('customer_label'), tr('sales_value'), tr('cost'), tr('profit'), tr('profit_margin')],
                 ['date', 'reference', 'customer', 'sales', 'cost', 'profit', 'margin']
             )
-            if self.tabs.currentWidget() is self.invoice_profit_tab:
+            if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.invoice_profit_tab:
                 self._set_summary(f"{tr('rows_count')}: {len(rows)} | {tr('sales_value')}: {currency.format_amount(currency.convert(total_sales, currency.storage_currency(), display_curr))} | {tr('cost')}: {currency.format_amount(currency.convert(total_cost, currency.storage_currency(), display_curr))} | {tr('profit')}: {currency.format_amount(currency.convert(total_profit, currency.storage_currency(), display_curr))}")
         except Exception:
             self._set_table(self.invoice_profit_table, [], [tr('date'), tr('reference'), tr('customer_label'), tr('sales_value'), tr('cost'), tr('profit'), tr('profit_margin')], ['date','reference','customer','sales','cost','profit','margin'])
@@ -318,7 +318,7 @@ class ReportsPhase36Mixin:
 
 
     def _refresh_phase141_reports(self, start, end, display_curr):
-        tab = self.tabs.currentWidget()
+        tab = (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget())
         wh_id = self.warehouse_filter.currentData() if hasattr(self, 'warehouse_filter') else None
         # General ledger
         if tab is self.general_ledger_tab:
@@ -366,9 +366,9 @@ class ReportsPhase36Mixin:
                     'item': r.get('name') or r.get('item_name') or '',
                     'barcode': r.get('barcode') or '',
                     'warehouse': r.get('warehouse_name') or '',
-                    'qty': str(r.get('qty') if r.get('qty') is not None else r.get('quantity') or 0),
-                    'min_stock': str(r.get('min_stock') or ''),
-                    'shortage': str(r.get('shortage') or ''),
+                    'qty': self._qty(r.get('qty') if r.get('qty') is not None else r.get('quantity') or 0) if hasattr(self, '_qty') else str(r.get('qty') if r.get('qty') is not None else r.get('quantity') or 0),
+                    'min_stock': self._qty(r.get('min_stock') or 0) if r.get('min_stock') not in (None, '') and hasattr(self, '_qty') else str(r.get('min_stock') or ''),
+                    'shortage': self._qty(r.get('shortage') or 0) if r.get('shortage') not in (None, '') and hasattr(self, '_qty') else str(r.get('shortage') or ''),
                     'last_sale': r.get('last_sale_date') or '',
                     'days': str(r.get('days_without_movement') if r.get('days_without_movement') is not None else ''),
                     'sales': currency.format_amount(currency.convert(Decimal(str(r.get('sales_value') or 0)), currency.storage_currency(), display_curr)),
@@ -403,77 +403,9 @@ class ReportsPhase36Mixin:
             report_operation_policy.require(report_operation_policy.OP_PRINT, context=f'report_print:{mode}')
         from printing.printing_service import printing_service
         start, end = self.get_date_range()
-        tab = self.tabs.currentWidget()
-        title = self.tabs.tabText(self.tabs.currentIndex())
-        table = None
-        if tab is self.income_tab:
-            table = self.income_table
-        elif tab is self.balance_tab:
-            table = self.balance_table
-        elif tab is self.wh_valuation_tab:
-            table = self.wh_valuation_table
-        elif tab is self.wh_balances_tab:
-            table = self.wh_balances_table
-        elif tab is self.wh_movements_tab:
-            table = self.wh_movements_table
-        elif tab is self.wh_transfers_tab:
-            table = self.wh_transfers_table
-        elif tab is self.cash_summary_tab:
-            table = self.cash_summary_table
-        elif tab is self.cash_movements_tab:
-            table = self.cash_movements_table
-        elif tab is self.bank_movements_tab:
-            table = self.bank_movements_table
-        elif tab is self.pos_shifts_tab:
-            table = self.pos_shifts_table
-        elif tab is self.trial_balance_tab:
-            table = self.trial_balance_table
-        elif tab is self.customer_statement_tab:
-            table = self.customer_statement_table
-        elif tab is self.supplier_statement_tab:
-            table = self.supplier_statement_table
-        elif tab is self.customer_balances_tab:
-            table = self.customer_balances_table
-        elif tab is self.supplier_balances_tab:
-            table = self.supplier_balances_table
-        elif tab is self.customer_aging_tab:
-            table = self.customer_aging_table
-        elif tab is self.supplier_aging_tab:
-            table = self.supplier_aging_table
-        elif tab is self.ledger_reconciliation_tab:
-            table = self.ledger_reconciliation_table
-        elif tab is self.ledger_dual_read_tab:
-            table = self.ledger_dual_read_table
-        elif tab is self.ledger_readiness_tab:
-            table = self.ledger_readiness_table
-        elif tab is self.offline_queue_tab:
-            table = self.offline_queue_table
-        elif tab is self.unit_audit_tab:
-            table = self.unit_audit_table
-        elif tab is self.item_movement_tab:
-            table = self.item_movement_table
-        elif tab is self.invoice_profit_tab:
-            table = self.invoice_profit_table
-        elif tab is self.net_profit_tab:
-            table = self.net_profit_table
-        elif tab is self.manufacturing_orders_tab:
-            table = self.manufacturing_orders_table
-        elif tab is self.product_cost_tab:
-            table = self.product_cost_table
-        elif tab is self.general_ledger_tab:
-            table = self.general_ledger_table
-        elif tab is self.full_trial_balance_tab:
-            table = self.full_trial_balance_table
-        elif tab is self.slow_items_tab:
-            table = self.slow_items_table
-        elif tab is self.top_items_tab:
-            table = self.top_items_table
-        elif tab is self.low_items_tab:
-            table = self.low_items_table
-        elif tab is self.reorder_items_tab:
-            table = self.reorder_items_table
-        elif tab is self.report_audit_tab:
-            table = self.report_audit_table
+        tab = (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget())
+        title = self._active_report_title() if hasattr(self, '_active_report_title') else self.tabs.tabText(self.tabs.currentIndex())
+        table = self._report_table_for_tab(tab) if hasattr(self, '_report_table_for_tab') else None
         if not table or not table.model():
             return
         model = table.model()

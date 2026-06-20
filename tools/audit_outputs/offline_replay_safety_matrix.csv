@@ -1,0 +1,12 @@
+﻿surface_key,api_resource,queueable_prefixes,allowed_methods,conflict_policy,replay_priority,idempotency_key_policy,branch_required,permanent_status_codes,conflict_status_codes,retryable_status_codes
+document.sales_invoice,/api/invoices,/api/invoices,"POST,PUT,PATCH,DELETE",idempotent_create,10,reference_or_payload_hash,True,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+document.purchase_invoice,/api/invoices,/api/invoices,"POST,PUT,PATCH,DELETE",idempotent_create,10,reference_or_payload_hash,True,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+document.sales_return,/api/returns/sales,/api/returns/sales,"POST,PUT,PATCH,DELETE",client_replay,10,reference_or_payload_hash,True,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+document.purchase_return,/api/returns/purchase,/api/returns/purchase,"POST,PUT,PATCH,DELETE",client_replay,10,reference_or_payload_hash,True,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+document.material,/api/items,/api/items,"POST,PUT,PATCH,DELETE",manual_review,50,reference_or_payload_hash,False,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+document.customer,/api/customers,/api/customers,"POST,PUT,PATCH,DELETE",manual_review,50,reference_or_payload_hash,False,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+document.supplier,/api/suppliers,/api/suppliers,"POST,PUT,PATCH,DELETE",manual_review,50,reference_or_payload_hash,False,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+document.voucher,/api/vouchers,/api/vouchers,"POST,PUT,PATCH,DELETE",client_replay,10,reference_or_payload_hash,False,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+document.expense,/api/expenses,/api/expenses,"POST,PUT,PATCH,DELETE",client_replay,50,reference_or_payload_hash,False,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+operational.pos.checkout,/api/invoices,/api/invoices,POST,idempotent_create,10,pos_ticket_or_payload_hash,True,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"
+audit.audit_log,/api/audit_log,/api/audit_log,POST,idempotent_create,90,event_hash,False,"400,401,403,404,422",409,"408,423,425,429,500,502,503,504"

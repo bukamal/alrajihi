@@ -152,6 +152,9 @@ def _normalize_paper(paper: str = "default", settings: Optional[Dict[str, Any]] 
             paper = settings.get("voucher_template") or settings.get("invoice_template") or "a4"
         elif doc_type == "return":
             paper = settings.get("return_template") or settings.get("invoice_template") or "a4"
+        elif doc_type == "pos_receipt":
+            receipt_paper = settings.get("pos_receipt_paper") or settings.get("receipt_paper") or settings.get("thermal_size") or "80mm"
+            paper = "thermal58" if "58" in str(receipt_paper).lower() else "thermal80"
         elif doc_type in ("restaurant_receipt", "restaurant_kitchen"):
             paper = settings.get("restaurant_receipt_template") or settings.get("restaurant_template") or settings.get("receipt_template") or settings.get("invoice_template") or "thermal"
         elif doc_type in ("inventory", "inventory_transfer", "inventory_balances", "inventory_movements", "inventory_ledger"):
@@ -166,7 +169,11 @@ def _normalize_paper(paper: str = "default", settings: Optional[Dict[str, Any]] 
 def _paper_spec(paper: str, settings: Dict[str, Any]) -> Dict[str, str]:
     paper = (paper or "a4").lower()
     thermal_size = str(settings.get("thermal_size", "80mm")).lower()
-    if paper in ("thermal", "receipt"):
+    if paper in ("80mm", "80", "thermal_80", "thermal-80"):
+        paper = "thermal80"
+    elif paper in ("58mm", "58", "thermal_58", "thermal-58"):
+        paper = "thermal58"
+    elif paper in ("thermal", "receipt"):
         paper = "thermal58" if "58" in thermal_size else "thermal80"
     if paper == "thermal58":
         return {"class": "thermal58", "page": "58mm auto", "width": "58mm", "margin": "2.5mm", "font": "8.5pt"}
@@ -365,6 +372,73 @@ def _currency_label(currency_code: Optional[str] = None, settings: Optional[Dict
     return f"{code} {symbol}".strip() if symbol != code else code
 
 
+def _convert_money_for_print(value: Any, from_currency: str, to_currency: str, date: Any = None, rate_hint: Any = None) -> Any:
+    """Convert persisted POS/base amounts to the document display currency.
+
+    Normal invoice/return documents already send display amounts to templates.
+    POS receipts are different: POSService persists totals and line prices in
+    the storage/base currency, while the cashier sees display currency.  Receipt
+    printing must therefore convert only in the explicit POS receipt path.
+    """
+    if value in (None, ''):
+        return value
+    try:
+        from currency import currency as _currency
+        return _currency.convert(_decimal_or_none(value) or Decimal('0'), from_currency, to_currency, date=str(date or '') or None)
+    except Exception:
+        amount = _decimal_or_none(value) or Decimal('0')
+        rate = _decimal_or_none(rate_hint)
+        if from_currency == 'USD' and to_currency != 'USD' and rate not in (None, Decimal('0')):
+            return amount * rate
+        if from_currency != 'USD' and to_currency == 'USD' and rate not in (None, Decimal('0')):
+            return amount / rate
+        return value
+
+
+def _pos_receipt_display_payload(invoice: Dict[str, Any], settings: Dict[str, Any]) -> Dict[str, Any]:
+    payload = dict(invoice or {})
+    display_currency = _currency_code(
+        payload.get('display_currency') or payload.get('original_currency') or payload.get('currency') or settings.get('display_currency'),
+        settings,
+    )
+    # POSService names totals ``*_usd`` and stores them in the application
+    # storage currency.  The historic storage currency is USD even when the
+    # active SettingsService default says SYP in newer installs.  Therefore the
+    # explicit POS receipt path treats persisted POS invoices as USD unless the
+    # document itself says it is already in the display currency.
+    source_currency = _currency_code(payload.get('storage_currency') or payload.get('base_currency') or 'USD', settings)
+    if display_currency == source_currency:
+        source_currency = display_currency
+    rate = _decimal_or_none(payload.get('exchange_rate_to_usd'))
+    if display_currency != 'USD' and rate not in (None, Decimal('0'), Decimal('1')):
+        source_currency = 'USD'
+
+    if source_currency != display_currency:
+        money_keys = (
+            'total', 'subtotal', 'total_before_discount', 'discount', 'discount_amount',
+            'tax', 'tax_amount', 'paid', 'paid_amount', 'remaining', 'balance',
+        )
+        for key in money_keys:
+            if key in payload and payload.get(key) not in (None, ''):
+                payload[key] = _convert_money_for_print(payload.get(key), source_currency, display_currency, payload.get('date'), payload.get('exchange_rate_to_usd'))
+        lines = []
+        for raw in list(payload.get('lines') or payload.get('items') or []):
+            line = dict(raw or {}) if isinstance(raw, dict) else {}
+            for key in ('unit_price', 'price', 'total', 'line_total', 'subtotal', 'discount_amount', 'tax_amount'):
+                if key in line and line.get(key) not in (None, ''):
+                    line[key] = _convert_money_for_print(line.get(key), source_currency, display_currency, payload.get('date'), payload.get('exchange_rate_to_usd'))
+            lines.append(line)
+        if lines:
+            payload['lines'] = lines
+            payload['items'] = lines
+    payload['display_currency'] = display_currency
+    payload['currency'] = display_currency
+    payload['currency_code'] = display_currency
+    payload['_print_context'] = 'pos_receipt'
+    payload.setdefault('type', 'sale')
+    payload.setdefault('status', payload.get('payment_status') or 'paid')
+    payload.setdefault('reference', payload.get('ref') or payload.get('number') or payload.get('id') or '')
+    return payload
 
 
 def _localized_payment_method(value: Any) -> str:
@@ -382,6 +456,7 @@ def _localized_payment_method(value: Any) -> str:
         'bank_transfer': 'payment_bank_transfer',
         'transfer': 'payment_bank_transfer',
         'credit': 'payment_credit',
+        'credit_only': 'payment_credit',
         'deferred': 'payment_credit',
         'mixed': 'payment_mixed',
     }
@@ -663,6 +738,8 @@ def base_document(title: str, body_html: str, paper: str = "a4", settings: Optio
     font_family = _font_family(settings)
     compact = " compact" if _bool_setting(settings, "compact_tables", False) else ""
     zebra = " zebra" if _bool_setting(settings, "zebra_rows", True) else ""
+    thermal_show_logo = _bool_setting(settings, "thermal_show_logo", _bool_setting(settings, "show_logo", True))
+    thermal_logo_display = "table-cell" if thermal_show_logo else "none"
 
     # Use table-based layout because Qt QTextDocument renders it more reliably than flex/grid in PDF.
     return f"""<!DOCTYPE html>
@@ -731,7 +808,8 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 .thermal80 .sheet, .thermal58 .sheet {{ width: {spec['width']}; margin: 0 auto; padding: 2mm; box-shadow: none; border-radius: 0; }}
 .thermal80 .brand-table, .thermal58 .brand-table {{ border: none; border-bottom: 1px dashed #94a3b8; margin-bottom: 5px; }}
 .thermal80 .brand-table td, .thermal58 .brand-table td {{ padding: 2px; }}
-.thermal80 .brand-logo, .thermal58 .brand-logo {{ display: none; }}
+.thermal80 .brand-logo, .thermal58 .brand-logo {{ display: {thermal_logo_display}; width: 34px; text-align: center; border: none !important; }}
+.thermal80 .brand-logo img, .thermal58 .brand-logo img {{ max-width: 30px; max-height: 30px; object-fit: contain; }}
 .thermal80 .brand-meta, .thermal58 .brand-meta {{ display: table-cell; width: auto; background: transparent; border: none !important; }}
 .thermal80 .document-badge, .thermal58 .document-badge {{ background: transparent; color: #111827; padding: 0; border-radius: 0; font-size: 11px; min-width: 0; }}
 .thermal80 .print-meta-label, .thermal80 .print-meta-value, .thermal58 .print-meta-label, .thermal58 .print-meta-value {{ display: none; }}
@@ -761,8 +839,13 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 
 
 def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
+    invoice = dict(invoice or {})
     settings = _settings()
-    paper = _normalize_paper(paper, settings, "invoice")
+    is_pos_receipt = invoice.get('_print_context') == 'pos_receipt' or invoice.get('receipt_type') == 'pos'
+    if is_pos_receipt:
+        settings['thermal_show_logo'] = bool(settings.get('pos_receipt_show_logo', settings.get('thermal_show_logo', settings.get('show_logo', True))))
+        settings['show_qr'] = bool(settings.get('pos_receipt_show_qr', settings.get('show_qr', True)))
+    paper = _normalize_paper(paper, settings, "pos_receipt" if is_pos_receipt else "invoice")
     inv_type = invoice.get("type") or invoice.get("inv_type") or "sale"
     title = {"sale": _tr("sales_invoice"), "purchase": _tr("purchase_invoice")}.get(inv_type, _tr("invoice"))
     ref = invoice.get("reference") or invoice.get("ref") or invoice.get("number") or invoice.get("id") or ""
@@ -783,17 +866,26 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
     rows: List[List[Any]] = []
     for i, raw in enumerate(raw_lines, 1):
         line = raw if isinstance(raw, dict) else {}
-        rows.append([
-            i,
-            _line_value(line, "barcode", "item_barcode", "code"),
-            _line_value(line, "item_name", "name", "description"),
-            _line_value(line, "unit", "unit_display", "unit_name"),
-            _format_quantity(_line_value(line, "quantity", "qty"), settings),
-            _format_money(_line_value(line, "unit_price", "price"), currency_code, settings),
-            _format_percent(_line_value(line, "discount_percent", "discount_pct", "discount", default="0"), settings),
-            _format_percent(_line_value(line, "tax_percent", "tax_pct", "tax", default="0"), settings),
-            _format_money(_line_amount(line), currency_code, settings),
-        ])
+        if is_pos_receipt:
+            rows.append([
+                i,
+                _line_value(line, "item_name", "name", "description"),
+                _format_quantity(_line_value(line, "quantity", "qty"), settings),
+                _format_money(_line_value(line, "unit_price", "price"), currency_code, settings),
+                _format_money(_line_amount(line), currency_code, settings),
+            ])
+        else:
+            rows.append([
+                i,
+                _line_value(line, "barcode", "item_barcode", "code"),
+                _line_value(line, "item_name", "name", "description"),
+                _line_value(line, "unit", "unit_display", "unit_name"),
+                _format_quantity(_line_value(line, "quantity", "qty"), settings),
+                _format_money(_line_value(line, "unit_price", "price"), currency_code, settings),
+                _format_percent(_line_value(line, "discount_percent", "discount_pct", "discount", default="0"), settings),
+                _format_percent(_line_value(line, "tax_percent", "tax_pct", "tax", default="0"), settings),
+                _format_money(_line_amount(line), currency_code, settings),
+            ])
 
     qr_html = ""
     if _bool_setting(settings, "show_qr", True):
@@ -803,14 +895,23 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
             qr_label = _s(_tr("print_document_qr"))
             qr_html = f"<table class='qr-table'><tr><td><img src='{qr_uri}'><div>{qr_label}</div></td></tr></table>"
 
-    body = f"""
-    {_company_header(settings, title)}
-    {_meta_table([
+    meta_rows = [
         [(_tr("print_document_number"), ref), (_tr("print_document_date"), date), (party_label, party)],
         [(_tr("print_warehouse"), warehouse), (_tr("print_payment_method"), payment_method), (_tr("currency"), currency_label)],
         [(_tr("print_user"), user_name), (_tr("status"), status), ("", "")],
-    ])}
-    {_table(["#", _tr("print_barcode"), _tr("print_item"), _tr("print_unit"), _tr("print_quantity"), _tr("print_price"), _tr("print_discount_percent"), _tr("print_tax_percent"), _tr("print_total")], rows, _tr("print_no_lines"))}
+    ]
+    table_headers = ["#", _tr("print_barcode"), _tr("print_item"), _tr("print_unit"), _tr("print_quantity"), _tr("print_price"), _tr("print_discount_percent"), _tr("print_tax_percent"), _tr("print_total")]
+    if is_pos_receipt:
+        meta_rows = [
+            [(_tr("print_document_number"), ref), (_tr("print_document_date"), date)],
+            [(_tr("print_payment_method"), payment_method), (_tr("currency"), currency_label)],
+        ]
+        table_headers = ["#", _tr("print_item"), _tr("print_quantity"), _tr("print_price"), _tr("print_total")]
+
+    body = f"""
+    {_company_header(settings, title)}
+    {_meta_table(meta_rows)}
+    {_table(table_headers, rows, _tr("print_no_lines"))}
     {_totals_table([
         (_tr("print_subtotal"), invoice.get("total_before_discount", invoice.get("subtotal", "")), ""),
         (_tr("print_discount"), invoice.get("discount", invoice.get("discount_amount", 0)), ""),
@@ -825,6 +926,18 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
     {_footer(settings, _tr("print_thanks"))}
     """
     return base_document(f"{title} {ref}", body, paper, settings)
+
+
+def pos_receipt_html(invoice: Dict[str, Any], paper: str = "default") -> str:
+    """Browser-HTML thermal receipt for POS checkout.
+
+    This is the dedicated POS path.  It applies POS receipt settings, keeps the
+    company/logo header from the global print contract, and converts persisted
+    POS/base amounts to the displayed receipt currency before formatting.
+    """
+    settings = _settings()
+    payload = _pos_receipt_display_payload(invoice or {}, settings)
+    return invoice_html(payload, _normalize_paper(paper, settings, "pos_receipt"))
 
 
 def voucher_html(voucher: Dict[str, Any], paper: str = "default") -> str:
@@ -849,7 +962,7 @@ def return_html(data: Dict[str, Any], paper: str = "default") -> str:
     payload = dict(data or {})
     rtype = payload.get("type") or payload.get("return_type") or "sale_return"
     payload["type"] = "sale" if rtype in ("sale_return", "sale") else "purchase"
-    payload["reference"] = payload.get("reference") or payload.get("return_number") or payload.get("id") or ""
+    payload["reference"] = payload.get("reference") or payload.get("return_no") or payload.get("return_number") or payload.get("id") or ""
     title = _tr("sales_return") if payload["type"] == "sale" else _tr("purchase_return")
     html = invoice_html(payload, _normalize_paper(paper, _settings(), "return"))
     return html.replace(_tr("sales_invoice"), title).replace(_tr("purchase_invoice"), title)
@@ -991,6 +1104,49 @@ def _manufacturing_status(value: Any) -> str:
     return status_map.get(str(value or ''), str(value or ''))
 
 
+def _manufacturing_currency(payload: Optional[Dict[str, Any]] = None, settings: Optional[Dict[str, Any]] = None) -> str:
+    """Return the currency that manufacturing costs must be displayed in.
+
+    Manufacturing services may store costs as Decimal/base values.  The print
+    layer must never expose raw Decimal/scientific notation, and must label
+    costs with the document/display currency used by the rest of the UI.
+    """
+    payload = payload or {}
+    explicit = payload.get('display_currency') or payload.get('currency') or payload.get('currency_code')
+    if explicit not in (None, ''):
+        return _currency_code(explicit, settings)
+    try:
+        svc = _settings_service()
+        if svc is not None:
+            return _currency_code(svc.get('display_currency', 'SYP'), settings)
+    except Exception:
+        pass
+    return _currency_code(None, settings)
+
+
+def _mfg_money(value: Any, payload: Optional[Dict[str, Any]] = None, settings: Optional[Dict[str, Any]] = None) -> str:
+    return _format_money(value, _manufacturing_currency(payload, settings), settings)
+
+
+def _mfg_qty(value: Any, settings: Optional[Dict[str, Any]] = None) -> str:
+    return _format_quantity(value, settings)
+
+
+def _mfg_percent(value: Any, settings: Optional[Dict[str, Any]] = None) -> str:
+    text = _format_percent(value, settings)
+    return f"{text}%" if text not in ('', '-') and not str(text).endswith('%') else text
+
+
+def _mfg_int(value: Any) -> str:
+    dec = _decimal_or_none(value)
+    if dec is None:
+        return _s(value)
+    try:
+        return str(int(dec))
+    except Exception:
+        return _s(value)
+
+
 def manufacturing_bom_html(data: Dict[str, Any], paper: str = "default") -> str:
     """BOM / manufacturing recipe print template."""
     settings = _settings()
@@ -1009,32 +1165,33 @@ def manufacturing_bom_html(data: Dict[str, Any], paper: str = "default") -> str:
             _line_value(row, 'barcode', 'matched_barcode'),
             _line_value(row, 'item_name', 'name', 'item', 'component_name', default=row.get('item_id', '')),
             _line_value(row, 'unit_name', 'unit', default=''),
-            qty,
-            base_qty,
-            _line_value(row, 'waste_percent', default=''),
-            _line_value(row, 'unit_cost', 'cost', default=''),
-            _line_value(row, 'total_cost', default=''),
+            _mfg_qty(qty, settings),
+            _mfg_qty(base_qty, settings),
+            _mfg_percent(_line_value(row, 'waste_percent', default='0'), settings),
+            _mfg_money(_line_value(row, 'unit_cost', 'cost', default='0'), payload, settings),
+            _mfg_money(_line_value(row, 'total_cost', default='0'), payload, settings),
             _line_value(row, 'notes', default=''),
         ])
+    output_qty = bom.get('output_qty') or bom.get('quantity') or 1
     body = f"""
     {_company_header(settings, title)}
     {_meta_table([
-        [(_tr('print_product'), bom.get('product_name') or bom.get('item_name') or bom.get('product_id') or ''), (_tr('print_quantity'), bom.get('output_qty') or bom.get('quantity') or 1), (_tr('status'), bom.get('status') or '')],
+        [(_tr('print_product'), bom.get('product_name') or bom.get('item_name') or bom.get('product_id') or ''), (_tr('print_quantity'), _mfg_qty(output_qty, settings)), (_tr('status'), _manufacturing_status(bom.get('status')))],
         [(_tr('print_document_number'), bom.get('id') or bom.get('bom_id') or ''), (_tr('print_unit'), bom.get('unit_name') or bom.get('unit') or ''), (_tr('print_notes'), bom.get('notes') or '')],
     ])}
     {_table(['#', _tr('print_barcode'), _tr('print_item'), _tr('print_unit'), _tr('print_quantity'), _tr('manufacturing_column_base_qty'), _tr('manufacturing_column_waste_percent'), _tr('unit_cost'), _tr('print_total'), _tr('print_notes')], rows, _tr('print_no_lines'))}
     {_summary_cards({
-        _tr('manufacturing_material_cost'): summary.get('material_cost', ''),
-        _tr('manufacturing_waste_cost'): summary.get('waste_cost', ''),
-        _tr('print_total'): summary.get('total_cost', ''),
-        _tr('manufacturing_unit_cost_output'): summary.get('unit_cost_output', ''),
-        _tr('manufacturing_component_count'): summary.get('line_count', len(lines)),
+        _tr('manufacturing_material_cost'): _mfg_money(summary.get('material_cost', '0'), payload, settings),
+        _tr('manufacturing_waste_cost'): _mfg_money(summary.get('waste_cost', '0'), payload, settings),
+        _tr('print_total'): _mfg_money(summary.get('total_cost', '0'), payload, settings),
+        _tr('manufacturing_required_base_qty'): _mfg_qty(summary.get('base_qty', '0'), settings),
+        _tr('manufacturing_unit_cost_output'): _mfg_money(summary.get('unit_cost_output', '0'), payload, settings),
+        _tr('manufacturing_component_count'): _mfg_int(summary.get('line_count', len(lines))),
     })}
     <table class='signatures hide-thermal'><tr><td>{_s(_tr('production_manager'))}</td><td>{_s(_tr('print_accountant_signature'))}</td></tr></table>
     {_footer(settings, _tr('manufacturing_bom_generated_by'))}
     """
     return base_document(title, body, paper, settings)
-
 
 def production_order_html(data: Dict[str, Any], paper: str = "default") -> str:
     """Professional HTML for production order details."""
@@ -1048,21 +1205,48 @@ def production_order_html(data: Dict[str, Any], paper: str = "default") -> str:
     title = _tr("production_order")
     meta = _meta_table([
         [(_tr("order_number"), order.get("order_number") or order.get("id") or ""), (_tr("product"), order.get("product_name") or order.get("item_name") or ""), (_tr("status"), _manufacturing_status(order.get("status")))],
-        [(_tr("planned_quantity"), order.get("planned_qty", "")), (_tr("produced_quantity"), order.get("produced_qty", "")), (_tr("start_date"), order.get("start_date", ""))],
+        [(_tr("planned_quantity"), _mfg_qty(order.get("planned_qty", ""), settings)), (_tr("produced_quantity"), _mfg_qty(order.get("produced_qty", ""), settings)), (_tr("start_date"), order.get("start_date", ""))],
         [(_tr("raw_warehouse"), order.get("raw_warehouse_name") or ""), (_tr("output_warehouse"), order.get("output_warehouse_name") or ""), (_tr("print_notes"), order.get("notes", ""))],
     ])
     cons_rows = []
     for i, c in enumerate(consumptions, 1):
-        cons_rows.append([i, _line_value(c, 'item_name', 'name', 'item', default=c.get('item_id', '')), _line_value(c, 'unit_name', 'unit'), _line_value(c, 'consumed_qty', 'quantity', 'qty'), _line_value(c, 'consumed_base_qty', 'base_qty'), _line_value(c, 'unit_cost', 'cost'), _line_value(c, 'total_cost'), _line_value(c, 'movement_date', 'date')])
+        cons_rows.append([
+            i,
+            _line_value(c, 'item_name', 'name', 'item', default=c.get('item_id', '')),
+            _line_value(c, 'unit_name', 'unit'),
+            _mfg_qty(_line_value(c, 'consumed_qty', 'quantity', 'qty'), settings),
+            _mfg_qty(_line_value(c, 'consumed_base_qty', 'base_qty'), settings),
+            _mfg_money(_line_value(c, 'unit_cost', 'cost'), payload, settings),
+            _mfg_money(_line_value(c, 'total_cost'), payload, settings),
+            _line_value(c, 'movement_date', 'date'),
+        ])
     out_rows = []
     for i, o in enumerate(outputs, 1):
-        out_rows.append([i, _line_value(o, 'product_name', 'item_name', 'name', 'item', default=o.get('product_id', '')), _line_value(o, 'unit_name', 'unit'), _line_value(o, 'produced_qty', 'quantity', 'qty'), _line_value(o, 'produced_base_qty', 'base_qty'), _line_value(o, 'unit_cost', 'cost'), _line_value(o, 'total_cost'), _line_value(o, 'output_date', 'date')])
+        out_rows.append([
+            i,
+            _line_value(o, 'product_name', 'item_name', 'name', 'item', default=o.get('product_id', '')),
+            _line_value(o, 'unit_name', 'unit'),
+            _mfg_qty(_line_value(o, 'produced_qty', 'quantity', 'qty'), settings),
+            _mfg_qty(_line_value(o, 'produced_base_qty', 'base_qty'), settings),
+            _mfg_money(_line_value(o, 'unit_cost', 'cost'), payload, settings),
+            _mfg_money(_line_value(o, 'total_cost'), payload, settings),
+            _line_value(o, 'output_date', 'date'),
+        ])
     res_rows = []
     for i, r in enumerate(reservations, 1):
         reserved = _line_value(r, 'reserved_qty', 'reserved', 'required_qty')
         consumed = _line_value(r, 'consumed_qty', 'consumed')
         remaining = _line_value(r, 'remaining_qty', 'remaining')
-        res_rows.append([i, _line_value(r, 'item_name', 'name', 'item', default=r.get('item_id', '')), _line_value(r, 'unit_name', 'unit'), reserved, consumed, remaining, _line_value(r, 'base_qty', 'reserved_base_qty'), _line_value(r, 'conversion_factor')])
+        res_rows.append([
+            i,
+            _line_value(r, 'item_name', 'name', 'item', default=r.get('item_id', '')),
+            _line_value(r, 'unit_name', 'unit'),
+            _mfg_qty(reserved, settings),
+            _mfg_qty(consumed, settings),
+            _mfg_qty(remaining, settings),
+            _mfg_qty(_line_value(r, 'base_qty', 'reserved_base_qty'), settings),
+            _mfg_qty(_line_value(r, 'conversion_factor'), settings),
+        ])
     body = f"""
     {_company_header(settings, title)}
     {meta}
@@ -1077,7 +1261,6 @@ def production_order_html(data: Dict[str, Any], paper: str = "default") -> str:
     """
     return base_document(title, body, paper, settings)
 
-
 def manufacturing_pick_ticket_html(data: Dict[str, Any], paper: str = "default") -> str:
     """Raw-material pick ticket for production."""
     settings = _settings()
@@ -1088,19 +1271,28 @@ def manufacturing_pick_ticket_html(data: Dict[str, Any], paper: str = "default")
     title = _tr('manufacturing_pick_ticket')
     rows: List[List[Any]] = []
     for i, row in enumerate(lines, 1):
-        rows.append([i, _line_value(row, 'item_name', 'name', 'item', default=row.get('item_id', '')), _line_value(row, 'barcode', 'matched_barcode'), _line_value(row, 'unit_name', 'unit'), _line_value(row, 'pick_qty', 'remaining_qty'), _line_value(row, 'reserved_qty'), _line_value(row, 'consumed_qty'), _line_value(row, 'base_qty', 'reserved_base_qty'), _line_value(row, 'raw_warehouse_name', 'warehouse_name')])
+        rows.append([
+            i,
+            _line_value(row, 'item_name', 'name', 'item', default=row.get('item_id', '')),
+            _line_value(row, 'barcode', 'matched_barcode'),
+            _line_value(row, 'unit_name', 'unit'),
+            _mfg_qty(_line_value(row, 'pick_qty', 'remaining_qty'), settings),
+            _mfg_qty(_line_value(row, 'reserved_qty'), settings),
+            _mfg_qty(_line_value(row, 'consumed_qty'), settings),
+            _mfg_qty(_line_value(row, 'base_qty', 'reserved_base_qty'), settings),
+            _line_value(row, 'raw_warehouse_name', 'warehouse_name'),
+        ])
     body = f"""
     {_company_header(settings, title)}
     {_meta_table([
         [(_tr('order_number'), order.get('order_number') or order.get('id') or ''), (_tr('product'), order.get('product_name') or order.get('item_name') or ''), (_tr('status'), _manufacturing_status(order.get('status')))],
-        [(_tr('raw_warehouse'), order.get('raw_warehouse_name') or ''), (_tr('planned_quantity'), order.get('planned_qty') or ''), (_tr('print_notes'), order.get('notes') or '')],
+        [(_tr('raw_warehouse'), order.get('raw_warehouse_name') or ''), (_tr('planned_quantity'), _mfg_qty(order.get('planned_qty') or '', settings)), (_tr('print_notes'), order.get('notes') or '')],
     ])}
     {_table(['#', _tr('print_item'), _tr('print_barcode'), _tr('print_unit'), _tr('manufacturing_pick_qty'), _tr('reserved'), _tr('consumed'), _tr('manufacturing_column_base_qty'), _tr('print_warehouse')], rows, _tr('print_no_reservations'))}
     <table class='signatures hide-thermal'><tr><td>{_s(_tr('warehouse_keeper'))}</td><td>{_s(_tr('production_manager'))}</td></tr></table>
     {_footer(settings, _tr('manufacturing_pick_ticket_footer'))}
     """
     return base_document(title, body, paper, settings)
-
 
 def manufacturing_cost_report_html(data: Dict[str, Any], paper: str = "default") -> str:
     """Production cost report template."""
@@ -1111,23 +1303,22 @@ def manufacturing_cost_report_html(data: Dict[str, Any], paper: str = "default")
     summary = payload.get('summary') or {}
     title = _tr('manufacturing_cost_report')
     rows = [
-        [_tr('manufacturing_consumption_cost'), summary.get('consumption_cost', '')],
-        [_tr('manufacturing_output_cost'), summary.get('output_cost', '')],
-        [_tr('manufacturing_cost_variance'), summary.get('variance_cost', '')],
-        [_tr('produced_quantity'), summary.get('produced_qty', '')],
-        [_tr('unit_cost'), summary.get('unit_cost', '')],
+        [_tr('manufacturing_consumption_cost'), _mfg_money(summary.get('consumption_cost', '0'), payload, settings)],
+        [_tr('manufacturing_output_cost'), _mfg_money(summary.get('output_cost', '0'), payload, settings)],
+        [_tr('manufacturing_cost_variance'), _mfg_money(summary.get('variance_cost', '0'), payload, settings)],
+        [_tr('produced_quantity'), _mfg_qty(summary.get('produced_qty', '0'), settings)],
+        [_tr('unit_cost'), _mfg_money(summary.get('unit_cost', '0'), payload, settings)],
     ]
     body = f"""
     {_company_header(settings, title)}
     {_meta_table([
         [(_tr('order_number'), order.get('order_number') or order.get('id') or ''), (_tr('product'), order.get('product_name') or order.get('item_name') or ''), (_tr('status'), _manufacturing_status(order.get('status')))],
-        [(_tr('planned_quantity'), order.get('planned_qty') or ''), (_tr('produced_quantity'), order.get('produced_qty') or ''), (_tr('print_notes'), order.get('notes') or '')],
+        [(_tr('planned_quantity'), _mfg_qty(order.get('planned_qty') or '', settings)), (_tr('produced_quantity'), _mfg_qty(order.get('produced_qty') or '', settings)), (_tr('print_notes'), order.get('notes') or '')],
     ])}
     {_table([_tr('print_description'), _tr('print_total')], rows, _tr('print_no_data'))}
     {_footer(settings, _tr('manufacturing_cost_report_footer'))}
     """
     return base_document(title, body, paper, settings)
-
 
 # ========== Inventory / warehouse templates ==========
 def _inventory_movement_type(value: Any) -> str:

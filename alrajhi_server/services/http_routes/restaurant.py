@@ -5,6 +5,12 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from alrajhi_server.decorators import admin_required
 from alrajhi_server.repositories.restaurant_repository import get_restaurant_repository
+from alrajhi_server.services.restaurant_branch_scope import (
+    branch_denied_response,
+    filter_restaurant_records,
+    restaurant_branch_guard,
+    scope_creation_payload,
+)
 
 restaurant_bp = Blueprint("restaurant", __name__)
 _repo = get_restaurant_repository()
@@ -12,20 +18,25 @@ _repo = get_restaurant_repository()
 
 @restaurant_bp.route("/restaurant/tables", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def list_tables():
-    return jsonify(_repo.list_tables(include_inactive=request.args.get("include_inactive") == "1"))
+    return jsonify(filter_restaurant_records(get_jwt_identity(), _repo.list_tables(include_inactive=request.args.get("include_inactive") == "1")))
 
 
 @restaurant_bp.route("/restaurant/tables", methods=["POST"])
 @admin_required
+@restaurant_branch_guard(create=True)
 def upsert_table():
     data = request.get_json() or {}
     try:
+        scope_creation_payload(get_jwt_identity(), context="restaurant_table")
+        data = request.get_json() or {}
         return jsonify(_repo.upsert_table(
             name=data.get("name") or "Table",
             zone=data.get("zone") or "",
             seats=int(data.get("seats") or 4),
             table_id=data.get("id"),
+            branch_id=data.get("branch_id"),
         ))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
@@ -33,6 +44,7 @@ def upsert_table():
 
 @restaurant_bp.route("/restaurant/tables/<int:table_id>/open", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def open_table(table_id: int):
     data = request.get_json() or {}
     try:
@@ -48,6 +60,7 @@ def open_table(table_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def get_session(session_id: int):
     try:
         payload = _repo.get_session(session_id)
@@ -60,6 +73,7 @@ def get_session(session_id: int):
 
 @restaurant_bp.route("/restaurant/menu_items", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def list_menu_items():
     try:
         category = request.args.get("category_id")
@@ -75,6 +89,7 @@ def list_menu_items():
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/lines", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def add_line(session_id: int):
     data = request.get_json() or {}
     try:
@@ -98,6 +113,7 @@ def add_line(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/send_to_kitchen", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def send_to_kitchen(session_id: int):
     data = request.get_json() or {}
     try:
@@ -108,6 +124,7 @@ def send_to_kitchen(session_id: int):
 
 @restaurant_bp.route("/restaurant/lines/<int:line_id>/status", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def update_line_status(line_id: int):
     data = request.get_json() or {}
     try:
@@ -118,6 +135,7 @@ def update_line_status(line_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/payment_pending", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def mark_payment_pending(session_id: int):
     try:
         return jsonify(_repo.mark_payment_pending(session_id))
@@ -127,6 +145,7 @@ def mark_payment_pending(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/balance", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def session_balance(session_id: int):
     try:
         return jsonify(_repo.session_balance(session_id))
@@ -136,6 +155,7 @@ def session_balance(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/adjustments", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def set_session_adjustments(session_id: int):
     data = request.get_json() or {}
     try:
@@ -152,6 +172,7 @@ def set_session_adjustments(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/payments", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def record_payment(session_id: int):
     data = request.get_json() or {}
     try:
@@ -167,6 +188,7 @@ def record_payment(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/checkout", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def checkout_session(session_id: int):
     data = request.get_json() or {}
     try:
@@ -182,21 +204,23 @@ def checkout_session(session_id: int):
 
 @restaurant_bp.route("/restaurant/kitchen/tickets", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def list_kitchen_tickets():
     try:
         station_arg = request.args.get("station_id")
         station_id = int(station_arg) if station_arg not in (None, "") else None
-        return jsonify(_repo.list_kitchen_tickets(
+        return jsonify(filter_restaurant_records(get_jwt_identity(), _repo.list_kitchen_tickets(
             status=request.args.get("status") or "sent",
             limit=int(request.args.get("limit") or 50),
             station_id=station_id,
-        ))
+        )))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
 
 
 @restaurant_bp.route("/restaurant/kitchen/tickets/<int:ticket_id>", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def get_kitchen_ticket(ticket_id: int):
     try:
         return jsonify(_repo.get_kitchen_ticket(ticket_id))
@@ -206,6 +230,7 @@ def get_kitchen_ticket(ticket_id: int):
 
 @restaurant_bp.route("/restaurant/kitchen/tickets/<int:ticket_id>/status", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def update_kitchen_ticket_status(ticket_id: int):
     data = request.get_json() or {}
     try:
@@ -216,6 +241,7 @@ def update_kitchen_ticket_status(ticket_id: int):
 
 @restaurant_bp.route("/restaurant/tables/<int:table_id>/reserve", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def reserve_table(table_id: int):
     data = request.get_json() or {}
     try:
@@ -233,6 +259,7 @@ def reserve_table(table_id: int):
 
 @restaurant_bp.route("/restaurant/reservations/<int:reservation_id>/cancel", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def cancel_reservation(reservation_id: int):
     try:
         return jsonify(_repo.cancel_reservation(reservation_id))
@@ -242,6 +269,7 @@ def cancel_reservation(reservation_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/transfer", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def transfer_session(session_id: int):
     data = request.get_json() or {}
     try:
@@ -252,6 +280,7 @@ def transfer_session(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:target_session_id>/merge", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def merge_sessions(target_session_id: int):
     data = request.get_json() or {}
     try:
@@ -262,6 +291,7 @@ def merge_sessions(target_session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/split_lines", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def split_lines(session_id: int):
     data = request.get_json() or {}
     try:
@@ -278,6 +308,7 @@ def split_lines(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/close", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def close_session(session_id: int):
     data = request.get_json() or {}
     try:
@@ -287,6 +318,7 @@ def close_session(session_id: int):
 
 @restaurant_bp.route("/restaurant/kitchen/stations", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def list_kitchen_stations():
     try:
         return jsonify(_repo.list_kitchen_stations(include_inactive=request.args.get("include_inactive") == "1"))
@@ -296,6 +328,7 @@ def list_kitchen_stations():
 
 @restaurant_bp.route("/restaurant/kitchen/stations", methods=["POST"])
 @admin_required
+@restaurant_branch_guard(create=True)
 def upsert_kitchen_station():
     data = request.get_json() or {}
     try:
@@ -312,6 +345,7 @@ def upsert_kitchen_station():
 
 @restaurant_bp.route("/restaurant/menu_items/<int:item_id>/station", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def assign_menu_item_station(item_id: int):
     data = request.get_json() or {}
     try:
@@ -322,6 +356,7 @@ def assign_menu_item_station(item_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/waiter", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def assign_waiter(session_id: int):
     data = request.get_json() or {}
     try:
@@ -336,6 +371,7 @@ def assign_waiter(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/waiter_call", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def call_waiter(session_id: int):
     data = request.get_json() or {}
     try:
@@ -346,6 +382,7 @@ def call_waiter(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/waiter_call/resolve", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def resolve_waiter_call(session_id: int):
     data = request.get_json() or {}
     try:
@@ -356,6 +393,7 @@ def resolve_waiter_call(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/waiter_summary", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def waiter_session_summary(session_id: int):
     try:
         return jsonify(_repo.waiter_session_summary(session_id=session_id))
@@ -366,6 +404,7 @@ def waiter_session_summary(session_id: int):
 
 @restaurant_bp.route("/restaurant/analytics", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def restaurant_analytics():
     try:
         return jsonify(_repo.restaurant_analytics(
@@ -380,26 +419,31 @@ def restaurant_analytics():
 # Phase 35: takeaway and delivery endpoints
 @restaurant_bp.route("/restaurant/orders", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def list_restaurant_orders():
     try:
-        return jsonify(_repo.list_restaurant_orders(
+        return jsonify(filter_restaurant_records(get_jwt_identity(), _repo.list_restaurant_orders(
             order_type=request.args.get("order_type") or "",
             status=request.args.get("status") or "open",
             limit=int(request.args.get("limit") or 100),
-        ))
+        )))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
 
 
 @restaurant_bp.route("/restaurant/takeaway_orders", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard(create=True)
 def create_takeaway_order():
     data = request.get_json() or {}
     try:
+        scope_creation_payload(get_jwt_identity(), context="restaurant_takeaway_order")
+        data = request.get_json() or {}
         return jsonify(_repo.create_takeaway_order(
             customer_name=data.get("customer_name") or "",
             phone=data.get("phone") or "",
             notes=data.get("notes") or "",
+            branch_id=data.get("branch_id"),
         ))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
@@ -407,9 +451,12 @@ def create_takeaway_order():
 
 @restaurant_bp.route("/restaurant/delivery_orders", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard(create=True)
 def create_delivery_order():
     data = request.get_json() or {}
     try:
+        scope_creation_payload(get_jwt_identity(), context="restaurant_delivery_order")
+        data = request.get_json() or {}
         return jsonify(_repo.create_delivery_order(
             customer_name=data.get("customer_name") or "",
             phone=data.get("phone") or "",
@@ -417,6 +464,7 @@ def create_delivery_order():
             delivery_fee=data.get("delivery_fee") or "0",
             driver_id=data.get("driver_id") or "",
             notes=data.get("notes") or "",
+            branch_id=data.get("branch_id"),
         ))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
@@ -424,6 +472,7 @@ def create_delivery_order():
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/delivery_status", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def update_delivery_status(session_id: int):
     data = request.get_json() or {}
     try:
@@ -440,6 +489,7 @@ def update_delivery_status(session_id: int):
 # Phase 34: modifiers and recipe/consumption endpoints
 @restaurant_bp.route("/restaurant/menu_items/<int:item_id>/modifier_groups", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def list_item_modifier_groups(item_id: int):
     try:
         return jsonify(_repo.list_modifier_groups(item_id=item_id, include_inactive=request.args.get("include_inactive") == "1"))
@@ -449,6 +499,7 @@ def list_item_modifier_groups(item_id: int):
 
 @restaurant_bp.route("/restaurant/modifier_groups", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def upsert_modifier_group():
     data = request.get_json() or {}
     try:
@@ -466,6 +517,7 @@ def upsert_modifier_group():
 
 @restaurant_bp.route("/restaurant/modifier_groups/<int:group_id>/options", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def upsert_modifier_option(group_id: int):
     data = request.get_json() or {}
     try:
@@ -484,6 +536,7 @@ def upsert_modifier_option(group_id: int):
 
 @restaurant_bp.route("/restaurant/lines/<int:line_id>/modifiers", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def add_line_modifier(line_id: int):
     data = request.get_json() or {}
     try:
@@ -503,6 +556,7 @@ def add_line_modifier(line_id: int):
 
 @restaurant_bp.route("/restaurant/lines/<int:line_id>/modifiers", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def list_line_modifiers(line_id: int):
     try:
         return jsonify(_repo.list_line_modifiers(line_id))
@@ -512,6 +566,7 @@ def list_line_modifiers(line_id: int):
 
 @restaurant_bp.route("/restaurant/menu_items/<int:item_id>/recipe", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def get_item_recipe(item_id: int):
     try:
         return jsonify(_repo.get_recipe_by_item(item_id))
@@ -521,6 +576,7 @@ def get_item_recipe(item_id: int):
 
 @restaurant_bp.route("/restaurant/menu_items/<int:item_id>/recipe", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def upsert_item_recipe(item_id: int):
     data = request.get_json() or {}
     try:
@@ -536,6 +592,7 @@ def upsert_item_recipe(item_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/recipe_consumption", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def consume_session_recipes(session_id: int):
     data = request.get_json() or {}
     try:
@@ -547,6 +604,7 @@ def consume_session_recipes(session_id: int):
 # Phase 36: advanced split bill + printer routing endpoints
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/split_bills", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def create_split_bills(session_id: int):
     data = request.get_json() or {}
     try:
@@ -557,6 +615,7 @@ def create_split_bills(session_id: int):
 
 @restaurant_bp.route("/restaurant/sessions/<int:session_id>/split_bills", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def list_split_bills(session_id: int):
     try:
         return jsonify(_repo.list_split_bills(session_id=session_id))
@@ -566,6 +625,7 @@ def list_split_bills(session_id: int):
 
 @restaurant_bp.route("/restaurant/split_bills/<int:split_bill_id>/payments", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def pay_split_bill(split_bill_id: int):
     data = request.get_json() or {}
     try:
@@ -576,6 +636,7 @@ def pay_split_bill(split_bill_id: int):
 
 @restaurant_bp.route("/restaurant/printers", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def list_restaurant_printers():
     try:
         return jsonify(_repo.list_printers(include_inactive=request.args.get("include_inactive") == "1"))
@@ -585,6 +646,7 @@ def list_restaurant_printers():
 
 @restaurant_bp.route("/restaurant/printers", methods=["POST"])
 @admin_required
+@restaurant_branch_guard(create=True)
 def upsert_restaurant_printer():
     data = request.get_json() or {}
     try:
@@ -595,6 +657,7 @@ def upsert_restaurant_printer():
 
 @restaurant_bp.route("/restaurant/kitchen/stations/<int:station_id>/printer", methods=["POST"])
 @admin_required
+@restaurant_branch_guard(create=True)
 def assign_station_printer(station_id: int):
     data = request.get_json() or {}
     try:
@@ -605,6 +668,7 @@ def assign_station_printer(station_id: int):
 
 @restaurant_bp.route("/restaurant/kitchen/tickets/<int:ticket_id>/print_jobs", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def queue_ticket_print(ticket_id: int):
     data = request.get_json() or {}
     try:
@@ -615,6 +679,7 @@ def queue_ticket_print(ticket_id: int):
 
 @restaurant_bp.route("/restaurant/print_jobs/<int:job_id>/printed", methods=["POST"])
 @jwt_required()
+@restaurant_branch_guard()
 def mark_print_job_done(job_id: int):
     try:
         return jsonify(_repo.mark_print_job_done(job_id=job_id))
@@ -625,6 +690,7 @@ def mark_print_job_done(job_id: int):
 # Phase 37: production readiness diagnostics
 @restaurant_bp.route("/restaurant/readiness", methods=["GET"])
 @jwt_required()
+@restaurant_branch_guard()
 def restaurant_production_readiness():
     try:
         return jsonify(_repo.restaurant_production_readiness())

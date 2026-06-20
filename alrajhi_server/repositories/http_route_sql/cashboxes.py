@@ -9,6 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from alrajhi_server.repositories.cashbox_repository import get_cashbox_repository
 from alrajhi_server.decorators import admin_required
+from alrajhi_server.services.branch_access_policy import BranchAccessError, branch_access_policy
 
 cashboxes_bp = Blueprint('cashboxes', __name__)
 
@@ -26,6 +27,13 @@ def _now():
 
 def _rowdict(row):
     return dict(row) if row else None
+
+
+def _branch_denied(exc):
+    return jsonify({'error': str(exc), 'code': 'BRANCH_ACCESS_DENIED'}), 403
+
+def _require_branch(uid, branch_id, context):
+    return branch_access_policy.require(uid, branch_id, context=context)
 
 
 def _default_branch_id(db, uid):
@@ -105,6 +113,8 @@ def list_cashboxes():
         WHERE c.user_id=?
     """
     params = [uid]
+    branch_sql, branch_params = branch_access_policy.scope_sql(uid, alias='c', branch_column='branch_id', requested_branch_id=request.args.get('branch_id', type=int))
+    sql += branch_sql; params.extend(branch_params)
     if not include:
         sql += " AND c.deleted_at IS NULL AND COALESCE(c.is_active,1)=1"
     sql += " GROUP BY c.id ORDER BY b.name, c.is_default DESC, c.name"
@@ -115,7 +125,12 @@ def list_cashboxes():
 @cashboxes_bp.route('/cashboxes/default', methods=['GET'])
 @jwt_required()
 def default_cashbox():
-    uid = _uid(); db = get_cashbox_repository(); branch_id = request.args.get('branch_id')
+    uid = _uid(); db = get_cashbox_repository(); branch_id = request.args.get('branch_id', type=int)
+    try:
+        branch_id = branch_access_policy.effective_branch_id(uid, branch_id)
+        _require_branch(uid, branch_id, 'cashbox.default')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     cid = _ensure_default_cashbox(db, uid, branch_id)
     return jsonify({'id': cid})
 
@@ -126,6 +141,10 @@ def get_cashbox(cid):
     row = get_cashbox_repository().query('SELECT * FROM cashboxes WHERE id=? AND user_id=?', (cid, _uid())).fetchone()
     if not row:
         return jsonify({'error': 'not found'}), 404
+    try:
+        _require_branch(_uid(), row['branch_id'] if 'branch_id' in row.keys() else None, 'cashbox.get')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     return jsonify(_rowdict(row))
 
 
@@ -133,6 +152,10 @@ def get_cashbox(cid):
 @admin_required
 def add_cashbox():
     uid = _uid(); db = get_cashbox_repository(); p = _cashbox_payload(request.get_json() or {}, uid); now = _now()
+    try:
+        _require_branch(uid, p['branch_id'], 'cashbox.create')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     cur = db.query("""
         INSERT INTO cashboxes (user_id, branch_id, name, code, notes, is_default, is_active, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
@@ -145,6 +168,14 @@ def add_cashbox():
 @admin_required
 def update_cashbox(cid):
     uid = _uid(); db = get_cashbox_repository(); p = _cashbox_payload(request.get_json() or {}, uid)
+    old = db.query('SELECT branch_id FROM cashboxes WHERE id=? AND user_id=?', (cid, uid)).fetchone()
+    if not old:
+        return jsonify({'error': 'not found'}), 404
+    try:
+        _require_branch(uid, old['branch_id'] if 'branch_id' in old.keys() else None, 'cashbox.update.old')
+        _require_branch(uid, p['branch_id'], 'cashbox.update.new')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     db.query('UPDATE cashboxes SET branch_id=?, name=?, code=?, notes=?, is_active=?, updated_at=? WHERE id=? AND user_id=?',
                (p['branch_id'], p['name'], p['code'], p['notes'], p['is_active'], _now(), cid, uid))
     db.commit()
@@ -158,6 +189,11 @@ def archive_cashbox(cid):
     row = db.query('SELECT is_default FROM cashboxes WHERE id=? AND user_id=?', (cid, uid)).fetchone()
     if not row:
         return jsonify({'error': 'not found'}), 404
+    old = db.query('SELECT branch_id FROM cashboxes WHERE id=? AND user_id=?', (cid, uid)).fetchone()
+    try:
+        _require_branch(uid, old['branch_id'] if old and 'branch_id' in old.keys() else None, 'cashbox.delete')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     if int(row['is_default'] or 0) == 1:
         return jsonify({'error': 'لا يمكن أرشفة الصندوق الرئيسي'}), 400
     db.query('UPDATE cashboxes SET deleted_at=?, is_active=0, updated_at=? WHERE id=? AND user_id=?', (now, now, cid, uid))
@@ -178,6 +214,8 @@ def list_bank_accounts():
         WHERE ba.user_id=?
     """
     params = [uid]
+    branch_sql, branch_params = branch_access_policy.scope_sql(uid, alias='ba', branch_column='branch_id', requested_branch_id=request.args.get('branch_id', type=int))
+    sql += branch_sql; params.extend(branch_params)
     if not include:
         sql += " AND ba.deleted_at IS NULL AND COALESCE(ba.is_active,1)=1"
     sql += " GROUP BY ba.id ORDER BY b.name, ba.bank_name, ba.account_name"

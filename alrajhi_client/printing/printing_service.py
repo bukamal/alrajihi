@@ -137,6 +137,7 @@ def _local_require_template(name: str) -> Callable:
 require_template = _import_runtime_require_template() or _local_require_template
 
 invoice_html = require_template("invoice_html")
+pos_receipt_html = require_template("pos_receipt_html")
 voucher_html = require_template("voucher_html")
 report_html = require_template("report_html")
 return_html = require_template("return_html")
@@ -371,6 +372,20 @@ class PrintingService:
     def invoice_pdf(self, invoice: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         ref = invoice.get('reference') or invoice.get('ref') or 'invoice'
         return self.save_pdf(self.invoice_html(invoice, paper), parent, f"invoice_{ref}.pdf")
+
+    def pos_receipt_html(self, invoice: Dict[str, Any], paper: str = 'default') -> str:
+        return pos_receipt_html(invoice, paper)
+
+    def pos_receipt_print(self, invoice: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self._print_button_render(
+            self.pos_receipt_html(invoice, paper),
+            parent,
+            _tr("pos_receipt_print_title"),
+            document_type='pos_receipt',
+        )
+
+    def pos_receipt_browser(self, invoice: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.open_html_in_browser(self.pos_receipt_html(invoice, paper), parent, _tr("pos_receipt_print_title"))
 
     def voucher_html(self, voucher: Dict[str, Any], paper: str = 'default') -> str:
         return voucher_html(voucher, paper)

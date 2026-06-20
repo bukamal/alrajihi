@@ -23,7 +23,9 @@ class AuditService:
 
     def log(self, action: str, entity_type: str, entity_id: Optional[int] = None,
             old_values: Any = None, new_values: Any = None, details: str = '',
-            source: str = 'USER', ip_address: str = '127.0.0.1') -> None:
+            source: str = 'USER', ip_address: str = '127.0.0.1',
+            audit_scope: str = '', permission_key: str = '', branch_id: Any = None,
+            event_category: str = '') -> None:
         try:
             self._get_gateway().log(
                 action=action,
@@ -34,9 +36,20 @@ class AuditService:
                 details=details,
                 source=source,
                 ip_address=ip_address,
+                audit_scope=audit_scope,
+                permission_key=permission_key,
+                branch_id=branch_id,
+                event_category=event_category,
             )
         except Exception:
             # Audit must not interrupt business workflows.
+            pass
+
+    def log_shell_event(self, event_key: str, *, entity_id=None, old_values=None, new_values=None, details: str = '', source: str = 'CONTRACT') -> None:
+        try:
+            from workspace.audit.audit_event_policy import log_contract_event
+            log_contract_event(event_key, entity_id=entity_id, old_values=old_values, new_values=new_values, details=details, source=source)
+        except Exception:
             pass
 
 

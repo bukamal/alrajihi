@@ -6,6 +6,7 @@ from typing import Any
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 
+from core.money_display_policy import format_quantity
 from features.manufacturing.grids.manufacturing_column_schema import ManufacturingColumn
 from features.manufacturing.i18n import tr
 
@@ -49,7 +50,7 @@ class ProductionRequiredMaterialsModel(QAbstractTableModel):
             value = row.get(column.key, '')
             if role == Qt.DisplayRole and column.key in self.NUMERIC_KEYS and value not in ('', None):
                 try:
-                    return f"{Decimal(str(value)):.3f}".rstrip('0').rstrip('.')
+                    return format_quantity(value, decimals=4)
                 except Exception:
                     return value
             return value

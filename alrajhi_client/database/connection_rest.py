@@ -62,19 +62,21 @@ class RestClient:
         self.token = token
         save_token(token)
 
-    def _headers(self):
+    def _headers(self, extra_headers=None):
         headers = {'Content-Type': 'application/json'}
         if self.token:
             headers['Authorization'] = f'Bearer {self.token}'
+        if extra_headers:
+            headers.update({str(k): str(v) for k, v in dict(extra_headers).items() if v is not None})
         return headers
 
-    def _request(self, method, endpoint, data=None, params=None, retries=3, backoff=1.0, queue_on_failure=True):
+    def _request(self, method, endpoint, data=None, params=None, retries=3, backoff=1.0, queue_on_failure=True, extra_headers=None):
         url = f"{self.server_url}{endpoint}"
         last_exception = None
         for attempt in range(retries):
             started = time.perf_counter()
             try:
-                resp = requests.request(method, url, json=_json_safe(data), params=_json_safe(params), headers=self._headers(), timeout=10)
+                resp = requests.request(method, url, json=_json_safe(data), params=_json_safe(params), headers=self._headers(extra_headers), timeout=10)
                 elapsed = int((time.perf_counter() - started) * 1000)
                 _append_request_log(method, endpoint, url, status=resp.status_code, ok=resp.status_code < 400, elapsed_ms=elapsed)
                 if resp.status_code == 429:
@@ -744,6 +746,18 @@ class RestClient:
     def set_user_branch_access(self, user_id: str, branch_ids: List[int]) -> Dict:
         return self._request('PUT', f'/api/rbac/users/{user_id}/branches', {'branch_ids': branch_ids})
 
+    def get_user_branch_access(self, user_id: str) -> List[Dict]:
+        return self._request('GET', f'/api/rbac/users/{user_id}/branches')
+
+    def get_my_branch_scope(self) -> Dict:
+        data = self.get_my_permissions() or {}
+        return {
+            'user_id': data.get('user_id'),
+            'branch_ids': data.get('branch_ids', []),
+            'can_view_all_branches': bool(data.get('can_view_all_branches')),
+            'branch_scope_mode': data.get('branch_scope_mode') or ('all' if data.get('can_view_all_branches') else 'restricted'),
+        }
+
     # ------------------- الإعدادات -------------------
     def get_setting(self, key: str) -> Any:
         result = self._request('GET', f'/api/settings/{key}')
@@ -824,6 +838,9 @@ class RestClient:
         return self._request('DELETE', f'/api/returns/purchase/{return_id}', queue_on_failure=True)
 
     # ------------------- سجل التدقيق -------------------
+    def post_audit_log(self, data: Dict[str, Any]):
+        return self._request('POST', '/api/audit_log', data=data, queue_on_failure=True)
+
     def get_audit_log(self, limit: int = 2000, offset: int = 0) -> List[Dict]:
         params = {'limit': limit, 'offset': offset}
         result = self._request('GET', '/api/audit_log', params=params, queue_on_failure=False)

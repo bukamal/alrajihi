@@ -1,0 +1,13 @@
+﻿scenario_key,module,primary_document_type,steps,language_scope,settings_scope,branch_sensitive,currency_sensitive,network_sensitive,print_sensitive,offline_sensitive,audit_sensitive,notes
+sales_invoice_full_cycle,transactions,sales_invoice,4,transactions.sales_invoice,transactions.sales_invoice,True,True,True,True,True,True,
+purchase_invoice_full_cycle,transactions,purchase_invoice,4,transactions.purchase_invoice,transactions.purchase_invoice,True,True,True,True,True,True,
+sales_return_edit_print,transactions,sales_return,4,transactions.sales_return,transactions.sales_return,True,True,True,True,True,True,Protects the return list double-click/edit/print path fixed in Phase 266.
+purchase_return_edit_print,transactions,purchase_return,4,transactions.purchase_return,transactions.purchase_return,True,True,True,True,True,True,Protects the purchase return currency/print path fixed in Phase 266.
+pos_fast_sale_receipt,pos,pos,3,pos.shell,pos,True,True,True,True,True,True,"Protects the POS thermal receipt, logo and currency path fixed in Phase 268."
+restaurant_table_order_checkout,restaurant,restaurant,5,restaurant.shell,restaurant,True,True,True,True,False,True,
+bom_cost_print,manufacturing,bom,3,manufacturing.bom,manufacturing.bom,False,True,True,True,False,True,Protects the manufacturing cost/0E+1 print path fixed in Phase 269.
+production_order_lifecycle,manufacturing,production_order,3,manufacturing.production_order,manufacturing.production_orders,False,True,True,True,False,True,
+inventory_transfer_print,inventory,warehouse_transfer,4,inventory.transfer,inventory.transfers,True,False,True,True,False,True,
+voucher_cash_bank_flow,finance,voucher,4,finance.voucher,finance.vouchers,True,True,True,True,True,True,Protects the Voucher Document Shell layout fixed in Phase 267.
+material_barcode_lookup_label,materials,material,3,materials.document,materials,False,True,True,True,True,True,
+report_income_statement_print_export,reports,reports,3,reports.shell,reports,False,True,True,True,False,True,

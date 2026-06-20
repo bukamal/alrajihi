@@ -1232,6 +1232,14 @@ class MainWindow(QMainWindow):
         self.quick_open_shortcut = QShortcut(QKeySequence('Ctrl+K'), self)
         self.quick_open_shortcut.activated.connect(self.open_quick_open)
 
+
+    def _audit_current_tab_action(self, page, action: str, *, permitted: bool = True, details: str = '') -> None:
+        try:
+            from workspace.audit.audit_event_policy import log_workspace_event
+            log_workspace_event(page, action, permitted=permitted, details=details)
+        except Exception:
+            pass
+
     def _invoke_current_tab_command(self, command_names):
         page = self.stack.currentWidget() if hasattr(self, 'stack') else None
         if page is None:
@@ -1245,9 +1253,12 @@ class MainWindow(QMainWindow):
             if hasattr(page, name):
                 action = action_map.get(name, '')
                 if action and not self._can_invoke_current_tab_action(page, action):
+                    self._audit_current_tab_action(page, action, permitted=False, details='Workspace action denied')
                     self._show_permission_denied_for_current_tab(page, action)
                     return True
                 getattr(page, name)()
+                if action:
+                    self._audit_current_tab_action(page, action, permitted=True, details='Workspace action executed')
                 self._apply_current_document_permissions()
                 return True
         return False

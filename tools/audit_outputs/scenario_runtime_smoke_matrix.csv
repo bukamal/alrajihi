@@ -1,0 +1,338 @@
+﻿scenario_key,module,primary_document_type,step_key,check_key,mode,required,risk_level,callback_name,expected,safe_for_ci,destructive,notes
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoices.open,contract,static,True,none,,list,True,False,Step descriptor exists and is covered by Phase 271 validation.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoices.open,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,dry_run,page,page_size",True,False,Sample payload shape only; no persistence.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoices.open,permission,static,True,none,check_permission,sales_invoices.view,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoices.open,language,static,True,none,,transactions.sales_invoice,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoices.open,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoices.open,audit_hook,callback,True,none,record_dry_run_audit,list.sales_invoices.open,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,currency,lines,reference,type",True,False,Sample payload shape only; no persistence.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,route_intent,callback,True,write_intent,probe_document_route,/api/invoices,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,permission,static,True,none,check_permission,sales_invoices.update,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,settings,static,True,none,,transactions.sales_invoice,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,language,static,True,none,,transactions.sales_invoice,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,audit_hook,callback,True,none,record_dry_run_audit,document.sales_invoice.save,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.save,offline_hook,callback,True,none,enqueue_dry_run_offline,document.sales_invoice,True,False,Offline smoke should validate queue metadata and idempotency only.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.print,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.print,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,currency,lines,reference,type",True,False,Sample payload shape only; no persistence.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.print,permission,static,True,none,check_permission,sales_invoices.print,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.print,settings,static,True,none,,transactions.sales_invoice,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.print,language,static,True,none,,transactions.sales_invoice,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.print,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+sales_invoice_full_cycle,transactions,sales_invoice,sales_invoice.print,audit_hook,callback,True,none,record_dry_run_audit,document.sales_invoice.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+sales_invoice_full_cycle,transactions,sales_invoice,invoice_profit.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+sales_invoice_full_cycle,transactions,sales_invoice,invoice_profit.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+sales_invoice_full_cycle,transactions,sales_invoice,invoice_profit.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/invoice-profit,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+sales_invoice_full_cycle,transactions,sales_invoice,invoice_profit.view,permission,static,True,none,check_permission,reports.view,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,invoice_profit.view,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+sales_invoice_full_cycle,transactions,sales_invoice,invoice_profit.view,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+sales_invoice_full_cycle,transactions,sales_invoice,invoice_profit.view,audit_hook,callback,True,none,record_dry_run_audit,report.invoice_profit.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoices.open,contract,static,True,none,,list,True,False,Step descriptor exists and is covered by Phase 271 validation.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoices.open,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,dry_run,page,page_size",True,False,Sample payload shape only; no persistence.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoices.open,permission,static,True,none,check_permission,purchase_invoices.view,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoices.open,language,static,True,none,,transactions.purchase_invoice,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoices.open,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoices.open,audit_hook,callback,True,none,record_dry_run_audit,list.purchase_invoices.open,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,currency,lines,reference,type",True,False,Sample payload shape only; no persistence.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,route_intent,callback,True,write_intent,probe_document_route,/api/invoices,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,permission,static,True,none,check_permission,purchase_invoices.update,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,settings,static,True,none,,transactions.purchase_invoice,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,language,static,True,none,,transactions.purchase_invoice,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,audit_hook,callback,True,none,record_dry_run_audit,document.purchase_invoice.save,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.save,offline_hook,callback,True,none,enqueue_dry_run_offline,document.purchase_invoice,True,False,Offline smoke should validate queue metadata and idempotency only.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.print,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.print,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,currency,lines,reference,type",True,False,Sample payload shape only; no persistence.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.print,permission,static,True,none,check_permission,purchase_invoices.print,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.print,settings,static,True,none,,transactions.purchase_invoice,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.print,language,static,True,none,,transactions.purchase_invoice,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.print,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+purchase_invoice_full_cycle,transactions,purchase_invoice,purchase_invoice.print,audit_hook,callback,True,none,record_dry_run_audit,document.purchase_invoice.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+purchase_invoice_full_cycle,transactions,purchase_invoice,supplier_statement.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+purchase_invoice_full_cycle,transactions,purchase_invoice,supplier_statement.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+purchase_invoice_full_cycle,transactions,purchase_invoice,supplier_statement.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/suppliers/<id>/statement,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+purchase_invoice_full_cycle,transactions,purchase_invoice,supplier_statement.view,permission,static,True,none,check_permission,reports.view,True,False,
+purchase_invoice_full_cycle,transactions,purchase_invoice,supplier_statement.view,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+purchase_invoice_full_cycle,transactions,purchase_invoice,supplier_statement.view,audit_hook,callback,True,none,record_dry_run_audit,report.supplier_statement.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+sales_return_edit_print,transactions,sales_return,sales_returns.open,contract,static,True,none,,list,True,False,Step descriptor exists and is covered by Phase 271 validation.
+sales_return_edit_print,transactions,sales_return,sales_returns.open,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,dry_run,page,page_size",True,False,Sample payload shape only; no persistence.
+sales_return_edit_print,transactions,sales_return,sales_returns.open,permission,static,True,none,check_permission,sales_returns.view,True,False,
+sales_return_edit_print,transactions,sales_return,sales_returns.open,language,static,True,none,,transactions.sales_return,True,False,
+sales_return_edit_print,transactions,sales_return,sales_returns.open,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+sales_return_edit_print,transactions,sales_return,sales_returns.open,audit_hook,callback,True,none,record_dry_run_audit,list.sales_returns.open,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+sales_return_edit_print,transactions,sales_return,sales_return.save,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+sales_return_edit_print,transactions,sales_return,sales_return.save,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,currency,lines,return_no",True,False,Sample payload shape only; no persistence.
+sales_return_edit_print,transactions,sales_return,sales_return.save,route_intent,callback,True,write_intent,probe_document_route,/api/returns/sales,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+sales_return_edit_print,transactions,sales_return,sales_return.save,permission,static,True,none,check_permission,sales_returns.update,True,False,
+sales_return_edit_print,transactions,sales_return,sales_return.save,settings,static,True,none,,transactions.sales_return,True,False,
+sales_return_edit_print,transactions,sales_return,sales_return.save,language,static,True,none,,transactions.sales_return,True,False,
+sales_return_edit_print,transactions,sales_return,sales_return.save,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+sales_return_edit_print,transactions,sales_return,sales_return.save,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+sales_return_edit_print,transactions,sales_return,sales_return.save,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+sales_return_edit_print,transactions,sales_return,sales_return.save,audit_hook,callback,True,none,record_dry_run_audit,document.sales_return.save,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+sales_return_edit_print,transactions,sales_return,sales_return.save,offline_hook,callback,True,none,enqueue_dry_run_offline,document.sales_return,True,False,Offline smoke should validate queue metadata and idempotency only.
+sales_return_edit_print,transactions,sales_return,sales_return.print,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+sales_return_edit_print,transactions,sales_return,sales_return.print,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,currency,lines,return_no",True,False,Sample payload shape only; no persistence.
+sales_return_edit_print,transactions,sales_return,sales_return.print,permission,static,True,none,check_permission,sales_returns.print,True,False,
+sales_return_edit_print,transactions,sales_return,sales_return.print,settings,static,True,none,,transactions.sales_return,True,False,
+sales_return_edit_print,transactions,sales_return,sales_return.print,language,static,True,none,,transactions.sales_return,True,False,
+sales_return_edit_print,transactions,sales_return,sales_return.print,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+sales_return_edit_print,transactions,sales_return,sales_return.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+sales_return_edit_print,transactions,sales_return,sales_return.print,audit_hook,callback,True,none,record_dry_run_audit,document.sales_return.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+sales_return_edit_print,transactions,sales_return,customer_statement.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+sales_return_edit_print,transactions,sales_return,customer_statement.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+sales_return_edit_print,transactions,sales_return,customer_statement.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/customers/<id>/statement,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+sales_return_edit_print,transactions,sales_return,customer_statement.view,permission,static,True,none,check_permission,reports.view,True,False,
+sales_return_edit_print,transactions,sales_return,customer_statement.view,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+sales_return_edit_print,transactions,sales_return,customer_statement.view,audit_hook,callback,True,none,record_dry_run_audit,report.customer_statement.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+purchase_return_edit_print,transactions,purchase_return,purchase_returns.open,contract,static,True,none,,list,True,False,Step descriptor exists and is covered by Phase 271 validation.
+purchase_return_edit_print,transactions,purchase_return,purchase_returns.open,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,dry_run,page,page_size",True,False,Sample payload shape only; no persistence.
+purchase_return_edit_print,transactions,purchase_return,purchase_returns.open,permission,static,True,none,check_permission,purchase_returns.view,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_returns.open,language,static,True,none,,transactions.purchase_return,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_returns.open,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_returns.open,audit_hook,callback,True,none,record_dry_run_audit,list.purchase_returns.open,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,currency,lines,return_no",True,False,Sample payload shape only; no persistence.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,route_intent,callback,True,write_intent,probe_document_route,/api/returns/purchase,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,permission,static,True,none,check_permission,purchase_returns.update,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,settings,static,True,none,,transactions.purchase_return,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,language,static,True,none,,transactions.purchase_return,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,audit_hook,callback,True,none,record_dry_run_audit,document.purchase_return.save,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.save,offline_hook,callback,True,none,enqueue_dry_run_offline,document.purchase_return,True,False,Offline smoke should validate queue metadata and idempotency only.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.print,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.print,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,currency,lines,return_no",True,False,Sample payload shape only; no persistence.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.print,permission,static,True,none,check_permission,purchase_returns.print,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_return.print,settings,static,True,none,,transactions.purchase_return,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_return.print,language,static,True,none,,transactions.purchase_return,True,False,
+purchase_return_edit_print,transactions,purchase_return,purchase_return.print,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+purchase_return_edit_print,transactions,purchase_return,purchase_return.print,audit_hook,callback,True,none,record_dry_run_audit,document.purchase_return.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+purchase_return_edit_print,transactions,purchase_return,supplier_statement.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+purchase_return_edit_print,transactions,purchase_return,supplier_statement.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+purchase_return_edit_print,transactions,purchase_return,supplier_statement.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/suppliers/<id>/statement,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+purchase_return_edit_print,transactions,purchase_return,supplier_statement.view,permission,static,True,none,check_permission,reports.view,True,False,
+purchase_return_edit_print,transactions,purchase_return,supplier_statement.view,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+purchase_return_edit_print,transactions,purchase_return,supplier_statement.view,audit_hook,callback,True,none,record_dry_run_audit,report.supplier_statement.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+pos_fast_sale_receipt,pos,pos,pos.checkout,contract,static,True,none,,operational,True,False,Step descriptor exists and is covered by Phase 271 validation.
+pos_fast_sale_receipt,pos,pos,pos.checkout,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,cashbox_id,currency,dry_run,lines,warehouse_id",True,False,Sample payload shape only; no persistence.
+pos_fast_sale_receipt,pos,pos,pos.checkout,route_intent,callback,True,write_intent,probe_operational_route,/api/invoices,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+pos_fast_sale_receipt,pos,pos,pos.checkout,permission,static,True,none,check_permission,pos.use,True,False,
+pos_fast_sale_receipt,pos,pos,pos.checkout,settings,static,True,none,,pos,True,False,
+pos_fast_sale_receipt,pos,pos,pos.checkout,language,static,True,none,,pos.shell,True,False,
+pos_fast_sale_receipt,pos,pos,pos.checkout,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+pos_fast_sale_receipt,pos,pos,pos.checkout,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+pos_fast_sale_receipt,pos,pos,pos.checkout,audit_hook,callback,True,none,record_dry_run_audit,operational.pos.checkout,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+pos_fast_sale_receipt,pos,pos,pos.checkout,offline_hook,callback,True,none,enqueue_dry_run_offline,operational.pos.checkout,True,False,Offline smoke should validate queue metadata and idempotency only.
+pos_fast_sale_receipt,pos,pos,pos.print_receipt,contract,static,True,none,,operational,True,False,Step descriptor exists and is covered by Phase 271 validation.
+pos_fast_sale_receipt,pos,pos,pos.print_receipt,payload_shape,dry_run,True,none,build_sample_payload,dry_run,True,False,Sample payload shape only; no persistence.
+pos_fast_sale_receipt,pos,pos,pos.print_receipt,permission,static,True,none,check_permission,pos.receipt.print,True,False,
+pos_fast_sale_receipt,pos,pos,pos.print_receipt,settings,static,True,none,,pos,True,False,
+pos_fast_sale_receipt,pos,pos,pos.print_receipt,language,static,True,none,,pos.shell,True,False,
+pos_fast_sale_receipt,pos,pos,pos.print_receipt,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+pos_fast_sale_receipt,pos,pos,pos.print_receipt,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+pos_fast_sale_receipt,pos,pos,pos.print_receipt,audit_hook,callback,True,none,record_dry_run_audit,operational.pos.print_receipt,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+pos_fast_sale_receipt,pos,pos,pos_shifts.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+pos_fast_sale_receipt,pos,pos,pos_shifts.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+pos_fast_sale_receipt,pos,pos,pos_shifts.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/pos-shifts,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+pos_fast_sale_receipt,pos,pos,pos_shifts.view,permission,static,True,none,check_permission,reports.view,True,False,
+pos_fast_sale_receipt,pos,pos,pos_shifts.view,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+pos_fast_sale_receipt,pos,pos,pos_shifts.view,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+pos_fast_sale_receipt,pos,pos,pos_shifts.view,audit_hook,callback,True,none,record_dry_run_audit,report.pos_shifts.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.open_session,contract,static,True,none,,operational,True,False,Step descriptor exists and is covered by Phase 271 validation.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.open_session,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,dry_run,table_id",True,False,Sample payload shape only; no persistence.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.open_session,route_intent,callback,True,write_intent,probe_operational_route,/api/restaurant,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.open_session,permission,static,True,none,check_permission,restaurant.session.open,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.open_session,settings,static,True,none,,restaurant,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.open_session,language,static,True,none,,restaurant.shell,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.open_session,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.open_session,audit_hook,callback,True,none,record_dry_run_audit,operational.restaurant.open_session,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.send_kitchen,contract,static,True,none,,operational,True,False,Step descriptor exists and is covered by Phase 271 validation.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.send_kitchen,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,dry_run,session_id",True,False,Sample payload shape only; no persistence.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.send_kitchen,route_intent,callback,True,write_intent,probe_operational_route,/api/restaurant,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.send_kitchen,permission,static,True,none,check_permission,restaurant.kitchen.send,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.send_kitchen,settings,static,True,none,,restaurant,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.send_kitchen,language,static,True,none,,restaurant.shell,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.send_kitchen,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.send_kitchen,audit_hook,callback,True,none,record_dry_run_audit,operational.restaurant.send_kitchen,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_kitchen_ticket,contract,static,True,none,,operational,True,False,Step descriptor exists and is covered by Phase 271 validation.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_kitchen_ticket,payload_shape,dry_run,True,none,build_sample_payload,dry_run,True,False,Sample payload shape only; no persistence.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_kitchen_ticket,permission,static,True,none,check_permission,restaurant.kitchen_ticket.print,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_kitchen_ticket,settings,static,True,none,,restaurant,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_kitchen_ticket,language,static,True,none,,restaurant.shell,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_kitchen_ticket,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_kitchen_ticket,audit_hook,callback,True,none,record_dry_run_audit,operational.restaurant.print_kitchen_ticket,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.checkout,contract,static,True,none,,operational,True,False,Step descriptor exists and is covered by Phase 271 validation.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.checkout,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,currency,dry_run,session_id",True,False,Sample payload shape only; no persistence.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.checkout,route_intent,callback,True,write_intent,probe_operational_route,/api/restaurant,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.checkout,permission,static,True,none,check_permission,restaurant.checkout,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.checkout,settings,static,True,none,,restaurant,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.checkout,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.checkout,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.checkout,audit_hook,callback,True,none,record_dry_run_audit,operational.restaurant.checkout,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_receipt,contract,static,True,none,,operational,True,False,Step descriptor exists and is covered by Phase 271 validation.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_receipt,payload_shape,dry_run,True,none,build_sample_payload,dry_run,True,False,Sample payload shape only; no persistence.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_receipt,permission,static,True,none,check_permission,restaurant.receipt.print,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_receipt,settings,static,True,none,,restaurant,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_receipt,language,static,True,none,,restaurant.shell,True,False,
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_receipt,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_receipt,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+restaurant_table_order_checkout,restaurant,restaurant,restaurant.print_receipt,audit_hook,callback,True,none,record_dry_run_audit,operational.restaurant.print_receipt,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+bom_cost_print,manufacturing,bom,bom.save,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+bom_cost_print,manufacturing,bom,bom.save,payload_shape,dry_run,True,none,build_sample_payload,"components,currency,product_name,quantity",True,False,Sample payload shape only; no persistence.
+bom_cost_print,manufacturing,bom,bom.save,route_intent,callback,True,write_intent,probe_document_route,/api/manufacturing/boms,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+bom_cost_print,manufacturing,bom,bom.save,permission,static,True,none,check_permission,manufacturing.bom.update,True,False,
+bom_cost_print,manufacturing,bom,bom.save,settings,static,True,none,,manufacturing.bom,True,False,
+bom_cost_print,manufacturing,bom,bom.save,language,static,True,none,,manufacturing.bom,True,False,
+bom_cost_print,manufacturing,bom,bom.save,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+bom_cost_print,manufacturing,bom,bom.save,audit_hook,callback,True,none,record_dry_run_audit,document.bom.save,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+bom_cost_print,manufacturing,bom,bom.print,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+bom_cost_print,manufacturing,bom,bom.print,payload_shape,dry_run,True,none,build_sample_payload,"components,currency,product_name,quantity",True,False,Sample payload shape only; no persistence.
+bom_cost_print,manufacturing,bom,bom.print,permission,static,True,none,check_permission,manufacturing.bom.print,True,False,
+bom_cost_print,manufacturing,bom,bom.print,settings,static,True,none,,manufacturing.bom,True,False,
+bom_cost_print,manufacturing,bom,bom.print,language,static,True,none,,manufacturing.bom,True,False,
+bom_cost_print,manufacturing,bom,bom.print,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+bom_cost_print,manufacturing,bom,bom.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+bom_cost_print,manufacturing,bom,bom.print,audit_hook,callback,True,none,record_dry_run_audit,document.bom.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+bom_cost_print,manufacturing,bom,product_cost.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+bom_cost_print,manufacturing,bom,product_cost.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+bom_cost_print,manufacturing,bom,product_cost.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/product-cost,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+bom_cost_print,manufacturing,bom,product_cost.view,permission,static,True,none,check_permission,reports.view,True,False,
+bom_cost_print,manufacturing,bom,product_cost.view,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+bom_cost_print,manufacturing,bom,product_cost.view,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+bom_cost_print,manufacturing,bom,product_cost.view,audit_hook,callback,True,none,record_dry_run_audit,report.product_cost.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+production_order_lifecycle,manufacturing,production_order,production_order.save,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+production_order_lifecycle,manufacturing,production_order,production_order.save,payload_shape,dry_run,True,none,build_sample_payload,"consumptions,currency,order_no,outputs,quantity",True,False,Sample payload shape only; no persistence.
+production_order_lifecycle,manufacturing,production_order,production_order.save,route_intent,callback,True,write_intent,probe_document_route,/api/manufacturing/production-orders,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+production_order_lifecycle,manufacturing,production_order,production_order.save,permission,static,True,none,check_permission,manufacturing.production_orders.update,True,False,
+production_order_lifecycle,manufacturing,production_order,production_order.save,settings,static,True,none,,manufacturing.production_orders,True,False,
+production_order_lifecycle,manufacturing,production_order,production_order.save,language,static,True,none,,manufacturing.production_order,True,False,
+production_order_lifecycle,manufacturing,production_order,production_order.save,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+production_order_lifecycle,manufacturing,production_order,production_order.save,audit_hook,callback,True,none,record_dry_run_audit,document.production_order.save,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+production_order_lifecycle,manufacturing,production_order,production_order.print,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+production_order_lifecycle,manufacturing,production_order,production_order.print,payload_shape,dry_run,True,none,build_sample_payload,"consumptions,currency,order_no,outputs,quantity",True,False,Sample payload shape only; no persistence.
+production_order_lifecycle,manufacturing,production_order,production_order.print,permission,static,True,none,check_permission,manufacturing.production_orders.print,True,False,
+production_order_lifecycle,manufacturing,production_order,production_order.print,settings,static,True,none,,manufacturing.production_orders,True,False,
+production_order_lifecycle,manufacturing,production_order,production_order.print,language,static,True,none,,manufacturing.production_order,True,False,
+production_order_lifecycle,manufacturing,production_order,production_order.print,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+production_order_lifecycle,manufacturing,production_order,production_order.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+production_order_lifecycle,manufacturing,production_order,production_order.print,audit_hook,callback,True,none,record_dry_run_audit,document.production_order.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+production_order_lifecycle,manufacturing,production_order,manufacturing_orders.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+production_order_lifecycle,manufacturing,production_order,manufacturing_orders.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+production_order_lifecycle,manufacturing,production_order,manufacturing_orders.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/manufacturing/orders,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+production_order_lifecycle,manufacturing,production_order,manufacturing_orders.view,permission,static,True,none,check_permission,reports.view,True,False,
+production_order_lifecycle,manufacturing,production_order,manufacturing_orders.view,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+production_order_lifecycle,manufacturing,production_order,manufacturing_orders.view,audit_hook,callback,True,none,record_dry_run_audit,report.manufacturing_orders.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfers.open,contract,static,True,none,,list,True,False,Step descriptor exists and is covered by Phase 271 validation.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfers.open,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,dry_run,page,page_size",True,False,Sample payload shape only; no persistence.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfers.open,permission,static,True,none,check_permission,warehouse_transfers.view,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfers.open,language,static,True,none,,inventory.transfer,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfers.open,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfers.open,audit_hook,callback,True,none,record_dry_run_audit,list.warehouse_transfers.open,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.save,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.save,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,lines,reference,source_warehouse_id,target_warehouse_id",True,False,Sample payload shape only; no persistence.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.save,route_intent,callback,True,write_intent,probe_document_route,/api/warehouse-transfers,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.save,permission,static,True,none,check_permission,warehouse_transfers.update,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.save,settings,static,True,none,,inventory.transfers,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.save,language,static,True,none,,inventory.transfer,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.save,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.save,audit_hook,callback,True,none,record_dry_run_audit,document.warehouse_transfer.save,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.print,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.print,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,lines,reference,source_warehouse_id,target_warehouse_id",True,False,Sample payload shape only; no persistence.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.print,permission,static,True,none,check_permission,warehouse_transfers.print,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.print,settings,static,True,none,,inventory.transfers,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.print,language,static,True,none,,inventory.transfer,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_transfer.print,audit_hook,callback,True,none,record_dry_run_audit,document.warehouse_transfer.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_movements.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_movements.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_movements.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/warehouse/movements,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_movements.view,permission,static,True,none,check_permission,reports.view,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_movements.view,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+inventory_transfer_print,inventory,warehouse_transfer,warehouse_movements.view,audit_hook,callback,True,none,record_dry_run_audit,report.warehouse_movements.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+voucher_cash_bank_flow,finance,voucher,vouchers.open,contract,static,True,none,,list,True,False,Step descriptor exists and is covered by Phase 271 validation.
+voucher_cash_bank_flow,finance,voucher,vouchers.open,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,dry_run,page,page_size",True,False,Sample payload shape only; no persistence.
+voucher_cash_bank_flow,finance,voucher,vouchers.open,permission,static,True,none,check_permission,vouchers.view,True,False,
+voucher_cash_bank_flow,finance,voucher,vouchers.open,language,static,True,none,,finance.voucher,True,False,
+voucher_cash_bank_flow,finance,voucher,vouchers.open,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+voucher_cash_bank_flow,finance,voucher,vouchers.open,audit_hook,callback,True,none,record_dry_run_audit,list.vouchers.open,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+voucher_cash_bank_flow,finance,voucher,voucher.save,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+voucher_cash_bank_flow,finance,voucher,voucher.save,payload_shape,dry_run,True,none,build_sample_payload,"amount,branch_id,currency,payment_method,voucher_type",True,False,Sample payload shape only; no persistence.
+voucher_cash_bank_flow,finance,voucher,voucher.save,route_intent,callback,True,write_intent,probe_document_route,/api/vouchers,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+voucher_cash_bank_flow,finance,voucher,voucher.save,permission,static,True,none,check_permission,vouchers.update,True,False,
+voucher_cash_bank_flow,finance,voucher,voucher.save,settings,static,True,none,,finance.vouchers,True,False,
+voucher_cash_bank_flow,finance,voucher,voucher.save,language,static,True,none,,finance.voucher,True,False,
+voucher_cash_bank_flow,finance,voucher,voucher.save,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+voucher_cash_bank_flow,finance,voucher,voucher.save,audit_hook,callback,True,none,record_dry_run_audit,document.voucher.save,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+voucher_cash_bank_flow,finance,voucher,voucher.save,offline_hook,callback,True,none,enqueue_dry_run_offline,document.voucher,True,False,Offline smoke should validate queue metadata and idempotency only.
+voucher_cash_bank_flow,finance,voucher,voucher.print,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+voucher_cash_bank_flow,finance,voucher,voucher.print,payload_shape,dry_run,True,none,build_sample_payload,"amount,branch_id,currency,payment_method,voucher_type",True,False,Sample payload shape only; no persistence.
+voucher_cash_bank_flow,finance,voucher,voucher.print,permission,static,True,none,check_permission,vouchers.print,True,False,
+voucher_cash_bank_flow,finance,voucher,voucher.print,settings,static,True,none,,finance.vouchers,True,False,
+voucher_cash_bank_flow,finance,voucher,voucher.print,language,static,True,none,,finance.voucher,True,False,
+voucher_cash_bank_flow,finance,voucher,voucher.print,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+voucher_cash_bank_flow,finance,voucher,voucher.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+voucher_cash_bank_flow,finance,voucher,voucher.print,audit_hook,callback,True,none,record_dry_run_audit,document.voucher.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+voucher_cash_bank_flow,finance,voucher,cash_movements.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+voucher_cash_bank_flow,finance,voucher,cash_movements.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+voucher_cash_bank_flow,finance,voucher,cash_movements.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/cash-bank/movements,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+voucher_cash_bank_flow,finance,voucher,cash_movements.view,permission,static,True,none,check_permission,reports.view,True,False,
+voucher_cash_bank_flow,finance,voucher,cash_movements.view,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+voucher_cash_bank_flow,finance,voucher,cash_movements.view,branch,dry_run,True,none,scope_sample_branch,branch_access_policy,True,False,
+voucher_cash_bank_flow,finance,voucher,cash_movements.view,audit_hook,callback,True,none,record_dry_run_audit,report.cash_movements.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+material_barcode_lookup_label,materials,material,materials.open,contract,static,True,none,,list,True,False,Step descriptor exists and is covered by Phase 271 validation.
+material_barcode_lookup_label,materials,material,materials.open,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,dry_run,page,page_size",True,False,Sample payload shape only; no persistence.
+material_barcode_lookup_label,materials,material,materials.open,permission,static,True,none,check_permission,items.view,True,False,
+material_barcode_lookup_label,materials,material,materials.open,language,static,True,none,,materials.document,True,False,
+material_barcode_lookup_label,materials,material,materials.open,audit_hook,callback,True,none,record_dry_run_audit,list.materials.open,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+material_barcode_lookup_label,materials,material,material.save,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+material_barcode_lookup_label,materials,material,material.save,payload_shape,dry_run,True,none,build_sample_payload,"barcode,currency,name,units",True,False,Sample payload shape only; no persistence.
+material_barcode_lookup_label,materials,material,material.save,route_intent,callback,True,write_intent,probe_document_route,/api/items,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+material_barcode_lookup_label,materials,material,material.save,permission,static,True,none,check_permission,items.update,True,False,
+material_barcode_lookup_label,materials,material,material.save,settings,static,True,none,,materials,True,False,
+material_barcode_lookup_label,materials,material,material.save,language,static,True,none,,materials.document,True,False,
+material_barcode_lookup_label,materials,material,material.save,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+material_barcode_lookup_label,materials,material,material.save,audit_hook,callback,True,none,record_dry_run_audit,document.material.save,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+material_barcode_lookup_label,materials,material,material.save,offline_hook,callback,True,none,enqueue_dry_run_offline,document.material,True,False,Offline smoke should validate queue metadata and idempotency only.
+material_barcode_lookup_label,materials,material,material.print,contract,static,True,none,,document,True,False,Step descriptor exists and is covered by Phase 271 validation.
+material_barcode_lookup_label,materials,material,material.print,payload_shape,dry_run,True,none,build_sample_payload,"barcode,currency,name,units",True,False,Sample payload shape only; no persistence.
+material_barcode_lookup_label,materials,material,material.print,permission,static,True,none,check_permission,items.print,True,False,
+material_barcode_lookup_label,materials,material,material.print,settings,static,True,none,,materials,True,False,
+material_barcode_lookup_label,materials,material,material.print,language,static,True,none,,materials.document,True,False,
+material_barcode_lookup_label,materials,material,material.print,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+material_barcode_lookup_label,materials,material,material.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+material_barcode_lookup_label,materials,material,material.print,audit_hook,callback,True,none,record_dry_run_audit,document.material.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+report_income_statement_print_export,reports,reports,income_statement.view,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+report_income_statement_print_export,reports,reports,income_statement.view,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+report_income_statement_print_export,reports,reports,income_statement.view,route_intent,callback,True,read_only,probe_report_route,/api/reports/income_statement,True,False,Route probe must use HEAD/OPTIONS or dry-run mode when implemented.
+report_income_statement_print_export,reports,reports,income_statement.view,permission,static,True,none,check_permission,reports.view,True,False,
+report_income_statement_print_export,reports,reports,income_statement.view,settings,static,True,none,,reports,True,False,
+report_income_statement_print_export,reports,reports,income_statement.view,language,static,True,none,,reports.shell,True,False,
+report_income_statement_print_export,reports,reports,income_statement.view,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+report_income_statement_print_export,reports,reports,income_statement.view,audit_hook,callback,True,none,record_dry_run_audit,report.income_statement.view,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+report_income_statement_print_export,reports,reports,income_statement.print,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+report_income_statement_print_export,reports,reports,income_statement.print,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+report_income_statement_print_export,reports,reports,income_statement.print,permission,static,True,none,check_permission,reports.print,True,False,
+report_income_statement_print_export,reports,reports,income_statement.print,settings,static,True,none,,reports,True,False,
+report_income_statement_print_export,reports,reports,income_statement.print,language,static,True,none,,reports.shell,True,False,
+report_income_statement_print_export,reports,reports,income_statement.print,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+report_income_statement_print_export,reports,reports,income_statement.print,print_hook,callback,True,print_export,render_print_html,browser_html,True,False,Print smoke should render HTML to a temp file/string without sending to a physical printer.
+report_income_statement_print_export,reports,reports,income_statement.print,audit_hook,callback,True,none,record_dry_run_audit,report.income_statement.print,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.
+report_income_statement_print_export,reports,reports,income_statement.export,contract,static,True,none,,report,True,False,Step descriptor exists and is covered by Phase 271 validation.
+report_income_statement_print_export,reports,reports,income_statement.export,payload_shape,dry_run,True,none,build_sample_payload,"branch_id,date_from,date_to,dry_run",True,False,Sample payload shape only; no persistence.
+report_income_statement_print_export,reports,reports,income_statement.export,permission,static,True,none,check_permission,reports.export,True,False,
+report_income_statement_print_export,reports,reports,income_statement.export,settings,static,True,none,,reports,True,False,
+report_income_statement_print_export,reports,reports,income_statement.export,language,static,True,none,,reports.shell,True,False,
+report_income_statement_print_export,reports,reports,income_statement.export,currency,dry_run,True,none,format_sample_money,MoneyDisplayPolicy,True,False,Dry-run must format sample amounts only; no conversion side effects.
+report_income_statement_print_export,reports,reports,income_statement.export,export_hook,callback,True,print_export,probe_export,export_probe,True,False,
+report_income_statement_print_export,reports,reports,income_statement.export,audit_hook,callback,True,none,record_dry_run_audit,report.income_statement.export,True,False,Dry-run audit must be tagged as scenario_smoke and avoid permanent business records.

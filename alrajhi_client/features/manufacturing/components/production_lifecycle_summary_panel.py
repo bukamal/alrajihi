@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from PyQt5.QtWidgets import QFrame, QGridLayout, QLabel
 
+from core.money_display_policy import format_money, format_quantity
+
 from features.manufacturing.i18n import tr
 
 
@@ -44,7 +46,10 @@ class ProductionLifecycleSummaryPanel(QFrame):
 
     def _set(self, key: str, value) -> None:
         try:
-            text = f"{Decimal(str(value)):.3f}".rstrip('0').rstrip('.')
+            if key in {'consumption_cost', 'output_cost'}:
+                text = format_money(value)
+            else:
+                text = format_quantity(value, decimals=4)
         except Exception:
             text = str(value or '0')
         self.values[key].setText(text)

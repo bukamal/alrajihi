@@ -14,7 +14,9 @@ class AuditGateway(ABC):
     @abstractmethod
     def log(self, action: str, entity_type: str, entity_id: Optional[int] = None,
             old_values: Any = None, new_values: Any = None, details: str = '',
-            source: str = 'USER', ip_address: str = '127.0.0.1') -> None:
+            source: str = 'USER', ip_address: str = '127.0.0.1',
+            audit_scope: str = '', permission_key: str = '', branch_id: Any = None,
+            event_category: str = '') -> None:
         raise NotImplementedError
 
     @abstractmethod

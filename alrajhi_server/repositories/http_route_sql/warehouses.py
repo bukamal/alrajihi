@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from alrajhi_server.repositories.warehouse_repository import get_warehouse_repository
 from alrajhi_server.decorators import admin_required
+from alrajhi_server.services.branch_access_policy import BranchAccessError, branch_access_policy
 
 warehouses_bp = Blueprint('warehouses', __name__)
 
@@ -15,6 +16,20 @@ def _uid():
 
 def _now(): return datetime.datetime.now().isoformat()
 def _rowdict(row): return dict(row) if row else None
+
+
+def _branch_denied(exc):
+    return jsonify({'error': str(exc), 'code': 'BRANCH_ACCESS_DENIED'}), 403
+
+def _require_branch(uid, branch_id, context):
+    return branch_access_policy.require(uid, branch_id, context=context)
+
+def _require_warehouse_access(db, uid, warehouse_id, context):
+    row = db.query('SELECT branch_id FROM warehouses WHERE id=? AND user_id=?', (warehouse_id, uid)).fetchone()
+    if not row:
+        raise ValueError('المستودع غير موجود')
+    _require_branch(uid, row['branch_id'] if 'branch_id' in row.keys() else None, context)
+    return row
 
 def _ensure_default_branch(db, uid):
     row = db.query("SELECT id FROM branches WHERE user_id=? AND is_default=1 AND deleted_at IS NULL LIMIT 1", (uid,)).fetchone()
@@ -63,6 +78,8 @@ def list_warehouses():
         WHERE w.user_id=?
     """
     params=[uid]
+    branch_sql, branch_params = branch_access_policy.scope_sql(uid, alias='w', branch_column='branch_id', requested_branch_id=request.args.get('branch_id', type=int))
+    sql += branch_sql; params.extend(branch_params)
     if not include: sql += " AND w.deleted_at IS NULL AND COALESCE(w.is_active,1)=1"
     sql += " GROUP BY w.id ORDER BY w.is_default DESC, w.name"
     return jsonify({'warehouses': [_rowdict(r) for r in db.query(sql, params).fetchall()]})
@@ -70,13 +87,25 @@ def list_warehouses():
 @warehouses_bp.route('/warehouses/default', methods=['GET'])
 @jwt_required()
 def default_warehouse():
-    return jsonify({'id': _ensure_default_warehouse(get_warehouse_repository(), _uid())})
+    uid = _uid(); requested = request.args.get('branch_id', type=int)
+    try:
+        branch_id = branch_access_policy.effective_branch_id(uid, requested)
+        _require_branch(uid, branch_id, 'warehouse.default')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
+    return jsonify({'id': _ensure_default_warehouse(get_warehouse_repository(), uid, branch_id)})
 
 @warehouses_bp.route('/warehouses/available_qty', methods=['GET'])
 @jwt_required()
 def available_qty():
     uid = _uid(); db = get_warehouse_repository(); item_id = request.args.get('item_id', type=int)
     warehouse_id = request.args.get('warehouse_id', type=int) or _ensure_default_warehouse(db, uid)
+    try:
+        _require_warehouse_access(db, uid, warehouse_id, 'warehouse.available_qty')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 404
     if not item_id: return jsonify({'quantity': '0'})
     row = db.query('SELECT quantity FROM item_warehouse_balances WHERE user_id=? AND item_id=? AND warehouse_id=?', (uid, item_id, warehouse_id)).fetchone()
     return jsonify({'quantity': str(row['quantity']) if row and row['quantity'] is not None else '0'})
@@ -86,12 +115,20 @@ def available_qty():
 def get_warehouse(warehouse_id):
     row = get_warehouse_repository().query('SELECT * FROM warehouses WHERE id=? AND user_id=?', (warehouse_id, _uid())).fetchone()
     if not row: return jsonify({'error': 'not found'}), 404
+    try:
+        _require_branch(_uid(), row['branch_id'] if 'branch_id' in row.keys() else None, 'warehouse.get')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     return jsonify(_rowdict(row))
 
 @warehouses_bp.route('/warehouses', methods=['POST'])
 @admin_required
 def add_warehouse():
     uid = _uid(); db = get_warehouse_repository(); p = _payload(request.get_json() or {}, uid); now = _now()
+    try:
+        _require_branch(uid, p['branch_id'], 'warehouse.create')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     cur = db.query("""
         INSERT INTO warehouses (user_id, branch_id, name, code, notes, is_default, is_active, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)
@@ -102,6 +139,13 @@ def add_warehouse():
 @admin_required
 def update_warehouse(warehouse_id):
     uid = _uid(); db = get_warehouse_repository(); p = _payload(request.get_json() or {}, uid)
+    try:
+        _require_warehouse_access(db, uid, warehouse_id, 'warehouse.update.old')
+        _require_branch(uid, p['branch_id'], 'warehouse.update.new')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 404
     db.query('UPDATE warehouses SET branch_id=?, name=?, code=?, notes=?, is_active=?, updated_at=? WHERE id=? AND user_id=?',
                (p['branch_id'], p['name'], p['code'], p['notes'], p['is_active'], _now(), warehouse_id, uid))
     db.commit(); return jsonify({'status': 'ok'})
@@ -112,6 +156,12 @@ def archive_warehouse(warehouse_id):
     uid = _uid(); db = get_warehouse_repository(); now = _now()
     row = db.query('SELECT is_default FROM warehouses WHERE id=? AND user_id=?', (warehouse_id, uid)).fetchone()
     if not row: return jsonify({'error': 'not found'}), 404
+    try:
+        _require_warehouse_access(db, uid, warehouse_id, 'warehouse.delete')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 404
     if int(row['is_default'] or 0) == 1: return jsonify({'error': 'لا يمكن أرشفة المستودع الرئيسي'}), 400
     db.query('UPDATE warehouses SET deleted_at=?, is_active=0, updated_at=? WHERE id=? AND user_id=?', (now, now, warehouse_id, uid))
     db.commit(); return jsonify({'status': 'ok'})
@@ -276,6 +326,8 @@ def warehouse_balances():
         WHERE b.user_id=? AND i.deleted_at IS NULL AND w.deleted_at IS NULL
     """
     params = [uid]
+    branch_sql, branch_params = branch_access_policy.scope_sql(uid, alias='w', branch_column='branch_id', requested_branch_id=request.args.get('branch_id', type=int))
+    sql += branch_sql; params.extend(branch_params)
     if search:
         sql += " AND (i.name LIKE ? OR i.barcode LIKE ? OR w.name LIKE ?)"
         like = f'%{search}%'
@@ -312,6 +364,8 @@ def list_warehouse_movements():
         WHERE m.user_id=?
     """
     params = [uid]
+    branch_sql, branch_params = branch_access_policy.scope_sql(uid, alias='w', branch_column='branch_id', requested_branch_id=request.args.get('branch_id', type=int))
+    sql += branch_sql; params.extend(branch_params)
     if item_id:
         sql += " AND m.item_id=?"; params.append(item_id)
     if warehouse_id:
@@ -326,6 +380,7 @@ def add_warehouse_movement():
     try:
         item_id = data.get('item_id')
         warehouse_id = data.get('warehouse_id') or _ensure_default_warehouse(db, uid)
+        _require_warehouse_access(db, uid, warehouse_id, 'warehouse_movement.create')
         movement_type = data.get('movement_type') or 'adjustment'
         quantity = data.get('quantity') or '0'
         unit_cost = data.get('unit_cost') or '0'
@@ -357,11 +412,12 @@ def reverse_warehouse_reference():
     uid = _uid(); db = get_warehouse_repository(); data = request.get_json() or {}
     reference_type = data.get('reference_type')
     reference_id = data.get('reference_id')
+    branch_sql, branch_params = branch_access_policy.scope_sql(uid, alias='w', branch_column='branch_id', requested_branch_id=request.args.get('branch_id', type=int))
     rows = db.query("""
-        SELECT * FROM warehouse_movements
-        WHERE user_id=? AND reference_type=? AND reference_id=?
-        ORDER BY id DESC
-    """, (uid, reference_type, reference_id)).fetchall()
+        SELECT m.* FROM warehouse_movements m
+        JOIN warehouses w ON w.id=m.warehouse_id AND w.user_id=m.user_id
+        WHERE m.user_id=? AND m.reference_type=? AND m.reference_id=?
+    """ + branch_sql + " ORDER BY m.id DESC", tuple([uid, reference_type, reference_id] + branch_params)).fetchall()
     try:
         for r in rows:
             _record_warehouse_movement(
@@ -406,6 +462,8 @@ def create_warehouse_transfer():
             raise ValueError('كمية التحويل يجب أن تكون أكبر من صفر')
         if not _warehouse_active(db, uid, from_wh) or not _warehouse_active(db, uid, to_wh):
             raise ValueError('لا يمكن التحويل من أو إلى مستودع مؤرشف')
+        _require_warehouse_access(db, uid, from_wh, 'warehouse_transfer.from')
+        _require_warehouse_access(db, uid, to_wh, 'warehouse_transfer.to')
         if _available_qty(db, uid, item_id, from_wh) < base_qty:
             raise ValueError('الرصيد غير كافٍ في المستودع المصدر')
         unit_cost = _item_cost(db, uid, item_id)
@@ -436,6 +494,13 @@ def cancel_warehouse_transfer(transfer_id):
         return jsonify({'error': 'التحويل غير موجود'}), 404
     if t['status'] != 'active':
         return jsonify({'error': 'التحويل ملغى مسبقاً'}), 400
+    try:
+        _require_warehouse_access(db, uid, t['from_warehouse_id'], 'warehouse_transfer.cancel.from')
+        _require_warehouse_access(db, uid, t['to_warehouse_id'], 'warehouse_transfer.cancel.to')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 404
     qty = _dec(t['base_qty'] if 'base_qty' in t.keys() and t['base_qty'] not in (None, '') else t['quantity'])
     if _available_qty(db, uid, t['item_id'], t['to_warehouse_id']) < qty:
         return jsonify({'error': 'لا يمكن إلغاء التحويل لأن رصيد المستودع المستلم غير كافٍ'}), 400
@@ -457,14 +522,26 @@ def cancel_warehouse_transfer(transfer_id):
 def list_warehouse_transfers():
     uid = _uid(); db = get_warehouse_repository(); _ensure_transfer_schema(db)
     limit = request.args.get('limit', default=200, type=int) or 200
-    rows = db.query("""
+    sql = """
         SELECT t.*, i.name AS item_name, fw.name AS from_warehouse_name, tw.name AS to_warehouse_name
         FROM warehouse_transfers t
         JOIN items i ON i.id=t.item_id AND i.user_id=t.user_id
         JOIN warehouses fw ON fw.id=t.from_warehouse_id AND fw.user_id=t.user_id
         JOIN warehouses tw ON tw.id=t.to_warehouse_id AND tw.user_id=t.user_id
         WHERE t.user_id=?
-        ORDER BY t.id DESC LIMIT ?
-    """, (uid, limit)).fetchall()
+    """
+    params = [uid]
+    requested_branch_id = request.args.get('branch_id', type=int)
+    if branch_access_policy.can_view_all_branches(uid):
+        if requested_branch_id:
+            sql += ' AND (fw.branch_id=? OR tw.branch_id=?)'; params.extend([requested_branch_id, requested_branch_id])
+    else:
+        allowed = branch_access_policy.allowed_branch_ids(uid)
+        if allowed:
+            placeholders = ','.join('?' for _ in allowed)
+            sql += f' AND (fw.branch_id IN ({placeholders}) OR tw.branch_id IN ({placeholders}))'
+            params.extend(allowed + allowed)
+    sql += ' ORDER BY t.id DESC LIMIT ?'; params.append(limit)
+    rows = db.query(sql, tuple(params)).fetchall()
     return jsonify({'transfers': [_rowdict(r) for r in rows]})
 

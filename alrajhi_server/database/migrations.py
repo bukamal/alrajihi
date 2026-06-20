@@ -430,7 +430,11 @@ def init_database():
             old_values TEXT,
             new_values TEXT,
             session_id TEXT,
-            source TEXT
+            source TEXT,
+            audit_scope TEXT,
+            permission_key TEXT,
+            branch_id INTEGER,
+            event_category TEXT
         );
 
         CREATE TABLE IF NOT EXISTS token_blacklist (
@@ -908,6 +912,7 @@ def init_database():
 
     _phase158_159_schema(conn)
     migrate_phase260_rbac_contract_permissions(conn)
+    migrate_phase264_audit_contract_columns(conn)
     conn.commit()
     conn.close()
     print(f"✅ تم تهيئة قاعدة بيانات الخادم في: {DB_PATH}")
@@ -1856,6 +1861,33 @@ def migrate_phase260_rbac_contract_permissions(conn):
                 WHERE r.name=? AND EXISTS (SELECT 1 FROM permissions p WHERE p.key=?)
             """, (permission_key, role_name, permission_key))
     conn.commit()
+
+def migrate_phase264_audit_contract_columns(conn):
+    """Phase 264: structured audit trail metadata used by shell contracts."""
+    cur = conn.cursor()
+    cur.execute("PRAGMA table_info(audit_log)")
+    cols = {row[1] for row in cur.fetchall()}
+    for col_name, col_type in [
+        ('audit_scope', 'TEXT'),
+        ('permission_key', 'TEXT'),
+        ('branch_id', 'INTEGER'),
+        ('event_category', 'TEXT'),
+    ]:
+        if col_name not in cols:
+            cur.execute(f"ALTER TABLE audit_log ADD COLUMN {col_name} {col_type}")
+            cols.add(col_name)
+    for sql in [
+        'CREATE INDEX IF NOT EXISTS idx_audit_log_scope ON audit_log(audit_scope);',
+        'CREATE INDEX IF NOT EXISTS idx_audit_log_permission ON audit_log(permission_key);',
+        'CREATE INDEX IF NOT EXISTS idx_audit_log_branch ON audit_log(branch_id);',
+        'CREATE INDEX IF NOT EXISTS idx_audit_log_category ON audit_log(event_category);',
+    ]:
+        try:
+            cur.execute(sql)
+        except Exception:
+            pass
+    conn.commit()
+
 
 def ensure_db():
     # init_database uses CREATE IF NOT EXISTS and safe ALTERs, so running it

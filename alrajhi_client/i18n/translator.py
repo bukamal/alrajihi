@@ -1804,6 +1804,14 @@ def load_translations():
         'reports_export_denied': 'لا تملك صلاحية تصدير أو طباعة التقارير.',
         'reports.operation.view': 'عرض التقارير',
         'reports.operation.export': 'تصدير/طباعة التقارير',
+        'reports_group_financial': 'مالية ومحاسبية',
+        'reports_group_parties': 'العملاء والموردون',
+        'reports_group_inventory': 'المخزون و Ledger',
+        'reports_group_cash_pos': 'الصناديق والبنوك و POS',
+        'reports_group_profit_manufacturing': 'الربحية والتصنيع',
+        'reports_group_diagnostics': 'التشخيص والتدقيق',
+        'total_income': 'إجمالي الإيرادات',
+        'total_expenses': 'إجمالي المصروفات',
         'report_income_statement': 'قائمة الدخل',
         'report_balance_sheet': 'الميزانية العمومية',
         'report_warehouse_valuation': 'تقييم المستودعات',
@@ -1938,6 +1946,14 @@ def load_translations():
         'reports_export_denied': 'Sie haben keine Berechtigung zum Exportieren oder Drucken von Berichten.',
         'reports.operation.view': 'Berichte anzeigen',
         'reports.operation.export': 'Berichte exportieren/drucken',
+        'reports_group_financial': 'Finanzen & Buchhaltung',
+        'reports_group_parties': 'Kunden & Lieferanten',
+        'reports_group_inventory': 'Lager & Ledger',
+        'reports_group_cash_pos': 'Kasse, Bank & POS',
+        'reports_group_profit_manufacturing': 'Profitabilität & Produktion',
+        'reports_group_diagnostics': 'Diagnose & Audit',
+        'total_income': 'Gesamterträge',
+        'total_expenses': 'Gesamtaufwendungen',
         'report_income_statement': 'Gewinn- und Verlustrechnung',
         'report_balance_sheet': 'Bilanz',
         'report_warehouse_valuation': 'Lagerbewertung',
@@ -2072,6 +2088,14 @@ def load_translations():
         'reports_export_denied': 'You do not have permission to export or print reports.',
         'reports.operation.view': 'View reports',
         'reports.operation.export': 'Export/print reports',
+        'reports_group_financial': 'Financial & Accounting',
+        'reports_group_parties': 'Customers & Suppliers',
+        'reports_group_inventory': 'Inventory & Ledger',
+        'reports_group_cash_pos': 'Cash, Bank & POS',
+        'reports_group_profit_manufacturing': 'Profitability & Manufacturing',
+        'reports_group_diagnostics': 'Diagnostics & Audit',
+        'total_income': 'Total Income',
+        'total_expenses': 'Total Expenses',
         'report_income_statement': 'Income Statement',
         'report_balance_sheet': 'Balance Sheet',
         'report_warehouse_valuation': 'Warehouse Valuation',
@@ -5649,6 +5673,7 @@ _PHASE215_TRANSLATIONS = {
         'settings_operation_inventory_transfer': 'السماح بإنشاء تحويل مستودعي',
         'settings_operation_inventory_print': 'السماح بطباعة مستندات المخزون',
         'settings_operation_manufacturing_print': 'السماح بطباعة مستندات التصنيع',
+        'settings_operation_reports_print': 'السماح بطباعة التقارير',
         'settings_operation_reports_export': 'السماح بتصدير التقارير',
         'settings_operation_finance_expense': 'السماح بإنشاء مصروف',
         'settings_operation_finance_voucher': 'السماح بإنشاء سند مالي',
@@ -5701,6 +5726,7 @@ _PHASE215_TRANSLATIONS = {
         'settings_operation_inventory_transfer': 'Lagertransfer erstellen erlauben',
         'settings_operation_inventory_print': 'Lagerdokumente drucken erlauben',
         'settings_operation_manufacturing_print': 'Fertigungsdokumente drucken erlauben',
+        'settings_operation_reports_print': 'Berichtsdruck erlauben',
         'settings_operation_reports_export': 'Berichtsexport erlauben',
         'settings_operation_finance_expense': 'Ausgabe erstellen erlauben',
         'settings_operation_finance_voucher': 'Finanzbeleg erstellen erlauben',
@@ -5753,6 +5779,7 @@ _PHASE215_TRANSLATIONS = {
         'settings_operation_inventory_transfer': 'Allow inventory transfer creation',
         'settings_operation_inventory_print': 'Allow inventory document printing',
         'settings_operation_manufacturing_print': 'Allow manufacturing document printing',
+        'settings_operation_reports_print': 'Allow report printing',
         'settings_operation_reports_export': 'Allow report export',
         'settings_operation_finance_expense': 'Allow expense creation',
         'settings_operation_finance_voucher': 'Allow voucher creation',
@@ -6756,6 +6783,94 @@ for _lang, _values in PHASE236_PRINT_SETTINGS_TRANSLATIONS.items():
     _translations.setdefault(_lang, {}).update(_values)
 try:
     for _lang, _values in PHASE236_PRINT_SETTINGS_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+# Phase 268: POS thermal receipt settings and print title.
+PHASE268_POS_THERMAL_RECEIPT_TRANSLATIONS = {
+    'ar': {
+        'pos_receipt_print_title': 'طباعة إيصال POS',
+        'pos_receipt_show_logo': 'إظهار الشعار في إيصال POS',
+        'pos_receipt_show_qr': 'إظهار QR في إيصال POS',
+    },
+    'en': {
+        'pos_receipt_print_title': 'Print POS Receipt',
+        'pos_receipt_show_logo': 'Show logo on POS receipt',
+        'pos_receipt_show_qr': 'Show QR on POS receipt',
+    },
+    'de': {
+        'pos_receipt_print_title': 'POS-Beleg drucken',
+        'pos_receipt_show_logo': 'Logo auf POS-Beleg anzeigen',
+        'pos_receipt_show_qr': 'QR auf POS-Beleg anzeigen',
+    },
+}
+for _lang, _values in PHASE268_POS_THERMAL_RECEIPT_TRANSLATIONS.items():
+    _translations.setdefault(_lang, {}).update(_values)
+try:
+    for _lang, _values in PHASE268_POS_THERMAL_RECEIPT_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+# Phase 273 settings navigation and diagnostics translations
+_PHASE273_SETTINGS_NAV_TRANSLATIONS = {
+    'ar': {
+        'settings_diagnostics_title': '🩺 التشخيص وصحة التوحيد',
+        'settings_diagnostics_help': 'فحص سريع لصحة قاعدة البيانات، الفروع، النسخ الاحتياطي، وعقود التوحيد: الواجهات، القوائم، التقارير، التشغيل، الصلاحيات، الفروع، المزامنة، والسيناريوهات.',
+        'settings_diagnostics_unification_title': 'صحة عقود التوحيد:',
+    },
+    'en': {
+        'settings_diagnostics_title': '🩺 Diagnostics & Unification Health',
+        'settings_diagnostics_help': 'Quick health checks for the database, branches, backups, and unification contracts: documents, lists, reports, operations, permissions, branch scope, sync, and scenarios.',
+        'settings_diagnostics_unification_title': 'Unification contract health:',
+    },
+    'de': {
+        'settings_diagnostics_title': '🩺 Diagnose & Vereinheitlichungsstatus',
+        'settings_diagnostics_help': 'Schnellprüfung für Datenbank, Filialen, Sicherungen und Vereinheitlichungsverträge: Dokumente, Listen, Berichte, Betrieb, Berechtigungen, Filialbereich, Synchronisierung und Szenarien.',
+        'settings_diagnostics_unification_title': 'Status der Vereinheitlichungsverträge:',
+    },
+}
+for _lang, _values in _PHASE273_SETTINGS_NAV_TRANSLATIONS.items():
+    _translations.setdefault(_lang, {}).update(_values)
+try:
+    for _lang, _values in _PHASE273_SETTINGS_NAV_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass
+
+
+# Phase 274 grouped settings navigation translations
+_PHASE274_SETTINGS_GROUP_TRANSLATIONS = {
+    'ar': {
+        'settings_group_general': 'عام',
+        'settings_group_finance': 'مالي وتقارير',
+        'settings_group_inventory': 'مخزون وتصنيع',
+        'settings_group_operations': 'تشغيل وطباعة وشبكة',
+        'settings_group_security': 'أمان ونسخ ومراقبة',
+        'settings_group_diagnostics': 'تشخيص وعقود',
+    },
+    'en': {
+        'settings_group_general': 'General',
+        'settings_group_finance': 'Finance & Reports',
+        'settings_group_inventory': 'Inventory & Manufacturing',
+        'settings_group_operations': 'Operations, Print & Network',
+        'settings_group_security': 'Security, Backup & Audit',
+        'settings_group_diagnostics': 'Diagnostics & Contracts',
+    },
+    'de': {
+        'settings_group_general': 'Allgemein',
+        'settings_group_finance': 'Finanzen & Berichte',
+        'settings_group_inventory': 'Lager & Fertigung',
+        'settings_group_operations': 'Betrieb, Druck & Netzwerk',
+        'settings_group_security': 'Sicherheit, Sicherung & Audit',
+        'settings_group_diagnostics': 'Diagnose & Verträge',
+    },
+}
+for _lang, _values in _PHASE274_SETTINGS_GROUP_TRANSLATIONS.items():
+    _translations.setdefault(_lang, {}).update(_values)
+try:
+    for _lang, _values in _PHASE274_SETTINGS_GROUP_TRANSLATIONS.items():
         _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
 except Exception:
     pass

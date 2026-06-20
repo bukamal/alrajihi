@@ -1,0 +1,10 @@
+﻿key,category,title,required,status,issues
+runtime_files,files,Required runtime files,True,pass,0
+source_syntax,syntax,Runtime source syntax,True,pass,0
+hidden_import_manifest,pyinstaller,Hidden import manifest coverage,True,pass,0
+collect_submodules,pyinstaller,Collected submodule coverage,True,pass,0
+printing_data_files,pyinstaller,Printing template data files,True,pass,0
+hooks,pyinstaller,PyInstaller hooks collect Python template files,True,pass,0
+workflow_gate,ci,GitHub workflow runs packaging gate,True,pass,0
+build_ps1_gate,build,Local Windows build runs packaging gate,True,pass,0
+post_build_runtime_files,build,Post-build packaged runtime file verification,True,pass,0

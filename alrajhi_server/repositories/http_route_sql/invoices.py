@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from alrajhi_server.api.audit_utils import audit_log
 from alrajhi_server.repositories.invoice_repository import get_invoice_repository
+from alrajhi_server.services.branch_access_policy import BranchAccessError, branch_access_policy
 import datetime
 from decimal import Decimal
 
@@ -24,6 +25,22 @@ def _has_permission(db, user_id, permission_key):
 
 
 invoices_bp = Blueprint('invoices', __name__)
+
+
+def _branch_denied(exc):
+    return jsonify({'error': str(exc), 'code': 'BRANCH_ACCESS_DENIED'}), 403
+
+def _effective_payload_branch(user_id, data):
+    if data is None:
+        return None
+    branch_id = branch_access_policy.effective_branch_id(user_id, data.get('branch_id'))
+    if branch_id is not None:
+        data['branch_id'] = branch_id
+    return branch_id
+
+def _require_invoice_branch(user_id, invoice, *, context='invoice'):
+    inv = dict(invoice) if invoice else {}
+    return branch_access_policy.require(user_id, inv.get('branch_id'), context=context)
 
 
 def _invoice_has_vouchers(db, invoice_id, user_id):
@@ -362,9 +379,13 @@ def get_invoices():
     search = (request.args.get('search') or '').strip()
     customer_id = request.args.get('customer_id', type=int)
     supplier_id = request.args.get('supplier_id', type=int)
+    branch_id = request.args.get('branch_id', type=int)
     db = get_invoice_repository()
     count_query = "SELECT COUNT(*) FROM invoices i WHERE i.user_id = ? AND i.deleted_at IS NULL"
     count_params = [user_id]
+    branch_sql, branch_params = branch_access_policy.scope_sql(user_id, alias='i', branch_column='branch_id', requested_branch_id=branch_id)
+    count_query += branch_sql
+    count_params.extend(branch_params)
     query = """
         SELECT i.*, c.name as customer_name, s.name as supplier_name
         FROM invoices i
@@ -373,6 +394,8 @@ def get_invoices():
         WHERE i.user_id = ? AND i.deleted_at IS NULL
     """
     params = [user_id]
+    query += branch_sql
+    params.extend(branch_params)
     if inv_type in ('sale', 'purchase'):
         count_query += " AND i.type = ?"
         count_params.append(inv_type)
@@ -429,9 +452,11 @@ def next_invoice_reference():
     year = datetime.datetime.now().strftime('%Y')
     prefix = f"{inv_type[:3].upper()}-{year}-"
     db = get_invoice_repository()
+    branch_id = request.args.get('branch_id', type=int)
+    branch_sql, branch_params = branch_access_policy.scope_sql(user_id, branch_column='branch_id', requested_branch_id=branch_id)
     row = db.query(
-        "SELECT MAX(reference) AS max_ref FROM invoices WHERE reference LIKE ? AND user_id=?",
-        (prefix + '%', user_id)
+        "SELECT MAX(reference) AS max_ref FROM invoices WHERE reference LIKE ? AND user_id=?" + branch_sql,
+        tuple([prefix + '%', user_id] + branch_params)
     ).fetchone()
     max_ref = row['max_ref'] if row else None
     if max_ref:
@@ -451,6 +476,10 @@ def get_invoice(invoice_id):
     row = db.query("SELECT * FROM invoices WHERE id=? AND user_id=?", (invoice_id, user_id)).fetchone()
     if not row:
         return jsonify({'error': 'Not found'}), 404
+    try:
+        _require_invoice_branch(user_id, row, context='invoice.get')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     inv = dict(row)
     lines = db.query("SELECT * FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()
     inv['lines'] = [dict(line) for line in lines]
@@ -472,6 +501,10 @@ def transition_invoice_workflow(invoice_id):
     row = db.query("SELECT * FROM invoices WHERE id=? AND user_id=? AND deleted_at IS NULL", (invoice_id, user_id)).fetchone()
     if not row:
         return jsonify({'error': 'Not found'}), 404
+    try:
+        _require_invoice_branch(user_id, row, context='invoice.workflow')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     old_status = _workflow_status(dict(row))
     now = datetime.datetime.now().isoformat(timespec='seconds')
     if action == 'submit' and _approval_required(db):
@@ -522,6 +555,10 @@ def add_invoice():
         data['workflow_status'] = _initial_workflow_status(db, data.get('type'), data.get('total'))
     if data.get('workflow_status') == 'SUBMITTED' and not data.get('submitted_at'):
         data['submitted_at'] = datetime.datetime.now().isoformat(timespec='seconds')
+    try:
+        _effective_payload_branch(user_id, data)
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     if data.get('type') == 'sale':
         try:
             _assert_sale_stock_available(db, user_id, data.get('lines', []))
@@ -627,6 +664,11 @@ def update_invoice(invoice_id):
     if not old_invoice:
         return jsonify({'error': 'Not found'}), 404
     try:
+        _require_invoice_branch(user_id, old_invoice, context='invoice.update.old')
+        _effective_payload_branch(user_id, data)
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
+    try:
         _assert_workflow_allowed(db, old_invoice, 'edit')
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
@@ -716,6 +758,10 @@ def delete_invoice(invoice_id):
     inv = db.query("SELECT * FROM invoices WHERE id=? AND user_id=? AND deleted_at IS NULL", (invoice_id, user_id)).fetchone()
     if not inv:
         return jsonify({'error': 'Not found'}), 404
+    try:
+        _require_invoice_branch(user_id, inv, context='invoice.delete')
+    except BranchAccessError as exc:
+        return _branch_denied(exc)
     try:
         _assert_workflow_allowed(db, inv, 'delete')
     except ValueError as e:

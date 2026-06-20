@@ -12,6 +12,7 @@ from typing import Dict, List
 import requests
 
 from database.connection import DatabaseConnection, offline_queue
+from workspace.sync.replay_safety import classify_replay_error, replay_headers, REPLAY_STATUS_CONFLICT, REPLAY_STATUS_FAILED
 from gateways.offline_queue_gateway import OfflineQueueGateway
 
 
@@ -46,37 +47,43 @@ class LocalOfflineQueueGateway(OfflineQueueGateway):
 
         sent = 0
         failed = 0
+        conflicts = 0
         for req in offline_queue.get_pending_requests():
             try:
+                offline_queue.mark_replay_locked(req['id'])
                 payload = json.loads(req['data']) if req.get('data') else None
                 method = (req.get('method') or '').upper()
+                headers = replay_headers(req)
                 if method == 'POST':
-                    rest._request('POST', req['endpoint'], payload, queue_on_failure=False, retries=1)
+                    rest._request('POST', req['endpoint'], payload, queue_on_failure=False, retries=1, extra_headers=headers)
                 elif method == 'PUT':
-                    rest._request('PUT', req['endpoint'], payload, queue_on_failure=False, retries=1)
+                    rest._request('PUT', req['endpoint'], payload, queue_on_failure=False, retries=1, extra_headers=headers)
                 elif method == 'PATCH':
-                    rest._request('PATCH', req['endpoint'], payload, queue_on_failure=False, retries=1)
+                    rest._request('PATCH', req['endpoint'], payload, queue_on_failure=False, retries=1, extra_headers=headers)
                 elif method == 'DELETE':
-                    rest._request('DELETE', req['endpoint'], queue_on_failure=False, retries=1)
+                    rest._request('DELETE', req['endpoint'], queue_on_failure=False, retries=1, extra_headers=headers)
                 else:
+                    offline_queue.mark_replay_unlocked(req['id'])
                     continue
                 offline_queue.mark_sent(req['id'])
                 sent += 1
                 print(f"✅ تم إرسال الطلب المعلق: {req.get('title') or req['endpoint']}")
             except Exception as exc:
-                failed += 1
-                message = str(exc)
-                # 4xx validation/auth/not-found/conflict errors are permanent for
-                # the current payload.  Keeping them pending causes endless replay
-                # loops such as repeatedly trying to change an opening quantity
-                # after stock movements already exist.
-                if any(f"API error {code}" in message for code in (400, 401, 403, 404, 409, 422)):
+                decision = classify_replay_error(exc, req.get('conflict_policy') or '')
+                if decision.status == REPLAY_STATUS_CONFLICT:
+                    conflicts += 1
+                    offline_queue.mark_conflict(req['id'], exc, decision.reason)
+                    print(f"🟠 تم وضع الطلب للمراجعة اليدوية {req.get('title') or req['endpoint']}: {exc}")
+                elif decision.status == REPLAY_STATUS_FAILED:
+                    failed += 1
                     offline_queue.mark_failed(req['id'], exc)
                     print(f"⛔ تم تعليم الطلب المعلق كفاشل نهائياً {req.get('title') or req['endpoint']}: {exc}")
                 else:
+                    failed += 1
                     offline_queue.mark_attempt(req['id'], exc)
+                    offline_queue.mark_replay_unlocked(req['id'])
                     print(f"⚠️ فشل إرسال الطلب المعلق {req.get('title') or req['endpoint']}: {exc}")
-        return {'sent': sent, 'failed': failed, 'skipped': 0}
+        return {'sent': sent, 'failed': failed, 'conflicts': conflicts, 'skipped': 0}
 
     def is_remote(self) -> bool:
         return False

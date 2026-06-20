@@ -40,11 +40,15 @@ def my_permissions():
     user_id = str(get_jwt_identity())
     repo = _repo()
     repo.ensure_user_role_compat(user_id)
+    permissions = repo.list_user_permissions(user_id)
+    branch_ids = repo.list_user_branch_ids(user_id)
     return jsonify({
         'user_id': user_id,
         'roles': repo.list_user_role_names(user_id),
-        'permissions': repo.list_user_permissions(user_id),
-        'branch_ids': repo.list_user_branch_ids(user_id),
+        'permissions': permissions,
+        'branch_ids': branch_ids,
+        'can_view_all_branches': repo.is_admin(user_id) or 'branches.view_all' in set(permissions),
+        'branch_scope_mode': 'all' if (repo.is_admin(user_id) or 'branches.view_all' in set(permissions)) else 'restricted',
     })
 
 

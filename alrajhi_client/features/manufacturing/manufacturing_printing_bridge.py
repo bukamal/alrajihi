@@ -31,6 +31,22 @@ def _line_item_name(row: Dict[str, Any]) -> str:
     return str(row.get('item_name') or row.get('product_name') or row.get('name') or row.get('item') or row.get('component_name') or row.get('item_id') or '')
 
 
+def _display_currency() -> str:
+    try:
+        return str(settings_service.get('display_currency', 'SYP') or 'SYP')
+    except Exception:
+        return 'SYP'
+
+
+def _money_context() -> Dict[str, Any]:
+    currency = _display_currency()
+    return {
+        'display_currency': currency,
+        'currency': currency,
+        'currency_code': currency,
+    }
+
+
 class ManufacturingPrintingBridge:
     """Build manufacturing print payloads and call the unified printing service."""
 
@@ -70,7 +86,7 @@ class ManufacturingPrintingBridge:
             base_qty += line_base
         output_qty = _dec(bom.get('output_qty') or bom.get('quantity') or bom.get('product_qty') or 1, '1')
         unit_cost = (material_cost + waste_cost) / output_qty if output_qty else Decimal('0')
-        return {
+        payload = {
             'bom': bom,
             'lines': lines,
             'summary': {
@@ -83,15 +99,19 @@ class ManufacturingPrintingBridge:
                 'unit_cost_output': unit_cost,
             },
         }
+        payload.update(_money_context())
+        return payload
 
     def production_payload(self, order_id: int) -> Dict[str, Any]:
         order = manufacturing_service.get_production_order(int(order_id)) or {}
-        return {
+        payload = {
             'order': order,
             'reservations': manufacturing_service.get_reservations(int(order_id)) or [],
             'consumptions': manufacturing_service.get_consumptions(int(order_id)) or [],
             'outputs': manufacturing_service.get_outputs(int(order_id)) or [],
         }
+        payload.update(_money_context())
+        return payload
 
     def pick_ticket_payload(self, order_id: int) -> Dict[str, Any]:
         payload = self.production_payload(order_id)

@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from PyQt5.QtWidgets import QFrame, QGridLayout, QLabel, QVBoxLayout
 
+from core.money_display_policy import format_quantity
+
 from features.manufacturing.i18n import tr
 
 
@@ -46,8 +48,8 @@ class ProductionSummaryPanel(QFrame):
             value = summary.get(key, Decimal('0'))
             try:
                 if key.endswith('count') or key == 'line_count':
-                    label.setText(str(int(Decimal(str(value)))))
+                    label.setText(format_quantity(value, decimals=0))
                 else:
-                    label.setText(f"{Decimal(str(value)):.3f}".rstrip('0').rstrip('.'))
+                    label.setText(format_quantity(value, decimals=4))
             except Exception:
                 label.setText(str(value or '0'))

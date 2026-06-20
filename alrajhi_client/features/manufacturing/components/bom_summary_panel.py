@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from core.money_display_policy import format_money, format_quantity
+
 from PyQt5.QtWidgets import QFrame, QGridLayout, QLabel, QVBoxLayout
 
 from features.manufacturing.i18n import tr
@@ -24,9 +26,9 @@ class BomSummaryPanel(QFrame):
         self.base_qty_label = QLabel()
         self.unit_cost_label = QLabel()
         self.line_count_label = QLabel()
-        zero_money = format(Decimal('0.00'), '.2f')
-        zero_qty = format(Decimal('0.00'), '.2f')
-        zero_count = format(Decimal('0'), '.0f')
+        zero_money = format_money(Decimal('0.00'))
+        zero_qty = format_quantity(Decimal('0.00'), decimals=4)
+        zero_count = format_quantity(Decimal('0'), decimals=0)
         self.material_cost_label.setText(zero_money)
         self.waste_cost_label.setText(zero_money)
         self.base_qty_label.setText(zero_qty)
@@ -54,11 +56,11 @@ class BomSummaryPanel(QFrame):
         output_qty = self._decimal(output_qty, '1')
         if output_qty <= 0:
             output_qty = Decimal('1')
-        self.material_cost_label.setText(f'{material_cost:.2f}')
-        self.waste_cost_label.setText(f'{waste_cost:.2f}')
-        self.base_qty_label.setText(f'{base_qty:.4f}')
-        self.unit_cost_label.setText(f'{(material_cost / output_qty):.2f}')
-        self.line_count_label.setText(f'{line_count:.0f}')
+        self.material_cost_label.setText(format_money(material_cost))
+        self.waste_cost_label.setText(format_money(waste_cost))
+        self.base_qty_label.setText(format_quantity(base_qty, decimals=4))
+        self.unit_cost_label.setText(format_money(material_cost / output_qty))
+        self.line_count_label.setText(format_quantity(line_count, decimals=0))
 
     def _decimal(self, value, default='0') -> Decimal:
         try:

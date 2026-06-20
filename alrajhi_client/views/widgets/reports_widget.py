@@ -108,6 +108,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         period_layout.addWidget(reset_btn)
 
         self.print_btn = QPushButton(tr("printing"))
+        self.print_btn.setObjectName('reportPrintButton')
+        self.print_btn.setToolTip(tr('settings_operation_reports_print'))
         self.print_btn.clicked.connect(lambda: self.print_report('print'))
         period_layout.addWidget(self.print_btn)
 
@@ -153,40 +155,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         self.setup_warehouse_tabs()
         self.setup_cash_bank_tabs()
         self.setup_phase36_tabs()
-        self.tabs.addTab(self.income_tab, tr("report_income_statement"))
-        self.tabs.addTab(self.balance_tab, tr("report_balance_sheet"))
-        self.tabs.addTab(self.wh_valuation_tab, tr("report_warehouse_valuation"))
-        self.tabs.addTab(self.wh_balances_tab, tr("report_warehouse_balances"))
-        self.tabs.addTab(self.wh_movements_tab, tr("report_warehouse_movements"))
-        self.tabs.addTab(self.wh_transfers_tab, tr("report_warehouse_transfers"))
-        self.tabs.addTab(self.cash_summary_tab, tr("report_cash_bank_summary"))
-        self.tabs.addTab(self.cash_movements_tab, tr("report_cash_movements"))
-        self.tabs.addTab(self.bank_movements_tab, tr("report_bank_movements"))
-        self.tabs.addTab(self.pos_shifts_tab, tr("report_pos_shifts"))
-        self.tabs.addTab(self.trial_balance_tab, tr("report_trial_balance"))
-        self.tabs.addTab(self.customer_statement_tab, tr("report_customer_statement"))
-        self.tabs.addTab(self.supplier_statement_tab, tr("report_supplier_statement"))
-        self.tabs.addTab(self.item_movement_tab, tr("report_item_movement"))
-        self.tabs.addTab(self.invoice_profit_tab, tr("report_invoice_profit"))
-        self.tabs.addTab(self.net_profit_tab, tr("report_net_profit"))
-        self.tabs.addTab(self.manufacturing_orders_tab, tr("report_manufacturing_orders"))
-        self.tabs.addTab(self.product_cost_tab, tr("report_product_cost"))
-        self.tabs.addTab(self.general_ledger_tab, tr("report_general_ledger"))
-        self.tabs.addTab(self.full_trial_balance_tab, tr("report_full_trial_balance"))
-        self.tabs.addTab(self.slow_items_tab, tr("report_slow_items"))
-        self.tabs.addTab(self.top_items_tab, tr("report_top_items"))
-        self.tabs.addTab(self.low_items_tab, tr("report_low_items"))
-        self.tabs.addTab(self.reorder_items_tab, tr("report_reorder_items"))
-        self.tabs.addTab(self.report_audit_tab, tr("report_consistency_audit"))
-        self.tabs.addTab(self.customer_balances_tab, tr("report_customer_balances"))
-        self.tabs.addTab(self.supplier_balances_tab, tr("report_supplier_balances"))
-        self.tabs.addTab(self.customer_aging_tab, tr("report_customer_aging"))
-        self.tabs.addTab(self.supplier_aging_tab, tr("report_supplier_aging"))
-        self.tabs.addTab(self.ledger_reconciliation_tab, tr("report_ledger_reconciliation"))
-        self.tabs.addTab(self.ledger_dual_read_tab, tr("report_ledger_dual_read"))
-        self.tabs.addTab(self.ledger_readiness_tab, tr("report_ledger_readiness"))
-        self.tabs.addTab(self.offline_queue_tab, tr("report_offline_queue"))
-        self.tabs.addTab(self.unit_audit_tab, tr("report_unit_audit"))
+        self._build_grouped_report_tabs()
         self._apply_pos_shift_report_visibility()
         self.tabs.currentChanged.connect(lambda _idx: self.refresh_report())
         layout.addWidget(self.tabs)
@@ -291,6 +260,136 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
             return f"{year}-01-01", f"{year}-12-31"
         return self.start_date.date().toString("yyyy-MM-dd"), self.end_date.date().toString("yyyy-MM-dd")
 
+    def _build_grouped_report_tabs(self):
+        """Group report tabs into high-level work areas without changing report widgets.
+
+        The old ReportsWidget placed more than thirty tabs at the top level.  That
+        made Arabic/English/German titles drift and made users think unrelated
+        reports shared filters/calculation rules.  The top level is now a small
+        set of report families; each family contains the existing concrete report
+        tabs.  All refresh/print/export code resolves the active inner report via
+        _active_report_tab(), so API, RBAC, branch scope, currency, and print
+        contracts remain intact.
+        """
+        self._report_group_tabs = {}
+        self._report_tab_to_group = {}
+        groups = [
+            ("reports_group_financial", [
+                (self.income_tab, "report_income_statement"),
+                (self.balance_tab, "report_balance_sheet"),
+                (self.trial_balance_tab, "report_trial_balance"),
+                (self.general_ledger_tab, "report_general_ledger"),
+                (self.full_trial_balance_tab, "report_full_trial_balance"),
+            ]),
+            ("reports_group_parties", [
+                (self.customer_statement_tab, "report_customer_statement"),
+                (self.supplier_statement_tab, "report_supplier_statement"),
+                (self.customer_balances_tab, "report_customer_balances"),
+                (self.supplier_balances_tab, "report_supplier_balances"),
+                (self.customer_aging_tab, "report_customer_aging"),
+                (self.supplier_aging_tab, "report_supplier_aging"),
+            ]),
+            ("reports_group_inventory", [
+                (self.wh_valuation_tab, "report_warehouse_valuation"),
+                (self.wh_balances_tab, "report_warehouse_balances"),
+                (self.wh_movements_tab, "report_warehouse_movements"),
+                (self.wh_transfers_tab, "report_warehouse_transfers"),
+                (self.item_movement_tab, "report_item_movement"),
+                (self.slow_items_tab, "report_slow_items"),
+                (self.top_items_tab, "report_top_items"),
+                (self.low_items_tab, "report_low_items"),
+                (self.reorder_items_tab, "report_reorder_items"),
+                (self.ledger_reconciliation_tab, "report_ledger_reconciliation"),
+                (self.ledger_dual_read_tab, "report_ledger_dual_read"),
+                (self.ledger_readiness_tab, "report_ledger_readiness"),
+                (self.unit_audit_tab, "report_unit_audit"),
+            ]),
+            ("reports_group_cash_pos", [
+                (self.cash_summary_tab, "report_cash_bank_summary"),
+                (self.cash_movements_tab, "report_cash_movements"),
+                (self.bank_movements_tab, "report_bank_movements"),
+                (self.pos_shifts_tab, "report_pos_shifts"),
+            ]),
+            ("reports_group_profit_manufacturing", [
+                (self.invoice_profit_tab, "report_invoice_profit"),
+                (self.net_profit_tab, "report_net_profit"),
+                (self.manufacturing_orders_tab, "report_manufacturing_orders"),
+                (self.product_cost_tab, "report_product_cost"),
+            ]),
+            ("reports_group_diagnostics", [
+                (self.report_audit_tab, "report_consistency_audit"),
+                (self.offline_queue_tab, "report_offline_queue"),
+            ]),
+        ]
+        self.tabs.setUsesScrollButtons(True)
+        self.tabs.setElideMode(Qt.ElideRight)
+        for group_key, items in groups:
+            group_tabs = QTabWidget()
+            group_tabs.setObjectName(group_key)
+            group_tabs.setUsesScrollButtons(True)
+            group_tabs.setElideMode(Qt.ElideRight)
+            group_tabs.currentChanged.connect(lambda _idx, _tabs=group_tabs: self.refresh_report())
+            for tab, title_key in items:
+                group_tabs.addTab(tab, tr(title_key))
+                self._report_tab_to_group[tab] = group_tabs
+            self._report_group_tabs[group_key] = group_tabs
+            self.tabs.addTab(group_tabs, tr(group_key))
+
+    def _active_report_group_tabs(self):
+        current = self.tabs.currentWidget() if hasattr(self, 'tabs') else None
+        return current if isinstance(current, QTabWidget) else None
+
+    def _active_report_tab(self):
+        group_tabs = self._active_report_group_tabs()
+        if group_tabs is not None:
+            return group_tabs.currentWidget()
+        return self.tabs.currentWidget() if hasattr(self, 'tabs') else None
+
+    def _active_report_title(self):
+        group_tabs = self._active_report_group_tabs()
+        if group_tabs is not None:
+            return group_tabs.tabText(group_tabs.currentIndex())
+        return self.tabs.tabText(self.tabs.currentIndex()) if hasattr(self, 'tabs') else tr('print_report_default')
+
+    def _report_table_for_tab(self, tab):
+        for descriptor in self.REPORT_SHELL_DESCRIPTORS:
+            if getattr(self, descriptor.tab_attr, None) is tab:
+                return getattr(self, descriptor.table_attr, None)
+        return None
+
+    def _to_decimal(self, value):
+        from core.money_display_policy import decimal_value
+        return decimal_value(value)
+
+    def _money(self, value, display_curr=None, *, from_currency=None):
+        display_curr = display_curr or currency.get_display_currency()
+        amount = currency.convert(self._to_decimal(value), from_currency or currency.storage_currency(), display_curr)
+        return currency.format_amount(amount, display_curr)
+
+    def _money_sum(self, values, display_curr=None, *, from_currency=None):
+        total = sum((self._to_decimal(v) for v in values), Decimal('0'))
+        return self._money(total, display_curr=display_curr, from_currency=from_currency)
+
+    def _qty(self, value, decimals=2):
+        from core.money_display_policy import format_quantity
+        return format_quantity(value, decimals=decimals)
+
+    def _apply_report_table_profile(self, table, descriptor=None):
+        """Apply a compact, accounting-friendly table profile to report grids."""
+        try:
+            table.set_density('compact')
+        except Exception:
+            pass
+        try:
+            table.setAlternatingRowColors(True)
+            table.setWordWrap(False)
+            table.set_responsive_columns(True)
+            table.setProperty('layout_profile', 'reports_compact')
+            if descriptor is not None:
+                table.setProperty('report_grouped_navigation', True)
+        except Exception:
+            pass
+
     def setup_income_tab(self):
         layout = QVBoxLayout(self.income_tab)
         self.income_table = SmartTableView()
@@ -388,7 +487,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
 
     def _current_report_descriptor(self):
         """Return the ReportShellDescriptor for the active tab, if known."""
-        tab = self.tabs.currentWidget() if hasattr(self, 'tabs') else None
+        tab = self._active_report_tab() if hasattr(self, '_active_report_tab') else (self.tabs.currentWidget() if hasattr(self, 'tabs') else None)
         for descriptor in self.REPORT_SHELL_DESCRIPTORS:
             if getattr(self, descriptor.tab_attr, None) is tab:
                 return descriptor
@@ -410,6 +509,19 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         if not self.can_report_action('print'):
             raise PermissionError('reports.print')
         report_operation_policy.require(report_operation_policy.OP_PRINT, context=context or 'ReportsWidget.print')
+
+
+    def report_print_settings(self):
+        """Return the settings contract used by the report print button.
+
+        Kept as a small runtime hook so diagnostics/tests can confirm that report
+        printing uses the same SettingsService-backed contract as the rest of the
+        project, including client/server profiles.
+        """
+        try:
+            return settings_service.get_report_settings()
+        except Exception:
+            return {}
 
     def _set_summary(self, text=''):
         if hasattr(self, 'report_summary'):
@@ -449,7 +561,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         table.setModel(model)
         descriptor = self._current_report_descriptor() if hasattr(self, '_current_report_descriptor') else None
         try:
-            table.setProperty('print_title', self.tabs.tabText(self.tabs.currentIndex()))
+            table.setProperty('print_title', self._active_report_title() if hasattr(self, '_active_report_title') else self.tabs.tabText(self.tabs.currentIndex()))
             if descriptor is not None:
                 table.setProperty('report_key', descriptor.report_key)
                 table.setProperty('report_api_resource', descriptor.api_resource)
@@ -459,6 +571,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
             pass
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         table.horizontalHeader().setStretchLastSection(True)
+        self._apply_report_table_profile(table, descriptor)
         try:
             table.restore_layout()
         except Exception:
@@ -468,9 +581,15 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
     def _apply_pos_shift_report_visibility(self):
         try:
             if not settings_service.pos_shifts_enabled():
-                idx = self.tabs.indexOf(self.pos_shifts_tab)
-                if idx >= 0:
-                    self.tabs.removeTab(idx)
+                group = getattr(self, '_report_tab_to_group', {}).get(self.pos_shifts_tab)
+                if group is not None:
+                    idx = group.indexOf(self.pos_shifts_tab)
+                    if idx >= 0:
+                        group.removeTab(idx)
+                else:
+                    idx = self.tabs.indexOf(self.pos_shifts_tab)
+                    if idx >= 0:
+                        self.tabs.removeTab(idx)
         except Exception:
             pass
 
@@ -524,7 +643,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         start, end = self.get_date_range()
         self._set_summary('')
         display_curr = currency.get_display_currency()
-        tab = self.tabs.currentWidget() if hasattr(self, 'tabs') else None
+        tab = self._active_report_tab() if hasattr(self, '_active_report_tab') else (self.tabs.currentWidget() if hasattr(self, 'tabs') else None)
         try:
             if tab is self.income_tab:
                 self._refresh_income(start, end, display_curr)
@@ -570,29 +689,31 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         stmt = reporting_service.income_statement(start, end)
         income_list = []
         for inc in stmt.get('income', []):
-            amount = currency.convert(Decimal(str(inc.get('balance', 0))), currency.storage_currency(), display_curr)
-            income_list.append({'statement': inc.get('name', ''), 'amount': currency.format_amount(amount)})
-        total_income = currency.convert(Decimal(str(stmt.get('total_income', 0))), currency.storage_currency(), display_curr)
-        income_list.append({'statement': 'إجمالي الإيرادات', 'amount': currency.format_amount(total_income)})
+            amount = Decimal(str(inc.get('balance', 0)))
+            income_list.append({'statement': inc.get('name', ''), 'amount': self._money(amount, display_curr)})
+        total_income = Decimal(str(stmt.get('total_income', 0)))
+        income_list.append({'statement': tr('total_income'), 'amount': self._money(total_income, display_curr)})
         income_list.append({'statement': '', 'amount': ''})
         for exp in stmt.get('expenses', []):
-            amount = currency.convert(Decimal(str(exp.get('balance', 0))), currency.storage_currency(), display_curr)
-            income_list.append({'statement': exp.get('name', ''), 'amount': currency.format_amount(amount)})
-        total_expenses = currency.convert(Decimal(str(stmt.get('total_expenses', 0))), currency.storage_currency(), display_curr)
-        net_profit = currency.convert(Decimal(str(stmt.get('net_profit', 0))), currency.storage_currency(), display_curr)
-        income_list.append({'statement': 'إجمالي المصروفات', 'amount': currency.format_amount(total_expenses)})
-        income_list.append({'statement': 'صافي الربح', 'amount': currency.format_amount(net_profit)})
+            amount = Decimal(str(exp.get('balance', 0)))
+            income_list.append({'statement': exp.get('name', ''), 'amount': self._money(amount, display_curr)})
+        total_expenses = Decimal(str(stmt.get('total_expenses', 0)))
+        net_profit = Decimal(str(stmt.get('net_profit', 0)))
+        income_list.append({'statement': tr('total_expenses'), 'amount': self._money(total_expenses, display_curr)})
+        income_list.append({'statement': tr('net_profit'), 'amount': self._money(net_profit, display_curr)})
         self._set_table(self.income_table, income_list, [tr('statement'), tr('amount')], ['statement', 'amount'])
+        self._set_summary(f"{tr('total_income')}: {self._money(total_income, display_curr)} | {tr('total_expenses')}: {self._money(total_expenses, display_curr)} | {tr('net_profit')}: {self._money(net_profit, display_curr)}")
 
     def _refresh_balance(self, start, end, display_curr):
         bs = reporting_service.balance_sheet(start, end)
         rows = []
         for a in bs.get('assets', []):
-            amount = currency.convert(Decimal(str(a.get('debit', 0))), currency.storage_currency(), display_curr)
-            rows.append({'account': a.get('name', ''), 'amount': currency.format_amount(amount)})
-        total_assets = currency.convert(Decimal(str(bs.get('total_assets', 0))), currency.storage_currency(), display_curr)
-        rows.append({'account': 'إجمالي الأصول', 'amount': currency.format_amount(total_assets)})
-        self._set_table(self.balance_table, rows, ['الحساب', 'المبلغ'], ['account', 'amount'])
+            amount = Decimal(str(a.get('debit', 0)))
+            rows.append({'account': a.get('name', ''), 'amount': self._money(amount, display_curr)})
+        total_assets = Decimal(str(bs.get('total_assets', 0)))
+        rows.append({'account': tr('total_assets'), 'amount': self._money(total_assets, display_curr)})
+        self._set_table(self.balance_table, rows, [tr('account'), tr('amount')], ['account', 'amount'])
+        self._set_summary(f"{tr('total_assets')}: {self._money(total_assets, display_curr)}")
 
     def _refresh_warehouse_reports(self, display_curr):
         wh_id = self.warehouse_filter.currentData()
@@ -603,7 +724,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
             val_rows.append({
                 'warehouse': wh.get('warehouse_name', ''),
                 'item_count': wh.get('item_count', 0),
-                'total_qty': f"{Decimal(str(wh.get('total_qty', 0))):.2f}",
+                'total_qty': self._qty(wh.get('total_qty', 0)),
                 'total_value': currency.format_amount(val),
             })
         grand = currency.convert(Decimal(str(valuation.get('grand_total', 0))), currency.storage_currency(), display_curr)
@@ -621,10 +742,10 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 'warehouse': b.get('warehouse_name', ''),
                 'item': b.get('item_name', ''),
                 'barcode': b.get('barcode') or '—',
-                'qty': f"{qty:.2f}",
+                'qty': self._qty(qty),
                 'unit': b.get('unit') or '',
-                'avg': currency.format_amount(avg),
-                'value': currency.format_amount(value),
+                'avg': self._money(avg, display_curr),
+                'value': self._money(value, display_curr),
             })
         self.wh_balances_status.setText(tr('reports_records_total_value', count=len(bal_rows), amount=currency.format_amount(total_value)))
         self._set_table(self.wh_balances_table, bal_rows, ['المستودع', 'المادة', 'الباركود', 'الكمية', 'الوحدة', 'متوسط التكلفة', 'قيمة المخزون'], ['warehouse', 'item', 'barcode', 'qty', 'unit', 'avg', 'value'])
@@ -636,8 +757,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 'warehouse': m.get('warehouse_name', ''),
                 'item': m.get('item_name', ''),
                 'type': self._movement_label(m.get('movement_type')),
-                'qty': m.get('quantity') or '0',
-                'cost': currency.format_amount(m.get('unit_cost') or 0),
+                'qty': self._qty(m.get('quantity') or 0),
+                'cost': self._money(m.get('unit_cost') or 0, display_curr),
                 'ref': m.get('reference_type') or '—',
                 'notes': m.get('notes') or '',
             })
@@ -653,7 +774,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 'item': t.get('item_name') or '',
                 'from': t.get('from_warehouse_name') or '',
                 'to': t.get('to_warehouse_name') or '',
-                'qty': t.get('quantity') or '0',
+                'qty': self._qty(t.get('quantity') or 0),
                 'status': tr('cancelled') if t.get('status') == 'cancelled' else tr('active'),
                 'notes': t.get('notes') or '',
             })
@@ -744,12 +865,12 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 'cashbox': s.get('cashbox_name') or '',
                 'opened': s.get('opened_at') or '',
                 'closed': s.get('closed_at') or '—',
-                'opening': currency.format_amount(s.get('opening_amount') or 0),
-                'cash': currency.format_amount(s.get('total_cash') or 0),
-                'card': currency.format_amount(s.get('total_card') or 0),
-                'expected': currency.format_amount(s.get('expected_amount') or 0),
-                'actual': currency.format_amount(s.get('actual_amount') or 0),
-                'diff': currency.format_amount(s.get('difference_amount') or 0),
+                'opening': self._money(s.get('opening_amount') or 0, display_curr),
+                'cash': self._money(s.get('total_cash') or 0, display_curr),
+                'card': self._money(s.get('total_card') or 0, display_curr),
+                'expected': self._money(s.get('expected_amount') or 0, display_curr),
+                'actual': self._money(s.get('actual_amount') or 0, display_curr),
+                'diff': self._money(s.get('difference_amount') or 0, display_curr),
                 'status': 'مفتوحة' if s.get('status') == 'open' else 'مغلقة',
             })
         self._set_table(self.pos_shifts_table, shift_rows, ['#', 'الفرع', 'الصندوق', 'الفتح', 'الإغلاق', 'افتتاحي', 'نقد', 'بطاقة', 'متوقع', 'فعلي', 'الفرق', 'الحالة'], ['id','branch','cashbox','opened','closed','opening','cash','card','expected','actual','diff','status'])

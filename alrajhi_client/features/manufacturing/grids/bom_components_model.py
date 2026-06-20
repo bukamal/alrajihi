@@ -6,6 +6,7 @@ from typing import Any
 
 from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 
+from core.money_display_policy import format_money, format_quantity
 from core.services.catalog_service import catalog_service
 from features.manufacturing.grids.manufacturing_column_schema import ManufacturingColumn
 
@@ -51,11 +52,13 @@ class BomComponentsModel(QAbstractTableModel):
             if role == Qt.DisplayRole and column.numeric and value not in ('', None):
                 try:
                     d = Decimal(str(value))
-                    if column.key in {'qty', 'base_qty'} and d == d.to_integral_value():
-                        return f'{d:.0f}'
+                    if column.key in {'unit_cost', 'total_cost'}:
+                        return format_money(d)
+                    if column.key in {'qty', 'base_qty'}:
+                        return format_quantity(d, decimals=4)
                     if column.key == 'waste_percent':
-                        return f'{d:.2f}%'
-                    return f'{d:.2f}'
+                        return f'{format_quantity(d, decimals=2)}%'
+                    return format_quantity(d, decimals=4)
                 except Exception:
                     return value
             return value

@@ -1,0 +1,19 @@
+﻿key,category,title,phase,tool_path,tool_exists,output_path,output_exists,required
+document_shell,shell,Document Shell contract,249,tools/document_shell_contract_audit.py,True,tools/audit_outputs/document_shell_contract_matrix.csv,False,True
+report_shell,shell,Report Shell contract,256,tools/report_shell_contract_audit.py,True,,True,True
+list_workspace,shell,List Workspace contract,257,tools/list_workspace_contract_audit.py,True,tools/audit_outputs/list_workspace_contract_matrix.csv,True,True
+operational_shell,shell,Operational Shell contract,258,tools/operational_shell_contract_audit.py,True,tools/audit_outputs/operational_shell_contract_matrix.csv,True,True
+settings_contract,settings,Settings contract coverage,259,tools/settings_contract_coverage_audit.py,True,tools/audit_outputs/settings_contract_coverage_matrix.csv,True,True
+rbac_contract,security,RBAC permission coverage,260,tools/rbac_permission_contract_audit.py,True,tools/audit_outputs/rbac_permission_contract_matrix.csv,True,True
+branch_contract,security,Branch access coverage,261,tools/branch_access_contract_audit.py,True,tools/audit_outputs/branch_access_contract_matrix.csv,True,True
+audit_contract,security,Audit trail coverage,264,tools/audit_trail_contract_audit.py,True,tools/audit_outputs/audit_trail_contract_matrix.csv,True,True
+offline_sync,sync,Offline sync contract,265,tools/offline_sync_contract_audit.py,True,tools/audit_outputs/offline_sync_contract_matrix.csv,True,True
+offline_replay,sync,Offline replay safety,270,tools/offline_replay_safety_audit.py,True,tools/audit_outputs/offline_replay_safety_matrix.csv,True,True
+e2e_scenarios,scenario,End-to-end scenario guard,271,tools/end_to_end_scenario_guard_audit.py,True,tools/audit_outputs/end_to_end_scenario_guard_matrix.csv,True,True
+runtime_smoke,scenario,Runtime smoke hooks,272,tools/scenario_runtime_smoke_audit.py,True,tools/audit_outputs/scenario_runtime_smoke_matrix.csv,True,True
+reports_currency,reports,Reports calculation/currency guard,275,tests/test_phase275_reports_calculation_currency_grouping.py,True,,True,True
+reports_printing,reports,Reports browser printing guard,276,tests/test_phase276_report_printing_unification_confirmation.py,True,,True,True
+printing_pyinstaller,printing,Printing PyInstaller loader guard,225,tools/phase225_printing_pyinstaller_guard.py,True,,True,True
+windows_packaging,packaging,Windows runtime packaging gate,278,tools/windows_runtime_packaging_gate_audit.py,True,tools/audit_outputs/windows_runtime_packaging_gate_matrix.csv,True,True
+printing_browser,printing,Browser HTML print guard,237,tools/phase237_browser_html_print_guard.py,True,,True,True
+print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

@@ -1,0 +1,13 @@
+﻿scenario_key,module,primary_document_type,checks,callback_checks,dry_run_checks,static_checks,write_intent_checks,print_export_checks,safe_for_ci,destructive
+sales_invoice_full_cycle,transactions,sales_invoice,32,9,10,13,1,2,True,False
+purchase_invoice_full_cycle,transactions,purchase_invoice,31,9,9,13,1,2,True,False
+sales_return_edit_print,transactions,sales_return,31,9,9,13,1,2,True,False
+purchase_return_edit_print,transactions,purchase_return,31,9,9,13,1,2,True,False
+pos_fast_sale_receipt,pos,pos,25,7,8,10,1,1,True,False
+restaurant_table_order_checkout,restaurant,restaurant,39,10,10,19,3,2,True,False
+bom_cost_print,manufacturing,bom,23,6,7,10,1,1,True,False
+production_order_lifecycle,manufacturing,production_order,22,6,6,10,1,1,True,False
+inventory_transfer_print,inventory,warehouse_transfer,27,7,7,13,1,1,True,False
+voucher_cash_bank_flow,finance,voucher,30,8,9,13,1,1,True,False
+material_barcode_lookup_label,materials,material,22,6,5,11,1,1,True,False
+report_income_statement_print_export,reports,reports,24,6,6,12,0,2,True,False

@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from alrajhi_server.repositories.report_repository import get_report_repository
+from alrajhi_server.services.branch_access_policy import branch_access_policy
 from decimal import Decimal
 from datetime import datetime, date
 
@@ -15,6 +16,15 @@ def _phase157_has_permission(db, user_id, permission_key):
 
 reports_bp = Blueprint('reports', __name__)
 
+
+def _report_branch_scope(user_id, alias='', branch_column='branch_id'):
+    return branch_access_policy.scope_sql(
+        user_id,
+        alias=alias,
+        branch_column=branch_column,
+        requested_branch_id=request.args.get('branch_id', type=int),
+    )
+
 @reports_bp.route('/summary', methods=['GET'])
 @jwt_required()
 def get_summary():
@@ -22,6 +32,11 @@ def get_summary():
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     db = get_report_repository()
+    invoice_branch_sql, invoice_branch_params = _report_branch_scope(user_id)
+    invoice_i_branch_sql, invoice_i_branch_params = _report_branch_scope(user_id, alias='i')
+    sales_return_branch_sql, sales_return_branch_params = _report_branch_scope(user_id)
+    purchase_return_branch_sql, purchase_return_branch_params = _report_branch_scope(user_id)
+    voucher_branch_sql, voucher_branch_params = _report_branch_scope(user_id)
 
     def safe_sum(sql, params, date_col=None):
         if start_date and end_date and date_col:
@@ -31,41 +46,41 @@ def get_summary():
         return Decimal(str(res)) if res is not None else Decimal('0')
 
     sales = safe_sum(
-        "SELECT SUM(CAST(total AS REAL)) FROM invoices WHERE type='sale' AND user_id=? AND deleted_at IS NULL",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(total AS REAL)) FROM invoices WHERE type='sale' AND user_id=? AND deleted_at IS NULL" + invoice_branch_sql,
+        tuple([user_id] + invoice_branch_params), 'date'
     )
 
     purchases = safe_sum(
-        "SELECT SUM(CAST(total AS REAL)) FROM invoices WHERE type='purchase' AND user_id=? AND deleted_at IS NULL",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(total AS REAL)) FROM invoices WHERE type='purchase' AND user_id=? AND deleted_at IS NULL" + invoice_branch_sql,
+        tuple([user_id] + invoice_branch_params), 'date'
     )
     sale_paid = safe_sum(
-        "SELECT SUM(CAST(paid AS REAL)) FROM invoices WHERE type='sale' AND user_id=? AND deleted_at IS NULL",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(paid AS REAL)) FROM invoices WHERE type='sale' AND user_id=? AND deleted_at IS NULL" + invoice_branch_sql,
+        tuple([user_id] + invoice_branch_params), 'date'
     )
     purchase_paid = safe_sum(
-        "SELECT SUM(CAST(paid AS REAL)) FROM invoices WHERE type='purchase' AND user_id=? AND deleted_at IS NULL",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(paid AS REAL)) FROM invoices WHERE type='purchase' AND user_id=? AND deleted_at IS NULL" + invoice_branch_sql,
+        tuple([user_id] + invoice_branch_params), 'date'
     )
     receipt_vouchers = safe_sum(
-        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='receipt' AND user_id=?",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='receipt' AND user_id=?" + voucher_branch_sql,
+        tuple([user_id] + voucher_branch_params), 'date'
     )
     payment_vouchers = safe_sum(
-        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='payment' AND user_id=?",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='payment' AND user_id=?" + voucher_branch_sql,
+        tuple([user_id] + voucher_branch_params), 'date'
     )
     expense_vouchers = safe_sum(
-        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='expense' AND user_id=?",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='expense' AND user_id=?" + voucher_branch_sql,
+        tuple([user_id] + voucher_branch_params), 'date'
     )
     sales_return_refunds = safe_sum(
-        "SELECT SUM(CAST(refund_amount AS REAL)) FROM sales_returns WHERE user_id=? AND deleted_at IS NULL",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(refund_amount AS REAL)) FROM sales_returns WHERE user_id=? AND deleted_at IS NULL" + sales_return_branch_sql,
+        tuple([user_id] + sales_return_branch_params), 'date'
     )
     purchase_return_refunds = safe_sum(
-        "SELECT SUM(CAST(refund_amount AS REAL)) FROM purchase_returns WHERE user_id=? AND deleted_at IS NULL",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(refund_amount AS REAL)) FROM purchase_returns WHERE user_id=? AND deleted_at IS NULL" + purchase_return_branch_sql,
+        tuple([user_id] + purchase_return_branch_params), 'date'
     )
     cash_received = sale_paid + receipt_vouchers + purchase_return_refunds
     cash_paid = purchase_paid + payment_vouchers + expense_vouchers + sales_return_refunds
@@ -73,13 +88,13 @@ def get_summary():
     cogs = safe_sum(
         """SELECT SUM(CAST(cost_amount AS REAL)) FROM invoice_lines il
            JOIN invoices i ON il.invoice_id = i.id
-           WHERE i.type='sale' AND i.user_id=? AND i.deleted_at IS NULL""",
-        (user_id,), 'i.date'
+           WHERE i.type='sale' AND i.user_id=? AND i.deleted_at IS NULL""" + invoice_i_branch_sql,
+        tuple([user_id] + invoice_i_branch_params), 'i.date'
     )
 
     expenses = safe_sum(
-        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='expense' AND user_id=?",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='expense' AND user_id=?" + voucher_branch_sql,
+        tuple([user_id] + voucher_branch_params), 'date'
     )
 
     cash_row = db.query("SELECT CAST(cash_balance AS REAL) FROM users WHERE id=?", (user_id,)).fetchone()
@@ -113,6 +128,9 @@ def income_statement():
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     db = get_report_repository()
+    invoice_branch_sql, invoice_branch_params = _report_branch_scope(user_id)
+    invoice_i_branch_sql, invoice_i_branch_params = _report_branch_scope(user_id, alias='i')
+    voucher_branch_sql, voucher_branch_params = _report_branch_scope(user_id)
 
     def safe_sum(sql, params, date_col=None):
         if start_date and end_date and date_col:
@@ -122,18 +140,18 @@ def income_statement():
         return Decimal(str(res)) if res is not None else Decimal('0')
 
     sales = safe_sum(
-        "SELECT SUM(CAST(total AS REAL)) FROM invoices WHERE type='sale' AND user_id=? AND deleted_at IS NULL",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(total AS REAL)) FROM invoices WHERE type='sale' AND user_id=? AND deleted_at IS NULL" + invoice_branch_sql,
+        tuple([user_id] + invoice_branch_params), 'date'
     )
     cogs = safe_sum(
         """SELECT SUM(CAST(cost_amount AS REAL)) FROM invoice_lines il
            JOIN invoices i ON il.invoice_id = i.id
-           WHERE i.type='sale' AND i.user_id=? AND i.deleted_at IS NULL""",
-        (user_id,), 'i.date'
+           WHERE i.type='sale' AND i.user_id=? AND i.deleted_at IS NULL""" + invoice_i_branch_sql,
+        tuple([user_id] + invoice_i_branch_params), 'i.date'
     )
     expenses = safe_sum(
-        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='expense' AND user_id=?",
-        (user_id,), 'date'
+        "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='expense' AND user_id=?" + voucher_branch_sql,
+        tuple([user_id] + voucher_branch_params), 'date'
     )
     net = sales - cogs - expenses
     return jsonify({

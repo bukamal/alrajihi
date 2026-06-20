@@ -330,6 +330,115 @@ def _ret_install_dialog_print_button(dialog, button_box, qty_kind):
     dialog.print_btn = print_btn
 
 
+def _ret_display_currency_code():
+    try:
+        return currency.get_display_currency()
+    except Exception:
+        return 'SYP'
+
+
+def _ret_storage_currency_code():
+    try:
+        return currency.storage_currency()
+    except Exception:
+        return 'USD'
+
+
+def _ret_amount_to_display(value, source_currency=None):
+    try:
+        return currency.convert(_ret_dec(value), source_currency or _ret_storage_currency_code(), _ret_display_currency_code())
+    except Exception:
+        return _ret_dec(value)
+
+
+def _ret_list_return_print_payload(raw_return, row_data=None, qty_kind='sale'):
+    """Build a printable payload for a persisted return opened from list widgets.
+
+    Persisted return amounts are stored in the application's storage currency
+    (historically USD).  The list widgets already display converted values such
+    as ``30,000.00 ل.س``.  Printing from the return list must therefore convert
+    stored monetary fields to the active display currency before sending them to
+    the browser HTML template.  Otherwise a SYP document is merely relabelled as
+    SYP while still carrying USD values such as 2.14.
+    """
+    payload = dict(raw_return or {})
+    row_data = dict(row_data or {})
+    display_code = _ret_display_currency_code()
+    storage_code = _ret_storage_currency_code()
+    lines = []
+    for raw_line in payload.get('lines') or []:
+        line = dict(raw_line or {})
+        qty = _ret_dec(line.get('quantity') or 0)
+        unit_price_display = _ret_amount_to_display(line.get('unit_price') or line.get('price') or 0, storage_code)
+        line_total_source = line.get('line_total', line.get('total'))
+        if line_total_source in (None, ''):
+            line_total_source = qty * _ret_dec(line.get('unit_price') or line.get('price') or 0)
+        line_total_display = _ret_amount_to_display(line_total_source, storage_code)
+        lines.append({
+            'barcode': line.get('barcode') or line.get('item_barcode') or line.get('code') or '',
+            'item_name': _ret_item_name(line),
+            'unit': line.get('unit') or line.get('unit_name') or line.get('base_unit') or '',
+            'unit_id': line.get('unit_id'),
+            'conversion_factor': line.get('conversion_factor') or 1,
+            'quantity': _ret_fmt_qty(qty),
+            'quantity_in_base': line.get('quantity_in_base') or line.get('base_qty') or '',
+            'unit_price': str(unit_price_display),
+            'price': str(unit_price_display),
+            'line_total': str(line_total_display),
+            'total': str(line_total_display),
+            'discount_percent': line.get('discount_percent') or line.get('discount_pct') or 0,
+            'tax_percent': line.get('tax_percent') or line.get('tax_pct') or 0,
+        })
+
+    total_display = _ret_amount_to_display(payload.get('total') or 0, storage_code)
+    refund_display = _ret_amount_to_display(payload.get('refund_amount') or payload.get('paid_amount') or 0, storage_code)
+    credit_source = payload.get('credit_amount')
+    if credit_source in (None, ''):
+        credit_source = _ret_dec(payload.get('total') or 0) - _ret_dec(payload.get('refund_amount') or 0)
+    credit_display = _ret_amount_to_display(credit_source, storage_code)
+    is_sale = qty_kind == 'sale'
+    party_name = (
+        payload.get('customer_name') if is_sale else payload.get('supplier_name')
+    ) or row_data.get('customer' if is_sale else 'supplier') or payload.get('party_name') or payload.get('entity_name') or translate('cash_customer')
+    reference = payload.get('return_no') or payload.get('reference') or row_data.get('return_no') or row_data.get('reference') or payload.get('id') or ''
+    original_invoice = payload.get('invoice_reference') or row_data.get('original_invoice') or payload.get('original_invoice_reference') or payload.get('original_invoice_id') or ''
+    result = dict(payload)
+    result.update({
+        'id': payload.get('id') or row_data.get('id') or reference,
+        'reference': reference,
+        'return_no': payload.get('return_no') or row_data.get('return_no') or reference,
+        'return_type': 'sale_return' if is_sale else 'purchase_return',
+        'type': 'sale' if is_sale else 'purchase',
+        'display_currency': display_code,
+        'currency': display_code,
+        'currency_code': display_code,
+        'document_currency': display_code,
+        'date': payload.get('date') or row_data.get('date') or '',
+        'invoice_reference': original_invoice,
+        'original_invoice': original_invoice,
+        'customer_name': party_name if is_sale else '',
+        'supplier_name': party_name if not is_sale else '',
+        'party_name': party_name,
+        'warehouse_name': payload.get('warehouse_name') or row_data.get('warehouse') or '',
+        'payment_method': payload.get('payment_method') or row_data.get('payment_method') or '',
+        'status': payload.get('status') or row_data.get('status') or '',
+        'lines': lines,
+        'subtotal': str(total_display),
+        'total_before_discount': str(total_display),
+        'discount': str(Decimal('0')),
+        'discount_amount': str(Decimal('0')),
+        'tax': str(Decimal('0')),
+        'tax_amount': str(Decimal('0')),
+        'total': str(total_display),
+        'paid': str(refund_display),
+        'paid_amount': str(refund_display),
+        'refund_amount': str(refund_display),
+        'remaining': str(credit_display),
+        'credit_amount': str(credit_display),
+    })
+    return result
+
+
 def _ret_default_return_visible_columns():
     return {RET_COL_BARCODE, RET_COL_ITEM, RET_COL_RETURN_QTY, RET_COL_UNIT, RET_COL_PRICE, RET_COL_TOTAL, RET_COL_NOTES}
 
@@ -905,6 +1014,7 @@ class ReturnsWidget(QWidget):
         self.toolbar.set_table(self.table)
         self.table.clicked.connect(lambda *_: self.toolbar.set_delete_enabled(True))
         self.table.clicked.connect(lambda *_: self.toolbar.set_edit_enabled(True))
+        self.table.doubleClicked.connect(self.edit_return_from_index)
         self._install_print_menu()
         layout.addWidget(self.table)
         pager = QHBoxLayout()
@@ -1004,11 +1114,9 @@ class ReturnsWidget(QWidget):
         if not data:
             QMessageBox.warning(self, translate('printing'), translate('return_load_failed'))
             return
-        data = dict(data)
-        data.setdefault('return_type', 'sale_return')
-        data.setdefault('customer_name', data.get('customer') or data.get('party_name') or translate('cash_customer'))
+        data = _ret_list_return_print_payload(data, self._row_data(), 'sale')
         from printing.printing_service import printing_service
-        # Phase 236: return print buttons use the single project print settings contract.
+        # Return-list printing converts stored/base amounts to the displayed currency before rendering.
         printing_service.return_print(data, self)
 
     def add_return(self):
@@ -1023,13 +1131,47 @@ class ReturnsWidget(QWidget):
             show_toast(translate('sales_return_saved'), 'success', self)
             self.refresh(True)
 
-    def _selected_id(self):
+    def _source_row_from_index(self, index):
+        if index is None or not index.isValid():
+            return None
+        try:
+            proxy = getattr(self.table, '_proxy_model', None)
+            if proxy is not None and self.table.model() is proxy:
+                index = proxy.mapToSource(index)
+        except Exception:
+            pass
+        return index.row()
+
+    def _selected_source_row(self):
+        try:
+            rows = self.table.selected_source_rows()
+            if rows:
+                return rows[0]
+        except Exception:
+            pass
         rows = self.table.selectionModel().selectedRows() if self.table.selectionModel() else []
-        return self.model.get_id(rows[0].row()) if rows else None
+        return rows[0].row() if rows else None
+
+    def _row_data(self, row=None):
+        if row is None:
+            row = self._selected_source_row()
+        try:
+            return self.model.get_row(row) if row is not None else {}
+        except Exception:
+            return {}
+
+    def _selected_id(self):
+        row = self._selected_source_row()
+        return self.model.get_id(row) if row is not None else None
+
+    def edit_return_from_index(self, index):
+        row = self._source_row_from_index(index)
+        rid = self.model.get_id(row) if row is not None else None
+        self.edit_selected(rid)
 
 
-    def edit_selected(self):
-        rid = self._selected_id()
+    def edit_selected(self, rid=None):
+        rid = rid or self._selected_id()
         if not rid:
             return
         data = sales_return_service.get(rid)
@@ -1378,6 +1520,7 @@ class PurchaseReturnsWidget(QWidget):
         self.toolbar.set_table(self.table)
         self.table.clicked.connect(lambda *_: self.toolbar.set_delete_enabled(True))
         self.table.clicked.connect(lambda *_: self.toolbar.set_edit_enabled(True))
+        self.table.doubleClicked.connect(self.edit_return_from_index)
         self._install_print_menu()
         layout.addWidget(self.table)
         pager = QHBoxLayout()
@@ -1461,11 +1604,9 @@ class PurchaseReturnsWidget(QWidget):
         if not data:
             QMessageBox.warning(self, translate('printing'), translate('return_load_failed'))
             return
-        data = dict(data)
-        data.setdefault('return_type', 'purchase_return')
-        data.setdefault('supplier_name', data.get('supplier') or data.get('party_name') or translate('cash_customer'))
+        data = _ret_list_return_print_payload(data, self._row_data(), 'purchase')
         from printing.printing_service import printing_service
-        # Phase 236: return print buttons use the single project print settings contract.
+        # Return-list printing converts stored/base amounts to the displayed currency before rendering.
         printing_service.return_print(data, self)
 
     def add_return(self):
@@ -1480,13 +1621,47 @@ class PurchaseReturnsWidget(QWidget):
             show_toast(translate('purchase_return_saved'), 'success', self)
             self.refresh(True)
 
-    def _selected_id(self):
+    def _source_row_from_index(self, index):
+        if index is None or not index.isValid():
+            return None
+        try:
+            proxy = getattr(self.table, '_proxy_model', None)
+            if proxy is not None and self.table.model() is proxy:
+                index = proxy.mapToSource(index)
+        except Exception:
+            pass
+        return index.row()
+
+    def _selected_source_row(self):
+        try:
+            rows = self.table.selected_source_rows()
+            if rows:
+                return rows[0]
+        except Exception:
+            pass
         rows = self.table.selectionModel().selectedRows() if self.table.selectionModel() else []
-        return self.model.get_id(rows[0].row()) if rows else None
+        return rows[0].row() if rows else None
+
+    def _row_data(self, row=None):
+        if row is None:
+            row = self._selected_source_row()
+        try:
+            return self.model.get_row(row) if row is not None else {}
+        except Exception:
+            return {}
+
+    def _selected_id(self):
+        row = self._selected_source_row()
+        return self.model.get_id(row) if row is not None else None
+
+    def edit_return_from_index(self, index):
+        row = self._source_row_from_index(index)
+        rid = self.model.get_id(row) if row is not None else None
+        self.edit_selected(rid)
 
 
-    def edit_selected(self):
-        rid = self._selected_id()
+    def edit_selected(self, rid=None):
+        rid = rid or self._selected_id()
         if not rid:
             return
         data = purchase_return_service.get(rid)

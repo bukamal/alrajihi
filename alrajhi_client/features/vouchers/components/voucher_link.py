@@ -3,14 +3,21 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QComboBox, QFormLayout, QWidget
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QComboBox, QGridLayout, QLabel, QSizePolicy, QWidget
 
 from core.services.catalog_service import catalog_service
 from core.services.invoice_service import invoice_service
 from currency import currency
-from i18n import translate as tr
+from i18n import qt_layout_direction, translate as tr
 from offline_read import is_offline_read_error, notify_offline_read
+
+
+def _field_label(text: str, parent: QWidget) -> QLabel:
+    label = QLabel(text if str(text).endswith(':') else f"{text}:", parent)
+    label.setObjectName('FieldLabel')
+    label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    return label
 
 
 class VoucherLinkPanel(QWidget):
@@ -21,26 +28,45 @@ class VoucherLinkPanel(QWidget):
 
     def __init__(self, parent=None, voucher=None) -> None:
         super().__init__(parent)
+        self.setObjectName('VoucherLinkPanel')
+        self.setLayoutDirection(qt_layout_direction())
         self.voucher = voucher or {}
         self._invoice_remaining_by_id: dict[int, Decimal] = {}
         self._loading = False
+        self._field_labels: dict[str, QLabel] = {}
 
-        layout = QFormLayout(self)
+        layout = QGridLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setHorizontalSpacing(10)
+        layout.setVerticalSpacing(8)
+        layout.setColumnStretch(0, 0)
+        layout.setColumnStretch(1, 1)
+        layout.setColumnStretch(2, 0)
+        layout.setColumnStretch(3, 1)
+
         self.customer_combo = QComboBox()
+        self.customer_combo.setObjectName('voucher_customer_combo')
         self.customer_combo.addItem(tr('no_customer'), None)
         for customer in self._safe_customers():
             self.customer_combo.addItem(customer.get('name', ''), customer.get('id'))
-        layout.addRow(tr('customer_label'), self.customer_combo)
 
         self.supplier_combo = QComboBox()
+        self.supplier_combo.setObjectName('voucher_supplier_combo')
         self.supplier_combo.addItem(tr('no_supplier'), None)
         for supplier in self._safe_suppliers():
             self.supplier_combo.addItem(supplier.get('name', ''), supplier.get('id'))
-        layout.addRow(tr('supplier_label'), self.supplier_combo)
 
         self.invoice_combo = QComboBox()
+        self.invoice_combo.setObjectName('voucher_invoice_combo')
         self.invoice_combo.addItem(tr('no_invoice'), None)
-        layout.addRow(tr('invoice_label'), self.invoice_combo)
+
+        for widget in (self.customer_combo, self.supplier_combo, self.invoice_combo):
+            widget.setMinimumHeight(30)
+            widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        self._add_pair(layout, 'customer', 0, 0, tr('customer_label'), self.customer_combo)
+        self._add_pair(layout, 'supplier', 0, 0, tr('supplier_label'), self.supplier_combo)
+        self._add_pair(layout, 'invoice', 0, 2, tr('invoice_label'), self.invoice_combo)
 
         self.customer_combo.currentIndexChanged.connect(lambda *_: (self.update_invoice_list(), self.changed.emit()))
         self.supplier_combo.currentIndexChanged.connect(lambda *_: (self.update_invoice_list(), self.changed.emit()))
@@ -48,6 +74,18 @@ class VoucherLinkPanel(QWidget):
 
         if isinstance(voucher, dict):
             self.load(voucher)
+
+    def _add_pair(self, layout: QGridLayout, key: str, row: int, col: int, label_text: str, widget: QWidget) -> None:
+        label = _field_label(label_text, self)
+        self._field_labels[key] = label
+        layout.addWidget(label, row, col)
+        layout.addWidget(widget, row, col + 1)
+
+    def _set_field_visible(self, key: str, widget: QWidget, visible: bool) -> None:
+        label = self._field_labels.get(key)
+        if label is not None:
+            label.setVisible(visible)
+        widget.setVisible(visible)
 
     def _safe_customers(self):
         try:
@@ -82,9 +120,9 @@ class VoucherLinkPanel(QWidget):
     def set_voucher_type(self, voucher_type: str) -> None:
         is_receipt = voucher_type == 'receipt'
         is_payment = voucher_type == 'payment'
-        self.customer_combo.setVisible(is_receipt)
-        self.supplier_combo.setVisible(is_payment)
-        self.invoice_combo.setVisible(is_receipt or is_payment)
+        self._set_field_visible('customer', self.customer_combo, is_receipt)
+        self._set_field_visible('supplier', self.supplier_combo, is_payment)
+        self._set_field_visible('invoice', self.invoice_combo, is_receipt or is_payment)
         self.update_invoice_list(voucher_type)
 
     def _voucher_old_amount_for_invoice(self, invoice_id) -> Decimal:

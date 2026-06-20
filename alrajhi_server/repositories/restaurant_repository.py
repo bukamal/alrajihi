@@ -25,6 +25,7 @@ class RestaurantRepository:
                 seats INTEGER DEFAULT 4,
                 status TEXT NOT NULL DEFAULT 'free',
                 is_active INTEGER NOT NULL DEFAULT 1,
+                branch_id INTEGER,
                 created_at TEXT,
                 updated_at TEXT
             );
@@ -37,6 +38,7 @@ class RestaurantRepository:
                 opened_at TEXT NOT NULL,
                 closed_at TEXT,
                 invoice_id INTEGER,
+                branch_id INTEGER,
                 notes TEXT,
                 FOREIGN KEY(table_id) REFERENCES restaurant_tables(id)
             );
@@ -61,6 +63,7 @@ class RestaurantRepository:
             CREATE TABLE IF NOT EXISTS kitchen_tickets (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id INTEGER NOT NULL,
+                branch_id INTEGER,
                 status TEXT DEFAULT 'sent',
                 sent_at TEXT NOT NULL,
                 printed_at TEXT,
@@ -81,6 +84,7 @@ class RestaurantRepository:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 session_id INTEGER NOT NULL,
                 invoice_id INTEGER,
+                branch_id INTEGER,
                 amount TEXT NOT NULL DEFAULT '0',
                 payment_method TEXT NOT NULL DEFAULT 'cash',
                 status TEXT NOT NULL DEFAULT 'posted',
@@ -106,6 +110,10 @@ class RestaurantRepository:
             "ALTER TABLE restaurant_order_lines ADD COLUMN base_qty TEXT DEFAULT '1'",
             "ALTER TABLE restaurant_order_lines ADD COLUMN barcode_scope TEXT",
             "ALTER TABLE restaurant_order_lines ADD COLUMN matched_barcode TEXT",
+            "ALTER TABLE restaurant_tables ADD COLUMN branch_id INTEGER",
+            "ALTER TABLE restaurant_sessions ADD COLUMN branch_id INTEGER",
+            "ALTER TABLE kitchen_tickets ADD COLUMN branch_id INTEGER",
+            "ALTER TABLE restaurant_payments ADD COLUMN branch_id INTEGER",
         ):
             try:
                 db.execute(ddl)
@@ -159,21 +167,21 @@ class RestaurantRepository:
         ).fetchall()
         return [dict(row) for row in rows]
 
-    def upsert_table(self, name: str, zone: str = "", seats: int = 4, table_id: int | None = None) -> dict[str, Any]:
+    def upsert_table(self, name: str, zone: str = "", seats: int = 4, table_id: int | None = None, branch_id: int | None = None) -> dict[str, Any]:
         self.ensure_schema()
         now = datetime.datetime.now().isoformat(timespec="seconds")
         db = get_db()
         seats = max(1, int(seats or 1))
         if table_id:
             db.execute(
-                "UPDATE restaurant_tables SET name=?, zone=?, seats=?, updated_at=? WHERE id=?",
-                (name, zone, seats, now, int(table_id)),
+                "UPDATE restaurant_tables SET name=?, zone=?, seats=?, branch_id=COALESCE(?, branch_id), updated_at=? WHERE id=?",
+                (name, zone, seats, branch_id, now, int(table_id)),
             )
             new_id = int(table_id)
         else:
             cur = db.execute(
-                "INSERT INTO restaurant_tables(name, zone, seats, status, is_active, created_at, updated_at) VALUES (?, ?, ?, 'free', 1, ?, ?)",
-                (name, zone, seats, now, now),
+                "INSERT INTO restaurant_tables(name, zone, seats, status, is_active, branch_id, created_at, updated_at) VALUES (?, ?, ?, 'free', 1, ?, ?, ?)",
+                (name, zone, seats, branch_id, now, now),
             )
             new_id = int(cur.lastrowid)
         db.commit()
@@ -186,11 +194,11 @@ class RestaurantRepository:
             raise ValueError("Restaurant table not found")
         return dict(row)
 
-    def open_table(self, table_id: int, waiter_id: str | None = None, guests: int = 1, notes: str = "") -> dict[str, Any]:
+    def open_table(self, table_id: int, waiter_id: str | None = None, guests: int = 1, notes: str = "", branch_id: int | None = None) -> dict[str, Any]:
         self.ensure_schema()
         db = get_db()
         table_id = int(table_id)
-        table = db.execute("SELECT id FROM restaurant_tables WHERE id=? AND is_active=1", (table_id,)).fetchone()
+        table = db.execute("SELECT id, branch_id FROM restaurant_tables WHERE id=? AND is_active=1", (table_id,)).fetchone()
         if not table:
             raise ValueError("Restaurant table not found; refresh the table map and try again")
         existing = db.execute(
@@ -200,8 +208,8 @@ class RestaurantRepository:
             return dict(existing)
         now = datetime.datetime.now().isoformat(timespec="seconds")
         cur = db.execute(
-            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, notes) VALUES (?, ?, ?, 'open', ?, ?)",
-            (table_id, waiter_id, max(1, int(guests or 1)), now, notes or ""),
+            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, branch_id, notes) VALUES (?, ?, ?, 'open', ?, ?, ?)",
+            (table_id, waiter_id, max(1, int(guests or 1)), now, branch_id if branch_id is not None else table['branch_id'], notes or ""),
         )
         db.execute("UPDATE restaurant_tables SET status='occupied', updated_at=? WHERE id=?", (now, table_id))
         db.commit()
@@ -210,7 +218,7 @@ class RestaurantRepository:
     def get_session(self, session_id: int) -> dict[str, Any]:
         self.ensure_schema()
         row = get_db().execute("""
-            SELECT s.*, t.name AS table_name
+            SELECT s.*, COALESCE(s.branch_id, t.branch_id) AS branch_id, t.name AS table_name
             FROM restaurant_sessions s
             LEFT JOIN restaurant_tables t ON t.id=s.table_id
             WHERE s.id=?
@@ -316,8 +324,8 @@ class RestaurantRepository:
         tickets = []
         for station_id, station_lines in grouped.items():
             cur = db.execute(
-                "INSERT INTO kitchen_tickets(session_id, station_id, status, sent_at, notes) VALUES (?, ?, 'sent', ?, ?)",
-                (session_id, station_id, now, notes or ""),
+                "INSERT INTO kitchen_tickets(session_id, station_id, branch_id, status, sent_at, notes) VALUES (?, ?, (SELECT branch_id FROM restaurant_sessions WHERE id=?), 'sent', ?, ?)",
+                (session_id, station_id, session_id, now, notes or ""),
             )
             ticket_id = int(cur.lastrowid)
             for line in station_lines:
@@ -528,8 +536,8 @@ class RestaurantRepository:
             raise ValueError("Restaurant session is already fully paid")
         now = datetime.datetime.now().isoformat(timespec="seconds")
         cur = db.execute(
-            "INSERT INTO restaurant_payments(session_id, invoice_id, amount, payment_method, status, notes, created_at) VALUES (?, NULL, ?, ?, 'posted', ?, ?)",
-            (int(session_id), str(amount_value), payment_method or "cash", notes or "", now),
+            "INSERT INTO restaurant_payments(session_id, invoice_id, branch_id, amount, payment_method, status, notes, created_at) VALUES (?, NULL, (SELECT branch_id FROM restaurant_sessions WHERE id=?), ?, ?, 'posted', ?, ?)",
+            (int(session_id), int(session_id), str(amount_value), payment_method or "cash", notes or "", now),
         )
         db.execute("UPDATE restaurant_tables SET status='payment', updated_at=? WHERE id=?", (now, int(session["table_id"])))
         db.commit()
@@ -568,8 +576,8 @@ class RestaurantRepository:
         reference = self.next_restaurant_reference()
         cur = db.execute(
             """
-            INSERT INTO invoices (user_id, type, date, reference, notes, total, paid, status, workflow_status, original_currency, payment_method)
-            VALUES (?, 'sale', ?, ?, ?, ?, ?, 'active', 'POSTED', 'USD', ?)
+            INSERT INTO invoices (user_id, type, date, reference, notes, total, paid, status, workflow_status, original_currency, payment_method, branch_id)
+            VALUES (?, 'sale', ?, ?, ?, ?, ?, 'active', 'POSTED', 'USD', ?, ?)
             """,
             (
                 str(user_id or "restaurant"),
@@ -579,13 +587,14 @@ class RestaurantRepository:
                 str(total),
                 str(paid),
                 payment_method or "cash",
+                session.get('branch_id'),
             ),
         )
         invoice_id = int(cur.lastrowid)
         if extra_paid > Decimal("0"):
             db.execute(
-                "INSERT INTO restaurant_payments(session_id, invoice_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, ?, 'posted', ?, ?)",
-                (int(session_id), invoice_id, str(extra_paid), payment_method or "cash", "checkout", now_ts),
+                "INSERT INTO restaurant_payments(session_id, invoice_id, branch_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, (SELECT branch_id FROM restaurant_sessions WHERE id=?), ?, ?, 'posted', ?, ?)",
+                (int(session_id), invoice_id, int(session_id), str(extra_paid), payment_method or "cash", "checkout", now_ts),
             )
         db.execute("UPDATE restaurant_payments SET invoice_id=? WHERE session_id=? AND invoice_id IS NULL", (invoice_id, int(session_id)))
         for line in lines:
@@ -655,7 +664,7 @@ class RestaurantRepository:
         params.append(limit)
         rows = db.execute(
             f"""
-            SELECT kt.*, s.table_id, t.name AS table_name, st.name AS station_name, st.code AS station_code,
+            SELECT kt.*, COALESCE(kt.branch_id, s.branch_id, t.branch_id) AS branch_id, s.table_id, t.name AS table_name, st.name AS station_name, st.code AS station_code,
                    COUNT(ktl.id) AS line_count
             FROM kitchen_tickets kt
             LEFT JOIN restaurant_sessions s ON s.id=kt.session_id
@@ -677,7 +686,7 @@ class RestaurantRepository:
         db = get_db()
         row = db.execute(
             """
-            SELECT kt.*, s.table_id, t.name AS table_name, st.name AS station_name, st.code AS station_code
+            SELECT kt.*, COALESCE(kt.branch_id, s.branch_id, t.branch_id) AS branch_id, s.table_id, t.name AS table_name, st.name AS station_name, st.code AS station_code
             FROM kitchen_tickets kt
             LEFT JOIN restaurant_sessions s ON s.id=kt.session_id
             LEFT JOIN restaurant_tables t ON t.id=s.table_id
@@ -755,6 +764,7 @@ class RestaurantRepository:
             CREATE TABLE IF NOT EXISTS restaurant_reservations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 table_id INTEGER NOT NULL,
+                branch_id INTEGER,
                 customer_name TEXT,
                 phone TEXT,
                 guests INTEGER DEFAULT 1,
@@ -766,6 +776,13 @@ class RestaurantRepository:
                 FOREIGN KEY(table_id) REFERENCES restaurant_tables(id)
             )
         """)
+        for ddl in (
+            "ALTER TABLE restaurant_reservations ADD COLUMN branch_id INTEGER",
+        ):
+            try:
+                db.execute(ddl)
+            except Exception:
+                pass
         db.commit()
 
     def reserve_table(self, table_id: int, customer_name: str = "", phone: str = "", reserved_at: str = "", guests: int = 1, notes: str = "") -> dict[str, Any]:
@@ -777,8 +794,8 @@ class RestaurantRepository:
             raise ValueError("Cannot reserve an occupied restaurant table")
         now = datetime.datetime.now().isoformat(timespec="seconds")
         cur = db.execute(
-            "INSERT INTO restaurant_reservations(table_id, customer_name, phone, guests, reserved_at, status, notes, created_at) VALUES (?, ?, ?, ?, ?, 'reserved', ?, ?)",
-            (int(table_id), customer_name or '', phone or '', max(1, int(guests or 1)), reserved_at or now, notes or '', now),
+            "INSERT INTO restaurant_reservations(table_id, branch_id, customer_name, phone, guests, reserved_at, status, notes, created_at) VALUES (?, (SELECT branch_id FROM restaurant_tables WHERE id=?), ?, ?, ?, ?, 'reserved', ?, ?)",
+            (int(table_id), int(table_id), customer_name or '', phone or '', max(1, int(guests or 1)), reserved_at or now, notes or '', now),
         )
         db.execute("UPDATE restaurant_tables SET status='reserved', updated_at=? WHERE id=?", (now, int(table_id)))
         db.commit()
@@ -1570,16 +1587,16 @@ class RestaurantRepository:
         reference = self.next_restaurant_reference()
         cur = db.execute(
             """
-            INSERT INTO invoices (user_id, type, date, reference, notes, total, paid, status, workflow_status, original_currency, payment_method)
-            VALUES (?, 'sale', ?, ?, ?, ?, ?, 'active', 'POSTED', 'USD', ?)
+            INSERT INTO invoices (user_id, type, date, reference, notes, total, paid, status, workflow_status, original_currency, payment_method, branch_id)
+            VALUES (?, 'sale', ?, ?, ?, ?, ?, 'active', 'POSTED', 'USD', ?, ?)
             """,
             (str(user_id or 'restaurant'), now_date, reference, f"Restaurant table {session.get('table_name') or session.get('table_id')} / session {session_id}", str(total), str(paid), payment_method or 'cash'),
         )
         invoice_id = int(cur.lastrowid)
         if extra_paid > Decimal('0'):
             db.execute(
-                "INSERT INTO restaurant_payments(session_id, invoice_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, ?, 'posted', ?, ?)",
-                (int(session_id), invoice_id, str(extra_paid), payment_method or 'cash', 'checkout', now_ts),
+                "INSERT INTO restaurant_payments(session_id, invoice_id, branch_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, (SELECT branch_id FROM restaurant_sessions WHERE id=?), ?, ?, 'posted', ?, ?)",
+                (int(session_id), invoice_id, int(session_id), str(extra_paid), payment_method or 'cash', 'checkout', now_ts),
             )
         db.execute('UPDATE restaurant_payments SET invoice_id=? WHERE session_id=? AND invoice_id IS NULL', (invoice_id, int(session_id)))
         for line in lines:
@@ -1657,38 +1674,38 @@ class RestaurantRepository:
         )
         db.commit()
 
-    def ensure_virtual_table(self, name: str) -> int:
+    def ensure_virtual_table(self, name: str, branch_id: int | None = None) -> int:
         self.ensure_schema()
         db = get_db()
         row = db.execute('SELECT id FROM restaurant_tables WHERE name=?', (name,)).fetchone()
         if row:
             return int(row['id'])
         now = datetime.datetime.now().isoformat(timespec='seconds')
-        cur = db.execute("INSERT INTO restaurant_tables(name, zone, seats, status, is_active, created_at, updated_at) VALUES (?, 'Virtual', 1, 'occupied', 1, ?, ?)", (name, now, now))
+        cur = db.execute("INSERT INTO restaurant_tables(name, zone, seats, status, is_active, branch_id, created_at, updated_at) VALUES (?, 'Virtual', 1, 'occupied', 1, ?, ?, ?)", (name, branch_id, now, now))
         db.commit()
         return int(cur.lastrowid)
 
-    def create_takeaway_order(self, customer_name: str = '', phone: str = '', notes: str = '') -> dict[str, Any]:
+    def create_takeaway_order(self, customer_name: str = '', phone: str = '', notes: str = '', branch_id: int | None = None) -> dict[str, Any]:
         self.ensure_delivery_takeaway_schema()
         db = get_db()
         now = datetime.datetime.now().isoformat(timespec='seconds')
-        table_id = self.ensure_virtual_table('Takeaway')
+        table_id = self.ensure_virtual_table('Takeaway', branch_id)
         cur = db.execute(
-            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, notes, order_type, customer_name, phone, delivery_status) VALUES (?, NULL, 1, 'open', ?, ?, 'takeaway', ?, ?, 'pending')",
-            (table_id, now, notes or '', customer_name or '', phone or ''),
+            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, branch_id, notes, order_type, customer_name, phone, delivery_status) VALUES (?, NULL, 1, 'open', ?, ?, ?, 'takeaway', ?, ?, 'pending')",
+            (table_id, now, branch_id, notes or '', customer_name or '', phone or ''),
         )
         db.commit()
         return self.get_session(int(cur.lastrowid))
 
-    def create_delivery_order(self, customer_name: str = '', phone: str = '', address: str = '', delivery_fee: Any = '0', driver_id: str = '', notes: str = '') -> dict[str, Any]:
+    def create_delivery_order(self, customer_name: str = '', phone: str = '', address: str = '', delivery_fee: Any = '0', driver_id: str = '', notes: str = '', branch_id: int | None = None) -> dict[str, Any]:
         self.ensure_delivery_takeaway_schema()
         db = get_db()
         now = datetime.datetime.now().isoformat(timespec='seconds')
-        table_id = self.ensure_virtual_table('Delivery')
+        table_id = self.ensure_virtual_table('Delivery', branch_id)
         fee = str(self.decimal_value(delivery_fee, '0'))
         cur = db.execute(
-            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, notes, order_type, customer_name, phone, delivery_address, delivery_fee, delivery_status, driver_id) VALUES (?, NULL, 1, 'open', ?, ?, 'delivery', ?, ?, ?, ?, 'pending', ?)",
-            (table_id, now, notes or '', customer_name or '', phone or '', address or '', fee, driver_id or ''),
+            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, branch_id, notes, order_type, customer_name, phone, delivery_address, delivery_fee, delivery_status, driver_id) VALUES (?, NULL, 1, 'open', ?, ?, ?, 'delivery', ?, ?, ?, ?, 'pending', ?)",
+            (table_id, now, branch_id, notes or '', customer_name or '', phone or '', address or '', fee, driver_id or ''),
         )
         session_id = int(cur.lastrowid)
         db.execute("INSERT INTO restaurant_delivery_events(session_id, status, driver_id, notes, created_at) VALUES (?, 'pending', ?, ?, ?)", (session_id, driver_id or '', notes or '', now))
@@ -1725,7 +1742,7 @@ class RestaurantRepository:
         sql_where = ('WHERE ' + ' AND '.join(where)) if where else ''
         params.append(max(1, int(limit or 100)))
         rows = get_db().execute(
-            f"SELECT s.*, t.name AS table_name FROM restaurant_sessions s LEFT JOIN restaurant_tables t ON t.id=s.table_id {sql_where} ORDER BY s.id DESC LIMIT ?",
+            f"SELECT s.*, COALESCE(s.branch_id, t.branch_id) AS branch_id, t.name AS table_name FROM restaurant_sessions s LEFT JOIN restaurant_tables t ON t.id=s.table_id {sql_where} ORDER BY s.id DESC LIMIT ?",
             params,
         ).fetchall()
         return [dict(row) for row in rows]
