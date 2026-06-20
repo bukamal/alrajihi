@@ -79,12 +79,17 @@ def main() -> int:
         if token not in loader_text:
             errors.append(f"_template_loader.py missing token: {token}")
 
-    for path in [PRINT_MANAGER, PRINTING_SERVICE]:
-        text = _read(path)
+    service_text = _read(PRINTING_SERVICE)
+    manager_text = _read(PRINT_MANAGER)
+    for path, text in [(PRINT_MANAGER, manager_text), (PRINTING_SERVICE, service_text)]:
         if "from .print_templates import" in text:
             errors.append(f"{path.relative_to(ROOT)} imports print_templates directly")
-        if "require_template" not in text:
-            errors.append(f"{path.relative_to(ROOT)} does not use require_template")
+    if "require_template" not in service_text or "_local_require_template" not in service_text:
+        errors.append("printing_service.py must keep the late-binding template loader")
+    if "from ._template_loader import require_template" in manager_text:
+        errors.append("print_manager.py must not import _template_loader at module import time")
+    if "from .printing_service import invoice_html" not in manager_text:
+        errors.append("print_manager.py must resolve invoice_html through printing_service lazily")
 
     workflow = _read(WORKFLOW)
     for token in REQUIRED_WORKFLOW_TOKENS:

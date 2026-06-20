@@ -22,6 +22,7 @@ PRINTING_SERVICE = ROOT / "alrajhi_client" / "printing" / "printing_service.py"
 REQUIRED_BUILD_TOKENS = [
     "--collect-submodules alrajhi_client.printing",
     "--collect-submodules printing",
+    "--hidden-import printing._template_loader",
     "--hidden-import printing.print_templates",
     "--hidden-import printing.printing_service",
     "--hidden-import printing.print_manager",
@@ -30,14 +31,21 @@ REQUIRED_BUILD_TOKENS = [
 REQUIRED_WORKFLOW_TOKENS = [
     '"--collect-submodules", "alrajhi_client.printing"',
     '"--collect-submodules", "printing"',
+    '"--hidden-import", "printing._template_loader"',
     '"--hidden-import", "printing.print_templates"',
     '"--hidden-import", "printing.printing_service"',
     '"--hidden-import", "printing.print_manager"',
 ]
 
+REQUIRED_ADD_DATA_TOKENS = [
+    "alrajhi_client\\printing\\_template_loader.py;printing",
+    "alrajhi_client\\printing\\_template_loader.py;alrajhi_client\\printing",
+]
+
 REQUIRED_MANIFEST_VALUES = [
     '"alrajhi_client.printing"',
     '"printing"',
+    '"printing._template_loader"',
     '"printing.print_templates"',
     '"printing.printing_service"',
     '"printing.print_manager"',
@@ -69,6 +77,9 @@ def main() -> int:
     for token in REQUIRED_MANIFEST_VALUES:
         if token not in manifest:
             errors.append(f"Hidden import manifest missing token: {token}")
+    for token in REQUIRED_ADD_DATA_TOKENS:
+        if token not in workflow and token not in build_ps1:
+            errors.append(f"Build packaging missing add-data token: {token}")
 
     # Internal printing modules must use relative imports so they work both as
     # ``printing.*`` and ``alrajhi_client.printing.*`` package imports.

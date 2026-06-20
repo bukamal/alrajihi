@@ -774,6 +774,14 @@ class SettingsWidget(QWidget):
         self.print_reverse_columns.setChecked(bool(cfg.get('reverse_print_table_columns', False)))
         identity_form.addRow(self.print_reverse_columns)
 
+        self.print_allow_emergency_fallback = QCheckBox(translate('settings_print_allow_emergency_fallback'))
+        self.print_allow_emergency_fallback.setChecked(bool(cfg.get('allow_emergency_fallback', False)))
+        identity_form.addRow(self.print_allow_emergency_fallback)
+
+        self.print_show_template_diagnostics = QCheckBox(translate('settings_print_show_template_diagnostics'))
+        self.print_show_template_diagnostics.setChecked(bool(cfg.get('show_template_diagnostics', True)))
+        identity_form.addRow(self.print_show_template_diagnostics)
+
         self.print_footer = QLineEdit(cfg.get('footer_text', ''))
         self.print_footer.setPlaceholderText(translate('settings_print_footer_placeholder'))
         identity_form.addRow(translate('settings_print_footer_label'), self.print_footer)
@@ -1495,6 +1503,8 @@ class SettingsWidget(QWidget):
             zebra_rows=self.print_zebra_rows.isChecked(),
             compact_tables=self.print_compact_tables.isChecked(),
             reverse_print_table_columns=self.print_reverse_columns.isChecked(),
+            allow_emergency_fallback=self.print_allow_emergency_fallback.isChecked(),
+            show_template_diagnostics=self.print_show_template_diagnostics.isChecked(),
             barcode_default_printer=self.barcode_default_printer.currentData() or '',
             barcode_label_size=self.barcode_label_size.currentText(),
             barcode_symbology=self.barcode_symbology.currentText(),

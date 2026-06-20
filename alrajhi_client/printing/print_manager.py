@@ -5,10 +5,8 @@ from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QCom
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextDocument, QFont, QTextCursor, QTextBlockFormat, QTextCharFormat, QTextTableFormat, QTextLength
 from utils import clean_text
-from ._template_loader import require_template
 from i18n import translate
 
-invoice_html = require_template("invoice_html")
 
 class PrintManager:
     @staticmethod
@@ -122,6 +120,9 @@ class PrintManager:
 class ProfessionalInvoicePrinter:
     @staticmethod
     def generate_invoice_html(invoice_data, paper='default'):
+        # Resolve through printing_service at call time so a missing packaged
+        # _template_loader module cannot break application startup.
+        from .printing_service import invoice_html
         return invoice_html(invoice_data, paper)
 
 

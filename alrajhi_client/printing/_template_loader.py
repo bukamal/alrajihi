@@ -28,6 +28,43 @@ _REAL_MODULE: ModuleType | None = None
 _LAST_TEMPLATE_LOAD_ERROR = ""
 
 
+def _boolish(value: Any, default: bool = False) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on", "نعم", "ja"}
+
+
+def _printing_setting(key: str, default: Any = None) -> Any:
+    """Read printing policy through SettingsService/SettingsGateway.
+
+    This keeps template diagnostics and emergency fallback behavior consistent in
+    local and client/server modes.  The loader must stay defensive because it is
+    used precisely when the regular printing module import path may be broken.
+    """
+    try:
+        from core.services.settings_service import settings_service
+        cfg = settings_service.get_printing_settings()
+        if isinstance(cfg, dict) and key in cfg:
+            return cfg.get(key)
+        return settings_service.get(f"printing/{key}", default)
+    except Exception:
+        return default
+
+
+def _allow_emergency_fallback() -> bool:
+    if _boolish(os.environ.get("ALRAJHI_PRINT_ALLOW_EMERGENCY_FALLBACK"), False):
+        return True
+    if _boolish(os.environ.get("ALRAJHI_PRINT_STRICT_TEMPLATES"), False):
+        return False
+    return _boolish(_printing_setting("allow_emergency_fallback", False), False)
+
+
+def _show_template_diagnostics() -> bool:
+    return _boolish(_printing_setting("show_template_diagnostics", True), True)
+
+
 def _load_module_from_file(path: str) -> ModuleType | None:
     if not os.path.exists(path):
         return None
@@ -122,31 +159,37 @@ def _fallback_text(key: str) -> str:
             'no_lines': 'لا توجد بنود', 'subtotal': 'الإجمالي قبل الخصم', 'paid': 'المقبوض', 'refunded': 'المردود', 'remaining': 'المتبقي',
             'invoice': 'فاتورة', 'sales_invoice': 'فاتورة مبيعات', 'purchase_invoice': 'فاتورة مشتريات', 'sales_return': 'مرتجع بيع', 'purchase_return': 'مرتجع شراء',
             'data': 'البيانات', 'number': 'الرقم', 'date': 'التاريخ', 'party': 'الطرف', 'warehouse': 'المستودع', 'payment': 'طريقة الدفع', 'currency': 'العملة',
-            'original_invoice': 'الفاتورة الأصلية', 'status': 'الحالة', 'user': 'المستخدم', 'notes': 'ملاحظات', 'report': 'تقرير', 'no_data': 'لا توجد بيانات',
+            'original_invoice': 'الفاتورة الأصلية', 'status': 'الحالة', 'user': 'المستخدم', 'notes': 'ملاحظات', 'report': 'تقرير', 'no_data': 'لا توجد بيانات', 'template_error_title': 'تعذر تحميل قالب الطباعة', 'template_error_message': 'لم يتم إنشاء مستند الطباعة لأن القالب الحقيقي غير متاح.', 'template_error_hint': 'راجع تضمين print_templates.py في الحزمة أو فعّل قالب الطوارئ مؤقتًا من إعدادات الطباعة.', 'template_error_detail': 'تفاصيل الخطأ',
         },
         'de': {
             'item': 'Artikel', 'quantity': 'Menge', 'unit': 'Einheit', 'price': 'Preis', 'discount': 'Rabatt', 'tax': 'Steuer', 'total': 'Gesamt',
             'no_lines': 'Keine Positionen', 'subtotal': 'Zwischensumme', 'paid': 'Bezahlt', 'refunded': 'Erstattet', 'remaining': 'Restbetrag',
             'invoice': 'Rechnung', 'sales_invoice': 'Verkaufsrechnung', 'purchase_invoice': 'Einkaufsrechnung', 'sales_return': 'Verkaufsretoure', 'purchase_return': 'Einkaufsretoure',
             'data': 'Daten', 'number': 'Nummer', 'date': 'Datum', 'party': 'Partei', 'warehouse': 'Lager', 'payment': 'Zahlungsart', 'currency': 'Währung',
-            'original_invoice': 'Ursprungsrechnung', 'status': 'Status', 'user': 'Benutzer', 'notes': 'Notizen', 'report': 'Bericht', 'no_data': 'Keine Daten',
+            'original_invoice': 'Ursprungsrechnung', 'status': 'Status', 'user': 'Benutzer', 'notes': 'Notizen', 'report': 'Bericht', 'no_data': 'Keine Daten', 'template_error_title': 'Druckvorlage konnte nicht geladen werden', 'template_error_message': 'Das Druckdokument wurde nicht erstellt, weil die echte Vorlage nicht verfügbar ist.', 'template_error_hint': 'Prüfen Sie die Einbindung von print_templates.py oder aktivieren Sie die Notfallvorlage temporär in den Druckeinstellungen.', 'template_error_detail': 'Fehlerdetails',
         },
         'en': {
             'item': 'Item', 'quantity': 'Quantity', 'unit': 'Unit', 'price': 'Price', 'discount': 'Discount', 'tax': 'Tax', 'total': 'Total',
             'no_lines': 'No lines', 'subtotal': 'Subtotal', 'paid': 'Paid', 'refunded': 'Refunded', 'remaining': 'Remaining',
             'invoice': 'Invoice', 'sales_invoice': 'Sales invoice', 'purchase_invoice': 'Purchase invoice', 'sales_return': 'Sales return', 'purchase_return': 'Purchase return',
             'data': 'Data', 'number': 'Number', 'date': 'Date', 'party': 'Party', 'warehouse': 'Warehouse', 'payment': 'Payment method', 'currency': 'Currency',
-            'original_invoice': 'Original invoice', 'status': 'Status', 'user': 'User', 'notes': 'Notes', 'report': 'Report', 'no_data': 'No data',
+            'original_invoice': 'Original invoice', 'status': 'Status', 'user': 'User', 'notes': 'Notes', 'report': 'Report', 'no_data': 'No data', 'template_error_title': 'Print template could not be loaded', 'template_error_message': 'The print document was not generated because the real template is unavailable.', 'template_error_hint': 'Check print_templates.py packaging or temporarily enable the emergency template in print settings.', 'template_error_detail': 'Error detail',
         },
     }
     return labels.get(lang, labels['ar']).get(key, labels['ar'].get(key, key))
 
 
-def _html_doc(title: str, body: str) -> str:
+def _html_doc(title: str, body: str, *, emergency: bool = False) -> str:
     safe_title = html.escape(str(title or ""))
     lang, direction = _fallback_language_direction()
     align = "right" if direction == "rtl" else "left"
     error_comment = html.escape(_LAST_TEMPLATE_LOAD_ERROR or "unknown template loading error")
+    warning = ""
+    if emergency and _show_template_diagnostics():
+        warning = (
+            "<div class='fallback-warning'><b>Emergency print template used.</b><br>"
+            f"{error_comment}</div>"
+        )
     return (
         f"<!doctype html><html lang='{lang}' dir='{direction}'><head><meta charset='utf-8'>"
         f"<title>{safe_title}</title>"
@@ -157,10 +200,10 @@ def _html_doc(title: str, body: str) -> str:
         "th,td{border:1px solid #dbe3ef;padding:7px;text-align:center;word-wrap:break-word;}"
         "tr:nth-child(even) td{background:#f8fafc;}"
         ".muted{color:#64748b;text-align:center;margin:8px 0;}"
-        f".fallback-warning{{direction:ltr;text-align:{align};font-size:11px;color:#b91c1c;margin-bottom:8px;}}"
+        f".fallback-warning{{direction:ltr;text-align:{align};font-size:11px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;margin-bottom:12px;}}"
         "</style></head><body>"
         f"<!-- fallback-print-template: {error_comment} -->"
-        f"<h1>{safe_title}</h1>{body}</body></html>"
+        f"{warning}<h1>{safe_title}</h1>{body}</body></html>"
     )
 
 
@@ -289,7 +332,7 @@ def _fallback_invoice_template(data: Any, *, is_return: bool = False) -> str:
         notes=html.escape(_clean_value(_get(data, "notes", "description"))),
         notes_label=html.escape(_fallback_text("notes")),
     )
-    return _html_doc(title, body)
+    return _html_doc(title, body, emergency=True)
 
 def _fallback_report_template(*args: Any, **kwargs: Any) -> str:
     title = kwargs.get("title") if "title" in kwargs else (args[0] if len(args) > 0 else _fallback_text("report"))
@@ -309,7 +352,59 @@ def _fallback_report_template(*args: Any, **kwargs: Any) -> str:
         colspan = max(1, len(safe_headers))
         body_rows.append(f"<tr><td colspan='{colspan}'>{_fallback_text("no_data")}</td></tr>")
     table = f"<div class='muted'>{html.escape(str(subtitle or ''))}</div><table><thead><tr>{head}</tr></thead><tbody>{''.join(body_rows)}</tbody></table>"
-    return _html_doc(str(title or _fallback_text("report")), table)
+    return _html_doc(str(title or _fallback_text("report")), table, emergency=True)
+
+
+def _template_error_document(name: str, *args: Any, **kwargs: Any) -> str:
+    """Return a visible browser HTML error instead of silently printing weak output.
+
+    By default a missing real template is a blocking print error.  The emergency
+    renderer can still be enabled through printing/allow_emergency_fallback for
+    field troubleshooting, but it is no longer the silent default.
+    """
+    lang, direction = _fallback_language_direction()
+    title = _fallback_text("template_error_title")
+    message = _fallback_text("template_error_message")
+    hint = _fallback_text("template_error_hint")
+    detail_label = _fallback_text("template_error_detail")
+    detail = html.escape(_LAST_TEMPLATE_LOAD_ERROR or f"Missing callable: {name}")
+    detail_block = ""
+    if _show_template_diagnostics():
+        detail_block = f"<h2>{html.escape(detail_label)}</h2><pre>{detail}</pre>"
+    body = f"""
+    <main class='print-template-error'>
+      <section class='error-card'>
+        <div class='error-code'>PRINT-TEMPLATE-UNAVAILABLE</div>
+        <h1>{html.escape(title)}</h1>
+        <p>{html.escape(message)}</p>
+        <p class='hint'>{html.escape(hint)}</p>
+        <dl>
+          <dt>template</dt><dd>{html.escape(name)}</dd>
+          <dt>language</dt><dd>{html.escape(lang)}</dd>
+          <dt>direction</dt><dd>{html.escape(direction)}</dd>
+        </dl>
+        {detail_block}
+      </section>
+    </main>
+    """
+    css = """
+    <style>
+      body{margin:0;background:#f8fafc;color:#111827;font-family:Tahoma,Arial,sans-serif;}
+      .print-template-error{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px;}
+      .error-card{max-width:820px;width:100%;background:#fff;border:2px solid #fecaca;border-radius:16px;padding:24px;box-shadow:0 14px 40px rgba(15,23,42,.12);}
+      .error-code{display:inline-block;background:#fee2e2;color:#991b1b;border-radius:999px;padding:5px 12px;font-weight:800;font-size:12px;letter-spacing:.04em;}
+      h1{font-size:24px;margin:14px 0 8px;color:#991b1b;}
+      h2{font-size:15px;margin-top:18px;}
+      p{line-height:1.8;margin:8px 0;}
+      .hint{color:#475569;}
+      dl{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;margin-top:16px;}
+      dt{font-weight:800;color:#475569;}
+      dd{margin:0;}
+      pre{white-space:pre-wrap;direction:ltr;text-align:left;background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;font-size:12px;overflow:auto;}
+      @media print{body{background:#fff}.error-card{box-shadow:none}}
+    </style>
+    """
+    return f"<!doctype html><html lang='{lang}' dir='{direction}'><head><meta charset='utf-8'><title>{html.escape(title)}</title>{css}</head><body>{body}</body></html>"
 
 
 def _fallback_template(name: str) -> Callable:
@@ -325,9 +420,9 @@ def _fallback_template(name: str) -> Callable:
         if isinstance(payload, dict):
             rows = [[html.escape(_clean_value(k)), html.escape(_clean_value(v))] for k, v in payload.items() if k != 'lines']
             table = "<table><tbody>" + "".join(f"<tr><td>{k}</td><td>{v}</td></tr>" for k, v in rows) + "</tbody></table>"
-            return _html_doc(str(title), table)
+            return _html_doc(str(title), table, emergency=True)
         body = f"<div style='border:1px solid #dbe3ef;padding:12px'>{html.escape(_clean_value(payload))}</div>"
-        return _html_doc(str(title), body)
+        return _html_doc(str(title), body, emergency=True)
     return _render
 
 
@@ -346,6 +441,8 @@ def require_template(name: str) -> Callable:
             template = getattr(module, name)
             if callable(template):
                 return template(*args, **kwargs)
-        return fallback(*args, **kwargs)
+        if _allow_emergency_fallback():
+            return fallback(*args, **kwargs)
+        return _template_error_document(name, *args, **kwargs)
 
     return _render

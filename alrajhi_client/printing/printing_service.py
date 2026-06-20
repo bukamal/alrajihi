@@ -18,7 +18,123 @@ from PyQt5.QtWidgets import QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextDocument, QImage, QPainter
 
-from ._template_loader import require_template
+# Phase 246: keep startup resilient in frozen builds where PyInstaller may
+# include ``printing.printing_service`` but miss ``printing._template_loader``.
+# The loader is still the preferred path, but failure to import it must not abort
+# application startup.  A local late-binding loader below can still resolve the
+# real print_templates module from package imports or packaged files.
+import html as _html
+import importlib
+import importlib.util
+import sys
+from types import ModuleType
+from typing import Callable
+
+_TEMPLATE_RUNTIME_ERROR = ""
+_TEMPLATE_MODULE: ModuleType | None = None
+
+
+def _import_runtime_require_template() -> Callable[[str], Callable] | None:
+    global _TEMPLATE_RUNTIME_ERROR
+    candidates = []
+    package = __package__ or "printing"
+    if package:
+        candidates.append(("._template_loader", package))
+    candidates.extend([
+        ("printing._template_loader", None),
+        ("alrajhi_client.printing._template_loader", None),
+    ])
+    for name, package_name in candidates:
+        try:
+            module = importlib.import_module(name, package=package_name) if package_name else importlib.import_module(name)
+            fn = getattr(module, "require_template", None)
+            if callable(fn):
+                return fn
+        except Exception as exc:
+            _TEMPLATE_RUNTIME_ERROR = f"{name}: {type(exc).__name__}: {exc}"
+    return None
+
+
+def _candidate_template_files():
+    here = os.path.dirname(__file__)
+    cwd = os.getcwd()
+    frozen_root = getattr(sys, "_MEIPASS", "") or ""
+    seen: set[str] = set()
+    for base in (here, cwd, frozen_root):
+        if not base:
+            continue
+        for rel in (
+            "print_templates.py",
+            os.path.join("printing", "print_templates.py"),
+            os.path.join("alrajhi_client", "printing", "print_templates.py"),
+        ):
+            path = os.path.abspath(os.path.join(base, rel))
+            if path not in seen:
+                seen.add(path)
+                yield path
+
+
+def _load_template_module_direct() -> ModuleType | None:
+    global _TEMPLATE_MODULE, _TEMPLATE_RUNTIME_ERROR
+    if _TEMPLATE_MODULE is not None:
+        return _TEMPLATE_MODULE
+    package = __package__ or "printing"
+    for name, package_name in (
+        (".print_templates", package),
+        ("printing.print_templates", None),
+        ("alrajhi_client.printing.print_templates", None),
+    ):
+        try:
+            module = importlib.import_module(name, package=package_name) if package_name else importlib.import_module(name)
+            _TEMPLATE_MODULE = module
+            return module
+        except Exception as exc:
+            _TEMPLATE_RUNTIME_ERROR = f"{name}: {type(exc).__name__}: {exc}"
+    for path in _candidate_template_files():
+        try:
+            if not os.path.exists(path):
+                continue
+            spec = importlib.util.spec_from_file_location("printing.print_templates", path)
+            if spec is None or spec.loader is None:
+                continue
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            sys.modules.setdefault("printing.print_templates", module)
+            sys.modules.setdefault("alrajhi_client.printing.print_templates", module)
+            _TEMPLATE_MODULE = module
+            return module
+        except Exception as exc:
+            _TEMPLATE_RUNTIME_ERROR = f"{path}: {type(exc).__name__}: {exc}"
+    return None
+
+
+def _template_unavailable_document(name: str) -> str:
+    safe_name = _html.escape(str(name or "template"))
+    safe_error = _html.escape(_TEMPLATE_RUNTIME_ERROR or "printing._template_loader and print_templates are unavailable")
+    return (
+        "<!doctype html><html lang='en' dir='ltr'><head><meta charset='utf-8'>"
+        "<title>Print template unavailable</title>"
+        "<style>body{font-family:Tahoma,Arial,sans-serif;background:#f8fafc;margin:0;color:#111827;}"
+        ".card{max-width:820px;margin:8vh auto;background:#fff;border:2px solid #fecaca;border-radius:16px;padding:24px;box-shadow:0 14px 40px rgba(15,23,42,.12)}"
+        ".code{display:inline-block;background:#fee2e2;color:#991b1b;border-radius:999px;padding:5px 12px;font-weight:800;font-size:12px}"
+        "h1{color:#991b1b;font-size:24px}pre{white-space:pre-wrap;background:#0f172a;color:#e2e8f0;padding:12px;border-radius:10px;direction:ltr;text-align:left}</style></head>"
+        f"<body><main class='card'><div class='code'>PRINT-TEMPLATE-BOOTSTRAP-UNAVAILABLE</div><h1>Print template bootstrap failed</h1>"
+        f"<p>The application started, but the print template loader was not packaged correctly.</p><p><b>Template:</b> {safe_name}</p><pre>{safe_error}</pre></main></body></html>"
+    )
+
+
+def _local_require_template(name: str) -> Callable:
+    def _render(*args, **kwargs):
+        module = _load_template_module_direct()
+        if module is not None:
+            template = getattr(module, name, None)
+            if callable(template):
+                return template(*args, **kwargs)
+        return _template_unavailable_document(name)
+    return _render
+
+
+require_template = _import_runtime_require_template() or _local_require_template
 
 invoice_html = require_template("invoice_html")
 voucher_html = require_template("voucher_html")

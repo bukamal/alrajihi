@@ -124,6 +124,8 @@ class SettingsService:
             'zebra_rows': self.get('printing/zebra_rows', 'true').lower() == 'true',
             'compact_tables': self.get('printing/compact_tables', 'false').lower() == 'true',
             'reverse_print_table_columns': self.get('printing/reverse_print_table_columns', 'false').lower() == 'true',
+            'allow_emergency_fallback': self.get('printing/allow_emergency_fallback', 'false').lower() == 'true',
+            'show_template_diagnostics': self.get('printing/show_template_diagnostics', 'true').lower() == 'true',
             'print_language': self.print_language(),
             'report_language': self.report_language(),
             'barcode_default_printer': self.get('printing/barcode/default_printer', ''),
@@ -150,6 +152,8 @@ class SettingsService:
                                font_size: str = '10.5pt', accent_color: str = '#1d4ed8',
                                zebra_rows: bool = True, compact_tables: bool = False,
                                reverse_print_table_columns: bool = False,
+                               allow_emergency_fallback: bool = False,
+                               show_template_diagnostics: bool = True,
                                barcode_default_printer: str = '', barcode_label_size: str = '50x30',
                                barcode_symbology: str = 'AUTO', barcode_copies: int = 1,
                                barcode_columns: int = 2, barcode_show_company: bool = True,
@@ -180,6 +184,8 @@ class SettingsService:
             'zebra_rows': bool(zebra_rows),
             'compact_tables': bool(compact_tables),
             'reverse_print_table_columns': bool(reverse_print_table_columns),
+            'allow_emergency_fallback': bool(allow_emergency_fallback),
+            'show_template_diagnostics': bool(show_template_diagnostics),
             'print_language': self.print_language(),
             'report_language': self.report_language(),
             'barcode_default_printer': barcode_default_printer or '',
@@ -217,6 +223,8 @@ class SettingsService:
         self.set('printing/zebra_rows', 'true' if zebra_rows else 'false')
         self.set('printing/compact_tables', 'true' if compact_tables else 'false')
         self.set('printing/reverse_print_table_columns', 'true' if reverse_print_table_columns else 'false')
+        self.set('printing/allow_emergency_fallback', 'true' if allow_emergency_fallback else 'false')
+        self.set('printing/show_template_diagnostics', 'true' if show_template_diagnostics else 'false')
         self.set('printing/barcode/default_printer', new['barcode_default_printer'])
         self.set('printing/barcode/label_size', new['barcode_label_size'])
         self.set('printing/barcode/symbology', new['barcode_symbology'])

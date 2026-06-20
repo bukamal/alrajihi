@@ -203,6 +203,8 @@ pyinstaller `
   --add-data "$QtPlatforms;platforms" `
   --add-data "alrajhi_client\assets;assets" `
   --add-data "alrajhi_client\assets;alrajhi_client\assets" `
+  --add-data "alrajhi_client\printing\_template_loader.py;printing" `
+  --add-data "alrajhi_client\printing\_template_loader.py;alrajhi_client\printing" `
   --add-data "alrajhi_client\printing\print_templates.py;printing" `
   --add-data "alrajhi_client\printing\print_templates.py;alrajhi_client\printing" `
   @extra `

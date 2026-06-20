@@ -276,33 +276,40 @@ def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
 
 
 def _company_header(settings: Dict[str, Any], title: str = "") -> str:
+    """Render the single document header used by all browser HTML prints.
+
+    Phase 244 keeps the document name in one place only: the badge inside the
+    header.  Individual templates must not add a second large title below the
+    company block; that was the source of the duplicated title visible in
+    browser output.
+    """
     title = _human_title(title, _tr("print_document"))
     data = _company_data(settings)
-    logo_html = ""
     logo_src = data.get("logo_src") or _image_data_uri(data.get("logo_path")) or _img_src(data.get("logo_path", ""))
+    logo_html = ""
     if logo_src and _bool_setting(settings, "show_logo", True):
         logo_html = f"<td class='brand-logo'><img src='{_s(logo_src)}' alt='logo'></td>"
-    else:
-        logo_html = "<td class='brand-logo placeholder'> </td>"
 
-    # Phase 243: company identity lines are all settings-governed and come
-    # from the SettingsService/SettingsGateway contract, so client-server users
-    # and profiles get the same browser HTML output in Arabic, English or German.
+    # Company identity lines are settings-governed and loaded through the SettingsService/SettingsGateway contract, so local, server
+    # and client modes share
+    # the same browser HTML contract across Arabic, English and German prints.
     name_line = f"<div class='company-name'>{_s(data['name'])}</div>" if _bool_setting(settings, "show_company_name", True) else ""
-    address_line = f"<div class='muted'>{_s(data['address'])}</div>" if data.get("address") and _bool_setting(settings, "show_address", True) else ""
+    address_line = f"<div class='company-line'>{_s(data['address'])}</div>" if data.get("address") and _bool_setting(settings, "show_address", True) else ""
     tax_line = ""
     if data["tax_number"] and _bool_setting(settings, "show_tax_number", True):
-        tax_line = f"<div class='muted'>{_s(_tr('print_tax_number'))}: {_s(data['tax_number'])}</div>"
-    cr_line = f"<div class='muted'>{_s(_tr('print_commercial_register'))}: {_s(data['commercial_register'])}</div>" if data.get("commercial_register") and _bool_setting(settings, "show_commercial_register", True) else ""
-    website_line = f"<div class='muted'>{_s(data['website'])}</div>" if data.get("website") and _bool_setting(settings, "show_website", True) else ""
+        tax_line = f"<span>{_s(_tr('print_tax_number'))}: {_s(data['tax_number'])}</span>"
+    cr_line = f"<span>{_s(_tr('print_commercial_register'))}: {_s(data['commercial_register'])}</span>" if data.get("commercial_register") and _bool_setting(settings, "show_commercial_register", True) else ""
+    website_line = f"<span>{_s(data['website'])}</span>" if data.get("website") and _bool_setting(settings, "show_website", True) else ""
 
     contacts = []
     if data["phone"] and _bool_setting(settings, "show_phone", True):
         contacts.append(_tr("print_phone") + ": " + _s(data["phone"]))
     if data["email"] and _bool_setting(settings, "show_email", True):
         contacts.append(_tr("print_email") + ": " + _s(data["email"]))
-    contact_line = " | ".join(contacts)
-    contact_line_html = f"<div class='muted'>{contact_line}</div>" if contact_line else ""
+    contact_line = "<span>" + "</span><span>".join(contacts) + "</span>" if contacts else ""
+
+    identity_parts = "".join(part for part in (contact_line, tax_line, cr_line, website_line) if part)
+    identity_line = f"<div class='company-identity'>{identity_parts}</div>" if identity_parts else ""
 
     return f"""
     <table class='brand-table'>
@@ -311,15 +318,12 @@ def _company_header(settings: Dict[str, Any], title: str = "") -> str:
             <td class='brand-main'>
                 {name_line}
                 {address_line}
-                {contact_line_html}
-                {tax_line}
-                {cr_line}
-                {website_line}
+                {identity_line}
             </td>
             <td class='brand-meta'>
                 <div class='document-badge'>{_s(title)}</div>
-                <div class='muted'>{_s(_tr("print_date_label"))}</div>
-                <div class='strong'>{_print_meta_line()}</div>
+                <div class='print-meta-label'>{_s(_tr("print_date_label"))}</div>
+                <div class='print-meta-value'>{_print_meta_line()}</div>
             </td>
         </tr>
     </table>
@@ -420,29 +424,36 @@ def base_document(title: str, body_html: str, paper: str = "a4", settings: Optio
 <style>
 @page {{ size: {spec['page']}; margin: {spec['margin']}; }}
 * {{ box-sizing: border-box; }}
-html, body {{ margin: 0; padding: 0; background: #ffffff; color: #111827; direction: {doc_dir}; }}
-body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45; }}
-.sheet {{ width: {spec['width']}; margin: 0 auto; }}
-.brand-table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; border-bottom: 3px solid {accent}; }}
-.brand-table td {{ vertical-align: middle; padding: 8px 6px; border: none; }}
-.brand-logo {{ width: 90px; text-align: center; }}
-.brand-logo img {{ max-width: 78px; max-height: 70px; }}
-.brand-logo.placeholder {{ border: 1px dashed #d1d5db; border-radius: 8px; }}
+html, body {{ margin: 0; padding: 0; color: #111827; direction: {doc_dir}; }}
+html {{ background: #eef2f7; }}
+body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45; background: #eef2f7; }}
+.sheet {{ width: {spec['width']}; margin: 14px auto; background: #ffffff; padding: 11mm; box-shadow: 0 10px 30px rgba(15, 23, 42, .16); border-radius: 10px; }}
+.brand-table {{ width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1px solid #dbe3ef; border-top: 5px solid {accent}; background: #ffffff; }}
+.brand-table td {{ vertical-align: middle; padding: 10px 9px; border: none; }}
+.brand-logo {{ width: 100px; text-align: center; border-{opposite_align}: 1px solid #e5e7eb !important; }}
+.brand-logo img {{ max-width: 82px; max-height: 76px; object-fit: contain; }}
 .brand-main {{ text-align: {text_align}; }}
-.company-name {{ font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }}
-.brand-meta {{ width: 155px; text-align: center; border-right: 1px solid #e5e7eb !important; }}
-.document-badge {{ display: inline-block; background: {accent}; color: #ffffff; padding: 7px 12px; border-radius: 999px; font-weight: 800; margin-bottom: 5px; }}
+.company-name {{ font-size: 21px; font-weight: 900; color: #0f172a; margin-bottom: 3px; letter-spacing: -.2px; }}
+.company-line {{ color: #475569; font-size: 92%; margin: 2px 0; }}
+.company-identity {{ color: #64748b; font-size: 88%; margin-top: 3px; }}
+.company-identity span {{ display: inline-block; margin-{opposite_align}: 10px; white-space: nowrap; }}
+.brand-meta {{ width: 170px; text-align: center; background: #f8fafc; border-{text_align}: 1px solid #e5e7eb !important; }}
+.document-badge {{ display: inline-block; background: {accent}; color: #ffffff; padding: 7px 13px; border-radius: 999px; font-weight: 900; margin-bottom: 6px; min-width: 120px; }}
+.print-meta-label {{ color: #64748b; font-size: 86%; }}
+.print-meta-value {{ font-weight: 900; color: #111827; }}
 .muted {{ color: #64748b; font-size: 90%; }}
 .strong {{ font-weight: 800; color: #111827; }}
-.document-title {{ text-align: center; font-size: 18px; font-weight: 900; margin: 8px 0 10px; color: #0f172a; }}
-.meta-table {{ width: 100%; border-collapse: collapse; margin: 8px 0 12px; }}
-.meta-table td {{ border: 1px solid #dbe3ef; background: #f8fafc; padding: 7px 9px; width: 33.33%; }}
-.meta-label {{ display: block; color: #64748b; font-size: 88%; margin-bottom: 2px; }}
-.meta-value {{ display: block; font-weight: 800; color: #0f172a; }}
+.document-title {{ display: none; }}
+.meta-table {{ width: 100%; border-collapse: separate; border-spacing: 0; margin: 8px 0 12px; border: 1px solid #dbe3ef; border-radius: 8px; overflow: hidden; }}
+.meta-table td {{ border-{opposite_align}: 1px solid #dbe3ef; border-bottom: 1px solid #dbe3ef; background: #f8fafc; padding: 7px 9px; width: 33.33%; }}
+.meta-table tr:last-child td {{ border-bottom: none; }}
+.meta-table td:last-child {{ border-{opposite_align}: none; }}
+.meta-label {{ display: block; color: #64748b; font-size: 86%; margin-bottom: 2px; }}
+.meta-value {{ display: block; font-weight: 850; color: #0f172a; }}
 .data-table {{ width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; direction: {doc_dir}; }}
-.data-table th {{ background: {accent}; color: #ffffff; border: 1px solid {accent}; padding: 8px 5px; font-weight: 800; text-align: center; white-space: normal; }}
-.data-table td {{ border: 1px solid #dbe3ef; padding: 7px 5px; text-align: center; vertical-align: middle; word-wrap: break-word; overflow-wrap: anywhere; }}
-.data-table tbody tr:nth-child(even) td {{ background: #f8fafc; }}
+.data-table th {{ background: {accent}; color: #ffffff; border: 1px solid {accent}; padding: 7px 5px; font-weight: 850; text-align: center; white-space: normal; }}
+.data-table td {{ border: 1px solid #dbe3ef; padding: 6px 5px; text-align: center; vertical-align: middle; word-wrap: break-word; overflow-wrap: anywhere; }}
+.zebra .data-table tbody tr:nth-child(even) td {{ background: #f8fafc; }}
 .data-table thead {{ display: table-header-group; }}
 .data-table tr {{ page-break-inside: avoid; }}
 .data-table .text-cell {{ text-align: {text_align}; }}
@@ -451,34 +462,45 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 .summary-card {{ border: 1px solid #dbe3ef; background: #f8fafc; border-radius: 10px; padding: 8px; text-align: center; }}
 .summary-label {{ color: #64748b; font-size: 88%; }}
 .summary-value {{ color: #0f172a; font-size: 115%; font-weight: 900; margin-top: 2px; }}
-.totals-table {{ width: 42%; min-width: 260px; margin-{opposite_align}: auto; margin-top: 10px; border-collapse: collapse; }}
-.totals-table td {{ border: 1px solid #dbe3ef; padding: 7px 9px; }}
-.totals-table td:first-child {{ background: #f8fafc; color: #334155; font-weight: 700; }}
-.totals-table td:last-child {{ text-align: {text_align}; font-weight: 800; }}
-.totals-table tr.final td {{ background: #eaf2ff; color: #0f172a; font-size: 110%; }}
+.totals-table {{ width: 42%; min-width: 270px; margin-{opposite_align}: auto; margin-{text_align}: 0; margin-top: 12px; border-collapse: collapse; border: 1px solid #dbe3ef; }}
+.totals-table td {{ border-bottom: 1px solid #dbe3ef; padding: 7px 10px; }}
+.totals-table tr:last-child td {{ border-bottom: none; }}
+.totals-table td:first-child {{ background: #f8fafc; color: #334155; font-weight: 750; }}
+.totals-table td:last-child {{ text-align: {opposite_align}; font-weight: 900; font-variant-numeric: tabular-nums; }}
+.totals-table tr.final td {{ background: #eaf2ff; color: #0f172a; font-size: 111%; }}
 .totals-table tr.due td:last-child {{ color: #dc2626; }}
-.notes-box {{ margin-top: 10px; border: 1px dashed #cbd5e1; background: #fcfdff; padding: 8px; min-height: 34px; }}
+.notes-box {{ margin-top: 12px; border: 1px dashed #cbd5e1; background: #fcfdff; padding: 9px; min-height: 34px; border-radius: 8px; }}
 .qr-table {{ width: 100%; margin-top: 10px; border-collapse: collapse; }}
 .qr-table td {{ text-align: center; border: none; color: #64748b; }}
 .qr-table img {{ width: 88px; height: 88px; }}
-.signatures {{ width: 100%; border-collapse: collapse; margin-top: 28px; }}
-.signatures td {{ width: 50%; text-align: center; padding-top: 22px; border-top: 1px solid #475569; color: #334155; }}
-.signatures td:first-child {{ padding-right: 30px; }}
-.signatures td:last-child {{ padding-left: 30px; }}
+.signatures {{ width: 100%; border-collapse: separate; border-spacing: 34px 0; margin-top: 30px; }}
+.signatures td {{ width: 50%; text-align: center; padding-top: 24px; border-top: 1px solid #475569; color: #334155; }}
 .print-footer {{ margin-top: 18px; padding-top: 8px; border-top: 1px solid #e5e7eb; text-align: center; color: #64748b; font-size: 90%; }}
+.compact .sheet {{ padding: 8mm; }}
 .compact .data-table th, .compact .data-table td, .compact .meta-table td, .compact .totals-table td {{ padding: 4px 3px; }}
-.thermal80 .sheet, .thermal58 .sheet {{ width: {spec['width']}; }}
-.thermal80 .brand-table, .thermal58 .brand-table {{ border-bottom-width: 1px; margin-bottom: 5px; }}
+.thermal80, .thermal58 {{ background: #ffffff; }}
+.thermal80 .sheet, .thermal58 .sheet {{ width: {spec['width']}; margin: 0 auto; padding: 2mm; box-shadow: none; border-radius: 0; }}
+.thermal80 .brand-table, .thermal58 .brand-table {{ border: none; border-bottom: 1px dashed #94a3b8; margin-bottom: 5px; }}
+.thermal80 .brand-table td, .thermal58 .brand-table td {{ padding: 2px; }}
 .thermal80 .brand-logo, .thermal58 .brand-logo {{ display: none; }}
-.thermal80 .brand-meta, .thermal58 .brand-meta {{ display: none; }}
-.thermal80 .company-name, .thermal58 .company-name {{ font-size: 12px; text-align: center; }}
-.thermal80 .muted, .thermal58 .muted {{ font-size: 8px; text-align: center; }}
-.thermal80 .document-title, .thermal58 .document-title {{ font-size: 12px; margin: 4px 0; }}
-.thermal80 .data-table th, .thermal80 .data-table td, .thermal58 .data-table th, .thermal58 .data-table td {{ padding: 2px; font-size: 8px; }}
+.thermal80 .brand-meta, .thermal58 .brand-meta {{ display: table-cell; width: auto; background: transparent; border: none !important; }}
+.thermal80 .document-badge, .thermal58 .document-badge {{ background: transparent; color: #111827; padding: 0; border-radius: 0; font-size: 11px; min-width: 0; }}
+.thermal80 .print-meta-label, .thermal80 .print-meta-value, .thermal58 .print-meta-label, .thermal58 .print-meta-value {{ display: none; }}
+.thermal80 .company-name, .thermal58 .company-name {{ font-size: 11px; text-align: center; }}
+.thermal80 .company-line, .thermal80 .company-identity, .thermal58 .company-line, .thermal58 .company-identity {{ font-size: 8px; text-align: center; }}
+.thermal80 .company-identity span, .thermal58 .company-identity span {{ margin: 0 2px; white-space: normal; }}
+.thermal80 .meta-table, .thermal58 .meta-table {{ border-radius: 0; margin: 4px 0; }}
 .thermal80 .meta-table td, .thermal58 .meta-table td {{ display: table-cell; padding: 2px; font-size: 8px; }}
-.thermal80 .totals-table, .thermal58 .totals-table {{ width: 100%; min-width: 0; }}
+.thermal80 .data-table th, .thermal80 .data-table td, .thermal58 .data-table th, .thermal58 .data-table td {{ padding: 2px; font-size: 8px; }}
+.thermal80 .totals-table, .thermal58 .totals-table {{ width: 100%; min-width: 0; margin: 5px 0 0; }}
+.thermal80 .notes-box, .thermal58 .notes-box {{ padding: 3px; min-height: 0; border-radius: 0; }}
 .thermal80 .signatures, .thermal58 .signatures {{ display: none; }}
 .thermal80 .hide-thermal, .thermal58 .hide-thermal {{ display: none; }}
+@media print {{
+  html, body {{ background: #ffffff; }}
+  .sheet {{ width: 100%; margin: 0; padding: 0; box-shadow: none; border-radius: 0; }}
+  .no-print {{ display: none !important; }}
+}}
 </style>
 </head>
 <body class='{_s(spec['class'])}{compact}{zebra}'>
@@ -527,7 +549,6 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
 
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([
         [(_tr("print_document_number"), ref), (_tr("print_document_date"), date), (party_label, party)],
         [(_tr("print_warehouse"), warehouse), (_tr("print_payment_method"), payment_method), (_tr("print_user"), user_name)],
@@ -556,7 +577,6 @@ def voucher_html(voucher: Dict[str, Any], paper: str = "default") -> str:
     title = {"receipt": _tr("receipt_voucher"), "payment": _tr("payment_voucher"), "expense": _tr("expense_voucher")}.get(vtype, _tr("voucher"))
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([
         [(_tr("print_number"), voucher.get("id") or voucher.get("reference")), (_tr("print_document_date"), voucher.get("date")), (_tr("amount"), voucher.get("amount"))],
         [(_tr("print_party"), voucher.get("party_name", "")), (_tr("print_account"), voucher.get("account_name", "")), (_tr("print_user"), voucher.get("user_name", ""))],
@@ -584,7 +604,6 @@ def report_html(title: str, rows: List[List[Any]], headers: List[str], subtitle:
     paper = _normalize_paper(paper, settings, "report")
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     <div class='muted' style='text-align:center;margin-bottom:8px;'>{_s(subtitle)}</div>
     {_summary_cards(summary)}
     {_table(headers, rows, _tr("print_no_data"))}
@@ -654,7 +673,6 @@ def restaurant_receipt_html(data: Dict[str, Any], paper: str = "default") -> str
 
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([
         [(_tr("print_document_number"), ref), (_tr("restaurant_table"), table), (_tr("restaurant_guests"), guests)],
         [(_tr("restaurant_opened_at"), opened), (_tr("restaurant_closed_at"), closed), (_tr("restaurant_waiter"), waiter)],
@@ -696,7 +714,6 @@ def restaurant_kitchen_ticket_html(data: Dict[str, Any], paper: str = "default")
         ])
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([
         [(_tr("print_document_number"), ticket.get("id") or ""), (_tr("restaurant_table"), ticket.get("table_name") or ticket.get("table_id") or ""), (_tr("restaurant_station"), ticket.get("station_name") or ticket.get("station_code") or "")],
         [(_tr("restaurant_sent_at"), ticket.get("sent_at") or ""), (_tr("restaurant_ticket_status"), ticket.get("status") or ""), (_tr("print_notes"), ticket.get("notes") or "")],
@@ -744,7 +761,6 @@ def manufacturing_bom_html(data: Dict[str, Any], paper: str = "default") -> str:
         ])
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([
         [(_tr('print_product'), bom.get('product_name') or bom.get('item_name') or bom.get('product_id') or ''), (_tr('print_quantity'), bom.get('output_qty') or bom.get('quantity') or 1), (_tr('status'), bom.get('status') or '')],
         [(_tr('print_document_number'), bom.get('id') or bom.get('bom_id') or ''), (_tr('print_unit'), bom.get('unit_name') or bom.get('unit') or ''), (_tr('print_notes'), bom.get('notes') or '')],
@@ -792,7 +808,6 @@ def production_order_html(data: Dict[str, Any], paper: str = "default") -> str:
         res_rows.append([i, _line_value(r, 'item_name', 'name', 'item', default=r.get('item_id', '')), _line_value(r, 'unit_name', 'unit'), reserved, consumed, remaining, _line_value(r, 'base_qty', 'reserved_base_qty'), _line_value(r, 'conversion_factor')])
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {meta}
     <h3>{_s(_tr('consumed_materials'))}</h3>
     {_table(['#', _tr('print_item'), _tr('print_unit'), _tr('print_quantity'), _tr('manufacturing_column_base_qty'), _tr('unit_cost'), _tr('print_total'), _tr('print_document_date')], cons_rows, _tr('print_no_consumed_materials'))}
@@ -819,7 +834,6 @@ def manufacturing_pick_ticket_html(data: Dict[str, Any], paper: str = "default")
         rows.append([i, _line_value(row, 'item_name', 'name', 'item', default=row.get('item_id', '')), _line_value(row, 'barcode', 'matched_barcode'), _line_value(row, 'unit_name', 'unit'), _line_value(row, 'pick_qty', 'remaining_qty'), _line_value(row, 'reserved_qty'), _line_value(row, 'consumed_qty'), _line_value(row, 'base_qty', 'reserved_base_qty'), _line_value(row, 'raw_warehouse_name', 'warehouse_name')])
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([
         [(_tr('order_number'), order.get('order_number') or order.get('id') or ''), (_tr('product'), order.get('product_name') or order.get('item_name') or ''), (_tr('status'), _manufacturing_status(order.get('status')))],
         [(_tr('raw_warehouse'), order.get('raw_warehouse_name') or ''), (_tr('planned_quantity'), order.get('planned_qty') or ''), (_tr('print_notes'), order.get('notes') or '')],
@@ -848,7 +862,6 @@ def manufacturing_cost_report_html(data: Dict[str, Any], paper: str = "default")
     ]
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([
         [(_tr('order_number'), order.get('order_number') or order.get('id') or ''), (_tr('product'), order.get('product_name') or order.get('item_name') or ''), (_tr('status'), _manufacturing_status(order.get('status')))],
         [(_tr('planned_quantity'), order.get('planned_qty') or ''), (_tr('produced_quantity'), order.get('produced_qty') or ''), (_tr('print_notes'), order.get('notes') or '')],
@@ -889,7 +902,6 @@ def inventory_transfer_html(data: Dict[str, Any], paper: str = "default") -> str
         ])
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([
         [(_tr('transfer_no'), transfer.get('transfer_no') or transfer.get('id') or ''), (_tr('status'), transfer.get('status') or ''), (_tr('print_date'), transfer.get('created_at') or '')],
         [(_tr('from_warehouse_clean'), transfer.get('from_warehouse_name') or transfer.get('from_warehouse') or ''), (_tr('to_warehouse_clean'), transfer.get('to_warehouse_name') or transfer.get('to_warehouse') or ''), (_tr('print_notes'), transfer.get('notes') or '')],
@@ -912,7 +924,6 @@ def inventory_balances_html(data: Dict[str, Any], paper: str = "default") -> str
         rows.append([i, _line_value(row, 'item_name', 'name', default=row.get('item_id', '')), _line_value(row, 'barcode'), _line_value(row, 'warehouse_name', 'warehouse'), _line_value(row, 'quantity', 'available_qty', 'balance'), _line_value(row, 'unit_name', 'unit'), _line_value(row, 'inventory_value', 'value'), _line_value(row, 'status')])
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([[(_tr('print_warehouse'), payload.get('warehouse_name') or payload.get('warehouse') or _tr('all')), (_tr('print_date'), _print_meta_line()), (_tr('print_notes'), payload.get('notes') or '')]])}
     {_table(['#', _tr('print_item'), _tr('print_barcode'), _tr('print_warehouse'), _tr('quantity'), _tr('print_unit'), _tr('inventory_value'), _tr('status')], rows, _tr('print_no_data'))}
     {_footer(settings, _tr('inventory_balances_footer'))}
@@ -931,7 +942,6 @@ def inventory_movements_html(data: Dict[str, Any], paper: str = "default") -> st
         rows.append([i, _line_value(row, 'created_at', 'date'), _line_value(row, 'item_name', 'name', default=row.get('item_id', '')), _line_value(row, 'warehouse_name', 'warehouse'), _inventory_movement_type(row.get('movement_type')), _line_value(row, 'quantity'), _line_value(row, 'unit_cost'), _line_value(row, 'reference_type'), _line_value(row, 'notes')])
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([[(_tr('print_warehouse'), payload.get('warehouse_name') or payload.get('warehouse') or _tr('all')), (_tr('status'), payload.get('movement_type') or _tr('all')), (_tr('print_date'), _print_meta_line())]])}
     {_table(['#', _tr('print_date'), _tr('print_item'), _tr('print_warehouse'), _tr('type'), _tr('quantity'), _tr('unit_cost'), _tr('reference'), _tr('print_notes')], rows, _tr('print_no_data'))}
     {_footer(settings, _tr('inventory_movements_footer'))}
@@ -950,7 +960,6 @@ def inventory_ledger_html(data: Dict[str, Any], paper: str = "default") -> str:
         rows.append([i, _line_value(row, 'created_at', 'date'), _line_value(row, 'item_name', 'name', default=row.get('item_id', '')), _line_value(row, 'warehouse_name', 'warehouse'), _inventory_movement_type(row.get('movement_type')), _line_value(row, 'direction'), _line_value(row, 'quantity'), _line_value(row, 'unit_cost'), _line_value(row, 'reference_type'), _line_value(row, 'notes')])
     body = f"""
     {_company_header(settings, title)}
-    <div class='document-title'>{_s(title)}</div>
     {_meta_table([[(_tr('print_warehouse'), payload.get('warehouse_name') or payload.get('warehouse') or _tr('all')), (_tr('print_date'), _print_meta_line()), (_tr('print_notes'), payload.get('notes') or '')]])}
     {_table(['#', _tr('print_date'), _tr('print_item'), _tr('print_warehouse'), _tr('type'), _tr('direction'), _tr('quantity'), _tr('unit_cost'), _tr('reference'), _tr('print_notes')], rows, _tr('print_no_data'))}
     {_footer(settings, _tr('inventory_ledger_footer'))}

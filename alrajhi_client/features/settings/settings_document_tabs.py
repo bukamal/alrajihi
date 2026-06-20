@@ -216,6 +216,8 @@ class PrintingSettingsTab(SettingsSectionDocumentTab):
         ('printing/zebra_rows', 'settings_print_zebra_rows', 'bool'),
         ('printing/compact_tables', 'settings_print_compact_tables', 'bool'),
         ('printing/reverse_print_table_columns', 'settings_print_reverse_columns', 'bool'),
+        ('printing/allow_emergency_fallback', 'settings_print_allow_emergency_fallback', 'bool'),
+        ('printing/show_template_diagnostics', 'settings_print_show_template_diagnostics', 'bool'),
         ('printing/footer_text', 'footer_text', 'text'),
     )
 
