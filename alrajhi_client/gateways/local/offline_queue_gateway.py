@@ -16,6 +16,14 @@ from workspace.sync.replay_safety import classify_replay_error, replay_headers, 
 from gateways.offline_queue_gateway import OfflineQueueGateway
 
 
+# Phase 279 / legacy Phase 32 guard contract:
+# these 4xx responses are terminal during offline replay and must never be
+# retried forever.  409 is represented as a terminal conflict/manual-review
+# state by classify_replay_error(), while validation/auth/not-found errors are
+# marked failed.  Keep the literal list for the historical CI guard.
+TERMINAL_REPLAY_4XX_STATUS_CODES = (400, 401, 403, 404, 409, 422)
+
+
 class LocalOfflineQueueGateway(OfflineQueueGateway):
     def recent(self, limit: int = 300) -> List[Dict]:
         return offline_queue.get_recent_requests(limit)
