@@ -347,6 +347,35 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['danger']};
             border-color: {colors['danger']};
         }}
+        QPushButton#restaurantTableButton[restaurant_status="kitchen"] {{
+            background-color: {colors['warning_soft']};
+            color: {colors['warning']};
+            border-color: {colors['warning']};
+        }}
+        QPushButton#restaurantTableButton[restaurant_status="ready"] {{
+            background-color: {colors['success_soft']};
+            color: {colors['success']};
+            border-color: {colors['success']};
+        }}
+        QPushButton#restaurantOrderModeButton, QPushButton#restaurantKitchenModeButton,
+        QPushButton#restaurantAnalyticsModeButton {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px 14px;
+            font-weight: 900;
+        }}
+        QPushButton#restaurantOrderModeButton[active="true"], QPushButton#restaurantKitchenModeButton[active="true"],
+        QPushButton#restaurantAnalyticsModeButton[active="true"] {{
+            background-color: {colors['primary']};
+            color: white;
+            border-color: {colors['primary']};
+        }}
+        QLabel#restaurantMenuSectionTitle {{
+            font-size: 15px;
+            font-weight: 900;
+            color: {colors['text_primary']};
+        }}
         QPushButton#restaurantTableButton:hover {{
             background-color: {colors['brand_soft']};
             color: {colors['primary']};

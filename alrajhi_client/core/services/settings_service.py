@@ -372,6 +372,11 @@ class SettingsService:
             'price_decimals': int(units.get('price_decimals', 2) or 2),
             'rounding_method': units.get('rounding_method', 'HALF_UP') or 'HALF_UP',
             'touch_density': density,
+            'ui': {
+                'show_kitchen_panel': self.get_bool('restaurant/ui/show_kitchen_panel', False),
+                'show_analytics_panel': self.get_bool('restaurant/ui/show_analytics_panel', False),
+                'table_card_density': self.get('restaurant/ui/table_card_density', density) or density,
+            },
             'default_payment_method': payment,
             'receipt_paper': self.get('restaurant/receipt_paper', printing.get('thermal_size', '80mm')) or '80mm',
             'kitchen_ticket_paper': self.get('restaurant/kitchen_ticket_paper', self.get('restaurant/receipt_paper', printing.get('thermal_size', '80mm'))) or '80mm',

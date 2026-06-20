@@ -6880,3 +6880,47 @@ try:
         _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
 except Exception:
     pass
+
+# Phase 283: restaurant operation shell professionalization.
+_translations['ar'].update({
+    'restaurant.operation_shell': 'تشغيل المطعم',
+    'restaurant.mode.order': 'الطلب الحالي',
+    'restaurant.mode.kitchen': 'شاشة المطبخ',
+    'restaurant.mode.analytics': 'التحليلات',
+    'restaurant.menu_items': 'قائمة المطعم',
+    'restaurant.status.kitchen': 'بانتظار المطبخ',
+    'restaurant.status.ready': 'جاهزة للتقديم',
+    'restaurant.table_total': 'الإجمالي: {total}',
+    'restaurant.elapsed_minutes': 'منذ {minutes} دقيقة',
+    'settings.show_kitchen_panel': 'إظهار شاشة المطبخ داخل لوحة المطعم',
+    'settings.show_analytics_panel': 'إظهار تحليلات المطعم داخل شاشة التشغيل',
+    'settings.table_card_density': 'كثافة بطاقات الطاولات',
+})
+_translations['de'].update({
+    'restaurant.operation_shell': 'Restaurantbetrieb',
+    'restaurant.mode.order': 'Aktuelle Bestellung',
+    'restaurant.mode.kitchen': 'Küche',
+    'restaurant.mode.analytics': 'Analysen',
+    'restaurant.menu_items': 'Restaurantkarte',
+    'restaurant.status.kitchen': 'Wartet auf Küche',
+    'restaurant.status.ready': 'Servierbereit',
+    'restaurant.table_total': 'Summe: {total}',
+    'restaurant.elapsed_minutes': 'Seit {minutes} Min.',
+    'settings.show_kitchen_panel': 'Küchenanzeige im Restaurant-Dashboard zeigen',
+    'settings.show_analytics_panel': 'Restaurant-Analysen im Betriebsbildschirm zeigen',
+    'settings.table_card_density': 'Tischkarten-Dichte',
+})
+_translations['en'].update({
+    'restaurant.operation_shell': 'Restaurant operations',
+    'restaurant.mode.order': 'Current order',
+    'restaurant.mode.kitchen': 'Kitchen display',
+    'restaurant.mode.analytics': 'Analytics',
+    'restaurant.menu_items': 'Menu items',
+    'restaurant.status.kitchen': 'Waiting for kitchen',
+    'restaurant.status.ready': 'Ready to serve',
+    'restaurant.table_total': 'Total: {total}',
+    'restaurant.elapsed_minutes': '{minutes} min ago',
+    'settings.show_kitchen_panel': 'Show kitchen display inside restaurant dashboard',
+    'settings.show_analytics_panel': 'Show restaurant analytics inside operations screen',
+    'settings.table_card_density': 'Table-card density',
+})
