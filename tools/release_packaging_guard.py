@@ -8,6 +8,7 @@ critical PyInstaller collection flags, and cache artifacts in the source tree.
 """
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
 
@@ -31,6 +32,9 @@ REQUIRED_REQUIREMENTS = [
     "pyserial", "opencv-python", "pyzbar", "Flask", "Flask-JWT-Extended",
     "waitress", "Werkzeug",
 ]
+
+CACHE_DIR_NAMES = {"__pycache__", ".pytest_cache"}
+CACHE_PARENT_IGNORES = {".git", ".venv", "venv", "env", "dist"}
 
 BUILD_FLAGS = [
     "--collect-all PyQt5",
@@ -58,6 +62,32 @@ def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8", errors="replace")
 
 
+def _is_ignored_cache_path(path: Path) -> bool:
+    rel = path.relative_to(ROOT)
+    return any(part in CACHE_PARENT_IGNORES for part in rel.parts)
+
+
+def _clean_generated_cache_artifacts() -> list[str]:
+    """Remove Python/pytest caches created by local CI steps before release checks.
+
+    The guard may run after compileall or pytest in CI.  Those steps create
+    __pycache__/.pytest_cache directories that are not part of the source
+    release payload.  Clean them first, then report only caches that could not
+    be removed.
+    """
+    remaining: list[str] = []
+    for name in CACHE_DIR_NAMES:
+        for artifact in list(ROOT.rglob(name)):
+            if not artifact.is_dir() or _is_ignored_cache_path(artifact):
+                continue
+            shutil.rmtree(artifact, ignore_errors=True)
+    for name in CACHE_DIR_NAMES:
+        for artifact in ROOT.rglob(name):
+            if artifact.is_dir() and not _is_ignored_cache_path(artifact):
+                remaining.append(str(artifact.relative_to(ROOT)))
+    return sorted(set(remaining))
+
+
 def main() -> int:
     errors: list[str] = []
     for rel in REQUIRED_FILES:
@@ -75,10 +105,11 @@ def main() -> int:
         if flag not in build and flag not in workflow:
             errors.append(f"Build path missing PyInstaller flag: {flag}")
 
-    for artifact in ROOT.rglob("__pycache__"):
-        errors.append(f"Cache artifact present: {artifact.relative_to(ROOT)}")
-    for artifact in ROOT.rglob(".pytest_cache"):
-        errors.append(f"Pytest cache artifact present: {artifact.relative_to(ROOT)}")
+    for artifact in _clean_generated_cache_artifacts():
+        if artifact.endswith(".pytest_cache") or ".pytest_cache" in artifact:
+            errors.append(f"Pytest cache artifact present after cleanup: {artifact}")
+        else:
+            errors.append(f"Cache artifact present after cleanup: {artifact}")
 
     if errors:
         print("Release packaging guard failed:")

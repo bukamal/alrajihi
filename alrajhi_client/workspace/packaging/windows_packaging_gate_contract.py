@@ -126,6 +126,14 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8", errors="replace") if path.exists() else ""
 
 
+def _parse_python_source_for_release(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    try:
+        ast.parse(text, filename=str(path), feature_version=(3, 11))
+    except TypeError:  # pragma: no cover - compatibility with older Python runtimes
+        ast.parse(text, filename=str(path))
+
+
 def _load_manifest(root: Path) -> Mapping[str, Sequence[str]]:
     manifest_path = root / "build" / "pyinstaller_hidden_imports.py"
     ns: Dict[str, object] = {}
@@ -189,7 +197,7 @@ def validate_windows_packaging_gate(root: Path | None = None) -> Dict[str, List[
         if not path.exists():
             continue
         try:
-            ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            _parse_python_source_for_release(path)
         except SyntaxError as exc:
             add("source_syntax", f"syntax error in {rel}: {exc}")
 
@@ -205,7 +213,7 @@ def validate_windows_packaging_gate(root: Path | None = None) -> Dict[str, List[
         module_file = _module_file_for_hidden_import(base, module)
         if module_file is not None:
             try:
-                ast.parse(module_file.read_text(encoding="utf-8"), filename=str(module_file))
+                _parse_python_source_for_release(module_file)
             except SyntaxError as exc:
                 add("hidden_import_manifest", f"hidden import syntax error {module}: {exc}")
 

@@ -68,7 +68,10 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (274, "SETTINGS_GROUPED_NAVIGATION"),
         (275, "REPORTS_CALCULATION_CURRENCY_GROUPING"),
         (276, "REPORT_PRINTING_UNIFICATION_CONFIRMATION"),
+        (277, "RELEASE_READINESS_GATE"),
         (278, "WINDOWS_RUNTIME_PACKAGING_GATE"),
+        (279, "PHASE32_OFFLINE_QUEUE_GUARD_HOTFIX"),
+        (280, "RELEASE_PACKAGING_GUARD_CLEANUP_HOTFIX"),
     ]
 )
 
@@ -103,7 +106,10 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (274, "settings_grouped_navigation"),
         (275, "reports_calculation_currency_grouping"),
         (276, "report_printing_unification_confirmation"),
+        (277, "release_readiness_gate"),
         (278, "windows_runtime_packaging_gate"),
+        (279, "phase32_offline_queue_guard_hotfix"),
+        (280, "release_packaging_guard_cleanup_hotfix"),
     ]
 )
 
@@ -124,6 +130,8 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("reports_printing", "reports", "Reports browser printing guard", "tests/test_phase276_report_printing_unification_confirmation.py", phase=276),
     ReleaseGateCheck("printing_pyinstaller", "printing", "Printing PyInstaller loader guard", "tools/phase225_printing_pyinstaller_guard.py", phase=225),
     ReleaseGateCheck("windows_packaging", "packaging", "Windows runtime packaging gate", "tools/windows_runtime_packaging_gate_audit.py", "tools/audit_outputs/windows_runtime_packaging_gate_matrix.csv", phase=278),
+    ReleaseGateCheck("release_packaging", "packaging", "Release packaging guard", "tools/release_packaging_guard.py", phase=280),
+    ReleaseGateCheck("release_hidden_imports", "packaging", "Release hidden imports guard", "tools/release_hidden_imports_guard.py", phase=280),
     ReleaseGateCheck("printing_browser", "printing", "Browser HTML print guard", "tools/phase237_browser_html_print_guard.py", phase=237),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )

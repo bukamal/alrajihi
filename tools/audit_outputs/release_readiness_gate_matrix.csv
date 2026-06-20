@@ -15,5 +15,7 @@ reports_currency,reports,Reports calculation/currency guard,275,tests/test_phase
 reports_printing,reports,Reports browser printing guard,276,tests/test_phase276_report_printing_unification_confirmation.py,True,,True,True
 printing_pyinstaller,printing,Printing PyInstaller loader guard,225,tools/phase225_printing_pyinstaller_guard.py,True,,True,True
 windows_packaging,packaging,Windows runtime packaging gate,278,tools/windows_runtime_packaging_gate_audit.py,True,tools/audit_outputs/windows_runtime_packaging_gate_matrix.csv,True,True
+release_packaging,packaging,Release packaging guard,280,tools/release_packaging_guard.py,True,,True,True
+release_hidden_imports,packaging,Release hidden imports guard,280,tools/release_hidden_imports_guard.py,True,,True,True
 printing_browser,printing,Browser HTML print guard,237,tools/phase237_browser_html_print_guard.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

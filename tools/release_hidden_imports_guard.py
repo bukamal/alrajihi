@@ -10,6 +10,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "build" / "pyinstaller_hidden_imports.py"
 BUILD_FILES = [ROOT / "build" / "build_windows.ps1", ROOT / ".github" / "workflows" / "build-windows-installer.yml"]
+EXTERNAL_HIDDEN_IMPORTS = {"flask_jwt_extended"}
+
+
+def parse_python_source(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    try:
+        ast.parse(text, filename=str(path), feature_version=(3, 11))
+    except TypeError:  # pragma: no cover
+        ast.parse(text, filename=str(path))
 
 
 def load_manifest() -> tuple[list[str], list[str]]:
@@ -41,10 +50,12 @@ def main() -> int:
         candidates = [ROOT / "alrajhi_client" / rel, ROOT / rel]
         module_file = next((c for c in candidates if c.exists()), None)
         if module_file is None:
+            if mod in EXTERNAL_HIDDEN_IMPORTS:
+                continue
             errors.append(f"Hidden import module file missing: {mod}")
             continue
         try:
-            ast.parse(module_file.read_text(encoding="utf-8"), filename=str(module_file))
+            parse_python_source(module_file)
         except SyntaxError as exc:
             errors.append(f"Hidden import syntax error: {mod}: {exc}")
 

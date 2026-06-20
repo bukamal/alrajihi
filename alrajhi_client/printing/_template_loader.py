@@ -350,7 +350,8 @@ def _fallback_report_template(*args: Any, **kwargs: Any) -> str:
         body_rows.append(f"<tr>{cells}</tr>")
     if not body_rows:
         colspan = max(1, len(safe_headers))
-        body_rows.append(f"<tr><td colspan='{colspan}'>{_fallback_text("no_data")}</td></tr>")
+        no_data_text = html.escape(_fallback_text("no_data"))
+        body_rows.append(f"<tr><td colspan='{colspan}'>{no_data_text}</td></tr>")
     table = f"<div class='muted'>{html.escape(str(subtitle or ''))}</div><table><thead><tr>{head}</tr></thead><tbody>{''.join(body_rows)}</tbody></table>"
     return _html_doc(str(title or _fallback_text("report")), table, emergency=True)
 
