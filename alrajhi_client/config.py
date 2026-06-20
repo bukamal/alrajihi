@@ -28,6 +28,8 @@ def get_company_info():
         'commercial_register': settings.value("company/commercial_register", ""),
         'website': settings.value("company/website", ""),
         'logo_path': _valid_logo_path(settings.value("company/logo_path", _default_logo_path())),
+        'logo_data_uri': settings.value("company/logo_data_uri", ""),
+        'logo': settings.value("company/logo_data_uri", "") or _valid_logo_path(settings.value("company/logo_path", _default_logo_path())),
     }
 
 def save_company_info(info):
@@ -40,5 +42,6 @@ def save_company_info(info):
     settings.setValue("company/commercial_register", info.get('commercial_register', ''))
     settings.setValue("company/website", info.get('website', ''))
     settings.setValue("company/logo_path", info.get('logo_path') or _default_logo_path())
+    settings.setValue("company/logo_data_uri", info.get('logo_data_uri', ''))
 
 

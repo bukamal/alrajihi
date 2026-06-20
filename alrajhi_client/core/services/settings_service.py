@@ -761,15 +761,32 @@ class SettingsService:
         audit_service.log('UPDATE', 'SETTINGS_LANGUAGE', None, old_values=old, new_values={'ui_language': ui, 'print_language': pr, 'report_language': rp}, details='تعديل إعدادات اللغات')
 
     def company_info(self) -> Dict[str, Any]:
+        """Return the canonical company identity used by printing and reports.
+
+        Network/client-server note:
+        ``logo_path`` is kept for the workstation that selected the file, while
+        ``logo_data_uri`` is the portable value stored in the settings API so all
+        users/clients can render the same logo even when the original file path
+        does not exist on their machine.
+        """
+        logo_path = self.get(
+            'company/logo_path',
+            self.get('company/logo', self.get('company_logo', ''))
+        )
+        logo_data_uri = self.get('company/logo_data_uri', '')
+        logo_value = logo_data_uri or logo_path
         return {
             'name': self.get('company/name', self.get('company_name', '')),
-            'logo': self.get('company/logo', self.get('company_logo', self.get('company/logo_path', ''))),
+            'logo': logo_value,
+            'logo_path': logo_path,
+            'logo_data_uri': logo_data_uri,
             'commercial_register': self.get('company/commercial_register', ''),
             'tax_number': self.get('company/tax_number', self.get('tax_number', '')),
             'address': self.get('company/address', self.get('company_address', '')),
             'phone': self.get('company/phone', self.get('company_phone', '')),
             'email': self.get('company/email', self.get('company_email', '')),
             'website': self.get('company/website', ''),
+            'language': self.get_language_settings(),
         }
 
     def audit_rows(self, limit: int = 100):
@@ -849,10 +866,38 @@ class SettingsService:
         self.clear_cache()
         audit_service.log('UPDATE', 'SETTINGS_UNITS', None, old_values=old, new_values=new, details='تعديل إعدادات الوحدات')
 
+    def _logo_data_uri_from_path(self, path: str) -> str:
+        """Encode a local logo file as a data URI for network-safe HTML printing."""
+        path = str(path or '').strip()
+        if not path or path.startswith('data:'):
+            return path
+        try:
+            import base64
+            import mimetypes
+            from pathlib import Path
+            candidate = Path(path)
+            if not candidate.exists() or not candidate.is_file():
+                return ''
+            mime = mimetypes.guess_type(str(candidate))[0] or 'image/png'
+            data = base64.b64encode(candidate.read_bytes()).decode('ascii')
+            return f'data:{mime};base64,{data}'
+        except Exception:
+            return ''
+
     def save_company_info(self, info: Dict[str, Any]):
-        """Persist company identity to config and settings so printing/reports use one source."""
+        """Persist company identity through the SettingsGateway/API boundary.
+
+        The company record is used by browser HTML printing, reports and barcode
+        labels.  For multi-user/network mode, save both the original local path
+        and a portable Base64 data URI so remote clients do not depend on another
+        workstation's filesystem.
+        """
         info = dict(info or {})
         old = self.company_info()
+        logo_path = str(info.get('logo_path') or info.get('logo') or '').strip()
+        logo_data_uri = str(info.get('logo_data_uri') or '').strip()
+        if not logo_data_uri and logo_path:
+            logo_data_uri = self._logo_data_uri_from_path(logo_path)
         mapping = {
             'name': 'company/name',
             'address': 'company/address',
@@ -861,15 +906,19 @@ class SettingsService:
             'tax_number': 'company/tax_number',
             'commercial_register': 'company/commercial_register',
             'website': 'company/website',
-            'logo_path': 'company/logo',
-            'logo': 'company/logo',
         }
         for src, key in mapping.items():
             if src in info:
                 self.set(key, info.get(src, '') or '')
+        self.set('company/logo_path', logo_path)
+        self.set('company/logo', logo_path)  # legacy alias
+        self.set('company/logo_data_uri', logo_data_uri)
         try:
             from config import save_company_info as _save_company_info
-            _save_company_info(info)
+            local_info = dict(info)
+            local_info['logo_path'] = logo_path
+            local_info['logo_data_uri'] = logo_data_uri
+            _save_company_info(local_info)
         except Exception:
             pass
         self.clear_cache()

@@ -25,7 +25,6 @@ try:
 except Exception:  # optional, dependency exists in requirements
     qrcode = None
 
-from config import get_company_info
 from core.services.barcode_service import barcode_service, BarcodeError
 
 
@@ -46,9 +45,25 @@ def _tr(key: str, **kwargs) -> str:
         return kwargs.get("default", key)
 
 
+def _company_info() -> Dict:
+    try:
+        from core.services.settings_service import settings_service
+        return settings_service.company_info() or {}
+    except Exception:
+        try:
+            from config import get_company_info
+            return get_company_info() or {}
+        except Exception:
+            return {}
+
+
 def _file_to_data_uri(path: str) -> str:
     path = str(path or "").strip()
-    if not path or not os.path.exists(path):
+    if not path:
+        return ""
+    if path.startswith('data:'):
+        return path
+    if not os.path.exists(path):
         return ""
     ext = os.path.splitext(path)[1].lower().lstrip('.') or 'png'
     if ext == 'jpg':
@@ -158,9 +173,10 @@ class BarcodeLabelService:
         opts = self.normalize_options(options)
         size = self.SIZES[opts.label_size]
         lang, direction = _language_context()
-        company_info = get_company_info() or {}
+        company_info = _company_info()
         company = str(company_info.get('name') or _tr('app_name_short', default='Al Rajhi Accounting')).strip()
-        logo_src = _file_to_data_uri(company_info.get('logo_path')) if opts.show_logo else ''
+        logo_value = company_info.get('logo_data_uri') or company_info.get('logo_path') or company_info.get('logo')
+        logo_src = _file_to_data_uri(logo_value) if opts.show_logo else ''
         barcode = str(item.get('barcode', '') or '').strip()
         name = self.localized_item_name(item)
         price = str(item.get('price', '') or item.get('selling_price', '') or '').strip()

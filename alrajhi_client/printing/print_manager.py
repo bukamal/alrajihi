@@ -4,9 +4,6 @@ from datetime import datetime
 from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox, QSpinBox, QCheckBox, QLabel, QGroupBox, QFormLayout, QMessageBox, QFileDialog
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextDocument, QFont, QTextCursor, QTextBlockFormat, QTextCharFormat, QTextTableFormat, QTextLength
-from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintDialog
-from printer_manager import PrinterManager
-from config import get_company_info
 from utils import clean_text
 from ._template_loader import require_template
 from i18n import translate
@@ -22,13 +19,11 @@ class PrintManager:
         dialog.resize(450, 400)
         layout = QVBoxLayout(dialog)
 
-        printer_group = QGroupBox(translate('phase233_allui_023'))
+        printer_group = QGroupBox(translate('printing'))
         printer_layout = QFormLayout(printer_group)
-        pm = PrinterManager()
-        pm.load_default_printer()
         printer_combo = QComboBox()
-        for p in pm.printers:
-            printer_combo.addItem(p.name, p.id)
+        printer_combo.addItem('Browser HTML', 'browser')
+        printer_combo.setEnabled(False)
         printer_layout.addRow(translate('phase233_ui_023'), printer_combo)
         copies_spin = QSpinBox()
         copies_spin.setRange(1, 99)
@@ -103,30 +98,25 @@ class PrintManager:
 
     @staticmethod
     def create_printer(settings):
-        printer = QPrinter(QPrinter.HighResolution)
-        if settings.get('orientation', 0) == 1:
-            printer.setOrientation(QPrinter.Landscape)
-        else:
-            printer.setOrientation(QPrinter.Portrait)
-        printer.setCopyCount(settings.get('copies', 1))
-        printer.setColorMode(QPrinter.Color if settings.get('color', True) else QPrinter.GrayScale)
-        printer_id = settings.get('printer_id')
-        if printer_id:
-            pm = PrinterManager()
-            printer_info = pm.get_printer(printer_id)
-            if printer_info and printer_info.type.value != 'pdf':
-                printer.setPrinterName(printer_info.name)
-        return printer
+        """Legacy compatibility shim.
+
+        Phase 242 removed Qt printer creation from the print pipeline.  Callers
+        receive the normalized browser settings instead of a device object.
+        """
+        normalized = dict(settings or {})
+        normalized['printer_id'] = 'browser'
+        normalized['direct_print'] = False
+        return normalized
 
     @staticmethod
     def print_html(html, title, parent=None):
         from .printing_service import printing_service
-        printing_service.preview_html(html, parent, title)
+        printing_service.render_html(html, parent, title, mode='browser')
 
     @staticmethod
     def print_invoice(invoice_data, parent=None):
         from .printing_service import printing_service
-        printing_service.invoice_preview(invoice_data, parent, paper='default')
+        printing_service.invoice_print(invoice_data, parent, paper='default')
 
 
 class ProfessionalInvoicePrinter:

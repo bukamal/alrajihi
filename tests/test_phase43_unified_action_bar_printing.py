@@ -30,6 +30,6 @@ def test_phase43_table_printing_still_uses_central_service():
     source = read("alrajhi_client/views/custom_table_view.py")
     ast.parse(source)
     assert "from printing.printing_service import printing_service" in source
-    assert "printing_service.report_preview" in source
     assert "printing_service.report_print" in source
-    assert "printing_service.report_pdf" in source
+    assert "printing_service.report_preview" not in source
+    assert "printing_service.report_pdf" not in source

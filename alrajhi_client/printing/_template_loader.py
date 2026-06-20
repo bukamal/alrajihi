@@ -25,6 +25,7 @@ _TEMPLATE_MODULE_NAMES = (
 )
 
 _REAL_MODULE: ModuleType | None = None
+_LAST_TEMPLATE_LOAD_ERROR = ""
 
 
 def _load_module_from_file(path: str) -> ModuleType | None:
@@ -82,8 +83,10 @@ def load_print_templates() -> ModuleType | None:
         except ModuleNotFoundError as exc:
             # Missing nested dependencies should not permanently break startup;
             # fall through to the next package name / frozen file location.
+            globals()["_LAST_TEMPLATE_LOAD_ERROR"] = f"{name}: {type(exc).__name__}: {exc}"
             continue
-        except Exception:
+        except Exception as exc:
+            globals()["_LAST_TEMPLATE_LOAD_ERROR"] = f"{name}: {type(exc).__name__}: {exc}"
             continue
 
     for candidate in _candidate_template_files():
@@ -92,24 +95,71 @@ def load_print_templates() -> ModuleType | None:
             if module is not None:
                 _REAL_MODULE = module
                 return module
-        except Exception:
+        except Exception as exc:
+            globals()["_LAST_TEMPLATE_LOAD_ERROR"] = f"{candidate}: {type(exc).__name__}: {exc}"
             continue
     return None
 
 
+def _fallback_language_direction() -> tuple[str, str]:
+    try:
+        from i18n.translator import normalize_language, language_direction
+        try:
+            from core.services.settings_service import settings_service
+            lang = normalize_language(settings_service.print_language())
+        except Exception:
+            lang = normalize_language(None)
+        return lang, language_direction(lang)
+    except Exception:
+        return "ar", "rtl"
+
+
+def _fallback_text(key: str) -> str:
+    lang, _direction = _fallback_language_direction()
+    labels = {
+        'ar': {
+            'item': 'المادة', 'quantity': 'الكمية', 'unit': 'الوحدة', 'price': 'السعر', 'discount': 'الخصم', 'tax': 'الضريبة', 'total': 'الإجمالي',
+            'no_lines': 'لا توجد بنود', 'subtotal': 'الإجمالي قبل الخصم', 'paid': 'المقبوض', 'refunded': 'المردود', 'remaining': 'المتبقي',
+            'invoice': 'فاتورة', 'sales_invoice': 'فاتورة مبيعات', 'purchase_invoice': 'فاتورة مشتريات', 'sales_return': 'مرتجع بيع', 'purchase_return': 'مرتجع شراء',
+            'data': 'البيانات', 'number': 'الرقم', 'date': 'التاريخ', 'party': 'الطرف', 'warehouse': 'المستودع', 'payment': 'طريقة الدفع', 'currency': 'العملة',
+            'original_invoice': 'الفاتورة الأصلية', 'status': 'الحالة', 'user': 'المستخدم', 'notes': 'ملاحظات', 'report': 'تقرير', 'no_data': 'لا توجد بيانات',
+        },
+        'de': {
+            'item': 'Artikel', 'quantity': 'Menge', 'unit': 'Einheit', 'price': 'Preis', 'discount': 'Rabatt', 'tax': 'Steuer', 'total': 'Gesamt',
+            'no_lines': 'Keine Positionen', 'subtotal': 'Zwischensumme', 'paid': 'Bezahlt', 'refunded': 'Erstattet', 'remaining': 'Restbetrag',
+            'invoice': 'Rechnung', 'sales_invoice': 'Verkaufsrechnung', 'purchase_invoice': 'Einkaufsrechnung', 'sales_return': 'Verkaufsretoure', 'purchase_return': 'Einkaufsretoure',
+            'data': 'Daten', 'number': 'Nummer', 'date': 'Datum', 'party': 'Partei', 'warehouse': 'Lager', 'payment': 'Zahlungsart', 'currency': 'Währung',
+            'original_invoice': 'Ursprungsrechnung', 'status': 'Status', 'user': 'Benutzer', 'notes': 'Notizen', 'report': 'Bericht', 'no_data': 'Keine Daten',
+        },
+        'en': {
+            'item': 'Item', 'quantity': 'Quantity', 'unit': 'Unit', 'price': 'Price', 'discount': 'Discount', 'tax': 'Tax', 'total': 'Total',
+            'no_lines': 'No lines', 'subtotal': 'Subtotal', 'paid': 'Paid', 'refunded': 'Refunded', 'remaining': 'Remaining',
+            'invoice': 'Invoice', 'sales_invoice': 'Sales invoice', 'purchase_invoice': 'Purchase invoice', 'sales_return': 'Sales return', 'purchase_return': 'Purchase return',
+            'data': 'Data', 'number': 'Number', 'date': 'Date', 'party': 'Party', 'warehouse': 'Warehouse', 'payment': 'Payment method', 'currency': 'Currency',
+            'original_invoice': 'Original invoice', 'status': 'Status', 'user': 'User', 'notes': 'Notes', 'report': 'Report', 'no_data': 'No data',
+        },
+    }
+    return labels.get(lang, labels['ar']).get(key, labels['ar'].get(key, key))
+
+
 def _html_doc(title: str, body: str) -> str:
     safe_title = html.escape(str(title or ""))
+    lang, direction = _fallback_language_direction()
+    align = "right" if direction == "rtl" else "left"
+    error_comment = html.escape(_LAST_TEMPLATE_LOAD_ERROR or "unknown template loading error")
     return (
-        "<!doctype html><html lang='ar' dir='rtl'><head><meta charset='utf-8'>"
+        f"<!doctype html><html lang='{lang}' dir='{direction}'><head><meta charset='utf-8'>"
         f"<title>{safe_title}</title>"
-        "<style>body{font-family:Tahoma,Arial,sans-serif;margin:24px;direction:rtl;color:#111827;}"
+        f"<style>body{{font-family:Tahoma,Arial,sans-serif;margin:24px;direction:{direction};color:#111827;}}"
         "h1{font-size:22px;text-align:center;margin:0 0 16px;}"
         "table{width:100%;border-collapse:collapse;margin-top:12px;table-layout:fixed;}"
         "th{background:#1d4ed8;color:white;font-weight:700;}"
         "th,td{border:1px solid #dbe3ef;padding:7px;text-align:center;word-wrap:break-word;}"
         "tr:nth-child(even) td{background:#f8fafc;}"
         ".muted{color:#64748b;text-align:center;margin:8px 0;}"
+        f".fallback-warning{{direction:ltr;text-align:{align};font-size:11px;color:#b91c1c;margin-bottom:8px;}}"
         "</style></head><body>"
+        f"<!-- fallback-print-template: {error_comment} -->"
         f"<h1>{safe_title}</h1>{body}</body></html>"
     )
 
@@ -158,7 +208,7 @@ def _get(data: Any, *keys: str, default: Any = "") -> Any:
 
 
 def _fallback_lines_table(lines: Any) -> str:
-    headers = ["المادة", "الكمية", "الوحدة", "السعر", "الخصم", "الضريبة", "الإجمالي"]
+    headers = [_fallback_text("item"), _fallback_text("quantity"), _fallback_text("unit"), _fallback_text("price"), _fallback_text("discount"), _fallback_text("tax"), _fallback_text("total")]
     rows = []
     if isinstance(lines, (list, tuple)):
         for line in lines:
@@ -174,7 +224,7 @@ def _fallback_lines_table(lines: Any) -> str:
                 _money(_get(line, "line_total", "total")),
             ])
     if not rows:
-        rows.append(["لا توجد بنود", "", "", "", "", "", ""])
+        rows.append([_fallback_text("no_lines"), "", "", "", "", "", ""])
     head = "".join(f"<th>{html.escape(h)}</th>" for h in headers)
     body = "".join("<tr>" + "".join(f"<td>{html.escape(_clean_value(c))}</td>" for c in row) + "</tr>" for row in rows)
     return f"<table><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
@@ -192,12 +242,12 @@ def _fallback_meta_table(rows: Iterable[Iterable[Any]]) -> str:
 
 def _fallback_totals_table(data: dict, is_return: bool = False) -> str:
     rows = [
-        ("الإجمالي قبل الخصم", _money(_get(data, "total_before_discount", "subtotal"))),
-        ("الخصم", _money(_get(data, "discount_amount", "discount"))),
-        ("الضريبة", _money(_get(data, "tax_amount", "tax"))),
-        ("الإجمالي", _money(_get(data, "total", "refund_amount" if is_return else "total"))),
-        ("المقبوض" if not is_return else "المردود", _money(_get(data, "paid_amount", "paid", "refund_amount"))),
-        ("المتبقي", _money(_get(data, "remaining"))),
+        (_fallback_text("subtotal"), _money(_get(data, "total_before_discount", "subtotal"))),
+        (_fallback_text("discount"), _money(_get(data, "discount_amount", "discount"))),
+        (_fallback_text("tax"), _money(_get(data, "tax_amount", "tax"))),
+        (_fallback_text("total"), _money(_get(data, "total", "refund_amount" if is_return else "total"))),
+        (_fallback_text("paid") if not is_return else _fallback_text("refunded"), _money(_get(data, "paid_amount", "paid", "refund_amount"))),
+        (_fallback_text("remaining"), _money(_get(data, "remaining"))),
     ]
     body = "".join(f"<tr><td>{html.escape(k)}</td><td>{html.escape(v)}</td></tr>" for k, v in rows)
     return f"<table><tbody>{body}</tbody></table>"
@@ -205,15 +255,15 @@ def _fallback_totals_table(data: dict, is_return: bool = False) -> str:
 
 def _fallback_invoice_template(data: Any, *, is_return: bool = False) -> str:
     if not isinstance(data, dict):
-        return _fallback_report_template("فاتورة", [[_clean_value(data)]], ["البيانات"])
+        return _fallback_report_template(_fallback_text("invoice"), [[_clean_value(data)]], [_fallback_text("data")])
     doc_type = _get(data, "return_type", "type")
     if is_return:
-        title = "مرتجع بيع" if str(doc_type) in {"sale", "sale_return"} else "مرتجع شراء"
+        title = _fallback_text("sales_return") if str(doc_type) in {"sale", "sale_return"} else _fallback_text("purchase_return")
     else:
-        title = "فاتورة مبيعات" if str(doc_type) == "sale" else "فاتورة مشتريات" if str(doc_type) == "purchase" else "فاتورة"
+        title = _fallback_text("sales_invoice") if str(doc_type) == "sale" else _fallback_text("purchase_invoice") if str(doc_type) == "purchase" else _fallback_text("invoice")
     ref = _get(data, "reference", "return_number", "return_no", "number", "id")
     party = _get(data, "party_name", "customer_name", "supplier_name", "entity_name")
-    party_label = "الطرف"
+    party_label = _fallback_text("party")
     body = """
     <style>
     .fallback-print .title{{font-size:24px;font-weight:700;text-align:center;margin:0 0 14px;}}
@@ -225,23 +275,24 @@ def _fallback_invoice_template(data: Any, *, is_return: bool = False) -> str:
       {meta}
       <div class='section'>{lines}</div>
       <div class='totals'>{totals}</div>
-      <div class='section'><b>ملاحظات:</b> {notes}</div>
+      <div class='section'><b>{notes_label}:</b> {notes}</div>
     </div>
     """.format(
         title=html.escape(title),
         meta=_fallback_meta_table([
-            [("الرقم", ref), ("التاريخ", _get(data, "date", "created_at")), (party_label, party)],
-            [("المستودع", _get(data, "warehouse_name", "warehouse")), ("طريقة الدفع", _get(data, "payment_method")), ("العملة", _get(data, "currency", "original_currency"))],
-            [("الفاتورة الأصلية", _get(data, "original_invoice", "original_invoice_id")), ("الحالة", _get(data, "payment_status", "status")), ("المستخدم", _get(data, "user_name", "created_by"))],
+            [(_fallback_text("number"), ref), (_fallback_text("date"), _get(data, "date", "created_at")), (party_label, party)],
+            [(_fallback_text("warehouse"), _get(data, "warehouse_name", "warehouse")), (_fallback_text("payment"), _get(data, "payment_method")), (_fallback_text("currency"), _get(data, "currency", "original_currency"))],
+            [(_fallback_text("original_invoice"), _get(data, "original_invoice", "original_invoice_id")), (_fallback_text("status"), _get(data, "payment_status", "status")), (_fallback_text("user"), _get(data, "user_name", "created_by"))],
         ]),
         lines=_fallback_lines_table(_get(data, "lines", default=[])),
         totals=_fallback_totals_table(data, is_return=is_return),
         notes=html.escape(_clean_value(_get(data, "notes", "description"))),
+        notes_label=html.escape(_fallback_text("notes")),
     )
     return _html_doc(title, body)
 
 def _fallback_report_template(*args: Any, **kwargs: Any) -> str:
-    title = kwargs.get("title") if "title" in kwargs else (args[0] if len(args) > 0 else "تقرير")
+    title = kwargs.get("title") if "title" in kwargs else (args[0] if len(args) > 0 else _fallback_text("report"))
     rows = kwargs.get("rows") if "rows" in kwargs else (args[1] if len(args) > 1 else [])
     headers = kwargs.get("headers") if "headers" in kwargs else (args[2] if len(args) > 2 else [])
     subtitle = kwargs.get("subtitle") if "subtitle" in kwargs else (args[3] if len(args) > 3 else "")
@@ -256,9 +307,9 @@ def _fallback_report_template(*args: Any, **kwargs: Any) -> str:
         body_rows.append(f"<tr>{cells}</tr>")
     if not body_rows:
         colspan = max(1, len(safe_headers))
-        body_rows.append(f"<tr><td colspan='{colspan}'>لا توجد بيانات</td></tr>")
+        body_rows.append(f"<tr><td colspan='{colspan}'>{_fallback_text("no_data")}</td></tr>")
     table = f"<div class='muted'>{html.escape(str(subtitle or ''))}</div><table><thead><tr>{head}</tr></thead><tbody>{''.join(body_rows)}</tbody></table>"
-    return _html_doc(str(title or "تقرير"), table)
+    return _html_doc(str(title or _fallback_text("report")), table)
 
 
 def _fallback_template(name: str) -> Callable:

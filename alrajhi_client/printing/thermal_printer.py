@@ -6,8 +6,6 @@ from PIL import Image
 from barcode import Code128
 from barcode.writer import ImageWriter
 from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtGui import QTextDocument
-from PyQt5.QtPrintSupport import QPrinter
 from .label_designer import get_current_template
 from utils import show_toast
 from core.services.barcode_label_service import barcode_label_service
@@ -53,43 +51,34 @@ class ThermalPrinter:
         self._serial.write(self.CMD_BARCODE_CODE128 + bytes([n]) + barcode.encode() + b'\x00')
 
     def print_label(self, barcode: str, item_name: str, price: str = "", copies: int = 1) -> bool:
-        if not self.connect():
-            return False
+        """Open a thermal-sized browser HTML label instead of raw serial print."""
         try:
-            for _ in range(copies):
-                self._serial.write(self.CMD_ALIGN_CENTER)
-                self._serial.write(item_name.encode('utf-8') + b'\n')
-                self.print_barcode(barcode)
-                if price:
-                    self._serial.write(f"السعر: {price}".encode('utf-8') + b'\n')
-                self._serial.write(b'\n\n')
-            self._serial.write(self.CMD_CUT)
-            return True
+            from .printing_service import printing_service
+            item = {'barcode': barcode, 'name': item_name, 'price': price, 'copies': copies}
+            html = barcode_label_service.labels_document_html([item], {'columns': 1, 'label_size': 'thermal'})
+            return printing_service.open_html_in_browser(html, None, 'barcode_label')
         except Exception as e:
             print(f"خطأ في الطباعة: {e}")
             return False
-        finally:
-            self.disconnect()
 
     def print_receipt(self, lines: list, double_height: bool = False) -> bool:
-        if not self.connect():
-            return False
+        """Open receipt content as browser HTML using the report template."""
         try:
-            self._serial.write(self.CMD_ALIGN_CENTER)
-            self._serial.write("الراجحي للمحاسبة".encode('utf-8') + b'\n')
-            self._serial.write(b'-' * 32 + b'\n')
-            for line in lines:
-                self._serial.write(line.encode('utf-8') + b'\n')
-            self._serial.write(b'-' * 32 + b'\n')
-            self._serial.write("شكراً لتعاملكم معنا".encode('utf-8') + b'\n\n')
-            self._serial.write(self.CMD_CUT)
-            return True
-        except:
+            from .printing_service import printing_service
+            rows = [[line] for line in (lines or [])]
+            html = printing_service.report_html('receipt', rows, [''], subtitle='')
+            return printing_service.open_html_in_browser(html, None, 'receipt')
+        except Exception as e:
+            print(f"خطأ في الطباعة: {e}")
             return False
-        finally:
-            self.disconnect()
 
 class PDFPrinter:
+    """Backward-compatible barcode PDF facade.
+
+    The project no longer renders barcode PDFs through Qt.  These methods open
+    the same settings-driven browser HTML used by barcode label printing; users
+    can print or save as PDF from the browser.
+    """
     def __init__(self, parent_widget=None):
         self.parent = parent_widget
 
@@ -97,40 +86,15 @@ class PDFPrinter:
         return barcode_label_service.barcode_png_base64(barcode, symbology)
 
     def print_label(self, barcode: str, item_name: str, price: str = "", copies: int = 1, options: dict | None = None) -> bool:
-        if self.parent is None:
-            print("خطأ: لا يوجد نافذة أبوية لفتح حوار الحفظ")
-            return False
-        filename, _ = QFileDialog.getSaveFileName(self.parent, "حفظ PDF", f"barcode_{item_name}.pdf", "PDF (*.pdf)")
-        if not filename:
-            return False
+        from .printing_service import printing_service
         item = {'barcode': barcode, 'name': item_name, 'price': price, 'copies': copies}
         html = barcode_label_service.labels_document_html([item], options or {'columns': 1})
-        doc = QTextDocument()
-        doc.setHtml(html)
-        printer = QPrinter()
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setOutputFileName(filename)
-        doc.print(printer)
-        if self.parent:
-            show_toast(f"تم حفظ PDF بنجاح: {os.path.basename(filename)}", "success", self.parent)
-        return True
+        return printing_service.open_html_in_browser(html, self.parent, 'barcode_label')
 
     def print_labels_batch(self, items_data: list, options: dict | None = None) -> bool:
-        if self.parent is None:
-            return False
-        filename, _ = QFileDialog.getSaveFileName(self.parent, "حفظ الباركودات كـ PDF", "barcodes_batch.pdf", "PDF (*.pdf)")
-        if not filename:
-            return False
-        html = barcode_label_service.labels_document_html(items_data, options or {})
-        doc = QTextDocument()
-        doc.setHtml(html)
-        printer = QPrinter()
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setOutputFileName(filename)
-        doc.print(printer)
-        if self.parent:
-            show_toast(f"تم حفظ PDF بنجاح: {os.path.basename(filename)}", "success", self.parent)
-        return True
+        from .printing_service import printing_service
+        html = barcode_label_service.labels_document_html(items_data or [], options or {})
+        return printing_service.open_html_in_browser(html, self.parent, 'barcode_labels_batch')
 
 class ImagePrinter:
     def __init__(self, parent_widget=None):

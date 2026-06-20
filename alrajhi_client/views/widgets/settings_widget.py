@@ -245,8 +245,7 @@ class SettingsWidget(QWidget):
     def create_company_tab(self):
         scroll, layout = self._scroll_tab()
         group, form = self._form_card(translate('settings_company_title'), translate('settings_company_help'))
-        from config import get_company_info
-        info = get_company_info()
+        info = settings_service.company_info()
         self.company_name_edit = QLineEdit(info.get('name', ''))
         form.addRow(translate('settings_company_name_label'), self.company_name_edit)
         self.company_address_edit = QLineEdit(info.get('address', ''))
@@ -1469,8 +1468,6 @@ class SettingsWidget(QWidget):
         if filename: self.company_logo_path_edit.setText(filename)
 
     def save_company_info(self):
-        from config import save_company_info
-        
         try:
             from brand_assets import logo_png
             default_logo = logo_png(512)

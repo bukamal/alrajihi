@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Centralized printing service for previews, direct printing and PDF export.
+"""Centralized browser-HTML printing service.
 
-This module is the single entry point for printable HTML in the client.  It keeps
-invoice, voucher, return, report and table printing on the same template family so
-that company header, footer, RTL layout and paper selection remain consistent.
+This module is the single entry point for printable HTML in the client.  Visible
+print, preview, direct-print and legacy PDF/export calls are deliberately routed
+to the same browser HTML path so invoices, vouchers, returns, reports, barcode
+labels, restaurant documents, manufacturing documents and inventory documents
+share one company/header/language/settings contract.
 """
 from __future__ import annotations
 
@@ -13,10 +15,8 @@ import tempfile
 import webbrowser
 
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
-from PyQt5.QtCore import QUrl, Qt
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QTextDocument, QImage, QPainter
-from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog, QPrintDialog
 
 from ._template_loader import require_template
 
@@ -87,24 +87,21 @@ class PrintingService:
         doc.setHtml(html or "")
         return doc
 
-    def preview_html(self, html: str, parent=None, title: str = None) -> None:
-        if not html:
-            QMessageBox.warning(parent, _tr("warning"), _tr("print_no_content"))
-            return
-        doc = self._make_document(html)
-        printer = QPrinter(QPrinter.HighResolution)
-        preview = QPrintPreviewDialog(printer, parent)
-        preview.setWindowTitle(title or _tr("print_preview_title"))
-        preview.paintRequested.connect(lambda p: doc.print(p))
-        preview.exec()
+    def preview_html(self, html: str, parent=None, title: str = None) -> bool:
+        """Backward-compatible preview entry point.
+
+        Phase 242: Qt print preview is intentionally disabled.  Preview means
+        opening the generated, settings-driven HTML in the system browser.
+        """
+        return self.open_html_in_browser(html, parent, title)
 
 
     def open_html_in_browser(self, html: str, parent=None, title: str = None) -> bool:
         """Write HTML to a temporary file and open it in the default browser.
 
-        This is intentionally separate from Qt print preview because browser
-        preview is easier for users to inspect, print, and save with native
-        browser controls.
+        Browser HTML is the only visible print surface.  This keeps output stable
+        across local/client-server deployments and lets the browser perform
+        physical printing or Save-as-PDF without project-specific printer code.
         """
         if not html:
             QMessageBox.warning(parent, _tr("warning"), _tr("print_no_preview_content"))
@@ -120,52 +117,26 @@ class PrintingService:
             return False
 
     def print_html(self, html: str, parent=None, title: str = None) -> bool:
-        if not html:
-            QMessageBox.warning(parent, _tr("warning"), _tr("print_no_content"))
-            return False
-        doc = self._make_document(html)
-        printer = QPrinter(QPrinter.HighResolution)
-        dialog = QPrintDialog(printer, parent)
-        dialog.setWindowTitle(title or _tr("print_dialog_title"))
-        if dialog.exec() == QPrintDialog.Accepted:
-            doc.print(printer)
-            return True
-        return False
+        """Backward-compatible direct-print entry point routed to browser HTML."""
+        return self.open_html_in_browser(html, parent, title)
 
     def save_pdf(self, html: str, parent=None, default_name: str = "document.pdf") -> bool:
-        if not html:
-            QMessageBox.warning(parent, _tr("warning"), _tr("print_no_save_content"))
-            return False
-        filename, _ = QFileDialog.getSaveFileName(parent, _tr("print_save_pdf"), default_name, "PDF (*.pdf)")
-        if not filename:
-            return False
-        if not filename.lower().endswith('.pdf'):
-            filename += '.pdf'
-        doc = self._make_document(html)
-        printer = QPrinter(QPrinter.HighResolution)
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setOutputFileName(filename)
-        doc.print(printer)
-        return True
+        """Backward-compatible PDF entry point routed to browser HTML.
 
-
-
-    def render_html(self, html: str, parent=None, title: str = None, mode: str = 'preview', default_name: str = 'document.pdf') -> bool:
-        """Single HTML rendering dispatcher for preview/browser/print/pdf.
-
-        Phase 228 makes every project print path converge here. Domain helpers
-        such as invoice_print(), voucher_pdf(), and report_preview() should only
-        build HTML, then call this dispatcher.
+        The browser owns Print/Save as PDF.  Keeping this method avoids breaking
+        old callers while preventing a second, inconsistent Qt PDF renderer.
         """
-        action = (mode or 'preview').lower().strip()
-        if action in {'browser', 'html', 'open'}:
-            return self.open_html_in_browser(html, parent, title)
-        if action in {'direct', 'print', 'printer'}:
-            return self.print_html(html, parent, title)
-        if action in {'pdf', 'save_pdf', 'export'}:
-            return self.save_pdf(html, parent, default_name)
-        self.preview_html(html, parent, title)
-        return True
+        return self.open_html_in_browser(html, parent, default_name)
+
+
+
+    def render_html(self, html: str, parent=None, title: str = None, mode: str = 'browser', default_name: str = 'document.pdf') -> bool:
+        """Render printable HTML through the single browser path.
+
+        Legacy modes (preview/direct/print/pdf/export) are accepted for API
+        compatibility but are normalized to browser output.
+        """
+        return self.open_html_in_browser(html, parent, title or default_name)
 
     def save_html_png(self, html: str, parent=None, default_name: str = "document.png") -> bool:
         """Render printable HTML to a PNG image using Qt's text engine.
@@ -249,21 +220,14 @@ class PrintingService:
         self.preview_html(self.barcode_labels_html(items, options), parent, _tr("barcode_preview_title"))
 
     def barcode_labels_print(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None, printer_name: str = '') -> bool:
-        html = self.barcode_labels_html(items, options)
-        if not html:
-            QMessageBox.warning(parent, _tr("warning"), _tr("print_no_content"))
-            return False
-        doc = self._make_document(html)
-        printer = QPrinter(QPrinter.HighResolution)
-        if printer_name:
-            printer.setPrinterName(printer_name)
-        if not printer_name:
-            dialog = QPrintDialog(printer, parent)
-            dialog.setWindowTitle(_tr("barcode_print_title"))
-            if dialog.exec() != QPrintDialog.Accepted:
-                return False
-        doc.print(printer)
-        return True
+        # printer_name is retained for API compatibility; visible label printing
+        # is browser HTML only.
+        return self._print_button_render(
+            self.barcode_labels_html(items, options),
+            parent,
+            _tr("barcode_print_title"),
+            document_type='barcode_labels',
+        )
 
     def barcode_labels_pdf(self, items: List[Dict[str, Any]], parent=None, default_name: str = "barcodes.pdf", options: Optional[Dict[str, Any]] = None) -> bool:
         return self.save_pdf(self.barcode_labels_html(items, options), parent, default_name)

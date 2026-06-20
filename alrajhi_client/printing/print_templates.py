@@ -17,9 +17,28 @@ import os
 
 
 def _tr(key: str, **kwargs) -> str:
+    """Translate template text using the configured print language.
+
+    The UI language and the print/report language may differ per settings.
+    Template generation must therefore avoid relying on the translator's global
+    current UI language.
+    """
+    key = str(key)
     try:
-        from i18n.translator import translate
-        return translate(key, **kwargs)
+        from i18n import translator as _translator
+        try:
+            from core.services.settings_service import settings_service
+            lang = _translator.normalize_language(settings_service.print_language())
+        except Exception:
+            lang = _translator.DEFAULT_LANGUAGE
+        table = getattr(_translator, '_translations', {})
+        text = table.get(lang, {}).get(key) or table.get(_translator.DEFAULT_LANGUAGE, {}).get(key) or key
+        if kwargs:
+            try:
+                return text.format(**kwargs)
+            except Exception:
+                return text
+        return text
     except Exception:
         return key
 
@@ -54,6 +73,32 @@ def _img_src(path: str) -> str:
     except Exception:
         pass
     return path
+
+
+def _image_data_uri(path: str) -> str:
+    """Return an inline image URI suitable for browser HTML printing.
+
+    Storing/printing the logo as a data URI is required in client-server mode:
+    a filesystem path selected on one workstation is not guaranteed to exist on
+    another workstation.  Existing data/file/http URIs remain supported.
+    """
+    value = str(path or '').strip()
+    if not value:
+        return ""
+    if value.startswith('data:'):
+        return value
+    if value.startswith(('http://', 'https://', 'file:')):
+        return value
+    try:
+        import mimetypes
+        if os.path.exists(value):
+            mime = mimetypes.guess_type(value)[0] or 'image/png'
+            with open(value, 'rb') as fh:
+                encoded = base64.b64encode(fh.read()).decode('ascii')
+            return f'data:{mime};base64,{encoded}'
+    except Exception:
+        return ""
+    return ""
 
 
 def _qr_data_uri(payload: str) -> str:
@@ -153,45 +198,46 @@ def _document_direction() -> str:
 
 
 _TITLE_MAP = {
-    "invoices": _tr("invoices"),
-    "invoice": _tr("invoices"),
-    "sales_invoices": _tr("sales_invoices"),
-    "sale_invoices": _tr("sales_invoices"),
-    "purchase_invoices": _tr("purchase_invoices"),
-    "purchases_invoices": _tr("purchase_invoices"),
-    "items": _tr("items"),
-    "products": _tr("items"),
-    "customers": _tr("customers"),
-    "suppliers": _tr("suppliers"),
-    "categories": _tr("categories"),
-    "users": _tr("users"),
-    "vouchers": _tr("vouchers"),
-    "warehouses": _tr("warehouses"),
-    "cashboxes": _tr("cashboxes"),
-    "banks": _tr("banks"),
-    "cash_bank": _tr("cashboxes"),
-    "manufacturing": _tr("manufacturing"),
-    "reports": _tr("reports"),
-    "settings": _tr("settings"),
-    "audit_log": _tr("audit_log"),
-    "returns": _tr("returns"),
-    "sales_returns": _tr("sales_returns"),
-    "purchase_returns": _tr("purchase_returns"),
-    "restaurant_receipt": _tr("restaurant_receipt"),
-    "restaurant_kitchen_ticket": _tr("restaurant_kitchen_ticket"),
+    "invoices": "invoices",
+    "invoice": "invoices",
+    "sales_invoices": "sales_invoices",
+    "sale_invoices": "sales_invoices",
+    "purchase_invoices": "purchase_invoices",
+    "purchases_invoices": "purchase_invoices",
+    "items": "items",
+    "products": "items",
+    "customers": "customers",
+    "suppliers": "suppliers",
+    "categories": "categories",
+    "users": "users",
+    "vouchers": "vouchers",
+    "warehouses": "warehouses",
+    "cashboxes": "cashboxes",
+    "banks": "cashboxes",
+    "cash_bank": "cashboxes",
+    "manufacturing": "manufacturing",
+    "reports": "reports",
+    "settings": "settings",
+    "audit_log": "audit_log",
+    "returns": "returns",
+    "sales_returns": "sales_returns",
+    "purchase_returns": "purchase_returns",
+    "restaurant_receipt": "restaurant_receipt",
+    "restaurant_kitchen_ticket": "restaurant_kitchen_ticket",
 }
 
-def _human_title(title: Any, fallback: str = _tr("print_report_default")) -> str:
+def _human_title(title: Any, fallback: Optional[str] = None) -> str:
+    fallback = fallback or _tr("print_report_default")
     raw = str(title or "").strip()
     if not raw:
         return fallback
     key = raw.strip().lower().replace(" ", "_").replace("-", "_")
     if key in _TITLE_MAP:
-        return _TITLE_MAP[key]
+        return _tr(_TITLE_MAP[key])
     # Hide internal object names like table_items or view_invoices.
     for prefix in ("table_", "view_", "widget_", "page_", "tbl_"):
         if key.startswith(prefix) and key[len(prefix):] in _TITLE_MAP:
-            return _TITLE_MAP[key[len(prefix):]]
+            return _tr(_TITLE_MAP[key[len(prefix):]])
     # If it is a technical ASCII identifier, do not print it above the date.
     if raw.replace("_", "").replace("-", "").isascii() and any(ch.isalpha() for ch in raw):
         return fallback
@@ -204,14 +250,17 @@ def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
         info = svc.company_info() if svc is not None else {}
     except Exception:
         info = {}
-    logo_path = _value(info.get("logo_path") or settings.get("logo_path"))
+    logo_data_uri = _value(info.get("logo_data_uri") or settings.get("logo_data_uri"))
+    logo_path = _value(info.get("logo_path") or info.get("logo") or settings.get("logo_path"))
+    logo_src = logo_data_uri or _image_data_uri(logo_path)
     try:
         from pathlib import Path as _Path
-        if not logo_path or not _Path(logo_path).exists():
+        if not logo_src and (not logo_path or not _Path(logo_path).exists()):
             from brand_assets import logo_png
             logo_path = logo_png(512)
+            logo_src = _image_data_uri(logo_path) or _img_src(logo_path)
     except Exception:
-        logo_path = logo_path if logo_path else ""
+        logo_src = logo_src or (_img_src(logo_path) if logo_path else "")
     return {
         "name": _value(info.get("name") or settings.get("company_name"), _tr("app_title")),
         "address": _value(info.get("address") or settings.get("company_address")),
@@ -219,6 +268,8 @@ def _company_data(settings: Dict[str, Any]) -> Dict[str, str]:
         "email": _value(info.get("email") or settings.get("company_email")),
         "tax_number": _value(info.get("tax_number") or settings.get("tax_number")),
         "logo_path": logo_path,
+        "logo_src": logo_src,
+        "logo_data_uri": logo_data_uri,
         "commercial_register": _value(info.get("commercial_register") or settings.get("commercial_register")),
         "website": _value(info.get("website") or settings.get("company_website")),
     }
@@ -228,8 +279,9 @@ def _company_header(settings: Dict[str, Any], title: str = "") -> str:
     title = _human_title(title, _tr("print_document"))
     data = _company_data(settings)
     logo_html = ""
-    if data["logo_path"] and _bool_setting(settings, "show_logo", True):
-        logo_html = f"<td class='brand-logo'><img src='{_s(_img_src(data['logo_path']))}' alt='logo'></td>"
+    logo_src = data.get("logo_src") or _image_data_uri(data.get("logo_path")) or _img_src(data.get("logo_path", ""))
+    if logo_src and _bool_setting(settings, "show_logo", True):
+        logo_html = f"<td class='brand-logo'><img src='{_s(logo_src)}' alt='logo'></td>"
     else:
         logo_html = "<td class='brand-logo placeholder'> </td>"
 
