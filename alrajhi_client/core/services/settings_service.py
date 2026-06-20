@@ -108,7 +108,13 @@ class SettingsService:
             'default_paper': self.get('printing/default_paper', 'a4'),
             'print_button_mode': self.get('printing/print_button_mode', 'browser'),
             'show_logo': self.get('printing/show_logo', 'true').lower() == 'true',
+            'show_company_name': self.get('printing/show_company_name', 'true').lower() == 'true',
+            'show_address': self.get('printing/show_address', 'true').lower() == 'true',
+            'show_phone': self.get('printing/show_phone', 'true').lower() == 'true',
+            'show_email': self.get('printing/show_email', 'true').lower() == 'true',
             'show_tax_number': self.get('printing/show_tax_number', 'true').lower() == 'true',
+            'show_commercial_register': self.get('printing/show_commercial_register', 'true').lower() == 'true',
+            'show_website': self.get('printing/show_website', 'true').lower() == 'true',
             'show_qr': self.get('printing/show_qr', 'true').lower() == 'true',
             'footer_text': self.get('printing/footer_text', 'شكراً لتعاملكم معنا'),
             'thermal_size': self.get('printing/thermal_size', '80mm'),
@@ -117,6 +123,9 @@ class SettingsService:
             'accent_color': self.get('printing/accent_color', '#1d4ed8'),
             'zebra_rows': self.get('printing/zebra_rows', 'true').lower() == 'true',
             'compact_tables': self.get('printing/compact_tables', 'false').lower() == 'true',
+            'reverse_print_table_columns': self.get('printing/reverse_print_table_columns', 'false').lower() == 'true',
+            'print_language': self.print_language(),
+            'report_language': self.report_language(),
             'barcode_default_printer': self.get('printing/barcode/default_printer', ''),
             'barcode_label_size': self.get('printing/barcode/label_size', '50x30'),
             'barcode_symbology': self.get('printing/barcode/symbology', 'AUTO'),
@@ -131,12 +140,16 @@ class SettingsService:
         }
 
     def save_printing_settings(self, invoice_template: str = 'a4', show_logo: bool = True,
-                               show_tax_number: bool = True, show_qr: bool = True,
+                               show_company_name: bool = True, show_address: bool = True,
+                               show_phone: bool = True, show_email: bool = True,
+                               show_tax_number: bool = True, show_commercial_register: bool = True,
+                               show_website: bool = True, show_qr: bool = True,
                                footer_text: str = '', thermal_size: str = '80mm',
                                report_template: str = 'a4', voucher_template: str = 'a4',
                                return_template: str = 'a4', font_family: str = '',
                                font_size: str = '10.5pt', accent_color: str = '#1d4ed8',
                                zebra_rows: bool = True, compact_tables: bool = False,
+                               reverse_print_table_columns: bool = False,
                                barcode_default_printer: str = '', barcode_label_size: str = '50x30',
                                barcode_symbology: str = 'AUTO', barcode_copies: int = 1,
                                barcode_columns: int = 2, barcode_show_company: bool = True,
@@ -151,7 +164,13 @@ class SettingsService:
             'return_template': return_template or 'a4',
             'default_paper': invoice_template or 'a4',
             'show_logo': bool(show_logo),
+            'show_company_name': bool(show_company_name),
+            'show_address': bool(show_address),
+            'show_phone': bool(show_phone),
+            'show_email': bool(show_email),
             'show_tax_number': bool(show_tax_number),
+            'show_commercial_register': bool(show_commercial_register),
+            'show_website': bool(show_website),
             'show_qr': bool(show_qr),
             'footer_text': footer_text or '',
             'thermal_size': thermal_size or '80mm',
@@ -160,6 +179,9 @@ class SettingsService:
             'accent_color': accent_color or '#1d4ed8',
             'zebra_rows': bool(zebra_rows),
             'compact_tables': bool(compact_tables),
+            'reverse_print_table_columns': bool(reverse_print_table_columns),
+            'print_language': self.print_language(),
+            'report_language': self.report_language(),
             'barcode_default_printer': barcode_default_printer or '',
             'barcode_label_size': barcode_label_size or '50x30',
             'barcode_symbology': (barcode_symbology or 'AUTO').upper(),
@@ -179,7 +201,13 @@ class SettingsService:
         self.set('printing/default_paper', new['default_paper'])
         self.set('printing/print_button_mode', 'browser')
         self.set('printing/show_logo', 'true' if show_logo else 'false')
+        self.set('printing/show_company_name', 'true' if show_company_name else 'false')
+        self.set('printing/show_address', 'true' if show_address else 'false')
+        self.set('printing/show_phone', 'true' if show_phone else 'false')
+        self.set('printing/show_email', 'true' if show_email else 'false')
         self.set('printing/show_tax_number', 'true' if show_tax_number else 'false')
+        self.set('printing/show_commercial_register', 'true' if show_commercial_register else 'false')
+        self.set('printing/show_website', 'true' if show_website else 'false')
         self.set('printing/show_qr', 'true' if show_qr else 'false')
         self.set('printing/footer_text', new['footer_text'])
         self.set('printing/thermal_size', new['thermal_size'])
@@ -188,6 +216,7 @@ class SettingsService:
         self.set('printing/accent_color', new['accent_color'])
         self.set('printing/zebra_rows', 'true' if zebra_rows else 'false')
         self.set('printing/compact_tables', 'true' if compact_tables else 'false')
+        self.set('printing/reverse_print_table_columns', 'true' if reverse_print_table_columns else 'false')
         self.set('printing/barcode/default_printer', new['barcode_default_printer'])
         self.set('printing/barcode/label_size', new['barcode_label_size'])
         self.set('printing/barcode/symbology', new['barcode_symbology'])

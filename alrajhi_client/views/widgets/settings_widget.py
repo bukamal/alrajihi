@@ -653,6 +653,9 @@ class SettingsWidget(QWidget):
         self.print_thermal_size.addItems(['80mm', '58mm'])
         self.print_thermal_size.setCurrentText(cfg.get('thermal_size', '80mm'))
         form.addRow(translate('settings_print_thermal_size_label'), self.print_thermal_size)
+
+        self.print_language_combo = self._language_combo(cfg.get('print_language', settings_service.print_language()))
+        form.addRow(translate('settings_print_language_label'), self.print_language_combo)
         layout.addWidget(templates_group)
 
         barcode_group, barcode_form = self._form_card(translate('settings_barcode_print_title'), translate('settings_barcode_print_help'))
@@ -715,9 +718,33 @@ class SettingsWidget(QWidget):
         self.print_show_logo.setChecked(bool(cfg.get('show_logo', True)))
         identity_form.addRow(self.print_show_logo)
 
+        self.print_show_company_name = QCheckBox(translate('settings_print_show_company_name'))
+        self.print_show_company_name.setChecked(bool(cfg.get('show_company_name', True)))
+        identity_form.addRow(self.print_show_company_name)
+
+        self.print_show_address = QCheckBox(translate('settings_print_show_address'))
+        self.print_show_address.setChecked(bool(cfg.get('show_address', True)))
+        identity_form.addRow(self.print_show_address)
+
+        self.print_show_phone = QCheckBox(translate('settings_print_show_phone'))
+        self.print_show_phone.setChecked(bool(cfg.get('show_phone', True)))
+        identity_form.addRow(self.print_show_phone)
+
+        self.print_show_email = QCheckBox(translate('settings_print_show_email'))
+        self.print_show_email.setChecked(bool(cfg.get('show_email', True)))
+        identity_form.addRow(self.print_show_email)
+
         self.print_show_tax = QCheckBox(translate('settings_print_show_tax'))
         self.print_show_tax.setChecked(bool(cfg.get('show_tax_number', True)))
         identity_form.addRow(self.print_show_tax)
+
+        self.print_show_commercial_register = QCheckBox(translate('settings_print_show_commercial_register'))
+        self.print_show_commercial_register.setChecked(bool(cfg.get('show_commercial_register', True)))
+        identity_form.addRow(self.print_show_commercial_register)
+
+        self.print_show_website = QCheckBox(translate('settings_print_show_website'))
+        self.print_show_website.setChecked(bool(cfg.get('show_website', True)))
+        identity_form.addRow(self.print_show_website)
 
         self.print_show_qr = QCheckBox(translate('settings_print_show_qr'))
         self.print_show_qr.setChecked(bool(cfg.get('show_qr', True)))
@@ -743,6 +770,10 @@ class SettingsWidget(QWidget):
         self.print_compact_tables.setChecked(bool(cfg.get('compact_tables', False)))
         identity_form.addRow(self.print_compact_tables)
 
+        self.print_reverse_columns = QCheckBox(translate('settings_print_reverse_columns'))
+        self.print_reverse_columns.setChecked(bool(cfg.get('reverse_print_table_columns', False)))
+        identity_form.addRow(self.print_reverse_columns)
+
         self.print_footer = QLineEdit(cfg.get('footer_text', ''))
         self.print_footer.setPlaceholderText(translate('settings_print_footer_placeholder'))
         identity_form.addRow(translate('settings_print_footer_label'), self.print_footer)
@@ -752,7 +783,9 @@ class SettingsWidget(QWidget):
         save_btn = QPushButton(translate('settings_print_save'))
         save_btn.setObjectName('primary')
         save_btn.clicked.connect(self.save_printing_settings)
-        actions_box.addLayout(self._button_row(save_btn))
+        test_btn = QPushButton(translate('settings_print_test_document'))
+        test_btn.clicked.connect(self.preview_test_print_settings)
+        actions_box.addLayout(self._button_row(save_btn, test_btn))
         layout.addWidget(actions_group)
         layout.addStretch()
         return scroll
@@ -1434,13 +1467,25 @@ class SettingsWidget(QWidget):
         show_toast(translate('language_saved'), 'success', self)
 
     def save_printing_settings(self):
+        langs = settings_service.get_language_settings()
+        settings_service.save_language_settings(
+            langs.get('ui_language', self._current_language),
+            self.print_language_combo.currentData() or langs.get('print_language', self._current_language),
+            langs.get('report_language', self._current_language),
+        )
         settings_service.save_printing_settings(
             invoice_template=self.print_invoice_template.currentData() or 'a4',
             report_template=self.print_report_template.currentData() or 'a4',
             voucher_template=self.print_voucher_template.currentData() or 'a4',
             return_template=self.print_return_template.currentData() or 'a4',
             show_logo=self.print_show_logo.isChecked(),
+            show_company_name=self.print_show_company_name.isChecked(),
+            show_address=self.print_show_address.isChecked(),
+            show_phone=self.print_show_phone.isChecked(),
+            show_email=self.print_show_email.isChecked(),
             show_tax_number=self.print_show_tax.isChecked(),
+            show_commercial_register=self.print_show_commercial_register.isChecked(),
+            show_website=self.print_show_website.isChecked(),
             show_qr=self.print_show_qr.isChecked(),
             footer_text=self.print_footer.text().strip(),
             thermal_size=self.print_thermal_size.currentText(),
@@ -1449,6 +1494,7 @@ class SettingsWidget(QWidget):
             accent_color=self.print_accent_color.text().strip(),
             zebra_rows=self.print_zebra_rows.isChecked(),
             compact_tables=self.print_compact_tables.isChecked(),
+            reverse_print_table_columns=self.print_reverse_columns.isChecked(),
             barcode_default_printer=self.barcode_default_printer.currentData() or '',
             barcode_label_size=self.barcode_label_size.currentText(),
             barcode_symbology=self.barcode_symbology.currentText(),
@@ -1462,6 +1508,37 @@ class SettingsWidget(QWidget):
             barcode_show_text=self.barcode_show_text.isChecked(),
         )
         show_toast(translate('settings_print_saved'), 'success', self)
+
+    def preview_test_print_settings(self):
+        # Open a settings-driven sample invoice through the same browser HTML path
+        # used by real documents in local and client/server modes.
+        try:
+            self.save_printing_settings()
+            from printing.printing_service import printing_service
+            sample = {
+                'type': 'purchase',
+                'reference': 'TEST-PRINT-0001',
+                'date': '2026-06-20',
+                'party_name': translate('settings_print_test_party'),
+                'supplier_name': translate('settings_print_test_party'),
+                'warehouse_name': translate('settings_print_test_warehouse'),
+                'payment_method': 'cash',
+                'currency': 'SYP',
+                'lines': [
+                    {'item_name': translate('settings_print_test_item_1'), 'quantity': 1, 'unit': translate('settings_print_test_unit_1'), 'unit_price': 30000, 'discount': 0, 'tax': 0, 'total': 30000},
+                    {'item_name': translate('settings_print_test_item_2'), 'quantity': 2, 'unit': translate('settings_print_test_unit_2'), 'unit_price': 15000, 'discount': 0, 'tax': 0, 'total': 30000},
+                ],
+                'subtotal': 60000,
+                'discount': 0,
+                'tax': 0,
+                'total': 60000,
+                'paid': 60000,
+                'balance': 0,
+                'notes': translate('settings_print_test_notes'),
+            }
+            printing_service.invoice_browser(sample, self, paper=self.print_invoice_template.currentData() or 'a4')
+        except Exception as exc:
+            QMessageBox.warning(self, translate('error'), str(exc))
 
     def browse_logo(self):
         filename, _ = QFileDialog.getOpenFileName(self, translate('settings_company_choose_logo_dialog'), '', 'Images (*.png *.jpg *.jpeg *.bmp)')

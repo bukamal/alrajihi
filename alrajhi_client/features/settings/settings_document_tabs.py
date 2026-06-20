@@ -195,10 +195,27 @@ class RestaurantSettingsTab(SettingsSectionDocumentTab):
 class PrintingSettingsTab(SettingsSectionDocumentTab):
     section_key = 'settings.printing'
     fields = (
-        ('printing/invoice_template', 'invoice_template', 'choice:a4|thermal'),
-        ('printing/report_template', 'report_template', 'choice:a4|compact'),
+        ('language/print', 'settings_print_language_label', 'choice:ar|en|de'),
+        ('printing/invoice_template', 'invoice_template', 'choice:a4|thermal80|thermal58'),
+        ('printing/report_template', 'report_template', 'choice:a4|compact|thermal80|thermal58'),
+        ('printing/voucher_template', 'settings_print_voucher_template_label', 'choice:a4|thermal80|thermal58'),
+        ('printing/return_template', 'settings_print_return_template_label', 'choice:a4|thermal80|thermal58'),
+        ('printing/thermal_size', 'settings_print_thermal_size_label', 'choice:80mm|58mm'),
         ('printing/show_logo', 'show_logo', 'bool'),
+        ('printing/show_company_name', 'settings_print_show_company_name', 'bool'),
+        ('printing/show_address', 'settings_print_show_address', 'bool'),
+        ('printing/show_phone', 'settings_print_show_phone', 'bool'),
+        ('printing/show_email', 'settings_print_show_email', 'bool'),
+        ('printing/show_tax_number', 'settings_print_show_tax', 'bool'),
+        ('printing/show_commercial_register', 'settings_print_show_commercial_register', 'bool'),
+        ('printing/show_website', 'settings_print_show_website', 'bool'),
         ('printing/show_qr', 'show_qr', 'bool'),
+        ('printing/accent_color', 'settings_print_accent_color_label', 'string'),
+        ('printing/font_family', 'settings_print_font_label', 'string'),
+        ('printing/font_size', 'settings_print_font_size_label', 'choice:9.5pt|10pt|10.5pt|11pt|12pt'),
+        ('printing/zebra_rows', 'settings_print_zebra_rows', 'bool'),
+        ('printing/compact_tables', 'settings_print_compact_tables', 'bool'),
+        ('printing/reverse_print_table_columns', 'settings_print_reverse_columns', 'bool'),
         ('printing/footer_text', 'footer_text', 'text'),
     )
 

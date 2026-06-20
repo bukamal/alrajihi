@@ -285,27 +285,33 @@ def _company_header(settings: Dict[str, Any], title: str = "") -> str:
     else:
         logo_html = "<td class='brand-logo placeholder'> </td>"
 
+    # Phase 243: company identity lines are all settings-governed and come
+    # from the SettingsService/SettingsGateway contract, so client-server users
+    # and profiles get the same browser HTML output in Arabic, English or German.
+    name_line = f"<div class='company-name'>{_s(data['name'])}</div>" if _bool_setting(settings, "show_company_name", True) else ""
+    address_line = f"<div class='muted'>{_s(data['address'])}</div>" if data.get("address") and _bool_setting(settings, "show_address", True) else ""
     tax_line = ""
     if data["tax_number"] and _bool_setting(settings, "show_tax_number", True):
         tax_line = f"<div class='muted'>{_s(_tr('print_tax_number'))}: {_s(data['tax_number'])}</div>"
-    cr_line = f"<div class='muted'>{_s(_tr('print_commercial_register'))}: {_s(data['commercial_register'])}</div>" if data.get("commercial_register") else ""
-    website_line = f"<div class='muted'>{_s(data['website'])}</div>" if data.get("website") else ""
+    cr_line = f"<div class='muted'>{_s(_tr('print_commercial_register'))}: {_s(data['commercial_register'])}</div>" if data.get("commercial_register") and _bool_setting(settings, "show_commercial_register", True) else ""
+    website_line = f"<div class='muted'>{_s(data['website'])}</div>" if data.get("website") and _bool_setting(settings, "show_website", True) else ""
 
     contacts = []
-    if data["phone"]:
+    if data["phone"] and _bool_setting(settings, "show_phone", True):
         contacts.append(_tr("print_phone") + ": " + _s(data["phone"]))
-    if data["email"]:
+    if data["email"] and _bool_setting(settings, "show_email", True):
         contacts.append(_tr("print_email") + ": " + _s(data["email"]))
     contact_line = " | ".join(contacts)
+    contact_line_html = f"<div class='muted'>{contact_line}</div>" if contact_line else ""
 
     return f"""
     <table class='brand-table'>
         <tr>
             {logo_html}
             <td class='brand-main'>
-                <div class='company-name'>{_s(data['name'])}</div>
-                <div class='muted'>{_s(data['address'])}</div>
-                <div class='muted'>{contact_line}</div>
+                {name_line}
+                {address_line}
+                {contact_line_html}
                 {tax_line}
                 {cr_line}
                 {website_line}
