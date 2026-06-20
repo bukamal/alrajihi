@@ -9,6 +9,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 from currency import currency
 from i18n import translate
 from .restaurant_order_schema import restaurant_order_schema
+from core.money_display_policy import policy_for
 
 
 class RestaurantOrderModel(QAbstractTableModel):
@@ -93,17 +94,16 @@ class RestaurantOrderModel(QAbstractTableModel):
 
     def _format_decimal(self, value: Any) -> str:
         try:
-            value = self._decimal(value)
-            return format(value.normalize(), 'f').rstrip('0').rstrip('.') or '0'
+            return policy_for(currency_code=self.display_currency).format_quantity(value)
         except Exception:
             return str(value or '0')
 
     def _display_money(self, amount_usd: Any) -> str:
         try:
             amount = currency.convert(self._decimal(amount_usd), currency.storage_currency(), self.display_currency)
-            return currency.format_amount(amount)
+            return policy_for(currency_code=self.display_currency).format_money(amount)
         except Exception:
-            return currency.format_amount(Decimal('0'))
+            return policy_for(currency_code=self.display_currency).format_money(Decimal('0'))
 
     def _line_total(self, line: dict[str, Any]) -> Decimal:
         total = line.get('total') or line.get('line_total') or line.get('amount')

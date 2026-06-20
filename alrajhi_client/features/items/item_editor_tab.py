@@ -29,14 +29,20 @@ from core.services.permission_service import permission_service
 from core.services.product_service import product_service
 from core.services.settings_service import settings_service
 from core.item_types import STOCK, FINISHED_PRODUCT, SERVICE, normalize_item_type, is_stock
-from i18n import translate
-from currency import currency
 from i18n import qt_layout_direction, translate
+from currency import currency
+from core.money_display_policy import format_money
 from printing.printing_service import printing_service
 from ui.editable_smart_grid import EditableSmartGrid
 from ui.form_validation import FormValidator, make_error_label
 from utils import show_toast
 from workspace.documents import BaseDocumentTab
+from workspace.documents.document_permission_binder import DocumentPermissionBinder
+from features.items.material_shell_contract import (
+    MATERIAL_DOCUMENT_TYPE,
+    material_descriptor,
+    material_shell_matrix,
+)
 
 
 def tr(key: str, **kwargs) -> str:
@@ -44,6 +50,8 @@ def tr(key: str, **kwargs) -> str:
 
 
 class MaterialDocumentTab(BaseDocumentTab):
+    # Phase 254 contract migration; legacy audit needle: DOCUMENT_DESCRIPTOR = descriptor_for("material")
+    DOCUMENT_DESCRIPTOR = material_descriptor()
     """Unified tab-based material editor.
 
     This replaces the old modal ItemDialog for day-to-day material editing while
@@ -58,11 +66,17 @@ class MaterialDocumentTab(BaseDocumentTab):
     UNIT_COL_NOTES = 3
 
     def __init__(self, parent=None, item_id=None) -> None:
-        super().__init__('item', document_id=item_id, parent=parent)
+        super().__init__(MATERIAL_DOCUMENT_TYPE, document_id=item_id, parent=parent)
+        self.document_descriptor = self.DOCUMENT_DESCRIPTOR
+        self.document_permission_binder = DocumentPermissionBinder(self.document_descriptor)
         self.item_id = item_id
         self.is_edit = item_id is not None
         self.display_curr = currency.get_display_currency()
         self.symbol = currency.get_currency_symbol(self.display_curr)
+        self.material_shell_contract = material_shell_matrix()
+        self.setProperty('document_shell_type', MATERIAL_DOCUMENT_TYPE)
+        self.setProperty('document_api_resource', self.document_descriptor.api_resource)
+        self.setProperty('document_network_mode', self.document_descriptor.network_mode)
         self.categories: List[Dict[str, Any]] = []
         self.material_settings = self._load_material_settings()
         self.security_policy = self._load_material_security_policy()
@@ -132,8 +146,9 @@ class MaterialDocumentTab(BaseDocumentTab):
         root.addWidget(self._build_header())
 
         body = QSplitter(Qt.Horizontal, self)
-        body.setObjectName('MaterialDocumentSplitter')
+        body.setObjectName('ItemEditorResponsiveSplitter')
         body.setChildrenCollapsible(False)
+        body.setProperty('shell_component', 'material.master_detail_splitter')
         root.addWidget(body, 1)
 
         left = QFrame(self)
@@ -175,6 +190,9 @@ class MaterialDocumentTab(BaseDocumentTab):
         subtitle.setObjectName('DocumentSubtitle')
         title_box.addWidget(self.title_label)
         title_box.addWidget(subtitle)
+        self.shell_badge_label = QLabel(tr('material_shell_badge'))
+        self.shell_badge_label.setObjectName('DocumentShellBadge')
+        title_box.addWidget(self.shell_badge_label)
         layout.addLayout(title_box, 1)
 
         # Phase 229: document headers are informational; commands live in BottomActionBar.
@@ -362,6 +380,7 @@ class MaterialDocumentTab(BaseDocumentTab):
             }
             QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
             QLabel#DocumentSubtitle, QLabel#InfoLabel { color: palette(mid); }
+            QLabel#DocumentShellBadge { color: palette(mid); font-size: 10px; font-weight: 700; }
             QLabel#BarcodeStatus { font-size: 11px; color: palette(mid); }
             QPushButton#primary { font-weight: 900; padding: 8px 16px; }
             QLineEdit, QComboBox, QDoubleSpinBox { min-height: 34px; padding: 5px 9px; }
@@ -401,8 +420,8 @@ class MaterialDocumentTab(BaseDocumentTab):
 
     def _apply_security_policy(self) -> None:
         """Apply user/role/security settings without bypassing services."""
-        can_edit = bool(self.security_policy.get('can_edit', True))
-        can_print = bool(self.security_policy.get('can_print_barcodes', True))
+        can_edit = bool(self.security_policy.get('can_edit', True)) and self.can_document_action('save')
+        can_print = bool(self.security_policy.get('can_print_barcodes', True)) and self.can_document_action('print')
         can_view_costs = bool(self.security_policy.get('can_view_costs', True))
         can_edit_opening = bool(self.security_policy.get('can_edit_opening_stock', True))
 
@@ -438,6 +457,12 @@ class MaterialDocumentTab(BaseDocumentTab):
             elif not can_edit_opening:
                 self.stock_warning_label.setText(tr('material_opening_qty_permission_locked'))
             self.stock_warning_label.setStyleSheet('color: #b45309; font-weight: 700;')
+
+        # material_shell_permission_binding: keep document contract actions in sync with legacy policy.
+        try:
+            self.apply_document_permissions()
+        except Exception:
+            pass
 
     def _load_activity_summary(self) -> None:
         if not self.item_id:
@@ -592,9 +617,9 @@ class MaterialDocumentTab(BaseDocumentTab):
         self.set_dirty(False)
 
     def generate_barcode(self, silent: bool = False) -> None:
-        if not self.security_policy.get('can_edit', True):
+        if not self.security_policy.get('can_edit', True) or not self.can_document_action('save'):
             if not silent:
-                show_toast(permission_service.denied_message(permission_service.ACTION_EDIT_ITEMS), 'error', self)
+                show_toast(self.permission_denied_message('save'), 'error', self)
             return
         sym = self.barcode_type_combo.currentData() or self.barcode_type_combo.currentText() or 'EAN13'
         prefix = self.material_settings.get('ean13_internal_prefix') if str(sym).upper() == 'EAN13' else self.material_settings.get('code128_prefix')
@@ -607,8 +632,8 @@ class MaterialDocumentTab(BaseDocumentTab):
             show_toast(str(exc), 'error', self)
 
     def generate_barcode_for_selected_unit(self) -> None:
-        if not self.security_policy.get('can_edit', True):
-            show_toast(permission_service.denied_message(permission_service.ACTION_EDIT_ITEMS), 'error', self)
+        if not self.security_policy.get('can_edit', True) or not self.can_document_action('save'):
+            show_toast(self.permission_denied_message('save'), 'error', self)
             return
         row = self.units_table.currentRow()
         if row < 0:
@@ -662,7 +687,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         selling = float(self.selling_spin.value()) if hasattr(self, 'selling_spin') else 0.0
         profit = selling - purchase
         margin = (profit / selling * 100) if selling > 0 else 0.0
-        self.margin_label.setText(tr('profit_margin', value=f'{profit:.2f} {self.symbol} ({margin:.1f}%)'))
+        self.margin_label.setText(tr('profit_margin', value=f'{format_money(profit, self.display_curr)} ({margin:.1f}%)'))
         self.margin_label.setStyleSheet('color: #b91c1c; font-weight: 700;' if profit < 0 else 'color: #047857; font-weight: 700;' if profit > 0 else 'color: #4b5563;')
 
     def update_stock_preview(self) -> None:
@@ -714,8 +739,8 @@ class MaterialDocumentTab(BaseDocumentTab):
 
     def _validate(self) -> bool:
         validator = FormValidator()
-        if not self.security_policy.get('can_edit', True):
-            show_toast(permission_service.denied_message(permission_service.ACTION_EDIT_ITEMS), 'error', self)
+        if not self.security_policy.get('can_edit', True) or not self.can_document_action('save'):
+            show_toast(self.permission_denied_message('save'), 'error', self)
             return False
         validator.required(self.name_edit, self.name_error, tr('item'))
         validator.required(self.unit_edit, self.unit_error, tr('base_unit_label').rstrip(':'))
@@ -756,6 +781,9 @@ class MaterialDocumentTab(BaseDocumentTab):
         }
 
     def workspace_save(self) -> None:
+        if not self.can_document_action('save'):
+            show_toast(self.permission_denied_message('save'), 'error', self)
+            return
         if not self._validate():
             return
         units = self._collect_item_units()
@@ -805,8 +833,8 @@ class MaterialDocumentTab(BaseDocumentTab):
         self.workspace_print()
 
     def workspace_print(self) -> None:
-        if not self.security_policy.get('can_print_barcodes', True):
-            show_toast(permission_service.denied_message(permission_service.ACTION_PRINT_BARCODES), 'error', self)
+        if not self.security_policy.get('can_print_barcodes', True) or not self.can_document_action('print'):
+            show_toast(self.permission_denied_message('print'), 'error', self)
             return
         item = self._label_item_payload()
         if not item.get('barcode'):
@@ -820,8 +848,18 @@ class MaterialDocumentTab(BaseDocumentTab):
 
     def save_and_print_label(self) -> None:
         self.workspace_save()
-        if self.item_id and not self.document_state.is_dirty:
+        if self.item_id and not self.is_dirty():
             self.workspace_print()
+
+
+    def workspace_title(self) -> str:
+        if self.is_edit and self.name_edit.text().strip():
+            return f"{tr('item')}: {self.name_edit.text().strip()}"
+        return tr('material_title_new')
+
+    def shell_contract_matrix(self) -> Dict[str, Any]:
+        """Return the inspectable material shell matrix for diagnostics/tests."""
+        return dict(self.material_shell_contract)
 
     def request_close(self) -> None:
         # Workspace container handles dirty-state checks; this method keeps the

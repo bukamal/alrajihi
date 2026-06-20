@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
 from .settings_document_tabs import (
+    BranchesSettingsTab,
+    CategoriesSettingsTab,
+    FinanceSettingsTab,
+    ManufacturingSettingsTab,
+    MaterialsSettingsTab,
+    PartiesSettingsTab,
+    PosSettingsTab,
+    ReportsSettingsTab,
     AccountingSettingsTab,
     CompanySettingsTab,
     InventorySettingsTab,
@@ -7,11 +15,21 @@ from .settings_document_tabs import (
     RestaurantSettingsTab,
     SecuritySettingsTab,
     SETTINGS_SECTION_TABS,
+    TransactionsSettingsTab,
+    UsersSettingsTab,
     SettingsSectionDocumentTab,
     UISettingsTab,
 )
 
 __all__ = [
+    'BranchesSettingsTab',
+    'CategoriesSettingsTab',
+    'FinanceSettingsTab',
+    'ManufacturingSettingsTab',
+    'MaterialsSettingsTab',
+    'PartiesSettingsTab',
+    'PosSettingsTab',
+    'ReportsSettingsTab',
     'AccountingSettingsTab',
     'CompanySettingsTab',
     'InventorySettingsTab',
@@ -19,6 +37,8 @@ __all__ = [
     'RestaurantSettingsTab',
     'SecuritySettingsTab',
     'SETTINGS_SECTION_TABS',
+    'TransactionsSettingsTab',
+    'UsersSettingsTab',
     'SettingsSectionDocumentTab',
     'UISettingsTab',
 ]

@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
 
 from i18n import qt_layout_direction, translate
 from workspace.documents.base_document_tab import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 from core.services.branch_service import branch_service
 from core.services.cashbox_service import cashbox_service
 from core.services.finance_operation_policy import finance_operation_policy
@@ -18,6 +19,7 @@ from utils import show_toast
 
 
 class BankAccountDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("bank_account")
     """Create/edit bank account master data inside the tabbed workspace."""
 
     def __init__(self, parent=None, bank_account_id: Optional[int] = None):

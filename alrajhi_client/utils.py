@@ -19,13 +19,19 @@ def update_currency_format():
     _number_format = settings_service.get('number_format', 'western')
 
 def format_currency(amount: float) -> str:
+    """Legacy compatibility wrapper around the unified money display policy."""
     if _currency_symbol is None:
         update_currency_format()
-    formatted = f"{amount:,.{_currency_decimals}f}"
-    if _number_format == 'arabic':
-        formatted = formatted.replace('0', '٠').replace('1', '١').replace('2', '٢').replace('3', '٣').replace('4', '٤')\
-                             .replace('5', '٥').replace('6', '٦').replace('7', '٧').replace('8', '٨').replace('9', '٩')
-    return f"{formatted} {_currency_symbol}"
+    try:
+        from core.money_display_policy import format_money
+        display_currency = settings_service.get('display_currency', 'SYP')
+        return format_money(amount, display_currency, decimals=_currency_decimals)
+    except Exception:
+        formatted = f"{amount:,.{_currency_decimals}f}"
+        if _number_format == 'arabic':
+            formatted = formatted.replace('0', '٠').replace('1', '١').replace('2', '٢').replace('3', '٣').replace('4', '٤')\
+                                 .replace('5', '٥').replace('6', '٦').replace('7', '٧').replace('8', '٨').replace('9', '٩')
+        return f"{formatted} {_currency_symbol}"
 
 def format_date(date_str: str) -> str:
     if not date_str:

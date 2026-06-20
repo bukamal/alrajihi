@@ -642,6 +642,65 @@ def create_purchase_return():
     return _create_return('purchase')
 
 
+def _update_return_via_reversal(kind, return_id):
+    """Update a return through the same accounting-safe reversal/recreate pipeline used locally.
+
+    The route preserves network/API parity with the client gateways. It does not
+    mutate posted historical rows in place because returns have inventory,
+    customer/supplier, cash/bank and ledger effects. Instead, the old return is
+    cancelled and a replacement return is created with the same return_no unless
+    the client explicitly provides a different number.
+    """
+    user_id = get_jwt_identity()
+    db = get_return_repository()
+    table = 'sales_returns' if kind == 'sales' else 'purchase_returns'
+    endpoint_kind = 'sales' if kind == 'sales' else 'purchase'
+    old_row = db.query(f"SELECT * FROM {table} WHERE id=? AND user_id=?", (return_id, user_id)).fetchone()
+    if not old_row:
+        return jsonify({'error': 'not found'}), 404
+    old = dict(old_row)
+    if old.get('deleted_at') or old.get('status') == 'cancelled':
+        return jsonify({'error': 'return is cancelled'}), 400
+    data = dict(request.get_json() or {})
+    data.setdefault('return_no', old.get('return_no'))
+    data.setdefault('original_invoice_id', old.get('original_invoice_id'))
+    try:
+        # Reuse the exact reversal code paths to keep warehouse, cash/bank,
+        # customer/supplier balances and inventory ledger semantics aligned.
+        if endpoint_kind == 'sales':
+            response = delete_sales_return(return_id)
+        else:
+            response = delete_purchase_return(return_id)
+        status = getattr(response, 'status_code', None)
+        if status and status >= 400:
+            return response
+
+        # The legacy create helper reads request JSON. Re-seed Flask's cached
+        # JSON with the merged payload so PUT can reuse the validated create
+        # contract without duplicating the accounting logic.
+        request._cached_json = (data, data)  # Flask private cache; guarded by tests.
+        create_response = _create_return(endpoint_kind)
+        return create_response
+    except Exception as exc:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        return jsonify({'error': str(exc)}), 400
+
+
+@returns_bp.route('/returns/sales/<int:return_id>', methods=['PUT'])
+@jwt_required()
+def update_sales_return(return_id):
+    return _update_return_via_reversal('sales', return_id)
+
+
+@returns_bp.route('/returns/purchase/<int:return_id>', methods=['PUT'])
+@jwt_required()
+def update_purchase_return(return_id):
+    return _update_return_via_reversal('purchase', return_id)
+
+
 @returns_bp.route('/returns/sales/<int:return_id>', methods=['DELETE'])
 @jwt_required()
 def delete_sales_return(return_id):

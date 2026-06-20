@@ -1796,6 +1796,11 @@ def load_translations():
         'period_subtitle': 'الفترة: {start} إلى {end}',
         'reports_refresh_failed': 'تعذر تحديث التقرير الحالي: {error}',
         'reports_access_denied': 'لا تملك صلاحية عرض التقارير.',
+        'report_shell_report_key': 'مفتاح التقرير',
+        'report_shell_api_resource': 'مسار API',
+        'report_shell_network_mode': 'وضع الشبكة',
+        'report_shell_currency': 'سياسة العملة',
+        'reports.operation.print': 'طباعة التقارير',
         'reports_export_denied': 'لا تملك صلاحية تصدير أو طباعة التقارير.',
         'reports.operation.view': 'عرض التقارير',
         'reports.operation.export': 'تصدير/طباعة التقارير',
@@ -1925,6 +1930,11 @@ def load_translations():
         'period_subtitle': 'Zeitraum: {start} bis {end}',
         'reports_refresh_failed': 'Aktueller Bericht konnte nicht aktualisiert werden: {error}',
         'reports_access_denied': 'Sie haben keine Berechtigung zum Anzeigen von Berichten.',
+        'report_shell_report_key': 'Berichtsschlüssel',
+        'report_shell_api_resource': 'API-Pfad',
+        'report_shell_network_mode': 'Netzwerkmodus',
+        'report_shell_currency': 'Währungsrichtlinie',
+        'reports.operation.print': 'Berichte drucken',
         'reports_export_denied': 'Sie haben keine Berechtigung zum Exportieren oder Drucken von Berichten.',
         'reports.operation.view': 'Berichte anzeigen',
         'reports.operation.export': 'Berichte exportieren/drucken',
@@ -2054,6 +2064,11 @@ def load_translations():
         'period_subtitle': 'Period: {start} to {end}',
         'reports_refresh_failed': 'Could not refresh current report: {error}',
         'reports_access_denied': 'You do not have permission to view reports.',
+        'report_shell_report_key': 'Report key',
+        'report_shell_api_resource': 'API resource',
+        'report_shell_network_mode': 'Network mode',
+        'report_shell_currency': 'Currency policy',
+        'reports.operation.print': 'Print reports',
         'reports_export_denied': 'You do not have permission to export or print reports.',
         'reports.operation.view': 'View reports',
         'reports.operation.export': 'Export/print reports',
@@ -3571,6 +3586,7 @@ _translations.setdefault('ar', {}).update({
     'workspace.no_save_action': 'لا يوجد أمر حفظ متاح لهذا التبويب.',
     'workspace.no_print_action': 'لا يوجد أمر طباعة متاح لهذا التبويب.',
     'workspace.no_export_action': 'لا يوجد أمر تصدير متاح لهذا التبويب.',
+    'workspace.permission_denied': 'لا تملك صلاحية تنفيذ هذه العملية حسب صلاحيات المستخدم أو إعدادات الأمان.',
 })
 _translations.setdefault('de', {}).update({
     'workspace.unsaved_title': 'Nicht gespeicherter Tab',
@@ -3580,6 +3596,7 @@ _translations.setdefault('de', {}).update({
     'workspace.no_save_action': 'Für diesen Tab ist keine Speicheraktion verfügbar.',
     'workspace.no_print_action': 'Für diesen Tab ist keine Druckaktion verfügbar.',
     'workspace.no_export_action': 'Für diesen Tab ist keine Exportaktion verfügbar.',
+    'workspace.permission_denied': 'Sie haben keine Berechtigung für diese Aktion.',
 })
 _translations.setdefault('en', {}).update({
     'workspace.unsaved_title': 'Unsaved tab',
@@ -3589,6 +3606,7 @@ _translations.setdefault('en', {}).update({
     'workspace.no_save_action': 'No save action is available for this tab.',
     'workspace.no_print_action': 'No print action is available for this tab.',
     'workspace.no_export_action': 'No export action is available for this tab.',
+    'workspace.permission_denied': 'You do not have permission to perform this action.',
 })
 
 
@@ -4097,6 +4115,7 @@ _PHASE171_TRANSLATIONS = {
         'material_title_new': 'مادة جديدة',
         'material_title_edit': 'تعديل مادة',
         'material_subtitle': 'واجهة موحدة للمواد: بيانات أساسية، أسعار، مخزون، باركود ووحدات.',
+        'material_shell_badge': 'Document Shell · API · صلاحيات · عملة · باركود',
         'material_basic_data': 'بيانات المادة',
         'material_pricing_inventory': 'الأسعار والمخزون',
         'material_barcode_panel': 'الباركود والملصقات',
@@ -4121,6 +4140,7 @@ _PHASE171_TRANSLATIONS = {
         'material_title_new': 'Neuer Artikel',
         'material_title_edit': 'Artikel bearbeiten',
         'material_subtitle': 'Einheitliche Artikeloberfläche: Stammdaten, Preise, Bestand, Barcode und Einheiten.',
+        'material_shell_badge': 'Document Shell · API · Rechte · Währung · Barcode',
         'material_basic_data': 'Artikeldaten',
         'material_pricing_inventory': 'Preise und Bestand',
         'material_barcode_panel': 'Barcode und Etiketten',
@@ -4145,6 +4165,7 @@ _PHASE171_TRANSLATIONS = {
         'material_title_new': 'New Item',
         'material_title_edit': 'Edit Item',
         'material_subtitle': 'Unified item screen: master data, prices, stock, barcode, and units.',
+        'material_shell_badge': 'Document Shell · API · permissions · currency · barcode',
         'material_basic_data': 'Item Data',
         'material_pricing_inventory': 'Prices and Stock',
         'material_barcode_panel': 'Barcode and Labels',

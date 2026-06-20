@@ -10,11 +10,12 @@ from PyQt5.QtWidgets import QFrame, QHBoxLayout, QLabel, QMessageBox, QPushButto
 from core.services.voucher_service import voucher_service
 from core.services.finance_operation_policy import finance_operation_policy
 from currency import currency
-from features.vouchers.components import VoucherHeaderPanel, VoucherLinkPanel, VoucherPaymentPanel
+from features.vouchers.components import VoucherActionsPanel, VoucherHeaderPanel, VoucherLinkPanel, VoucherPaymentPanel
 from i18n import qt_layout_direction, translate as tr
 from printing.printing_service import printing_service
 from utils import show_toast
 from workspace.documents import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 
 
 def _tr(key: str, fallback: str) -> str:
@@ -53,16 +54,8 @@ class _VoucherMetricCard(QFrame):
         self.value_label.setText(value)
 
 
-class _ActionsCompat(QWidget):
-    """Compatibility surface for older code that expects actions_panel.save_btn/print_btn."""
-
-    def __init__(self, save_btn: QPushButton, print_btn: QPushButton, parent=None) -> None:
-        super().__init__(parent)
-        self.save_btn = save_btn
-        self.print_btn = print_btn
-
-
 class VoucherEditorTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("voucher")
     """Receipt/payment voucher as a Finance Document Shell.
 
     Phase 221 upgrades the voucher editor from stacked form panels into a shell
@@ -87,6 +80,10 @@ class VoucherEditorTab(BaseDocumentTab):
         self._connect_signals()
         self._sync_type_visibility()
         self._apply_operation_state()
+        try:
+            self.apply_document_permissions()
+        except Exception:
+            pass
         self.set_document_title(self._title())
         self._refresh_summary_panel()
         self.set_dirty(False)
@@ -176,20 +173,23 @@ class VoucherEditorTab(BaseDocumentTab):
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(8)
-        self.bottom_print_btn = QPushButton(_tr('print_button', 'طباعة'), bar)
-        self.bottom_print_btn.clicked.connect(self.workspace_print)
+
+        # VoucherActionsPanel is the feature-local command component; it is
+        # hosted inside the unified BottomActionBar so old callers/tests still
+        # see actions_panel.save_btn/print_btn while the Document Shell keeps one
+        # command surface.
+        self.actions_panel = VoucherActionsPanel(bar)
+        self.actions_panel.saveRequested.connect(self.workspace_save)
+        self.actions_panel.printRequested.connect(self.workspace_print)
+        self.bottom_save_btn = self.actions_panel.save_btn
+        self.bottom_print_btn = self.actions_panel.print_btn
+
         self.bottom_export_btn = QPushButton(_tr('export', 'تصدير'), bar)
         self.bottom_export_btn.clicked.connect(self.workspace_export)
-        self.bottom_save_btn = QPushButton(_tr('save', 'حفظ'), bar)
-        self.bottom_save_btn.setObjectName('primary')
-        self.bottom_save_btn.clicked.connect(self.workspace_save)
         layout.addWidget(self.bottom_print_btn)
         layout.addWidget(self.bottom_export_btn)
         layout.addStretch(1)
         layout.addWidget(self.bottom_save_btn)
-
-        # Backward-compatible handle expected by ExpenseDocumentTab and any older tests.
-        self.actions_panel = _ActionsCompat(self.bottom_save_btn, self.bottom_print_btn, self)
         return bar
 
     def _apply_shell_styles(self) -> None:
@@ -375,7 +375,7 @@ class VoucherEditorTab(BaseDocumentTab):
         if not voucher:
             QMessageBox.information(self, tr('print_button'), tr('select_voucher_first'))
             return
-        printing_service.voucher_print(voucher, self)
+        printing_service.voucher_preview(voucher, self)
 
     def workspace_export(self) -> None:
         try:
@@ -387,4 +387,4 @@ class VoucherEditorTab(BaseDocumentTab):
         if not voucher:
             QMessageBox.information(self, tr('print_button'), tr('select_voucher_first'))
             return
-        printing_service.voucher_print(voucher, self)
+        printing_service.voucher_pdf(voucher, self)

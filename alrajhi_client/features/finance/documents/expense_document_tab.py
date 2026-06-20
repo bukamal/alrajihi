@@ -26,6 +26,7 @@ from i18n import qt_layout_direction, translate as tr
 from printing.printing_service import printing_service
 from utils import show_toast
 from workspace.documents import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 
 
 def _tr(key: str, fallback: str) -> str:
@@ -121,6 +122,7 @@ class ExpenseIdentityPanel(QWidget):
 
 
 class ExpenseDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("expense")
     """Expense-specific finance document shell.
 
     Phase 222 separates expenses from the generic voucher editor surface.  The

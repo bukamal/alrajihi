@@ -336,7 +336,11 @@ def _format_decimal(value: Any, decimals: int = 2, *, trim: bool = True, setting
 
 
 def _format_quantity(value: Any, settings: Optional[Dict[str, Any]] = None) -> str:
-    return _format_decimal(value, _quantity_decimals(settings), trim=True, settings=settings)
+    try:
+        from core.money_display_policy import format_quantity as _policy_format_quantity
+        return _policy_format_quantity(value, decimals=_quantity_decimals(settings), payload=settings or _settings())
+    except Exception:
+        return _format_decimal(value, _quantity_decimals(settings), trim=True, settings=settings)
 
 
 def _format_percent(value: Any, settings: Optional[Dict[str, Any]] = None) -> str:
@@ -346,9 +350,13 @@ def _format_percent(value: Any, settings: Optional[Dict[str, Any]] = None) -> st
 def _format_money(value: Any, currency_code: Optional[str] = None, settings: Optional[Dict[str, Any]] = None) -> str:
     settings = settings or _settings()
     code = _currency_code(currency_code, settings)
-    amount = _format_decimal(value, _currency_decimals(settings), trim=False, settings=settings)
-    symbol = _currency_symbol(code, settings)
-    return f"{amount} {symbol}".strip()
+    try:
+        from core.money_display_policy import format_money as _policy_format_money
+        return _policy_format_money(value, code, decimals=_currency_decimals(settings), payload=settings)
+    except Exception:
+        amount = _format_decimal(value, _currency_decimals(settings), trim=False, settings=settings)
+        symbol = _currency_symbol(code, settings)
+        return f"{amount} {symbol}".strip()
 
 
 def _currency_label(currency_code: Optional[str] = None, settings: Optional[Dict[str, Any]] = None) -> str:

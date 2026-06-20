@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
 
 from i18n import qt_layout_direction, translate
 from workspace.documents.base_document_tab import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 from core.services.branch_service import branch_service
 from core.services.warehouse_service import warehouse_service
 from core.services.inventory_operation_policy import inventory_operation_policy
@@ -20,6 +21,7 @@ from utils import show_toast
 
 
 class WarehouseDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("warehouse")
     """Create/edit warehouse master data inside the tabbed workspace.
 
     This replaces the old inline QDialog used by WarehousesWidget while keeping

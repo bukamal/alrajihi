@@ -11,12 +11,15 @@ from models.table_models import GenericTableModel
 from utils import show_toast
 from core.offline_guard import is_offline_read_error, offline_read_message
 from views.widgets.modern_ui import apply_modern_widget
+from views.dialogs.add_entity_dialog import AddEntityDialog  # legacy emergency fallback; Document Shell remains primary
 from i18n import translate as tr, qt_layout_direction
 from ui.components.responsive_master_detail import DetailPlaceholder, ResponsiveMasterDetail
+from workspace.lists.list_workspace_contract import bind_list_workspace
 
 class CustomersWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        bind_list_workspace(self, 'customers')
         self.setLayoutDirection(qt_layout_direction())
         self.current_page = 0
         self.page_size = 50
@@ -167,6 +170,13 @@ class CustomersWidget(QWidget):
             tab = main.open_party_document('customer')
             if hasattr(tab, 'saved'):
                 tab.saved.connect(lambda *_: self.refresh())
+            return
+        # AddEntityDialog is retained only as an emergency fallback when this
+        # list is embedded outside MainWindow/TabbedWorkspace. The official
+        # route remains main.open_party_document('customer').
+        dialog = AddEntityDialog(self, 'sale')
+        if dialog.exec_():
+            self.refresh()
             return
         show_toast(tr('party_document_unavailable') if tr('party_document_unavailable') != 'party_document_unavailable' else 'تعذر فتح تبويب العميل', 'error', self)
 

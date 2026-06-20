@@ -30,6 +30,7 @@ from models.table_models import GenericTableModel
 from ui.smart_table_view import SmartTableView
 from utils import show_toast
 from workspace.documents import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 
 
 def _tr(key: str, fallback: str) -> str:
@@ -73,6 +74,7 @@ class _MetricCard(QFrame):
 
 
 class PartyEditorTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR_BY_PARTY_TYPE = {"customer": descriptor_for("customer"), "supplier": descriptor_for("supplier")}
     """Customer/supplier document shell.
 
     Phase 220 upgrades the party editor from a simple form-with-tabs into a
@@ -84,8 +86,14 @@ class PartyEditorTab(BaseDocumentTab):
 
     def __init__(self, parent=None, party_type: str = 'customer', party_id: Optional[int] = None) -> None:
         party_type = 'supplier' if party_type == 'supplier' else 'customer'
-        super().__init__(f'{party_type}_document', document_id=party_id, parent=parent)
+        super().__init__(party_type, document_id=party_id, parent=parent)
         self.party_type = party_type
+        self.document_descriptor = self.DOCUMENT_DESCRIPTOR_BY_PARTY_TYPE[party_type]
+        try:
+            from workspace.documents.document_permission_binder import DocumentPermissionBinder
+            self.document_permission_binder = DocumentPermissionBinder(self.document_descriptor)
+        except Exception:
+            pass
         self.party_id = party_id
         self.is_edit = party_id is not None
         self._statement_balance = Decimal('0')
@@ -95,6 +103,10 @@ class PartyEditorTab(BaseDocumentTab):
         self._voucher_total = Decimal('0')
         self._build_ui()
         self._apply_operation_policy()
+        try:
+            self.apply_document_permissions()
+        except Exception:
+            pass
         if self.is_edit:
             self.load_party()
         else:

@@ -25,6 +25,7 @@ from features.pos.pos_line_model import POSLineModel
 from features.pos.pos_payment_shell import POSPaymentShell
 from core.services.pos_operation_policy import pos_operation_policy
 from features.pos.pos_line_schema import pos_line_schema
+from workspace.operational.operational_shell_contract import bind_operational_shell
 from features.transactions.grids.transaction_column_presets import (
     preset_names, preset_title, visible_keys_for_preset,
 )
@@ -37,6 +38,7 @@ class POSWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(qt_layout_direction(settings_service.get_language()))
+        bind_operational_shell(self, 'pos')
         self._pos_settings = settings_service.get_pos_settings()
         self._pos_preferences = POSPreferences()
         self.cart = pos_service.new_cart(self._selected_warehouse_id() if hasattr(self, 'warehouse_combo') else None, self._selected_cashbox_id() if hasattr(self, 'cashbox_combo') else None)
@@ -51,6 +53,7 @@ class POSWidget(QWidget):
         self._setup_shortcuts()
         self._apply_touch_density()
         self._apply_pos_permissions()
+        self._apply_operational_shell_state()
         self.refresh_cart()
 
     def _focus_barcode_input(self):
@@ -474,7 +477,22 @@ class POSWidget(QWidget):
             return
         self._apply_pos_operation_state()
 
+    def _apply_operational_shell_state(self):
+        binder = getattr(self, 'operational_permission_binder', None)
+        if binder is None:
+            return {}
+        return binder.apply_to_widget(self, {
+            'suspend': ('suspend_btn',),
+            'resume': ('resume_btn',),
+            'remove_line': ('remove_btn',),
+            'clear_cart': ('clear_btn',),
+            'checkout': ('checkout_btn',),
+            'open_shift': ('open_shift_btn',),
+            'close_shift': ('close_shift_btn',),
+        })
+
     def _apply_pos_operation_state(self):
+        self._apply_operational_shell_state()
         mapping = {
             'suspend_btn': pos_operation_policy.OP_SUSPEND,
             'resume_btn': pos_operation_policy.OP_RESUME,

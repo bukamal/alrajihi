@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 )
 
 from ..i18n import tr, html_bold
+from core.money_display_policy import policy_for
 
 
 class TransactionTotalsPanel(QWidget):
@@ -91,25 +92,22 @@ class TransactionTotalsPanel(QWidget):
         """
         self._currency_code = currency_code or None
         try:
-            from currency import currency
-            symbol = currency.get_currency_symbol(self._currency_code) if self._currency_code else ""
+            policy = policy_for(currency_code=self._currency_code)
+            symbol = policy.currency_symbol if self._currency_code else ""
             self.paid_spin.setPrefix(f"{symbol} " if symbol else "")
-            self.paid_spin.setDecimals(currency.get_currency_decimals())
+            self.paid_spin.setDecimals(policy.decimals)
         except Exception:
             pass
 
     def _money_text(self, value) -> str:
         try:
-            amount = Decimal(str(value or 0))
-            if self._currency_code:
-                try:
-                    from currency import currency
-                    return currency.format_amount(amount, self._currency_code)
-                except Exception:
-                    pass
-            return f"{amount:.2f}"
+            return policy_for(currency_code=self._currency_code).format_money(value)
         except Exception:
-            return "0.00"
+            try:
+                amount = Decimal(str(value or 0))
+                return f"{amount:.2f}"
+            except Exception:
+                return "0.00"
 
     def paid_amount(self) -> Decimal:
         try:

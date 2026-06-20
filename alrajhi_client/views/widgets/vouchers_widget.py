@@ -10,10 +10,12 @@ from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate as tr, qt_layout_direction
+from workspace.lists.list_workspace_contract import bind_list_workspace
 
 class VouchersWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        bind_list_workspace(self, 'vouchers')
         self.setLayoutDirection(qt_layout_direction())
         self.current_page = 0
         self.page_size = 50

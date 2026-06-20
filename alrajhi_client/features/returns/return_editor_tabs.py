@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QMessageBox
 
 from i18n import translate
+from workspace.documents.document_contract import descriptor_for
 from core.services.sales_return_service import sales_return_service
 from core.services.purchase_return_service import purchase_return_service
 from views.widgets.returns_widget import (
@@ -21,7 +22,12 @@ from .components import (
 
 
 class _ReturnDocumentMixin:
-    """Document-tab behavior for unit-aware return editors.
+    LEGACY_TRANSACTION_ADAPTER = True
+    DOCUMENT_DESCRIPTOR_BY_RETURN_KIND = {'sale': descriptor_for('sales_return'), 'purchase': descriptor_for('purchase_return')}
+    """Legacy return document adapter for unit-aware return editors.
+
+    TransactionDocumentTab is the official return shell. This adapter is retained only
+    for emergency rollback when features/allow_legacy_transaction_documents is enabled.
 
     This is the Phase 49 boundary that replaces the Phase 47 generic bridge
     adapter for returns.  The Qt controls are still reused conservatively, but
@@ -39,6 +45,7 @@ class _ReturnDocumentMixin:
     def _init_document_tab(self, return_id=None) -> None:
         self.document_type = f'{self.return_kind}_return'
         self.document_id = return_id
+        self.document_descriptor = self.DOCUMENT_DESCRIPTOR_BY_RETURN_KIND.get(self.return_kind)
         self.header_component = ReturnHeaderComponent(self)
         self.lines_component = ReturnLinesComponent(self, self.return_kind)
         self.settlement_component = ReturnSettlementComponent(self)

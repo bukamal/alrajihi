@@ -396,8 +396,11 @@ class ReportsPhase36Mixin:
             return
 
     def print_report(self, mode='preview'):
-        from core.services.report_operation_policy import report_operation_policy
-        report_operation_policy.require(report_operation_policy.OP_EXPORT, context=f'report_print:{mode}')
+        try:
+            self._require_report_print_permission(context=f'report_print:{mode}')
+        except AttributeError:
+            from core.services.report_operation_policy import report_operation_policy
+            report_operation_policy.require(report_operation_policy.OP_PRINT, context=f'report_print:{mode}')
         from printing.printing_service import printing_service
         start, end = self.get_date_range()
         tab = self.tabs.currentWidget()
@@ -479,5 +482,17 @@ class ReportsPhase36Mixin:
         for r in range(model.rowCount()):
             rows.append([model.data(model.index(r, c), Qt.DisplayRole) or '' for c in range(model.columnCount())])
         subtitle = tr('period_subtitle', start=start, end=end)
-        # Phase 236: visible report print buttons always use the project print settings.
-        printing_service.report_print(title, rows, headers, self, subtitle=subtitle)
+        summary = {}
+        try:
+            descriptor = self._current_report_descriptor()
+            if descriptor is not None:
+                summary = {
+                    tr('report_shell_report_key'): descriptor.report_key,
+                    tr('report_shell_api_resource'): descriptor.api_resource,
+                    tr('report_shell_network_mode'): descriptor.network_mode,
+                    tr('report_shell_currency'): getattr(descriptor, 'currency_policy', ''),
+                }
+        except Exception:
+            summary = {}
+        # Phase 236/256: visible report print buttons always use Browser HTML and Report Shell metadata.
+        printing_service.report_print(title, rows, headers, self, subtitle=subtitle, summary=summary)

@@ -137,6 +137,22 @@ ACTION_PERMISSION_MAP = {
 }
 
 
+# Phase260: merge canonical Shell/List/Report/Operational permissions into the
+# client fallback role defaults.  This keeps offline/local fallback decisions
+# aligned with the server migration without importing PyQt-dependent code.
+try:
+    from workspace.security.rbac_contract import role_seed_map as _phase260_role_seed_map
+    for _role_name, _permission_keys in _phase260_role_seed_map().items():
+        if _role_name == 'admin':
+            DEFAULT_ROLE_PERMISSIONS[_role_name] = None
+            continue
+        _current = DEFAULT_ROLE_PERMISSIONS.setdefault(_role_name, set())
+        if _current is not None:
+            _current.update(_permission_keys)
+except Exception:
+    pass
+
+
 class RBACService:
     def __init__(self, gateway=None):
         self.gateway = gateway or self._create_gateway()

@@ -10,6 +10,7 @@ from core.services.settings_service import settings_service
 from i18n import qt_layout_direction, translate
 from utils import show_toast
 from workspace.documents import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 
 FieldSpec = Tuple[str, str, str]
 
@@ -89,6 +90,7 @@ class SettingsSectionForm(QFrame):
 
 
 class SettingsSectionDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("settings_section")
     """Base document tab for settings sections.
 
     Settings are persisted through SettingsService only.  The tab can be opened
@@ -172,6 +174,63 @@ class AccountingSettingsTab(SettingsSectionDocumentTab):
     )
 
 
+class TransactionsSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.transactions'
+    fields = (
+        ('invoice/sales_prefix', 'invoice_sales_prefix', 'string'),
+        ('invoice/purchase_prefix', 'invoice_purchase_prefix', 'string'),
+        ('invoice/number_format', 'invoice_number_format', 'string'),
+        ('invoice/auto_numbering', 'invoice_auto_numbering', 'bool'),
+        ('transactions/default_warehouse_id', 'default_warehouse', 'string'),
+        ('transactions/default_payment_method', 'default_payment_method', 'choice:cash|card|credit|bank_transfer'),
+        ('transactions/grid/auto_responsive', 'transactions_grid_auto_responsive', 'bool'),
+        ('transactions/show_profit', 'show_profit', 'bool'),
+        ('transactions/show_cost', 'show_cost', 'bool'),
+        ('transactions/default_preset', 'transactions_default_preset', 'choice:compact|cashier|manager'),
+        ('barcode/scanner/min_length', 'barcode_scanner_min_length', 'int'),
+    )
+
+
+class MaterialsSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.materials'
+    fields = (
+        ('materials/default_unit', 'default_unit', 'string'),
+        ('materials/default_item_type', 'default_item_type', 'string'),
+        ('materials/barcode/default_symbology', 'barcode_symbology', 'choice:EAN13|CODE128'),
+        ('materials/barcode/auto_generate', 'barcode_auto_generate', 'bool'),
+        ('materials/barcode/allow_manual_edit', 'barcode_allow_manual_edit', 'bool'),
+        ('materials/barcode/ean13_prefix', 'barcode_ean13_prefix', 'string'),
+        ('materials/units/require_unique_names', 'require_unique_unit_names', 'bool'),
+        ('materials/units/validate_unit_barcodes', 'validate_unit_barcodes', 'bool'),
+        ('materials/security/prevent_opening_quantity_edit_after_activity', 'prevent_opening_quantity_edit_after_activity', 'bool'),
+    )
+
+
+class PartiesSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.parties'
+    fields = (
+        ('parties/default_credit_limit', 'default_credit_limit', 'string'),
+        ('parties/ui/density', 'touch_density', 'choice:compact|comfortable|touch'),
+        ('parties/operations/allow_create', 'allow_create', 'bool'),
+        ('parties/operations/allow_edit', 'allow_edit', 'bool'),
+        ('parties/operations/allow_archive', 'allow_archive', 'bool'),
+        ('parties/operations/allow_statement_print', 'allow_statement_print', 'bool'),
+    )
+
+
+class FinanceSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.finance'
+    fields = (
+        ('finance/enabled', 'enabled', 'bool'),
+        ('finance/ui/density', 'touch_density', 'choice:compact|comfortable|touch'),
+        ('finance/operations/allow_voucher_create', 'allow_voucher_create', 'bool'),
+        ('finance/operations/allow_voucher_edit', 'allow_voucher_edit', 'bool'),
+        ('finance/operations/allow_voucher_print', 'allow_voucher_print', 'bool'),
+        ('finance/operations/allow_expense_create', 'allow_expense_create', 'bool'),
+        ('finance/operations/allow_expense_print', 'allow_expense_print', 'bool'),
+    )
+
+
 class InventorySettingsTab(SettingsSectionDocumentTab):
     section_key = 'settings.inventory'
     fields = (
@@ -182,13 +241,94 @@ class InventorySettingsTab(SettingsSectionDocumentTab):
     )
 
 
+class BranchesSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.branches'
+    fields = (
+        ('branches/enabled', 'enabled', 'bool'),
+        ('branches/ui/density', 'touch_density', 'choice:compact|comfortable|touch'),
+        ('branches/operations/allow_create', 'allow_create', 'bool'),
+        ('branches/operations/allow_edit', 'allow_edit', 'bool'),
+        ('branches/operations/allow_archive', 'allow_archive', 'bool'),
+        ('branches/operations/allow_set_default', 'allow_set_default', 'bool'),
+    )
+
+
+class CategoriesSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.categories'
+    fields = (
+        ('categories/enabled', 'enabled', 'bool'),
+        ('categories/ui/density', 'touch_density', 'choice:compact|comfortable|touch'),
+        ('categories/operations/allow_create', 'allow_create', 'bool'),
+        ('categories/operations/allow_edit', 'allow_edit', 'bool'),
+        ('categories/operations/allow_archive', 'allow_archive', 'bool'),
+    )
+
+
+class ManufacturingSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.manufacturing'
+    fields = (
+        ('manufacturing/enabled', 'enabled', 'bool'),
+        ('manufacturing/default_raw_warehouse_id', 'default_raw_warehouse', 'string'),
+        ('manufacturing/default_output_warehouse_id', 'default_output_warehouse', 'string'),
+        ('manufacturing/costing_method', 'costing_method', 'choice:AVERAGE|FIFO|LIFO|STANDARD|LAST_PURCHASE'),
+        ('manufacturing/allow_negative_raw_consumption', 'allow_negative_raw_consumption', 'bool'),
+        ('manufacturing/operations/allow_print', 'allow_print', 'bool'),
+        ('manufacturing/operations/allow_order_cancel', 'allow_order_cancel', 'bool'),
+    )
+
+
+class ReportsSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.reports'
+    fields = (
+        ('reports/enabled', 'enabled', 'bool'),
+        ('language/report', 'report_language', 'choice:ar|en|de'),
+        ('reports/default_export_format', 'default_export_format', 'choice:pdf|xlsx|csv|html'),
+        ('reports/operations/allow_view', 'allow_view', 'bool'),
+        ('reports/operations/allow_print', 'allow_print', 'bool'),
+        ('reports/operations/allow_export', 'allow_export', 'bool'),
+    )
+
+
+class PosSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.pos'
+    fields = (
+        ('pos/use_shifts', 'use_shifts', 'bool'),
+        ('pos/ui/density', 'touch_density', 'choice:compact|comfortable|touch'),
+        ('pos/default_warehouse_id', 'default_warehouse', 'string'),
+        ('pos/default_cashbox_id', 'default_cashbox', 'string'),
+        ('pos/default_payment_method', 'default_payment_method', 'choice:cash|card|credit|bank_transfer'),
+        ('pos/receipt_paper', 'receipt_paper', 'choice:80mm|58mm'),
+        ('pos/operations/allow_checkout', 'allow_checkout', 'bool'),
+        ('pos/operations/allow_print_receipt', 'allow_print_receipt', 'bool'),
+    )
+
+
+class UsersSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.users'
+    fields = (
+        ('users/enabled', 'enabled', 'bool'),
+        ('users/ui/density', 'touch_density', 'choice:compact|comfortable|touch'),
+        ('users/operations/allow_create', 'allow_create', 'bool'),
+        ('users/operations/allow_edit', 'allow_edit', 'bool'),
+        ('users/operations/allow_disable', 'allow_disable', 'bool'),
+    )
+
+
 class RestaurantSettingsTab(SettingsSectionDocumentTab):
     section_key = 'settings.restaurant'
     fields = (
+        ('restaurant/enabled', 'enabled', 'bool'),
+        ('restaurant/ui/density', 'touch_density', 'choice:compact|comfortable|touch'),
+        ('restaurant/default_payment_method', 'default_payment_method', 'choice:cash|card|credit|bank_transfer|bank'),
+        ('restaurant/receipt_paper', 'receipt_paper', 'choice:80mm|58mm'),
+        ('restaurant/kitchen_ticket_paper', 'kitchen_ticket_paper', 'choice:80mm|58mm'),
         ('restaurant/touch_mode', 'touch_mode', 'bool'),
         ('restaurant/service_charge_percent', 'service_charge_percent', 'string'),
         ('restaurant/default_tax_percent', 'default_tax_percent', 'string'),
         ('restaurant/consume_inventory_on', 'consume_inventory_on', 'choice:checkout|served'),
+        ('restaurant/operations/allow_checkout', 'allow_checkout', 'bool'),
+        ('restaurant/operations/allow_print_receipt', 'allow_print_receipt', 'bool'),
+        ('restaurant/operations/allow_print_kitchen_ticket', 'allow_print_kitchen_ticket', 'bool'),
     )
 
 
@@ -245,9 +385,19 @@ class SecuritySettingsTab(SettingsSectionDocumentTab):
 SETTINGS_SECTION_TABS = {
     'company': CompanySettingsTab,
     'accounting': AccountingSettingsTab,
+    'transactions': TransactionsSettingsTab,
+    'materials': MaterialsSettingsTab,
+    'categories': CategoriesSettingsTab,
+    'parties': PartiesSettingsTab,
+    'finance': FinanceSettingsTab,
     'inventory': InventorySettingsTab,
+    'branches': BranchesSettingsTab,
+    'manufacturing': ManufacturingSettingsTab,
+    'reports': ReportsSettingsTab,
+    'pos': PosSettingsTab,
     'restaurant': RestaurantSettingsTab,
     'printing': PrintingSettingsTab,
+    'users': UsersSettingsTab,
     'ui': UISettingsTab,
     'security': SecuritySettingsTab,
 }

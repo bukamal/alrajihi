@@ -534,6 +534,11 @@ class MainWindow(QMainWindow):
         self.action_bar.bind('print', self.print_current_tab)
         self.action_bar.bind('export', self.export_current_tab)
         self.action_bar.bind('quick_open', self.open_quick_open)
+        try:
+            self.workspace.currentPageChanged.connect(lambda _pid: self._apply_current_document_permissions())
+            self.workspace.currentChanged.connect(lambda _idx: self._apply_current_document_permissions())
+        except Exception:
+            pass
 
     def setup_shell_state(self):
         user = UserSession.get_current() or {}
@@ -547,6 +552,54 @@ class MainWindow(QMainWindow):
         next_theme = 'dark' if current != 'dark' else 'light'
         self.change_theme(next_theme)
 
+
+
+    def _current_document_permission_id(self, page):
+        try:
+            if hasattr(page, 'document_id_for_permissions'):
+                return page.document_id_for_permissions()
+            state = getattr(page, 'document_state', None)
+            return getattr(state, 'document_id', None)
+        except Exception:
+            return None
+
+    def _apply_current_document_permissions(self):
+        page = self.stack.currentWidget() if hasattr(self, 'stack') else None
+        if page is None:
+            return
+        try:
+            binder = getattr(page, 'document_permission_binder', None)
+            if binder is not None and hasattr(binder, 'apply_to_action_bar'):
+                binder.apply_to_action_bar(self.action_bar, document_id=self._current_document_permission_id(page))
+            elif hasattr(self.action_bar, 'set_action_enabled'):
+                # Legacy/list pages keep global commands available unless they
+                # declare a document permission binder.
+                for action in ('save', 'print', 'export'):
+                    self.action_bar.set_action_enabled(action, True)
+            if hasattr(page, 'apply_document_permissions'):
+                page.apply_document_permissions()
+        except Exception:
+            pass
+
+    def _can_invoke_current_tab_action(self, page, action: str) -> bool:
+        if page is None:
+            return False
+        try:
+            if hasattr(page, 'can_document_action'):
+                return bool(page.can_document_action(action))
+            binder = getattr(page, 'document_permission_binder', None)
+            if binder is not None and hasattr(binder, 'can'):
+                return bool(binder.can(action, document_id=self._current_document_permission_id(page)))
+        except Exception:
+            return True
+        return True
+
+    def _show_permission_denied_for_current_tab(self, page, action: str) -> None:
+        try:
+            message = page.permission_denied_message(action) if hasattr(page, 'permission_denied_message') else translate('workspace.permission_denied')
+        except Exception:
+            message = translate('workspace.permission_denied')
+        QMessageBox.warning(self, translate('warning'), message)
 
     def refresh_current_view(self):
         """Refresh current page from the shell utility button."""
@@ -640,6 +693,7 @@ class MainWindow(QMainWindow):
             self.title_label.setText(f"{translate('app_title')} — {title}")
         if hasattr(self, 'action_bar'):
             self.action_bar.set_context(title)
+            self._apply_current_document_permissions()
 
     def _refresh_page_if_loaded(self, page_key):
         try:
@@ -653,12 +707,16 @@ class MainWindow(QMainWindow):
 
     def open_quick_invoice(self, inv_type, invoice_id=None):
         try:
+            from features.transactions.transaction_shell_contract import normalize_invoice_type
+            inv_type = normalize_invoice_type(inv_type)
             sequence = getattr(self, '_invoice_tab_sequence', 0) + 1
             self._invoice_tab_sequence = sequence
             tab_id = f"invoice:{inv_type}:{invoice_id or 'new'}:{sequence if invoice_id is None else invoice_id}"
             widget = None
+            shell_error = None
             try:
                 from features.transactions.feature_flags import (
+                    allow_legacy_transaction_documents,
                     use_new_transaction_documents,
                     use_new_transaction_documents_for_existing,
                 )
@@ -672,9 +730,19 @@ class MainWindow(QMainWindow):
                     else:
                         from features.transactions.documents.sales_invoice_tab import SalesInvoiceTab
                         widget = SalesInvoiceTab(self, invoice_id=invoice_id)
-            except Exception:
+                else:
+                    shell_error = RuntimeError('Unified transaction document shell is disabled by settings')
+            except Exception as exc:
+                shell_error = exc
                 widget = None
             if widget is None:
+                try:
+                    legacy_allowed = allow_legacy_transaction_documents()  # type: ignore[name-defined]
+                except Exception:
+                    legacy_allowed = False
+                if not legacy_allowed:
+                    detail = f": {shell_error}" if shell_error else ''
+                    raise RuntimeError(f"Unified transaction document shell unavailable for {inv_type} invoice{detail}")
                 from features.invoices import InvoiceEditorTab
                 widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=invoice_id)
             icon = 'fa5s.file-invoice-dollar' if inv_type == 'sale' else 'fa5s.file-invoice'
@@ -778,6 +846,8 @@ class MainWindow(QMainWindow):
 
     def open_return_document(self, return_type='sale', return_id=None, return_data=None):
         try:
+            from features.transactions.transaction_shell_contract import normalize_return_type
+            return_type = normalize_return_type(return_type)
             if return_type == 'purchase':
                 title = translate('purchase_return')
                 icon = 'fa5s.undo-alt'
@@ -788,8 +858,10 @@ class MainWindow(QMainWindow):
             self._return_tab_sequence = sequence
             tab_id = f"return:{return_type}:{return_id or 'new'}:{sequence if return_id is None else return_id}"
             widget = None
+            shell_error = None
             try:
                 from features.transactions.feature_flags import (
+                    allow_legacy_transaction_documents,
                     use_new_transaction_returns,
                     use_new_transaction_returns_for_existing,
                 )
@@ -803,9 +875,19 @@ class MainWindow(QMainWindow):
                     else:
                         from features.transactions.documents.sales_return_tab import SalesReturnTab
                         widget = SalesReturnTab(self, return_id=return_id, return_data=return_data)
-            except Exception:
+                else:
+                    shell_error = RuntimeError('Unified transaction return shell is disabled by settings')
+            except Exception as exc:
+                shell_error = exc
                 widget = None
             if widget is None:
+                try:
+                    legacy_allowed = allow_legacy_transaction_documents()  # type: ignore[name-defined]
+                except Exception:
+                    legacy_allowed = False
+                if not legacy_allowed:
+                    detail = f": {shell_error}" if shell_error else ''
+                    raise RuntimeError(f"Unified transaction document shell unavailable for {return_type} return{detail}")
                 if return_type == 'purchase':
                     from features.returns import PurchaseReturnEditorTab as ReturnEditorTab
                 else:
@@ -1037,7 +1119,7 @@ class MainWindow(QMainWindow):
                 items.append(QuickOpenItem(entry.tab_id, f"↺ {page_title(entry.tab_id)}", translate('workspace.recent_tabs'), entry.icon_name))
         for pid in self.pages:
             items.append(QuickOpenItem(pid, page_title(pid), page_breadcrumb(pid), self.workspace_icon_for_page(pid)))
-        for section in ('company', 'accounting', 'inventory', 'restaurant', 'printing', 'ui', 'security'):
+        for section in ('company', 'accounting', 'transactions', 'materials', 'categories', 'parties', 'finance', 'inventory', 'branches', 'manufacturing', 'reports', 'pos', 'restaurant', 'printing', 'users', 'ui', 'security'):
             items.append(QuickOpenItem(f'settings:{section}', translate(f'settings.{section}'), translate('settings'), 'fa5s.sliders-h'))
         seen = set()
         unique = []
@@ -1154,9 +1236,19 @@ class MainWindow(QMainWindow):
         page = self.stack.currentWidget() if hasattr(self, 'stack') else None
         if page is None:
             return False
+        action_map = {
+            'workspace_save': 'save', 'on_save': 'save', 'save': 'save', 'save_current': 'save',
+            'workspace_print': 'print', 'print_invoice_professional': 'print', 'print_current': 'print', 'print_report': 'print',
+            'workspace_export': 'export', 'export_current': 'export', 'export': 'export',
+        }
         for name in command_names:
             if hasattr(page, name):
+                action = action_map.get(name, '')
+                if action and not self._can_invoke_current_tab_action(page, action):
+                    self._show_permission_denied_for_current_tab(page, action)
+                    return True
                 getattr(page, name)()
+                self._apply_current_document_permissions()
                 return True
         return False
 

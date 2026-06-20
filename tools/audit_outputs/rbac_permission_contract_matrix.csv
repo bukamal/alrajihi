@@ -1,0 +1,148 @@
+﻿key,module,action,description,source,shell_family,api_resource,network_mode,branch_scoped,legacy_alias,admin,manager,accountant,cashier,viewer,migration_seeded
+bank_accounts.create,bank_accounts,create,document:bank_account:create: bank_accounts create,document:bank_account:create,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+bank_accounts.delete,bank_accounts,delete,document:bank_account:delete: bank_accounts delete,document:bank_account:delete,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+bank_accounts.update,bank_accounts,update,document:bank_account:update: bank_accounts update,document:bank_account:update,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+bank_accounts.view,bank_accounts,view,document:bank_account:view: bank_accounts view,document:bank_account:view,document,/api/rbac,remote_available,False,,True,True,True,False,True,True
+branches.create,branches,create,document:branch:create: branches create,document:branch:create,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
+branches.delete,branches,delete,document:branch:delete: branches delete,document:branch:delete,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
+branches.manage_all,branches,manage_all,rbac:branch_scope:manage_all: branches manage all,rbac:branch_scope:manage_all,security,/api/rbac,remote_available,False,,True,True,False,False,False,True
+branches.update,branches,update,document:branch:update: branches update,document:branch:update,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
+branches.view,branches,view,document:branch:view: branches view,document:branch:view,document,/api/rbac,remote_available,True,,True,True,True,False,True,True
+branches.view_all,branches,view_all,rbac:branch_scope:view_all: branches view all,rbac:branch_scope:view_all,security,/api/rbac,remote_available,False,,True,True,False,False,False,True
+cashboxes.create,cashboxes,create,document:cashbox:create: cashboxes create,document:cashbox:create,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+cashboxes.delete,cashboxes,delete,document:cashbox:delete: cashboxes delete,document:cashbox:delete,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+cashboxes.update,cashboxes,update,document:cashbox:update: cashboxes update,document:cashbox:update,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+cashboxes.view,cashboxes,view,document:cashbox:view: cashboxes view,document:cashbox:view,document,/api/rbac,remote_available,False,,True,True,True,False,True,True
+categories.create,categories,create,document:category:create: categories create,document:category:create,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+categories.delete,categories,delete,document:category:delete: categories delete,document:category:delete,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+categories.update,categories,update,document:category:update: categories update,document:category:update,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+categories.view,categories,view,document:category:view: categories view,document:category:view,document,/api/rbac,remote_available,False,,True,True,True,False,True,True
+customers.create,customers,create,document:customer:create: customers create,document:customer:create,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+customers.delete,customers,delete,document:customer:delete: customers delete,document:customer:delete,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+customers.export,customers,export,document:customer:export: customers export,document:customer:export,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+customers.print,customers,print,document:customer:print: customers print,document:customer:print,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+customers.update,customers,update,document:customer:update: customers update,document:customer:update,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+customers.view,customers,view,document:customer:view: customers view,document:customer:view,document,/api/rbac,remote_available,False,,True,True,True,True,True,True
+expenses.cancel,expenses,cancel,document:expense:cancel: expenses cancel,document:expense:cancel,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+expenses.create,expenses,create,document:expense:create: expenses create,document:expense:create,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+expenses.delete,expenses,delete,document:expense:delete: expenses delete,document:expense:delete,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+expenses.export,expenses,export,document:expense:export: expenses export,document:expense:export,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+expenses.print,expenses,print,document:expense:print: expenses print,document:expense:print,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+expenses.update,expenses,update,document:expense:update: expenses update,document:expense:update,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+expenses.view,expenses,view,document:expense:view: expenses view,document:expense:view,document,/api/rbac,remote_available,False,,True,True,True,False,True,True
+items.create,items,create,document:material:create: items create,document:material:create,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+items.delete,items,delete,document:material:delete: items delete,document:material:delete,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+items.export,items,export,document:material:export: items export,document:material:export,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+items.print,items,print,document:material:print: items print,document:material:print,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+items.update,items,update,document:material:update: items update,document:material:update,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+items.view,items,view,document:material:view: items view,document:material:view,document,/api/rbac,remote_available,False,,True,True,True,True,True,True
+manufacturing.bom.approve,manufacturing,bom_approve,document:bom:approve: manufacturing bom approve,document:bom:approve,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+manufacturing.bom.cancel,manufacturing,bom_cancel,document:bom:cancel: manufacturing bom cancel,document:bom:cancel,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+manufacturing.bom.create,manufacturing,bom_create,document:bom:create: manufacturing bom create,document:bom:create,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+manufacturing.bom.delete,manufacturing,bom_delete,document:bom:delete: manufacturing bom delete,document:bom:delete,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+manufacturing.bom.export,manufacturing,bom_export,document:bom:export: manufacturing bom export,document:bom:export,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+manufacturing.bom.print,manufacturing,bom_print,document:bom:print: manufacturing bom print,document:bom:print,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+manufacturing.bom.update,manufacturing,bom_update,document:bom:update: manufacturing bom update,document:bom:update,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+manufacturing.bom.view,manufacturing,bom_view,document:bom:view: manufacturing bom view,document:bom:view,document,/api/rbac,remote_available,False,,True,True,True,False,True,True
+manufacturing.production_orders.approve,manufacturing,production_orders_approve,document:production_order:approve: manufacturing production orders approve,document:production_order:approve,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+manufacturing.production_orders.cancel,manufacturing,production_orders_cancel,document:production_order:cancel: manufacturing production orders cancel,document:production_order:cancel,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+manufacturing.production_orders.create,manufacturing,production_orders_create,document:production_order:create: manufacturing production orders create,document:production_order:create,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+manufacturing.production_orders.export,manufacturing,production_orders_export,document:production_order:export: manufacturing production orders export,document:production_order:export,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+manufacturing.production_orders.print,manufacturing,production_orders_print,document:production_order:print: manufacturing production orders print,document:production_order:print,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+manufacturing.production_orders.update,manufacturing,production_orders_update,document:production_order:update: manufacturing production orders update,document:production_order:update,document,/api/rbac,remote_available,False,,True,True,False,False,False,True
+manufacturing.production_orders.view,manufacturing,production_orders_view,document:production_order:view: manufacturing production orders view,document:production_order:view,document,/api/rbac,remote_available,False,,True,True,True,False,True,True
+pos.cart.clear,pos,cart_clear,operational:pos:clear_cart: pos cart clear,operational:pos:clear_cart,operational_shell,/api/rbac,remote_available,True,pos_clear_cart,True,True,False,True,False,True
+pos.checkout,pos,checkout,document:pos:create: pos checkout,document:pos:create,operational_shell,/api/rbac,remote_available,True,,True,True,False,True,False,True
+pos.line.remove,pos,line_remove,operational:pos:remove_line: pos line remove,operational:pos:remove_line,operational_shell,/api/rbac,remote_available,True,pos_remove_line,True,True,False,True,False,True
+pos.print,pos,print,document:pos:print: pos print,document:pos:print,operational_shell,/api/rbac,remote_available,True,,True,True,True,True,False,True
+pos.receipt.print,pos,receipt_print,operational:pos:print_receipt: pos receipt print,operational:pos:print_receipt,operational_shell,/api/rbac,remote_available,True,pos_print_receipt,True,True,True,True,False,True
+pos.resume,pos,resume,operational:pos:resume: pos resume,operational:pos:resume,operational_shell,/api/rbac,remote_available,True,pos_resume,True,True,False,True,False,True
+pos.shift.close,pos,shift_close,operational:pos:close_shift: pos shift close,operational:pos:close_shift,operational_shell,/api/rbac,remote_available,True,pos_close_shift,True,True,False,True,False,True
+pos.shift.open,pos,shift_open,operational:pos:open_shift: pos shift open,operational:pos:open_shift,operational_shell,/api/rbac,remote_available,True,pos_open_shift,True,True,False,True,False,True
+pos.suspend,pos,suspend,operational:pos:suspend: pos suspend,operational:pos:suspend,operational_shell,/api/rbac,remote_available,True,pos_suspend,True,True,False,True,False,True
+pos.use,pos,use,operational:pos:checkout: pos use,operational:pos:checkout,operational_shell,/api/rbac,remote_available,True,use_pos,True,True,False,True,False,True
+pos.view,pos,view,document:pos:view: pos view,document:pos:view,operational_shell,/api/rbac,remote_available,True,,True,True,True,True,True,True
+pos.void,pos,void,document:pos:cancel: pos void,document:pos:cancel,operational_shell,/api/rbac,remote_available,True,,True,True,False,True,False,True
+purchase_invoices.approve,purchase_invoices,approve,document:purchase_invoice:approve: purchase_invoices approve,document:purchase_invoice:approve,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_invoices.cancel,purchase_invoices,cancel,document:purchase_invoice:cancel: purchase_invoices cancel,document:purchase_invoice:cancel,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_invoices.create,purchase_invoices,create,document:purchase_invoice:create: purchase_invoices create,document:purchase_invoice:create,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_invoices.delete,purchase_invoices,delete,document:purchase_invoice:delete: purchase_invoices delete,document:purchase_invoice:delete,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_invoices.export,purchase_invoices,export,document:purchase_invoice:export: purchase_invoices export,document:purchase_invoice:export,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_invoices.print,purchase_invoices,print,document:purchase_invoice:print: purchase_invoices print,document:purchase_invoice:print,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_invoices.update,purchase_invoices,update,document:purchase_invoice:update: purchase_invoices update,document:purchase_invoice:update,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_invoices.view,purchase_invoices,view,document:purchase_invoice:view: purchase_invoices view,document:purchase_invoice:view,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,True,True
+purchase_returns.approve,purchase_returns,approve,document:purchase_return:approve: purchase_returns approve,document:purchase_return:approve,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_returns.cancel,purchase_returns,cancel,document:purchase_return:cancel: purchase_returns cancel,document:purchase_return:cancel,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_returns.create,purchase_returns,create,document:purchase_return:create: purchase_returns create,document:purchase_return:create,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_returns.delete,purchase_returns,delete,document:purchase_return:delete: purchase_returns delete,document:purchase_return:delete,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_returns.export,purchase_returns,export,document:purchase_return:export: purchase_returns export,document:purchase_return:export,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_returns.print,purchase_returns,print,document:purchase_return:print: purchase_returns print,document:purchase_return:print,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_returns.update,purchase_returns,update,document:purchase_return:update: purchase_returns update,document:purchase_return:update,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+purchase_returns.view,purchase_returns,view,document:purchase_return:view: purchase_returns view,document:purchase_return:view,transaction_document,/api/rbac,remote_available,True,,True,True,True,False,True,True
+reports.export,reports,export,document:reports:export: reports export,document:reports:export,report_shell,/api/rbac,remote_available,False,,True,True,True,False,False,True
+reports.print,reports,print,document:reports:print: reports print,document:reports:print,report_shell,/api/rbac,remote_available,False,,True,True,True,False,True,True
+reports.view,reports,view,document:reports:view: reports view,document:reports:view,report_shell,/api/rbac,remote_available,False,,True,True,True,False,True,True
+restaurant.bill.adjust,restaurant,bill_adjust,operational:restaurant:adjust_bill: restaurant bill adjust,operational:restaurant:adjust_bill,operational_shell,/api/rbac,remote_available,True,restaurant_adjust_bill,True,True,False,True,False,True
+restaurant.cancel,restaurant,cancel,document:restaurant:cancel: restaurant cancel,document:restaurant:cancel,operational_shell,/api/rbac,remote_available,True,,True,True,False,True,False,True
+restaurant.checkout,restaurant,checkout,operational:restaurant:checkout: restaurant checkout,operational:restaurant:checkout,operational_shell,/api/rbac,remote_available,True,restaurant_checkout,True,True,False,True,False,True
+restaurant.kitchen.send,restaurant,kitchen_send,operational:restaurant:send_kitchen: restaurant kitchen send,operational:restaurant:send_kitchen,operational_shell,/api/rbac,remote_available,True,restaurant_send_kitchen,True,True,False,True,False,True
+restaurant.kitchen.status.update,restaurant,kitchen_status_update,operational:restaurant:update_kitchen_status: restaurant kitchen status update,operational:restaurant:update_kitchen_status,operational_shell,/api/rbac,remote_available,True,restaurant_update_kitchen_status,True,True,False,True,False,True
+restaurant.kitchen_ticket.print,restaurant,kitchen_ticket_print,operational:restaurant:print_kitchen_ticket: restaurant kitchen ticket print,operational:restaurant:print_kitchen_ticket,operational_shell,/api/rbac,remote_available,True,restaurant_print_kitchen_ticket,True,True,True,True,False,True
+restaurant.line.add,restaurant,line_add,operational:restaurant:add_line: restaurant line add,operational:restaurant:add_line,operational_shell,/api/rbac,remote_available,True,restaurant_add_line,True,True,False,True,False,True
+restaurant.order,restaurant,order,document:restaurant:create: restaurant order,document:restaurant:create,operational_shell,/api/rbac,remote_available,True,,True,True,False,True,False,True
+restaurant.order.update,restaurant,order_update,document:restaurant:update: restaurant order update,document:restaurant:update,operational_shell,/api/rbac,remote_available,True,,True,True,False,True,False,True
+restaurant.payment.record,restaurant,payment_record,operational:restaurant:record_payment: restaurant payment record,operational:restaurant:record_payment,operational_shell,/api/rbac,remote_available,True,restaurant_record_payment,True,True,False,True,False,True
+restaurant.print,restaurant,print,document:restaurant:print: restaurant print,document:restaurant:print,operational_shell,/api/rbac,remote_available,True,,True,True,True,True,False,True
+restaurant.receipt.print,restaurant,receipt_print,operational:restaurant:print_receipt: restaurant receipt print,operational:restaurant:print_receipt,operational_shell,/api/rbac,remote_available,True,restaurant_print_receipt,True,True,True,True,False,True
+restaurant.session.open,restaurant,session_open,operational:restaurant:open_session: restaurant session open,operational:restaurant:open_session,operational_shell,/api/rbac,remote_available,True,restaurant_open_session,True,True,False,True,False,True
+restaurant.use,restaurant,use,operational:restaurant:use: restaurant use,operational:restaurant:use,operational_shell,/api/rbac,remote_available,True,restaurant_use,True,True,False,True,False,True
+restaurant.view,restaurant,view,document:restaurant:view: restaurant view,document:restaurant:view,operational_shell,/api/rbac,remote_available,True,,True,True,True,True,True,True
+sales_invoices.approve,sales_invoices,approve,document:sales_invoice:approve: sales_invoices approve,document:sales_invoice:approve,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_invoices.cancel,sales_invoices,cancel,document:sales_invoice:cancel: sales_invoices cancel,document:sales_invoice:cancel,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_invoices.create,sales_invoices,create,document:sales_invoice:create: sales_invoices create,document:sales_invoice:create,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_invoices.delete,sales_invoices,delete,document:sales_invoice:delete: sales_invoices delete,document:sales_invoice:delete,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_invoices.export,sales_invoices,export,document:sales_invoice:export: sales_invoices export,document:sales_invoice:export,transaction_document,/api/rbac,remote_available,True,,True,True,True,True,False,True
+sales_invoices.print,sales_invoices,print,document:sales_invoice:print: sales_invoices print,document:sales_invoice:print,transaction_document,/api/rbac,remote_available,True,,True,True,True,True,False,True
+sales_invoices.update,sales_invoices,update,document:sales_invoice:update: sales_invoices update,document:sales_invoice:update,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_invoices.view,sales_invoices,view,document:sales_invoice:view: sales_invoices view,document:sales_invoice:view,transaction_document,/api/rbac,remote_available,True,,True,True,True,True,True,True
+sales_returns.approve,sales_returns,approve,document:sales_return:approve: sales_returns approve,document:sales_return:approve,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_returns.cancel,sales_returns,cancel,document:sales_return:cancel: sales_returns cancel,document:sales_return:cancel,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_returns.create,sales_returns,create,document:sales_return:create: sales_returns create,document:sales_return:create,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_returns.delete,sales_returns,delete,document:sales_return:delete: sales_returns delete,document:sales_return:delete,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_returns.export,sales_returns,export,document:sales_return:export: sales_returns export,document:sales_return:export,transaction_document,/api/rbac,remote_available,True,,True,True,True,True,False,True
+sales_returns.print,sales_returns,print,document:sales_return:print: sales_returns print,document:sales_return:print,transaction_document,/api/rbac,remote_available,True,,True,True,True,True,False,True
+sales_returns.update,sales_returns,update,document:sales_return:update: sales_returns update,document:sales_return:update,transaction_document,/api/rbac,remote_available,True,,True,True,False,True,False,True
+sales_returns.view,sales_returns,view,document:sales_return:view: sales_returns view,document:sales_return:view,transaction_document,/api/rbac,remote_available,True,,True,True,True,True,True,True
+settings.export,settings,export,document:settings_section:export: settings export,document:settings_section:export,document,/api/rbac,remote_available,False,,True,False,True,False,False,True
+settings.update,settings,update,document:settings_section:update: settings update,document:settings_section:update,document,/api/rbac,remote_available,False,,True,False,False,False,False,True
+settings.view,settings,view,document:settings_section:view: settings view,document:settings_section:view,document,/api/rbac,remote_available,False,,True,True,True,False,True,True
+suppliers.create,suppliers,create,document:supplier:create: suppliers create,document:supplier:create,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+suppliers.delete,suppliers,delete,document:supplier:delete: suppliers delete,document:supplier:delete,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+suppliers.export,suppliers,export,document:supplier:export: suppliers export,document:supplier:export,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+suppliers.print,suppliers,print,document:supplier:print: suppliers print,document:supplier:print,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+suppliers.update,suppliers,update,document:supplier:update: suppliers update,document:supplier:update,document,/api/rbac,remote_available,False,,True,True,True,True,False,True
+suppliers.view,suppliers,view,document:supplier:view: suppliers view,document:supplier:view,document,/api/rbac,remote_available,False,,True,True,True,True,True,True
+users.create,users,create,document:user:create: users create,document:user:create,document,/api/rbac,remote_available,True,,True,False,False,False,False,True
+users.delete,users,delete,document:user:delete: users delete,document:user:delete,document,/api/rbac,remote_available,True,,True,False,False,False,False,True
+users.update,users,update,document:user:update: users update,document:user:update,document,/api/rbac,remote_available,True,,True,False,False,False,False,True
+users.view,users,view,document:user:view: users view,document:user:view,document,/api/rbac,remote_available,True,,True,True,True,False,True,True
+vouchers.approve,vouchers,approve,document:voucher:approve: vouchers approve,document:voucher:approve,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+vouchers.cancel,vouchers,cancel,document:voucher:cancel: vouchers cancel,document:voucher:cancel,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+vouchers.create,vouchers,create,document:voucher:create: vouchers create,document:voucher:create,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+vouchers.delete,vouchers,delete,document:voucher:delete: vouchers delete,document:voucher:delete,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+vouchers.export,vouchers,export,document:voucher:export: vouchers export,document:voucher:export,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+vouchers.print,vouchers,print,document:voucher:print: vouchers print,document:voucher:print,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+vouchers.update,vouchers,update,document:voucher:update: vouchers update,document:voucher:update,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
+vouchers.view,vouchers,view,document:voucher:view: vouchers view,document:voucher:view,document,/api/rbac,remote_available,False,,True,True,True,False,True,True
+warehouse_transfers.cancel,warehouse_transfers,cancel,document:warehouse_transfer:cancel: warehouse_transfers cancel,document:warehouse_transfer:cancel,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
+warehouse_transfers.create,warehouse_transfers,create,document:warehouse_transfer:create: warehouse_transfers create,document:warehouse_transfer:create,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
+warehouse_transfers.export,warehouse_transfers,export,document:warehouse_transfer:export: warehouse_transfers export,document:warehouse_transfer:export,document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+warehouse_transfers.print,warehouse_transfers,print,document:warehouse_transfer:print: warehouse_transfers print,document:warehouse_transfer:print,document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+warehouse_transfers.update,warehouse_transfers,update,document:warehouse_transfer:update: warehouse_transfers update,document:warehouse_transfer:update,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
+warehouse_transfers.view,warehouse_transfers,view,document:warehouse_transfer:view: warehouse_transfers view,document:warehouse_transfer:view,document,/api/rbac,remote_available,True,,True,True,True,True,True,True
+warehouses.create,warehouses,create,document:warehouse:create: warehouses create,document:warehouse:create,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
+warehouses.delete,warehouses,delete,document:warehouse:delete: warehouses delete,document:warehouse:delete,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
+warehouses.export,warehouses,export,document:warehouse:export: warehouses export,document:warehouse:export,document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+warehouses.print,warehouses,print,document:warehouse:print: warehouses print,document:warehouse:print,document,/api/rbac,remote_available,True,,True,True,True,False,False,True
+warehouses.update,warehouses,update,document:warehouse:update: warehouses update,document:warehouse:update,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
+warehouses.view,warehouses,view,document:warehouse:view: warehouses view,document:warehouse:view,document,/api/rbac,remote_available,True,,True,True,True,True,True,True

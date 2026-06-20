@@ -8,11 +8,13 @@ from core.services.category_operation_policy import category_operation_policy
 from i18n import qt_layout_direction, translate
 from utils import show_toast
 from workspace.documents import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 
 from .components.category_panels import CategoryHeaderPanel, CategoryPropertiesPanel
 
 
 class CategoryEditorTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("category")
     """Document-tab editor for category creation/editing, decomposed into panels."""
 
     def __init__(self, parent=None, category_id=None) -> None:

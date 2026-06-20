@@ -1,10 +1,12 @@
 from __future__ import annotations
+from workspace.documents.document_contract import descriptor_for
 
 from ..transaction_context import sales_return_context
 from ..transaction_document_tab import TransactionDocumentTab
 
 
 class SalesReturnTab(TransactionDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("sales_return")
     def __init__(self, parent=None, return_id=None, return_data=None):
         # return_data is accepted for compatibility with legacy call sites;
         # the transaction tab loads by id through sales_return_service.

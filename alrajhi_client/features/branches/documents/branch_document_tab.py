@@ -20,12 +20,14 @@ from PyQt5.QtWidgets import (
 
 from i18n import qt_layout_direction, translate
 from workspace.documents.base_document_tab import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 from core.services.branch_service import branch_service
 from core.services.branch_operation_policy import branch_operation_policy
 from utils import show_toast
 
 
 class BranchDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("branch")
     """Create/edit branch master data inside the tabbed workspace."""
 
     def __init__(self, parent=None, branch_id: Optional[int] = None):

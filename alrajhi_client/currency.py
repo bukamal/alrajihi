@@ -188,25 +188,29 @@ class CurrencyManager:
             return formatted if '.' in formatted else f"{num:.0f}"
     
     def format_amount(self, amount, currency_code: str = None, decimals: int = None) -> str:
-        if currency_code is None:
-            currency_code = self.get_display_currency()
-        if decimals is None:
-            decimals = self.get_currency_decimals()
-        symbol = self.get_currency_symbol(currency_code)
-        fmt = self.get_number_format()
-        abbrev = self.abbreviate_numbers()
-        if not isinstance(amount, Decimal):
-            amount = Decimal(str(amount))
-        if abbrev and abs(amount) >= 1000:
-            formatted = self._abbreviate_number(amount)
-        else:
+        """Format a display-currency amount through the unified money policy.
+
+        This method intentionally does not convert.  Callers that hold base or
+        storage amounts must call ``to_display``/``convert`` first, then format
+        the already-displayed amount here.
+        """
+        try:
+            from core.money_display_policy import format_money
+            return format_money(
+                amount,
+                currency_code or self.get_display_currency(),
+                decimals=self.get_currency_decimals() if decimals is None else decimals,
+            )
+        except Exception:
+            if currency_code is None:
+                currency_code = self.get_display_currency()
+            if decimals is None:
+                decimals = self.get_currency_decimals()
+            symbol = self.get_currency_symbol(currency_code)
+            if not isinstance(amount, Decimal):
+                amount = Decimal(str(amount or 0))
             formatted = f"{amount:,.{decimals}f}"
-            if '.' in formatted:
-                formatted = formatted.rstrip('0').rstrip('.')
-        if fmt == 'arabic':
-            formatted = formatted.replace('0', '٠').replace('1', '١').replace('2', '٢').replace('3', '٣').replace('4', '٤')\
-                                 .replace('5', '٥').replace('6', '٦').replace('7', '٧').replace('8', '٨').replace('9', '٩')
-        return f"{formatted} {symbol}"
+            return f"{formatted} {symbol}"
     
     def get_all_currencies(self) -> list:
         try:

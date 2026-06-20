@@ -8,6 +8,8 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QWidget, QMessageBox
 
 from i18n import translate
+from .document_contract import descriptor_for
+from .document_permission_binder import DocumentPermissionBinder
 
 
 @dataclass
@@ -36,6 +38,37 @@ class BaseDocumentTab(QWidget):
     def __init__(self, document_type: str, document_id: Optional[int] = None, parent=None) -> None:
         super().__init__(parent)
         self.document_state = DocumentState(document_type=document_type, document_id=document_id)
+        self.document_descriptor = descriptor_for(document_type)
+        self.document_permission_binder = DocumentPermissionBinder(self.document_descriptor)
+        self._document_permissions_applied = False
+
+
+    def document_id_for_permissions(self):
+        return self.document_state.document_id
+
+    def can_document_action(self, action: str) -> bool:
+        return self.document_permission_binder.can(action, document_id=self.document_id_for_permissions())
+
+    def document_permission_matrix(self) -> dict:
+        return self.document_permission_binder.matrix(document_id=self.document_id_for_permissions())
+
+    def apply_document_permissions(self) -> dict:
+        return self.document_permission_binder.apply_to_widget_buttons(self, document_id=self.document_id_for_permissions())
+
+    def permission_denied_message(self, action: str) -> str:
+        try:
+            from core.services.permission_service import permission_service
+            key = self.document_permission_binder.permission_key_for(action, document_id=self.document_id_for_permissions())
+            return permission_service.denied_message(key)
+        except Exception:
+            return translate('workspace.permission_denied')
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        try:
+            self.apply_document_permissions()
+        except Exception:
+            pass
 
     def set_document_title(self, title: str) -> None:
         self.document_state.title = title
@@ -68,7 +101,13 @@ class BaseDocumentTab(QWidget):
         raise NotImplementedError
 
     def workspace_print(self) -> None:
+        if not self.can_document_action('print'):
+            QMessageBox.warning(self, translate('printing'), self.permission_denied_message('print'))
+            return
         QMessageBox.information(self, translate('printing'), translate('workspace.no_print_action'))
 
     def workspace_export(self) -> None:
+        if not self.can_document_action('export'):
+            QMessageBox.warning(self, translate('reports'), self.permission_denied_message('export'))
+            return
         QMessageBox.information(self, translate('reports'), translate('workspace.no_export_action'))

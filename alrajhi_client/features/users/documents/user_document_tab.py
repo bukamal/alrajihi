@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
 
 from i18n import qt_layout_direction, translate
 from workspace.documents.base_document_tab import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 from core.services.user_service import user_service
 from core.services.branch_service import branch_service
 from core.services.user_operation_policy import user_operation_policy
@@ -27,6 +28,7 @@ from utils import show_toast
 
 
 class UserDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("user")
     """Create/edit ERP users inside the tabbed workspace."""
 
     ROLE_VALUES = ['admin', 'manager', 'accountant', 'cashier', 'viewer']

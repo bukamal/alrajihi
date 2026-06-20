@@ -41,5 +41,9 @@ class RemotePurchaseReturnGateway(PurchaseReturnGateway):
     def delete_return(self, return_id: int) -> None:
         self.rest_client.delete_purchase_return(return_id)
 
+    def update_return(self, return_id: int, data: Dict[str, Any]) -> int:
+        result = self.rest_client.update_purchase_return(return_id, data)
+        return int((result or {}).get('id') or return_id)
+
     def is_remote(self) -> bool:
         return True

@@ -10,6 +10,7 @@ from views.restaurant.table_map_widget import RestaurantTableMapWidget
 from views.restaurant.restaurant_pos_widget import RestaurantPOSWidget
 from views.restaurant.kitchen_display_widget import KitchenDisplayWidget
 from views.restaurant.restaurant_analytics_widget import RestaurantAnalyticsWidget
+from workspace.operational.operational_shell_contract import bind_operational_shell
 
 
 class RestaurantDashboard(QWidget):
@@ -21,6 +22,7 @@ class RestaurantDashboard(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        bind_operational_shell(self, 'restaurant')
         self.service = restaurant_service
         self.setObjectName("restaurantDashboard")
         self.setLayoutDirection(qt_layout_direction())

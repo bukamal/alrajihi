@@ -338,12 +338,8 @@ class LocalSalesReturnGateway(SalesReturnGateway):
     def update_return(self, return_id: int, data: Dict) -> int:
         """Replace an active return through the same reversal/create pipeline."""
         if self.db.is_remote():
-            old = self.get(return_id) or {}
-            data = dict(data or {})
-            if old.get('return_no') and not data.get('return_no'):
-                data['return_no'] = old.get('return_no')
-            self.delete_return(return_id)
-            return self.create_return(data)
+            result = self.db.get_rest_client().update_sales_return(return_id, data or {})
+            return int((result or {}).get('id') or return_id)
         old = self.get(return_id)
         if not old or old.get('deleted_at'):
             raise SalesReturnException('المرتجع غير موجود أو ملغى')

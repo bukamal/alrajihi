@@ -24,6 +24,7 @@ from PyQt5.QtWidgets import (
 )
 
 from workspace.documents.base_document_tab import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 from core.services.catalog_service import catalog_service
 from core.services.barcode_input_service import barcode_input_service
 from core.services.invoice_service import invoice_service
@@ -47,6 +48,7 @@ from .grids.transaction_grid_preferences import TransactionGridPreferences
 
 
 class TransactionDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = None
     """Unified ERP transaction document surface for invoices and returns.
 
     The tab owns the new transaction-document UI and command contract for
@@ -59,6 +61,7 @@ class TransactionDocumentTab(BaseDocumentTab):
 
     def __init__(self, context: TransactionContext, parent=None, invoice_id=None):
         super().__init__(context.document_type, invoice_id, parent)
+        self.document_descriptor = descriptor_for(context.document_type)
         self.context = context
         self.invoice_id = invoice_id
         self.return_id = invoice_id if context.is_return else None
@@ -131,6 +134,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.auto_responsive_btn.setChecked(self.grid_preferences.auto_responsive(self.context.document_type, bool(self.transaction_settings.get("line_grid_auto_responsive", True))))
         self.auto_responsive_btn.toggled.connect(self._toggle_auto_responsive)
         save_btn = QPushButton(tr("transaction_save_shortcut"))
+        self.header_save_btn = save_btn
         save_btn.clicked.connect(self.workspace_save)
         columns_btn = QPushButton(tr("transaction_columns"))
         columns_btn.clicked.connect(self._show_columns)
@@ -262,6 +266,10 @@ class TransactionDocumentTab(BaseDocumentTab):
         ])
         self.bottom_actions = TransactionBottomActions(actions, self)
         root.addWidget(self.bottom_actions)
+        try:
+            self.apply_document_permissions()
+        except Exception:
+            pass
 
         self.lines_model.dataChanged.connect(lambda *_: self._line_changed())
         self.lines_model.rowsInserted.connect(lambda *_: self._line_changed())

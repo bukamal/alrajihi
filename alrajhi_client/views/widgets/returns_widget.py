@@ -467,6 +467,7 @@ from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
+from workspace.lists.list_workspace_contract import bind_list_workspace
 
 
 class SalesReturnDialog(CenteredDialog):
@@ -879,6 +880,7 @@ def _ret_external_line_columns(return_data):
 class ReturnsWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        bind_list_workspace(self, 'sales_returns')
         self.page = 0
         self.page_size = 50
         self.total = 0
@@ -1351,6 +1353,7 @@ class PurchaseReturnDialog(CenteredDialog):
 class PurchaseReturnsWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        bind_list_workspace(self, 'purchase_returns')
         self.page = 0
         self.page_size = 50
         self.total = 0

@@ -831,6 +831,39 @@ class SettingsService:
             'language': self.get_language_settings(),
         }
 
+    def settings_contract_coverage(self) -> Dict[str, Any]:
+        """Return static coverage for settings scopes used by shells/lists/reports.
+
+        This method is intentionally read-only and profile-safe.  The actual
+        setting values still flow through SettingsGateway so local and remote
+        API modes behave the same.
+        """
+        try:
+            from workspace.settings.settings_contract import (
+                settings_coverage_matrix,
+                settings_scope_descriptors,
+                uncovered_settings_scopes,
+            )
+            return {
+                'scopes': list(settings_coverage_matrix()),
+                'uncovered': list(uncovered_settings_scopes()),
+                'sections': [d.section_key for d in settings_scope_descriptors()],
+                'settings_api_resource': '/api/settings/<path:key>',
+                'profile_aware': True,
+                'network_synced': True,
+            }
+        except Exception as exc:
+            return {
+                'scopes': [],
+                'uncovered': [],
+                'sections': [],
+                'settings_api_resource': '/api/settings/<path:key>',
+                'profile_aware': True,
+                'network_synced': True,
+                'error': str(exc),
+            }
+
+
     def audit_rows(self, limit: int = 100):
         try:
             return self.gateway.audit_rows(limit)
@@ -864,6 +897,7 @@ class SettingsService:
             'default_export_format': self.get('reports/default_export_format', 'pdf') or 'pdf',
             'operations': {
                 'allow_view': self.get_bool('reports/operations/allow_view', True),
+                'allow_print': self.get_bool('reports/operations/allow_print', True),
                 'allow_export': self.get_bool('reports/operations/allow_export', True),
             },
             'settings_profile_id': int((self.get_active_profile() or {}).get('id') or 1),

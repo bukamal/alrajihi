@@ -21,6 +21,7 @@ from models.table_models import GenericTableModel
 from utils import show_toast
 from brand_assets import logo_png
 from ui.smart_table_view import SmartTableView
+from ui.dashboard_components import ModernKpiCard, DashboardChartPanel
 
 try:
     from theme_manager import ThemeManager
@@ -56,8 +57,8 @@ class DashboardWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction())
         self.setObjectName('DashboardWidget')
         self._loading_currencies = False
-        # Phase 228: dashboard no longer renders the top KPI-card strip or the
-        # trend chart. Keep only the operational panels users act on daily.
+        # Phase 255: KPI/chart widgets are restored as a compact modern
+        # dashboard section while keeping service/API and printing boundaries.
         self.cards = {}
         self._snapshot = {}
         self._build_ui()
@@ -87,6 +88,7 @@ class DashboardWidget(QWidget):
         self.main_layout.setContentsMargins(22, 22, 22, 22)
         self.main_layout.setSpacing(18)
 
+        self._build_kpi_grid()
         self._build_middle_grid()
         self._build_bottom_grid()
 
@@ -157,13 +159,27 @@ class DashboardWidget(QWidget):
         self.main_layout.addWidget(hero)
 
     def _build_kpi_grid(self):
-        """Deprecated dashboard KPI/chart section.
+        """Modern dashboard KPI strip bound to DashboardService snapshots.
 
-        Phase 228 removed the top KPI card row and monthly chart from the
-        dashboard UX. The method remains as a no-op for compatibility with
-        older plugins/tests that may still call it.
+        The widgets are visual-only components from ui.dashboard_components;
+        they do not access the database, printing, or gateways directly.
         """
-        return
+        row = QHBoxLayout()
+        row.setSpacing(12)
+        definitions = (
+            ('sales', translate('sales_invoice'), 'file-invoice-dollar', 'primary'),
+            ('purchases', translate('purchase_invoice'), 'shopping-cart', 'warning'),
+            ('cash', translate('cashbox'), 'cash-register', 'success'),
+            ('alerts', translate('alerts_bar'), 'bell', 'danger'),
+        )
+        for key, title, icon, tone in definitions:
+            card = ModernKpiCard(title, icon, tone, self)
+            self.cards[key] = card
+            row.addWidget(card, 1)
+        self.main_layout.addLayout(row)
+
+        self.trend_panel = DashboardChartPanel(translate('reports'), self)
+        self.main_layout.addWidget(self.trend_panel)
 
     def _build_middle_grid(self):
         row = QHBoxLayout()
@@ -551,8 +567,39 @@ class DashboardWidget(QWidget):
         self._refresh_health()
 
     def _refresh_kpis(self, display_curr):
-        """Dashboard KPI cards and trend chart were removed in Phase 228."""
-        return
+        summary = self._snapshot.get('summary', {}) if isinstance(self._snapshot, dict) else {}
+        cashbox_movement = self._snapshot.get('cashbox_movement', {}) if isinstance(self._snapshot, dict) else {}
+        alerts = self._snapshot.get('alerts', {}) if isinstance(self._snapshot, dict) else {}
+
+        def amount(key):
+            try:
+                return currency.format_base_amount(Decimal(str(summary.get(key, 0) or 0)))
+            except Exception:
+                return '—'
+
+        if 'sales' in self.cards:
+            self.cards['sales'].set_value(amount('sales_total'))
+            self.cards['sales'].set_hint(translate('display_currency') + ': ' + str(display_curr))
+        if 'purchases' in self.cards:
+            self.cards['purchases'].set_value(amount('purchase_total'))
+            self.cards['purchases'].set_hint(translate('display_currency') + ': ' + str(display_curr))
+        if 'cash' in self.cards:
+            try:
+                cash_value = Decimal(str(cashbox_movement.get('cash_balance', summary.get('cash_balance', 0)) or 0))
+                self.cards['cash'].set_value(currency.format_base_amount(cash_value))
+            except Exception:
+                self.cards['cash'].set_value('—')
+            self.cards['cash'].set_hint(translate('exchange_rate'))
+        if 'alerts' in self.cards:
+            count = alerts.get('count') if isinstance(alerts, dict) else None
+            self.cards['alerts'].set_value(str(count if count is not None else '—'))
+            self.cards['alerts'].set_hint(translate('dashboard_indicators_normal'))
+
+        if hasattr(self, 'trend_panel'):
+            rows = []
+            for row in self._snapshot.get('monthly_trend', []) if isinstance(self._snapshot, dict) else []:
+                rows.append(row)
+            self.trend_panel.set_trend(rows, translate('incoming'), translate('outgoing'))
 
     def _refresh_alerts(self):
         try:

@@ -18,6 +18,7 @@ from features.restaurant.restaurant_printing_bridge import restaurant_printing_b
 from features.restaurant.restaurant_order_grid import RestaurantOrderGrid
 from features.restaurant.restaurant_order_model import RestaurantOrderModel
 from currency import currency
+from workspace.operational.operational_shell_contract import bind_operational_shell
 
 
 def _dec(value, default="0") -> Decimal:
@@ -177,6 +178,7 @@ class RestaurantPOSWidget(QWidget):
 
     def __init__(self, service, parent=None):
         super().__init__(parent)
+        bind_operational_shell(self, 'restaurant')
         self.service = service
         self.session = None
         self.menu_items = []
@@ -307,7 +309,22 @@ class RestaurantPOSWidget(QWidget):
             restaurant_operation_policy.OP_CHECKOUT: [self.close_btn],
         }
 
+    def _apply_operational_shell_state(self):
+        binder = getattr(self, 'operational_permission_binder', None)
+        if binder is None:
+            return {}
+        return binder.apply_to_widget(self, {
+            'add_line': ('manual_button',),
+            'send_kitchen': ('send_kitchen_btn',),
+            'print_kitchen_ticket': ('print_kitchen_btn',),
+            'adjust_bill': ('adjust_btn',),
+            'record_payment': ('payment_btn',),
+            'print_receipt': ('print_receipt_btn',),
+            'checkout': ('close_btn',),
+        })
+
     def _apply_restaurant_operation_state(self):
+        self._apply_operational_shell_state()
         has_session = bool(self.session)
         for operation, buttons in self._operation_button_map().items():
             allowed = has_session and restaurant_operation_policy.can(operation)

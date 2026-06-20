@@ -17,6 +17,7 @@ from theme_manager import ThemeManager
 from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate, qt_layout_direction
 from core.services.permission_service import permission_service
+from workspace.lists.list_workspace_contract import bind_list_workspace, ListWorkspacePermissionBinder
 
 class InvoicesWidget(QWidget):
     def __init__(self, parent=None, invoice_scope=None):
@@ -31,6 +32,11 @@ class InvoicesWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction())
         self._apply_page_style()
         self.invoice_scope = invoice_scope
+        self.list_workspace_descriptor = None
+        if invoice_scope == 'sale':
+            bind_list_workspace(self, 'sales_invoices')
+        elif invoice_scope == 'purchase':
+            bind_list_workspace(self, 'purchase_invoices')
         self.sales_page = 0
         self.purchases_page = 0
         self.page_size = 50

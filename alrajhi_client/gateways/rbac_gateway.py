@@ -98,6 +98,13 @@ def create_rbac_gateway() -> RBACGateway:
 
     db = DatabaseConnection()
     if db.is_remote():
+        try:
+            from gateways.remote.rbac_gateway import RemoteRBACGateway
+            rest_client = db.get_rest_client()
+            if rest_client is not None:
+                return RemoteRBACGateway(rest_client)
+        except Exception:
+            return NullRBACGateway()
         return NullRBACGateway()
 
     from gateways.local.rbac_gateway import LocalRBACGateway

@@ -41,6 +41,7 @@ from utils import show_toast
 from views.dialogs.production_details_dialog import ProductionDetailsDialog
 from views.dialogs.production_order_dialog import ProductionOrderDialog
 from workspace.documents.base_document_tab import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 
 
 class LegacyProductionOrderDocumentTab(DialogDocumentTab):
@@ -60,6 +61,7 @@ class LegacyProductionOrderDocumentTab(DialogDocumentTab):
 
 
 class ProductionOrderDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("production_order")
     """Professional production-order document tab.
 
     Phase 189 replaces the embedded ProductionOrderDialog with a service-backed

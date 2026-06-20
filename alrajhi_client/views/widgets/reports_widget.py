@@ -14,9 +14,19 @@ from ui.smart_table_view import SmartTableView
 from models.table_models import GenericTableModel
 from views.widgets.modern_ui import apply_modern_widget
 from views.widgets.reports_phase36_mixin import ReportsPhase36Mixin
+from workspace.documents.document_contract import descriptor_for
+from workspace.documents.document_permission_binder import DocumentPermissionBinder
+from features.reports.report_shell_contract import (
+    REPORTS_DOCUMENT_DESCRIPTOR,
+    all_report_descriptors,
+    bind_report_widgets,
+    report_descriptor_for_tab_attr,
+)
 
 
 class ReportsWidget(ReportsPhase36Mixin, QWidget):
+    DOCUMENT_DESCRIPTOR = REPORTS_DOCUMENT_DESCRIPTOR
+    REPORT_SHELL_DESCRIPTORS = all_report_descriptors()
     """Financial and warehouse reports.
 
     Warehouse-5 adds valuation, balances, movements and transfers while keeping
@@ -25,6 +35,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.document_descriptor = self.DOCUMENT_DESCRIPTOR
+        self.permission_binder = DocumentPermissionBinder(self.document_descriptor)
         self.setLayoutDirection(qt_layout_direction())
         layout = QVBoxLayout(self)
 
@@ -185,6 +197,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         layout.addWidget(self.report_summary)
 
         self._install_report_table_identities()
+        bind_report_widgets(self)
         self.on_period_type_changed()
         apply_modern_widget(self, tr('reports_page_title'), tr('reports_page_subtitle'))
         self._apply_report_operation_state()
@@ -361,23 +374,42 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
             layout.addWidget(table)
 
     def _install_report_table_identities(self):
-        """Attach stable identities for saved column layouts and unified print titles."""
-        for name in (
-            'income_table', 'balance_table', 'wh_valuation_table', 'wh_balances_table',
-            'wh_movements_table', 'wh_transfers_table', 'cash_summary_table',
-            'cash_movements_table', 'bank_movements_table', 'pos_shifts_table',
-            'trial_balance_table', 'customer_statement_table', 'supplier_statement_table',
-            'customer_balances_table', 'supplier_balances_table', 'customer_aging_table',
-            'supplier_aging_table', 'ledger_reconciliation_table', 'ledger_dual_read_table',
-            'ledger_readiness_table', 'offline_queue_table', 'unit_audit_table',
-            'item_movement_table', 'invoice_profit_table', 'net_profit_table',
-            'manufacturing_orders_table', 'product_cost_table', 'general_ledger_table',
-            'full_trial_balance_table', 'slow_items_table', 'top_items_table',
-            'low_items_table', 'reorder_items_table', 'report_audit_table'
-        ):
-            table = getattr(self, name, None)
+        """Attach stable Report Shell identities for saved layouts and printing."""
+        for descriptor in self.REPORT_SHELL_DESCRIPTORS:
+            table = getattr(self, descriptor.table_attr, None)
             if table is not None:
-                table.set_table_identity(f'reports_{name}')
+                try:
+                    table.set_table_identity(descriptor.table_identity)
+                    table.setProperty('report_key', descriptor.report_key)
+                    table.setProperty('report_api_resource', descriptor.api_resource)
+                    table.setProperty('report_network_mode', descriptor.network_mode)
+                except Exception:
+                    pass
+
+    def _current_report_descriptor(self):
+        """Return the ReportShellDescriptor for the active tab, if known."""
+        tab = self.tabs.currentWidget() if hasattr(self, 'tabs') else None
+        for descriptor in self.REPORT_SHELL_DESCRIPTORS:
+            if getattr(self, descriptor.tab_attr, None) is tab:
+                return descriptor
+        return None
+
+    def report_permission_matrix(self):
+        return self.permission_binder.matrix(document_id='reports')
+
+    def can_report_action(self, action: str) -> bool:
+        descriptor = self._current_report_descriptor()
+        if descriptor is not None:
+            if action == 'print' and not descriptor.supports_print:
+                return False
+            if action == 'export' and not descriptor.supports_export:
+                return False
+        return self.permission_binder.can(action, document_id='reports')
+
+    def _require_report_print_permission(self, context=''):
+        if not self.can_report_action('print'):
+            raise PermissionError('reports.print')
+        report_operation_policy.require(report_operation_policy.OP_PRINT, context=context or 'ReportsWidget.print')
 
     def _set_summary(self, text=''):
         if hasattr(self, 'report_summary'):
@@ -415,8 +447,14 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
     def _set_table(self, table, rows, headers, keys):
         model = GenericTableModel(rows, headers, data_keys=keys)
         table.setModel(model)
+        descriptor = self._current_report_descriptor() if hasattr(self, '_current_report_descriptor') else None
         try:
             table.setProperty('print_title', self.tabs.tabText(self.tabs.currentIndex()))
+            if descriptor is not None:
+                table.setProperty('report_key', descriptor.report_key)
+                table.setProperty('report_api_resource', descriptor.api_resource)
+                table.setProperty('report_network_mode', descriptor.network_mode)
+                table.setProperty('report_currency_policy', descriptor.currency_policy)
         except Exception:
             pass
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
@@ -437,8 +475,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
             pass
 
     def _apply_report_operation_state(self):
-        can_view = report_operation_policy.can(report_operation_policy.OP_VIEW)
-        can_export = report_operation_policy.can(report_operation_policy.OP_EXPORT)
+        can_view = self.permission_binder.can('view', document_id='reports') and report_operation_policy.can(report_operation_policy.OP_VIEW)
+        can_print = self.permission_binder.can('print', document_id='reports') and report_operation_policy.can(report_operation_policy.OP_PRINT)
         for widget_name in ('refresh_btn', 'period_type', 'year_combo', 'month_combo', 'start_date', 'end_date',
                             'warehouse_filter', 'cashbox_filter', 'bank_filter', 'customer_filter', 'supplier_filter', 'item_filter'):
             widget = getattr(self, widget_name, None)
@@ -447,7 +485,12 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         if hasattr(self, 'tabs'):
             self.tabs.setEnabled(can_view)
         if hasattr(self, 'print_btn'):
-            self.print_btn.setEnabled(can_view and can_export)
+            self.print_btn.setEnabled(can_view and can_print)
+            if not can_print:
+                try:
+                    self.print_btn.setToolTip('reports.print')
+                except Exception:
+                    pass
         if not can_view:
             self._set_summary(tr('reports_access_denied'))
 

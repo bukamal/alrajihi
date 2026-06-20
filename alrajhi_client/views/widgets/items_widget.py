@@ -13,6 +13,9 @@ from models.table_models import GenericTableModel
 from views.dialogs.batch_print_dialog import BatchPrintDialog
 from utils import show_toast
 from views.widgets.base_widget import BaseWidget
+from features.items.material_shell_contract import material_shell_contract
+from workspace.documents.document_permission_binder import DocumentPermissionBinder
+from workspace.lists.list_workspace_contract import bind_list_workspace
 from features.items.material_list_schema import (
     MATERIAL_PRESETS,
     material_column_keys,
@@ -65,6 +68,10 @@ class ItemsWidget(BaseWidget):
         self.preset_filter = QComboBox()
         self.density_filter = QComboBox()
         self._all_categories = []
+        self.material_shell_contract = material_shell_contract()
+        self.document_descriptor = self.material_shell_contract.descriptor
+        self.document_permission_binder = DocumentPermissionBinder(self.document_descriptor)
+        bind_list_workspace(self, 'materials')
         super().__init__(parent)
         self.setLayoutDirection(qt_layout_direction())
         self.table.set_table_identity('materials.workspace.items_grid')
@@ -108,6 +115,16 @@ class ItemsWidget(BaseWidget):
         except Exception:
             return True
 
+
+    def can_material_action(self, action: str, document_id=None) -> bool:
+        try:
+            return self.document_permission_binder.can(action, document_id=document_id)
+        except Exception:
+            return True
+
+    def material_shell_matrix(self):
+        return self.material_shell_contract.as_matrix()
+
     def _setup_extra_buttons(self):
         for btn_text, callback_name, btn_name in self.extra_buttons:
             btn = QPushButton(btn_text)
@@ -115,6 +132,8 @@ class ItemsWidget(BaseWidget):
             if callback:
                 btn.clicked.connect(callback)
             btn.setEnabled(False)
+            if callback_name in ('print_barcode', 'batch_print') and not self.can_material_action('print'):
+                btn.setEnabled(False)
             setattr(self, btn_name, btn)
             self.btn_layout.addWidget(btn)
 
@@ -209,6 +228,9 @@ class ItemsWidget(BaseWidget):
         return total
 
     def delete_item(self, item_id):
+        if not self.can_material_action('delete', document_id=item_id):
+            show_toast(permission_service.denied_message(permission_service.ACTION_DELETE), 'warning', self)
+            return
         product_service.delete_item(item_id)
 
     def _main_window(self):
@@ -318,7 +340,7 @@ class ItemsWidget(BaseWidget):
             self.table.save_layout()
 
     def print_barcode(self):
-        if not permission_service.can(permission_service.ACTION_PRINT_BARCODES):
+        if not permission_service.can(permission_service.ACTION_PRINT_BARCODES) or not self.can_material_action('print'):
             show_toast(permission_service.denied_message(permission_service.ACTION_PRINT_BARCODES), 'warning', self)
             return
         selected_rows = self.table.selected_source_rows() if hasattr(self.table, 'selected_source_rows') else [r.row() for r in self.table.selectionModel().selectedRows()]
@@ -337,7 +359,7 @@ class ItemsWidget(BaseWidget):
         dialog.exec()
 
     def batch_print(self):
-        if not permission_service.can(permission_service.ACTION_PRINT_BARCODES):
+        if not permission_service.can(permission_service.ACTION_PRINT_BARCODES) or not self.can_material_action('print'):
             show_toast(permission_service.denied_message(permission_service.ACTION_PRINT_BARCODES), 'warning', self)
             return
         dialog = BatchPrintDialog(self)
@@ -346,10 +368,11 @@ class ItemsWidget(BaseWidget):
     def _update_action_buttons_state(self):
         super()._update_action_buttons_state()
         has_selection = len(self.table.selectionModel().selectedRows()) > 0 if self.table.selectionModel() else False
+        can_print = self.can_material_action('print')
         if hasattr(self, 'print_barcode_btn'):
-            self.print_barcode_btn.setEnabled(has_selection)
+            self.print_barcode_btn.setEnabled(has_selection and can_print)
         if hasattr(self, 'batch_print_btn'):
-            self.batch_print_btn.setEnabled(True)
+            self.batch_print_btn.setEnabled(bool(can_print))
 
     def refresh(self):
         search = self.search_edit.text().strip().lower() or None

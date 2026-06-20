@@ -20,9 +20,11 @@ from features.inventory.grids.inventory_transfer_schema import inventory_transfe
 from i18n import qt_layout_direction, translate
 from utils import show_toast
 from workspace.documents import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 
 
 class InventoryTransferDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("warehouse_transfer")
     """Professional, unit-aware warehouse transfer document."""
 
     def __init__(self, parent=None):

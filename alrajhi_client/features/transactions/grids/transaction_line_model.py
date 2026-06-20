@@ -7,6 +7,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 
 from core.services.product_service import product_service
 from ..i18n import tr
+from core.money_display_policy import policy_for
 
 from .transaction_column_schema import TransactionColumn
 
@@ -58,12 +59,18 @@ class TransactionLineModel(QAbstractTableModel):
             value = self._value(index.row(), index.column())
             if role == Qt.DisplayRole and getattr(col, "numeric", False) and value not in (None, ""):
                 try:
-                    d = Decimal(str(value))
-                    if d == d.to_integral_value() and col.key in {"qty", "original_qty", "previous_qty", "returnable_qty"}:
-                        return f"{d:.0f}"
-                    return f"{d:.2f}"
+                    policy = policy_for()
+                    if col.key in {"price", "cost", "discount", "tax", "total"}:
+                        return policy.format_money(value)
+                    return policy.format_quantity(value)
                 except Exception:
-                    return value
+                    try:
+                        d = Decimal(str(value))
+                        if d == d.to_integral_value() and col.key in {"qty", "original_qty", "previous_qty", "returnable_qty"}:
+                            return f"{d:.0f}"
+                        return f"{d:.2f}"
+                    except Exception:
+                        return value
             return value
         if role == Qt.TextAlignmentRole and col.numeric:
             return Qt.AlignRight | Qt.AlignVCenter

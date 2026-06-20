@@ -29,6 +29,7 @@ from i18n import qt_layout_direction, translate
 from utils import show_toast
 from views.dialogs.bom_dialog import BOMDialog
 from workspace.documents import BaseDocumentTab
+from workspace.documents.document_contract import descriptor_for
 
 
 class LegacyBomDocumentTab(DialogDocumentTab):
@@ -50,6 +51,7 @@ class LegacyBomDocumentTab(DialogDocumentTab):
 
 
 class BomDocumentTab(BaseDocumentTab):
+    DOCUMENT_DESCRIPTOR = descriptor_for("bom")
     """Professional BOM document tab.
 
     Phase 188 replaces the modal-list BOM editor with a real workspace document:

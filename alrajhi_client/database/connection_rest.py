@@ -811,6 +811,12 @@ class RestClient:
     def create_purchase_return(self, data: Dict[str, Any]):
         return self._request('POST', '/api/returns/purchase', data=data, queue_on_failure=True)
 
+    def update_sales_return(self, return_id: int, data: Dict[str, Any]):
+        return self._request('PUT', f'/api/returns/sales/{return_id}', data=data, queue_on_failure=True)
+
+    def update_purchase_return(self, return_id: int, data: Dict[str, Any]):
+        return self._request('PUT', f'/api/returns/purchase/{return_id}', data=data, queue_on_failure=True)
+
     def delete_sales_return(self, return_id: int):
         return self._request('DELETE', f'/api/returns/sales/{return_id}', queue_on_failure=True)
 

@@ -8,6 +8,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 from currency import currency
 from i18n import translate
 from core.services.pos_service import POSCart, POSLine
+from core.money_display_policy import policy_for
 from .pos_line_schema import pos_line_schema
 
 
@@ -87,17 +88,16 @@ class POSLineModel(QAbstractTableModel):
 
     def _format_decimal(self, value) -> str:
         try:
-            value = Decimal(str(value))
-            return format(value.normalize(), 'f').rstrip('0').rstrip('.') or '0'
+            return policy_for(currency_code=self.display_currency).format_quantity(value)
         except Exception:
             return str(value or '0')
 
     def _display_money(self, amount_usd) -> str:
         try:
             amount = currency.convert(Decimal(str(amount_usd or 0)), currency.storage_currency(), self.display_currency)
-            return currency.format_amount(amount)
+            return policy_for(currency_code=self.display_currency).format_money(amount)
         except Exception:
-            return currency.format_amount(Decimal('0'))
+            return policy_for(currency_code=self.display_currency).format_money(Decimal('0'))
 
     def _display_value(self, row: int, line: POSLine, key: str):
         if key == 'row':

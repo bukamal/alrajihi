@@ -23,6 +23,7 @@ class ReportOperation:
 
 class ReportOperationPolicy:
     OP_VIEW = 'view'
+    OP_PRINT = 'print'
     OP_EXPORT = 'export'
 
     def _permission_service(self):
@@ -37,6 +38,7 @@ class ReportOperationPolicy:
         ps = self._permission_service()
         return {
             self.OP_VIEW: ReportOperation(self.OP_VIEW, 'allow_view', ps.ACTION_VIEW_REPORTS, 'reports.operation.view'),
+            self.OP_PRINT: ReportOperation(self.OP_PRINT, 'allow_print', ps.ACTION_VIEW_REPORTS, 'reports.operation.print'),
             self.OP_EXPORT: ReportOperation(self.OP_EXPORT, 'allow_export', ps.ACTION_EXPORT_REPORTS, 'reports.operation.export'),
         }
 
