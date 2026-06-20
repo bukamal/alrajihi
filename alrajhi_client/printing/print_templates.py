@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from html import escape
 from typing import Any, Dict, Iterable, List, Optional
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import base64
 from io import BytesIO
 import datetime
@@ -121,8 +122,16 @@ def _settings() -> Dict[str, Any]:
         svc = _settings_service()
         if svc is None:
             return {}
-        cfg = svc.get_printing_settings()
-        return dict(cfg or {})
+        cfg = dict(svc.get_printing_settings() or {})
+        # Printing must respect the same display-currency contract as the UI.
+        # Values are formatting metadata only; templates never convert invoice
+        # amounts because transaction documents already send display amounts.
+        cfg.setdefault('display_currency', svc.get('display_currency', 'SYP') or 'SYP')
+        cfg.setdefault('base_currency', svc.get('base_currency', 'SYP') or 'SYP')
+        cfg.setdefault('currency_decimals', svc.get('currency_decimals', '2') or '2')
+        cfg.setdefault('number_format', svc.get('number_format', 'western') or 'western')
+        cfg.setdefault('currency_symbol', _CURRENCY_SYMBOLS.get(str(cfg.get('display_currency') or '').upper(), svc.get('currency_symbol', '')))
+        return cfg
     except Exception:
         return {}
 
@@ -178,6 +187,236 @@ def _font_family(settings: Dict[str, Any]) -> str:
 
 
 
+
+
+
+
+_CURRENCY_SYMBOLS = {
+    'USD': '$',
+    'SAR': '﷼',
+    'SYP': 'ل.س',
+    'EUR': '€',
+    'GBP': '£',
+    'AED': 'د.إ',
+    'QAR': 'ر.ق',
+    'KWD': 'د.ك',
+    'OMR': 'ر.ع.',
+}
+
+_ARABIC_DIGITS = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
+_EASTERN_DIGITS = str.maketrans('0123456789', '٠١٢٣٤٥٦٧٨٩')
+
+
+def _clamp_int(value: Any, default: int = 2, minimum: int = 0, maximum: int = 6) -> int:
+    try:
+        num = int(str(value))
+    except Exception:
+        num = default
+    return max(minimum, min(maximum, num))
+
+
+def _currency_code(value: Any = None, settings: Optional[Dict[str, Any]] = None) -> str:
+    raw = str(value or '').strip()
+    if raw:
+        aliases = {'ل.س': 'SYP', 'ليرة': 'SYP', 'ليرة سورية': 'SYP', '$': 'USD', '€': 'EUR', '﷼': 'SAR'}
+        return aliases.get(raw, raw.upper() if raw.isascii() else raw)
+    settings = settings or _settings()
+    try:
+        svc = _settings_service()
+        if svc is not None:
+            return str(svc.get('display_currency', settings.get('display_currency', 'SYP')) or 'SYP')
+    except Exception:
+        pass
+    return str(settings.get('display_currency') or settings.get('currency') or settings.get('base_currency') or 'SYP')
+
+
+def _document_currency(payload: Optional[Dict[str, Any]] = None, settings: Optional[Dict[str, Any]] = None) -> str:
+    payload = payload or {}
+    explicit = payload.get('display_currency') or payload.get('currency') or payload.get('currency_code')
+    return _currency_code(explicit, settings)
+
+
+def _currency_symbol(currency_code: str, settings: Optional[Dict[str, Any]] = None) -> str:
+    code = _currency_code(currency_code, settings)
+    if code in _CURRENCY_SYMBOLS:
+        return _CURRENCY_SYMBOLS[code]
+    settings = settings or _settings()
+    configured = str(settings.get('currency_symbol') or '').strip()
+    return configured or code
+
+
+def _currency_decimals(settings: Optional[Dict[str, Any]] = None) -> int:
+    settings = settings or _settings()
+    try:
+        svc = _settings_service()
+        if svc is not None:
+            return _clamp_int(svc.get('currency_decimals', settings.get('currency_decimals', 2)), 2, 0, 6)
+    except Exception:
+        pass
+    return _clamp_int(settings.get('currency_decimals', 2), 2, 0, 6)
+
+
+def _quantity_decimals(settings: Optional[Dict[str, Any]] = None) -> int:
+    settings = settings or _settings()
+    try:
+        svc = _settings_service()
+        if svc is not None and hasattr(svc, 'quantity_decimals'):
+            return _clamp_int(svc.quantity_decimals(), 3, 0, 6)
+    except Exception:
+        pass
+    return _clamp_int(settings.get('quantity_decimals', 3), 3, 0, 6)
+
+
+def _number_format(settings: Optional[Dict[str, Any]] = None) -> str:
+    settings = settings or _settings()
+    try:
+        svc = _settings_service()
+        if svc is not None:
+            return str(svc.get('number_format', settings.get('number_format', 'western')) or 'western')
+    except Exception:
+        pass
+    return str(settings.get('number_format', 'western') or 'western')
+
+
+def _decimal_or_none(value: Any) -> Optional[Decimal]:
+    if value in (None, ''):
+        return None
+    if isinstance(value, Decimal):
+        return value
+    text = str(value).strip().translate(_ARABIC_DIGITS)
+    if not text:
+        return None
+    # Some legacy payloads may carry tiny negative values as 1E-22- after str()
+    # or UI mirroring; normalize them before Decimal parsing.
+    negative = False
+    if text.endswith('-'):
+        negative = True
+        text = text[:-1]
+    if text.startswith('-'):
+        negative = True
+        text = text[1:]
+    for token in list(_CURRENCY_SYMBOLS.keys()) + list(_CURRENCY_SYMBOLS.values()):
+        text = text.replace(token, '')
+    text = text.replace(',', '').replace(' ', '').replace('\u00a0', '')
+    if not text:
+        return None
+    try:
+        num = Decimal(text)
+        return -num if negative else num
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _localize_digits(text: str, settings: Optional[Dict[str, Any]] = None) -> str:
+    fmt = _number_format(settings).lower()
+    if fmt in ('arabic', 'eastern', 'eastern_arabic'):
+        return text.translate(_EASTERN_DIGITS)
+    return text
+
+
+def _format_decimal(value: Any, decimals: int = 2, *, trim: bool = True, settings: Optional[Dict[str, Any]] = None) -> str:
+    num = _decimal_or_none(value)
+    if num is None:
+        return _s(value)
+    decimals = _clamp_int(decimals, 2, 0, 6)
+    quantum = Decimal('1') if decimals == 0 else Decimal('1').scaleb(-decimals)
+    # Suppress binary/Decimal residue such as 549999.999999999999999999999 or 1E-22-.
+    if abs(num) < quantum:
+        num = Decimal('0')
+    try:
+        num = num.quantize(quantum, rounding=ROUND_HALF_UP)
+    except Exception:
+        pass
+    formatted = f"{num:,.{decimals}f}"
+    if trim and decimals > 0:
+        formatted = formatted.rstrip('0').rstrip('.')
+    if formatted == '-0':
+        formatted = '0'
+    return _localize_digits(formatted, settings)
+
+
+def _format_quantity(value: Any, settings: Optional[Dict[str, Any]] = None) -> str:
+    return _format_decimal(value, _quantity_decimals(settings), trim=True, settings=settings)
+
+
+def _format_percent(value: Any, settings: Optional[Dict[str, Any]] = None) -> str:
+    return _format_decimal(value, 2, trim=True, settings=settings)
+
+
+def _format_money(value: Any, currency_code: Optional[str] = None, settings: Optional[Dict[str, Any]] = None) -> str:
+    settings = settings or _settings()
+    code = _currency_code(currency_code, settings)
+    amount = _format_decimal(value, _currency_decimals(settings), trim=False, settings=settings)
+    symbol = _currency_symbol(code, settings)
+    return f"{amount} {symbol}".strip()
+
+
+def _currency_label(currency_code: Optional[str] = None, settings: Optional[Dict[str, Any]] = None) -> str:
+    code = _currency_code(currency_code, settings)
+    symbol = _currency_symbol(code, settings)
+    return f"{code} {symbol}".strip() if symbol != code else code
+
+
+
+
+def _localized_payment_method(value: Any) -> str:
+    raw = str(value or '').strip()
+    if not raw:
+        return ''
+    key = raw.lower().replace(' ', '_').replace('-', '_')
+    mapping = {
+        'cash': 'payment_cash',
+        'cash_payment': 'payment_cash',
+        'card': 'payment_card',
+        'bank_card': 'payment_card',
+        'credit_card': 'payment_card',
+        'bank': 'payment_bank_transfer',
+        'bank_transfer': 'payment_bank_transfer',
+        'transfer': 'payment_bank_transfer',
+        'credit': 'payment_credit',
+        'deferred': 'payment_credit',
+        'mixed': 'payment_mixed',
+    }
+    tr_key = mapping.get(key)
+    return _tr(tr_key) if tr_key else raw
+
+
+def _localized_status(value: Any) -> str:
+    raw = str(value or '').strip()
+    if not raw:
+        return ''
+    key = raw.lower().replace(' ', '_').replace('-', '_')
+    mapping = {
+        'paid': 'paid',
+        'unpaid': 'remaining',
+        'partial': 'partial_payment_confirm',
+        'partially_paid': 'partial_payment_confirm',
+        'draft': 'draft',
+        'posted': 'status',
+        'cancelled': 'status_cancelled',
+        'canceled': 'status_cancelled',
+    }
+    tr_key = mapping.get(key)
+    return _tr(tr_key) if tr_key else raw
+
+
+def _line_amount(line: Dict[str, Any]) -> Any:
+    explicit = _line_value(line, 'line_total', 'total', 'subtotal', default=None)
+    if explicit not in (None, ''):
+        return explicit
+    qty = _decimal_or_none(_line_value(line, 'quantity', 'qty', default=0)) or Decimal('0')
+    price = _decimal_or_none(_line_value(line, 'unit_price', 'price', default=0)) or Decimal('0')
+    gross = qty * price
+    discount_amount = _decimal_or_none(_line_value(line, 'discount_amount', default=None))
+    if discount_amount is None:
+        discount_percent = _decimal_or_none(_line_value(line, 'discount_percent', 'discount_pct', 'discount', default=0)) or Decimal('0')
+        discount_amount = gross * discount_percent / Decimal('100')
+    taxable = gross - discount_amount
+    tax_amount = _decimal_or_none(_line_value(line, 'tax_amount', default=None))
+    if tax_amount is None:
+        tax_percent = _decimal_or_none(_line_value(line, 'tax_percent', 'tax_pct', 'tax', default=0)) or Decimal('0')
+        tax_amount = taxable * tax_percent / Decimal('100')
+    return taxable + tax_amount
 
 
 def _document_language() -> str:
@@ -340,11 +579,13 @@ def _meta_table(rows: List[List[tuple]]) -> str:
     return "<table class='meta-table'>" + "".join(out) + "</table>"
 
 
-def _totals_table(rows: List[tuple]) -> str:
+def _totals_table(rows: List[tuple], currency_code: Optional[str] = None, monetary: bool = False) -> str:
     body = []
+    settings = _settings()
     for label, value, klass in rows:
         cls = f" class='{_s(klass)}'" if klass else ""
-        body.append(f"<tr{cls}><td>{_s(label)}</td><td>{_s(value)}</td></tr>")
+        rendered = _format_money(value, currency_code, settings) if monetary else _s(value)
+        body.append(f"<tr{cls}><td>{_s(label)}</td><td>{rendered}</td></tr>")
     return "<table class='totals-table'>" + "".join(body) + "</table>"
 
 
@@ -452,7 +693,7 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 .meta-value {{ display: block; font-weight: 850; color: #0f172a; }}
 .data-table {{ width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; direction: {doc_dir}; }}
 .data-table th {{ background: {accent}; color: #ffffff; border: 1px solid {accent}; padding: 7px 5px; font-weight: 850; text-align: center; white-space: normal; }}
-.data-table td {{ border: 1px solid #dbe3ef; padding: 6px 5px; text-align: center; vertical-align: middle; word-wrap: break-word; overflow-wrap: anywhere; }}
+.data-table td {{ border: 1px solid #dbe3ef; padding: 6px 5px; text-align: center; vertical-align: middle; word-wrap: normal; overflow-wrap: normal; font-variant-numeric: tabular-nums; }}
 .zebra .data-table tbody tr:nth-child(even) td {{ background: #f8fafc; }}
 .data-table thead {{ display: table-header-group; }}
 .data-table tr {{ page-break-inside: avoid; }}
@@ -466,7 +707,7 @@ body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45
 .totals-table td {{ border-bottom: 1px solid #dbe3ef; padding: 7px 10px; }}
 .totals-table tr:last-child td {{ border-bottom: none; }}
 .totals-table td:first-child {{ background: #f8fafc; color: #334155; font-weight: 750; }}
-.totals-table td:last-child {{ text-align: {opposite_align}; font-weight: 900; font-variant-numeric: tabular-nums; }}
+.totals-table td:last-child {{ text-align: {opposite_align}; font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }}
 .totals-table tr.final td {{ background: #eaf2ff; color: #0f172a; font-size: 111%; }}
 .totals-table tr.due td:last-child {{ color: #dc2626; }}
 .notes-box {{ margin-top: 12px; border: 1px dashed #cbd5e1; background: #fcfdff; padding: 9px; min-height: 34px; border-radius: 8px; }}
@@ -519,10 +760,16 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
     ref = invoice.get("reference") or invoice.get("ref") or invoice.get("number") or invoice.get("id") or ""
     date = invoice.get("date") or invoice.get("created_at") or ""
     party_label = _tr("print_party_customer") if inv_type == "sale" else _tr("print_party_supplier")
-    party = invoice.get("party_name") or invoice.get("entity_name") or invoice.get("customer_name") or invoice.get("supplier_name") or _tr("print_cash_party")
+    if inv_type == "sale":
+        party = invoice.get("customer_name") or invoice.get("party_name") or invoice.get("entity_name") or invoice.get("supplier_name") or _tr("print_cash_party")
+    else:
+        party = invoice.get("supplier_name") or invoice.get("party_name") or invoice.get("entity_name") or invoice.get("customer_name") or _tr("print_cash_party")
     warehouse = invoice.get("warehouse_name") or invoice.get("warehouse") or ""
-    payment_method = invoice.get("payment_method") or invoice.get("payment") or ""
+    payment_method = _localized_payment_method(invoice.get("payment_method") or invoice.get("payment") or "")
     user_name = invoice.get("user_name") or invoice.get("seller_name") or invoice.get("created_by") or ""
+    status = _localized_status(invoice.get("status") or invoice.get("state") or "")
+    currency_code = _document_currency(invoice, settings)
+    currency_label = _currency_label(currency_code, settings)
 
     raw_lines: Iterable[Any] = invoice.get("lines") or invoice.get("items") or []
     rows: List[List[Any]] = []
@@ -533,11 +780,11 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
             _line_value(line, "barcode", "item_barcode", "code"),
             _line_value(line, "item_name", "name", "description"),
             _line_value(line, "unit", "unit_display", "unit_name"),
-            _line_value(line, "quantity", "qty"),
-            _line_value(line, "unit_price", "price"),
-            _line_value(line, "discount_percent", "discount_pct", "discount", default="0"),
-            _line_value(line, "tax_percent", "tax_pct", "tax", default="0"),
-            _line_value(line, "line_total", "total"),
+            _format_quantity(_line_value(line, "quantity", "qty"), settings),
+            _format_money(_line_value(line, "unit_price", "price"), currency_code, settings),
+            _format_percent(_line_value(line, "discount_percent", "discount_pct", "discount", default="0"), settings),
+            _format_percent(_line_value(line, "tax_percent", "tax_pct", "tax", default="0"), settings),
+            _format_money(_line_amount(line), currency_code, settings),
         ])
 
     qr_html = ""
@@ -552,7 +799,8 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
     {_company_header(settings, title)}
     {_meta_table([
         [(_tr("print_document_number"), ref), (_tr("print_document_date"), date), (party_label, party)],
-        [(_tr("print_warehouse"), warehouse), (_tr("print_payment_method"), payment_method), (_tr("print_user"), user_name)],
+        [(_tr("print_warehouse"), warehouse), (_tr("print_payment_method"), payment_method), (_tr("currency"), currency_label)],
+        [(_tr("print_user"), user_name), (_tr("status"), status), ("", "")],
     ])}
     {_table(["#", _tr("print_barcode"), _tr("print_item"), _tr("print_unit"), _tr("print_quantity"), _tr("print_price"), _tr("print_discount_percent"), _tr("print_tax_percent"), _tr("print_total")], rows, _tr("print_no_lines"))}
     {_totals_table([
@@ -562,7 +810,7 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
         (_tr("print_grand_total"), invoice.get("total", ""), "final"),
         (_tr("print_paid"), invoice.get("paid") or invoice.get("paid_amount", 0), ""),
         (_tr("print_remaining"), invoice.get("remaining", ""), "due"),
-    ])}
+    ], currency_code=currency_code, monetary=True)}
     <div class='notes-box'><b>{_s(_tr("print_notes"))}:</b> {_s(invoice.get('notes', ''))}</div>
     {qr_html}
     <table class='signatures hide-thermal'><tr><td>{_s(_tr("print_receiver_signature"))}</td><td>{_s(_tr("print_accountant_signature"))}</td></tr></table>
