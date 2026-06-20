@@ -9,6 +9,15 @@ venv/
 *.db
 *.sqlite
 *.sqlite3
-build/
+
+# Ignore generated build output, but keep release/build contract files tracked.
+build/*
+!build/
+!build/build_windows.ps1
+!build/setup.iss
+!build/pyinstaller_hidden_imports.py
+!build/hooks/
+!build/hooks/*.py
+
 dist/
 *.log

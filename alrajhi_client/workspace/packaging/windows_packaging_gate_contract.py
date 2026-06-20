@@ -109,6 +109,16 @@ REQUIRED_POST_BUILD_TOKENS: Sequence[str] = (
     "Portable build missing packaged print template loader",
 )
 
+REQUIRED_GITIGNORE_BUILD_TRACKING: Sequence[str] = (
+    "build/*",
+    "!build/",
+    "!build/build_windows.ps1",
+    "!build/setup.iss",
+    "!build/pyinstaller_hidden_imports.py",
+    "!build/hooks/",
+    "!build/hooks/*.py",
+)
+
 PACKAGING_GATE_CHECKS: Sequence[PackagingGateCheck] = (
     PackagingGateCheck("runtime_files", "files", "Required runtime files"),
     PackagingGateCheck("source_syntax", "syntax", "Runtime source syntax"),
@@ -119,6 +129,7 @@ PACKAGING_GATE_CHECKS: Sequence[PackagingGateCheck] = (
     PackagingGateCheck("workflow_gate", "ci", "GitHub workflow runs packaging gate"),
     PackagingGateCheck("build_ps1_gate", "build", "Local Windows build runs packaging gate"),
     PackagingGateCheck("post_build_runtime_files", "build", "Post-build packaged runtime file verification"),
+    PackagingGateCheck("gitignore_tracking", "release", "Required build contract files are trackable"),
 )
 
 
@@ -191,6 +202,17 @@ def validate_windows_packaging_gate(root: Path | None = None) -> Dict[str, List[
     for rel in REQUIRED_RUNTIME_FILES:
         if not (base / rel).exists():
             add("runtime_files", f"missing {rel}")
+
+    gitignore_lines = {
+        line.strip()
+        for line in _read(base / ".gitignore").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    if "build/" in gitignore_lines and "build/*" not in gitignore_lines:
+        add("gitignore_tracking", ".gitignore ignores build/ wholesale; required build files may be absent in CI")
+    for pattern in REQUIRED_GITIGNORE_BUILD_TRACKING:
+        if pattern not in gitignore_lines:
+            add("gitignore_tracking", f".gitignore missing tracking exception {pattern}")
 
     for rel in REQUIRED_SYNTAX_FILES:
         path = base / rel
@@ -275,4 +297,5 @@ __all__ = [
     "packaging_gate_matrix",
     "validate_windows_packaging_gate",
     "windows_packaging_gate_summary",
+    "REQUIRED_GITIGNORE_BUILD_TRACKING",
 ]

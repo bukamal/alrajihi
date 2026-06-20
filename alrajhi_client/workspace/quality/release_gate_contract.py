@@ -110,6 +110,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (278, "windows_runtime_packaging_gate"),
         (279, "phase32_offline_queue_guard_hotfix"),
         (280, "release_packaging_guard_cleanup_hotfix"),
+        (281, "release_build_gitignore_tracking_hotfix"),
     ]
 )
 
@@ -130,7 +131,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("reports_printing", "reports", "Reports browser printing guard", "tests/test_phase276_report_printing_unification_confirmation.py", phase=276),
     ReleaseGateCheck("printing_pyinstaller", "printing", "Printing PyInstaller loader guard", "tools/phase225_printing_pyinstaller_guard.py", phase=225),
     ReleaseGateCheck("windows_packaging", "packaging", "Windows runtime packaging gate", "tools/windows_runtime_packaging_gate_audit.py", "tools/audit_outputs/windows_runtime_packaging_gate_matrix.csv", phase=278),
-    ReleaseGateCheck("release_packaging", "packaging", "Release packaging guard", "tools/release_packaging_guard.py", phase=280),
+    ReleaseGateCheck("release_packaging", "packaging", "Release packaging guard", "tools/release_packaging_guard.py", phase=281),
     ReleaseGateCheck("release_hidden_imports", "packaging", "Release hidden imports guard", "tools/release_hidden_imports_guard.py", phase=280),
     ReleaseGateCheck("printing_browser", "printing", "Browser HTML print guard", "tools/phase237_browser_html_print_guard.py", phase=237),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),

@@ -36,6 +36,16 @@ REQUIRED_REQUIREMENTS = [
 CACHE_DIR_NAMES = {"__pycache__", ".pytest_cache"}
 CACHE_PARENT_IGNORES = {".git", ".venv", "venv", "env", "dist"}
 
+REQUIRED_GITIGNORE_BUILD_TRACKING = [
+    "build/*",
+    "!build/",
+    "!build/build_windows.ps1",
+    "!build/setup.iss",
+    "!build/pyinstaller_hidden_imports.py",
+    "!build/hooks/",
+    "!build/hooks/*.py",
+]
+
 BUILD_FLAGS = [
     "--collect-all PyQt5",
     "--collect-all qtawesome",
@@ -93,6 +103,14 @@ def main() -> int:
     for rel in REQUIRED_FILES:
         if not (ROOT / rel).exists():
             errors.append(f"Missing required release file: {rel}")
+
+    gitignore = read(".gitignore") if (ROOT / ".gitignore").exists() else ""
+    gitignore_lines = {line.strip() for line in gitignore.splitlines() if line.strip() and not line.lstrip().startswith("#")}
+    if "build/" in gitignore_lines and "build/*" not in gitignore_lines:
+        errors.append(".gitignore ignores build/ wholesale; required build files will not be tracked")
+    for pattern in REQUIRED_GITIGNORE_BUILD_TRACKING:
+        if pattern not in gitignore_lines:
+            errors.append(f".gitignore missing release build tracking exception: {pattern}")
 
     req = read("requirements.txt") if (ROOT / "requirements.txt").exists() else ""
     for package in REQUIRED_REQUIREMENTS:

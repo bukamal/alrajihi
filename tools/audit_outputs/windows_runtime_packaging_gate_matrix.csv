@@ -8,3 +8,4 @@ hooks,pyinstaller,PyInstaller hooks collect Python template files,True,pass,0
 workflow_gate,ci,GitHub workflow runs packaging gate,True,pass,0
 build_ps1_gate,build,Local Windows build runs packaging gate,True,pass,0
 post_build_runtime_files,build,Post-build packaged runtime file verification,True,pass,0
+gitignore_tracking,release,Required build contract files are trackable,True,pass,0
