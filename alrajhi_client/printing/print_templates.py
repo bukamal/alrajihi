@@ -545,7 +545,8 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
         qr_payload = f"INV|{ref}|{date}|{invoice.get('total', '')}|{party}"
         qr_uri = _qr_data_uri(qr_payload)
         if qr_uri:
-            qr_html = f"<table class='qr-table'><tr><td><img src='{qr_uri}'><div>{_s(_tr("print_document_qr"))}</div></td></tr></table>"
+            qr_label = _s(_tr("print_document_qr"))
+            qr_html = f"<table class='qr-table'><tr><td><img src='{qr_uri}'><div>{qr_label}</div></td></tr></table>"
 
     body = f"""
     {_company_header(settings, title)}
