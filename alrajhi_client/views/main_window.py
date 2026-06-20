@@ -36,6 +36,7 @@ from core.services.system_service import system_service
 from core.services.offline_queue_service import offline_queue_service
 from core.services.global_search_service import global_search_service
 from brand_assets import app_icon, logo_png, APP_DISPLAY_NAME_AR
+from workspace.navigation.module_visibility_policy import page_enabled, enabled_favorite_pages, settings_section_enabled
 
 PAGE_META_KEYS = {
     'dashboard': ('dashboard', 'home_breadcrumb'),
@@ -404,6 +405,8 @@ class MainWindow(QMainWindow):
         """)
 
         def add_action(menu, text, icon_name, page=None, callback=None, shortcut=None):
+            if page and not page_enabled(page):
+                return None
             action = QAction(qta.icon(f'fa5s.{icon_name}'), text, self)
             if shortcut:
                 action.setShortcut(QKeySequence(shortcut))
@@ -414,6 +417,9 @@ class MainWindow(QMainWindow):
             menu.addAction(action)
             return action
 
+        def any_enabled(*pages):
+            return any(page_enabled(page) for page in pages)
+
         home_menu = self.menu_bar.addMenu(qta.icon('fa5s.home'), '\n' + translate('home_breadcrumb'))
         add_action(home_menu, translate('dashboard'), 'tachometer-alt', 'dashboard', shortcut='F1')
         add_action(home_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
@@ -421,47 +427,59 @@ class MainWindow(QMainWindow):
         home_menu.addSeparator()
         add_action(home_menu, translate('monitoring'), 'heartbeat', 'monitoring')
 
-        sales_menu = self.menu_bar.addMenu(qta.icon('fa5s.shopping-cart'), '\n' + translate('nav_sales'))
-        add_action(sales_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
-        add_action(sales_menu, translate('sales_invoices'), 'file-invoice-dollar', 'sales_invoices', shortcut='F3')
-        add_action(sales_menu, translate('sales_returns'), 'undo', 'returns')
-        sales_menu.addSeparator()
-        add_action(sales_menu, translate('receipt_voucher'), 'hand-holding-usd', 'vouchers')
+        if any_enabled('pos', 'sales_invoices', 'returns', 'vouchers'):
+            sales_menu = self.menu_bar.addMenu(qta.icon('fa5s.shopping-cart'), '\n' + translate('nav_sales'))
+            add_action(sales_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
+            add_action(sales_menu, translate('sales_invoices'), 'file-invoice-dollar', 'sales_invoices', shortcut='F3')
+            add_action(sales_menu, translate('sales_returns'), 'undo', 'returns')
+            if page_enabled('vouchers'):
+                sales_menu.addSeparator()
+            add_action(sales_menu, translate('receipt_voucher'), 'hand-holding-usd', 'vouchers')
 
-        restaurant_menu = self.menu_bar.addMenu(qta.icon('fa5s.utensils'), '\n' + translate('nav_restaurant'))
-        add_action(restaurant_menu, translate('restaurant.dashboard'), 'utensils', 'restaurant', shortcut='F8')
-        add_action(restaurant_menu, translate('restaurant.open_table'), 'door-open', 'restaurant')
-        add_action(restaurant_menu, translate('restaurant.kitchen_ticket'), 'receipt', 'restaurant')
+        if page_enabled('restaurant'):
+            restaurant_menu = self.menu_bar.addMenu(qta.icon('fa5s.utensils'), '\n' + translate('nav_restaurant'))
+            add_action(restaurant_menu, translate('restaurant.dashboard'), 'utensils', 'restaurant', shortcut='F8')
+            add_action(restaurant_menu, translate('restaurant.open_table'), 'door-open', 'restaurant')
+            add_action(restaurant_menu, translate('restaurant.kitchen_ticket'), 'receipt', 'restaurant')
 
-        purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), '\n' + translate('nav_purchases'))
-        add_action(purchase_menu, translate('purchase_invoices'), 'file-invoice', 'purchase_invoices')
-        add_action(purchase_menu, translate('purchase_returns'), 'undo-alt', 'purchase_returns')
-        purchase_menu.addSeparator()
-        add_action(purchase_menu, translate('payment_voucher'), 'money-bill-wave', 'vouchers')
+        if any_enabled('purchase_invoices', 'purchase_returns', 'vouchers'):
+            purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), '\n' + translate('nav_purchases'))
+            add_action(purchase_menu, translate('purchase_invoices'), 'file-invoice', 'purchase_invoices')
+            add_action(purchase_menu, translate('purchase_returns'), 'undo-alt', 'purchase_returns')
+            if page_enabled('vouchers'):
+                purchase_menu.addSeparator()
+            add_action(purchase_menu, translate('payment_voucher'), 'money-bill-wave', 'vouchers')
 
-        inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), '\n' + translate('nav_inventory'))
-        add_action(inventory_menu, translate('items'), 'box', 'items', shortcut='F4')
-        add_action(inventory_menu, translate('new_item'), 'box-open', callback=self.open_quick_item)
-        add_action(inventory_menu, translate('categories'), 'folder', 'categories')
-        add_action(inventory_menu, translate('add_category'), 'folder-plus', callback=lambda: self.open_category_document())
-        add_action(inventory_menu, translate('warehouses'), 'warehouse', 'warehouses', shortcut='F5')
+        if any_enabled('items', 'categories', 'warehouses'):
+            inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), '\n' + translate('nav_inventory'))
+            add_action(inventory_menu, translate('items'), 'box', 'items', shortcut='F4')
+            if page_enabled('items'):
+                add_action(inventory_menu, translate('new_item'), 'box-open', callback=self.open_quick_item)
+            add_action(inventory_menu, translate('categories'), 'folder', 'categories')
+            if page_enabled('categories'):
+                add_action(inventory_menu, translate('add_category'), 'folder-plus', callback=lambda: self.open_category_document())
+            add_action(inventory_menu, translate('warehouses'), 'warehouse', 'warehouses', shortcut='F5')
 
-        manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), '\n' + translate('nav_manufacturing'))
-        add_action(manufacturing_menu, translate('nav_manufacturing'), 'industry', 'manufacturing')
+        if page_enabled('manufacturing'):
+            manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), '\n' + translate('nav_manufacturing'))
+            add_action(manufacturing_menu, translate('nav_manufacturing'), 'industry', 'manufacturing')
 
-        parties_menu = self.menu_bar.addMenu(qta.icon('fa5s.users'), '\n' + translate('nav_parties'))
-        add_action(parties_menu, translate('customers'), 'user-friends', 'customers')
-        add_action(parties_menu, translate('suppliers'), 'truck-loading', 'suppliers')
+        if any_enabled('customers', 'suppliers'):
+            parties_menu = self.menu_bar.addMenu(qta.icon('fa5s.users'), '\n' + translate('nav_parties'))
+            add_action(parties_menu, translate('customers'), 'user-friends', 'customers')
+            add_action(parties_menu, translate('suppliers'), 'truck-loading', 'suppliers')
 
-        finance_menu = self.menu_bar.addMenu(qta.icon('fa5s.wallet'), '\n' + translate('nav_finance'))
-        add_action(finance_menu, translate('cashboxes'), 'cash-register', 'cashboxes')
-        add_action(finance_menu, translate('vouchers'), 'receipt', 'vouchers')
+        if any_enabled('cashboxes', 'vouchers'):
+            finance_menu = self.menu_bar.addMenu(qta.icon('fa5s.wallet'), '\n' + translate('nav_finance'))
+            add_action(finance_menu, translate('cashboxes'), 'cash-register', 'cashboxes')
+            add_action(finance_menu, translate('vouchers'), 'receipt', 'vouchers')
 
-        reports_menu = self.menu_bar.addMenu(qta.icon('fa5s.chart-line'), '\n' + translate('reports'))
-        add_action(reports_menu, translate('reports'), 'chart-line', 'reports')
-        add_action(reports_menu, translate('customer_statement'), 'user', 'reports')
-        add_action(reports_menu, translate('supplier_statement'), 'truck', 'reports')
-        add_action(reports_menu, translate('ledger_reconciliation'), 'balance-scale', 'reports')
+        if page_enabled('reports'):
+            reports_menu = self.menu_bar.addMenu(qta.icon('fa5s.chart-line'), '\n' + translate('reports'))
+            add_action(reports_menu, translate('reports'), 'chart-line', 'reports')
+            add_action(reports_menu, translate('customer_statement'), 'user', 'reports')
+            add_action(reports_menu, translate('supplier_statement'), 'truck', 'reports')
+            add_action(reports_menu, translate('ledger_reconciliation'), 'balance-scale', 'reports')
 
         admin_menu = self.menu_bar.addMenu(qta.icon('fa5s.cog'), '\n' + translate('nav_admin'))
         add_action(admin_menu, translate('settings'), 'sliders-h', 'settings')
@@ -1109,18 +1127,20 @@ class MainWindow(QMainWindow):
         items = []
         favorites = self.workspace_state_store.favorites()
         if not favorites:
-            favorites = ['dashboard', 'restaurant', 'items', 'sales_invoices', 'reports']
+            favorites = enabled_favorite_pages(['dashboard', 'restaurant', 'items', 'sales_invoices', 'reports'])
             self.workspace_state_store.set_favorites(favorites)
-        for pid in favorites:
-            if pid in self.pages:
+        for pid in enabled_favorite_pages(favorites):
+            if pid in self.pages and page_enabled(pid):
                 items.append(QuickOpenItem(pid, f"★ {page_title(pid)}", translate('workspace.favorites'), self.workspace_icon_for_page(pid)))
         for entry in self.workspace_state_store.recent():
-            if entry.tab_id in self.pages:
+            if entry.tab_id in self.pages and page_enabled(entry.tab_id):
                 items.append(QuickOpenItem(entry.tab_id, f"↺ {page_title(entry.tab_id)}", translate('workspace.recent_tabs'), entry.icon_name))
         for pid in self.pages:
-            items.append(QuickOpenItem(pid, page_title(pid), page_breadcrumb(pid), self.workspace_icon_for_page(pid)))
+            if page_enabled(pid):
+                items.append(QuickOpenItem(pid, page_title(pid), page_breadcrumb(pid), self.workspace_icon_for_page(pid)))
         for section in ('company', 'accounting', 'transactions', 'materials', 'categories', 'parties', 'finance', 'inventory', 'branches', 'manufacturing', 'reports', 'pos', 'restaurant', 'printing', 'users', 'ui', 'security'):
-            items.append(QuickOpenItem(f'settings:{section}', translate(f'settings.{section}'), translate('settings'), 'fa5s.sliders-h'))
+            if settings_section_enabled(section):
+                items.append(QuickOpenItem(f'settings:{section}', translate(f'settings.{section}'), translate('settings'), 'fa5s.sliders-h'))
         seen = set()
         unique = []
         for item in items:
@@ -1372,9 +1392,16 @@ class MainWindow(QMainWindow):
 
     def switch_page(self, pid):
         if isinstance(pid, str) and pid.startswith('settings:'):
-            return self.open_settings_section_document(pid.split(':', 1)[1])
+            section = pid.split(':', 1)[1]
+            if not settings_section_enabled(section):
+                QMessageBox.information(self, translate('settings'), translate('module_disabled'))
+                return
+            return self.open_settings_section_document(section)
         if pid == 'invoices':
             pid = 'sales_invoices'
+        if isinstance(pid, str) and not page_enabled(pid):
+            QMessageBox.information(self, page_title(pid), translate('module_disabled'))
+            return
         if pid in self.pages:
             self.workspace.open_singleton(pid, page_title(pid), self.pages[pid], self.workspace_icon_for_page(pid))
             self.workspace_state_store.add_recent(self._workspace_entry_for_page(pid))

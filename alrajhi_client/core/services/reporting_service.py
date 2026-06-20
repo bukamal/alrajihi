@@ -290,8 +290,11 @@ class ReportingService:
         result = self._gateway.manufacturing_orders_report(start_date=start_date, end_date=end_date, status=status)
         return result if isinstance(result, list) else []
 
-    def product_cost_report(self, search: str | None = None, limit: int = 1000, branch_id: int | None = None) -> List[Dict]:
-        result = self._gateway.product_cost_report(search=search, limit=limit, branch_id=self._effective_branch_id(branch_id))
+    def product_cost_report(self, search: str | None = None, limit: int = 1000, branch_id: int | None = None, item_id: int | None = None) -> List[Dict]:
+        try:
+            result = self._gateway.product_cost_report(search=search, limit=limit, branch_id=self._effective_branch_id(branch_id), item_id=item_id)
+        except TypeError:
+            result = self._gateway.product_cost_report(search=search, limit=limit, branch_id=self._effective_branch_id(branch_id))
         return result if isinstance(result, list) else []
 
 

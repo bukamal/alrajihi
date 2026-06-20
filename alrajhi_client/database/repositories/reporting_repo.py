@@ -63,11 +63,16 @@ class ReportingRepository(BaseRepository):
                 (uid,), start_date, end_date, 'i.date'
             )
             
-            # إجمالي المصروفات (من جدول expenses)
-            expenses = self._safe_sum(
+            # إجمالي المصروفات من جدول expenses وسندات المصروفات.
+            expenses_table = self._safe_sum(
                 "SELECT SUM(CAST(amount AS REAL)) FROM expenses WHERE user_id=?",
                 (uid,), start_date, end_date, 'expense_date'
             )
+            expense_vouchers_for_pnl = self._safe_sum(
+                "SELECT SUM(CAST(amount AS REAL)) FROM vouchers WHERE type='expense' AND user_id=?",
+                (uid,), start_date, end_date, 'date'
+            )
+            expenses = expenses_table + expense_vouchers_for_pnl
             
             # رصيد الصندوق (آخر قيمة، بدون فلترة زمنية)
             cash_row = self._fetch_one("SELECT CAST(cash_balance AS REAL) as cash FROM users WHERE id=?", (uid,))
@@ -121,17 +126,21 @@ class ReportingRepository(BaseRepository):
             'cash_net_movement': Decimal('0')
         }
     
-    def _safe_sum(self, sql: str, params: tuple, start_date: str, end_date: str, date_column: str) -> Decimal:
-        if start_date and end_date and date_column:
-            # إضافة شرط التاريخ
-            if 'WHERE' in sql.upper():
-                sql += f" AND {date_column} BETWEEN ? AND ?"
-            else:
-                sql += f" WHERE {date_column} BETWEEN ? AND ?"
-            params = params + (start_date, end_date)
-        cur = self._execute(sql, params)
-        val = cur.fetchone()[0]
-        return Decimal(str(val)) if val is not None else Decimal('0')
+    def _safe_sum(self, sql: str, params: tuple, start_date: str = None, end_date: str = None, date_column: str = None) -> Decimal:
+        # Phase 282: date filters are independent and do not require both bounds.
+        # Also keep missing optional tables from blanking income/dashboard reports.
+        if start_date and date_column:
+            sql += (" AND " if 'WHERE' in sql.upper() else " WHERE ") + f"date({date_column}) >= date(?)"
+            params = params + (start_date,)
+        if end_date and date_column:
+            sql += (" AND " if 'WHERE' in sql.upper() else " WHERE ") + f"date({date_column}) <= date(?)"
+            params = params + (end_date,)
+        try:
+            cur = self._execute(sql, params)
+            val = cur.fetchone()[0]
+            return Decimal(str(val)) if val is not None else Decimal('0')
+        except Exception:
+            return Decimal('0')
     
     def get_income_statement_filtered(self, start_date: str = None, end_date: str = None) -> Dict:
         summary = self.get_summary_filtered(start_date, end_date)

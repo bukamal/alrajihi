@@ -67,7 +67,7 @@ class RemoteReportingGateway(ReportingGateway):
     def manufacturing_orders_report(self, start_date: str | None = None, end_date: str | None = None, status: str | None = None) -> List[Dict[str, Any]]:
         return []
 
-    def product_cost_report(self, search: str | None = None, limit: int = 1000, branch_id: int | None = None) -> List[Dict[str, Any]]:
+    def product_cost_report(self, search: str | None = None, limit: int = 1000, branch_id: int | None = None, item_id: int | None = None) -> List[Dict[str, Any]]:
         return []
 
     def general_ledger_report(self, account_id: int | None = None, start_date: str | None = None,

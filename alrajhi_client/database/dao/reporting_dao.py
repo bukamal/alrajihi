@@ -33,6 +33,44 @@ class ReportingDAO:
         from auth.session import UserSession
         return DatabaseConnection(), UserSession.get_current_user_id()
 
+    def _tables(self):
+        db, _uid = self._db_uid()
+        try:
+            return {str(r[0]).lower() for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+        except Exception:
+            return set()
+
+    def _has_table(self, table):
+        return str(table or '').lower() in self._tables()
+
+    def _columns(self, table):
+        db, _uid = self._db_uid()
+        try:
+            return {str(r[1]).lower() for r in db.execute(f"PRAGMA table_info({table})").fetchall()}
+        except Exception:
+            return set()
+
+    def _safe_sum_table(self, table, expression, where, params=()):
+        if not self._has_table(table):
+            return Decimal('0')
+        db, _uid = self._db_uid()
+        try:
+            row = db.execute(f"SELECT CAST(COALESCE(SUM({expression}), 0) AS TEXT) FROM {table} WHERE {where}", tuple(params)).fetchone()
+            return Decimal(str(row[0] if row and row[0] is not None else '0'))
+        except Exception:
+            return Decimal('0')
+
+    def _date_predicate(self, column, start_date=None, end_date=None):
+        sql = ''
+        params = []
+        if start_date:
+            sql += f" AND date({column}) >= date(?)"
+            params.append(start_date)
+        if end_date:
+            sql += f" AND date({column}) <= date(?)"
+            params.append(end_date)
+        return sql, tuple(params)
+
     def _date_filter(self, base_sql, params, date_col, start_date, end_date):
         if start_date:
             base_sql += f" AND {date_col} >= ?"
@@ -43,64 +81,67 @@ class ReportingDAO:
         return base_sql, params
 
     def _statement_rows(self, party_type, party_id, start_date=None, end_date=None):
-        """Build a true running account statement for customers/suppliers.
+        """Build a running statement from invoices, returns and vouchers.
 
-        The running balance must include transactions before ``start_date`` as
-        an opening balance, otherwise a date-filtered account statement shows a
-        mathematically correct period total but an incorrect current balance.
-        This method intentionally keeps all sources in one place so the reports
-        UI does not recalculate balances independently.
+        Phase 282: every optional source table is included only when it exists.
+        Missing returns/vouchers tables must never blank the whole report. The
+        running balance includes movements before start_date as an opening row.
         """
         db, uid = self._db_uid()
         if not uid or not party_id:
             return []
+        tables = self._tables()
+        parts = []
+
+        def add(sql, params, date_col='date'):
+            if end_date:
+                sql += f" AND date({date_col}) <= date(?)"
+                params = tuple(params) + (end_date,)
+            parts.append((sql, tuple(params), date_col))
 
         if party_type == 'customer':
-            parts = [
-                ("""SELECT date AS date, reference AS reference, 'sale_invoice' AS source_type, id AS source_id,
-                          CAST(total AS TEXT) AS amount, 'sale_invoice' AS description,
-                          CAST(total AS TEXT) AS debit, '0' AS credit
-                   FROM invoices WHERE customer_id=? AND type='sale' AND user_id=? AND deleted_at IS NULL""", (party_id, uid), 'date'),
-                ("""SELECT date AS date, return_no AS reference, 'sales_return' AS source_type, id AS source_id,
-                          CAST(total AS TEXT) AS amount, 'sales_return' AS description,
-                          '0' AS debit, CAST(total AS TEXT) AS credit
-                   FROM sales_returns WHERE customer_id=? AND user_id=? AND deleted_at IS NULL""", (party_id, uid), 'date'),
-                ("""SELECT date AS date, reference AS reference, 'receipt_voucher' AS source_type, id AS source_id,
-                          CAST(amount AS TEXT) AS amount, 'receipt_voucher' AS description,
-                          '0' AS debit, CAST(amount AS TEXT) AS credit
-                   FROM vouchers WHERE customer_id=? AND type='receipt' AND user_id=?""", (party_id, uid), 'date'),
-            ]
+            if 'invoices' in tables:
+                add("""SELECT date AS date, reference AS reference, 'sale_invoice' AS source_type, id AS source_id,
+                              CAST(total AS TEXT) AS amount, 'sale_invoice' AS description,
+                              CAST(total AS TEXT) AS debit, '0' AS credit
+                       FROM invoices WHERE customer_id=? AND type='sale' AND user_id=? AND deleted_at IS NULL""", (party_id, uid))
+            if 'sales_returns' in tables:
+                add("""SELECT date AS date, return_no AS reference, 'sales_return' AS source_type, id AS source_id,
+                              CAST(total AS TEXT) AS amount, 'sales_return' AS description,
+                              '0' AS debit, CAST(total AS TEXT) AS credit
+                       FROM sales_returns WHERE customer_id=? AND user_id=? AND deleted_at IS NULL""", (party_id, uid))
+            if 'vouchers' in tables:
+                add("""SELECT date AS date, reference AS reference, 'receipt_voucher' AS source_type, id AS source_id,
+                              CAST(amount AS TEXT) AS amount, 'receipt_voucher' AS description,
+                              '0' AS debit, CAST(amount AS TEXT) AS credit
+                       FROM vouchers WHERE customer_id=? AND type IN ('receipt','sales_return','return') AND user_id=?""", (party_id, uid))
             def apply_to_balance(balance, debit, credit):
                 return balance + debit - credit
         else:
-            parts = [
-                ("""SELECT date AS date, reference AS reference, 'purchase_invoice' AS source_type, id AS source_id,
-                          CAST(total AS TEXT) AS amount, 'purchase_invoice' AS description,
-                          '0' AS debit, CAST(total AS TEXT) AS credit
-                   FROM invoices WHERE supplier_id=? AND type='purchase' AND user_id=? AND deleted_at IS NULL""", (party_id, uid), 'date'),
-                ("""SELECT date AS date, return_no AS reference, 'purchase_return' AS source_type, id AS source_id,
-                          CAST(total AS TEXT) AS amount, 'purchase_return' AS description,
-                          CAST(total AS TEXT) AS debit, '0' AS credit
-                   FROM purchase_returns WHERE supplier_id=? AND user_id=? AND deleted_at IS NULL""", (party_id, uid), 'date'),
-                ("""SELECT date AS date, reference AS reference, 'payment_voucher' AS source_type, id AS source_id,
-                          CAST(amount AS TEXT) AS amount, 'payment_voucher' AS description,
-                          CAST(amount AS TEXT) AS debit, '0' AS credit
-                   FROM vouchers WHERE supplier_id=? AND type='payment' AND user_id=?""", (party_id, uid), 'date'),
-            ]
+            if 'invoices' in tables:
+                add("""SELECT date AS date, reference AS reference, 'purchase_invoice' AS source_type, id AS source_id,
+                              CAST(total AS TEXT) AS amount, 'purchase_invoice' AS description,
+                              '0' AS debit, CAST(total AS TEXT) AS credit
+                       FROM invoices WHERE supplier_id=? AND type='purchase' AND user_id=? AND deleted_at IS NULL""", (party_id, uid))
+            if 'purchase_returns' in tables:
+                add("""SELECT date AS date, return_no AS reference, 'purchase_return' AS source_type, id AS source_id,
+                              CAST(total AS TEXT) AS amount, 'purchase_return' AS description,
+                              CAST(total AS TEXT) AS debit, '0' AS credit
+                       FROM purchase_returns WHERE supplier_id=? AND user_id=? AND deleted_at IS NULL""", (party_id, uid))
+            if 'vouchers' in tables:
+                add("""SELECT date AS date, reference AS reference, 'payment_voucher' AS source_type, id AS source_id,
+                              CAST(amount AS TEXT) AS amount, 'payment_voucher' AS description,
+                              CAST(amount AS TEXT) AS debit, '0' AS credit
+                       FROM vouchers WHERE supplier_id=? AND type IN ('payment','purchase_return','return') AND user_id=?""", (party_id, uid))
             def apply_to_balance(balance, debit, credit):
                 return balance + credit - debit
 
-        queries = []
+        if not parts:
+            return []
+        queries = [part[0] for part in parts]
         params = []
-        # Apply the end-date in SQL for efficiency.  Start-date is handled in
-        # Python so we can compute a precise opening balance.
-        for sql, p, dcol in parts:
-            if end_date:
-                sql += f" AND {dcol} <= ?"
-                p = p + (end_date,)
-            queries.append(sql)
+        for _sql, p, _date_col in parts:
             params.extend(p)
-
         rows = db.execute(" UNION ALL ".join(queries) + " ORDER BY date, source_id", tuple(params)).fetchall()
         result = []
         opening = Decimal('0')
@@ -155,35 +196,60 @@ class ReportingDAO:
     def get_supplier_statement(self, supplier_id, start_date=None, end_date=None):
         return self._statement_rows('supplier', supplier_id, start_date, end_date)
 
+    def _customer_balance(self, customer_id, uid):
+        sales = self._safe_sum_table('invoices', 'CAST(total AS REAL)', "customer_id=? AND type='sale' AND user_id=? AND deleted_at IS NULL", (customer_id, uid))
+        returns = self._safe_sum_table('sales_returns', 'CAST(total AS REAL)', "customer_id=? AND user_id=? AND deleted_at IS NULL", (customer_id, uid))
+        receipts = self._safe_sum_table('vouchers', 'CAST(amount AS REAL)', "customer_id=? AND type IN ('receipt','sales_return','return') AND user_id=?", (customer_id, uid))
+        return sales - returns - receipts
+
+    def _supplier_balance(self, supplier_id, uid):
+        purchases = self._safe_sum_table('invoices', 'CAST(total AS REAL)', "supplier_id=? AND type='purchase' AND user_id=? AND deleted_at IS NULL", (supplier_id, uid))
+        returns = self._safe_sum_table('purchase_returns', 'CAST(total AS REAL)', "supplier_id=? AND user_id=? AND deleted_at IS NULL", (supplier_id, uid))
+        payments = self._safe_sum_table('vouchers', 'CAST(amount AS REAL)', "supplier_id=? AND type IN ('payment','purchase_return','return') AND user_id=?", (supplier_id, uid))
+        return purchases - returns - payments
+
     def get_customer_balances(self):
         db, uid = self._db_uid()
-        if not uid:
+        if not uid or not self._has_table('customers'):
             return []
         rows = db.execute("""
-            SELECT id, name, phone, address, CAST(balance AS TEXT) AS balance
+            SELECT id, name, phone, address, CAST(COALESCE(balance,0) AS TEXT) AS stored_balance
             FROM customers WHERE user_id=? ORDER BY name
         """, (uid,)).fetchall()
-        return [dict(r) for r in rows]
+        result = []
+        for r in rows:
+            d = dict(r)
+            calc = self._customer_balance(d.get('id'), uid)
+            d['balance'] = calc
+            d['calculated_balance'] = calc
+            result.append(d)
+        return result
 
     def get_supplier_balances(self):
         db, uid = self._db_uid()
-        if not uid:
+        if not uid or not self._has_table('suppliers'):
             return []
         rows = db.execute("""
-            SELECT id, name, phone, address, CAST(balance AS TEXT) AS balance
+            SELECT id, name, phone, address, CAST(COALESCE(balance,0) AS TEXT) AS stored_balance
             FROM suppliers WHERE user_id=? ORDER BY name
         """, (uid,)).fetchall()
-        return [dict(r) for r in rows]
+        result = []
+        for r in rows:
+            d = dict(r)
+            calc = self._supplier_balance(d.get('id'), uid)
+            d['balance'] = calc
+            d['calculated_balance'] = calc
+            result.append(d)
+        return result
 
     def _aging(self, table, name_col='name', as_of_date=None):
         db, uid = self._db_uid()
         if not uid:
             return []
         as_of = self._parse_date(as_of_date) or date.today()
-        rows = db.execute(f"SELECT id, {name_col} AS name, phone, CAST(balance AS TEXT) AS balance FROM {table} WHERE user_id=?", (uid,)).fetchall()
+        source = self.get_customer_balances() if table == 'customers' else self.get_supplier_balances()
         result = []
-        for row in rows:
-            d = dict(row)
+        for d in source:
             bal = Decimal(str(d.get('balance') or 0))
             last_date = self._last_party_date(table, d['id'], uid)
             age = (as_of - (self._parse_date(last_date) or as_of)).days
@@ -198,27 +264,35 @@ class ReportingDAO:
                 buckets['days_61_90'] = bal
             else:
                 buckets['over_90'] = bal
-            result.append({**d, 'last_transaction_date': last_date or '', 'age_days': max(age, 0), **buckets})
+            result.append({**d, 'last_transaction_date': last_date or '', 'age_days': max(age, 0), 'total': bal, **buckets})
         return result
 
     def _last_party_date(self, table, party_id, uid):
+        parts = []
+        params = []
         if table == 'customers':
-            sql = """
-            SELECT MAX(dt) FROM (
-              SELECT date AS dt FROM invoices WHERE customer_id=? AND type='sale' AND user_id=? AND deleted_at IS NULL
-              UNION ALL SELECT date FROM sales_returns WHERE customer_id=? AND user_id=? AND deleted_at IS NULL
-              UNION ALL SELECT date FROM vouchers WHERE customer_id=? AND type='receipt' AND user_id=?
-            )
-            """
+            if self._has_table('invoices'):
+                parts.append("SELECT date AS dt FROM invoices WHERE customer_id=? AND type='sale' AND user_id=? AND deleted_at IS NULL")
+                params.extend([party_id, uid])
+            if self._has_table('sales_returns'):
+                parts.append("SELECT date AS dt FROM sales_returns WHERE customer_id=? AND user_id=? AND deleted_at IS NULL")
+                params.extend([party_id, uid])
+            if self._has_table('vouchers'):
+                parts.append("SELECT date AS dt FROM vouchers WHERE customer_id=? AND type IN ('receipt','sales_return','return') AND user_id=?")
+                params.extend([party_id, uid])
         else:
-            sql = """
-            SELECT MAX(dt) FROM (
-              SELECT date AS dt FROM invoices WHERE supplier_id=? AND type='purchase' AND user_id=? AND deleted_at IS NULL
-              UNION ALL SELECT date FROM purchase_returns WHERE supplier_id=? AND user_id=? AND deleted_at IS NULL
-              UNION ALL SELECT date FROM vouchers WHERE supplier_id=? AND type='payment' AND user_id=?
-            )
-            """
-        return db_execute_scalar(sql, (party_id, uid, party_id, uid, party_id, uid))
+            if self._has_table('invoices'):
+                parts.append("SELECT date AS dt FROM invoices WHERE supplier_id=? AND type='purchase' AND user_id=? AND deleted_at IS NULL")
+                params.extend([party_id, uid])
+            if self._has_table('purchase_returns'):
+                parts.append("SELECT date AS dt FROM purchase_returns WHERE supplier_id=? AND user_id=? AND deleted_at IS NULL")
+                params.extend([party_id, uid])
+            if self._has_table('vouchers'):
+                parts.append("SELECT date AS dt FROM vouchers WHERE supplier_id=? AND type IN ('payment','purchase_return','return') AND user_id=?")
+                params.extend([party_id, uid])
+        if not parts:
+            return None
+        return db_execute_scalar("SELECT MAX(dt) FROM (" + " UNION ALL ".join(parts) + ")", tuple(params))
 
     def get_customer_aging(self, as_of_date=None):
         return self._aging('customers', as_of_date=as_of_date)

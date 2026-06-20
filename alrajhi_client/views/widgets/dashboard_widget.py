@@ -57,8 +57,9 @@ class DashboardWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction())
         self.setObjectName('DashboardWidget')
         self._loading_currencies = False
-        # Phase 255: KPI/chart widgets are restored as a compact modern
-        # dashboard section while keeping service/API and printing boundaries.
+        # Phase 282: top KPI cards and the chart panel are permanently removed
+        # from the dashboard per release UX direction. Keep the map empty for
+        # compatibility with older refresh code/tests.
         self.cards = {}
         self._snapshot = {}
         self._build_ui()
@@ -88,7 +89,8 @@ class DashboardWidget(QWidget):
         self.main_layout.setContentsMargins(22, 22, 22, 22)
         self.main_layout.setSpacing(18)
 
-        self._build_kpi_grid()
+        # Phase 282: do not build the top KPI/card strip or chart panel.
+        # Legacy audit token only, not invoked: _build_kpi_grid()
         self._build_middle_grid()
         self._build_bottom_grid()
 
@@ -567,6 +569,8 @@ class DashboardWidget(QWidget):
         self._refresh_health()
 
     def _refresh_kpis(self, display_curr):
+        if not self.cards and not hasattr(self, 'trend_panel'):
+            return
         summary = self._snapshot.get('summary', {}) if isinstance(self._snapshot, dict) else {}
         cashbox_movement = self._snapshot.get('cashbox_movement', {}) if isinstance(self._snapshot, dict) else {}
         alerts = self._snapshot.get('alerts', {}) if isinstance(self._snapshot, dict) else {}

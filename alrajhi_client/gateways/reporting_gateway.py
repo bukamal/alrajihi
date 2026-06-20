@@ -68,7 +68,7 @@ class ReportingGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def product_cost_report(self, search: str | None = None, limit: int = 1000, branch_id: int | None = None) -> List[Dict[str, Any]]:
+    def product_cost_report(self, search: str | None = None, limit: int = 1000, branch_id: int | None = None, item_id: int | None = None) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
     @abstractmethod

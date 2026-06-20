@@ -220,45 +220,48 @@ class LocalReportingGateway(ReportingGateway):
             return []
 
     def net_profit_report(self, start_date: str | None = None, end_date: str | None = None, branch_id: int | None = None) -> Dict:
-        """Net profit from posted business documents: sales - sales returns - COGS."""
+        """Net profit from non-duplicated sales, returns, COGS and expenses."""
         try:
             from decimal import Decimal
             from database.connection import DatabaseConnection
             from auth.session import UserSession
             db = DatabaseConnection(); uid = UserSession.get_current_user_id()
-            if not uid: return {}
-            params = [uid]
-            date_filter = ""
-            if start_date:
-                date_filter += " AND date(inv.date) >= date(?)"; params.append(start_date)
-            if end_date:
-                date_filter += " AND date(inv.date) <= date(?)"; params.append(end_date)
-            eff_branch = self._effective_branch_id(branch_id)
-            if eff_branch:
-                date_filter += " AND inv.branch_id = ?"; params.append(eff_branch)
-            sales = Decimal('0'); sales_cost = Decimal('0')
-            if 'invoices' in {str(r[0]).lower() for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}:
-                row = db.execute(f"""
-                    SELECT CAST(COALESCE(SUM(CAST(inv.total AS REAL)),0) AS TEXT) AS total,
-                           CAST(COALESCE(SUM(CAST(il.cost_amount AS REAL)),0) AS TEXT) AS cost
-                    FROM invoices inv
-                    LEFT JOIN invoice_lines il ON il.invoice_id = inv.id
-                    WHERE inv.user_id=? AND inv.type='sale' AND inv.deleted_at IS NULL {date_filter}
-                """, tuple(params)).fetchone()
-                if row:
-                    d=dict(row); sales=Decimal(str(d.get('total') or 0)); sales_cost=Decimal(str(d.get('cost') or 0))
-            returns = Decimal('0')
+            if not uid:
+                return {}
             tables = {str(r[0]).lower() for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-            if 'returns' in tables:
-                rparams=[uid]
-                rf=""
-                if start_date: rf += " AND date(date) >= date(?)"; rparams.append(start_date)
-                if end_date: rf += " AND date(date) <= date(?)"; rparams.append(end_date)
-                row=db.execute(f"SELECT CAST(COALESCE(SUM(CAST(total AS REAL)),0) AS TEXT) AS total FROM returns WHERE user_id=? AND type IN ('sale','sales','sales_return') {rf}", tuple(rparams)).fetchone()
-                returns=Decimal(str(dict(row).get('total') if row else 0 or 0))
-            net_sales = sales - returns
-            gross_profit = net_sales - sales_cost
-            return {'sales': sales, 'sales_returns': returns, 'net_sales': net_sales, 'cogs': sales_cost, 'net_profit': gross_profit}
+            def _date(col, start=None, end=None):
+                sql = '' ; params = []
+                if start:
+                    sql += f" AND date({col}) >= date(?)"; params.append(start)
+                if end:
+                    sql += f" AND date({col}) <= date(?)"; params.append(end)
+                return sql, params
+            def _sum(sql, params):
+                try:
+                    row = db.execute(sql, tuple(params)).fetchone()
+                    return Decimal(str(row[0] if row and row[0] is not None else '0'))
+                except Exception:
+                    return Decimal('0')
+            eff_branch = self._effective_branch_id(branch_id)
+            branch_sql = " AND branch_id = ?" if eff_branch else ""
+            branch_params = [eff_branch] if eff_branch else []
+            dsql, dparams = _date('date', start_date, end_date)
+            sales = _sum("SELECT CAST(COALESCE(SUM(CAST(total AS REAL)),0) AS TEXT) FROM invoices WHERE user_id=? AND type='sale' AND deleted_at IS NULL" + branch_sql + dsql, [uid] + branch_params + dparams) if 'invoices' in tables else Decimal('0')
+            purchases = _sum("SELECT CAST(COALESCE(SUM(CAST(total AS REAL)),0) AS TEXT) FROM invoices WHERE user_id=? AND type='purchase' AND deleted_at IS NULL" + branch_sql + dsql, [uid] + branch_params + dparams) if 'invoices' in tables else Decimal('0')
+            cost_dsql, cost_dparams = _date('inv.date', start_date, end_date)
+            cogs = _sum("""SELECT CAST(COALESCE(SUM(CAST(COALESCE(il.cost_amount,0) AS REAL)),0) AS TEXT)
+                           FROM invoice_lines il JOIN invoices inv ON inv.id=il.invoice_id
+                           WHERE inv.user_id=? AND inv.type='sale' AND inv.deleted_at IS NULL""" + (" AND inv.branch_id=?" if eff_branch else "") + cost_dsql, [uid] + branch_params + cost_dparams) if {'invoices','invoice_lines'} <= tables else Decimal('0')
+            sr = _sum("SELECT CAST(COALESCE(SUM(CAST(total AS REAL)),0) AS TEXT) FROM sales_returns WHERE user_id=? AND deleted_at IS NULL" + branch_sql + dsql, [uid] + branch_params + dparams) if 'sales_returns' in tables else Decimal('0')
+            pr = _sum("SELECT CAST(COALESCE(SUM(CAST(total AS REAL)),0) AS TEXT) FROM purchase_returns WHERE user_id=? AND deleted_at IS NULL" + branch_sql + dsql, [uid] + branch_params + dparams) if 'purchase_returns' in tables else Decimal('0')
+            exp_v = _sum("SELECT CAST(COALESCE(SUM(CAST(amount AS REAL)),0) AS TEXT) FROM vouchers WHERE user_id=? AND type='expense'" + branch_sql + dsql, [uid] + branch_params + dparams) if 'vouchers' in tables else Decimal('0')
+            expense_date_sql, expense_date_params = _date('expense_date', start_date, end_date)
+            exp_t = _sum("SELECT CAST(COALESCE(SUM(CAST(amount AS REAL)),0) AS TEXT) FROM expenses WHERE user_id=?" + expense_date_sql, [uid] + expense_date_params) if 'expenses' in tables else Decimal('0')
+            expenses = exp_v + exp_t
+            net_sales = sales - sr
+            gross_profit = net_sales - cogs
+            net_profit = gross_profit - expenses
+            return {'sales': sales, 'purchases': purchases, 'sales_returns': sr, 'purchase_returns': pr, 'net_sales': net_sales, 'cogs': cogs, 'gross_profit': gross_profit, 'expenses': expenses, 'net_profit': net_profit}
         except Exception:
             return {}
 
@@ -291,40 +294,57 @@ class LocalReportingGateway(ReportingGateway):
             return []
 
     def product_cost_report(self, search: str | None = None, limit: int = 1000, branch_id: int | None = None, item_id: int | None = None) -> List[Dict]:
-        """Product cost report based on item average/purchase cost and optional BOM components."""
+        """Product cost report from item cost plus BOM/component cost when available."""
         try:
             from decimal import Decimal
             from database.connection import DatabaseConnection
             from auth.session import UserSession
-            db=DatabaseConnection(); uid=UserSession.get_current_user_id()
-            tables={str(r[0]).lower() for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
-            if not uid or 'items' not in tables: return []
+            db = DatabaseConnection(); uid = UserSession.get_current_user_id()
+            tables = {str(r[0]).lower() for r in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+            if not uid or 'items' not in tables:
+                return []
+            item_cols = {str(r[1]).lower() for r in db.execute("PRAGMA table_info(items)").fetchall()}
+            cost_sources = [c for c in ("i.average_cost", "i.purchase_price", "i.cost_price") if c.split(".", 1)[1] in item_cols]
+            unit_cost_expr = "COALESCE(" + ", ".join(cost_sources + ["0"]) + ")"
+            selling_expr = "COALESCE(" + ("i.selling_price" if "selling_price" in item_cols else "0") + ", 0)"
+            deleted_filter = " AND i.deleted_at IS NULL" if "deleted_at" in item_cols else ""
             params=[uid]
-            sql="""
+            sql=f"""
                 SELECT i.id, i.name, COALESCE(i.barcode,'') AS barcode,
-                       CAST(COALESCE(i.average_cost, i.purchase_price, 0) AS TEXT) AS unit_cost
-                FROM items i WHERE i.user_id=?
+                       CAST({unit_cost_expr} AS TEXT) AS unit_cost,
+                       CAST({selling_expr} AS TEXT) AS selling_price
+                FROM items i WHERE i.user_id=?{deleted_filter}
             """
-            if item_id: sql += " AND i.id=?"; params.append(item_id)
+            if item_id:
+                sql += " AND i.id=?"; params.append(item_id)
             if search:
                 sql += " AND (i.name LIKE ? OR COALESCE(i.barcode,'') LIKE ?)"; params.extend([f'%{search}%', f'%{search}%'])
             sql += " ORDER BY i.name LIMIT ?"; params.append(limit)
             rows=[]
+            bom_table = 'bom' if 'bom' in tables else ('boms' if 'boms' in tables else None)
+            bom_line_table = 'bom_lines' if 'bom_lines' in tables else None
             for r in db.execute(sql, tuple(params)).fetchall():
-                d=dict(r); cost=Decimal(str(d.get('unit_cost') or 0)); components=0; bom_cost=Decimal('0')
-                if 'bom_lines' in tables:
+                d=dict(r)
+                item_cost=Decimal(str(d.get('unit_cost') or 0))
+                selling=Decimal(str(d.get('selling_price') or 0))
+                components=0; bom_cost=Decimal('0')
+                if bom_table and bom_line_table:
                     try:
-                        brow=db.execute("""
+                        brow=db.execute(f"""
                             SELECT COUNT(*) AS cnt,
-                                   CAST(COALESCE(SUM(CAST(bl.base_qty AS REAL) * CAST(COALESCE(i.average_cost, i.purchase_price, 0) AS REAL)),0) AS TEXT) AS cost
-                            FROM bom b
-                            JOIN bom_lines bl ON bl.bom_id = b.id
+                                   CAST(COALESCE(SUM(CAST(COALESCE(bl.base_qty, bl.quantity, 0) AS REAL) * CAST({unit_cost_expr} AS REAL)),0) AS TEXT) AS cost
+                            FROM {bom_table} b
+                            JOIN {bom_line_table} bl ON bl.bom_id = b.id
                             LEFT JOIN items i ON i.id = bl.item_id
                             WHERE b.product_id=?
                         """, (d.get('id'),)).fetchone()
-                        bd=dict(brow); components=int(bd.get('cnt') or 0); bom_cost=Decimal(str(bd.get('cost') or 0))
-                    except Exception: pass
-                rows.append({**d, 'components_count': components, 'bom_cost': bom_cost, 'final_cost': bom_cost if bom_cost > 0 else cost})
+                        if brow:
+                            bd=dict(brow); components=int(bd.get('cnt') or 0); bom_cost=Decimal(str(bd.get('cost') or 0))
+                    except Exception:
+                        pass
+                final_cost = bom_cost if bom_cost > 0 else item_cost
+                margin = selling - final_cost
+                rows.append({**d, 'components_count': components, 'bom_cost': bom_cost, 'final_cost': final_cost, 'margin': margin})
             return rows
         except Exception:
             return []
@@ -344,60 +364,87 @@ class LocalReportingGateway(ReportingGateway):
         except Exception:
             return None
 
+    def _accounting_tables(self):
+        db, tables = self._db_tables()
+        if not db:
+            return db, tables, None, None, None
+        entry_table = 'accounting_entries' if 'accounting_entries' in tables else ('journal_entries' if 'journal_entries' in tables else None)
+        if 'accounting_entry_lines' in tables:
+            line_table, join_col = 'accounting_entry_lines', 'entry_id'
+        elif 'journal_entry_lines' in tables:
+            line_table, join_col = 'journal_entry_lines', 'entry_id'
+        elif 'journal_lines' in tables:
+            line_table, join_col = 'journal_lines', 'journal_entry_id'
+        else:
+            line_table, join_col = None, None
+        return db, tables, entry_table, line_table, join_col
+
+    def _table_columns(self, db, table):
+        try:
+            return {str(r[1]).lower() for r in db.execute(f"PRAGMA table_info({table})").fetchall()}
+        except Exception:
+            return set()
+
+    def _entry_expr(self, db, entry_table, alias, candidates, fallback="''"):
+        cols = self._table_columns(db, entry_table) if db and entry_table else set()
+        present = [f"{alias}.{col}" for col in candidates if col in cols]
+        if not present:
+            return fallback
+        return present[0] if len(present) == 1 else 'COALESCE(' + ','.join(present) + ')'
+
+    def _entry_date_expr(self, table_alias='e'):
+        return f"COALESCE({table_alias}.entry_date,{table_alias}.date,{table_alias}.created_at)"
+
     def general_ledger_report(self, account_id: int | None = None,
                               start_date: str | None = None, end_date: str | None = None,
                               limit: int = 5000) -> List[Dict]:
         """General ledger by account with opening and running balance.
 
-        Reads accounting_entries/accounting_entry_lines when available and
-        remains defensive across older local schemas.  No UI-side accounting
-        formulas are used here.
+        Phase 282 supports both accounting_entry_lines.entry_id and the actual
+        journal_lines.journal_entry_id schema. It never requires accounts.user_id.
         """
         try:
             from decimal import Decimal
-            db, tables = self._db_tables(); uid = self._current_user_id()
-            if not db or not uid:
+            db, tables, entry_table, line_table, join_col = self._accounting_tables()
+            if not db or not entry_table or not line_table or 'accounts' not in tables:
                 return []
-            entry_table = 'accounting_entries' if 'accounting_entries' in tables else ('journal_entries' if 'journal_entries' in tables else None)
-            line_table = 'accounting_entry_lines' if 'accounting_entry_lines' in tables else ('journal_entry_lines' if 'journal_entry_lines' in tables else None)
-            if not entry_table or not line_table or 'accounts' not in tables:
-                return []
+            date_expr = self._entry_expr(db, entry_table, 'e', ('entry_date', 'date', 'created_at'), 'e.id')
             account_filter = " AND l.account_id = ?" if account_id else ""
             opening = {}
             if start_date:
-                params = [uid]
+                params = []
                 if account_id: params.append(account_id)
                 params.append(start_date)
                 sql = f"""
                     SELECT l.account_id, CAST(COALESCE(SUM(CAST(l.debit AS REAL)),0) AS TEXT) AS debit,
                            CAST(COALESCE(SUM(CAST(l.credit AS REAL)),0) AS TEXT) AS credit
                     FROM {line_table} l
-                    JOIN {entry_table} e ON e.id = l.entry_id
-                    WHERE e.user_id = ? {account_filter} AND date(COALESCE(e.entry_date,e.date,e.created_at)) < date(?)
+                    JOIN {entry_table} e ON e.id = l.{join_col}
+                    WHERE 1=1 {account_filter} AND date({date_expr}) < date(?)
                     GROUP BY l.account_id
                 """
                 for r in db.execute(sql, tuple(params)).fetchall():
                     d=dict(r); opening[d.get('account_id')] = Decimal(str(d.get('debit') or 0)) - Decimal(str(d.get('credit') or 0))
-            params = [uid]
+            params = []
             if account_id: params.append(account_id)
             date_filter = ""
             if start_date:
-                date_filter += " AND date(COALESCE(e.entry_date,e.date,e.created_at)) >= date(?)"; params.append(start_date)
+                date_filter += f" AND date({date_expr}) >= date(?)"; params.append(start_date)
             if end_date:
-                date_filter += " AND date(COALESCE(e.entry_date,e.date,e.created_at)) <= date(?)"; params.append(end_date)
+                date_filter += f" AND date({date_expr}) <= date(?)"; params.append(end_date)
             params.append(limit)
             sql = f"""
-                SELECT e.id AS entry_id, COALESCE(e.entry_date,e.date,e.created_at) AS entry_date,
-                       COALESCE(e.reference,e.reference_no,e.source_reference,'') AS reference,
-                       COALESCE(e.description,e.notes,'') AS description,
+                SELECT e.id AS entry_id, {date_expr} AS entry_date,
+                       {self._entry_expr(db, entry_table, 'e', ('reference', 'reference_no', 'entry_no', 'source_reference'), "''")} AS reference,
+                       {self._entry_expr(db, entry_table, 'e', ('description', 'notes'), "''")} AS description,
                        l.account_id, COALESCE(a.code,'') AS account_code, COALESCE(a.name,'') AS account_name,
                        CAST(COALESCE(l.debit,0) AS TEXT) AS debit,
                        CAST(COALESCE(l.credit,0) AS TEXT) AS credit
                 FROM {line_table} l
-                JOIN {entry_table} e ON e.id = l.entry_id
+                JOIN {entry_table} e ON e.id = l.{join_col}
                 LEFT JOIN accounts a ON a.id = l.account_id
-                WHERE e.user_id = ? {account_filter} {date_filter}
-                ORDER BY l.account_id, date(COALESCE(e.entry_date,e.date,e.created_at)), e.id, l.id
+                WHERE 1=1 {account_filter} {date_filter}
+                ORDER BY l.account_id, date({date_expr}), e.id, l.id
                 LIMIT ?
             """
             running = dict(opening)
@@ -413,38 +460,37 @@ class LocalReportingGateway(ReportingGateway):
             return []
 
     def full_trial_balance_report(self, start_date: str | None = None, end_date: str | None = None) -> Dict:
-        """Trial balance with opening, movement and closing balances."""
+        """Trial balance with movement and closing balances."""
         try:
             from decimal import Decimal
-            db, tables = self._db_tables(); uid = self._current_user_id()
-            if not db or not uid or 'accounts' not in tables:
+            db, tables, entry_table, line_table, join_col = self._accounting_tables()
+            if not db or 'accounts' not in tables:
                 return {'rows': [], 'total_debit': Decimal('0'), 'total_credit': Decimal('0'), 'balanced': True, 'difference': Decimal('0')}
-            entry_table = 'accounting_entries' if 'accounting_entries' in tables else ('journal_entries' if 'journal_entries' in tables else None)
-            line_table = 'accounting_entry_lines' if 'accounting_entry_lines' in tables else ('journal_entry_lines' if 'journal_entry_lines' in tables else None)
             if not entry_table or not line_table:
                 rows = self.trial_balance()
                 td=sum((Decimal(str(r.get('debit') or r.get('debit_total') or 0)) for r in rows), Decimal('0'))
                 tc=sum((Decimal(str(r.get('credit') or r.get('credit_total') or 0)) for r in rows), Decimal('0'))
                 return {'rows': rows, 'total_debit': td, 'total_credit': tc, 'balanced': td == tc, 'difference': td - tc}
-            params=[uid]
+            date_expr = self._entry_expr(db, entry_table, 'e', ('entry_date', 'date', 'created_at'), 'e.id')
+            params=[]
             date_filter=''
-            if start_date: date_filter += ' AND date(COALESCE(e.entry_date,e.date,e.created_at)) >= date(?)'; params.append(start_date)
-            if end_date: date_filter += ' AND date(COALESCE(e.entry_date,e.date,e.created_at)) <= date(?)'; params.append(end_date)
+            if start_date:
+                date_filter += f' AND date({date_expr}) >= date(?)'; params.append(start_date)
+            if end_date:
+                date_filter += f' AND date({date_expr}) <= date(?)'; params.append(end_date)
             sql=f"""
                 SELECT a.id, COALESCE(a.code,'') AS code, COALESCE(a.name,'') AS account_name,
                        CAST(COALESCE(SUM(CAST(l.debit AS REAL)),0) AS TEXT) AS debit,
                        CAST(COALESCE(SUM(CAST(l.credit AS REAL)),0) AS TEXT) AS credit
                 FROM accounts a
                 LEFT JOIN {line_table} l ON l.account_id = a.id
-                LEFT JOIN {entry_table} e ON e.id = l.entry_id AND e.user_id = ? {date_filter}
-                WHERE a.user_id = ? OR a.user_id IS NULL
+                LEFT JOIN {entry_table} e ON e.id = l.{join_col} {date_filter}
                 GROUP BY a.id
-                HAVING debit <> '0' OR credit <> '0'
+                HAVING CAST(debit AS REAL) <> 0 OR CAST(credit AS REAL) <> 0
                 ORDER BY a.code, a.name
             """
-            # user id is needed twice because date filter belongs to JOIN.
             rows=[]; td=Decimal('0'); tc=Decimal('0')
-            for r in db.execute(sql, tuple(params+[uid])).fetchall():
+            for r in db.execute(sql, tuple(params)).fetchall():
                 d=dict(r); debit=Decimal(str(d.get('debit') or 0)); credit=Decimal(str(d.get('credit') or 0))
                 td += debit; tc += credit
                 rows.append({**d, 'debit': debit, 'credit': credit, 'balance': debit-credit})
@@ -462,16 +508,19 @@ class LocalReportingGateway(ReportingGateway):
             if not db or not uid or 'items' not in tables:
                 return []
             rows=[]
+            balance_table = 'item_warehouse_balances' if 'item_warehouse_balances' in tables else ('warehouse_stock' if 'warehouse_stock' in tables else None)
             if kind == 'reorder':
-                if 'warehouse_stock' in tables:
-                    sql="""
+                if balance_table:
+                    qty_col = 'quantity' if balance_table == 'item_warehouse_balances' else 'quantity'
+                    sql=f"""
                         SELECT i.id, i.name, COALESCE(i.barcode,'') AS barcode, COALESCE(w.name,'') AS warehouse_name,
-                               CAST(COALESCE(ws.quantity,0) AS TEXT) AS quantity,
+                               CAST(COALESCE(ws.{qty_col},0) AS TEXT) AS quantity,
                                CAST(COALESCE(i.min_stock, i.reorder_level, 0) AS TEXT) AS min_stock
                         FROM items i
-                        LEFT JOIN warehouse_stock ws ON ws.item_id=i.id
+                        LEFT JOIN {balance_table} ws ON ws.item_id=i.id
                         LEFT JOIN warehouses w ON w.id=ws.warehouse_id
-                        WHERE i.user_id=? AND CAST(COALESCE(ws.quantity,0) AS REAL) <= CAST(COALESCE(i.min_stock, i.reorder_level, 0) AS REAL)
+                        WHERE i.user_id=? AND CAST(COALESCE(ws.{qty_col},0) AS REAL) <= CAST(COALESCE(i.min_stock, i.reorder_level, 0) AS REAL)
+                          AND CAST(COALESCE(i.min_stock, i.reorder_level, 0) AS REAL) > 0
                     """
                     params=[uid]
                     if warehouse_id: sql += ' AND ws.warehouse_id=?'; params.append(warehouse_id)
@@ -484,12 +533,11 @@ class LocalReportingGateway(ReportingGateway):
                 return rows
             # Sales aggregation from invoice_lines.
             if 'invoice_lines' in tables and 'invoices' in tables:
-                date_filter=''; params=[uid]
+                date_filter=''; params=[]
                 if start_date: date_filter+=' AND date(inv.date) >= date(?)'; params.append(start_date)
                 if end_date: date_filter+=' AND date(inv.date) <= date(?)'; params.append(end_date)
                 eff_branch = self._effective_branch_id(branch_id)
                 if eff_branch: date_filter+=' AND inv.branch_id = ?'; params.append(eff_branch)
-                order = 'qty DESC' if kind == 'top' else 'qty ASC'
                 sql=f"""
                     SELECT i.id, i.name, COALESCE(i.barcode,'') AS barcode,
                            CAST(COALESCE(SUM(CAST(il.quantity AS REAL) * CAST(COALESCE(il.conversion_factor,1) AS REAL)),0) AS TEXT) AS qty,
@@ -502,8 +550,7 @@ class LocalReportingGateway(ReportingGateway):
                     WHERE i.user_id=?
                     GROUP BY i.id
                 """
-                # uid must be last because date_filter params belong to join before WHERE.
-                exec_params = params[1:] + [uid]
+                exec_params = params + [uid]
                 if kind in ('top','low'):
                     sql += f" ORDER BY CAST(qty AS REAL) {'DESC' if kind=='top' else 'ASC'}, i.name LIMIT ?"
                     exec_params.append(limit)
@@ -517,7 +564,8 @@ class LocalReportingGateway(ReportingGateway):
                     if d.get('last_sale_date'):
                         try:
                             days_without=(date.today()-date.fromisoformat(str(d.get('last_sale_date'))[:10])).days
-                        except Exception: days_without=None
+                        except Exception:
+                            days_without=None
                     rows.append({**d, 'qty': qty, 'sales_value': sales, 'cost_value': cost, 'profit': profit, 'days_without_movement': days_without})
             return rows
         except Exception:

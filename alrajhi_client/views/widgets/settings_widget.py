@@ -396,6 +396,7 @@ class SettingsWidget(QWidget):
         self._make_bool_row(form, 'contract_inventory_enabled', 'inventory/enabled', 'settings_module_inventory', True)
         self._make_bool_row(form, 'contract_finance_enabled', 'finance/enabled', 'settings_module_finance', True)
         self._make_bool_row(form, 'contract_reports_enabled', 'reports/enabled', 'settings_module_reports', True)
+        self._make_bool_row(form, 'contract_pos_enabled', 'pos/enabled', 'settings_module_pos', True)
         self._make_bool_row(form, 'contract_users_enabled', 'users/enabled', 'settings_module_users', True)
         self._make_bool_row(form, 'contract_parties_enabled', 'parties/enabled', 'settings_module_parties', True)
         self._make_bool_row(form, 'contract_categories_enabled', 'categories/enabled', 'settings_module_categories', True)
@@ -458,6 +459,7 @@ class SettingsWidget(QWidget):
             'inventory/enabled': self.contract_inventory_enabled.isChecked(),
             'finance/enabled': self.contract_finance_enabled.isChecked(),
             'reports/enabled': self.contract_reports_enabled.isChecked(),
+            'pos/enabled': self.contract_pos_enabled.isChecked(),
             'users/enabled': self.contract_users_enabled.isChecked(),
             'parties/enabled': self.contract_parties_enabled.isChecked(),
             'categories/enabled': self.contract_categories_enabled.isChecked(),
@@ -488,6 +490,17 @@ class SettingsWidget(QWidget):
         settings_service.set('barcode/scanner/min_length', str(self.contract_barcode_min_length.value()))
         settings_service.set('materials/barcode/default_symbology', self.contract_barcode_symbology.currentText())
         settings_service.clear_cache()
+        try:
+            main_window = self.window()
+            if hasattr(main_window, 'setup_menus'):
+                main_window.setup_menus()
+            if hasattr(main_window, '_current_page_id') and hasattr(main_window, 'switch_page'):
+                from workspace.navigation.module_visibility_policy import page_enabled
+                current = main_window._current_page_id()
+                if current and not page_enabled(current):
+                    main_window.switch_page('dashboard')
+        except Exception:
+            pass
         audit_service.log('UPDATE', 'SETTINGS_CONTRACTS', None, details='تعديل إعدادات العقود الموحدة')
         show_toast(translate('settings_contracts_saved'), 'success', self)
 

@@ -111,6 +111,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (279, "phase32_offline_queue_guard_hotfix"),
         (280, "release_packaging_guard_cleanup_hotfix"),
         (281, "release_build_gitignore_tracking_hotfix"),
+        (282, "report_calculation_module_visibility_dashboard_cleanup"),
     ]
 )
 

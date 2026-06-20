@@ -309,6 +309,7 @@ class SettingsService:
         if payment not in ('cash', 'card', 'credit', 'bank_transfer'):
             payment = 'cash'
         return {
+            'enabled': self.get_bool('pos/enabled', True),
             'use_shifts': self.pos_shifts_enabled(),
             'ui_language': language.get('ui_language', self.get_language()),
             'print_language': language.get('print_language', self.print_language()),

@@ -3,12 +3,37 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from PyQt5.QtCore import Qt
 from i18n import translate as tr
 from core.services.reporting_service import reporting_service
 from currency import currency
 
 
 class ReportsPhase36Mixin:
+    def _phase282_money(self, value, display_curr):
+        if hasattr(self, '_money'):
+            return self._money(value, display_curr)
+        amount = Decimal(str(value or 0))
+        return currency.format_amount(currency.convert(amount, currency.storage_currency(), display_curr))
+
+    def _phase282_qty(self, value, decimals=4):
+        if hasattr(self, '_qty'):
+            return self._qty(value or 0, decimals=decimals)
+        return f"{Decimal(str(value or 0)):.{decimals}f}".rstrip('0').rstrip('.') or '0'
+
+    def _phase282_decimal(self, value):
+        try:
+            return Decimal(str(value if value is not None else 0))
+        except Exception:
+            return Decimal('0')
+
+    def _phase282_first(self, row, *keys, default='0'):
+        for key in keys:
+            value = row.get(key) if isinstance(row, dict) else None
+            if value not in (None, ''):
+                return value
+        return default
+
     def _refresh_phase36_reports(self, start, end, display_curr):
         """Refresh Phase 36 extended reports.
 
@@ -66,6 +91,23 @@ class ReportsPhase36Mixin:
                         'credit_raw': credit_display,
                         'balance_raw': balance_display,
                     })
+            if not customer_id and not rows:
+                for b in reporting_service.customer_balances():
+                    balance = self._phase282_decimal(b.get('balance') or b.get('current_balance') or 0)
+                    if balance == 0:
+                        continue
+                    rows.append({
+                        'date': '',
+                        'type': tr('customer_label'),
+                        'ref': b.get('id') or '',
+                        'desc': b.get('name') or b.get('customer_name') or '',
+                        'debit': self._phase282_money(balance if balance > 0 else 0, display_curr),
+                        'credit': self._phase282_money(abs(balance) if balance < 0 else 0, display_curr),
+                        'balance': self._phase282_money(balance, display_curr),
+                        'debit_raw': balance if balance > 0 else Decimal('0'),
+                        'credit_raw': abs(balance) if balance < 0 else Decimal('0'),
+                        'balance_raw': balance,
+                    })
             self._set_table(self.customer_statement_table, rows, [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
             if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.customer_statement_tab:
                 self._set_summary(self._statement_summary(rows) if rows else tr('choose_customer'))
@@ -96,6 +138,23 @@ class ReportsPhase36Mixin:
                         'debit_raw': debit_display,
                         'credit_raw': credit_display,
                         'balance_raw': balance_display,
+                    })
+            if not supplier_id and not rows:
+                for b in reporting_service.supplier_balances():
+                    balance = self._phase282_decimal(b.get('balance') or b.get('current_balance') or 0)
+                    if balance == 0:
+                        continue
+                    rows.append({
+                        'date': '',
+                        'type': tr('supplier_label'),
+                        'ref': b.get('id') or '',
+                        'desc': b.get('name') or b.get('supplier_name') or '',
+                        'debit': self._phase282_money(abs(balance) if balance < 0 else 0, display_curr),
+                        'credit': self._phase282_money(balance if balance > 0 else 0, display_curr),
+                        'balance': self._phase282_money(balance, display_curr),
+                        'debit_raw': abs(balance) if balance < 0 else Decimal('0'),
+                        'credit_raw': balance if balance > 0 else Decimal('0'),
+                        'balance_raw': balance,
                     })
             self._set_table(self.supplier_statement_table, rows, [tr('date'), tr('type'), tr('reference'), tr('description'), tr('debit'), tr('credit'), tr('balance')], ['date','type','ref','desc','debit','credit','balance'])
             if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.supplier_statement_tab:
@@ -164,14 +223,14 @@ class ReportsPhase36Mixin:
                 rec_rows = rec.get('item_differences') or rec.get('warehouse_differences') or []
             rows = []
             for r in rec_rows:
-                diff = Decimal(str(r.get('difference') or r.get('delta') or 0))
+                diff = self._phase282_decimal(self._phase282_first(r, 'difference', 'delta', 'difference_quantity', 'qty_difference'))
                 rows.append({
                     'scope': r.get('scope') or r.get('level') or '',
                     'item': r.get('item_name') or r.get('item_id') or '',
                     'warehouse': r.get('warehouse_name') or r.get('warehouse_id') or '',
-                    'operational': r.get('operational_balance') or r.get('operational_qty') or r.get('quantity') or '0',
-                    'ledger': r.get('ledger_balance') or r.get('ledger_qty') or '0',
-                    'difference': str(diff),
+                    'operational': self._phase282_qty(self._phase282_first(r, 'operational_balance', 'operational_qty', 'operational_quantity', 'quantity')),
+                    'ledger': self._phase282_qty(self._phase282_first(r, 'ledger_balance', 'ledger_qty', 'ledger_quantity')),
+                    'difference': self._phase282_qty(diff),
                 })
             self._set_table(self.ledger_reconciliation_table, rows, ['النطاق', 'المادة', 'المستودع', 'التشغيلي', 'Ledger', 'الفرق'], ['scope','item','warehouse','operational','ledger','difference'])
 
@@ -182,10 +241,10 @@ class ReportsPhase36Mixin:
                 rows.append({
                     'item': r.get('item_name') or r.get('item_id') or '',
                     'warehouse': r.get('warehouse_name') or r.get('warehouse_id') or '',
-                    'operational': r.get('operational_balance') or r.get('operational_qty') or '0',
-                    'ledger': r.get('ledger_balance') or r.get('ledger_qty') or '0',
-                    'difference': r.get('difference') or r.get('delta') or '0',
-                    'status': r.get('status') or ('مطابق' if str(r.get('difference') or '0') == '0' else 'فرق'),
+                    'operational': self._phase282_qty(self._phase282_first(r, 'operational_balance', 'operational_qty', 'operational_quantity')),
+                    'ledger': self._phase282_qty(self._phase282_first(r, 'ledger_balance', 'ledger_qty', 'ledger_quantity')),
+                    'difference': self._phase282_qty(self._phase282_first(r, 'difference', 'delta', 'difference_quantity', 'qty_difference')),
+                    'status': r.get('status') or ('مطابق' if self._phase282_decimal(self._phase282_first(r, 'difference', 'delta', 'difference_quantity', 'qty_difference')) == 0 else 'فرق'),
                 })
             self._set_table(self.ledger_dual_read_table, rows, ['المادة', 'المستودع', 'التشغيلي', 'Ledger', 'الفرق', 'الحالة'], ['item','warehouse','operational','ledger','difference','status'])
 
@@ -270,6 +329,66 @@ class ReportsPhase36Mixin:
                 self._set_summary(f"{tr('rows_count')}: {len(rows)} | {tr('sales_value')}: {currency.format_amount(currency.convert(total_sales, currency.storage_currency(), display_curr))} | {tr('cost')}: {currency.format_amount(currency.convert(total_cost, currency.storage_currency(), display_curr))} | {tr('profit')}: {currency.format_amount(currency.convert(total_profit, currency.storage_currency(), display_curr))}")
         except Exception:
             self._set_table(self.invoice_profit_table, [], [tr('date'), tr('reference'), tr('customer_label'), tr('sales_value'), tr('cost'), tr('profit'), tr('profit_margin')], ['date','reference','customer','sales','cost','profit','margin'])
+
+        # Net profit report
+        try:
+            data = reporting_service.net_profit_report(start_date=start, end_date=end) or {}
+            metrics = [
+                ('sales', tr('sales_value')),
+                ('sales_returns', tr('sales_returns')),
+                ('net_sales', tr('net_sales')),
+                ('cogs', tr('cost')),
+                ('gross_profit', tr('gross_profit')),
+                ('expenses', tr('expenses')),
+                ('net_profit', tr('net_profit')),
+            ]
+            rows = [{'metric': label, 'amount': self._phase282_money(data.get(key) or 0, display_curr)} for key, label in metrics]
+            self._set_table(self.net_profit_table, rows, [tr('description'), tr('amount')], ['metric', 'amount'])
+            if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.net_profit_tab:
+                self._set_summary(f"{tr('net_profit')}: {self._phase282_money(data.get('net_profit') or 0, display_curr)}")
+        except Exception:
+            self._set_table(self.net_profit_table, [], [tr('description'), tr('amount')], ['metric', 'amount'])
+
+        # Manufacturing orders report
+        try:
+            rows = []
+            total_cost = Decimal('0')
+            for r in reporting_service.manufacturing_orders_report(start_date=start, end_date=end):
+                cost = self._phase282_decimal(r.get('actual_cost') or r.get('total_cost') or r.get('cost') or 0)
+                total_cost += cost
+                rows.append({
+                    'id': r.get('id') or r.get('order_id') or '',
+                    'date': r.get('date') or r.get('created_at') or r.get('order_date') or '',
+                    'product': r.get('product_name') or r.get('item_name') or r.get('product') or '',
+                    'quantity': self._phase282_qty(r.get('quantity') or r.get('planned_qty') or r.get('qty') or 0),
+                    'cost': self._phase282_money(cost, display_curr),
+                    'status': self._report_source_label(r.get('status') or ''),
+                })
+            self._set_table(self.manufacturing_orders_table, rows, [tr('number'), tr('date'), tr('print_item'), tr('quantity'), tr('cost'), tr('status')], ['id', 'date', 'product', 'quantity', 'cost', 'status'])
+            if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.manufacturing_orders_tab:
+                self._set_summary(f"{tr('rows_count')}: {len(rows)} | {tr('cost')}: {self._phase282_money(total_cost, display_curr)}")
+        except Exception:
+            self._set_table(self.manufacturing_orders_table, [], [tr('number'), tr('date'), tr('print_item'), tr('quantity'), tr('cost'), tr('status')], ['id','date','product','quantity','cost','status'])
+
+        # Product cost report
+        try:
+            rows = []
+            for r in reporting_service.product_cost_report(item_id=item_id):
+                rows.append({
+                    'item': r.get('name') or r.get('item_name') or '',
+                    'barcode': r.get('barcode') or '',
+                    'unit_cost': self._phase282_money(r.get('unit_cost') or 0, display_curr),
+                    'components': str(r.get('components_count') or r.get('components') or 0),
+                    'bom_cost': self._phase282_money(r.get('bom_cost') or 0, display_curr),
+                    'final_cost': self._phase282_money(r.get('final_cost') or r.get('cost') or 0, display_curr),
+                    'selling': self._phase282_money(r.get('selling_price') or 0, display_curr),
+                    'margin': self._phase282_money(r.get('margin') or 0, display_curr),
+                })
+            self._set_table(self.product_cost_table, rows, [tr('print_item'), tr('barcode'), tr('unit_cost'), tr('components'), tr('bom_cost'), tr('cost'), tr('selling_price'), tr('profit')], ['item','barcode','unit_cost','components','bom_cost','final_cost','selling','margin'])
+            if (self._active_report_tab() if hasattr(self, '_active_report_tab') else self.tabs.currentWidget()) is self.product_cost_tab:
+                self._set_summary(f"{tr('rows_count')}: {len(rows)}")
+        except Exception:
+            self._set_table(self.product_cost_table, [], [tr('print_item'), tr('barcode'), tr('unit_cost'), tr('components'), tr('bom_cost'), tr('cost'), tr('selling_price'), tr('profit')], ['item','barcode','unit_cost','components','bom_cost','final_cost','selling','margin'])
 
         # Offline queue diagnostics
         try:
