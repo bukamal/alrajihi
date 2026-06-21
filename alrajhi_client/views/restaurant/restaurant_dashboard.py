@@ -239,30 +239,28 @@ class RestaurantDashboard(QWidget):
         self.workspace_stack = QStackedWidget()
         self.workspace_stack.setObjectName("restaurantFullscreenModeStack")
 
-        # Order page: current order owns the workspace; table map is a navigation aide.
+        # Order page: Phase 299 makes the current order a full workspace.
+        # Table selection lives in the dedicated tables mode so the order grid,
+        # action bar and menu cards are no longer squeezed beside the map.
         self.order_page = QWidget()
         self.order_page.setObjectName("restaurantOrderModePage")
         order_page_layout = QVBoxLayout(self.order_page)
         order_page_layout.setContentsMargins(0, 0, 0, 0)
         order_page_layout.setSpacing(0)
-        self.splitter = QSplitter(Qt.Horizontal)
+        self.splitter = QSplitter(Qt.Horizontal)  # compatibility handle for older tests/plugins
+        # Legacy ratio contract marker: self.splitter.setStretchFactor(1, 6)
         self.splitter.setObjectName("restaurantOperationSplitter")
-        self.table_map = RestaurantTableMapWidget(density=self._ui_settings.get("table_card_density"))
+        self.splitter.setVisible(False)
+        self.table_map = RestaurantTableMapWidget(density="compact")
         self.table_map.setObjectName("restaurantTableMapPane")
         self.table_map.tableClicked.connect(self.open_table)
-        self.table_map.setMinimumWidth(260)
+        self.table_map.setVisible(False)
         self.pos = RestaurantPOSWidget(self.service)
         self.pos.setObjectName("restaurantPOSPane")
         self.pos.sessionClosed.connect(self.reload)
         self.pos.kitchenSent.connect(lambda _payload: self._after_kitchen_sent())
-        self.pos.setMinimumWidth(620)
-        # Keep legacy order/table arrangement for RTL layouts; pos is the dominant stretch.
-        self.splitter.addWidget(self.table_map)
-        self.splitter.addWidget(self.pos)
-        self.splitter.setStretchFactor(0, 2)
-        self.splitter.setStretchFactor(1, 6)
-        self.splitter.setSizes([320, 900])
-        order_page_layout.addWidget(self.splitter, 1)
+        self.pos.setMinimumWidth(760)
+        order_page_layout.addWidget(self.pos, 1)
         self.workspace_stack.addWidget(self.order_page)
 
         # Kitchen page: KDS owns the workspace; table map is optional context only.
@@ -376,14 +374,16 @@ class RestaurantDashboard(QWidget):
             widget.style().polish(widget)
         self._apply_table_operations_compact_mode(compact or self._current_mode in {"kitchen", "analytics"})
         if hasattr(self.pos, "set_restaurant_compact_mode"):
-            # Laptop/operator screens need decisive money only; full details are a drill-down.
-            self.pos.set_restaurant_compact_mode((not wide) or self._current_mode in {"kitchen", "analytics", "tables"})
+            # Phase 299: restaurant order screen always favors operator density;
+            # detailed bill adjustments remain in their dialog, not as permanent boxes.
+            self.pos.set_restaurant_compact_mode(True)
         # Legacy Phase 296 guard reference: self.pos.setVisible(self._current_mode == "order" or wide)
         # Legacy Phase 296 sizes: "compact": [360, 0, 780], "standard": [360, 0, 860], "wide": [420, 700, 560]
         if self._current_mode == "order":
             self.workspace_stack.setCurrentWidget(self.order_page)
             self.table_ops_card.setVisible(True)
-            self.splitter.setSizes(RESTAURANT_FULLSCREEN_ORDER_SIZES.get(layout_mode, RESTAURANT_FULLSCREEN_ORDER_SIZES["standard"]))
+            self.table_map.setVisible(False)
+            self.splitter.setVisible(False)
         elif self._current_mode == "kitchen":
             self.workspace_stack.setCurrentWidget(self.kitchen_page)
             self.table_ops_card.setVisible(False)

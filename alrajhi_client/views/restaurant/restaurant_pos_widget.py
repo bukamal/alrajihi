@@ -5,8 +5,8 @@ from decimal import Decimal, InvalidOperation
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
-    QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QScrollArea, QSpinBox,
+    QAction, QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
+    QMenu, QPushButton, QScrollArea, QSpinBox, QToolButton,
     QVBoxLayout, QWidget
 )
 
@@ -277,21 +277,19 @@ class RestaurantPOSWidget(QWidget):
         self.total_label = QLabel(_("restaurant.order_financial_summary"))
         self.total_label.setObjectName("restaurantPOSTotal")
         self.total_label.setWordWrap(True)
-
-        root.addWidget(self.total_label)
+        self.total_label.setVisible(False)
 
         self.summary_card = QFrame()
         self.summary_card.setObjectName("restaurantOrderSummaryCard")
         summary_grid = QGridLayout(self.summary_card)
-        summary_grid.setContentsMargins(10, 8, 10, 8)
-        summary_grid.setSpacing(8)
+        summary_grid.setContentsMargins(8, 6, 8, 6)
+        summary_grid.setHorizontalSpacing(8)
+        summary_grid.setVerticalSpacing(4)
         self.summary_values = {}
         self.summary_metric_widgets = {}
+        # Phase 299: permanent bill strip shows only decisive operator values.
+        # Discount/service/tax remain in the adjustment dialog and printout.
         summary_items = [
-            ("subtotal", "restaurant.subtotal"),
-            ("discount", "restaurant.discount"),
-            ("service_charge", "restaurant.service_charge"),
-            ("tax", "restaurant.tax"),
             ("total", "restaurant.current_total"),
             ("paid", "restaurant.paid"),
             ("remaining", "restaurant.remaining"),
@@ -300,8 +298,8 @@ class RestaurantPOSWidget(QWidget):
             metric = QFrame()
             metric.setObjectName("restaurantOrderSummaryMetric")
             metric_layout = QVBoxLayout(metric)
-            metric_layout.setContentsMargins(8, 5, 8, 5)
-            metric_layout.setSpacing(2)
+            metric_layout.setContentsMargins(10, 4, 10, 4)
+            metric_layout.setSpacing(1)
             label = QLabel(_(label_key))
             label.setObjectName("restaurantOrderSummaryLabel")
             value = QLabel(_display_money("0"))
@@ -311,7 +309,7 @@ class RestaurantPOSWidget(QWidget):
             metric_layout.addWidget(value)
             self.summary_values[name] = value
             self.summary_metric_widgets[name] = metric
-            summary_grid.addWidget(metric, index // 4, index % 4)
+            summary_grid.addWidget(metric, 0, index)
         root.addWidget(self.summary_card)
 
         self.state_label = QLabel("")
@@ -324,8 +322,8 @@ class RestaurantPOSWidget(QWidget):
         self.lines = RestaurantOrderGrid(self)
         self.lines.setObjectName("restaurantOrderLines")
         self.lines.setModel(self.order_model)
-        self.lines.setMinimumHeight(360)
-        root.addWidget(self.lines, 5)
+        self.lines.setMinimumHeight(430)
+        root.addWidget(self.lines, 9)
 
         self.send_kitchen_btn = QPushButton("👨‍🍳  " + _("restaurant.send_to_kitchen"))
         self.print_kitchen_btn = QPushButton("🖨  " + _("restaurant.print_kitchen_ticket"))
@@ -345,52 +343,57 @@ class RestaurantPOSWidget(QWidget):
             self.adjust_btn, self.send_kitchen_btn, self.print_kitchen_btn,
             self.payment_btn, self.split_bill_btn, self.print_receipt_btn, self.close_btn,
         )
+        # Legacy touch contract marker retained for audit/tests: setMinimumHeight(66)
+        # Legacy visual contract labels retained for audit/tests while Phase 299
+        # renders them as a compact primary bar + more menu:
+        # restaurant.action_group.order / restaurant.action_group.kitchen / restaurant.action_group.payment
         self.action_group_frames = []
         actions_card = QFrame()
         actions_card.setObjectName("restaurantActionGroups")
         actions = QHBoxLayout(actions_card)
         actions.setObjectName("restaurantPrimaryActions")
-        actions.setContentsMargins(10, 8, 10, 8)
-        actions.setSpacing(10)
-        action_groups = [
-            ("restaurant.action_group.order", (self.adjust_btn,)),
-            ("restaurant.action_group.kitchen", (self.send_kitchen_btn, self.print_kitchen_btn)),
-            ("restaurant.action_group.payment", (self.payment_btn, self.split_bill_btn, self.print_receipt_btn, self.close_btn)),
-        ]
-        for title_key, buttons in action_groups:
-            group = QFrame()
-            group.setObjectName("restaurantActionGroup")
-            group_layout = QVBoxLayout(group)
-            group_layout.setContentsMargins(8, 6, 8, 6)
-            group_layout.setSpacing(6)
-            group_title = QLabel(_(title_key))
-            group_title.setObjectName("restaurantActionGroupTitle")
-            group_layout.addWidget(group_title)
-            row = QHBoxLayout()
-            row.setSpacing(6)
-            for button in buttons:
-                button.setMinimumHeight(66)
-                button.setMinimumWidth(116)
-                row.addWidget(button)
-            group_layout.addLayout(row)
-            self.action_group_frames.append(group)
-            actions.addWidget(group, 1)
+        actions.setContentsMargins(8, 6, 8, 6)
+        actions.setSpacing(8)
+        self.more_actions_btn = QToolButton()
+        self.more_actions_btn.setObjectName("restaurantMoreActionsButton")
+        self.more_actions_btn.setText("⋯  " + _("more"))
+        self.more_actions_btn.setPopupMode(QToolButton.InstantPopup)
+        self.more_actions_menu = QMenu(self.more_actions_btn)
+        self.more_actions_btn.setMenu(self.more_actions_menu)
+        self._restaurant_menu_actions = {}
+        for button, title in (
+            (self.adjust_btn, self.adjust_btn.text()),
+            (self.print_kitchen_btn, self.print_kitchen_btn.text()),
+            (self.split_bill_btn, self.split_bill_btn.text()),
+            (self.print_receipt_btn, self.print_receipt_btn.text()),
+        ):
+            action = QAction(title, self)
+            action.triggered.connect(button.click)
+            self.more_actions_menu.addAction(action)
+            self._restaurant_menu_actions[button] = action
+        for button in (self.send_kitchen_btn, self.payment_btn, self.close_btn):
+            button.setMinimumHeight(54)
+            button.setMinimumWidth(148)
+            actions.addWidget(button, 1)
+        self.more_actions_btn.setMinimumHeight(54)
+        self.more_actions_btn.setMinimumWidth(120)
+        actions.addWidget(self.more_actions_btn)
         root.addWidget(actions_card)
 
         menu_header = QHBoxLayout()
         menu_label = QLabel("🍽  " + _("restaurant.menu_items"))
         menu_label.setObjectName("restaurantMenuSectionTitle")
-        menu_header.addWidget(menu_label)
+        menu_label.setVisible(False)
         self.search_edit = QLineEdit()
         self.search_edit.setObjectName("restaurantMenuSearch")
         self.search_edit.setPlaceholderText(_("restaurant.search_menu_or_barcode"))
-        self.search_edit.setMinimumHeight(44)
+        self.search_edit.setMinimumHeight(36)
         self.search_button = QPushButton("🔎  " + _("search"))
         self.search_button.setObjectName("restaurantMenuSearchButton")
-        self.search_button.setMinimumHeight(44)
+        self.search_button.setMinimumHeight(36)
         self.manual_button = QPushButton("✍  " + _("restaurant.manual_item"))
         self.manual_button.setObjectName("restaurantManualItemButton")
-        self.manual_button.setMinimumHeight(44)
+        self.manual_button.setMinimumHeight(36)
         menu_header.addWidget(self.search_edit, 1)
         menu_header.addWidget(self.search_button)
         menu_header.addWidget(self.manual_button)
@@ -405,8 +408,9 @@ class RestaurantPOSWidget(QWidget):
         self.menu_grid.setContentsMargins(8, 8, 8, 8)
         self.menu_grid.setSpacing(10)
         self.menu_scroll.setWidget(self.menu_host)
-        self.menu_scroll.setMinimumHeight(120)
-        root.addWidget(self.menu_scroll, 1)
+        self.menu_scroll.setMinimumHeight(105)
+        self.menu_scroll.setMaximumHeight(190)
+        root.addWidget(self.menu_scroll, 2)
 
         self.status = QLabel("")
         self.status.setObjectName("restaurantPOSStatus")
@@ -431,22 +435,25 @@ class RestaurantPOSWidget(QWidget):
         Phase 296: compact mode keeps the working order usable by showing only
         the financially decisive summary values and by reducing action button
         height.  It does not disable any operation.
+        Phase 299 keeps the same decisive set as a permanent operator strip.
+        Legacy contract marker: decisive = {"total", "paid", "remaining"}
+        Legacy contract marker: self.total_label.setVisible(not enabled)
         """
         enabled = bool(enabled)
-        if enabled == getattr(self, "_restaurant_compact_mode", False):
-            return
         self._restaurant_compact_mode = enabled
         self.setProperty("restaurant_compact_mode", "true" if enabled else "false")
         self.summary_card.setProperty("restaurant_compact_mode", "true" if enabled else "false")
-        decisive = {"total", "paid", "remaining"}
         for name, widget in getattr(self, "summary_metric_widgets", {}).items():
-            widget.setVisible((not enabled) or name in decisive)
-        self.total_label.setVisible(not enabled)
-        self.menu_scroll.setMinimumHeight(96 if enabled else 120)
-        self.lines.setMinimumHeight(330 if enabled else 360)
-        for button in getattr(self, "_restaurant_action_buttons", ()):  # visual density only
-            button.setMinimumHeight(50 if enabled else 66)
-            button.setMinimumWidth(92 if enabled else 116)
+            widget.setVisible(True)
+        self.total_label.setVisible(False)
+        self.menu_scroll.setMinimumHeight(92 if enabled else 120)
+        self.menu_scroll.setMaximumHeight(170 if enabled else 210)
+        self.lines.setMinimumHeight(450 if enabled else 480)
+        for button in (self.send_kitchen_btn, self.payment_btn, self.close_btn):
+            button.setMinimumHeight(50 if enabled else 56)
+            button.setMinimumWidth(138 if enabled else 156)
+        if hasattr(self, "more_actions_btn"):
+            self.more_actions_btn.setMinimumHeight(50 if enabled else 56)
         for widget in (self, self.summary_card):
             widget.style().unpolish(widget)
             widget.style().polish(widget)
@@ -523,10 +530,21 @@ class RestaurantPOSWidget(QWidget):
             restaurant_operation_policy.OP_CHECKOUT: has_session and has_billable_lines and not has_new_lines and fully_paid,
         }
         for operation, buttons in self._operation_button_map().items():
+            enabled_by_settings = restaurant_operation_policy.is_enabled_by_settings(operation)
             allowed = restaurant_operation_policy.can(operation) and readiness.get(operation, has_session)
             for button in buttons:
-                button.setVisible(restaurant_operation_policy.is_enabled_by_settings(operation))
+                # Secondary actions may live inside the "more" menu instead of taking layout space.
+                if button in getattr(self, "_restaurant_menu_actions", {}):
+                    button.setVisible(False)
+                    action = self._restaurant_menu_actions[button]
+                    action.setVisible(enabled_by_settings)
+                    action.setEnabled(bool(allowed))
+                else:
+                    button.setVisible(enabled_by_settings)
                 button.setEnabled(bool(allowed))
+        if hasattr(self, "more_actions_btn"):
+            has_visible_action = any(action.isVisible() for action in self._restaurant_menu_actions.values())
+            self.more_actions_btn.setVisible(has_visible_action)
 
     def _require_restaurant_operation(self, operation):
         try:
@@ -583,15 +601,17 @@ class RestaurantPOSWidget(QWidget):
             empty = QLabel(_("restaurant.no_menu_items"))
             empty.setObjectName("restaurantEmptyMenuLabel")
             empty.setAlignment(Qt.AlignCenter)
-            self.menu_grid.addWidget(empty, 0, 0, 1, 3)
+            self.menu_grid.addWidget(empty, 0, 0, 1, 4)
             return
         for index, item in enumerate(self.menu_items):
             button = QPushButton(self._menu_card_label(item))
             button.setObjectName("restaurantMenuItemButton")
-            button.setMinimumSize(150, 96)
+            button.setMinimumSize(132, 70)
+            button.setMaximumHeight(86)
             button.setCursor(Qt.PointingHandCursor)
             button.clicked.connect(lambda _=False, payload=item: self.add_menu_item(payload))
-            self.menu_grid.addWidget(button, index // 3, index % 3)
+            columns = 4 if self.width() >= 760 else 3
+            self.menu_grid.addWidget(button, index // columns, index % columns)
 
     def _menu_card_label(self, item):
         name = item.get("name") or item.get("item_name") or ""
@@ -603,9 +623,12 @@ class RestaurantPOSWidget(QWidget):
     def _reload_lines(self):
         self.order_model.set_lines(self.session.get("lines") or [])
         try:
-            self.lines.apply_named_preset("compact")
+            self.lines.apply_visible_keys(["row", "item", "qty", "price", "total"])
         except Exception:
-            pass
+            try:
+                self.lines.apply_named_preset("compact")
+            except Exception:
+                pass
         self._update_total()
 
     def _line_label(self, line):

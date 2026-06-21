@@ -91,6 +91,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (296, "RESTAURANT_RESPONSIVE_WORKSPACE_STABILIZATION"),
         (297, "RESTAURANT_QSS_RUNTIME_HOTFIX"),
         (298, "RESTAURANT_FULLSCREEN_OPERATIONAL_SHELL"),
+        (299, "RESTAURANT_ORDER_WORKSPACE_DECLUTTER"),
     ]
 )
 
@@ -147,6 +148,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (296, "restaurant_responsive_workspace_stabilization"),
         (297, "restaurant_qss_runtime_hotfix"),
         (298, "restaurant_fullscreen_operational_shell"),
+        (299, "restaurant_order_workspace_declutter"),
     ]
 )
 
@@ -184,6 +186,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("restaurant_responsive_workspace", "restaurant", "Restaurant responsive workspace stabilization", "tests/test_phase296_restaurant_responsive_workspace_stabilization.py", phase=296),
     ReleaseGateCheck("restaurant_qss_runtime_hotfix", "restaurant", "Restaurant QSS runtime hotfix", "tests/test_phase297_restaurant_qss_runtime_hotfix.py", phase=297),
     ReleaseGateCheck("restaurant_fullscreen_operational_shell", "restaurant", "Restaurant fullscreen operational shell", "tests/test_phase298_restaurant_fullscreen_operational_shell.py", phase=298),
+    ReleaseGateCheck("restaurant_order_workspace_declutter", "restaurant", "Restaurant order workspace declutter", "tests/test_phase299_restaurant_order_workspace_declutter.py", phase=299),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 
