@@ -114,7 +114,7 @@ class QuickActionButton(QPushButton):
                 padding: 10px 14px;
                 font-size: 13px;
                 font-weight: 900;
-                text-align: right;
+                text-align: center;
             }}
             QPushButton:hover {{ background: {_dc('primary_hover', '#1E5AA8')}; }}
         ''')

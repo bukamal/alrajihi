@@ -36,4 +36,5 @@ restaurant_order_workspace_declutter,restaurant,Restaurant order workspace declu
 restaurant_order_search_header_collapsible_menu,restaurant,Restaurant order search header and collapsible menu,300,tests/test_phase300_restaurant_order_search_header_collapsible_menu.py,True,,True,True
 dashboard_professional_exchange_sync,dashboard,Dashboard professional layout and exchange-rate sync,301,tests/test_phase301_dashboard_professional_exchange_sync.py,True,,True,True
 dashboard_pixel_style_visual_matching,dashboard,Dashboard pixel-style visual matching,302,tests/test_phase302_dashboard_pixel_style_visual_matching.py,True,,True,True
+dashboard_rtl_centering_alignment,dashboard,Dashboard RTL structure and centered identity alignment,303,tests/test_phase303_dashboard_rtl_centering_alignment.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

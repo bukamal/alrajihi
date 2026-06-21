@@ -95,6 +95,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (300, "RESTAURANT_ORDER_SEARCH_HEADER_COLLAPSIBLE_MENU"),
         (301, "DASHBOARD_PROFESSIONAL_EXCHANGE_SYNC"),
         (302, "DASHBOARD_PIXEL_STYLE_VISUAL_MATCHING"),
+        (303, "DASHBOARD_RTL_CENTERING_ALIGNMENT"),
     ]
 )
 
@@ -155,6 +156,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (300, "restaurant_order_search_header_collapsible_menu"),
         (301, "dashboard_professional_exchange_sync"),
         (302, "dashboard_pixel_style_visual_matching"),
+        (303, "dashboard_rtl_centering_alignment"),
     ]
 )
 
@@ -196,6 +198,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("restaurant_order_search_header_collapsible_menu", "restaurant", "Restaurant order search header and collapsible menu", "tests/test_phase300_restaurant_order_search_header_collapsible_menu.py", phase=300),
     ReleaseGateCheck("dashboard_professional_exchange_sync", "dashboard", "Dashboard professional layout and exchange-rate sync", "tests/test_phase301_dashboard_professional_exchange_sync.py", phase=301),
     ReleaseGateCheck("dashboard_pixel_style_visual_matching", "dashboard", "Dashboard pixel-style visual matching", "tests/test_phase302_dashboard_pixel_style_visual_matching.py", phase=302),
+    ReleaseGateCheck("dashboard_rtl_centering_alignment", "dashboard", "Dashboard RTL structure and centered identity alignment", "tests/test_phase303_dashboard_rtl_centering_alignment.py", phase=303),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

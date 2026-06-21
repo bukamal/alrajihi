@@ -8,7 +8,7 @@ from i18n import translate, qt_layout_direction
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QPushButton,
-    QComboBox, QHeaderView, QScrollArea, QSizePolicy, QLineEdit
+    QComboBox, QHeaderView, QScrollArea, QSizePolicy, QLineEdit, QBoxLayout
 )
 
 import qtawesome as qta
@@ -188,6 +188,7 @@ class DashboardWidget(QWidget):
         # visual proposal. Keep the three operational cards only, but make the
         # cashbox, company identity, and daily shortcuts visually balanced.
         row = QHBoxLayout()
+        row.setDirection(QBoxLayout.RightToLeft)
         row.setContentsMargins(0, 0, 0, 0)
         row.setSpacing(18)
         self.quick_panel = self._create_quick_actions_panel()
@@ -232,10 +233,15 @@ class DashboardWidget(QWidget):
         for i, (text, icon, color, callback) in enumerate(actions):
             btn = QuickActionButton(text, icon, color)
             btn.setMinimumHeight(72)
+            btn.setLayoutDirection(qt_layout_direction())
+            btn.setStyleSheet(btn.styleSheet() + ' QPushButton { text-align: center; }')
             btn.clicked.connect(callback)
-            grid.addWidget(btn, i // 3, i % 3)
+            # Phase 303: dashboard keeps RTL structure while shortcut labels are centered.
+            grid.addWidget(btn, i // 3, 2 - (i % 3))
         monitor = QuickActionButton(translate('monitoring_short'), 'eye', '#1e3a8a')
         monitor.setMinimumHeight(62)
+        monitor.setLayoutDirection(qt_layout_direction())
+        monitor.setStyleSheet(monitor.styleSheet() + ' QPushButton { text-align: center; }')
         monitor.clicked.connect(lambda: self._switch_page('monitoring'))
         grid.addWidget(monitor, 3, 0, 1, 3)
         panel.layout.addLayout(grid)
@@ -251,6 +257,7 @@ class DashboardWidget(QWidget):
     def _create_company_info_panel(self):
         panel = DashboardPanel(translate('company_current_info'), 'building')
         panel.setObjectName('DashboardCompanyPanel')
+        panel.setLayoutDirection(qt_layout_direction())
         panel.setMinimumHeight(286)
         panel.setStyleSheet(panel.styleSheet() + '''
             QFrame#DashboardCompanyPanel { background: #ffffff; border-radius: 24px; }
@@ -361,6 +368,7 @@ class DashboardWidget(QWidget):
     def _create_project_panel(self):
         panel = DashboardPanel(translate('cashbox'), 'wallet')
         panel.setObjectName('DashboardCashPanel')
+        panel.setLayoutDirection(qt_layout_direction())
         panel.setMinimumHeight(360)
         panel.setStyleSheet(panel.styleSheet() + """
             QFrame#DashboardCashPanel { background: #ffffff; border-radius: 24px; }
@@ -459,6 +467,7 @@ class DashboardWidget(QWidget):
 
         currency_box = QFrame()
         currency_box.setObjectName('CashCurrencyBox')
+        currency_box.setLayoutDirection(qt_layout_direction())
         currency_box.setStyleSheet('QFrame#CashCurrencyBox { background: #fbfdff; border: 1px solid #e2e8f0; border-radius: 18px; } QLabel { border: none; }')
         currency_layout = QGridLayout(currency_box)
         currency_layout.setContentsMargins(10, 9, 10, 9)
@@ -479,14 +488,14 @@ class DashboardWidget(QWidget):
         self.exchange_rate_input = QLineEdit()
         self.exchange_rate_input.setObjectName('CashExchangeRateInput')
         self.exchange_rate_input.setPlaceholderText('14000.00')
-        self.exchange_rate_input.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.exchange_rate_input.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.exchange_rate_input.returnPressed.connect(self._save_exchange_rate_from_dashboard)
         self.exchange_rate_save_btn = QPushButton(translate('save'))
         self.exchange_rate_save_btn.setObjectName('CashExchangeSaveButton')
         self.exchange_rate_save_btn.clicked.connect(self._save_exchange_rate_from_dashboard)
         self.exchange_rate_label = QLabel('—')
         self.exchange_rate_label.setObjectName('CashExchangeRate')
-        self.exchange_rate_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.exchange_rate_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         currency_layout.addWidget(self.currency_combo, 0, 0, 1, 2)
         currency_layout.addWidget(currency_title, 0, 2)
@@ -509,6 +518,7 @@ class DashboardWidget(QWidget):
         """
         panel = QFrame()
         panel.setObjectName('DeveloperBrandPanel')
+        panel.setLayoutDirection(qt_layout_direction())
         panel.setMinimumHeight(170)
         panel.setMaximumHeight(190)
         panel.setStyleSheet(f"""
@@ -544,6 +554,7 @@ class DashboardWidget(QWidget):
         """)
 
         body = QHBoxLayout(panel)
+        body.setDirection(QBoxLayout.RightToLeft)
         body.setContentsMargins(28, 18, 28, 18)
         body.setSpacing(22)
 
@@ -560,6 +571,7 @@ class DashboardWidget(QWidget):
         text_col.setSpacing(8)
         title = QLabel(translate('integrated_management_system'))
         title.setObjectName('SystemBrandTitle')
+        # Phase 303: identity banner is centered; surrounding structure remains RTL.
         title.setAlignment(Qt.AlignCenter)
         title.setWordWrap(True)
         subtitle_row = QHBoxLayout()
