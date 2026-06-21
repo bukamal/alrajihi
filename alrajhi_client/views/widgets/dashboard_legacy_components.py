@@ -104,16 +104,16 @@ class QuickActionButton(QPushButton):
     def __init__(self, text, icon_name, color, parent=None):
         super().__init__(qta.icon(f'fa5s.{icon_name}', color='white'), f'  {text}', parent)
         self.setCursor(Qt.PointingHandCursor)
-        self.setMinimumHeight(46)
+        self.setMinimumHeight(58)
         self.setStyleSheet(f'''
             QPushButton {{
                 background: {color};
                 color: white;
                 border: none;
-                border-radius: 14px;
-                padding: 9px 13px;
+                border-radius: 16px;
+                padding: 10px 14px;
                 font-size: 13px;
-                font-weight: 800;
+                font-weight: 900;
                 text-align: right;
             }}
             QPushButton:hover {{ background: {_dc('primary_hover', '#1E5AA8')}; }}
@@ -128,20 +128,20 @@ class DashboardPanel(QFrame):
             QFrame#DashboardPanel {{
                 background: {_dc('card_bg', '#FFFFFF')};
                 border: 1px solid {_dc('border', '#E2E8F0')};
-                border-radius: 18px;
+                border-radius: 22px;
             }}
             QLabel#PanelTitle {{
                 color: {_dc('text_primary', '#1A202C')};
-                font-size: 16px;
+                font-size: 17px;
                 font-weight: 900;
             }}
         ''')
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(16, 14, 16, 16)
-        self.layout.setSpacing(12)
+        self.layout.setContentsMargins(18, 16, 18, 18)
+        self.layout.setSpacing(14)
         header = QHBoxLayout()
         icon = QLabel()
-        icon.setPixmap(qta.icon(f'fa5s.{icon_name}', color=_dc('primary', '#0F3D75')).pixmap(QSize(18, 18)))
+        icon.setPixmap(qta.icon(f'fa5s.{icon_name}', color=_dc('primary', '#0F3D75')).pixmap(QSize(20, 20)))
         title_label = QLabel(title)
         title_label.setObjectName('PanelTitle')
         title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)

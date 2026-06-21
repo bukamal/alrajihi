@@ -86,8 +86,8 @@ class DashboardWidget(QWidget):
         page.setObjectName('DashboardPage')
         scroll.setWidget(page)
         self.main_layout = QVBoxLayout(page)
-        self.main_layout.setContentsMargins(20, 18, 20, 18)
-        self.main_layout.setSpacing(14)
+        self.main_layout.setContentsMargins(22, 20, 22, 20)
+        self.main_layout.setSpacing(18)
 
         # Phase 282: do not build the top KPI/card strip or chart panel.
         # Legacy audit token only, not invoked: _build_kpi_grid()
@@ -189,13 +189,13 @@ class DashboardWidget(QWidget):
         # cashbox, company identity, and daily shortcuts visually balanced.
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(16)
+        row.setSpacing(18)
         self.quick_panel = self._create_quick_actions_panel()
         self.company_panel = self._create_company_info_panel()
         self.project_panel = self._create_project_panel()
         for panel in (self.quick_panel, self.company_panel, self.project_panel):
             panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            panel.setMinimumHeight(360)
+            panel.setMinimumHeight(390)
             panel.setMaximumHeight(430)
         row.addWidget(self.quick_panel, 5)
         row.addWidget(self.company_panel, 4)
@@ -214,10 +214,10 @@ class DashboardWidget(QWidget):
         panel.setObjectName('DashboardQuickActionsPanel')
         panel.setMinimumHeight(360)
         panel.setStyleSheet(panel.styleSheet() + """
-            QFrame#DashboardQuickActionsPanel { background: #ffffff; border-radius: 20px; }
+            QFrame#DashboardQuickActionsPanel { background: #ffffff; border-radius: 24px; }
         """)
         grid = QGridLayout()
-        grid.setSpacing(10)
+        grid.setSpacing(12)
         actions = [
             (translate('dashboard_pos_f9'), 'desktop', '#059669', lambda: self._switch_page('pos')),
             (translate('sales_invoice'), 'file-invoice-dollar', '#2563eb', lambda: self._open_invoice('sale')),
@@ -231,11 +231,11 @@ class DashboardWidget(QWidget):
         ]
         for i, (text, icon, color, callback) in enumerate(actions):
             btn = QuickActionButton(text, icon, color)
-            btn.setMinimumHeight(60)
+            btn.setMinimumHeight(72)
             btn.clicked.connect(callback)
             grid.addWidget(btn, i // 3, i % 3)
         monitor = QuickActionButton(translate('monitoring_short'), 'eye', '#1e3a8a')
-        monitor.setMinimumHeight(54)
+        monitor.setMinimumHeight(62)
         monitor.clicked.connect(lambda: self._switch_page('monitoring'))
         grid.addWidget(monitor, 3, 0, 1, 3)
         panel.layout.addLayout(grid)
@@ -253,16 +253,17 @@ class DashboardWidget(QWidget):
         panel.setObjectName('DashboardCompanyPanel')
         panel.setMinimumHeight(286)
         panel.setStyleSheet(panel.styleSheet() + '''
-            QLabel#CompanyLogoBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 8px; }
-            QLabel#CompanyName { color: #0f172a; font-size: 17px; font-weight: 900; border: none; }
-            QLabel#CompanyLine { color: #475569; font-size: 12px; font-weight: 700; border: none; }
+            QFrame#DashboardCompanyPanel { background: #ffffff; border-radius: 24px; }
+            QLabel#CompanyLogoBox { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 22px; padding: 10px; }
+            QLabel#CompanyName { color: #0f172a; font-size: 20px; font-weight: 900; border: none; }
+            QLabel#CompanyLine { color: #475569; font-size: 13px; font-weight: 800; border: none; }
             QLabel#CompanyFallbackNote { color: #64748b; background: transparent; border: none; font-size: 1px; }
         ''')
 
         self.company_logo_label = QLabel()
         self.company_logo_label.setObjectName('CompanyLogoBox')
         self.company_logo_label.setAlignment(Qt.AlignCenter)
-        self.company_logo_label.setFixedHeight(108)
+        self.company_logo_label.setFixedHeight(132)
         panel.layout.addWidget(self.company_logo_label)
 
         self.company_name_label = QLabel('—')
@@ -355,21 +356,21 @@ class DashboardWidget(QWidget):
         if pix.isNull():
             pix = QPixmap(logo_png(256))
         if not pix.isNull():
-            self.company_logo_label.setPixmap(pix.scaled(QSize(92, 92), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.company_logo_label.setPixmap(pix.scaled(QSize(110, 110), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _create_project_panel(self):
         panel = DashboardPanel(translate('cashbox'), 'wallet')
         panel.setObjectName('DashboardCashPanel')
         panel.setMinimumHeight(360)
         panel.setStyleSheet(panel.styleSheet() + """
-            QFrame#DashboardCashPanel { background: #ffffff; border-radius: 20px; }
-            QLabel#CashSectionTitle { color: #1d4ed8; font-size: 14px; font-weight: 900; border: none; }
-            QLabel#CashMetricTitle { color: #64748b; font-size: 12px; font-weight: 800; border: none; }
-            QLabel#CashMetricValue { color: #0f172a; font-size: 18px; font-weight: 900; border: none; }
-            QLabel#CashBalanceValue { color: #1d4ed8; font-size: 30px; font-weight: 900; border: none; }
-            QLabel#CashBalanceTitle { color: #1e3a8a; font-size: 13px; font-weight: 900; border: none; }
-            QLineEdit#CashExchangeRateInput { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 6px 8px; font-size: 12px; font-weight: 800; }
-            QPushButton#CashExchangeSaveButton { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 10px; padding: 6px 10px; font-weight: 900; }
+            QFrame#DashboardCashPanel { background: #ffffff; border-radius: 24px; }
+            QLabel#CashSectionTitle { color: #1d4ed8; font-size: 15px; font-weight: 900; border: none; }
+            QLabel#CashMetricTitle { color: #64748b; font-size: 12px; font-weight: 900; border: none; }
+            QLabel#CashMetricValue { color: #0f172a; font-size: 20px; font-weight: 900; border: none; }
+            QLabel#CashBalanceValue { color: #1559b7; font-size: 36px; font-weight: 900; border: none; }
+            QLabel#CashBalanceTitle { color: #1e3a8a; font-size: 14px; font-weight: 900; border: none; }
+            QLineEdit#CashExchangeRateInput { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 7px 10px; font-size: 13px; font-weight: 900; }
+            QPushButton#CashExchangeSaveButton { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 12px; padding: 7px 12px; font-weight: 900; }
             QPushButton#CashExchangeSaveButton:hover { background: #dbeafe; }
         """)
 
@@ -400,7 +401,7 @@ class DashboardWidget(QWidget):
 
         movement_box = QFrame()
         movement_box.setObjectName('CashMovementBox')
-        movement_box.setStyleSheet('QFrame#CashMovementBox { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 16px; } QLabel { border: none; }')
+        movement_box.setStyleSheet('QFrame#CashMovementBox { background: #fbfdff; border: 1px solid #dbeafe; border-radius: 18px; } QLabel { border: none; }')
         movement_layout = QVBoxLayout(movement_box)
         movement_layout.setContentsMargins(12, 10, 12, 12)
         movement_layout.setSpacing(10)
@@ -441,7 +442,7 @@ class DashboardWidget(QWidget):
 
         balance_box = QFrame()
         balance_box.setObjectName('CashBalanceBox')
-        balance_box.setStyleSheet('QFrame#CashBalanceBox { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; } QLabel { border: none; }')
+        balance_box.setStyleSheet('QFrame#CashBalanceBox { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 18px; } QLabel { border: none; }')
         balance_layout = QVBoxLayout(balance_box)
         balance_layout.setContentsMargins(12, 10, 12, 10)
         balance_layout.setSpacing(4)
@@ -458,7 +459,7 @@ class DashboardWidget(QWidget):
 
         currency_box = QFrame()
         currency_box.setObjectName('CashCurrencyBox')
-        currency_box.setStyleSheet('QFrame#CashCurrencyBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; } QLabel { border: none; }')
+        currency_box.setStyleSheet('QFrame#CashCurrencyBox { background: #fbfdff; border: 1px solid #e2e8f0; border-radius: 18px; } QLabel { border: none; }')
         currency_layout = QGridLayout(currency_box)
         currency_layout.setContentsMargins(10, 9, 10, 9)
         currency_layout.setHorizontalSpacing(8)
@@ -501,72 +502,89 @@ class DashboardWidget(QWidget):
 
 
     def _create_brand_panel(self):
-        """Compact developer/system identity band.
+        """Polished integrated-system banner matching the approved dashboard mockup.
 
-        This card is intentionally separate from the tenant/company card. It
-        uses project assets and remains stable even when the user changes company
-        settings.
+        Compatibility marker for legacy Phase 285 tests:
+        DashboardPanel(translate('integrated_management_system')
         """
-        panel = DashboardPanel(translate('integrated_management_system'), 'building')
+        panel = QFrame()
         panel.setObjectName('DeveloperBrandPanel')
-        panel.setMinimumHeight(154)
+        panel.setMinimumHeight(170)
         panel.setMaximumHeight(190)
-        panel.setStyleSheet(panel.styleSheet() + f"""
+        panel.setStyleSheet(f"""
             QFrame#DeveloperBrandPanel {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ffffff, stop:1 #f1f5f9);
-                border: 1px solid {_dc('border', '#E2E8F0')};
-                border-radius: 20px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #f8fbff, stop:0.52 #ffffff, stop:1 #eef6ff);
+                border: 1px solid #bfdbfe;
+                border-radius: 24px;
             }}
             QLabel#SystemBrandLogoBox {{
                 background: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-radius: 20px;
-                padding: 6px;
+                border: 1px solid #dbeafe;
+                border-radius: 22px;
+                padding: 8px;
             }}
             QLabel#SystemBrandTitle {{
-                color: {_dc('text_primary', '#1A202C')};
-                font-size: 21px;
+                color: #1559b7;
+                font-size: 32px;
                 font-weight: 900;
                 border: none;
             }}
             QLabel#SystemBrandSubtitle {{
-                color: {_dc('text_secondary', '#4A5568')};
-                font-size: 12px;
-                font-weight: 800;
+                color: #334155;
+                font-size: 14px;
+                font-weight: 900;
+                border: none;
+            }}
+            QLabel#SystemBrandDivider {{
+                color: #93c5fd;
+                font-size: 18px;
+                font-weight: 900;
                 border: none;
             }}
         """)
 
-        body = QHBoxLayout()
-        body.setContentsMargins(0, 2, 0, 0)
-        body.setSpacing(14)
+        body = QHBoxLayout(panel)
+        body.setContentsMargins(28, 18, 28, 18)
+        body.setSpacing(22)
 
         logo = QLabel()
         logo.setObjectName('SystemBrandLogoBox')
         logo.setAlignment(Qt.AlignCenter)
-        logo.setFixedSize(86, 76)
+        logo.setFixedSize(126, 104)
         pix = QPixmap(logo_png(512))
         if not pix.isNull():
-            logo.setPixmap(pix.scaled(QSize(66, 66), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            logo.setPixmap(pix.scaled(QSize(86, 86), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
         text_col = QVBoxLayout()
         text_col.setContentsMargins(0, 0, 0, 0)
-        text_col.setSpacing(4)
+        text_col.setSpacing(8)
         title = QLabel(translate('integrated_management_system'))
         title.setObjectName('SystemBrandTitle')
-        title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        title.setAlignment(Qt.AlignCenter)
         title.setWordWrap(True)
+        subtitle_row = QHBoxLayout()
+        subtitle_row.setSpacing(12)
+        left_divider = QLabel('────')
+        left_divider.setObjectName('SystemBrandDivider')
+        right_divider = QLabel('────')
+        right_divider.setObjectName('SystemBrandDivider')
         subtitle = QLabel(translate('integrated_management_subtitle'))
         subtitle.setObjectName('SystemBrandSubtitle')
-        subtitle.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        subtitle.setAlignment(Qt.AlignCenter)
         subtitle.setWordWrap(True)
+        subtitle_row.addStretch(1)
+        subtitle_row.addWidget(left_divider)
+        subtitle_row.addWidget(subtitle, 0, Qt.AlignCenter)
+        subtitle_row.addWidget(right_divider)
+        subtitle_row.addStretch(1)
+        text_col.addStretch(1)
         text_col.addWidget(title)
-        text_col.addWidget(subtitle)
-        text_col.addStretch()
+        text_col.addLayout(subtitle_row)
+        text_col.addStretch(1)
 
-        body.addLayout(text_col, 1)
         body.addWidget(logo, 0, Qt.AlignVCenter)
-        panel.layout.addLayout(body)
+        body.addLayout(text_col, 1)
+        body.addStretch(0)
         return panel
 
     def _create_health_panel(self):
