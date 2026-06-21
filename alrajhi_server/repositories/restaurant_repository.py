@@ -294,7 +294,7 @@ class RestaurantRepository:
         db.commit()
 
     def list_tables(self, include_inactive: bool = False) -> list[dict[str, Any]]:
-        self.ensure_schema()
+        self.ensure_table_operations_schema()
         self.seed_default_tables_if_empty()
         where = "" if include_inactive else "WHERE t.is_active=1"
         rows = get_db().execute(
@@ -306,7 +306,27 @@ class RestaurantRepository:
             ORDER BY COALESCE(t.zone, ''), t.id
             """
         ).fetchall()
-        return [dict(row) for row in rows]
+        payloads = []
+        for row in rows:
+            table = dict(row)
+            if not table.get("active_session_id"):
+                try:
+                    reservation = self._active_reservation_for_table(int(table.get("id") or 0))
+                    if reservation:
+                        res = dict(reservation)
+                        table.update({
+                            "active_reservation_id": res.get("id"),
+                            "active_reservation_customer": res.get("customer_name"),
+                            "active_reservation_phone": res.get("phone"),
+                            "active_reservation_guests": res.get("guests"),
+                            "active_reserved_at": res.get("reserved_at"),
+                            "reservation_status": res.get("status"),
+                            "ui_status": "reserved",
+                        })
+                except Exception:
+                    pass
+            payloads.append(table)
+        return payloads
 
     def upsert_table(self, name: str, zone: str = "", seats: int = 4, table_id: int | None = None, branch_id: int | None = None) -> dict[str, Any]:
         self.ensure_schema()
@@ -336,7 +356,7 @@ class RestaurantRepository:
         return dict(row)
 
     def open_table(self, table_id: int, waiter_id: str | None = None, guests: int = 1, notes: str = "", branch_id: int | None = None) -> dict[str, Any]:
-        self.ensure_schema()
+        self.ensure_table_operations_schema()
         db = get_db()
         table_id = int(table_id)
         table = db.execute("SELECT id, branch_id FROM restaurant_tables WHERE id=? AND is_active=1", (table_id,)).fetchone()
@@ -352,9 +372,12 @@ class RestaurantRepository:
             "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, branch_id, notes) VALUES (?, ?, ?, 'open', ?, ?, ?)",
             (table_id, waiter_id, max(1, int(guests or 1)), now, branch_id if branch_id is not None else table['branch_id'], notes or ""),
         )
+        session_id = int(cur.lastrowid)
         db.execute("UPDATE restaurant_tables SET status='occupied', updated_at=? WHERE id=?", (now, table_id))
+        self._seat_reserved_table_if_needed(table_id, session_id=session_id)
+        self._record_table_operation("open_table", session_id=session_id, target_table_id=table_id, notes=notes or "")
         db.commit()
-        return self.get_session(int(cur.lastrowid))
+        return self.get_session(session_id)
 
     def get_session(self, session_id: int) -> dict[str, Any]:
         self.ensure_schema()
@@ -923,17 +946,60 @@ class RestaurantRepository:
                 notes TEXT,
                 created_at TEXT NOT NULL,
                 cancelled_at TEXT,
+                seated_at TEXT,
                 FOREIGN KEY(table_id) REFERENCES restaurant_tables(id)
+            )
+        """)
+        db.execute("""
+            CREATE TABLE IF NOT EXISTS restaurant_table_operations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                operation TEXT NOT NULL,
+                session_id INTEGER,
+                source_table_id INTEGER,
+                target_table_id INTEGER,
+                reservation_id INTEGER,
+                line_ids TEXT,
+                notes TEXT,
+                created_at TEXT NOT NULL
             )
         """)
         for ddl in (
             "ALTER TABLE restaurant_reservations ADD COLUMN branch_id INTEGER",
+            "ALTER TABLE restaurant_reservations ADD COLUMN seated_at TEXT",
+            "ALTER TABLE restaurant_table_operations ADD COLUMN reservation_id INTEGER",
+            "ALTER TABLE restaurant_table_operations ADD COLUMN line_ids TEXT",
         ):
             try:
                 db.execute(ddl)
             except Exception:
                 pass
         db.commit()
+
+    def _record_table_operation(self, operation: str, session_id: int | None = None, source_table_id: int | None = None, target_table_id: int | None = None, reservation_id: int | None = None, line_ids: list[int] | None = None, notes: str = "") -> None:
+        db = get_db()
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        db.execute(
+            "INSERT INTO restaurant_table_operations(operation, session_id, source_table_id, target_table_id, reservation_id, line_ids, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (str(operation or "").strip().lower(), session_id, source_table_id, target_table_id, reservation_id, ",".join(str(int(x)) for x in (line_ids or [])), notes or "", now),
+        )
+
+    def _active_reservation_for_table(self, table_id: int):
+        return get_db().execute(
+            "SELECT * FROM restaurant_reservations WHERE table_id=? AND status='reserved' ORDER BY reserved_at, id LIMIT 1",
+            (int(table_id),),
+        ).fetchone()
+
+    def _seat_reserved_table_if_needed(self, table_id: int, session_id: int | None = None) -> int | None:
+        self.ensure_table_operations_schema()
+        db = get_db()
+        reservation = self._active_reservation_for_table(int(table_id))
+        if not reservation:
+            return None
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        reservation_id = int(reservation["id"])
+        db.execute("UPDATE restaurant_reservations SET status='seated', seated_at=? WHERE id=?", (now, reservation_id))
+        self._record_table_operation("seat_reservation", session_id=session_id, target_table_id=int(table_id), reservation_id=reservation_id, notes="reservation seated")
+        return reservation_id
 
     def reserve_table(self, table_id: int, customer_name: str = "", phone: str = "", reserved_at: str = "", guests: int = 1, notes: str = "") -> dict[str, Any]:
         self.ensure_table_operations_schema()
@@ -942,14 +1008,19 @@ class RestaurantRepository:
         active = db.execute("SELECT id FROM restaurant_sessions WHERE table_id=? AND status='open' LIMIT 1", (int(table_id),)).fetchone()
         if active:
             raise ValueError("Cannot reserve an occupied restaurant table")
+        existing_reservation = self._active_reservation_for_table(int(table_id))
+        if existing_reservation:
+            raise ValueError("Restaurant table already has an active reservation")
         now = datetime.datetime.now().isoformat(timespec="seconds")
         cur = db.execute(
             "INSERT INTO restaurant_reservations(table_id, branch_id, customer_name, phone, guests, reserved_at, status, notes, created_at) VALUES (?, (SELECT branch_id FROM restaurant_tables WHERE id=?), ?, ?, ?, ?, 'reserved', ?, ?)",
             (int(table_id), int(table_id), customer_name or '', phone or '', max(1, int(guests or 1)), reserved_at or now, notes or '', now),
         )
+        reservation_id = int(cur.lastrowid)
         db.execute("UPDATE restaurant_tables SET status='reserved', updated_at=? WHERE id=?", (now, int(table_id)))
+        self._record_table_operation("reserve_table", source_table_id=int(table_id), reservation_id=reservation_id, notes=notes or "")
         db.commit()
-        reservation = db.execute("SELECT * FROM restaurant_reservations WHERE id=?", (int(cur.lastrowid),)).fetchone()
+        reservation = db.execute("SELECT * FROM restaurant_reservations WHERE id=?", (reservation_id,)).fetchone()
         return dict(reservation) if reservation else {}
 
     def cancel_reservation(self, reservation_id: int) -> dict[str, Any]:
@@ -963,6 +1034,7 @@ class RestaurantRepository:
         active = db.execute("SELECT id FROM restaurant_sessions WHERE table_id=? AND status='open' LIMIT 1", (int(row['table_id']),)).fetchone()
         if not active:
             db.execute("UPDATE restaurant_tables SET status='free', updated_at=? WHERE id=?", (now, int(row['table_id'])))
+        self._record_table_operation("cancel_reservation", source_table_id=int(row['table_id']), reservation_id=int(reservation_id))
         db.commit()
         result = db.execute("SELECT * FROM restaurant_reservations WHERE id=?", (int(reservation_id),)).fetchone()
         return dict(result) if result else {}
@@ -982,6 +1054,8 @@ class RestaurantRepository:
         db.execute("UPDATE restaurant_sessions SET table_id=? WHERE id=?", (int(target_table_id), int(session_id)))
         db.execute("UPDATE restaurant_tables SET status='free', updated_at=? WHERE id=?", (now, old_table_id))
         db.execute("UPDATE restaurant_tables SET status='occupied', updated_at=? WHERE id=?", (now, int(target_table_id)))
+        self._seat_reserved_table_if_needed(int(target_table_id), session_id=int(session_id))
+        self._record_table_operation("transfer_session", session_id=int(session_id), source_table_id=old_table_id, target_table_id=int(target_table_id))
         db.commit()
         payload = self.get_session(int(session_id))
         payload['transferred_from_table_id'] = old_table_id
@@ -1004,6 +1078,7 @@ class RestaurantRepository:
         db.execute("UPDATE restaurant_sessions SET status='merged', closed_at=? WHERE id=?", (now, int(source_session_id)))
         db.execute("UPDATE restaurant_tables SET status='free', updated_at=? WHERE id=?", (now, int(source['table_id'])))
         db.execute("UPDATE restaurant_tables SET status='occupied', updated_at=? WHERE id=?", (now, int(target['table_id'])))
+        self._record_table_operation("merge_sessions", session_id=int(target_session_id), source_table_id=int(source['table_id']), target_table_id=int(target['table_id']), notes=f"source_session={int(source_session_id)}")
         db.commit()
         payload = self.get_session(int(target_session_id))
         payload['lines'] = self.list_session_lines(int(target_session_id))
@@ -1029,6 +1104,8 @@ class RestaurantRepository:
         else:
             target_session_id = int(self.open_table(int(target_table_id), guests=max(1, int(guests or 1)), notes=notes or 'split')['id'])
         db.execute(f"UPDATE restaurant_order_lines SET session_id=? WHERE id IN ({placeholders})", [target_session_id, *ids])
+        self._seat_reserved_table_if_needed(int(target_table_id), session_id=target_session_id)
+        self._record_table_operation("split_lines_to_table", session_id=int(session_id), source_table_id=int(source['table_id']), target_table_id=int(target_table_id), line_ids=ids, notes=notes or "")
         db.commit()
         return {
             'source_session': {**self.get_session(int(session_id)), 'lines': self.list_session_lines(int(session_id))},

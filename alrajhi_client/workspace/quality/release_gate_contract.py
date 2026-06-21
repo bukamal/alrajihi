@@ -85,6 +85,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (290, "RESTAURANT_PRINTING_TEMPLATES_HARDENING"),
         (291, "RESTAURANT_INVENTORY_RECIPE_INTEGRATION"),
         (292, "RESTAURANT_UI_VISUAL_CLEANUP"),
+        (293, "RESTAURANT_TABLE_OPERATIONS_HARDENING"),
     ]
 )
 
@@ -135,6 +136,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (290, "restaurant_printing_templates_hardening"),
         (291, "restaurant_inventory_recipe_integration"),
         (292, "restaurant_ui_visual_cleanup"),
+        (293, "restaurant_table_operations_hardening"),
     ]
 )
 
@@ -166,6 +168,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("restaurant_printing_templates", "restaurant", "Restaurant printing templates hardening", "tests/test_phase290_restaurant_printing_templates_hardening.py", phase=290),
     ReleaseGateCheck("restaurant_inventory_recipe", "restaurant", "Restaurant inventory recipe integration", "tests/test_phase291_restaurant_inventory_recipe_integration.py", phase=291),
     ReleaseGateCheck("restaurant_ui_visual_cleanup", "restaurant", "Restaurant UI visual cleanup", "tests/test_phase292_restaurant_ui_visual_cleanup.py", phase=292),
+    ReleaseGateCheck("restaurant_table_operations", "restaurant", "Restaurant table operations hardening", "tests/test_phase293_restaurant_table_operations_hardening.py", phase=293),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

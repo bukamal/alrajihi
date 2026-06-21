@@ -432,6 +432,29 @@ def build_global_qss(colors: dict) -> str:
             color: white;
             border-color: {colors['primary']};
         }}
+
+        QFrame#restaurantTableOperationsBar {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+        QPushButton#restaurantTableOperationButton {{
+            background-color: {colors['bg_table_alt']};
+            color: {colors['text_primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 7px 12px;
+            font-weight: 900;
+        }}
+        QPushButton#restaurantTableOperationButton:hover {{
+            background-color: {colors['brand_soft']};
+            color: {colors['primary']};
+            border-color: {colors['primary']};
+        }}
+        QPushButton#restaurantTableOperationButton:disabled {{
+            color: {colors['text_muted']};
+            background-color: {colors['bg_table']};
+        }}
         QLabel#restaurantMenuSectionTitle {{
             font-size: 15px;
             font-weight: 900;

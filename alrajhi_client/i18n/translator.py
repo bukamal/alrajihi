@@ -7159,3 +7159,69 @@ for _lang, _values in _PHASE292_TRANSLATIONS.items():
         _translations.setdefault(_lang, {}).update(_values)
     except Exception:
         pass
+
+# Phase 293: restaurant table operations UX and reservation workflow labels.
+_PHASE293_TRANSLATIONS = {
+    'ar': {
+        'restaurant.table_operations': 'عمليات الطاولات',
+        'restaurant.reserve_table': 'حجز طاولة',
+        'restaurant.transfer_table': 'نقل الطاولة',
+        'restaurant.merge_tables': 'دمج الطاولات',
+        'restaurant.move_selected_line': 'نقل السطر المحدد',
+        'restaurant.reserved_at': 'وقت الحجز',
+        'restaurant.reserved_at_placeholder': 'مثال: اليوم 20:30 أو 2026-01-18 20:30',
+        'restaurant.session': 'جلسة',
+        'restaurant.no_free_table_to_reserve': 'لا توجد طاولة فارغة متاحة للحجز',
+        'restaurant.reservation_saved': 'تم حفظ الحجز',
+        'restaurant.no_target_table': 'لا توجد طاولة هدف متاحة',
+        'restaurant.table_transferred': 'تم نقل الجلسة إلى الطاولة المحددة',
+        'restaurant.no_merge_source': 'لا توجد جلسة أخرى مفتوحة للدمج',
+        'restaurant.tables_merged': 'تم دمج الطاولات',
+        'restaurant.select_line_to_move': 'حدد سطر طلب لنقله إلى طاولة أخرى',
+        'restaurant.line_moved_to_table': 'تم نقل السطر إلى الطاولة المحددة',
+        'restaurant.table_operations_hardening': 'تقوية عمليات الطاولات والحجوزات',
+    },
+    'de': {
+        'restaurant.table_operations': 'Tischoperationen',
+        'restaurant.reserve_table': 'Tisch reservieren',
+        'restaurant.transfer_table': 'Tisch übertragen',
+        'restaurant.merge_tables': 'Tische zusammenführen',
+        'restaurant.move_selected_line': 'Ausgewählte Position verschieben',
+        'restaurant.reserved_at': 'Reservierungszeit',
+        'restaurant.reserved_at_placeholder': 'z. B. heute 20:30 oder 2026-01-18 20:30',
+        'restaurant.session': 'Sitzung',
+        'restaurant.no_free_table_to_reserve': 'Kein freier Tisch für eine Reservierung verfügbar',
+        'restaurant.reservation_saved': 'Reservierung gespeichert',
+        'restaurant.no_target_table': 'Kein Zieltisch verfügbar',
+        'restaurant.table_transferred': 'Sitzung wurde auf den gewählten Tisch übertragen',
+        'restaurant.no_merge_source': 'Keine andere offene Sitzung zum Zusammenführen',
+        'restaurant.tables_merged': 'Tische wurden zusammengeführt',
+        'restaurant.select_line_to_move': 'Wählen Sie eine Bestellposition zum Verschieben aus',
+        'restaurant.line_moved_to_table': 'Position wurde zum gewählten Tisch verschoben',
+        'restaurant.table_operations_hardening': 'Tischoperationen und Reservierungen gehärtet',
+    },
+    'en': {
+        'restaurant.table_operations': 'Table operations',
+        'restaurant.reserve_table': 'Reserve table',
+        'restaurant.transfer_table': 'Transfer table',
+        'restaurant.merge_tables': 'Merge tables',
+        'restaurant.move_selected_line': 'Move selected line',
+        'restaurant.reserved_at': 'Reservation time',
+        'restaurant.reserved_at_placeholder': 'Example: today 20:30 or 2026-01-18 20:30',
+        'restaurant.session': 'Session',
+        'restaurant.no_free_table_to_reserve': 'No free table is available for reservation',
+        'restaurant.reservation_saved': 'Reservation saved',
+        'restaurant.no_target_table': 'No target table is available',
+        'restaurant.table_transferred': 'Session transferred to the selected table',
+        'restaurant.no_merge_source': 'No other open session is available to merge',
+        'restaurant.tables_merged': 'Tables merged',
+        'restaurant.select_line_to_move': 'Select an order line to move to another table',
+        'restaurant.line_moved_to_table': 'Line moved to the selected table',
+        'restaurant.table_operations_hardening': 'Table operations and reservations hardening',
+    },
+}
+for _lang, _values in _PHASE293_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
