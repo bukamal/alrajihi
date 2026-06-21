@@ -776,6 +776,61 @@ def build_global_qss(colors: dict) -> str:
             padding: 8px;
             font-weight: 900;
         }}
+
+
+        /* Phase 300: restaurant order header search and collapsible product grid. */
+        QFrame#restaurantOrderSearchHeader {{
+            background-color: {colors['bg_table_alt']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QLineEdit#restaurantOrderHeaderSearch {{
+            background-color: {colors['card_bg']};
+            color: {colors['text_primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 9px 14px;
+            font-size: 15px;
+            font-weight: 800;
+        }}
+        QPushButton#restaurantOrderHeaderSearchButton,
+        QPushButton#restaurantHeaderManualItemButton {{
+            background-color: {colors['card_bg']};
+            color: {colors['primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px 13px;
+            font-weight: 900;
+        }}
+        QPushButton#restaurantOrderHeaderSearchButton:hover,
+        QPushButton#restaurantHeaderManualItemButton:hover {{
+            background-color: {colors['brand_soft']};
+            border-color: {colors['primary']};
+        }}
+        QFrame#restaurantMenuToggleCard {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QToolButton#restaurantMenuToggleButton {{
+            background-color: {colors['bg_table_alt']};
+            color: {colors['text_primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 7px 14px;
+            font-weight: 950;
+        }}
+        QToolButton#restaurantMenuToggleButton:checked {{
+            background-color: {colors['brand_soft']};
+            color: {colors['primary']};
+            border-color: {colors['primary']};
+        }}
+        QWidget#restaurantPOSWidget QFrame#restaurantOrderHeaderCard {{
+            padding: 0px;
+        }}
+        QWidget#restaurantPOSWidget QTableView#restaurantOrderLines {{
+            font-size: 14px;
+        }}
     """
 
 

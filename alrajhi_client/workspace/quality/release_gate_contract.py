@@ -92,6 +92,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (297, "RESTAURANT_QSS_RUNTIME_HOTFIX"),
         (298, "RESTAURANT_FULLSCREEN_OPERATIONAL_SHELL"),
         (299, "RESTAURANT_ORDER_WORKSPACE_DECLUTTER"),
+        (300, "RESTAURANT_ORDER_SEARCH_HEADER_COLLAPSIBLE_MENU"),
     ]
 )
 
@@ -149,6 +150,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (297, "restaurant_qss_runtime_hotfix"),
         (298, "restaurant_fullscreen_operational_shell"),
         (299, "restaurant_order_workspace_declutter"),
+        (300, "restaurant_order_search_header_collapsible_menu"),
     ]
 )
 
@@ -187,6 +189,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("restaurant_qss_runtime_hotfix", "restaurant", "Restaurant QSS runtime hotfix", "tests/test_phase297_restaurant_qss_runtime_hotfix.py", phase=297),
     ReleaseGateCheck("restaurant_fullscreen_operational_shell", "restaurant", "Restaurant fullscreen operational shell", "tests/test_phase298_restaurant_fullscreen_operational_shell.py", phase=298),
     ReleaseGateCheck("restaurant_order_workspace_declutter", "restaurant", "Restaurant order workspace declutter", "tests/test_phase299_restaurant_order_workspace_declutter.py", phase=299),
+    ReleaseGateCheck("restaurant_order_search_header_collapsible_menu", "restaurant", "Restaurant order search header and collapsible menu", "tests/test_phase300_restaurant_order_search_header_collapsible_menu.py", phase=300),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

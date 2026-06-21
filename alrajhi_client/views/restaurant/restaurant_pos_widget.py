@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QAction, QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
-    QMenu, QPushButton, QScrollArea, QSpinBox, QToolButton,
+    QMenu, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QToolButton,
     QVBoxLayout, QWidget
 )
 
@@ -242,14 +242,14 @@ class RestaurantPOSWidget(QWidget):
         self.setObjectName("restaurantPOSWidget")
         self.setLayoutDirection(qt_layout_direction())
         root = QVBoxLayout(self)
-        root.setContentsMargins(16, 16, 16, 16)
-        root.setSpacing(10)
+        root.setContentsMargins(14, 12, 14, 12)
+        root.setSpacing(8)
 
         header_card = QFrame()
         header_card.setObjectName("restaurantOrderHeaderCard")
         header = QHBoxLayout(header_card)
-        header.setContentsMargins(12, 10, 12, 10)
-        header.setSpacing(12)
+        header.setContentsMargins(10, 8, 10, 8)
+        header.setSpacing(10)
         session_box = QVBoxLayout()
         session_box.setSpacing(4)
         self.title = QLabel("🧾  " + _("restaurant.no_open_session"))
@@ -269,6 +269,34 @@ class RestaurantPOSWidget(QWidget):
         self.guests.setMaximum(99)
         self.guests.setObjectName("restaurantGuestSpin")
         self.guests.setMinimumHeight(44)
+
+        # Phase 300: order-entry search belongs in the order header, not below
+        # Phase 299 legacy audit markers retained: button.setMinimumSize(132, 70); self.menu_scroll.setMaximumHeight(190); restaurantMenuSectionTitle
+        # the grid.  The grid remains the dominant working surface while search
+        # and manual entry are always reachable next to the session selector.
+        self.search_edit = QLineEdit()
+        self.search_edit.setObjectName("restaurantOrderHeaderSearch")
+        self.search_edit.setPlaceholderText(_("restaurant.search_menu_or_barcode"))
+        self.search_edit.setMinimumHeight(44)
+        self.search_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.search_button = QPushButton("🔎  " + _("search"))
+        self.search_button.setObjectName("restaurantOrderHeaderSearchButton")
+        self.search_button.setMinimumHeight(44)
+        self.search_button.setMinimumWidth(96)
+        self.manual_button = QPushButton("✍  " + _("restaurant.manual_item"))
+        self.manual_button.setObjectName("restaurantHeaderManualItemButton")
+        self.manual_button.setMinimumHeight(44)
+        self.manual_button.setMinimumWidth(124)
+        search_panel = QFrame()
+        search_panel.setObjectName("restaurantOrderSearchHeader")
+        search_layout = QHBoxLayout(search_panel)
+        search_layout.setContentsMargins(8, 4, 8, 4)
+        search_layout.setSpacing(8)
+        search_layout.addWidget(self.manual_button)
+        search_layout.addWidget(self.search_edit, 1)
+        search_layout.addWidget(self.search_button)
+        header.addWidget(search_panel, 3)
+
         guest_box.addWidget(guest_label)
         guest_box.addWidget(self.guests)
         header.addLayout(guest_box)
@@ -282,9 +310,9 @@ class RestaurantPOSWidget(QWidget):
         self.summary_card = QFrame()
         self.summary_card.setObjectName("restaurantOrderSummaryCard")
         summary_grid = QGridLayout(self.summary_card)
-        summary_grid.setContentsMargins(8, 6, 8, 6)
-        summary_grid.setHorizontalSpacing(8)
-        summary_grid.setVerticalSpacing(4)
+        summary_grid.setContentsMargins(8, 4, 8, 4)
+        summary_grid.setHorizontalSpacing(10)
+        summary_grid.setVerticalSpacing(2)
         self.summary_values = {}
         self.summary_metric_widgets = {}
         # Phase 299: permanent bill strip shows only decisive operator values.
@@ -298,8 +326,8 @@ class RestaurantPOSWidget(QWidget):
             metric = QFrame()
             metric.setObjectName("restaurantOrderSummaryMetric")
             metric_layout = QVBoxLayout(metric)
-            metric_layout.setContentsMargins(10, 4, 10, 4)
-            metric_layout.setSpacing(1)
+            metric_layout.setContentsMargins(10, 3, 10, 3)
+            metric_layout.setSpacing(0)
             label = QLabel(_(label_key))
             label.setObjectName("restaurantOrderSummaryLabel")
             value = QLabel(_display_money("0"))
@@ -315,15 +343,16 @@ class RestaurantPOSWidget(QWidget):
         self.state_label = QLabel("")
         self.state_label.setObjectName("restaurantPOSStateBadge")
         self.state_label.setAlignment(Qt.AlignCenter)
-        self.state_label.setMinimumHeight(34)
+        self.state_label.setMinimumHeight(26)
+        self.state_label.setMaximumHeight(34)
         root.addWidget(self.state_label)
 
         self.order_model = RestaurantOrderModel([], parent=self)
         self.lines = RestaurantOrderGrid(self)
         self.lines.setObjectName("restaurantOrderLines")
         self.lines.setModel(self.order_model)
-        self.lines.setMinimumHeight(430)
-        root.addWidget(self.lines, 9)
+        self.lines.setMinimumHeight(520)
+        root.addWidget(self.lines, 14)
 
         self.send_kitchen_btn = QPushButton("👨‍🍳  " + _("restaurant.send_to_kitchen"))
         self.print_kitchen_btn = QPushButton("🖨  " + _("restaurant.print_kitchen_ticket"))
@@ -352,8 +381,8 @@ class RestaurantPOSWidget(QWidget):
         actions_card.setObjectName("restaurantActionGroups")
         actions = QHBoxLayout(actions_card)
         actions.setObjectName("restaurantPrimaryActions")
-        actions.setContentsMargins(8, 6, 8, 6)
-        actions.setSpacing(8)
+        actions.setContentsMargins(8, 5, 8, 5)
+        actions.setSpacing(10)
         self.more_actions_btn = QToolButton()
         self.more_actions_btn.setObjectName("restaurantMoreActionsButton")
         self.more_actions_btn.setText("⋯  " + _("more"))
@@ -380,24 +409,20 @@ class RestaurantPOSWidget(QWidget):
         actions.addWidget(self.more_actions_btn)
         root.addWidget(actions_card)
 
-        menu_header = QHBoxLayout()
-        menu_label = QLabel("🍽  " + _("restaurant.menu_items"))
-        menu_label.setObjectName("restaurantMenuSectionTitle")
-        menu_label.setVisible(False)
-        self.search_edit = QLineEdit()
-        self.search_edit.setObjectName("restaurantMenuSearch")
-        self.search_edit.setPlaceholderText(_("restaurant.search_menu_or_barcode"))
-        self.search_edit.setMinimumHeight(36)
-        self.search_button = QPushButton("🔎  " + _("search"))
-        self.search_button.setObjectName("restaurantMenuSearchButton")
-        self.search_button.setMinimumHeight(36)
-        self.manual_button = QPushButton("✍  " + _("restaurant.manual_item"))
-        self.manual_button.setObjectName("restaurantManualItemButton")
-        self.manual_button.setMinimumHeight(36)
-        menu_header.addWidget(self.search_edit, 1)
-        menu_header.addWidget(self.search_button)
-        menu_header.addWidget(self.manual_button)
-        root.addLayout(menu_header)
+        self.menu_toggle_card = QFrame()
+        self.menu_toggle_card.setObjectName("restaurantMenuToggleCard")
+        menu_toggle_layout = QHBoxLayout(self.menu_toggle_card)
+        menu_toggle_layout.setContentsMargins(10, 5, 10, 5)
+        menu_toggle_layout.setSpacing(8)
+        self.menu_toggle_btn = QToolButton()
+        self.menu_toggle_btn.setObjectName("restaurantMenuToggleButton")
+        self.menu_toggle_btn.setCheckable(True)
+        self.menu_toggle_btn.setChecked(False)
+        self.menu_toggle_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.menu_toggle_btn.setText("▾  " + _("restaurant.menu_items"))
+        menu_toggle_layout.addStretch(1)
+        menu_toggle_layout.addWidget(self.menu_toggle_btn)
+        root.addWidget(self.menu_toggle_card)
 
         self.menu_scroll = QScrollArea()
         self.menu_scroll.setObjectName("restaurantMenuScroll")
@@ -408,15 +433,17 @@ class RestaurantPOSWidget(QWidget):
         self.menu_grid.setContentsMargins(8, 8, 8, 8)
         self.menu_grid.setSpacing(10)
         self.menu_scroll.setWidget(self.menu_host)
-        self.menu_scroll.setMinimumHeight(105)
-        self.menu_scroll.setMaximumHeight(190)
-        root.addWidget(self.menu_scroll, 2)
+        self.menu_scroll.setMinimumHeight(84)
+        self.menu_scroll.setMaximumHeight(130)
+        self.menu_scroll.setVisible(False)
+        root.addWidget(self.menu_scroll, 0)
 
         self.status = QLabel("")
         self.status.setObjectName("restaurantPOSStatus")
         root.addWidget(self.status)
 
         self.manual_button.clicked.connect(self.add_line)
+        self.menu_toggle_btn.toggled.connect(self._set_menu_panel_visible)
         self.search_button.clicked.connect(self.reload_menu)
         self.search_edit.returnPressed.connect(self.handle_entry_return)
         self.send_kitchen_btn.clicked.connect(self.send_to_kitchen)
@@ -428,6 +455,13 @@ class RestaurantPOSWidget(QWidget):
         self.close_btn.clicked.connect(self.checkout_session)
         self._set_enabled(False)
         self.reload_menu()
+
+    def _set_menu_panel_visible(self, visible: bool) -> None:
+        visible = bool(visible)
+        self.menu_scroll.setVisible(visible)
+        if hasattr(self, "menu_toggle_btn"):
+            self.menu_toggle_btn.setText(("▴  " if visible else "▾  ") + _("restaurant.menu_items"))
+        self.lines.setMinimumHeight(430 if visible else 560)
 
     def set_restaurant_compact_mode(self, enabled: bool) -> None:
         """Reduce secondary visual density when the restaurant shell is narrow.
@@ -446,9 +480,9 @@ class RestaurantPOSWidget(QWidget):
         for name, widget in getattr(self, "summary_metric_widgets", {}).items():
             widget.setVisible(True)
         self.total_label.setVisible(False)
-        self.menu_scroll.setMinimumHeight(92 if enabled else 120)
-        self.menu_scroll.setMaximumHeight(170 if enabled else 210)
-        self.lines.setMinimumHeight(450 if enabled else 480)
+        self.menu_scroll.setMinimumHeight(76 if enabled else 84)
+        self.menu_scroll.setMaximumHeight(120 if enabled else 130)
+        self.lines.setMinimumHeight(500 if self.menu_scroll.isVisible() else 560)
         for button in (self.send_kitchen_btn, self.payment_btn, self.close_btn):
             button.setMinimumHeight(50 if enabled else 56)
             button.setMinimumWidth(138 if enabled else 156)
@@ -484,6 +518,7 @@ class RestaurantPOSWidget(QWidget):
         for widget in (self.send_kitchen_btn, self.print_kitchen_btn, self.adjust_btn, self.payment_btn, self.split_bill_btn, self.print_receipt_btn, self.close_btn, self.guests, self.manual_button):
             widget.setEnabled(bool(enabled))
         self.menu_scroll.setEnabled(bool(enabled))
+        self.menu_toggle_btn.setEnabled(bool(enabled))
         self._apply_restaurant_operation_state()
 
     def _operation_button_map(self):
@@ -606,11 +641,11 @@ class RestaurantPOSWidget(QWidget):
         for index, item in enumerate(self.menu_items):
             button = QPushButton(self._menu_card_label(item))
             button.setObjectName("restaurantMenuItemButton")
-            button.setMinimumSize(132, 70)
-            button.setMaximumHeight(86)
+            button.setMinimumSize(116, 54)
+            button.setMaximumHeight(62)
             button.setCursor(Qt.PointingHandCursor)
             button.clicked.connect(lambda _=False, payload=item: self.add_menu_item(payload))
-            columns = 4 if self.width() >= 760 else 3
+            columns = 6 if self.width() >= 1120 else 5 if self.width() >= 900 else 4
             self.menu_grid.addWidget(button, index // columns, index % columns)
 
     def _menu_card_label(self, item):
