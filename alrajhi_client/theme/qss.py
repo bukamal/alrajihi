@@ -455,6 +455,28 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['text_muted']};
             background-color: {colors['bg_table']};
         }}
+        QToolButton#restaurantTableOperationsMenuButton {
+            background-color: {colors['primary']};
+            color: white;
+            border: none;
+            border-radius: {radius_md}px;
+            padding: 7px 14px;
+            font-weight: 900;
+        }
+        QSplitter#restaurantOperationSplitter[restaurant_layout_mode="compact"]::handle {
+            background-color: {colors['border']};
+            width: 4px;
+        }
+        QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QLabel#restaurantDashboardTitle {
+            font-size: 18px;
+        }
+        QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantOrderModeButton,
+        QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantKitchenModeButton,
+        QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantAnalyticsModeButton,
+        QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantRefreshButton {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
         QLabel#restaurantMenuSectionTitle {{
             font-size: 15px;
             font-weight: 900;
@@ -682,6 +704,24 @@ def build_global_qss(colors: dict) -> str:
             background-color: {colors['brand_soft']};
             border-color: {colors['primary']};
         }}
+
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QLabel#restaurantPOSTitle {
+            font-size: 15px;
+        }
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QLabel#restaurantSessionMeta {
+            font-size: 11px;
+        }
+        QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] {
+            padding: 0px;
+        }
+        QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] QLabel#restaurantOrderSummaryLabel {
+            font-size: 11px;
+        }
+        QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] QLabel#restaurantOrderSummaryValue_total,
+        QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] QLabel#restaurantOrderSummaryValue_paid,
+        QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] QLabel#restaurantOrderSummaryValue_remaining {
+            font-size: 13px;
+        }
 
         QLabel#restaurantKDSCounter_sent,
         QLabel#restaurantKDSCounter_preparing,

@@ -238,6 +238,7 @@ class RestaurantPOSWidget(QWidget):
         self.service = service
         self.session = None
         self.menu_items = []
+        self._restaurant_compact_mode = False
         self.setObjectName("restaurantPOSWidget")
         self.setLayoutDirection(qt_layout_direction())
         root = QVBoxLayout(self)
@@ -285,6 +286,7 @@ class RestaurantPOSWidget(QWidget):
         summary_grid.setContentsMargins(10, 8, 10, 8)
         summary_grid.setSpacing(8)
         self.summary_values = {}
+        self.summary_metric_widgets = {}
         summary_items = [
             ("subtotal", "restaurant.subtotal"),
             ("discount", "restaurant.discount"),
@@ -308,6 +310,7 @@ class RestaurantPOSWidget(QWidget):
             metric_layout.addWidget(label)
             metric_layout.addWidget(value)
             self.summary_values[name] = value
+            self.summary_metric_widgets[name] = metric
             summary_grid.addWidget(metric, index // 4, index % 4)
         root.addWidget(self.summary_card)
 
@@ -342,6 +345,7 @@ class RestaurantPOSWidget(QWidget):
             self.adjust_btn, self.send_kitchen_btn, self.print_kitchen_btn,
             self.payment_btn, self.split_bill_btn, self.print_receipt_btn, self.close_btn,
         )
+        self.action_group_frames = []
         actions_card = QFrame()
         actions_card.setObjectName("restaurantActionGroups")
         actions = QHBoxLayout(actions_card)
@@ -369,6 +373,7 @@ class RestaurantPOSWidget(QWidget):
                 button.setMinimumWidth(116)
                 row.addWidget(button)
             group_layout.addLayout(row)
+            self.action_group_frames.append(group)
             actions.addWidget(group, 1)
         root.addWidget(actions_card)
 
@@ -419,6 +424,32 @@ class RestaurantPOSWidget(QWidget):
         self.close_btn.clicked.connect(self.checkout_session)
         self._set_enabled(False)
         self.reload_menu()
+
+    def set_restaurant_compact_mode(self, enabled: bool) -> None:
+        """Reduce secondary visual density when the restaurant shell is narrow.
+
+        Phase 296: compact mode keeps the working order usable by showing only
+        the financially decisive summary values and by reducing action button
+        height.  It does not disable any operation.
+        """
+        enabled = bool(enabled)
+        if enabled == getattr(self, "_restaurant_compact_mode", False):
+            return
+        self._restaurant_compact_mode = enabled
+        self.setProperty("restaurant_compact_mode", "true" if enabled else "false")
+        self.summary_card.setProperty("restaurant_compact_mode", "true" if enabled else "false")
+        decisive = {"total", "paid", "remaining"}
+        for name, widget in getattr(self, "summary_metric_widgets", {}).items():
+            widget.setVisible((not enabled) or name in decisive)
+        self.total_label.setVisible(not enabled)
+        self.menu_scroll.setMinimumHeight(110 if enabled else 150)
+        self.lines.setMinimumHeight(260 if enabled else 340)
+        for button in getattr(self, "_restaurant_action_buttons", ()):  # visual density only
+            button.setMinimumHeight(50 if enabled else 66)
+            button.setMinimumWidth(92 if enabled else 116)
+        for widget in (self, self.summary_card):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
 
     def load_session(self, session):
         if not session:

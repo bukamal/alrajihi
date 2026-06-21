@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QResizeEvent
 from PyQt5.QtWidgets import (
-    QComboBox, QDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QSpinBox, QSplitter, QStackedWidget, QVBoxLayout, QWidget
+    QAction, QComboBox, QDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QMenu, QPushButton,
+    QScrollArea, QSizePolicy, QSpinBox, QSplitter, QStackedWidget, QToolButton, QVBoxLayout, QWidget
 )
 
 from core.services.restaurant_service import restaurant_service
@@ -112,6 +113,26 @@ class RestaurantTableTargetDialog(QDialog):
     def selected_table(self) -> dict:
         return self.table_combo.currentData() or {}
 
+
+
+RESTAURANT_RESPONSIVE_BREAKPOINTS = {"compact": 1280, "wide": 1600}
+RESTAURANT_ORDER_SPLITTER_SIZES = {
+    "compact": [360, 780, 0],
+    "standard": [430, 860, 0],
+    "wide": [500, 1020, 0],
+}
+RESTAURANT_KITCHEN_SPLITTER_SIZES = {
+    "compact": [360, 0, 780],
+    "standard": [360, 0, 860],
+    "wide": [420, 700, 560],
+}
+RESTAURANT_ANALYTICS_SPLITTER_SIZES = {
+    "compact": [360, 0, 780],
+    "standard": [380, 0, 820],
+    "wide": [420, 700, 520],
+}
+
+
 class RestaurantDashboard(QWidget):
     """Unified Restaurant Operation Shell.
 
@@ -126,11 +147,13 @@ class RestaurantDashboard(QWidget):
         self.service = restaurant_service
         self._last_tables: list[dict] = []
         self._ui_settings = self._restaurant_ui_settings()
+        self._current_mode = "order"
+        self._responsive_layout_mode = "standard"
         self.setObjectName("restaurantDashboard")
         self.setLayoutDirection(qt_layout_direction())
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(10)
 
         header_card = QFrame()
         header_card.setObjectName("restaurantHeaderCard")
@@ -172,10 +195,24 @@ class RestaurantDashboard(QWidget):
         self.transfer_table_btn = QPushButton("↔  " + _("restaurant.transfer_table"))
         self.merge_table_btn = QPushButton("🔗  " + _("restaurant.merge_tables"))
         self.move_line_btn = QPushButton("➡  " + _("restaurant.move_selected_line"))
+        self.table_ops_menu_btn = QToolButton()
+        self.table_ops_menu_btn.setObjectName("restaurantTableOperationsMenuButton")
+        self.table_ops_menu_btn.setText("⋯  " + _("restaurant.table_operations"))
+        self.table_ops_menu_btn.setPopupMode(QToolButton.InstantPopup)
+        self.table_ops_menu = QMenu(self.table_ops_menu_btn)
+        self.table_ops_menu_btn.setMenu(self.table_ops_menu)
+        self._table_ops_action_map = []
         for button in (self.reserve_table_btn, self.transfer_table_btn, self.merge_table_btn, self.move_line_btn):
             button.setObjectName("restaurantTableOperationButton")
             button.setMinimumHeight(40)
+            button.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Fixed)
             ops.addWidget(button)
+            action = QAction(button.text(), self)
+            action.triggered.connect(button.click)
+            self.table_ops_menu.addAction(action)
+            self._table_ops_action_map.append((button, action))
+        self.table_ops_menu_btn.setMinimumHeight(40)
+        ops.addWidget(self.table_ops_menu_btn)
         layout.addWidget(self.table_ops_card)
 
         self.splitter = QSplitter(Qt.Horizontal)
@@ -183,12 +220,14 @@ class RestaurantDashboard(QWidget):
         self.table_map = RestaurantTableMapWidget(density=self._ui_settings.get("table_card_density"))
         self.table_map.setObjectName("restaurantTableMapPane")
         self.table_map.tableClicked.connect(self.open_table)
+        self.table_map.setMinimumWidth(320)
         self.splitter.addWidget(self.table_map)
 
         self.pos = RestaurantPOSWidget(self.service)
         self.pos.setObjectName("restaurantPOSPane")
         self.pos.sessionClosed.connect(self.reload)
         self.pos.kitchenSent.connect(lambda _payload: self._after_kitchen_sent())
+        self.pos.setMinimumWidth(460)
         self.splitter.addWidget(self.pos)
 
         self.side_stack = QStackedWidget()
@@ -199,6 +238,7 @@ class RestaurantDashboard(QWidget):
         self.analytics.setObjectName("restaurantAnalyticsPane")
         self.side_stack.addWidget(self.kds)
         self.side_stack.addWidget(self.analytics)
+        self.side_stack.setMinimumWidth(420)
         self.splitter.addWidget(self.side_stack)
         self.splitter.setStretchFactor(0, 3)
         self.splitter.setStretchFactor(1, 6)
@@ -237,16 +277,72 @@ class RestaurantDashboard(QWidget):
             button.style().unpolish(button)
             button.style().polish(button)
 
+    def resizeEvent(self, event: QResizeEvent):  # pragma: no cover - Qt callback
+        super().resizeEvent(event)
+        self._apply_responsive_layout()
+
+    def _resolve_responsive_layout_mode(self) -> str:
+        width = max(0, int(self.width() or 0))
+        if width and width < RESTAURANT_RESPONSIVE_BREAKPOINTS["compact"]:
+            return "compact"
+        if width >= RESTAURANT_RESPONSIVE_BREAKPOINTS["wide"]:
+            return "wide"
+        return "standard"
+
+    def _splitter_sizes_for_mode(self, mode: str, layout_mode: str | None = None) -> list[int]:
+        layout_mode = layout_mode or self._responsive_layout_mode
+        if mode == "kitchen":
+            return RESTAURANT_KITCHEN_SPLITTER_SIZES.get(layout_mode, RESTAURANT_KITCHEN_SPLITTER_SIZES["standard"])
+        if mode == "analytics":
+            return RESTAURANT_ANALYTICS_SPLITTER_SIZES.get(layout_mode, RESTAURANT_ANALYTICS_SPLITTER_SIZES["standard"])
+        return RESTAURANT_ORDER_SPLITTER_SIZES.get(layout_mode, RESTAURANT_ORDER_SPLITTER_SIZES["standard"])
+
+    def _apply_responsive_layout(self) -> None:
+        layout_mode = self._resolve_responsive_layout_mode()
+        self._responsive_layout_mode = layout_mode
+        compact = layout_mode == "compact"
+        wide = layout_mode == "wide"
+        self.setProperty("restaurant_layout_mode", layout_mode)
+        self.table_ops_card.setProperty("restaurant_layout_mode", layout_mode)
+        self.splitter.setProperty("restaurant_layout_mode", layout_mode)
+        for widget in (self, self.table_ops_card, self.splitter):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+        self._apply_table_operations_compact_mode(compact)
+        if hasattr(self.pos, "set_restaurant_compact_mode"):
+            self.pos.set_restaurant_compact_mode(compact or self._current_mode in {"kitchen", "analytics"})
+        self.pos.setVisible(self._current_mode == "order" or wide)
+        self.side_stack.setVisible(self._current_mode in {"kitchen", "analytics"})
+        if self._current_mode == "order":
+            self.side_stack.setVisible(False)
+            self.pos.setVisible(True)
+        self.splitter.setSizes(self._splitter_sizes_for_mode(self._current_mode, layout_mode))
+
+    def _apply_table_operations_compact_mode(self, compact: bool) -> None:
+        self.table_ops_menu_btn.setVisible(bool(compact))
+        for button, action in self._table_ops_action_map:
+            button.setVisible((not compact) and restaurant_operation_policy.is_enabled_by_settings(self._operation_for_button(button)))
+            action.setVisible(restaurant_operation_policy.is_enabled_by_settings(self._operation_for_button(button)))
+            action.setEnabled(button.isEnabled())
+
+    def _operation_for_button(self, button) -> str:
+        return {
+            self.reserve_table_btn: restaurant_operation_policy.OP_RESERVE_TABLE,
+            self.transfer_table_btn: restaurant_operation_policy.OP_TRANSFER_TABLE,
+            self.merge_table_btn: restaurant_operation_policy.OP_MERGE_TABLES,
+            self.move_line_btn: restaurant_operation_policy.OP_MOVE_ORDER_LINE,
+        }.get(button, "")
+
     def show_order_mode(self):
-        self.side_stack.setVisible(False)
-        self.splitter.setSizes([390, 850, 0])
+        self._current_mode = "order"
         self._set_mode_button_state("order")
+        self._apply_responsive_layout()
 
     def show_kitchen_mode(self):
+        self._current_mode = "kitchen"
         self.side_stack.setCurrentWidget(self.kds)
-        self.side_stack.setVisible(True)
-        self.splitter.setSizes([330, 650, 360])
         self._set_mode_button_state("kitchen")
+        self._apply_responsive_layout()
         try:
             self.kds.reload()
         except Exception:
@@ -255,10 +351,10 @@ class RestaurantDashboard(QWidget):
     def show_analytics_mode(self):
         if not self._ui_settings.get("show_analytics_panel"):
             return
+        self._current_mode = "analytics"
         self.side_stack.setCurrentWidget(self.analytics)
-        self.side_stack.setVisible(True)
-        self.splitter.setSizes([330, 650, 300])
         self._set_mode_button_state("analytics")
+        self._apply_responsive_layout()
         try:
             self.analytics.reload()
         except Exception:
@@ -363,6 +459,7 @@ class RestaurantDashboard(QWidget):
         self.transfer_table_btn.setEnabled(can_transfer and has_session and bool(self._free_tables(include_reserved=True, exclude_table_id=self._current_table_id())))
         self.merge_table_btn.setEnabled(can_merge and has_session and bool(self._other_active_tables()))
         self.move_line_btn.setEnabled(can_move_line and has_session and has_selected_line and bool([t for t in self._last_tables or [] if int(t.get("id") or 0) != int(self._current_table_id() or 0)]))
+        self._apply_table_operations_compact_mode(self._responsive_layout_mode == "compact")
 
     def reserve_table(self) -> None:
         try:

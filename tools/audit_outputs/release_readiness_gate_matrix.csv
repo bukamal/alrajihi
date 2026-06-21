@@ -29,4 +29,5 @@ restaurant_ui_visual_cleanup,restaurant,Restaurant UI visual cleanup,292,tests/t
 restaurant_table_operations,restaurant,Restaurant table operations hardening,293,tests/test_phase293_restaurant_table_operations_hardening.py,True,,True,True
 restaurant_settings_printer_routing,restaurant,Restaurant settings and printer routing,294,tests/test_phase294_restaurant_settings_printer_routing.py,True,,True,True
 restaurant_operation_governance,restaurant,Restaurant operation governance enforcement,295,tests/test_phase295_restaurant_operation_governance_enforcement.py,True,,True,True
+restaurant_responsive_workspace,restaurant,Restaurant responsive workspace stabilization,296,tests/test_phase296_restaurant_responsive_workspace_stabilization.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True
