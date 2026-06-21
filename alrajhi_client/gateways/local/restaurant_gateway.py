@@ -7,31 +7,58 @@ from typing import Any
 
 from database.connection import DatabaseConnection
 from gateways.restaurant_gateway import RestaurantGateway
-from features.restaurant.restaurant_order_state import (
-    db_table_status_for,
-    derive_order_state,
-    derive_table_state,
-    kitchen_state_from_lines,
-    line_counts,
-)
-from features.restaurant.kitchen_display_state import ACTIVE_KITCHEN_STATUSES, sort_kitchen_tickets
-from features.restaurant.restaurant_inventory_recipe_policy import (
-    MANUFACTURING_BOM_SOURCE,
-    RESTAURANT_CONSUME_MOVEMENT_TYPE,
-    RESTAURANT_RECIPE_SOURCE,
-    consumption_source_key,
-    movement_note,
-    required_component_quantity,
-)
-from features.restaurant.restaurant_payment_split_policy import (
-    cap_payment,
-    line_amount,
-    normalize_payment_method,
-    remaining_amount,
-    require_payment_ready,
-    split_bill_summary,
-    split_status,
-)
+try:  # normal client runtime where alrajhi_client is on sys.path
+    from features.restaurant.restaurant_order_state import (
+        db_table_status_for,
+        derive_order_state,
+        derive_table_state,
+        kitchen_state_from_lines,
+        line_counts,
+    )
+    from features.restaurant.kitchen_display_state import ACTIVE_KITCHEN_STATUSES, sort_kitchen_tickets
+    from features.restaurant.restaurant_inventory_recipe_policy import (
+        MANUFACTURING_BOM_SOURCE,
+        RESTAURANT_CONSUME_MOVEMENT_TYPE,
+        RESTAURANT_RECIPE_SOURCE,
+        consumption_source_key,
+        movement_note,
+        required_component_quantity,
+    )
+    from features.restaurant.restaurant_payment_split_policy import (
+        cap_payment,
+        line_amount,
+        normalize_payment_method,
+        remaining_amount,
+        require_payment_ready,
+        split_bill_summary,
+        split_status,
+    )
+except ModuleNotFoundError:  # direct file-load tests or external import paths
+    from alrajhi_client.features.restaurant.restaurant_order_state import (
+        db_table_status_for,
+        derive_order_state,
+        derive_table_state,
+        kitchen_state_from_lines,
+        line_counts,
+    )
+    from alrajhi_client.features.restaurant.kitchen_display_state import ACTIVE_KITCHEN_STATUSES, sort_kitchen_tickets
+    from alrajhi_client.features.restaurant.restaurant_inventory_recipe_policy import (
+        MANUFACTURING_BOM_SOURCE,
+        RESTAURANT_CONSUME_MOVEMENT_TYPE,
+        RESTAURANT_RECIPE_SOURCE,
+        consumption_source_key,
+        movement_note,
+        required_component_quantity,
+    )
+    from alrajhi_client.features.restaurant.restaurant_payment_split_policy import (
+        cap_payment,
+        line_amount,
+        normalize_payment_method,
+        remaining_amount,
+        require_payment_ready,
+        split_bill_summary,
+        split_status,
+    )
 
 
 class LocalRestaurantGateway(RestaurantGateway):
