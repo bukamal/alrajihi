@@ -45,4 +45,5 @@ cafe_sizes_modifiers,restaurant,Cafe sizes and modifiers on restaurant order lin
 cafe_workspace_shell,restaurant,Cafe workspace shell and barista context,309,tests/test_phase309_cafe_workspace_shell.py,True,,True,True
 cafe_inventory_shift_report,restaurant,Cafe inventory and shift report,310,tests/test_phase310_cafe_inventory_shift_report.py,True,,True,True
 cafe_runtime_acceptance,restaurant,Cafe runtime acceptance,311,tests/test_phase311_cafe_runtime_acceptance.py,True,,True,True
+cafe_analytics_fstring_hotfix,restaurant,Cafe analytics f-string hotfix,312,tests/test_phase312_cafe_analytics_fstring_hotfix.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

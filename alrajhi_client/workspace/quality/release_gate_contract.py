@@ -104,6 +104,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (309, "CAFE_WORKSPACE_SHELL"),
         (310, "CAFE_INVENTORY_SHIFT_REPORT"),
         (311, "CAFE_RUNTIME_ACCEPTANCE"),
+        (312, "CAFE_ANALYTICS_FSTRING_HOTFIX"),
     ]
 )
 
@@ -173,6 +174,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (309, "cafe_workspace_shell"),
         (310, "cafe_inventory_shift_report"),
         (311, "cafe_runtime_acceptance"),
+        (312, "cafe_analytics_fstring_hotfix"),
     ]
 )
 
@@ -223,6 +225,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("cafe_workspace_shell", "restaurant", "Cafe workspace shell and barista context", "tests/test_phase309_cafe_workspace_shell.py", phase=309),
     ReleaseGateCheck("cafe_inventory_shift_report", "restaurant", "Cafe inventory and shift report", "tests/test_phase310_cafe_inventory_shift_report.py", phase=310),
     ReleaseGateCheck("cafe_runtime_acceptance", "restaurant", "Cafe runtime acceptance", "tests/test_phase311_cafe_runtime_acceptance.py", phase=311),
+    ReleaseGateCheck("cafe_analytics_fstring_hotfix", "restaurant", "Cafe analytics f-string hotfix", "tests/test_phase312_cafe_analytics_fstring_hotfix.py", phase=312),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

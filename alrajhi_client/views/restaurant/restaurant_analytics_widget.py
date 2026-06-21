@@ -81,7 +81,10 @@ class RestaurantAnalyticsWidget(QWidget):
                 self.labels["shift_close_status"].setText(_("restaurant.shift.can_close") if controls.get("can_close_shift") else _("restaurant.shift.blocked"))
                 top_modifiers = payload.get("top_modifiers") or []
                 low_stock = payload.get("low_stock_alerts") or []
-                self.status.setText(f"{_("restaurant.cafe_top_modifier")}: {((top_modifiers[0] if top_modifiers else {}).get('name') or '—')} — {_("restaurant.cafe_low_stock_alerts")}: {len(low_stock)}")
+                top_modifier_label = _("restaurant.cafe_top_modifier")
+                low_stock_label = _("restaurant.cafe_low_stock_alerts")
+                top_modifier_name = (top_modifiers[0] if top_modifiers else {}).get("name") or "—"
+                self.status.setText(f"{top_modifier_label}: {top_modifier_name} — {low_stock_label}: {len(low_stock)}")
                 return
             payload: dict[str, Any] = self.service.restaurant_analytics()
             summary = payload.get("summary") or {}
