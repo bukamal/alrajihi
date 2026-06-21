@@ -7225,3 +7225,42 @@ for _lang, _values in _PHASE293_TRANSLATIONS.items():
         _translations.setdefault(_lang, {}).update(_values)
     except Exception:
         pass
+
+# Phase 294: restaurant settings and printer-routing labels.
+_PHASE294_TRANSLATIONS = {
+    'ar': {
+        'restaurant_settings_printer_routing': 'إعدادات المطعم وتوجيه الطباعة',
+        'session_summary_paper': 'ورق ملخص جلسة المطعم',
+        'restaurant_receipt_printer': 'طابعة إيصال المطعم',
+        'restaurant_kitchen_printer': 'طابعة تذكرة المطبخ',
+        'restaurant_session_summary_printer': 'طابعة ملخص الجلسة',
+        'auto_print_kitchen_ticket': 'طباعة تذكرة المطبخ تلقائيًا بعد الإرسال',
+        'auto_print_receipt_after_checkout': 'طباعة إيصال العميل تلقائيًا بعد الإغلاق',
+        'auto_print_session_summary_after_checkout': 'طباعة ملخص الجلسة تلقائيًا بعد الإغلاق',
+    },
+    'de': {
+        'restaurant_settings_printer_routing': 'Restaurant-Einstellungen und Druckrouting',
+        'session_summary_paper': 'Papier für Sitzungssummary',
+        'restaurant_receipt_printer': 'Restaurant-Belegdrucker',
+        'restaurant_kitchen_printer': 'Küchenbondrucker',
+        'restaurant_session_summary_printer': 'Sitzungssummary-Drucker',
+        'auto_print_kitchen_ticket': 'Küchenbon nach Senden automatisch drucken',
+        'auto_print_receipt_after_checkout': 'Kundenbeleg nach Abschluss automatisch drucken',
+        'auto_print_session_summary_after_checkout': 'Sitzungssummary nach Abschluss automatisch drucken',
+    },
+    'en': {
+        'restaurant_settings_printer_routing': 'Restaurant settings and printer routing',
+        'session_summary_paper': 'Restaurant session summary paper',
+        'restaurant_receipt_printer': 'Restaurant receipt printer',
+        'restaurant_kitchen_printer': 'Kitchen ticket printer',
+        'restaurant_session_summary_printer': 'Session summary printer',
+        'auto_print_kitchen_ticket': 'Auto-print kitchen ticket after send',
+        'auto_print_receipt_after_checkout': 'Auto-print customer receipt after checkout',
+        'auto_print_session_summary_after_checkout': 'Auto-print session summary after checkout',
+    },
+}
+for _lang, _values in _PHASE294_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass

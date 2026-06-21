@@ -15,6 +15,7 @@ from core.services.restaurant_operation_policy import restaurant_operation_polic
 from core.services.restaurant_service import restaurant_service
 from core.services.settings_service import settings_service
 from printing.printing_service import printing_service
+from features.restaurant.restaurant_settings_contract import restaurant_print_route
 
 
 class RestaurantPrintingBridge:
@@ -22,16 +23,20 @@ class RestaurantPrintingBridge:
         self.service = service or restaurant_service
         self.printer = printer or printing_service
 
-    def _paper(self, kind: str = "receipt") -> str:
+    def _route(self, kind: str = "receipt") -> Dict[str, Any]:
         try:
-            settings = settings_service.get_restaurant_settings()
-            if kind == "kitchen":
-                return str(settings.get("kitchen_ticket_paper") or settings.get("receipt_paper") or "thermal")
-            if kind == "session_summary":
-                return str(settings.get("session_summary_paper") or settings.get("receipt_paper") or "thermal")
-            return str(settings.get("receipt_paper") or "thermal")
+            return restaurant_print_route(kind, settings_service.get_restaurant_settings())
         except Exception:
-            return "thermal"
+            return {"document_type": f"restaurant_{kind}", "paper": "80mm", "printer": "", "auto_print": False}
+
+    def _paper(self, kind: str = "receipt") -> str:
+        return str(self._route(kind).get("paper") or "80mm")
+
+    def _attach_route(self, payload: Dict[str, Any], kind: str) -> Dict[str, Any]:
+        data = dict(payload or {})
+        data["print_kind"] = "kitchen" if kind == "kitchen" else kind
+        data["print_route"] = self._route(kind)
+        return data
 
     def receipt_payload(self, session_id: int) -> Dict[str, Any]:
         session = self.service.get_session(int(session_id))
@@ -41,15 +46,14 @@ class RestaurantPrintingBridge:
             split_bills = self.service.list_split_bills(int(session_id))
         except Exception:
             split_bills = []
-        return {"session": session, "balance": balance, "split_bills": split_bills}
+        return self._attach_route({"session": session, "balance": balance, "split_bills": split_bills}, "receipt")
 
     def session_summary_payload(self, session_id: int) -> Dict[str, Any]:
         payload = self.receipt_payload(session_id)
-        payload["print_kind"] = "session_summary"
-        return payload
+        return self._attach_route(payload, "session_summary")
 
     def kitchen_ticket_payload(self, ticket_id: int) -> Dict[str, Any]:
-        return self.service.get_kitchen_ticket(int(ticket_id))
+        return self._attach_route(self.service.get_kitchen_ticket(int(ticket_id)), "kitchen")
 
     def receipt_preview(self, session_id: int, parent=None) -> bool:
         return self.receipt_print(session_id, parent)
@@ -58,7 +62,7 @@ class RestaurantPrintingBridge:
         restaurant_operation_policy.require(restaurant_operation_policy.OP_PRINT_RECEIPT)
         payload = self.receipt_payload(session_id)
         ok = self.printer.restaurant_receipt_print(payload, parent, paper=self._paper("receipt"))
-        restaurant_operation_policy.log(restaurant_operation_policy.OP_PRINT_RECEIPT, allowed=bool(ok), context="restaurant_printing.receipt_print", values={"session_id": session_id})
+        restaurant_operation_policy.log(restaurant_operation_policy.OP_PRINT_RECEIPT, allowed=bool(ok), context="restaurant_printing.receipt_print", values={"session_id": session_id, "route": self._route("receipt")})
         return bool(ok)
 
     def receipt_pdf(self, session_id: int, parent=None) -> bool:
@@ -71,7 +75,7 @@ class RestaurantPrintingBridge:
         restaurant_operation_policy.require(restaurant_operation_policy.OP_PRINT_RECEIPT)
         payload = self.session_summary_payload(session_id)
         ok = self.printer.restaurant_session_summary_print(payload, parent, paper=self._paper("session_summary"))
-        restaurant_operation_policy.log(restaurant_operation_policy.OP_PRINT_RECEIPT, allowed=bool(ok), context="restaurant_printing.session_summary_print", values={"session_id": session_id})
+        restaurant_operation_policy.log(restaurant_operation_policy.OP_PRINT_RECEIPT, allowed=bool(ok), context="restaurant_printing.session_summary_print", values={"session_id": session_id, "route": self._route("session_summary")})
         return bool(ok)
 
     def session_summary_pdf(self, session_id: int, parent=None) -> bool:
@@ -89,7 +93,7 @@ class RestaurantPrintingBridge:
                 self.service.queue_ticket_print(int(ticket_id), job_type="kot")
             except Exception:
                 pass
-        restaurant_operation_policy.log(restaurant_operation_policy.OP_PRINT_KITCHEN_TICKET, allowed=bool(ok), context="restaurant_printing.ticket_print", values={"ticket_id": ticket_id})
+        restaurant_operation_policy.log(restaurant_operation_policy.OP_PRINT_KITCHEN_TICKET, allowed=bool(ok), context="restaurant_printing.ticket_print", values={"ticket_id": ticket_id, "route": self._route("kitchen")})
         return bool(ok)
 
     def kitchen_tickets_print(self, tickets: Iterable[Dict[str, Any]], parent=None) -> int:

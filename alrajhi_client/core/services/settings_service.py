@@ -149,6 +149,9 @@ class SettingsService:
             'barcode_show_name': self.get('printing/barcode/show_name', 'true').lower() == 'true',
             'barcode_show_price': self.get('printing/barcode/show_price', 'true').lower() == 'true',
             'barcode_show_text': self.get('printing/barcode/show_text', 'true').lower() == 'true',
+            'restaurant_receipt_printer': self.get('restaurant/printing/receipt_printer', ''),
+            'restaurant_kitchen_printer': self.get('restaurant/printing/kitchen_printer', ''),
+            'restaurant_session_summary_printer': self.get('restaurant/printing/session_summary_printer', ''),
         }
 
     def save_printing_settings(self, invoice_template: str = 'a4', show_logo: bool = True,
@@ -362,9 +365,9 @@ class SettingsService:
         if density not in ('compact', 'comfortable', 'touch'):
             density = 'touch'
         payment = self.get('restaurant/default_payment_method', self.get('pos/default_payment_method', self.get('transactions/default_payment_method', 'cash'))) or 'cash'
-        if payment not in ('cash', 'card', 'credit', 'bank_transfer', 'bank'):
+        if payment not in ('cash', 'card', 'credit', 'bank_transfer', 'bank', 'mixed'):
             payment = 'cash'
-        return {
+        raw_restaurant_settings = {
             'enabled': self.get_bool('restaurant/enabled', True),
             'ui_language': language.get('ui_language', self.get_language()),
             'print_language': language.get('print_language', self.print_language()),
@@ -405,8 +408,19 @@ class SettingsService:
                 'confirm_checkout': self.get_bool('restaurant/operations/confirm_checkout', True),
                 'require_kitchen_before_checkout': self.get_bool('restaurant/operations/require_kitchen_before_checkout', False),
             },
+            'service_charge_percent': self.get('restaurant/service_charge_percent', '0') or '0',
+            'default_tax_percent': self.get('restaurant/default_tax_percent', '0') or '0',
+            'consume_inventory_on': self.get('restaurant/consume_inventory_on', 'checkout') or 'checkout',
+            'receipt_printer': self.get('restaurant/printing/receipt_printer', '') or '',
+            'kitchen_printer': self.get('restaurant/printing/kitchen_printer', '') or '',
+            'session_summary_printer': self.get('restaurant/printing/session_summary_printer', '') or '',
             'settings_profile_id': int((profile or {}).get('id') or 1),
         }
+        try:
+            from features.restaurant.restaurant_settings_contract import normalize_restaurant_settings
+            return normalize_restaurant_settings(raw_restaurant_settings)
+        except Exception:
+            return raw_restaurant_settings
 
     def save_pos_settings(self, use_shifts: bool = False, touch_density: str | None = None,
                           default_payment_method: str | None = None):

@@ -15,6 +15,7 @@ from core.services.barcode_input_service import barcode_input_service
 from core.services.restaurant_operation_policy import restaurant_operation_policy
 from core.services.settings_service import settings_service
 from features.restaurant.restaurant_printing_bridge import restaurant_printing_bridge
+from features.restaurant.restaurant_settings_contract import restaurant_should_auto_print
 from features.restaurant.restaurant_order_grid import RestaurantOrderGrid
 from features.restaurant.restaurant_order_model import RestaurantOrderModel
 from currency import currency
@@ -721,7 +722,7 @@ class RestaurantPOSWidget(QWidget):
                 settings = settings_service.get_restaurant_settings()
             except Exception:
                 settings = {}
-            if tickets and settings.get("operations", {}).get("auto_print_kitchen_ticket"):
+            if tickets and restaurant_should_auto_print("kitchen", settings):
                 try:
                     restaurant_printing_bridge.kitchen_tickets_print(tickets, self)
                 except Exception as print_exc:
@@ -845,9 +846,14 @@ class RestaurantPOSWidget(QWidget):
                 settings = settings_service.get_restaurant_settings()
             except Exception:
                 settings = {}
-            if settings.get("operations", {}).get("auto_print_receipt_after_checkout"):
+            if restaurant_should_auto_print("receipt", settings):
                 try:
                     restaurant_printing_bridge.receipt_print(session_id, self)
+                except Exception as print_exc:
+                    self.status.setText(str(print_exc))
+            if restaurant_should_auto_print("session_summary", settings):
+                try:
+                    restaurant_printing_bridge.session_summary_print(session_id, self)
                 except Exception as print_exc:
                     self.status.setText(str(print_exc))
             self.status.setText(_("restaurant.checkout_done") + (f": {reference}" if reference else ""))

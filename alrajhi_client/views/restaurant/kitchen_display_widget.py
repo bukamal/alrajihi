@@ -173,9 +173,14 @@ class KitchenDisplayWidget(QWidget):
         elapsed = ticket.get("elapsed_minutes") or 0
         overdue = "  ⚠ " + _("restaurant.kds.overdue") if ticket.get("is_overdue") else ""
         table = ticket.get('table_name') or ticket.get('table_id') or ''
+        status_label = _(f"restaurant.kds.status.{status}")
+        lines_label = _("restaurant.lines_count")
+        minutes_label = _("restaurant.kds.minutes")
+        line_count = ticket.get('line_count') or 0
+        ticket_id = ticket.get('id')
         return (
-            f"{self._status_icon(status)}  {_(f'restaurant.kds.status.{status}')} — {table}{overdue}\n"
-            f"#{ticket.get('id')}  |  {station}  |  {ticket.get('line_count') or 0} {_("restaurant.lines_count")}  |  {elapsed} {_("restaurant.kds.minutes")}"
+            f"{self._status_icon(status)}  {status_label} — {table}{overdue}\n"
+            f"#{ticket_id}  |  {station}  |  {line_count} {lines_label}  |  {elapsed} {minutes_label}"
         )
 
     def _ticket_selected(self):

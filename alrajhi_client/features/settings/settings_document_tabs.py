@@ -324,6 +324,10 @@ class RestaurantSettingsTab(SettingsSectionDocumentTab):
         ('restaurant/default_payment_method', 'default_payment_method', 'choice:cash|card|credit|bank_transfer|bank'),
         ('restaurant/receipt_paper', 'receipt_paper', 'choice:80mm|58mm'),
         ('restaurant/kitchen_ticket_paper', 'kitchen_ticket_paper', 'choice:80mm|58mm'),
+        ('restaurant/session_summary_paper', 'session_summary_paper', 'choice:80mm|58mm'),
+        ('restaurant/printing/receipt_printer', 'restaurant_receipt_printer', 'string'),
+        ('restaurant/printing/kitchen_printer', 'restaurant_kitchen_printer', 'string'),
+        ('restaurant/printing/session_summary_printer', 'restaurant_session_summary_printer', 'string'),
         ('restaurant/touch_mode', 'touch_mode', 'bool'),
         ('restaurant/ui/show_kitchen_panel', 'show_kitchen_panel', 'bool'),
         ('restaurant/ui/show_analytics_panel', 'show_analytics_panel', 'bool'),
@@ -334,6 +338,9 @@ class RestaurantSettingsTab(SettingsSectionDocumentTab):
         ('restaurant/operations/allow_checkout', 'allow_checkout', 'bool'),
         ('restaurant/operations/allow_print_receipt', 'allow_print_receipt', 'bool'),
         ('restaurant/operations/allow_print_kitchen_ticket', 'allow_print_kitchen_ticket', 'bool'),
+        ('restaurant/operations/auto_print_kitchen_ticket', 'auto_print_kitchen_ticket', 'bool'),
+        ('restaurant/operations/auto_print_receipt_after_checkout', 'auto_print_receipt_after_checkout', 'bool'),
+        ('restaurant/operations/auto_print_session_summary_after_checkout', 'auto_print_session_summary_after_checkout', 'bool'),
     )
 
 

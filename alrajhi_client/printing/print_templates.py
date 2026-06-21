@@ -1048,6 +1048,10 @@ def _restaurant_payment_method(value: Any) -> str:
 def _restaurant_printing_settings(kind: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     settings = dict(_settings())
     try:
+        route = dict((payload or {}).get("print_route") or {}) if isinstance(payload, dict) else {}
+        if route:
+            settings["restaurant_print_route"] = route
+            settings["restaurant_printer"] = route.get("printer") or ""
         svc = _settings_service()
         if svc is not None:
             restaurant_settings = svc.get_restaurant_settings() or {}
