@@ -69,7 +69,11 @@ class KitchenDisplayWidget(QWidget):
         self.counter_bar.addStretch()
         root.addLayout(self.counter_bar)
 
-        body = QHBoxLayout()
+        body_frame = QFrame()
+        body_frame.setObjectName("restaurantKDSBoardBody")
+        body = QHBoxLayout(body_frame)
+        body.setContentsMargins(10, 10, 10, 10)
+        body.setSpacing(12)
         self.tickets = QListWidget()
         self.tickets.setObjectName("restaurantKDSTickets")
         self.tickets.setMinimumWidth(320)
@@ -100,7 +104,7 @@ class KitchenDisplayWidget(QWidget):
         self.served_btn.clicked.connect(lambda: self._set_ticket_status("served"))
         detail.addLayout(actions)
         body.addWidget(detail_card, 2)
-        root.addLayout(body, 1)
+        root.addWidget(body_frame, 1)
 
         self.status = QLabel("")
         self.status.setObjectName("restaurantKDSStatus")
@@ -154,14 +158,24 @@ class KitchenDisplayWidget(QWidget):
         self.counter_labels["ready"].setText(f"✅ {_('restaurant.kds.status.ready')}: {counts['ready']}")
         self.counter_labels["overdue"].setText(f"⏱ {_('restaurant.kds.overdue')}: {counts['overdue']}")
 
+    def _status_icon(self, status: str) -> str:
+        return {
+            "sent": "📨",
+            "preparing": "🔥",
+            "ready": "✅",
+            "served": "🍽",
+            "cancelled": "🚫",
+        }.get(str(status or "sent"), "📨")
+
     def _ticket_label(self, ticket: dict) -> str:
         status = ticket.get("status") or "sent"
         station = ticket.get('station_name') or _("restaurant.kds.all_stations")
         elapsed = ticket.get("elapsed_minutes") or 0
-        overdue = "  ⚠" if ticket.get("is_overdue") else ""
+        overdue = "  ⚠ " + _("restaurant.kds.overdue") if ticket.get("is_overdue") else ""
+        table = ticket.get('table_name') or ticket.get('table_id') or ''
         return (
-            f"#{ticket.get('id')}  {ticket.get('table_name') or ticket.get('table_id') or ''} — {station}{overdue}\n"
-            f"{_(f'restaurant.kds.status.{status}')} — {ticket.get('line_count') or 0} — {elapsed} {_('restaurant.kds.minutes')}" 
+            f"{self._status_icon(status)}  {_(f'restaurant.kds.status.{status}')} — {table}{overdue}\n"
+            f"#{ticket.get('id')}  |  {station}  |  {ticket.get('line_count') or 0} {_("restaurant.lines_count")}  |  {elapsed} {_("restaurant.kds.minutes")}"
         )
 
     def _ticket_selected(self):
@@ -185,7 +199,7 @@ class KitchenDisplayWidget(QWidget):
 
     def _render_ticket(self, ticket: dict):
         status = ticket.get("status") or "sent"
-        self.detail_title.setText(f"#{ticket.get('id')} — {ticket.get('table_name') or ticket.get('table_id')} — {_(f'restaurant.kds.status.{status}')}" )
+        self.detail_title.setText(f"{self._status_icon(status)}  {_(f'restaurant.kds.status.{status}')} — {ticket.get('table_name') or ticket.get('table_id')} — #{ticket.get('id')}")
         station = ticket.get("station_name") or _("restaurant.kds.all_stations")
         elapsed = ticket.get("elapsed_minutes") or 0
         overdue = " — " + _("restaurant.kds.overdue") if ticket.get("is_overdue") else ""

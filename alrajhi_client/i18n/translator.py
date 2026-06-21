@@ -7111,3 +7111,51 @@ for _lang, _values in _PHASE290_TRANSLATIONS.items():
         _translations.setdefault(_lang, {}).update(_values)
     except Exception:
         pass
+
+# Phase 292: restaurant visual cleanup and user-facing labels.
+_PHASE292_TRANSLATIONS = {
+    'ar': {
+        'restaurant.subtotal': 'الإجمالي الفرعي',
+        'restaurant.discount': 'الخصم',
+        'restaurant.service_charge': 'رسم الخدمة',
+        'restaurant.tax': 'الضريبة',
+        'restaurant.order_financial_summary': 'ملخص الطلب المالي',
+        'restaurant.session_waiting_hint': 'اختر طاولة لبدء الطلب',
+        'restaurant.session_meta': 'الطاولة: {table} | الجلسة: {session} | الضيوف: {guests}',
+        'restaurant.action_group.order': 'الطلب',
+        'restaurant.action_group.kitchen': 'المطبخ',
+        'restaurant.action_group.payment': 'الدفع والإغلاق',
+        'restaurant.ui_visual_cleanup': 'تنظيف واجهة المطعم',
+    },
+    'de': {
+        'restaurant.subtotal': 'Zwischensumme',
+        'restaurant.discount': 'Rabatt',
+        'restaurant.service_charge': 'Servicegebühr',
+        'restaurant.tax': 'Steuer',
+        'restaurant.order_financial_summary': 'Finanzübersicht der Bestellung',
+        'restaurant.session_waiting_hint': 'Wählen Sie einen Tisch, um die Bestellung zu starten',
+        'restaurant.session_meta': 'Tisch: {table} | Sitzung: {session} | Gäste: {guests}',
+        'restaurant.action_group.order': 'Bestellung',
+        'restaurant.action_group.kitchen': 'Küche',
+        'restaurant.action_group.payment': 'Zahlung & Abschluss',
+        'restaurant.ui_visual_cleanup': 'Restaurant-UI-Bereinigung',
+    },
+    'en': {
+        'restaurant.subtotal': 'Subtotal',
+        'restaurant.discount': 'Discount',
+        'restaurant.service_charge': 'Service charge',
+        'restaurant.tax': 'Tax',
+        'restaurant.order_financial_summary': 'Order financial summary',
+        'restaurant.session_waiting_hint': 'Select a table to start the order',
+        'restaurant.session_meta': 'Table: {table} | Session: {session} | Guests: {guests}',
+        'restaurant.action_group.order': 'Order',
+        'restaurant.action_group.kitchen': 'Kitchen',
+        'restaurant.action_group.payment': 'Payment & closing',
+        'restaurant.ui_visual_cleanup': 'Restaurant UI visual cleanup',
+    },
+}
+for _lang, _values in _PHASE292_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass

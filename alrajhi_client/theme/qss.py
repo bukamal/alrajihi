@@ -549,6 +549,13 @@ def build_global_qss(colors: dict) -> str:
             padding: 10px;
             border-bottom: 1px solid {colors['border']};
         }}
+
+        QFrame#restaurantKDSBoardBody {{
+            background-color: {colors['bg_table_alt']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+
         QFrame#restaurantKDSDetailCard {{
             background-color: {colors['card_bg']};
             border: 1px solid {colors['border']};
@@ -585,6 +592,74 @@ def build_global_qss(colors: dict) -> str:
             font-weight: 800;
             padding: 4px 0 8px 0;
         }}
+
+
+        /* Phase 292: restaurant current-order visual cleanup. */
+        QFrame#restaurantOrderHeaderCard,
+        QFrame#restaurantOrderSummaryCard,
+        QFrame#restaurantActionGroups {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+        QLabel#restaurantSessionMeta,
+        QLabel#restaurantGuestLabel {{
+            color: {colors['text_secondary']};
+            font-weight: 800;
+        }}
+        QFrame#restaurantOrderSummaryMetric {{
+            background-color: {colors['bg_table_alt']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QLabel#restaurantOrderSummaryLabel {{
+            color: {colors['text_secondary']};
+            font-weight: 800;
+            font-size: 12px;
+        }}
+        QLabel#restaurantOrderSummaryValue_subtotal,
+        QLabel#restaurantOrderSummaryValue_discount,
+        QLabel#restaurantOrderSummaryValue_service_charge,
+        QLabel#restaurantOrderSummaryValue_tax,
+        QLabel#restaurantOrderSummaryValue_total,
+        QLabel#restaurantOrderSummaryValue_paid,
+        QLabel#restaurantOrderSummaryValue_remaining {{
+            color: {colors['text_primary']};
+            font-weight: 950;
+            font-size: 15px;
+        }}
+        QLabel#restaurantOrderSummaryValue_total,
+        QLabel#restaurantOrderSummaryValue_remaining {{
+            color: {colors['primary']};
+        }}
+        QFrame#restaurantActionGroup {{
+            background-color: {colors['bg_table_alt']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QLabel#restaurantActionGroupTitle {{
+            color: {colors['text_secondary']};
+            font-weight: 950;
+            padding: 0 2px 2px 2px;
+        }}
+        QPushButton#restaurantKitchenPrintButton,
+        QPushButton#restaurantAdjustButton,
+        QPushButton#restaurantSplitBillButton,
+        QPushButton#restaurantReceiptPrintButton {{
+            background-color: {colors['card_bg']};
+            color: {colors['primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            font-weight: 900;
+        }}
+        QPushButton#restaurantKitchenPrintButton:hover,
+        QPushButton#restaurantAdjustButton:hover,
+        QPushButton#restaurantSplitBillButton:hover,
+        QPushButton#restaurantReceiptPrintButton:hover {{
+            background-color: {colors['brand_soft']};
+            border-color: {colors['primary']};
+        }}
+
         QLabel#restaurantKDSCounter_sent,
         QLabel#restaurantKDSCounter_preparing,
         QLabel#restaurantKDSCounter_ready,

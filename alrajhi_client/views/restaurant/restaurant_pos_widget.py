@@ -5,7 +5,7 @@ from decimal import Decimal, InvalidOperation
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
-    QComboBox, QDialog, QFormLayout, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
+    QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QScrollArea, QSpinBox,
     QVBoxLayout, QWidget
 )
@@ -243,23 +243,72 @@ class RestaurantPOSWidget(QWidget):
         root.setContentsMargins(16, 16, 16, 16)
         root.setSpacing(10)
 
-        header = QHBoxLayout()
+        header_card = QFrame()
+        header_card.setObjectName("restaurantOrderHeaderCard")
+        header = QHBoxLayout(header_card)
+        header.setContentsMargins(12, 10, 12, 10)
+        header.setSpacing(12)
+        session_box = QVBoxLayout()
+        session_box.setSpacing(4)
         self.title = QLabel("🧾  " + _("restaurant.no_open_session"))
         self.title.setObjectName("restaurantPOSTitle")
-        header.addWidget(self.title, 1)
+        self.session_meta_label = QLabel(_("restaurant.session_waiting_hint"))
+        self.session_meta_label.setObjectName("restaurantSessionMeta")
+        session_box.addWidget(self.title)
+        session_box.addWidget(self.session_meta_label)
+        header.addLayout(session_box, 1)
+
+        guest_box = QHBoxLayout()
+        guest_box.setSpacing(6)
+        guest_label = QLabel(_("restaurant.guests"))
+        guest_label.setObjectName("restaurantGuestLabel")
         self.guests = QSpinBox()
         self.guests.setMinimum(1)
         self.guests.setMaximum(99)
         self.guests.setObjectName("restaurantGuestSpin")
         self.guests.setMinimumHeight(44)
-        header.addWidget(QLabel(_("restaurant.guests")))
-        header.addWidget(self.guests)
-        root.addLayout(header)
+        guest_box.addWidget(guest_label)
+        guest_box.addWidget(self.guests)
+        header.addLayout(guest_box)
+        root.addWidget(header_card)
 
-        self.total_label = QLabel(_("restaurant.current_total"))
+        self.total_label = QLabel(_("restaurant.order_financial_summary"))
         self.total_label.setObjectName("restaurantPOSTotal")
         self.total_label.setWordWrap(True)
+
         root.addWidget(self.total_label)
+
+        self.summary_card = QFrame()
+        self.summary_card.setObjectName("restaurantOrderSummaryCard")
+        summary_grid = QGridLayout(self.summary_card)
+        summary_grid.setContentsMargins(10, 8, 10, 8)
+        summary_grid.setSpacing(8)
+        self.summary_values = {}
+        summary_items = [
+            ("subtotal", "restaurant.subtotal"),
+            ("discount", "restaurant.discount"),
+            ("service_charge", "restaurant.service_charge"),
+            ("tax", "restaurant.tax"),
+            ("total", "restaurant.current_total"),
+            ("paid", "restaurant.paid"),
+            ("remaining", "restaurant.remaining"),
+        ]
+        for index, (name, label_key) in enumerate(summary_items):
+            metric = QFrame()
+            metric.setObjectName("restaurantOrderSummaryMetric")
+            metric_layout = QVBoxLayout(metric)
+            metric_layout.setContentsMargins(8, 5, 8, 5)
+            metric_layout.setSpacing(2)
+            label = QLabel(_(label_key))
+            label.setObjectName("restaurantOrderSummaryLabel")
+            value = QLabel(_display_money("0"))
+            value.setObjectName(f"restaurantOrderSummaryValue_{name}")
+            value.setAlignment(Qt.AlignCenter)
+            metric_layout.addWidget(label)
+            metric_layout.addWidget(value)
+            self.summary_values[name] = value
+            summary_grid.addWidget(metric, index // 4, index % 4)
+        root.addWidget(self.summary_card)
 
         self.state_label = QLabel("")
         self.state_label.setObjectName("restaurantPOSStateBadge")
@@ -274,8 +323,6 @@ class RestaurantPOSWidget(QWidget):
         self.lines.setMinimumHeight(340)
         root.addWidget(self.lines, 4)
 
-        actions = QHBoxLayout()
-        actions.setObjectName("restaurantPrimaryActions")
         self.send_kitchen_btn = QPushButton("👨‍🍳  " + _("restaurant.send_to_kitchen"))
         self.print_kitchen_btn = QPushButton("🖨  " + _("restaurant.print_kitchen_ticket"))
         self.adjust_btn = QPushButton("%  " + _("restaurant.adjust_bill"))
@@ -290,10 +337,39 @@ class RestaurantPOSWidget(QWidget):
         self.split_bill_btn.setObjectName("restaurantSplitBillButton")
         self.print_receipt_btn.setObjectName("restaurantReceiptPrintButton")
         self.close_btn.setObjectName("restaurantCloseButton")
-        for button in (self.send_kitchen_btn, self.print_kitchen_btn, self.adjust_btn, self.payment_btn, self.split_bill_btn, self.print_receipt_btn, self.close_btn):
-            button.setMinimumHeight(66)
-            actions.addWidget(button)
-        root.addLayout(actions)
+        self._restaurant_action_buttons = (
+            self.adjust_btn, self.send_kitchen_btn, self.print_kitchen_btn,
+            self.payment_btn, self.split_bill_btn, self.print_receipt_btn, self.close_btn,
+        )
+        actions_card = QFrame()
+        actions_card.setObjectName("restaurantActionGroups")
+        actions = QHBoxLayout(actions_card)
+        actions.setObjectName("restaurantPrimaryActions")
+        actions.setContentsMargins(10, 8, 10, 8)
+        actions.setSpacing(10)
+        action_groups = [
+            ("restaurant.action_group.order", (self.adjust_btn,)),
+            ("restaurant.action_group.kitchen", (self.send_kitchen_btn, self.print_kitchen_btn)),
+            ("restaurant.action_group.payment", (self.payment_btn, self.split_bill_btn, self.print_receipt_btn, self.close_btn)),
+        ]
+        for title_key, buttons in action_groups:
+            group = QFrame()
+            group.setObjectName("restaurantActionGroup")
+            group_layout = QVBoxLayout(group)
+            group_layout.setContentsMargins(8, 6, 8, 6)
+            group_layout.setSpacing(6)
+            group_title = QLabel(_(title_key))
+            group_title.setObjectName("restaurantActionGroupTitle")
+            group_layout.addWidget(group_title)
+            row = QHBoxLayout()
+            row.setSpacing(6)
+            for button in buttons:
+                button.setMinimumHeight(66)
+                button.setMinimumWidth(116)
+                row.addWidget(button)
+            group_layout.addLayout(row)
+            actions.addWidget(group, 1)
+        root.addWidget(actions_card)
 
         menu_header = QHBoxLayout()
         menu_label = QLabel("🍽  " + _("restaurant.menu_items"))
@@ -348,6 +424,7 @@ class RestaurantPOSWidget(QWidget):
             self.session = None
             self.title.setText("🧾  " + _("restaurant.no_open_session"))
             self.order_model.set_lines([])
+            self.session_meta_label.setText(_("restaurant.session_waiting_hint"))
             self.state_label.setText("")
             self.state_label.setProperty("restaurant_order_state", "empty")
             self._set_enabled(False)
@@ -356,6 +433,7 @@ class RestaurantPOSWidget(QWidget):
         self.session = self.service.get_session(int(session["id"]))
         table_name = self.session.get("table_name") or self.session.get("table_id") or ""
         self.title.setText("🧾  " + _("restaurant.active_session", table=table_name, session=self.session.get("id")))
+        self.session_meta_label.setText(_("restaurant.session_meta", table=table_name, session=self.session.get("id"), guests=self.session.get("guests") or 1))
         try:
             self.guests.setValue(int(self.session.get("guests") or 1))
         except Exception:
@@ -568,15 +646,20 @@ class RestaurantPOSWidget(QWidget):
             for line in self.session.get("lines") or []:
                 subtotal += self._line_amount(line)
         balance = self._balance() if self.session else {"total": str(subtotal), "paid": "0", "remaining": "0", "discount_amount": "0", "service_charge_amount": "0", "tax_amount": "0"}
-        self.total_label.setText(
-            _("restaurant.subtotal") + f": {_display_money(balance.get('subtotal', subtotal))}  |  "
-            + _("restaurant.discount") + f": {_display_money(balance.get('discount_amount', '0'))}  |  "
-            + _("restaurant.service_charge") + f": {_display_money(balance.get('service_charge_amount', '0'))}  |  "
-            + _("restaurant.tax") + f": {_display_money(balance.get('tax_amount', '0'))}  |  "
-            + _("restaurant.current_total") + f": {_display_money(balance.get('total', subtotal))}  |  "
-            + _("restaurant.paid") + f": {_display_money(balance.get('paid', '0'))}  |  "
-            + _("restaurant.remaining") + f": {_display_money(balance.get('remaining', '0'))}"
-        )
+        self.total_label.setText(_("restaurant.order_financial_summary"))
+        values = {
+            "subtotal": balance.get("subtotal", subtotal),
+            "discount": balance.get("discount_amount", "0"),
+            "service_charge": balance.get("service_charge_amount", "0"),
+            "tax": balance.get("tax_amount", "0"),
+            "total": balance.get("total", subtotal),
+            "paid": balance.get("paid", "0"),
+            "remaining": balance.get("remaining", "0"),
+        }
+        for key, value in values.items():
+            label = getattr(self, "summary_values", {}).get(key)
+            if label is not None:
+                label.setText(_display_money(value))
         self._last_balance = balance
         self._update_state_badge(balance)
         self._apply_restaurant_operation_state()

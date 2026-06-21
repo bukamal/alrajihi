@@ -25,4 +25,5 @@ restaurant_kds_hardening,restaurant,Restaurant KDS hardening,288,tests/test_phas
 restaurant_payment_split,restaurant,Restaurant payment and split bill hardening,289,tests/test_phase289_restaurant_payment_split_hardening.py,True,,True,True
 restaurant_printing_templates,restaurant,Restaurant printing templates hardening,290,tests/test_phase290_restaurant_printing_templates_hardening.py,True,,True,True
 restaurant_inventory_recipe,restaurant,Restaurant inventory recipe integration,291,tests/test_phase291_restaurant_inventory_recipe_integration.py,True,,True,True
+restaurant_ui_visual_cleanup,restaurant,Restaurant UI visual cleanup,292,tests/test_phase292_restaurant_ui_visual_cleanup.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True
