@@ -1,7 +1,7 @@
 {
   "phase": 277,
   "baseline_phase": 276,
-  "checks": 20,
+  "checks": 27,
   "categories": {
     "shell": 4,
     "settings": 1,
@@ -10,7 +10,9 @@
     "scenario": 2,
     "reports": 2,
     "printing": 3,
-    "packaging": 3
+    "packaging": 3,
+    "dashboard": 2,
+    "restaurant": 5
   },
   "issues": 0,
   "issue_groups": 0,

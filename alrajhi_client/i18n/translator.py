@@ -3522,6 +3522,10 @@ _translations['ar'].update({
     'restaurant.kds.status.ready': 'جاهز',
     'restaurant.kds.status.served': 'مُقدّم',
     'restaurant.kds.status.cancelled': 'ملغى',
+    'restaurant.kds.filter.active': 'النشطة',
+    'restaurant.kds.filter.all': 'كل التذاكر',
+    'restaurant.kds.overdue': 'متأخرة',
+    'restaurant.kds.minutes': 'دقيقة',
 })
 _translations['de'].update({
     'restaurant.kds.title': 'Küchenanzeige',
@@ -3538,6 +3542,10 @@ _translations['de'].update({
     'restaurant.kds.status.ready': 'Fertig',
     'restaurant.kds.status.served': 'Serviert',
     'restaurant.kds.status.cancelled': 'Storniert',
+    'restaurant.kds.filter.active': 'Aktiv',
+    'restaurant.kds.filter.all': 'Alle Tickets',
+    'restaurant.kds.overdue': 'Überfällig',
+    'restaurant.kds.minutes': 'Min.',
 })
 _translations['en'].update({
     'restaurant.kds.title': 'Kitchen display',
@@ -3554,6 +3562,10 @@ _translations['en'].update({
     'restaurant.kds.status.ready': 'Ready',
     'restaurant.kds.status.served': 'Served',
     'restaurant.kds.status.cancelled': 'Cancelled',
+    'restaurant.kds.filter.active': 'Active',
+    'restaurant.kds.filter.all': 'All tickets',
+    'restaurant.kds.overdue': 'Overdue',
+    'restaurant.kds.minutes': 'min',
 })
 
 
@@ -6924,3 +6936,178 @@ _translations['en'].update({
     'settings.show_analytics_panel': 'Show restaurant analytics inside operations screen',
     'settings.table_card_density': 'Table-card density',
 })
+
+# Phase 284: restaurant table-map filters, zones, and live counters.
+_translations['ar'].update({
+    'restaurant.table_search_placeholder': 'ابحث عن طاولة أو صالة أو حالة...',
+    'restaurant.filter.all_statuses': 'كل الحالات',
+    'restaurant.filter.all_zones': 'كل الصالات',
+    'restaurant.table_filter_empty': 'لا توجد طاولات مطابقة للفلاتر الحالية',
+})
+_translations['de'].update({
+    'restaurant.table_search_placeholder': 'Tisch, Bereich oder Status suchen...',
+    'restaurant.filter.all_statuses': 'Alle Status',
+    'restaurant.filter.all_zones': 'Alle Bereiche',
+    'restaurant.table_filter_empty': 'Keine Tische entsprechen den aktuellen Filtern',
+})
+_translations['en'].update({
+    'restaurant.table_search_placeholder': 'Search table, zone, or status...',
+    'restaurant.filter.all_statuses': 'All statuses',
+    'restaurant.filter.all_zones': 'All zones',
+    'restaurant.table_filter_empty': 'No tables match the current filters',
+})
+
+
+# Phase 285: dashboard identity layout cleanup.
+_translations['ar'].update({
+    'system_identity': 'هوية النظام',
+    'company_current_info': 'معلومات الشركة الحالية',
+    'company_info_fallback_note': 'لم يتم ضبط بيانات الشركة بعد، يتم عرض بيانات النظام مؤقتًا',
+})
+_translations['de'].update({
+    'system_identity': 'Systemidentität',
+    'company_current_info': 'Aktuelle Firmendaten',
+    'company_info_fallback_note': 'Firmendaten sind noch nicht eingerichtet; Systemdaten werden vorübergehend angezeigt',
+})
+_translations['en'].update({
+    'system_identity': 'System identity',
+    'company_current_info': 'Current company information',
+    'company_info_fallback_note': 'Company information is not configured yet; system identity is shown temporarily',
+})
+
+# Phase 286: visible dashboard identity professionalization.
+_translations['ar'].update({
+    'developer_identity_caption': 'هوية النظام والمطوّر — مستقلة عن بيانات الشركة المستخدمة',
+})
+_translations['de'].update({
+    'developer_identity_caption': 'System- und Entwickleridentität — unabhängig von den aktuellen Firmendaten',
+})
+_translations['en'].update({
+    'developer_identity_caption': 'System and developer identity — independent from current company data',
+})
+
+# Phase 287: restaurant order state machine labels.
+_translations['ar'].update({
+    'restaurant.order_state.empty': 'جلسة فارغة',
+    'restaurant.order_state.editing': 'قيد إدخال الطلب',
+    'restaurant.order_state.kitchen': 'بانتظار المطبخ',
+    'restaurant.order_state.ready': 'جاهز للتقديم',
+    'restaurant.order_state.payment_due': 'بانتظار الدفع',
+    'restaurant.order_state.paid': 'مدفوع — جاهز للإغلاق',
+    'restaurant.order_state.closed': 'مغلقة',
+})
+_translations['de'].update({
+    'restaurant.order_state.empty': 'Leere Sitzung',
+    'restaurant.order_state.editing': 'Bestellung wird erfasst',
+    'restaurant.order_state.kitchen': 'Wartet auf Küche',
+    'restaurant.order_state.ready': 'Servierbereit',
+    'restaurant.order_state.payment_due': 'Zahlung offen',
+    'restaurant.order_state.paid': 'Bezahlt — bereit zum Abschluss',
+    'restaurant.order_state.closed': 'Geschlossen',
+})
+_translations['en'].update({
+    'restaurant.order_state.empty': 'Empty session',
+    'restaurant.order_state.editing': 'Editing order',
+    'restaurant.order_state.kitchen': 'Waiting for kitchen',
+    'restaurant.order_state.ready': 'Ready to serve',
+    'restaurant.order_state.payment_due': 'Awaiting payment',
+    'restaurant.order_state.paid': 'Paid — ready to close',
+    'restaurant.order_state.closed': 'Closed',
+})
+
+# Phase 289: restaurant payment and split-bill hardening.
+_translations['ar'].update({
+    'restaurant.split_bill': 'تقسيم/دفع سطر',
+    'restaurant.create_split_bill': 'إنشاء تقسيم ودفع',
+    'restaurant.split_bill_created': 'تم إنشاء تقسيم الفاتورة',
+    'restaurant.selected_line': 'السطر المحدد',
+    'restaurant.guest_label': 'اسم الضيف/القسم',
+    'restaurant.guest': 'ضيف',
+    'restaurant.select_line_to_split': 'اختر سطرًا من الطلب لتقسيمه أو دفعه',
+    'restaurant.send_new_lines_before_split': 'أرسل السطور الجديدة إلى المطبخ قبل التقسيم أو الدفع',
+})
+_translations['de'].update({
+    'restaurant.split_bill': 'Position teilen/bezahlen',
+    'restaurant.create_split_bill': 'Teilrechnung erstellen und zahlen',
+    'restaurant.split_bill_created': 'Teilrechnung wurde erstellt',
+    'restaurant.selected_line': 'Ausgewählte Position',
+    'restaurant.guest_label': 'Gast/Gruppe',
+    'restaurant.guest': 'Gast',
+    'restaurant.select_line_to_split': 'Wählen Sie eine Bestellposition zum Teilen oder Bezahlen',
+    'restaurant.send_new_lines_before_split': 'Senden Sie neue Positionen zuerst an die Küche',
+})
+_translations['en'].update({
+    'restaurant.split_bill': 'Split/pay line',
+    'restaurant.create_split_bill': 'Create split and pay',
+    'restaurant.split_bill_created': 'Split bill created',
+    'restaurant.selected_line': 'Selected line',
+    'restaurant.guest_label': 'Guest/group label',
+    'restaurant.guest': 'Guest',
+    'restaurant.select_line_to_split': 'Select an order line to split or pay',
+    'restaurant.send_new_lines_before_split': 'Send new lines to kitchen before splitting or payment',
+})
+
+_PHASE290_TRANSLATIONS = {
+    'ar': {
+        'restaurant_session_summary': 'ملخص جلسة المطعم',
+        'restaurant_session_summary_footer': 'ملخص إغلاق داخلي للجلسة',
+        'restaurant_receipt_footer': 'شكرًا لزيارتكم',
+        'restaurant_session_summary_preview_title': 'معاينة ملخص جلسة المطعم',
+        'restaurant_session_summary_print_title': 'طباعة ملخص جلسة المطعم',
+        'restaurant_session_summary_html_preview_title': 'معاينة HTML لملخص جلسة المطعم',
+        'restaurant_order_state': 'حالة الطلب',
+        'restaurant_priority': 'الأولوية',
+        'restaurant.split_bill': 'تقسيم الفاتورة',
+        'restaurant.no_split_bills': 'لا توجد فواتير مقسمة',
+        'restaurant.payment.mixed': 'مختلط',
+        'restaurant.payment.split': 'تقسيم',
+        'restaurant.lines_count': 'عدد السطور',
+        'restaurant.payments_count': 'عدد الدفعات',
+        'restaurant.split_bills_count': 'عدد التقسيمات',
+        'restaurant.lines_total': 'إجمالي السطور',
+        'restaurant.payments_total': 'إجمالي الدفعات',
+    },
+    'de': {
+        'restaurant_session_summary': 'Restaurant-Sitzungsübersicht',
+        'restaurant_session_summary_footer': 'Interne Abschlussübersicht der Sitzung',
+        'restaurant_receipt_footer': 'Vielen Dank für Ihren Besuch',
+        'restaurant_session_summary_preview_title': 'Vorschau Restaurant-Sitzungsübersicht',
+        'restaurant_session_summary_print_title': 'Restaurant-Sitzungsübersicht drucken',
+        'restaurant_session_summary_html_preview_title': 'HTML-Vorschau Restaurant-Sitzungsübersicht',
+        'restaurant_order_state': 'Bestellstatus',
+        'restaurant_priority': 'Priorität',
+        'restaurant.split_bill': 'Geteilte Rechnung',
+        'restaurant.no_split_bills': 'Keine geteilten Rechnungen',
+        'restaurant.payment.mixed': 'Gemischt',
+        'restaurant.payment.split': 'Geteilt',
+        'restaurant.lines_count': 'Positionen',
+        'restaurant.payments_count': 'Zahlungen',
+        'restaurant.split_bills_count': 'Splits',
+        'restaurant.lines_total': 'Positionssumme',
+        'restaurant.payments_total': 'Zahlungssumme',
+    },
+    'en': {
+        'restaurant_session_summary': 'Restaurant Session Summary',
+        'restaurant_session_summary_footer': 'Internal session closing summary',
+        'restaurant_receipt_footer': 'Thank you for your visit',
+        'restaurant_session_summary_preview_title': 'Restaurant Session Summary Preview',
+        'restaurant_session_summary_print_title': 'Print Restaurant Session Summary',
+        'restaurant_session_summary_html_preview_title': 'Restaurant Session Summary HTML Preview',
+        'restaurant_order_state': 'Order state',
+        'restaurant_priority': 'Priority',
+        'restaurant.split_bill': 'Split bill',
+        'restaurant.no_split_bills': 'No split bills',
+        'restaurant.payment.mixed': 'Mixed',
+        'restaurant.payment.split': 'Split',
+        'restaurant.lines_count': 'Line count',
+        'restaurant.payments_count': 'Payment count',
+        'restaurant.split_bills_count': 'Split count',
+        'restaurant.lines_total': 'Lines total',
+        'restaurant.payments_total': 'Payments total',
+    },
+}
+for _lang, _values in _PHASE290_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass

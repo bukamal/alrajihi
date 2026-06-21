@@ -18,4 +18,11 @@ windows_packaging,packaging,Windows runtime packaging gate,278,tools/windows_run
 release_packaging,packaging,Release packaging guard,281,tools/release_packaging_guard.py,True,,True,True
 release_hidden_imports,packaging,Release hidden imports guard,280,tools/release_hidden_imports_guard.py,True,,True,True
 printing_browser,printing,Browser HTML print guard,237,tools/phase237_browser_html_print_guard.py,True,,True,True
+dashboard_identity,dashboard,Dashboard identity layout cleanup,285,tests/test_phase285_dashboard_identity_layout_cleanup.py,True,,True,True
+dashboard_visible_layout,dashboard,Dashboard visible professional layout,286,tests/test_phase286_dashboard_visible_professional_layout.py,True,,True,True
+restaurant_order_state,restaurant,Restaurant order state machine,287,tests/test_phase287_restaurant_order_state_machine.py,True,,True,True
+restaurant_kds_hardening,restaurant,Restaurant KDS hardening,288,tests/test_phase288_kitchen_display_system_hardening.py,True,,True,True
+restaurant_payment_split,restaurant,Restaurant payment and split bill hardening,289,tests/test_phase289_restaurant_payment_split_hardening.py,True,,True,True
+restaurant_printing_templates,restaurant,Restaurant printing templates hardening,290,tests/test_phase290_restaurant_printing_templates_hardening.py,True,,True,True
+restaurant_inventory_recipe,restaurant,Restaurant inventory recipe integration,291,tests/test_phase291_restaurant_inventory_recipe_integration.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

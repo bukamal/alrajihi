@@ -154,7 +154,7 @@ class RestaurantService:
         restaurant_operation_policy.log(restaurant_operation_policy.OP_CHECKOUT, allowed=True, context="restaurant_service.checkout_session", values={"session_id": session_id, "payment_method": payment_method})
         return result
 
-    def list_kitchen_tickets(self, status: str = "sent", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
+    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
         return self.gateway.list_kitchen_tickets(status=status, limit=limit, station_id=station_id)
 
     def get_kitchen_ticket(self, ticket_id: int) -> dict[str, Any]:

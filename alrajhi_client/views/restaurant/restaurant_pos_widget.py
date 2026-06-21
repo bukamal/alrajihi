@@ -172,6 +172,61 @@ class RestaurantPaymentDialog(QDialog):
         }
 
 
+
+
+class RestaurantSplitPaymentDialog(QDialog):
+    """Create and optionally pay one split bill from the selected order line."""
+
+    def __init__(self, line=None, parent=None):
+        super().__init__(parent)
+        line = line or {}
+        self.setWindowTitle(_("restaurant.split_bill"))
+        self.setMinimumWidth(440)
+        self.setLayoutDirection(qt_layout_direction())
+        layout = QVBoxLayout(self)
+        item_name = line.get("item_name") or line.get("name") or ""
+        amount = _dec(line.get("line_total") or line.get("total") or line.get("amount") or (_dec(line.get("quantity"), "0") * _dec(line.get("unit_price"), "0")))
+        summary = QLabel(f"{_('restaurant.selected_line')}: {item_name} — {_display_money(amount)}")
+        summary.setWordWrap(True)
+        layout.addWidget(summary)
+        form = QFormLayout()
+        self.guest_edit = QLineEdit(_("restaurant.guest"))
+        self.amount_edit = QLineEdit(_base_to_display_text(amount))
+        self.method_combo = QComboBox()
+        self.method_combo.addItem(_("payment.cash"), "cash")
+        self.method_combo.addItem(_("payment.card"), "card")
+        self.method_combo.addItem(_("payment.bank"), "bank")
+        self.notes_edit = QLineEdit()
+        for field in (self.guest_edit, self.amount_edit, self.method_combo, self.notes_edit):
+            field.setMinimumHeight(48)
+        form.addRow(_("restaurant.guest_label"), self.guest_edit)
+        form.addRow(_("restaurant.paid"), self.amount_edit)
+        form.addRow(_("payment_method"), self.method_combo)
+        form.addRow(_("notes"), self.notes_edit)
+        layout.addLayout(form)
+        buttons = QHBoxLayout()
+        cancel = QPushButton(_("cancel"))
+        save = QPushButton(_("restaurant.create_split_bill"))
+        cancel.setMinimumHeight(50)
+        save.setMinimumHeight(50)
+        cancel.clicked.connect(self.reject)
+        save.clicked.connect(self.accept)
+        buttons.addWidget(cancel)
+        buttons.addWidget(save)
+        layout.addLayout(buttons)
+
+    def payload(self, line_id: int):
+        return {
+            "splits": [{
+                "guest_label": self.guest_edit.text().strip() or _("restaurant.guest"),
+                "line_ids": [int(line_id)],
+                "paid_amount": _display_to_base_text(self.amount_edit.text().strip() or "0"),
+                "payment_method": self.method_combo.currentData() or "cash",
+                "notes": self.notes_edit.text().strip(),
+            }],
+            "notes": self.notes_edit.text().strip(),
+        }
+
 class RestaurantPOSWidget(QWidget):
     sessionClosed = pyqtSignal()
     kitchenSent = pyqtSignal(dict)
@@ -206,6 +261,12 @@ class RestaurantPOSWidget(QWidget):
         self.total_label.setWordWrap(True)
         root.addWidget(self.total_label)
 
+        self.state_label = QLabel("")
+        self.state_label.setObjectName("restaurantPOSStateBadge")
+        self.state_label.setAlignment(Qt.AlignCenter)
+        self.state_label.setMinimumHeight(34)
+        root.addWidget(self.state_label)
+
         self.order_model = RestaurantOrderModel([], parent=self)
         self.lines = RestaurantOrderGrid(self)
         self.lines.setObjectName("restaurantOrderLines")
@@ -219,15 +280,17 @@ class RestaurantPOSWidget(QWidget):
         self.print_kitchen_btn = QPushButton("🖨  " + _("restaurant.print_kitchen_ticket"))
         self.adjust_btn = QPushButton("%  " + _("restaurant.adjust_bill"))
         self.payment_btn = QPushButton("💳  " + _("restaurant.record_payment"))
+        self.split_bill_btn = QPushButton("🧾  " + _("restaurant.split_bill"))
         self.print_receipt_btn = QPushButton("🧾  " + _("restaurant.print_receipt"))
         self.close_btn = QPushButton("✅  " + _("restaurant.checkout"))
         self.send_kitchen_btn.setObjectName("restaurantKitchenButton")
         self.print_kitchen_btn.setObjectName("restaurantKitchenPrintButton")
         self.adjust_btn.setObjectName("restaurantAdjustButton")
         self.payment_btn.setObjectName("restaurantPaymentButton")
+        self.split_bill_btn.setObjectName("restaurantSplitBillButton")
         self.print_receipt_btn.setObjectName("restaurantReceiptPrintButton")
         self.close_btn.setObjectName("restaurantCloseButton")
-        for button in (self.send_kitchen_btn, self.print_kitchen_btn, self.adjust_btn, self.payment_btn, self.print_receipt_btn, self.close_btn):
+        for button in (self.send_kitchen_btn, self.print_kitchen_btn, self.adjust_btn, self.payment_btn, self.split_bill_btn, self.print_receipt_btn, self.close_btn):
             button.setMinimumHeight(66)
             actions.addWidget(button)
         root.addLayout(actions)
@@ -274,6 +337,7 @@ class RestaurantPOSWidget(QWidget):
         self.print_kitchen_btn.clicked.connect(self.print_last_kitchen_ticket)
         self.adjust_btn.clicked.connect(self.adjust_bill)
         self.payment_btn.clicked.connect(self.record_payment)
+        self.split_bill_btn.clicked.connect(self.split_selected_line_payment)
         self.print_receipt_btn.clicked.connect(self.print_receipt)
         self.close_btn.clicked.connect(self.checkout_session)
         self._set_enabled(False)
@@ -284,6 +348,8 @@ class RestaurantPOSWidget(QWidget):
             self.session = None
             self.title.setText("🧾  " + _("restaurant.no_open_session"))
             self.order_model.set_lines([])
+            self.state_label.setText("")
+            self.state_label.setProperty("restaurant_order_state", "empty")
             self._set_enabled(False)
             self._update_total()
             return
@@ -298,7 +364,7 @@ class RestaurantPOSWidget(QWidget):
         self._set_enabled(True)
 
     def _set_enabled(self, enabled):
-        for widget in (self.send_kitchen_btn, self.print_kitchen_btn, self.adjust_btn, self.payment_btn, self.print_receipt_btn, self.close_btn, self.guests, self.manual_button):
+        for widget in (self.send_kitchen_btn, self.print_kitchen_btn, self.adjust_btn, self.payment_btn, self.split_bill_btn, self.print_receipt_btn, self.close_btn, self.guests, self.manual_button):
             widget.setEnabled(bool(enabled))
         self.menu_scroll.setEnabled(bool(enabled))
         self._apply_restaurant_operation_state()
@@ -309,7 +375,7 @@ class RestaurantPOSWidget(QWidget):
             restaurant_operation_policy.OP_SEND_KITCHEN: [self.send_kitchen_btn],
             restaurant_operation_policy.OP_PRINT_KITCHEN_TICKET: [self.print_kitchen_btn],
             restaurant_operation_policy.OP_ADJUST_BILL: [self.adjust_btn],
-            restaurant_operation_policy.OP_RECORD_PAYMENT: [self.payment_btn],
+            restaurant_operation_policy.OP_RECORD_PAYMENT: [self.payment_btn, self.split_bill_btn],
             restaurant_operation_policy.OP_PRINT_RECEIPT: [self.print_receipt_btn],
             restaurant_operation_policy.OP_CHECKOUT: [self.close_btn],
         }
@@ -323,7 +389,7 @@ class RestaurantPOSWidget(QWidget):
             'send_kitchen': ('send_kitchen_btn',),
             'print_kitchen_ticket': ('print_kitchen_btn',),
             'adjust_bill': ('adjust_btn',),
-            'record_payment': ('payment_btn',),
+            'record_payment': ('payment_btn', 'split_bill_btn'),
             'print_receipt': ('print_receipt_btn',),
             'checkout': ('close_btn',),
         })
@@ -331,8 +397,23 @@ class RestaurantPOSWidget(QWidget):
     def _apply_restaurant_operation_state(self):
         self._apply_operational_shell_state()
         has_session = bool(self.session)
+        counts = self._session_line_counts()
+        has_new_lines = counts.get("new", 0) > 0
+        has_billable_lines = sum(value for key, value in counts.items() if key != "cancelled") > 0
+        balance = getattr(self, "_last_balance", None) or (self._balance() if has_session else {})
+        fully_paid = bool(balance.get("is_fully_paid"))
+        remaining = _dec(balance.get("remaining") or "0")
+        readiness = {
+            restaurant_operation_policy.OP_ADD_LINE: has_session,
+            restaurant_operation_policy.OP_SEND_KITCHEN: has_session and has_new_lines,
+            restaurant_operation_policy.OP_PRINT_KITCHEN_TICKET: has_session and has_billable_lines and not has_new_lines,
+            restaurant_operation_policy.OP_ADJUST_BILL: has_session and has_billable_lines,
+            restaurant_operation_policy.OP_RECORD_PAYMENT: has_session and has_billable_lines and not has_new_lines and remaining > Decimal("0"),
+            restaurant_operation_policy.OP_PRINT_RECEIPT: has_session and has_billable_lines,
+            restaurant_operation_policy.OP_CHECKOUT: has_session and has_billable_lines and not has_new_lines and fully_paid,
+        }
         for operation, buttons in self._operation_button_map().items():
-            allowed = has_session and restaurant_operation_policy.can(operation)
+            allowed = restaurant_operation_policy.can(operation) and readiness.get(operation, has_session)
             for button in buttons:
                 button.setVisible(restaurant_operation_policy.is_enabled_by_settings(operation))
                 button.setEnabled(bool(allowed))
@@ -435,6 +516,52 @@ class RestaurantPOSWidget(QWidget):
         except (InvalidOperation, TypeError):
             return Decimal("0")
 
+    def _session_line_counts(self) -> dict:
+        counts = {"new": 0, "sent": 0, "preparing": 0, "ready": 0, "served": 0, "cancelled": 0}
+        if not self.session:
+            return counts
+        for line in self.session.get("lines") or []:
+            status = str(line.get("kitchen_status") or "new").lower()
+            counts[status if status in counts else "new"] += 1
+        return counts
+
+    def _session_order_state(self, balance=None) -> str:
+        if not self.session:
+            return "empty"
+        explicit = str(self.session.get("order_state") or "").lower()
+        if explicit:
+            return explicit
+        counts = self._session_line_counts()
+        billable = sum(value for key, value in counts.items() if key != "cancelled")
+        if billable <= 0:
+            return "empty"
+        if counts.get("new", 0) > 0:
+            return "editing"
+        if counts.get("sent", 0) > 0 or counts.get("preparing", 0) > 0:
+            return "kitchen"
+        if balance and balance.get("is_fully_paid"):
+            return "paid"
+        if counts.get("ready", 0) > 0:
+            return "ready"
+        return "payment_due"
+
+    def _update_state_badge(self, balance=None) -> None:
+        state = self._session_order_state(balance)
+        key = f"restaurant.order_state.{state}"
+        label = _(key)
+        if label == key:
+            label = state
+        counts = self._session_line_counts()
+        detail = " / ".join(
+            f"{_(f'restaurant.line_status.{name}')}: {count}"
+            for name, count in counts.items()
+            if count
+        )
+        self.state_label.setText((label + (f" — {detail}" if detail else "")).strip())
+        self.state_label.setProperty("restaurant_order_state", state)
+        self.state_label.style().unpolish(self.state_label)
+        self.state_label.style().polish(self.state_label)
+
     def _update_total(self):
         subtotal = Decimal("0")
         if self.session:
@@ -450,6 +577,9 @@ class RestaurantPOSWidget(QWidget):
             + _("restaurant.paid") + f": {_display_money(balance.get('paid', '0'))}  |  "
             + _("restaurant.remaining") + f": {_display_money(balance.get('remaining', '0'))}"
         )
+        self._last_balance = balance
+        self._update_state_badge(balance)
+        self._apply_restaurant_operation_state()
 
     def add_menu_item(self, item):
         if not self.session:
@@ -557,6 +687,33 @@ class RestaurantPOSWidget(QWidget):
             result = self.service.set_session_adjustments(session_id=int(self.session["id"]), **dialog.payload())
             self.load_session(self.session)
             self.status.setText(_("restaurant.adjustments_saved") + f" — {_('restaurant.current_total')}: {_display_money(result.get('total', '0'))}")
+        except Exception as exc:
+            self.status.setText(str(exc))
+
+    def split_selected_line_payment(self):
+        if not self.session:
+            return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_RECORD_PAYMENT):
+            return
+        try:
+            line = self.lines.selected_line()
+            if not line:
+                self.status.setText(_("restaurant.select_line_to_split"))
+                return
+            if str(line.get("kitchen_status") or "new").lower() == "new":
+                self.status.setText(_("restaurant.send_new_lines_before_split"))
+                return
+            line_id = int(line.get("id") or 0)
+            if line_id <= 0:
+                self.status.setText(_("restaurant.select_line_to_split"))
+                return
+            dialog = RestaurantSplitPaymentDialog(line, self)
+            if dialog.exec() != QDialog.Accepted:
+                return
+            result = self.service.create_split_bills(session_id=int(self.session["id"]), **dialog.payload(line_id))
+            self.load_session(self.session)
+            balance = (result or {}).get("balance") or self._balance()
+            self.status.setText(_("restaurant.split_bill_created") + f" — {_('restaurant.remaining')}: {_display_money(balance.get('remaining', '0'))}")
         except Exception as exc:
             self.status.setText(str(exc))
 

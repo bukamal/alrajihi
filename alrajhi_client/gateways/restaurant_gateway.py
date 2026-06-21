@@ -75,7 +75,7 @@ class RestaurantGateway(ABC):
 
 
     @abstractmethod
-    def list_kitchen_tickets(self, status: str = "sent", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
+    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
         raise NotImplementedError
 
     @abstractmethod

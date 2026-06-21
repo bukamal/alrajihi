@@ -144,6 +144,7 @@ return_html = require_template("return_html")
 production_order_html = require_template("production_order_html")
 restaurant_receipt_html = require_template("restaurant_receipt_html")
 restaurant_kitchen_ticket_html = require_template("restaurant_kitchen_ticket_html")
+restaurant_session_summary_html = require_template("restaurant_session_summary_html")
 manufacturing_bom_html = require_template("manufacturing_bom_html")
 manufacturing_pick_ticket_html = require_template("manufacturing_pick_ticket_html")
 manufacturing_cost_report_html = require_template("manufacturing_cost_report_html")
@@ -452,6 +453,23 @@ class PrintingService:
     def restaurant_kitchen_ticket_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
         ref = (data or {}).get('id') or 'kitchen_ticket'
         return self.save_pdf(self.restaurant_kitchen_ticket_html(data, paper), parent, f"kitchen_ticket_{ref}.pdf")
+
+    def restaurant_session_summary_html(self, data: Dict[str, Any], paper: str = 'default') -> str:
+        return restaurant_session_summary_html(data, paper)
+
+    def restaurant_session_summary_preview(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> None:
+        self.preview_html(self.restaurant_session_summary_html(data, paper), parent, _tr("restaurant_session_summary_preview_title"))
+
+    def restaurant_session_summary_print(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self._print_button_render(self.restaurant_session_summary_html(data, paper), parent, _tr("restaurant_session_summary_print_title"), document_type='restaurant_session_summary')
+
+    def restaurant_session_summary_browser(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        return self.open_html_in_browser(self.restaurant_session_summary_html(data, paper), parent, _tr("restaurant_session_summary_html_preview_title"))
+
+    def restaurant_session_summary_pdf(self, data: Dict[str, Any], parent=None, paper: str = 'default') -> bool:
+        session = (data or {}).get('session') or data or {}
+        ref = session.get('id') or 'restaurant_session'
+        return self.save_pdf(self.restaurant_session_summary_html(data, paper), parent, f"restaurant_session_{ref}.pdf")
 
     # ========== Manufacturing printing ==========
     def manufacturing_bom_html(self, data: Dict[str, Any], paper: str = 'default') -> str:

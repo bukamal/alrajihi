@@ -270,11 +270,12 @@ SETTINGS_SCOPE_DESCRIPTORS: tuple[SettingsScopeDescriptor, ...] = (
             _key("restaurant/default_payment_method", VALUE_CHOICE, "cash", choices=("cash", "card", "credit", "bank_transfer", "bank")),
             _key("restaurant/receipt_paper", VALUE_CHOICE, "80mm", choices=("80mm", "58mm")),
             _key("restaurant/kitchen_ticket_paper", VALUE_CHOICE, "80mm", choices=("80mm", "58mm")),
+            _key("restaurant/session_summary_paper", VALUE_CHOICE, "80mm", choices=("80mm", "58mm")),
             _key("restaurant/operations/allow_checkout", VALUE_BOOL, "true"),
             _key("restaurant/operations/allow_print_receipt", VALUE_BOOL, "true"),
             _key("restaurant/operations/allow_print_kitchen_ticket", VALUE_BOOL, "true"),
         ),
-        print_keys=("restaurant/receipt_paper", "restaurant/kitchen_ticket_paper", "language/print"),
+        print_keys=("restaurant/receipt_paper", "restaurant/kitchen_ticket_paper", "restaurant/session_summary_paper", "language/print"),
     ),
     SettingsScopeDescriptor(
         scope="users",

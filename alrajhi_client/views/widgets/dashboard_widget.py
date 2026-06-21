@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer
+from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer, QSettings
 from i18n import translate, qt_layout_direction
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
@@ -14,7 +14,6 @@ from PyQt5.QtWidgets import (
 import qtawesome as qta
 
 from core.services.dashboard_service import dashboard_service
-from core.services.alert_service import alert_service
 from core.services.monitoring_service import monitoring_service
 from currency import currency
 from models.table_models import GenericTableModel
@@ -68,6 +67,7 @@ class DashboardWidget(QWidget):
     def _build_ui(self):
         self.setStyleSheet(f'''
             QWidget#DashboardWidget {{ background: {_dc('bg_window', '#F5F7FA')}; }}
+            QWidget#DashboardPage {{ background: {_dc('bg_window', '#F5F7FA')}; }}
             QLabel#HeroTitle {{ color: white; font-size: 25px; font-weight: 900; }}
             QLabel#HeroSubtitle {{ color: #EAF3FF; font-size: 13px; font-weight: 600; }}
             QLabel#StatusPill {{ color: white; background: rgba(255,255,255,0.18); border-radius: 12px; padding: 7px 12px; font-weight: 800; }}
@@ -86,8 +86,8 @@ class DashboardWidget(QWidget):
         page.setObjectName('DashboardPage')
         scroll.setWidget(page)
         self.main_layout = QVBoxLayout(page)
-        self.main_layout.setContentsMargins(22, 22, 22, 22)
-        self.main_layout.setSpacing(18)
+        self.main_layout.setContentsMargins(20, 18, 20, 18)
+        self.main_layout.setSpacing(14)
 
         # Phase 282: do not build the top KPI/card strip or chart panel.
         # Legacy audit token only, not invoked: _build_kpi_grid()
@@ -184,27 +184,36 @@ class DashboardWidget(QWidget):
         self.main_layout.addWidget(self.trend_panel)
 
     def _build_middle_grid(self):
+        # Phase 286: visible professional dashboard layout.  The dashboard has
+        # three operational cards only: cash movement, current company identity,
+        # and daily shortcuts.  No hidden KPI strip, no chart panel, no lower
+        # alerts table.  In RTL, the quick actions remain visually on the right.
         row = QHBoxLayout()
-        row.setSpacing(16)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(14)
         self.quick_panel = self._create_quick_actions_panel()
         self.company_panel = self._create_company_info_panel()
         self.project_panel = self._create_project_panel()
-        row.addWidget(self.quick_panel, 1)
-        row.addWidget(self.company_panel, 1)
-        row.addWidget(self.project_panel, 2)
+        for panel in (self.quick_panel, self.company_panel, self.project_panel):
+            panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+            panel.setMinimumHeight(286)
+            panel.setMaximumHeight(340)
+        row.addWidget(self.quick_panel, 5)
+        row.addWidget(self.company_panel, 4)
+        row.addWidget(self.project_panel, 7)
         self.main_layout.addLayout(row)
 
     def _build_bottom_grid(self):
-        row = QHBoxLayout()
-        row.setSpacing(16)
-        self.alerts_panel = self._create_alerts_panel()
+        # Phase 286: keep the developer/system identity card as a compact,
+        # explicit product identity band.  It is not a company-card duplicate.
         self.brand_panel = self._create_brand_panel()
-        row.addWidget(self.alerts_panel, 2)
-        row.addWidget(self.brand_panel, 1)
-        self.main_layout.addLayout(row)
+        self.brand_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.main_layout.addWidget(self.brand_panel)
 
     def _create_quick_actions_panel(self):
         panel = DashboardPanel(translate('dashboard_daily_shortcuts'), 'bolt')
+        panel.setObjectName('DashboardQuickActionsPanel')
+        panel.setMinimumHeight(286)
         pos = QuickActionButton(translate('dashboard_pos_f9'), 'barcode', '#059669')
         pos.setMinimumHeight(58)
         pos.clicked.connect(lambda: self._switch_page('pos'))
@@ -231,22 +240,20 @@ class DashboardWidget(QWidget):
         return panel
 
     def _create_alerts_panel(self):
-        panel = DashboardPanel(translate('alerts_bar'), 'bell')
-        panel.setMaximumHeight(150)
-        panel.setMinimumHeight(118)
-        self.alerts_table = SmartTableView()
-        self.alerts_table.setMinimumHeight(58)
-        self.alerts_table.setMaximumHeight(82)
-        panel.layout.addWidget(self.alerts_table)
-        return panel
+        # Removed from the rendered dashboard.  Kept as an explicit compatibility
+        # hook returning None so older integrations do not rebuild a lower alerts
+        # strip by accident.
+        return None
 
     def _create_company_info_panel(self):
-        panel = DashboardPanel(translate('company_info'), 'building')
-        panel.setMinimumHeight(245)
+        panel = DashboardPanel(translate('company_current_info'), 'building')
+        panel.setObjectName('DashboardCompanyPanel')
+        panel.setMinimumHeight(286)
         panel.setStyleSheet(panel.styleSheet() + '''
             QLabel#CompanyLogoBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 8px; }
             QLabel#CompanyName { color: #0f172a; font-size: 17px; font-weight: 900; border: none; }
             QLabel#CompanyLine { color: #475569; font-size: 12px; font-weight: 700; border: none; }
+            QLabel#CompanyFallbackNote { color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 4px 8px; font-size: 11px; font-weight: 800; }
         ''')
 
         self.company_logo_label = QLabel()
@@ -278,9 +285,44 @@ class DashboardWidget(QWidget):
         self.company_tax_label.setAlignment(Qt.AlignCenter)
         self.company_tax_label.setWordWrap(True)
         panel.layout.addWidget(self.company_tax_label)
+
+        self.company_fallback_note = QLabel(translate('company_info_fallback_note'))
+        self.company_fallback_note.setObjectName('CompanyFallbackNote')
+        self.company_fallback_note.setAlignment(Qt.AlignCenter)
+        self.company_fallback_note.setWordWrap(True)
+        self.company_fallback_note.setVisible(False)
+        panel.layout.addWidget(self.company_fallback_note)
         panel.layout.addStretch()
         self._refresh_company_info_panel()
         return panel
+
+    def _company_has_explicit_info(self):
+        """Return True when the tenant/company card has real user settings.
+
+        config.get_company_info intentionally has product defaults so printing and
+        dashboards never render empty branding. For the dashboard, however, we
+        need to distinguish explicit company identity from developer/system
+        fallback identity.
+        """
+        settings = QSettings("Alrajhi", "Accounting")
+        explicit_keys = (
+            "company/name",
+            "company/address",
+            "company/phone",
+            "company/email",
+            "company/tax_number",
+            "company/commercial_register",
+            "company/website",
+            "company/logo_data_uri",
+        )
+        for key in explicit_keys:
+            value = settings.value(key, "")
+            if str(value or "").strip():
+                return True
+        logo_value = str(settings.value("company/logo_path", "") or "").strip()
+        if logo_value and logo_value != logo_png(512):
+            return True
+        return False
 
     def _refresh_company_info_panel(self):
         if not hasattr(self, 'company_name_label'):
@@ -291,7 +333,8 @@ class DashboardWidget(QWidget):
         except Exception as exc:
             print(f'⚠️ تعذر تحميل معلومات الشركة: {exc}')
             info = {}
-        name = info.get('name') or translate('alrajhi_erp')
+        explicit_company_info = self._company_has_explicit_info()
+        name = info.get('name') or _dashboard_product_name()
         address = info.get('address') or translate('address_not_set')
         phone = info.get('phone') or ''
         email = info.get('email') or ''
@@ -303,6 +346,8 @@ class DashboardWidget(QWidget):
         contact_parts = [str(v) for v in (phone, email) if v]
         self.company_contact_label.setText(' | '.join(contact_parts) if contact_parts else translate('contact_not_set'))
         self.company_tax_label.setText(translate('tax_number_value', value=tax_number) if tax_number else translate('tax_number_not_set'))
+        if hasattr(self, 'company_fallback_note'):
+            self.company_fallback_note.setVisible(not explicit_company_info)
         pix = QPixmap(str(logo_path))
         if pix.isNull():
             pix = QPixmap(logo_png(256))
@@ -311,7 +356,8 @@ class DashboardWidget(QWidget):
 
     def _create_project_panel(self):
         panel = DashboardPanel(translate('cashbox'), 'cash-register')
-        panel.setMinimumHeight(245)
+        panel.setObjectName('DashboardCashPanel')
+        panel.setMinimumHeight(286)
 
         self.cash_labels = {}
         self._cash_view_mode = 'today'
@@ -462,31 +508,72 @@ class DashboardWidget(QWidget):
 
 
     def _create_brand_panel(self):
-        """Dashboard brand card replacing the old runtime-health card."""
-        panel = DashboardPanel('', 'building')
-        panel.setMinimumHeight(245)
-        panel.layout.setAlignment(Qt.AlignCenter)
+        """Compact developer/system identity band.
+
+        This card is intentionally separate from the tenant/company card. It
+        uses project assets and remains stable even when the user changes company
+        settings.
+        """
+        panel = DashboardPanel(translate('system_identity'), 'building')
+        panel.setObjectName('DeveloperBrandPanel')
+        panel.setMinimumHeight(138)
+        panel.setMaximumHeight(168)
+        panel.setStyleSheet(panel.styleSheet() + f"""
+            QFrame#DeveloperBrandPanel {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ffffff, stop:1 #f1f5f9);
+                border: 1px solid {_dc('border', '#E2E8F0')};
+                border-radius: 20px;
+            }}
+            QLabel#SystemBrandLogoBox {{
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 20px;
+                padding: 6px;
+            }}
+            QLabel#SystemBrandTitle {{
+                color: {_dc('text_primary', '#1A202C')};
+                font-size: 21px;
+                font-weight: 900;
+                border: none;
+            }}
+            QLabel#SystemBrandSubtitle {{
+                color: {_dc('text_secondary', '#4A5568')};
+                font-size: 12px;
+                font-weight: 800;
+                border: none;
+            }}
+        """)
+
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 2, 0, 0)
+        body.setSpacing(14)
 
         logo = QLabel()
+        logo.setObjectName('SystemBrandLogoBox')
         logo.setAlignment(Qt.AlignCenter)
-        logo.setFixedHeight(118)
+        logo.setFixedSize(86, 76)
         pix = QPixmap(logo_png(512))
         if not pix.isNull():
-            logo.setPixmap(pix.scaled(QSize(112, 112), Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        panel.layout.addStretch(1)
-        panel.layout.addWidget(logo)
+            logo.setPixmap(pix.scaled(QSize(66, 66), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
+        text_col = QVBoxLayout()
+        text_col.setContentsMargins(0, 0, 0, 0)
+        text_col.setSpacing(4)
         title = QLabel(_dashboard_product_name())
-        title.setAlignment(Qt.AlignCenter)
+        title.setObjectName('SystemBrandTitle')
+        title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         title.setWordWrap(True)
-        title.setStyleSheet(f"font-size: 19px; font-weight: 900; color: {_dc('text_primary', '#1A202C')}; border: none;")
-        panel.layout.addWidget(title)
+        subtitle = QLabel(translate('developer_identity_caption'))
+        subtitle.setObjectName('SystemBrandSubtitle')
+        subtitle.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        subtitle.setWordWrap(True)
+        text_col.addWidget(title)
+        text_col.addWidget(subtitle)
+        text_col.addStretch()
 
-        subtitle = QLabel(translate('integrated_management_system'))
-        subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet(f"font-size: 12px; font-weight: 800; color: {_dc('text_secondary', '#4A5568')}; border: none;")
-        panel.layout.addWidget(subtitle)
-        panel.layout.addStretch(1)
+        body.addLayout(text_col, 1)
+        body.addWidget(logo, 0, Qt.AlignVCenter)
+        panel.layout.addLayout(body)
         return panel
 
     def _create_health_panel(self):
@@ -563,7 +650,7 @@ class DashboardWidget(QWidget):
             print(f'⚠️ تعذر تحديث لوحة التحكم: {exc}')
             self._snapshot = {'summary': {}}
         self._refresh_kpis(display_curr)
-        self._refresh_alerts()
+        self._refresh_alerts()  # no-op after Phase 285 unless an alerts table is explicitly reintroduced
         self._refresh_project_card(display_curr)
         self._refresh_company_info_panel()
         self._refresh_health()
@@ -606,21 +693,14 @@ class DashboardWidget(QWidget):
             self.trend_panel.set_trend(rows, translate('incoming'), translate('outgoing'))
 
     def _refresh_alerts(self):
-        try:
-            alerts = alert_service.dashboard_alerts(limit=12)
-        except Exception as exc:
-            print(f'⚠️ تعذر تحميل تنبيهات لوحة التحكم: {exc}')
-            alerts = []
-        data = []
-        for alert in alerts:
-            data.append({
-                'severity': self._severity_label(alert.get('severity', 'info')),
-                'title': alert.get('title', ''),
-                'message': alert.get('message', ''),
-            })
-        if not data:
-            data = [{'severity': '✅', 'title': translate('no_alerts'), 'message': translate('dashboard_indicators_normal')}]
-        self._set_table(self.alerts_table, data, ['severity', 'title', 'message'], [translate('status'), translate('alert'), translate('details')])
+        # Phase 286: no bottom alerts strip is allowed on the dashboard surface.
+        # If a legacy extension injected an alerts table, hide it defensively.
+        table = getattr(self, 'alerts_table', None)
+        if table is not None:
+            table.setVisible(False)
+        panel = getattr(self, 'alerts_panel', None)
+        if panel is not None:
+            panel.setVisible(False)
 
     def _toggle_cash_movement_mode(self):
         self._cash_view_mode = 'general' if getattr(self, '_cash_view_mode', 'today') == 'today' else 'today'

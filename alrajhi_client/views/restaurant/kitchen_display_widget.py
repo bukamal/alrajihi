@@ -10,14 +10,16 @@ from i18n.translator import qt_layout_direction, translate as _
 class KitchenDisplayWidget(QWidget):
     """Touch-friendly kitchen display screen (KDS).
 
-    The widget is deliberately thin: it reads KOT tickets from RestaurantService
-    and sends status transitions back through the service/gateway boundary.
+    Phase 288 hardens this into an operational board rather than a raw ticket
+    list: station/status filters, active counters, overdue markers, and explicit
+    status transitions for preparing/ready/served.
     """
 
     def __init__(self, service, parent=None):
         super().__init__(parent)
         self.service = service
         self.current_ticket = None
+        self._last_tickets: list[dict] = []
         self.setObjectName("restaurantKitchenDisplay")
         self.setLayoutDirection(qt_layout_direction())
         root = QVBoxLayout(self)
@@ -29,11 +31,26 @@ class KitchenDisplayWidget(QWidget):
         self.title.setObjectName("restaurantKDSTitle")
         header.addWidget(self.title)
         header.addStretch()
+
+        self.status_filter = QComboBox()
+        self.status_filter.setObjectName("restaurantKDSStatusFilter")
+        self.status_filter.setMinimumHeight(50)
+        self.status_filter.addItem(_("restaurant.kds.filter.active"), "active")
+        self.status_filter.addItem(_("restaurant.kds.status.sent"), "sent")
+        self.status_filter.addItem(_("restaurant.kds.status.preparing"), "preparing")
+        self.status_filter.addItem(_("restaurant.kds.status.ready"), "ready")
+        self.status_filter.addItem(_("restaurant.kds.status.served"), "served")
+        self.status_filter.addItem(_("restaurant.kds.status.cancelled"), "cancelled")
+        self.status_filter.addItem(_("restaurant.kds.filter.all"), "all")
+        self.status_filter.currentIndexChanged.connect(self.reload)
+        header.addWidget(self.status_filter)
+
         self.station_filter = QComboBox()
         self.station_filter.setObjectName("restaurantKDSStationFilter")
         self.station_filter.setMinimumHeight(50)
         self.station_filter.currentIndexChanged.connect(self.reload)
         header.addWidget(self.station_filter)
+
         self.refresh_btn = QPushButton("↻  " + _("common.refresh"))
         self.refresh_btn.setObjectName("restaurantKDSRefreshButton")
         self.refresh_btn.setMinimumHeight(50)
@@ -41,10 +58,21 @@ class KitchenDisplayWidget(QWidget):
         header.addWidget(self.refresh_btn)
         root.addLayout(header)
 
+        self.counter_bar = QHBoxLayout()
+        self.counter_bar.setObjectName("restaurantKDSCounterBar")
+        self.counter_labels = {}
+        for key in ("sent", "preparing", "ready", "overdue"):
+            label = QLabel()
+            label.setObjectName(f"restaurantKDSCounter_{key}")
+            self.counter_labels[key] = label
+            self.counter_bar.addWidget(label)
+        self.counter_bar.addStretch()
+        root.addLayout(self.counter_bar)
+
         body = QHBoxLayout()
         self.tickets = QListWidget()
         self.tickets.setObjectName("restaurantKDSTickets")
-        self.tickets.setMinimumWidth(260)
+        self.tickets.setMinimumWidth(320)
         self.tickets.itemSelectionChanged.connect(self._ticket_selected)
         body.addWidget(self.tickets, 1)
 
@@ -54,6 +82,9 @@ class KitchenDisplayWidget(QWidget):
         self.detail_title = QLabel(_("restaurant.kds.no_ticket"))
         self.detail_title.setObjectName("restaurantKDSDetailTitle")
         detail.addWidget(self.detail_title)
+        self.detail_meta = QLabel("")
+        self.detail_meta.setObjectName("restaurantKDSDetailMeta")
+        detail.addWidget(self.detail_meta)
         self.lines = QListWidget()
         self.lines.setObjectName("restaurantKDSLines")
         detail.addWidget(self.lines, 1)
@@ -97,32 +128,56 @@ class KitchenDisplayWidget(QWidget):
         self.tickets.clear()
         try:
             station_id = self.station_filter.currentData() if hasattr(self, "station_filter") else None
-            tickets = self.service.list_kitchen_tickets(status="all", limit=80, station_id=station_id)
-            for ticket in tickets:
+            status = self.status_filter.currentData() if hasattr(self, "status_filter") else "active"
+            tickets = self.service.list_kitchen_tickets(status=status or "active", limit=120, station_id=station_id)
+            self._last_tickets = list(tickets or [])
+            for ticket in self._last_tickets:
                 item = QListWidgetItem(self._ticket_label(ticket))
                 item.setData(256, ticket)
                 self.tickets.addItem(item)
+            self._render_counters(self._last_tickets)
             self.status.setText(_("restaurant.kds.loaded"))
         except Exception as exc:
             self.status.setText(str(exc))
         self._set_actions_enabled(False)
 
+    def _render_counters(self, tickets: list[dict]):
+        counts = {"sent": 0, "preparing": 0, "ready": 0, "overdue": 0}
+        for ticket in tickets or []:
+            status = str(ticket.get("status") or "sent")
+            if status in counts:
+                counts[status] += 1
+            if ticket.get("is_overdue"):
+                counts["overdue"] += 1
+        self.counter_labels["sent"].setText(f"📨 {_('restaurant.kds.status.sent')}: {counts['sent']}")
+        self.counter_labels["preparing"].setText(f"🔥 {_('restaurant.kds.status.preparing')}: {counts['preparing']}")
+        self.counter_labels["ready"].setText(f"✅ {_('restaurant.kds.status.ready')}: {counts['ready']}")
+        self.counter_labels["overdue"].setText(f"⏱ {_('restaurant.kds.overdue')}: {counts['overdue']}")
+
     def _ticket_label(self, ticket: dict) -> str:
         status = ticket.get("status") or "sent"
         station = ticket.get('station_name') or _("restaurant.kds.all_stations")
-        return f"#{ticket.get('id')}  {ticket.get('table_name') or ticket.get('table_id') or ''} — {station}\n{_(f'restaurant.kds.status.{status}')} — {ticket.get('line_count') or 0}"
+        elapsed = ticket.get("elapsed_minutes") or 0
+        overdue = "  ⚠" if ticket.get("is_overdue") else ""
+        return (
+            f"#{ticket.get('id')}  {ticket.get('table_name') or ticket.get('table_id') or ''} — {station}{overdue}\n"
+            f"{_(f'restaurant.kds.status.{status}')} — {ticket.get('line_count') or 0} — {elapsed} {_('restaurant.kds.minutes')}" 
+        )
 
     def _ticket_selected(self):
         items = self.tickets.selectedItems()
         if not items:
             self.current_ticket = None
             self.detail_title.setText(_("restaurant.kds.no_ticket"))
+            self.detail_meta.setText("")
             self.lines.clear()
             self._set_actions_enabled(False)
             return
         ticket = items[0].data(256) or {}
         try:
             self.current_ticket = self.service.get_kitchen_ticket(int(ticket["id"]))
+            # Preserve computed list metadata when detail endpoint does not include it.
+            self.current_ticket.update({k: ticket.get(k) for k in ("elapsed_minutes", "is_overdue", "priority") if k in ticket})
             self._render_ticket(self.current_ticket)
         except Exception as exc:
             self.status.setText(str(exc))
@@ -131,6 +186,10 @@ class KitchenDisplayWidget(QWidget):
     def _render_ticket(self, ticket: dict):
         status = ticket.get("status") or "sent"
         self.detail_title.setText(f"#{ticket.get('id')} — {ticket.get('table_name') or ticket.get('table_id')} — {_(f'restaurant.kds.status.{status}')}" )
+        station = ticket.get("station_name") or _("restaurant.kds.all_stations")
+        elapsed = ticket.get("elapsed_minutes") or 0
+        overdue = " — " + _("restaurant.kds.overdue") if ticket.get("is_overdue") else ""
+        self.detail_meta.setText(f"{station} — {elapsed} {_('restaurant.kds.minutes')}{overdue}")
         self.lines.clear()
         for line in ticket.get("lines") or []:
             label = f"{line.get('quantity') or '1'} × {line.get('item_name') or ''}"
@@ -138,7 +197,7 @@ class KitchenDisplayWidget(QWidget):
                 label += f"\n📝 {line.get('notes')}"
             item = QListWidgetItem(label)
             self.lines.addItem(item)
-        self._set_actions_enabled(True)
+        self._set_actions_enabled(status not in {"served", "cancelled"})
 
     def _set_ticket_status(self, status: str):
         if not self.current_ticket:

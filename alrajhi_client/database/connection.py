@@ -437,7 +437,7 @@ class DatabaseConnection:
                    COALESCE((
                        SELECT SUM(CASE
                            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
-                           WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+                           WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
                            ELSE 0 END)
                        FROM inventory_movements
                        WHERE item_id = i.id AND user_id = i.user_id
@@ -508,7 +508,7 @@ class DatabaseConnection:
                    COALESCE((
                        SELECT SUM(CASE
                            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
-                           WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+                           WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
                            ELSE 0 END)
                        FROM inventory_movements
                        WHERE item_id = i.id AND user_id = i.user_id
@@ -537,7 +537,7 @@ class DatabaseConnection:
                        COALESCE((
                            SELECT SUM(CASE
                                WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
-                               WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+                               WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
                                ELSE 0 END)
                            FROM inventory_movements
                            WHERE item_id = i.id AND user_id = i.user_id
@@ -662,7 +662,7 @@ class DatabaseConnection:
                    COALESCE((
                        SELECT SUM(CASE
                            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
-                           WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+                           WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
                            ELSE 0 END)
                        FROM inventory_movements
                        WHERE item_id = i.id AND user_id = i.user_id
@@ -1408,7 +1408,7 @@ class DatabaseConnection:
                 CASE 
                     WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') 
                     THEN CAST(quantity AS REAL)
-                    WHEN movement_type IN ('sale','production_consume','purchase_return') 
+                    WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') 
                     THEN -CAST(quantity AS REAL)
                     ELSE 0
                 END

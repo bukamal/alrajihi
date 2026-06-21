@@ -380,6 +380,7 @@ class SettingsService:
             'default_payment_method': payment,
             'receipt_paper': self.get('restaurant/receipt_paper', printing.get('thermal_size', '80mm')) or '80mm',
             'kitchen_ticket_paper': self.get('restaurant/kitchen_ticket_paper', self.get('restaurant/receipt_paper', printing.get('thermal_size', '80mm'))) or '80mm',
+            'session_summary_paper': self.get('restaurant/session_summary_paper', self.get('restaurant/receipt_paper', printing.get('thermal_size', '80mm'))) or '80mm',
             'printing': printing,
             'barcode_scanner': {
                 'prefix': self.get('barcode/scanner/prefix', '') or '',
@@ -400,6 +401,7 @@ class SettingsService:
                 'allow_print_kitchen_ticket': self.get_bool('restaurant/operations/allow_print_kitchen_ticket', True),
                 'auto_print_kitchen_ticket': self.get_bool('restaurant/operations/auto_print_kitchen_ticket', False),
                 'auto_print_receipt_after_checkout': self.get_bool('restaurant/operations/auto_print_receipt_after_checkout', False),
+                'auto_print_session_summary_after_checkout': self.get_bool('restaurant/operations/auto_print_session_summary_after_checkout', False),
                 'confirm_checkout': self.get_bool('restaurant/operations/confirm_checkout', True),
                 'require_kitchen_before_checkout': self.get_bool('restaurant/operations/require_kitchen_before_checkout', False),
             },

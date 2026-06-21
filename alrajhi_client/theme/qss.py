@@ -317,6 +317,67 @@ def build_global_qss(colors: dict) -> str:
             border: 1px solid {colors['border']};
             border-radius: {radius_lg}px;
         }}
+        QFrame#restaurantTableFilterBar, QFrame#restaurantTableCounterBar {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QLineEdit#restaurantTableSearchInput, QComboBox#restaurantTableStatusFilter,
+        QComboBox#restaurantTableZoneFilter {{
+            min-height: 34px;
+            border: 1px solid {colors['border']};
+            border-radius: {radius_sm}px;
+            padding: 4px 8px;
+            background-color: {colors['input_bg']};
+            color: {colors['text_primary']};
+        }}
+        QLabel#restaurantTableEmptyLabel {{
+            color: {colors['text_muted']};
+            font-weight: 800;
+            padding: 18px;
+        }}
+        QLabel#restaurantTableCounter_all, QLabel#restaurantTableCounter_free, QLabel#restaurantTableCounter_occupied,
+        QLabel#restaurantTableCounter_kitchen, QLabel#restaurantTableCounter_ready, QLabel#restaurantTableCounter_payment,
+        QLabel#restaurantTableCounter_reserved {{
+            border: 1px solid {colors['border']};
+            border-radius: {radius_sm}px;
+            padding: 4px 6px;
+            font-weight: 900;
+            background-color: {colors['card_bg']};
+        }}
+        QLabel#restaurantPOSStateBadge {{
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 7px 12px;
+            font-weight: 900;
+            background-color: {colors['brand_soft']};
+            color: {colors['text_primary']};
+        }}
+        QLabel#restaurantPOSStateBadge[restaurant_order_state="editing"] {{
+            background-color: {colors['warning_soft']};
+            border-color: {colors['warning']};
+            color: {colors['warning']};
+        }}
+        QLabel#restaurantPOSStateBadge[restaurant_order_state="kitchen"] {{
+            background-color: {colors['warning_soft']};
+            border-color: {colors['warning']};
+            color: {colors['warning']};
+        }}
+        QLabel#restaurantPOSStateBadge[restaurant_order_state="ready"] {{
+            background-color: {colors['success_soft']};
+            border-color: {colors['success']};
+            color: {colors['success']};
+        }}
+        QLabel#restaurantPOSStateBadge[restaurant_order_state="payment_due"] {{
+            background-color: {colors['brand_soft']};
+            border-color: {colors['primary']};
+            color: {colors['primary']};
+        }}
+        QLabel#restaurantPOSStateBadge[restaurant_order_state="paid"] {{
+            background-color: {colors['success_soft']};
+            border-color: {colors['success']};
+            color: {colors['success']};
+        }}
         QPushButton#restaurantTableButton {{
             border: 2px solid {colors['border']};
             border-radius: {radius_lg}px;
@@ -506,6 +567,34 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['text_secondary']};
             font-weight: 700;
             padding: 6px;
+        }}
+
+        /* Phase 288: hardened restaurant KDS filters, counters and detail metadata. */
+        QComboBox#restaurantKDSStatusFilter,
+        QComboBox#restaurantKDSStationFilter {{
+            background-color: {colors['card_bg']};
+            color: {colors['text_primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px 12px;
+            font-weight: 900;
+            min-width: 150px;
+        }}
+        QLabel#restaurantKDSDetailMeta {{
+            color: {colors['text_secondary']};
+            font-weight: 800;
+            padding: 4px 0 8px 0;
+        }}
+        QLabel#restaurantKDSCounter_sent,
+        QLabel#restaurantKDSCounter_preparing,
+        QLabel#restaurantKDSCounter_ready,
+        QLabel#restaurantKDSCounter_overdue {{
+            background-color: {colors['bg_table_alt']};
+            color: {colors['text_primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px 12px;
+            font-weight: 900;
         }}
     """
 

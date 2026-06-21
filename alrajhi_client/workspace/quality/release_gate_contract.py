@@ -36,6 +36,7 @@ class ReleaseGateCheck:
 
 RELEASE_GATE_PHASE = 277
 RELEASE_BASELINE_PHASE = 276
+# PHASE286_DASHBOARD_VISIBLE_PROFESSIONAL_LAYOUT is tracked below in REQUIRED_PHASE_DOCS.
 
 REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
     f"PHASE{phase}_{suffix}.md"
@@ -72,6 +73,17 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (278, "WINDOWS_RUNTIME_PACKAGING_GATE"),
         (279, "PHASE32_OFFLINE_QUEUE_GUARD_HOTFIX"),
         (280, "RELEASE_PACKAGING_GUARD_CLEANUP_HOTFIX"),
+        (281, "RELEASE_BUILD_GITIGNORE_TRACKING_HOTFIX"),
+        (282, "REPORT_TABLE_CALCULATION_AND_MODULE_VISIBILITY"),
+        (283, "RESTAURANT_OPERATION_SHELL_UX"),
+        (284, "RESTAURANT_TABLE_MAP_FILTERS"),
+        (285, "DASHBOARD_IDENTITY_LAYOUT_CLEANUP"),
+        (286, "DASHBOARD_VISIBLE_PROFESSIONAL_LAYOUT"),
+        (287, "RESTAURANT_ORDER_STATE_MACHINE"),
+        (288, "KITCHEN_DISPLAY_SYSTEM_HARDENING"),
+        (289, "RESTAURANT_PAYMENT_SPLIT_HARDENING"),
+        (290, "RESTAURANT_PRINTING_TEMPLATES_HARDENING"),
+        (291, "RESTAURANT_INVENTORY_RECIPE_INTEGRATION"),
     ]
 )
 
@@ -112,6 +124,15 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (280, "release_packaging_guard_cleanup_hotfix"),
         (281, "release_build_gitignore_tracking_hotfix"),
         (282, "report_calculation_module_visibility_dashboard_cleanup"),
+        (283, "restaurant_operation_shell_ux"),
+        (284, "restaurant_table_map_filters"),
+        (285, "dashboard_identity_layout_cleanup"),
+        (286, "dashboard_visible_professional_layout"),
+        (287, "restaurant_order_state_machine"),
+        (288, "kitchen_display_system_hardening"),
+        (289, "restaurant_payment_split_hardening"),
+        (290, "restaurant_printing_templates_hardening"),
+        (291, "restaurant_inventory_recipe_integration"),
     ]
 )
 
@@ -135,6 +156,13 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("release_packaging", "packaging", "Release packaging guard", "tools/release_packaging_guard.py", phase=281),
     ReleaseGateCheck("release_hidden_imports", "packaging", "Release hidden imports guard", "tools/release_hidden_imports_guard.py", phase=280),
     ReleaseGateCheck("printing_browser", "printing", "Browser HTML print guard", "tools/phase237_browser_html_print_guard.py", phase=237),
+    ReleaseGateCheck("dashboard_identity", "dashboard", "Dashboard identity layout cleanup", "tests/test_phase285_dashboard_identity_layout_cleanup.py", phase=285),
+    ReleaseGateCheck("dashboard_visible_layout", "dashboard", "Dashboard visible professional layout", "tests/test_phase286_dashboard_visible_professional_layout.py", phase=286),
+    ReleaseGateCheck("restaurant_order_state", "restaurant", "Restaurant order state machine", "tests/test_phase287_restaurant_order_state_machine.py", phase=287),
+    ReleaseGateCheck("restaurant_kds_hardening", "restaurant", "Restaurant KDS hardening", "tests/test_phase288_kitchen_display_system_hardening.py", phase=288),
+    ReleaseGateCheck("restaurant_payment_split", "restaurant", "Restaurant payment and split bill hardening", "tests/test_phase289_restaurant_payment_split_hardening.py", phase=289),
+    ReleaseGateCheck("restaurant_printing_templates", "restaurant", "Restaurant printing templates hardening", "tests/test_phase290_restaurant_printing_templates_hardening.py", phase=290),
+    ReleaseGateCheck("restaurant_inventory_recipe", "restaurant", "Restaurant inventory recipe integration", "tests/test_phase291_restaurant_inventory_recipe_integration.py", phase=291),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

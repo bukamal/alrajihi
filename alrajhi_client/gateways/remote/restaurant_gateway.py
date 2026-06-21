@@ -88,8 +88,8 @@ class RemoteRestaurantGateway(RestaurantGateway):
         return self.client._request("POST", f"/api/restaurant/sessions/{int(session_id)}/checkout", {"paid_amount": paid_amount, "payment_method": payment_method}) or {}
 
 
-    def list_kitchen_tickets(self, status: str = "sent", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
-        params = {"status": status or "sent", "limit": int(limit or 50)}
+    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
+        params = {"status": status or "active", "limit": int(limit or 50)}
         if station_id is not None:
             params["station_id"] = int(station_id)
         return self.client._request("GET", "/api/restaurant/kitchen/tickets", params) or []

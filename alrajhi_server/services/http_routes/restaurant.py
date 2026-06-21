@@ -210,7 +210,7 @@ def list_kitchen_tickets():
         station_arg = request.args.get("station_id")
         station_id = int(station_arg) if station_arg not in (None, "") else None
         return jsonify(filter_restaurant_records(get_jwt_identity(), _repo.list_kitchen_tickets(
-            status=request.args.get("status") or "sent",
+            status=request.args.get("status") or "active",
             limit=int(request.args.get("limit") or 50),
             station_id=station_id,
         )))

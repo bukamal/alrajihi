@@ -7,6 +7,31 @@ from typing import Any
 
 from database.connection import DatabaseConnection
 from gateways.restaurant_gateway import RestaurantGateway
+from features.restaurant.restaurant_order_state import (
+    db_table_status_for,
+    derive_order_state,
+    derive_table_state,
+    kitchen_state_from_lines,
+    line_counts,
+)
+from features.restaurant.kitchen_display_state import ACTIVE_KITCHEN_STATUSES, sort_kitchen_tickets
+from features.restaurant.restaurant_inventory_recipe_policy import (
+    MANUFACTURING_BOM_SOURCE,
+    RESTAURANT_CONSUME_MOVEMENT_TYPE,
+    RESTAURANT_RECIPE_SOURCE,
+    consumption_source_key,
+    movement_note,
+    required_component_quantity,
+)
+from features.restaurant.restaurant_payment_split_policy import (
+    cap_payment,
+    line_amount,
+    normalize_payment_method,
+    remaining_amount,
+    require_payment_ready,
+    split_bill_summary,
+    split_status,
+)
 
 
 class LocalRestaurantGateway(RestaurantGateway):
@@ -113,6 +138,10 @@ class LocalRestaurantGateway(RestaurantGateway):
             "ALTER TABLE restaurant_order_lines ADD COLUMN base_qty TEXT DEFAULT '1'",
             "ALTER TABLE restaurant_order_lines ADD COLUMN barcode_scope TEXT",
             "ALTER TABLE restaurant_order_lines ADD COLUMN matched_barcode TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN order_state TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN kitchen_state TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN payment_state TEXT",
+            "ALTER TABLE restaurant_sessions ADD COLUMN last_state_at TEXT",
         ):
             try:
                 conn.execute(ddl)
@@ -178,14 +207,91 @@ class LocalRestaurantGateway(RestaurantGateway):
         self._seed_default_tables_if_empty()
         rows = self._conn().execute(
             """
-            SELECT t.*, s.id AS active_session_id, s.guests AS active_guests, s.opened_at AS active_opened_at
+            SELECT t.*, s.id AS active_session_id, s.guests AS active_guests, s.opened_at AS active_opened_at,
+                   s.order_state AS active_order_state, s.kitchen_state AS active_kitchen_state,
+                   s.payment_state AS active_payment_state
             FROM restaurant_tables t
             LEFT JOIN restaurant_sessions s ON s.table_id=t.id AND s.status='open'
             WHERE t.is_active=1
             ORDER BY COALESCE(t.zone, ''), t.id
             """
         ).fetchall()
-        return [dict(row) for row in rows]
+        payloads: list[dict[str, Any]] = []
+        for row in rows:
+            table = dict(row)
+            session_id = table.get("active_session_id")
+            if session_id:
+                state_payload = self._session_state_payload(int(session_id), base_table_status=table.get("status"))
+                table.update({
+                    "active_order_state": state_payload["order_state"],
+                    "active_kitchen_status": state_payload["table_state"],
+                    "active_kitchen_state": state_payload["kitchen_state"],
+                    "active_total": state_payload["balance"].get("total"),
+                    "active_paid": state_payload["balance"].get("paid"),
+                    "active_remaining": state_payload["balance"].get("remaining"),
+                    "payment_pending": state_payload["table_state"] == "payment",
+                    "line_counts": state_payload["line_counts"],
+                })
+                if state_payload["table_state"] in {"kitchen", "ready", "payment"}:
+                    table["ui_status"] = state_payload["table_state"]
+                try:
+                    opened = datetime.datetime.fromisoformat(str(table.get("active_opened_at") or ""))
+                    table["elapsed_minutes"] = max(0, int((datetime.datetime.now() - opened).total_seconds() // 60))
+                except Exception:
+                    table["elapsed_minutes"] = None
+            payloads.append(table)
+        return payloads
+
+    def _session_balance_payload(self, session_id: int) -> dict[str, Any]:
+        total = self._session_total(int(session_id))
+        paid = self._session_paid(int(session_id))
+        remaining = total - paid
+        if remaining < Decimal("0"):
+            remaining = Decimal("0")
+        return {
+            "total": str(total),
+            "paid": str(paid),
+            "remaining": str(remaining),
+            "is_fully_paid": paid >= total and total > Decimal("0"),
+        }
+
+    def _session_state_payload(self, session_id: int, base_table_status: Any = "occupied") -> dict[str, Any]:
+        session_row = self._conn().execute("SELECT status FROM restaurant_sessions WHERE id=?", (int(session_id),)).fetchone()
+        session_status = session_row["status"] if session_row else "closed"
+        lines = self._list_session_lines(int(session_id))
+        balance = self._session_balance_payload(int(session_id))
+        kitchen_state = kitchen_state_from_lines(lines)
+        order_state = derive_order_state(lines, balance, session_status=session_status)
+        table_state = derive_table_state(lines, balance, session_status=session_status, base_table_status=base_table_status)
+        return {
+            "session_id": int(session_id),
+            "session_status": session_status,
+            "kitchen_state": kitchen_state,
+            "order_state": order_state,
+            "table_state": table_state,
+            "db_table_status": db_table_status_for(table_state, base_table_status),
+            "balance": balance,
+            "line_counts": line_counts(lines),
+        }
+
+    def _sync_session_table_state(self, session_id: int, conn=None) -> dict[str, Any]:
+        conn = conn or self._conn()
+        session = conn.execute("SELECT table_id, status FROM restaurant_sessions WHERE id=?", (int(session_id),)).fetchone()
+        if not session:
+            return {}
+        table = conn.execute("SELECT status FROM restaurant_tables WHERE id=?", (int(session["table_id"]),)).fetchone()
+        base_status = table["status"] if table else "occupied"
+        state = self._session_state_payload(int(session_id), base_table_status=base_status)
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn.execute(
+            "UPDATE restaurant_sessions SET order_state=?, kitchen_state=?, payment_state=?, last_state_at=? WHERE id=?",
+            (state["order_state"], state["kitchen_state"], state["table_state"], now, int(session_id)),
+        )
+        conn.execute(
+            "UPDATE restaurant_tables SET status=?, updated_at=? WHERE id=?",
+            (state["db_table_status"], now, int(session["table_id"])),
+        )
+        return state
 
     def upsert_table(self, name: str, zone: str = "", seats: int = 4, table_id: int | None = None) -> dict[str, Any]:
         self._ensure_schema()
@@ -241,6 +347,15 @@ class LocalRestaurantGateway(RestaurantGateway):
             raise ValueError("Restaurant session not found")
         payload = dict(row)
         payload["lines"] = self._list_session_lines(session_id)
+        try:
+            state = self._session_state_payload(int(session_id), base_table_status="occupied")
+            payload["order_state"] = state["order_state"]
+            payload["kitchen_state"] = state["kitchen_state"]
+            payload["table_state"] = state["table_state"]
+            payload["line_counts"] = state["line_counts"]
+            payload["payment_pending"] = state["table_state"] == "payment"
+        except Exception:
+            pass
         return payload
 
     def add_order_line(
@@ -275,6 +390,7 @@ class LocalRestaurantGateway(RestaurantGateway):
         )
         self._conn().execute("UPDATE restaurant_sessions SET modification_count=COALESCE(modification_count, 0)+1, last_activity_at=? WHERE id=?", (now, int(session_id)))
         self._conn().execute("INSERT INTO restaurant_service_events(session_id, event_type, line_id, notes, created_at) VALUES (?, 'order_line_added', ?, ?, ?)", (int(session_id), int(cur.lastrowid), notes or "", now))
+        self._sync_session_table_state(int(session_id), self._conn())
         self._conn().commit()
         return self._get_order_line(int(cur.lastrowid))
 
@@ -322,6 +438,7 @@ class LocalRestaurantGateway(RestaurantGateway):
             payload["station"] = station_payloads.get(station_id)
             payload["line_count"] = len(station_lines)
             tickets.append(payload)
+        self._sync_session_table_state(session_id, conn)
         conn.commit()
         return {"tickets": tickets, "ticket": tickets[0] if tickets else None, "lines": lines}
 
@@ -342,6 +459,7 @@ class LocalRestaurantGateway(RestaurantGateway):
         conn = self._conn()
         line = self._get_order_line(int(line_id))
         conn.execute("UPDATE restaurant_order_lines SET kitchen_status=? WHERE id=?", (status, int(line_id)))
+        self._sync_session_table_state(int(line["session_id"]), conn)
         if status == "cancelled":
             session = self.get_session(int(line["session_id"]))
             now_event = datetime.datetime.now().isoformat(timespec="seconds")
@@ -364,6 +482,8 @@ class LocalRestaurantGateway(RestaurantGateway):
         if counts.get("new", 0) > 0:
             raise ValueError("Send new order lines to kitchen before requesting payment")
         now = datetime.datetime.now().isoformat(timespec="seconds")
+        conn.execute("UPDATE restaurant_tables SET status='payment', updated_at=? WHERE id=?", (now, int(session["table_id"])))
+        self._sync_session_table_state(int(session_id), conn)
         conn.execute("UPDATE restaurant_tables SET status='payment', updated_at=? WHERE id=?", (now, int(session["table_id"])))
         conn.commit()
         updated = self.get_session(int(session_id))
@@ -478,6 +598,7 @@ class LocalRestaurantGateway(RestaurantGateway):
             """,
             (int(session_id), str(discount), str(service_charge), str(tax), notes or "", now),
         )
+        self._sync_session_table_state(int(session_id), self._conn())
         self._conn().commit()
         return self.session_balance(int(session_id))
 
@@ -515,6 +636,11 @@ class LocalRestaurantGateway(RestaurantGateway):
         ).fetchall()
         adjustments = self._get_session_adjustments(int(session_id))
         subtotal = self._session_subtotal(int(session_id))
+        split_bills: list[dict[str, Any]] = []
+        try:
+            split_bills = self.list_split_bills(int(session_id))
+        except Exception:
+            split_bills = []
         return {
             "session_id": int(session_id),
             "table_id": session.get("table_id"),
@@ -529,6 +655,8 @@ class LocalRestaurantGateway(RestaurantGateway):
             "remaining": str(remaining),
             "is_fully_paid": paid >= total and total > Decimal("0"),
             "payments": [dict(row) for row in payments],
+            "split_bills": split_bills,
+            "split_bill_count": len(split_bills),
         }
 
     def record_payment(self, session_id: int, amount: Any, payment_method: str = "cash", notes: str = "") -> dict[str, Any]:
@@ -537,39 +665,28 @@ class LocalRestaurantGateway(RestaurantGateway):
         session = self.get_session(int(session_id))
         if session.get("status") != "open":
             raise ValueError("Restaurant session is not open")
-        counts = self._status_counts(int(session_id))
-        if sum(counts.values()) <= 0:
-            raise ValueError("Cannot record payment for an empty table")
-        if counts.get("new", 0) > 0:
-            raise ValueError("Send new order lines to kitchen before recording payment")
-        amount_value = self._decimal(amount, "0")
-        if amount_value <= Decimal("0"):
-            raise ValueError("Payment amount must be greater than zero")
+        require_payment_ready(session.get("lines") or self._list_session_lines(int(session_id)))
         balance = self.session_balance(int(session_id))
         remaining = self._decimal(balance.get("remaining"), "0")
-        if amount_value > remaining:
-            amount_value = remaining
-        if amount_value <= Decimal("0"):
-            raise ValueError("Restaurant session is already fully paid")
+        amount_value = cap_payment(amount, remaining)
         now = datetime.datetime.now().isoformat(timespec="seconds")
+        method = normalize_payment_method(payment_method)
         cur = conn.execute(
             "INSERT INTO restaurant_payments(session_id, invoice_id, amount, payment_method, status, notes, created_at) VALUES (?, NULL, ?, ?, 'posted', ?, ?)",
-            (int(session_id), str(amount_value), payment_method or "cash", notes or "", now),
+            (int(session_id), str(amount_value), method, notes or "", now),
         )
-        conn.execute("UPDATE restaurant_tables SET status='payment', updated_at=? WHERE id=?", (now, int(session["table_id"])))
+        self._sync_session_table_state(int(session_id), conn)
         conn.commit()
         payload = self.session_balance(int(session_id))
         payload["payment_id"] = int(cur.lastrowid)
+        payload["applied_amount"] = str(amount_value)
+        payload["payment_method"] = method
         return payload
 
     def _checkout_lines(self, session_id: int) -> list[dict[str, Any]]:
         lines = self._list_session_lines(int(session_id))
-        billable = [line for line in lines if (line.get("kitchen_status") or "new") != "cancelled"]
-        if not billable:
-            raise ValueError("Cannot checkout an empty restaurant session")
-        if any((line.get("kitchen_status") or "new") == "new" for line in billable):
-            raise ValueError("Send new order lines to kitchen before checkout")
-        return billable
+        require_payment_ready(lines)
+        return [line for line in lines if (line.get("kitchen_status") or "new") != "cancelled"]
 
     def checkout_session(self, session_id: int, paid_amount: Any | None = None, payment_method: str = "cash") -> dict[str, Any]:
         """Convert an open restaurant session into a real sales invoice.
@@ -674,21 +791,25 @@ class LocalRestaurantGateway(RestaurantGateway):
         return closed
 
 
-    def list_kitchen_tickets(self, status: str = "sent", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
+    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
         self._ensure_kitchen_station_schema()
         conn = self._conn()
         limit = max(1, min(int(limit or 50), 200))
-        status = str(status or "sent").strip().lower()
+        status = str(status or "active").strip().lower()
         where = []
         params: list[Any] = []
-        if status and status != "all":
+        if status in {"active", "open", ""}:
+            where.append("kt.status IN ({})".format(",".join("?" for _ in ACTIVE_KITCHEN_STATUSES)))
+            params.extend(ACTIVE_KITCHEN_STATUSES)
+        elif status != "all":
             where.append("kt.status=?")
             params.append(status)
         if station_id is not None:
             where.append("kt.station_id=?")
             params.append(int(station_id))
         where_sql = "WHERE " + " AND ".join(where) if where else ""
-        params.append(limit)
+        # Fetch a little extra, then apply the deterministic KDS sorting policy in Python.
+        params.append(min(limit * 3, 200))
         rows = conn.execute(
             f"""
             SELECT kt.*, s.table_id, t.name AS table_name, st.name AS station_name, st.code AS station_code,
@@ -700,12 +821,12 @@ class LocalRestaurantGateway(RestaurantGateway):
             LEFT JOIN kitchen_ticket_lines ktl ON ktl.ticket_id=kt.id
             {where_sql}
             GROUP BY kt.id
-            ORDER BY kt.id DESC
+            ORDER BY COALESCE(kt.sent_at, '') ASC, kt.id ASC
             LIMIT ?
             """,
             params,
         ).fetchall()
-        return [dict(row) for row in rows]
+        return sort_kitchen_tickets([dict(row) for row in rows])[:limit]
 
 
     def get_kitchen_ticket(self, ticket_id: int) -> dict[str, Any]:
@@ -749,7 +870,11 @@ class LocalRestaurantGateway(RestaurantGateway):
         conn = self._conn()
         ticket = self.get_kitchen_ticket(int(ticket_id))
         now = datetime.datetime.now().isoformat(timespec="seconds")
-        conn.execute("UPDATE kitchen_tickets SET status=? WHERE id=?", (status, int(ticket_id)))
+        timestamp_column = {"preparing": "preparing_at", "ready": "ready_at", "served": "served_at", "cancelled": "cancelled_at"}.get(status)
+        if timestamp_column:
+            conn.execute(f"UPDATE kitchen_tickets SET status=?, {timestamp_column}=COALESCE({timestamp_column}, ?) WHERE id=?", (status, now, int(ticket_id)))
+        else:
+            conn.execute("UPDATE kitchen_tickets SET status=? WHERE id=?", (status, int(ticket_id)))
         if status in {"preparing", "ready", "served", "cancelled"}:
             conn.execute(
                 """
@@ -761,10 +886,15 @@ class LocalRestaurantGateway(RestaurantGateway):
             )
         if status == "served":
             conn.execute("UPDATE kitchen_tickets SET printed_at=COALESCE(printed_at, ?) WHERE id=?", (now, int(ticket_id)))
+        self._sync_session_table_state(int(ticket["session_id"]), conn)
         conn.commit()
         return self.get_kitchen_ticket(int(ticket_id))
 
     def close_session(self, session_id: int, invoice_id: int | None = None) -> dict[str, Any]:
+        # Backward-compatible administrative close used by older tests/plugins.
+        # The operational UI uses checkout_session(), which still blocks unpaid
+        # tables.  This method only prevents closing while unsent kitchen lines
+        # exist, matching the legacy lifecycle guard.
         self._ensure_schema()
         conn = self._conn()
         session = self.get_session(int(session_id))
@@ -1021,6 +1151,11 @@ class LocalRestaurantGateway(RestaurantGateway):
         """)
         for ddl in (
             "ALTER TABLE kitchen_tickets ADD COLUMN station_id INTEGER",
+            "ALTER TABLE kitchen_tickets ADD COLUMN priority INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE kitchen_tickets ADD COLUMN preparing_at TEXT",
+            "ALTER TABLE kitchen_tickets ADD COLUMN ready_at TEXT",
+            "ALTER TABLE kitchen_tickets ADD COLUMN served_at TEXT",
+            "ALTER TABLE kitchen_tickets ADD COLUMN cancelled_at TEXT",
             "ALTER TABLE kitchen_ticket_lines ADD COLUMN station_id INTEGER",
             "ALTER TABLE restaurant_order_lines ADD COLUMN kitchen_station_id INTEGER",
         ):
@@ -1567,34 +1702,242 @@ class LocalRestaurantGateway(RestaurantGateway):
         payload['is_configured'] = True
         return payload
 
-    def consume_session_recipes(self, session_id: int, invoice_id: int | None = None) -> dict[str, Any]:
+    def _table_has_column(self, table_name: str, column_name: str) -> bool:
+        try:
+            rows = self._conn().execute(f"PRAGMA table_info({table_name})").fetchall()
+            return any(str(row["name"]) == column_name for row in rows)
+        except Exception:
+            return False
+
+    def _table_exists(self, table_name: str) -> bool:
+        try:
+            row = self._conn().execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (table_name,),
+            ).fetchone()
+            return bool(row)
+        except Exception:
+            return False
+
+    def _ensure_restaurant_inventory_consumption_schema(self) -> None:
         self._ensure_modifier_recipe_schema()
         conn = self._conn()
-        now = datetime.datetime.now().isoformat(timespec='seconds')
-        consumed = []
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS inventory_movements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER NOT NULL,
+                user_id TEXT,
+                movement_type TEXT NOT NULL,
+                quantity TEXT NOT NULL DEFAULT '0',
+                unit_cost TEXT NOT NULL DEFAULT '0',
+                reference_id INTEGER,
+                movement_date TEXT
+            );
+        """)
+        for ddl in (
+            "ALTER TABLE restaurant_inventory_consumption ADD COLUMN source_type TEXT NOT NULL DEFAULT 'restaurant_recipe'",
+            "ALTER TABLE restaurant_inventory_consumption ADD COLUMN movement_id INTEGER",
+            "ALTER TABLE restaurant_inventory_consumption ADD COLUMN unit_cost TEXT NOT NULL DEFAULT '0'",
+            "ALTER TABLE restaurant_inventory_consumption ADD COLUMN warehouse_id INTEGER",
+        ):
+            try:
+                conn.execute(ddl)
+            except Exception:
+                pass
+        conn.commit()
+
+    def _restaurant_recipe_components_for_line(self, line: dict[str, Any]) -> tuple[str, dict[str, Any], list[dict[str, Any]]]:
+        """Resolve restaurant-specific recipe first, then manufacturing BOM fallback."""
+        item_id = line.get("item_id")
+        if not item_id:
+            return RESTAURANT_RECIPE_SOURCE, {}, []
+        recipe = self.get_recipe_by_item(int(item_id))
+        if recipe.get("is_configured") and recipe.get("lines"):
+            return RESTAURANT_RECIPE_SOURCE, recipe, [
+                {
+                    "id": component.get("id"),
+                    "component_item_id": component.get("component_item_id"),
+                    "component_name": component.get("component_name"),
+                    "quantity": component.get("quantity"),
+                    "unit": component.get("unit") or "",
+                    "unit_cost": component.get("unit_cost") or "0",
+                    "conversion_factor": "1",
+                    "waste_percent": "0",
+                }
+                for component in recipe.get("lines") or []
+            ]
+        bom = self._get_manufacturing_bom_for_restaurant_item(int(item_id))
+        if bom.get("is_configured") and bom.get("lines"):
+            return MANUFACTURING_BOM_SOURCE, bom, bom.get("lines") or []
+        return RESTAURANT_RECIPE_SOURCE, {}, []
+
+    def _get_manufacturing_bom_for_restaurant_item(self, item_id: int) -> dict[str, Any]:
+        conn = self._conn()
+        if not (self._table_exists("bom") and self._table_exists("bom_lines")):
+            return {"item_id": int(item_id), "lines": [], "is_configured": False}
+        params: list[Any] = [int(item_id)]
+        where = "product_id=?"
+        if self._table_has_column("bom", "user_id"):
+            where += " AND user_id=?"
+            params.append(self._current_user_id())
+        try:
+            row = conn.execute(f"SELECT * FROM bom WHERE {where} ORDER BY id DESC LIMIT 1", params).fetchone()
+        except Exception:
+            return {"item_id": int(item_id), "lines": [], "is_configured": False}
+        if not row:
+            return {"item_id": int(item_id), "lines": [], "is_configured": False}
+        bom = dict(row)
+        try:
+            rows = conn.execute(
+                """
+                SELECT bl.id, bl.item_id AS component_item_id,
+                       COALESCE(i.name, 'Component') AS component_name,
+                       bl.quantity, COALESCE(i.unit, '') AS unit,
+                       CAST(COALESCE(bl.conversion_factor, 1) AS TEXT) AS conversion_factor,
+                       CAST(COALESCE(bl.waste_percent, 0) AS TEXT) AS waste_percent,
+                       CAST(COALESCE(i.average_cost, i.purchase_price, 0) AS TEXT) AS unit_cost
+                FROM bom_lines bl
+                LEFT JOIN items i ON i.id=bl.item_id
+                WHERE bl.bom_id=?
+                ORDER BY bl.id
+                """,
+                (int(bom["id"]),),
+            ).fetchall()
+        except Exception:
+            rows = []
+        bom["lines"] = [dict(row) for row in rows]
+        bom["is_configured"] = bool(bom["lines"])
+        return bom
+
+    def _post_restaurant_component_movement(
+        self,
+        component_item_id: Any,
+        quantity: Decimal,
+        unit_cost: Any,
+        invoice_id: int | None,
+        source_type: str,
+        session_id: int,
+        order_line_id: int,
+    ) -> int | None:
+        if not component_item_id or quantity <= Decimal("0"):
+            return None
+        conn = self._conn()
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        movement_unit_cost = self._decimal(unit_cost, "0")
+        cur = conn.execute(
+            """
+            INSERT INTO inventory_movements(item_id, user_id, movement_type, quantity, unit_cost, reference_id, movement_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                int(component_item_id),
+                self._current_user_id(),
+                RESTAURANT_CONSUME_MOVEMENT_TYPE,
+                str(quantity),
+                str(movement_unit_cost),
+                invoice_id,
+                now,
+            ),
+        )
+        # Operational stock remains quantity-column based in this project.  The
+        # movement row gives auditability; the direct decrement keeps the current
+        # stock view correct even for old databases without opening movements.
+        conn.execute(
+            "UPDATE items SET quantity = CAST(COALESCE(NULLIF(quantity, ''), '0') AS REAL) - ? WHERE id=?",
+            (float(quantity), int(component_item_id)),
+        )
+        return int(cur.lastrowid)
+
+    def consume_session_recipes(self, session_id: int, invoice_id: int | None = None) -> dict[str, Any]:
+        self._ensure_restaurant_inventory_consumption_schema()
+        conn = self._conn()
+        now = datetime.datetime.now().isoformat(timespec="seconds")
+        consumed: list[dict[str, Any]] = []
+        skipped_without_recipe = 0
         for line in self.list_session_lines(int(session_id)):
-            if (line.get('kitchen_status') or 'new') == 'cancelled' or not line.get('item_id'):
+            if (line.get("kitchen_status") or "new") == "cancelled" or not line.get("item_id"):
                 continue
-            recipe = self.get_recipe_by_item(int(line['item_id']))
-            if not recipe.get('is_configured'):
+            source_type, recipe_payload, components = self._restaurant_recipe_components_for_line(line)
+            if not components:
+                skipped_without_recipe += 1
                 continue
-            yield_qty = self._decimal(recipe.get('yield_quantity'), '1') or Decimal('1')
-            sold_qty = self._decimal(line.get('quantity'), '0')
-            for component in recipe.get('lines') or []:
-                consume_qty = (sold_qty * self._decimal(component.get('quantity'), '0')) / yield_qty
-                source_key = f"restaurant:{int(session_id)}:{int(line['id'])}:{component.get('id')}"
+            sold_qty = self._decimal(line.get("base_qty") or line.get("quantity"), "0")
+            recipe_yield = recipe_payload.get("yield_quantity") or recipe_payload.get("quantity") or "1"
+            for component in components:
+                consume_qty = required_component_quantity(
+                    sold_qty,
+                    component.get("quantity"),
+                    recipe_yield,
+                    component.get("conversion_factor") or "1",
+                    component.get("waste_percent") or "0",
+                )
+                if consume_qty <= Decimal("0"):
+                    continue
+                source_key = consumption_source_key(source_type, int(session_id), int(line["id"]), component.get("id"))
                 try:
-                    conn.execute('INSERT INTO restaurant_inventory_consumption(session_id, order_line_id, invoice_id, item_id, component_item_id, component_name, quantity, unit, source_key, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (int(session_id), int(line['id']), invoice_id, line.get('item_id'), component.get('component_item_id'), component.get('component_name'), str(consume_qty), component.get('unit') or '', source_key, now))
+                    cur = conn.execute(
+                        """
+                        INSERT INTO restaurant_inventory_consumption(
+                            session_id, order_line_id, invoice_id, item_id, component_item_id,
+                            component_name, quantity, unit, source_key, created_at,
+                            source_type, unit_cost
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            int(session_id),
+                            int(line["id"]),
+                            invoice_id,
+                            line.get("item_id"),
+                            component.get("component_item_id"),
+                            component.get("component_name") or "Component",
+                            str(consume_qty),
+                            component.get("unit") or "",
+                            source_key,
+                            now,
+                            source_type,
+                            str(self._decimal(component.get("unit_cost"), "0")),
+                        ),
+                    )
                 except Exception:
                     continue
-                if component.get('component_item_id'):
-                    try:
-                        conn.execute('UPDATE items SET quantity = CAST(COALESCE(NULLIF(quantity, \'\'), \'0\') AS REAL) - ? WHERE id=?', (float(consume_qty), int(component['component_item_id'])))
-                    except Exception:
-                        pass
-                consumed.append({'line_id': int(line['id']), 'component_name': component.get('component_name'), 'quantity': str(consume_qty), 'unit': component.get('unit') or ''})
+                movement_id = self._post_restaurant_component_movement(
+                    component.get("component_item_id"),
+                    consume_qty,
+                    component.get("unit_cost") or "0",
+                    invoice_id,
+                    source_type,
+                    int(session_id),
+                    int(line["id"]),
+                )
+                try:
+                    if movement_id:
+                        conn.execute("UPDATE restaurant_inventory_consumption SET movement_id=? WHERE id=?", (movement_id, int(cur.lastrowid)))
+                except Exception:
+                    pass
+                consumed.append(
+                    {
+                        "line_id": int(line["id"]),
+                        "item_id": line.get("item_id"),
+                        "source_type": source_type,
+                        "component_item_id": component.get("component_item_id"),
+                        "component_name": component.get("component_name") or "Component",
+                        "quantity": str(consume_qty),
+                        "unit": component.get("unit") or "",
+                        "movement_id": movement_id,
+                    }
+                )
         conn.commit()
-        return {'session_id': int(session_id), 'invoice_id': invoice_id, 'consumed': consumed, 'count': len(consumed)}
+        by_source: dict[str, int] = {}
+        for row in consumed:
+            by_source[row["source_type"]] = by_source.get(row["source_type"], 0) + 1
+        return {
+            "session_id": int(session_id),
+            "invoice_id": invoice_id,
+            "consumed": consumed,
+            "count": len(consumed),
+            "by_source": by_source,
+            "skipped_without_recipe": skipped_without_recipe,
+        }
 
     def checkout_session(self, session_id: int, paid_amount: Any | None = None, payment_method: str = "cash") -> dict[str, Any]:
         self._ensure_modifier_recipe_schema()
@@ -1746,11 +2089,21 @@ class LocalRestaurantGateway(RestaurantGateway):
         session = self.get_session(int(session_id))
         if session.get('status') != 'open':
             raise ValueError('Restaurant session must be open to split bill')
+        require_payment_ready(session.get('lines') or self._list_session_lines(int(session_id)))
         if not splits:
             raise ValueError('At least one split bill is required')
         conn = self._conn()
         lines = {int(line['id']): line for line in self.list_session_lines(int(session_id)) if (line.get('kitchen_status') or 'new') != 'cancelled'}
+        existing_rows = conn.execute(
+            """SELECT sbl.order_line_id
+               FROM restaurant_split_bill_lines sbl
+               JOIN restaurant_split_bills sb ON sb.id=sbl.split_bill_id
+               WHERE sb.session_id=? AND sb.status IN ('open','paid')""",
+            (int(session_id),),
+        ).fetchall()
+        already_split = {int(row['order_line_id']) for row in existing_rows}
         now = datetime.datetime.now().isoformat(timespec='seconds')
+        created: list[dict[str, Any]] = []
         seen: set[int] = set()
         for idx, split in enumerate(splits, start=1):
             line_ids = [int(x) for x in (split.get('line_ids') or [])]
@@ -1760,20 +2113,39 @@ class LocalRestaurantGateway(RestaurantGateway):
                 raise ValueError('Split contains order lines outside this session')
             if any(line_id in seen for line_id in line_ids):
                 raise ValueError('Order line cannot be assigned twice')
+            if any(line_id in already_split for line_id in line_ids):
+                raise ValueError('Order line already belongs to an existing split bill')
             seen.update(line_ids)
-            subtotal = sum((self._decimal(lines[line_id].get('line_total') or (self._decimal(lines[line_id].get('quantity')) * self._decimal(lines[line_id].get('unit_price'))), '0') for line_id in line_ids), Decimal('0'))
+            subtotal = sum((line_amount(lines[line_id]) for line_id in line_ids), Decimal('0'))
             paid = self._decimal(split.get('paid_amount'), '0')
-            status = 'paid' if paid >= subtotal and subtotal > Decimal('0') else 'open'
-            cur = conn.execute("INSERT INTO restaurant_split_bills(session_id, guest_label, subtotal, paid_amount, payment_method, status, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (int(session_id), split.get('guest_label') or f'Guest {idx}', str(subtotal), str(paid), split.get('payment_method') or '', status, notes or split.get('notes') or '', now, now))
+            if paid < Decimal('0'):
+                raise ValueError('Split bill payment cannot be negative')
+            if paid > subtotal:
+                paid = subtotal
+            status = split_status(subtotal, paid)
+            method = normalize_payment_method(split.get('payment_method') or ('split' if paid > Decimal('0') else ''))
+            cur = conn.execute(
+                "INSERT INTO restaurant_split_bills(session_id, guest_label, subtotal, paid_amount, payment_method, status, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (int(session_id), split.get('guest_label') or f'Guest {idx}', str(subtotal), str(paid), method if paid > Decimal('0') else '', status, notes or split.get('notes') or '', now, now),
+            )
             split_id = int(cur.lastrowid)
             for line_id in line_ids:
                 line = lines[line_id]
-                amount = self._decimal(line.get('line_total') or (self._decimal(line.get('quantity')) * self._decimal(line.get('unit_price'))), '0')
-                conn.execute("INSERT INTO restaurant_split_bill_lines(split_bill_id, order_line_id, quantity, amount) VALUES (?, ?, ?, ?)", (split_id, line_id, str(line.get('quantity') or '1'), str(amount)))
+                amount = line_amount(line)
+                conn.execute(
+                    "INSERT INTO restaurant_split_bill_lines(split_bill_id, order_line_id, quantity, amount) VALUES (?, ?, ?, ?)",
+                    (split_id, line_id, str(line.get('quantity') or '1'), str(amount)),
+                )
             if paid > Decimal('0'):
-                conn.execute("INSERT INTO restaurant_payments(session_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, 'posted', ?, ?)", (int(session_id), str(paid), split.get('payment_method') or 'split', f'split_bill:{split_id}', now))
+                conn.execute(
+                    "INSERT INTO restaurant_payments(session_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, 'posted', ?, ?)",
+                    (int(session_id), str(paid), method or 'split', f'split_bill:{split_id}', now),
+                )
+            summary = split_bill_summary(subtotal, paid)
+            created.append({'id': split_id, 'guest_label': split.get('guest_label') or f'Guest {idx}', 'subtotal': str(subtotal), 'paid_amount': str(paid), 'remaining_amount': summary['remaining_amount'], 'status': status, 'line_ids': line_ids})
+        self._sync_session_table_state(int(session_id), conn)
         conn.commit()
-        return {'session_id': int(session_id), 'split_bills': self.list_split_bills(int(session_id)), 'balance': self.session_balance(int(session_id))}
+        return {'session_id': int(session_id), 'split_bills': self.list_split_bills(int(session_id)), 'created': created, 'balance': self.session_balance(int(session_id))}
 
     def list_split_bills(self, session_id: int) -> list[dict[str, Any]]:
         self._ensure_split_printer_schema()
@@ -1784,6 +2156,7 @@ class LocalRestaurantGateway(RestaurantGateway):
             item = dict(bill)
             rows = conn.execute("SELECT sbl.*, rol.item_name, rol.notes, rol.kitchen_status FROM restaurant_split_bill_lines sbl LEFT JOIN restaurant_order_lines rol ON rol.id=sbl.order_line_id WHERE sbl.split_bill_id=? ORDER BY sbl.id", (int(item['id']),)).fetchall()
             item['lines'] = [dict(row) for row in rows]
+            item.update(split_bill_summary(item.get('subtotal'), item.get('paid_amount')))
             payload.append(item)
         return payload
 
@@ -1793,17 +2166,21 @@ class LocalRestaurantGateway(RestaurantGateway):
         bill = conn.execute("SELECT * FROM restaurant_split_bills WHERE id=?", (int(split_bill_id),)).fetchone()
         if not bill:
             raise ValueError('Split bill not found')
-        amount_dec = self._decimal(amount, '0')
-        if amount_dec <= Decimal('0'):
-            raise ValueError('Payment amount must be positive')
-        paid = self._decimal(bill['paid_amount'], '0') + amount_dec
         subtotal = self._decimal(bill['subtotal'], '0')
-        status = 'paid' if paid >= subtotal and subtotal > Decimal('0') else 'open'
+        current_paid = self._decimal(bill['paid_amount'], '0')
+        outstanding = remaining_amount(subtotal, current_paid)
+        amount_dec = cap_payment(amount, outstanding)
+        paid = current_paid + amount_dec
+        if paid > subtotal:
+            paid = subtotal
+        status = split_status(subtotal, paid)
+        method = normalize_payment_method(payment_method)
         now = datetime.datetime.now().isoformat(timespec='seconds')
-        conn.execute("UPDATE restaurant_split_bills SET paid_amount=?, payment_method=?, status=?, notes=?, updated_at=? WHERE id=?", (str(paid), payment_method or 'cash', status, notes or bill['notes'] or '', now, int(split_bill_id)))
-        conn.execute("INSERT INTO restaurant_payments(session_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, 'posted', ?, ?)", (int(bill['session_id']), str(amount_dec), payment_method or 'cash', f'split_bill:{int(split_bill_id)} {notes or ""}'.strip(), now))
+        conn.execute("UPDATE restaurant_split_bills SET paid_amount=?, payment_method=?, status=?, notes=?, updated_at=? WHERE id=?", (str(paid), method, status, notes or bill['notes'] or '', now, int(split_bill_id)))
+        conn.execute("INSERT INTO restaurant_payments(session_id, amount, payment_method, status, notes, created_at) VALUES (?, ?, ?, 'posted', ?, ?)", (int(bill['session_id']), str(amount_dec), method, f'split_bill:{int(split_bill_id)} {notes or ""}'.strip(), now))
+        self._sync_session_table_state(int(bill['session_id']), conn)
         conn.commit()
-        return {'split_bill_id': int(split_bill_id), 'status': status, 'paid_amount': str(paid), 'session_balance': self.session_balance(int(bill['session_id']))}
+        return {'split_bill_id': int(split_bill_id), 'status': status, 'paid_amount': str(paid), 'applied_amount': str(amount_dec), 'remaining_amount': str(remaining_amount(subtotal, paid)), 'session_balance': self.session_balance(int(bill['session_id']))}
 
     def upsert_printer(self, name: str, printer_type: str = "kitchen", device_uri: str = "", printer_id: int | None = None, is_active: bool = True) -> dict[str, Any]:
         self._ensure_split_printer_schema()

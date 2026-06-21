@@ -983,24 +983,130 @@ def report_html(title: str, rows: List[List[Any]], headers: List[str], subtitle:
 
 
 
+
 def _restaurant_line_total(line: Dict[str, Any]) -> Any:
     try:
-        from decimal import Decimal
-        return str(Decimal(str(line.get("quantity") or "0")) * Decimal(str(line.get("unit_price") or "0")))
+        return str(
+            (_decimal_or_none(line.get("quantity") or line.get("qty") or "0") or Decimal("0"))
+            * (_decimal_or_none(line.get("unit_price") or line.get("price") or "0") or Decimal("0"))
+        )
     except Exception:
         return line.get("total") or line.get("line_total") or "0"
 
 
+def _restaurant_payload_currency(data: Optional[Dict[str, Any]] = None, settings: Optional[Dict[str, Any]] = None) -> str:
+    payload = data or {}
+    session = payload.get("session") if isinstance(payload.get("session"), dict) else {}
+    balance = payload.get("balance") if isinstance(payload.get("balance"), dict) else {}
+    for source in (payload, session, balance):
+        value = source.get("display_currency") or source.get("currency") or source.get("currency_code")
+        if value:
+            return _currency_code(value, settings)
+    return _currency_code(None, settings)
+
+
+def _restaurant_money(value: Any, currency_code: Optional[str] = None, settings: Optional[Dict[str, Any]] = None) -> str:
+    return _format_money(value, currency_code, settings)
+
+
+def _restaurant_qty(value: Any, settings: Optional[Dict[str, Any]] = None) -> str:
+    return _format_quantity(value, settings)
+
+
+def _restaurant_status(value: Any) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    for key in (
+        f"restaurant.kds.status.{raw}",
+        f"restaurant.order_state.{raw}",
+        f"restaurant.line_status.{raw}",
+        f"status_{raw}",
+    ):
+        translated = _tr(key)
+        if translated != key:
+            return translated
+    return raw.replace("_", " ")
+
+
+def _restaurant_payment_method(value: Any) -> str:
+    raw = str(value or "cash").strip().lower()
+    aliases = {
+        "cash": "payment.cash",
+        "card": "payment.card",
+        "bank": "payment.bank",
+        "bank_transfer": "payment.bank",
+        "mixed": "restaurant.payment.mixed",
+        "split": "restaurant.payment.split",
+        "credit": "payment.credit",
+    }
+    key = aliases.get(raw, raw)
+    translated = _tr(key)
+    return translated if translated != key else raw.replace("_", " ")
+
+
+def _restaurant_printing_settings(kind: str, payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    settings = dict(_settings())
+    try:
+        svc = _settings_service()
+        if svc is not None:
+            restaurant_settings = svc.get_restaurant_settings() or {}
+            printing = restaurant_settings.get("printing") or {}
+            settings.update({k: v for k, v in printing.items() if k not in settings or v not in (None, "")})
+            settings["display_currency"] = _restaurant_payload_currency(payload, settings)
+            settings["currency_symbol"] = _currency_symbol(settings.get("display_currency"), settings)
+            # Restaurant-specific logo / QR policy.  Customer receipts inherit the
+            # normal company header.  Kitchen tickets are internal work tickets and
+            # default to no logo unless explicitly enabled.
+            if kind == "kitchen":
+                show_logo = svc.get_bool("restaurant/printing/kitchen_show_logo", False)
+                settings["show_logo"] = show_logo
+                settings["thermal_show_logo"] = show_logo
+                settings["show_qr"] = svc.get_bool("restaurant/printing/kitchen_show_qr", False)
+            elif kind == "session_summary":
+                settings["show_logo"] = svc.get_bool("restaurant/printing/session_summary_show_logo", settings.get("show_logo", True))
+                settings["thermal_show_logo"] = svc.get_bool("restaurant/printing/session_summary_show_logo", settings.get("thermal_show_logo", True))
+            else:
+                settings["show_logo"] = svc.get_bool("restaurant/receipt_show_logo", settings.get("show_logo", True))
+                settings["thermal_show_logo"] = svc.get_bool("restaurant/receipt_show_logo", settings.get("thermal_show_logo", True))
+                settings["show_qr"] = svc.get_bool("restaurant/receipt_show_qr", settings.get("show_qr", True))
+    except Exception:
+        settings["display_currency"] = _restaurant_payload_currency(payload, settings)
+    return settings
+
+
+def _restaurant_lines(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    session = dict((data or {}).get("session") or data or {})
+    return [line if isinstance(line, dict) else {} for line in (session.get("lines") or (data or {}).get("lines") or [])]
+
+
+def _restaurant_payments(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    session = dict((data or {}).get("session") or data or {})
+    return [p if isinstance(p, dict) else {} for p in (session.get("payments") or (data or {}).get("payments") or [])]
+
+
+def _restaurant_split_bills(data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    session = dict((data or {}).get("session") or data or {})
+    return [s if isinstance(s, dict) else {} for s in ((data or {}).get("split_bills") or session.get("split_bills") or [])]
+
+
 def restaurant_receipt_html(data: Dict[str, Any], paper: str = "default") -> str:
-    """Settings-driven customer receipt for Restaurant POS sessions."""
-    settings = _settings()
+    """Professional customer receipt for Restaurant POS sessions.
+
+    Customer receipts must show prices, totals, payment split, displayed currency,
+    company header/logo, and no internal kitchen metadata unless it helps the
+    customer understand the order.
+    """
+    settings = _restaurant_printing_settings("receipt", data)
     paper = _normalize_paper(paper, settings, "restaurant_receipt")
     session = dict((data or {}).get("session") or data or {})
     balance = dict((data or {}).get("balance") or {})
-    lines = list(session.get("lines") or (data or {}).get("lines") or [])
-    payments = list(session.get("payments") or (data or {}).get("payments") or [])
+    currency_code = _restaurant_payload_currency(data, settings)
+    lines = _restaurant_lines(data or {})
+    payments = _restaurant_payments(data or {})
+    splits = _restaurant_split_bills(data or {})
     title = _tr("restaurant_receipt")
-    ref = session.get("invoice_reference") or session.get("invoice_id") or session.get("id") or ""
+    ref = session.get("invoice_reference") or session.get("invoice_id") or session.get("receipt_no") or session.get("id") or ""
     table = session.get("table_name") or session.get("table_id") or ""
     opened = session.get("opened_at") or session.get("created_at") or ""
     closed = session.get("closed_at") or ""
@@ -1008,36 +1114,48 @@ def restaurant_receipt_html(data: Dict[str, Any], paper: str = "default") -> str
     waiter = session.get("waiter_name") or session.get("waiter_id") or session.get("user_name") or ""
 
     rows: List[List[Any]] = []
-    for i, raw in enumerate(lines, 1):
-        line = raw if isinstance(raw, dict) else {}
-        status = line.get("kitchen_status") or ""
+    for i, line in enumerate(lines, 1):
+        total = line.get("total") or line.get("line_total") or _restaurant_line_total(line)
+        status = line.get("kitchen_status") or line.get("status") or ""
+        item = _line_value(line, "item_name", "name", "description")
+        unit = _line_value(line, "unit", "unit_name", default="")
+        qty = _restaurant_qty(_line_value(line, "quantity", "qty", default="0"), settings)
+        qty_cell = f"{qty} {_s(unit)}".strip()
         rows.append([
             i,
-            _line_value(line, "item_name", "name", "description"),
-            _line_value(line, "unit", "unit_name"),
-            _line_value(line, "quantity", "qty"),
-            _line_value(line, "base_qty", "quantity_in_base"),
-            _line_value(line, "unit_price", "price"),
-            _restaurant_line_total(line),
-            _tr(f"restaurant.line_status.{status}") if status else "",
+            item,
+            qty_cell,
+            _restaurant_money(_line_value(line, "unit_price", "price", default="0"), currency_code, settings),
+            _restaurant_money(total, currency_code, settings),
+            _restaurant_status(status),
         ])
 
     payment_rows: List[List[Any]] = []
-    for i, raw in enumerate(payments, 1):
-        pay = raw if isinstance(raw, dict) else {}
+    for i, pay in enumerate(payments, 1):
         payment_rows.append([
             i,
-            pay.get("payment_method") or pay.get("method") or "",
-            pay.get("amount") or "",
+            _restaurant_payment_method(pay.get("payment_method") or pay.get("method") or ""),
+            _restaurant_money(pay.get("amount") or "0", currency_code, settings),
             pay.get("created_at") or pay.get("date") or "",
             pay.get("notes") or "",
         ])
 
-    subtotal = balance.get("subtotal", session.get("subtotal", ""))
+    split_rows: List[List[Any]] = []
+    for i, split in enumerate(splits, 1):
+        split_rows.append([
+            i,
+            split.get("name") or split.get("label") or split.get("id") or "",
+            _restaurant_money(split.get("total") or split.get("amount") or "0", currency_code, settings),
+            _restaurant_money(split.get("paid_amount") or split.get("paid") or "0", currency_code, settings),
+            _restaurant_money(split.get("remaining_amount") or split.get("remaining") or "0", currency_code, settings),
+            _restaurant_status(split.get("status") or ""),
+        ])
+
+    subtotal = balance.get("subtotal", session.get("subtotal", "0"))
     discount = balance.get("discount_amount", session.get("discount_amount", "0"))
     service_charge = balance.get("service_charge_amount", session.get("service_charge_amount", "0"))
     tax = balance.get("tax_amount", session.get("tax_amount", "0"))
-    total = balance.get("total", session.get("invoice_total", session.get("total", "")))
+    total = balance.get("total", session.get("invoice_total", session.get("total", "0")))
     paid = balance.get("paid", session.get("paid_amount", "0"))
     remaining = balance.get("remaining", session.get("remaining", "0"))
 
@@ -1046,8 +1164,9 @@ def restaurant_receipt_html(data: Dict[str, Any], paper: str = "default") -> str
     {_meta_table([
         [(_tr("print_document_number"), ref), (_tr("restaurant_table"), table), (_tr("restaurant_guests"), guests)],
         [(_tr("restaurant_opened_at"), opened), (_tr("restaurant_closed_at"), closed), (_tr("restaurant_waiter"), waiter)],
+        [(_tr("print_currency"), _currency_label(currency_code, settings)), (_tr("restaurant_order_state"), _restaurant_status(session.get("order_state") or session.get("status") or "")), (_tr("print_notes"), session.get("notes") or "")],
     ])}
-    {_table(["#", _tr("print_item"), _tr("print_unit"), _tr("print_quantity"), _tr("pos_column_base_qty"), _tr("print_price"), _tr("print_total"), _tr("restaurant_column_status")], rows, _tr("print_no_lines"))}
+    {_table(["#", _tr("print_item"), _tr("print_quantity"), _tr("print_price"), _tr("print_total"), _tr("restaurant_column_status")], rows, _tr("print_no_lines"))}
     {_totals_table([
         (_tr("print_subtotal"), subtotal, ""),
         (_tr("print_discount"), discount, ""),
@@ -1056,43 +1175,89 @@ def restaurant_receipt_html(data: Dict[str, Any], paper: str = "default") -> str
         (_tr("print_total"), total, "final"),
         (_tr("restaurant.paid"), paid, ""),
         (_tr("restaurant.remaining"), remaining, "due"),
-    ])}
-    <div class='notes-box'><strong>{_s(_tr("print_notes"))}</strong>: {_s(session.get("notes") or "")}</div>
+    ], currency_code=currency_code, monetary=True)}
     {_table(["#", _tr("print_payment_method"), _tr("restaurant.payment_amount"), _tr("print_document_date"), _tr("print_notes")], payment_rows, _tr("restaurant.no_payments")) if payment_rows else ""}
-    {_footer(settings)}
+    {_table(["#", _tr("restaurant.split_bill"), _tr("print_total"), _tr("restaurant.paid"), _tr("restaurant.remaining"), _tr("status")], split_rows, _tr("restaurant.no_split_bills")) if split_rows else ""}
+    {_footer(settings, _tr("restaurant_receipt_footer"))}
     """
     return base_document(title, body, paper, settings)
 
 
 def restaurant_kitchen_ticket_html(data: Dict[str, Any], paper: str = "default") -> str:
-    """Settings-driven kitchen order ticket (KOT)."""
-    settings = _settings()
+    """Kitchen order ticket (KOT).
+
+    KOTs are internal production documents.  They intentionally omit prices,
+    totals, taxes, customer payment data, and the cash receipt footer.
+    """
+    settings = _restaurant_printing_settings("kitchen", data)
     paper = _normalize_paper(paper, settings, "restaurant_kitchen")
     ticket = dict(data or {})
-    lines = list(ticket.get("lines") or [])
+    lines = [line if isinstance(line, dict) else {} for line in (ticket.get("lines") or [])]
     title = _tr("restaurant_kitchen_ticket")
+    status = ticket.get("status") or "sent"
+    station = ticket.get("station_name") or ticket.get("station_code") or ""
+    elapsed = ticket.get("elapsed_minutes") or ticket.get("wait_minutes") or ""
+    overdue_badge = f"<div class='notes-box'><strong>⚠ {_s(_tr('restaurant.kds.overdue'))}</strong></div>" if ticket.get("is_overdue") else ""
     rows: List[List[Any]] = []
-    for i, raw in enumerate(lines, 1):
-        line = raw if isinstance(raw, dict) else {}
+    for i, line in enumerate(lines, 1):
+        qty = _restaurant_qty(_line_value(line, "quantity", "qty", default="1"), settings)
+        unit = _line_value(line, "unit", "unit_name", default="")
         rows.append([
             i,
             _line_value(line, "item_name", "name"),
-            _line_value(line, "quantity", "qty"),
-            _line_value(line, "unit", "unit_name", default=""),
-            _line_value(line, "station_name", "station_code", default=""),
+            f"{qty} {_s(unit)}".strip(),
             _line_value(line, "notes", "kitchen_label", default=""),
         ])
     body = f"""
     {_company_header(settings, title)}
+    {overdue_badge}
     {_meta_table([
-        [(_tr("print_document_number"), ticket.get("id") or ""), (_tr("restaurant_table"), ticket.get("table_name") or ticket.get("table_id") or ""), (_tr("restaurant_station"), ticket.get("station_name") or ticket.get("station_code") or "")],
-        [(_tr("restaurant_sent_at"), ticket.get("sent_at") or ""), (_tr("restaurant_ticket_status"), ticket.get("status") or ""), (_tr("print_notes"), ticket.get("notes") or "")],
+        [(_tr("print_document_number"), ticket.get("id") or ""), (_tr("restaurant_table"), ticket.get("table_name") or ticket.get("table_id") or ""), (_tr("restaurant_station"), station)],
+        [(_tr("restaurant_sent_at"), ticket.get("sent_at") or ticket.get("created_at") or ""), (_tr("restaurant_ticket_status"), _restaurant_status(status)), (_tr("restaurant.kds.minutes"), elapsed)],
+        [(_tr("print_notes"), ticket.get("notes") or ""), (_tr("restaurant_priority"), ticket.get("priority") or ""), (_tr("restaurant_order_state"), _restaurant_status(ticket.get("order_state") or ""))],
     ])}
-    {_table(["#", _tr("print_item"), _tr("print_quantity"), _tr("print_unit"), _tr("restaurant_station"), _tr("print_notes")], rows, _tr("print_no_lines"))}
+    {_table(["#", _tr("print_item"), _tr("print_quantity"), _tr("print_notes")], rows, _tr("print_no_lines"))}
     {_footer(settings, _tr("restaurant_kitchen_ticket_footer"))}
     """
     return base_document(title, body, paper, settings)
 
+
+def restaurant_session_summary_html(data: Dict[str, Any], paper: str = "default") -> str:
+    """Closing/session summary for a restaurant table.
+
+    This is separate from the customer receipt: it is a supervisor/cashier record
+    showing lifecycle, payment settlement, and split-bill status.
+    """
+    settings = _restaurant_printing_settings("session_summary", data)
+    paper = _normalize_paper(paper, settings, "restaurant_receipt")
+    session = dict((data or {}).get("session") or data or {})
+    balance = dict((data or {}).get("balance") or {})
+    currency_code = _restaurant_payload_currency(data, settings)
+    lines = _restaurant_lines(data or {})
+    payments = _restaurant_payments(data or {})
+    splits = _restaurant_split_bills(data or {})
+    title = _tr("restaurant_session_summary")
+    line_total = sum((_decimal_or_none(line.get("total") or line.get("line_total") or _restaurant_line_total(line)) or Decimal("0")) for line in lines)
+    payments_total = sum((_decimal_or_none(pay.get("amount")) or Decimal("0")) for pay in payments)
+    rows = [
+        [_tr("restaurant.lines_count"), len(lines)],
+        [_tr("restaurant.payments_count"), len(payments)],
+        [_tr("restaurant.split_bills_count"), len(splits)],
+        [_tr("restaurant.lines_total"), _restaurant_money(line_total, currency_code, settings)],
+        [_tr("restaurant.payments_total"), _restaurant_money(payments_total, currency_code, settings)],
+        [_tr("restaurant.remaining"), _restaurant_money(balance.get("remaining", session.get("remaining", "0")), currency_code, settings)],
+    ]
+    body = f"""
+    {_company_header(settings, title)}
+    {_meta_table([
+        [(_tr("print_document_number"), session.get("id") or ""), (_tr("restaurant_table"), session.get("table_name") or session.get("table_id") or ""), (_tr("status"), _restaurant_status(session.get("status") or session.get("order_state") or ""))],
+        [(_tr("restaurant_opened_at"), session.get("opened_at") or session.get("created_at") or ""), (_tr("restaurant_closed_at"), session.get("closed_at") or ""), (_tr("restaurant_waiter"), session.get("waiter_name") or session.get("waiter_id") or "")],
+        [(_tr("print_currency"), _currency_label(currency_code, settings)), (_tr("restaurant.paid"), _restaurant_money(balance.get("paid", session.get("paid_amount", "0")), currency_code, settings)), (_tr("restaurant.remaining"), _restaurant_money(balance.get("remaining", session.get("remaining", "0")), currency_code, settings))],
+    ])}
+    {_table([_tr("print_item"), _tr("print_total")], rows, _tr("print_no_data"))}
+    {_footer(settings, _tr("restaurant_session_summary_footer"))}
+    """
+    return base_document(title, body, paper, settings)
 
 def _manufacturing_status(value: Any) -> str:
     status_map = {
