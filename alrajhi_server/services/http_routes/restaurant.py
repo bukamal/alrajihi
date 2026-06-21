@@ -213,6 +213,7 @@ def list_kitchen_tickets():
             status=request.args.get("status") or "active",
             limit=int(request.args.get("limit") or 50),
             station_id=station_id,
+            order_type=request.args.get("order_type") or None,
         )))
     except Exception as exc:
         return jsonify({"error": str(exc)}), 400
@@ -415,6 +416,34 @@ def restaurant_analytics():
         return jsonify({"error": str(exc)}), 400
 
 
+@restaurant_bp.route("/restaurant/shift_report", methods=["GET"])
+@jwt_required()
+@restaurant_branch_guard()
+def restaurant_shift_report():
+    try:
+        return jsonify(_repo.restaurant_shift_report(
+            start_datetime=request.args.get("start_datetime") or "",
+            end_datetime=request.args.get("end_datetime") or "",
+            cashier_id=request.args.get("cashier_id") or "",
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/cafe_shift_report", methods=["GET"])
+@jwt_required()
+@restaurant_branch_guard()
+def cafe_shift_report():
+    try:
+        return jsonify(_repo.cafe_shift_report(
+            start_datetime=request.args.get("start_datetime") or "",
+            end_datetime=request.args.get("end_datetime") or "",
+            cashier_id=request.args.get("cashier_id") or "",
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
 
 # Phase 35: takeaway and delivery endpoints
 @restaurant_bp.route("/restaurant/orders", methods=["GET"])
@@ -440,6 +469,24 @@ def create_takeaway_order():
         scope_creation_payload(get_jwt_identity(), context="restaurant_takeaway_order")
         data = request.get_json() or {}
         return jsonify(_repo.create_takeaway_order(
+            customer_name=data.get("customer_name") or "",
+            phone=data.get("phone") or "",
+            notes=data.get("notes") or "",
+            branch_id=data.get("branch_id"),
+        ))
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 400
+
+
+@restaurant_bp.route("/restaurant/cafe_orders", methods=["POST"])
+@jwt_required()
+@restaurant_branch_guard(create=True)
+def create_cafe_quick_order():
+    data = request.get_json() or {}
+    try:
+        scope_creation_payload(get_jwt_identity(), context="restaurant_cafe_quick_order")
+        data = request.get_json() or {}
+        return jsonify(_repo.create_cafe_quick_order(
             customer_name=data.get("customer_name") or "",
             phone=data.get("phone") or "",
             notes=data.get("notes") or "",

@@ -37,4 +37,12 @@ restaurant_order_search_header_collapsible_menu,restaurant,Restaurant order sear
 dashboard_professional_exchange_sync,dashboard,Dashboard professional layout and exchange-rate sync,301,tests/test_phase301_dashboard_professional_exchange_sync.py,True,,True,True
 dashboard_pixel_style_visual_matching,dashboard,Dashboard pixel-style visual matching,302,tests/test_phase302_dashboard_pixel_style_visual_matching.py,True,,True,True
 dashboard_rtl_centering_alignment,dashboard,Dashboard RTL structure and centered identity alignment,303,tests/test_phase303_dashboard_rtl_centering_alignment.py,True,,True,True
+restaurant_runtime_acceptance,restaurant,Restaurant runtime acceptance scenario,304,tests/test_phase304_restaurant_runtime_acceptance.py,True,,True,True
+restaurant_unified_printing_audit,restaurant,Restaurant unified printing audit,305,tests/test_phase305_restaurant_unified_printing_audit.py,True,,True,True
+restaurant_shift_report_operational_controls,restaurant,Restaurant shift report and operational controls,306,tests/test_phase306_restaurant_shift_report_operational_controls.py,True,,True,True
+cafe_mode_foundation,restaurant,Cafe mode foundation on restaurant shell,307,tests/test_phase307_cafe_mode_foundation.py,True,,True,True
+cafe_sizes_modifiers,restaurant,Cafe sizes and modifiers on restaurant order lines,308,tests/test_phase308_cafe_sizes_modifiers.py,True,,True,True
+cafe_workspace_shell,restaurant,Cafe workspace shell and barista context,309,tests/test_phase309_cafe_workspace_shell.py,True,,True,True
+cafe_inventory_shift_report,restaurant,Cafe inventory and shift report,310,tests/test_phase310_cafe_inventory_shift_report.py,True,,True,True
+cafe_runtime_acceptance,restaurant,Cafe runtime acceptance,311,tests/test_phase311_cafe_runtime_acceptance.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

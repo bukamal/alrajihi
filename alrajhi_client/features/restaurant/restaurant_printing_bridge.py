@@ -16,6 +16,10 @@ from core.services.restaurant_service import restaurant_service
 from core.services.settings_service import settings_service
 from printing.printing_service import printing_service
 from features.restaurant.restaurant_settings_contract import restaurant_print_route
+from features.restaurant.restaurant_unified_printing_contract import (
+    attach_unified_print_contract,
+    restaurant_print_document,
+)
 
 
 class RestaurantPrintingBridge:
@@ -24,19 +28,24 @@ class RestaurantPrintingBridge:
         self.printer = printer or printing_service
 
     def _route(self, kind: str = "receipt") -> Dict[str, Any]:
+        document = restaurant_print_document(kind)
         try:
-            return restaurant_print_route(kind, settings_service.get_restaurant_settings())
+            route = restaurant_print_route(document.route_key, settings_service.get_restaurant_settings())
         except Exception:
-            return {"document_type": f"restaurant_{kind}", "paper": "80mm", "printer": "", "auto_print": False}
+            route = {"document_type": document.document_type, "paper": document.default_paper, "printer": "", "auto_print": False}
+        route = dict(route or {})
+        route.setdefault("document_type", document.document_type)
+        route.setdefault("paper", document.default_paper)
+        route.setdefault("surface", "browser_html")
+        return route
 
     def _paper(self, kind: str = "receipt") -> str:
-        return str(self._route(kind).get("paper") or "80mm")
+        document = restaurant_print_document(kind)
+        return str(self._route(document.route_key).get("paper") or document.default_paper)
 
     def _attach_route(self, payload: Dict[str, Any], kind: str) -> Dict[str, Any]:
-        data = dict(payload or {})
-        data["print_kind"] = "kitchen" if kind == "kitchen" else kind
-        data["print_route"] = self._route(kind)
-        return data
+        document = restaurant_print_document(kind)
+        return attach_unified_print_contract(payload, document.route_key, self._route(document.route_key))
 
     def receipt_payload(self, session_id: int) -> Dict[str, Any]:
         session = self.service.get_session(int(session_id))

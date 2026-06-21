@@ -6,7 +6,7 @@ from decimal import Decimal, InvalidOperation
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QAction, QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
-    QMenu, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QToolButton,
+    QCheckBox, QMenu, QPushButton, QScrollArea, QSizePolicy, QSpinBox, QToolButton,
     QVBoxLayout, QWidget
 )
 
@@ -16,6 +16,9 @@ from core.services.restaurant_operation_policy import restaurant_operation_polic
 from core.services.settings_service import settings_service
 from features.restaurant.restaurant_printing_bridge import restaurant_printing_bridge
 from features.restaurant.restaurant_settings_contract import restaurant_should_auto_print
+from features.restaurant.cafe_size_modifier_policy import (
+    is_cafe_order, split_size_and_modifier_groups, size_options_from_group, default_size_options
+)
 from features.restaurant.restaurant_order_grid import RestaurantOrderGrid
 from features.restaurant.restaurant_order_model import RestaurantOrderModel
 from currency import currency
@@ -228,6 +231,103 @@ class RestaurantSplitPaymentDialog(QDialog):
             "notes": self.notes_edit.text().strip(),
         }
 
+
+
+class CafeItemOptionsDialog(QDialog):
+    """Cafe-specific size/add-on picker reusing restaurant modifiers."""
+
+    def __init__(self, item=None, modifier_groups=None, parent=None):
+        super().__init__(parent)
+        self.item = dict(item or {})
+        self.modifier_groups = list(modifier_groups or [])
+        self.size_group, self.addon_groups = split_size_and_modifier_groups(self.modifier_groups)
+        self.size_options = size_options_from_group(self.size_group) if self.size_group else default_size_options()
+        self.option_checks = []
+        self.setWindowTitle(_("restaurant.cafe_customize_item"))
+        self.setMinimumWidth(460)
+        self.setLayoutDirection(qt_layout_direction())
+        layout = QVBoxLayout(self)
+        layout.setSpacing(10)
+
+        name = self.item.get("name") or self.item.get("item_name") or ""
+        price = self.item.get("selling_price") or self.item.get("unit_price") or "0"
+        header = QLabel(f"☕  {name}\n{_('transaction_column_price')}: {_display_money(price)}")
+        header.setObjectName("restaurantCafeOptionsHeader")
+        header.setAlignment(Qt.AlignCenter)
+        header.setWordWrap(True)
+        layout.addWidget(header)
+
+        form = QFormLayout()
+        self.size_combo = QComboBox()
+        self.size_combo.setObjectName("restaurantCafeSizeCombo")
+        self.size_combo.setMinimumHeight(44)
+        for option in self.size_options:
+            text = self._option_text(option)
+            self.size_combo.addItem(text, option)
+        form.addRow(_("restaurant.cafe_size"), self.size_combo)
+        layout.addLayout(form)
+
+        self.notes_edit = QLineEdit()
+        self.notes_edit.setObjectName("restaurantCafePreparationNotes")
+        self.notes_edit.setMinimumHeight(42)
+        self.notes_edit.setPlaceholderText(_("restaurant.cafe_preparation_notes"))
+
+        for group in self.addon_groups:
+            options = group.get("options") or []
+            if not options:
+                continue
+            title = QLabel(str(group.get("name") or _("restaurant.cafe_addons")))
+            title.setObjectName("restaurantCafeAddonGroupTitle")
+            layout.addWidget(title)
+            for option in options:
+                check = QCheckBox(self._option_text(option))
+                check.setObjectName("restaurantCafeModifierCheck")
+                check.setMinimumHeight(34)
+                check.setCursor(Qt.PointingHandCursor)
+                payload = dict(option)
+                payload["group_id"] = payload.get("group_id") or group.get("id")
+                check.setProperty("restaurant_modifier_payload", payload)
+                if option.get("is_default"):
+                    check.setChecked(True)
+                self.option_checks.append(check)
+                layout.addWidget(check)
+
+        layout.addWidget(self.notes_edit)
+        buttons = QHBoxLayout()
+        cancel = QPushButton(_("cancel"))
+        add = QPushButton(_("restaurant.cafe_add_to_order"))
+        cancel.setMinimumHeight(46)
+        add.setMinimumHeight(46)
+        cancel.clicked.connect(self.reject)
+        add.clicked.connect(self.accept)
+        buttons.addWidget(cancel)
+        buttons.addWidget(add)
+        layout.addLayout(buttons)
+
+    def _option_text(self, option: dict) -> str:
+        label_key = str(option.get("label_key") or "")
+        name = _(label_key) if label_key else str(option.get("name") or "")
+        delta = _dec(option.get("price_delta") or "0")
+        if delta:
+            return f"{name}  (+{_display_money(delta)})"
+        return name
+
+    def payload(self) -> dict:
+        size = dict(self.size_combo.currentData() or {})
+        modifiers = []
+        for check in self.option_checks:
+            if not check.isChecked():
+                continue
+            payload = dict(check.property("restaurant_modifier_payload") or {})
+            payload["option_id"] = payload.get("id") or payload.get("option_id")
+            payload["action"] = payload.get("action") or "add"
+            modifiers.append(payload)
+        return {
+            "size": size,
+            "modifiers": modifiers,
+            "notes": self.notes_edit.text().strip(),
+        }
+
 class RestaurantPOSWidget(QWidget):
     sessionClosed = pyqtSignal()
     kitchenSent = pyqtSignal(dict)
@@ -239,6 +339,7 @@ class RestaurantPOSWidget(QWidget):
         self.session = None
         self.menu_items = []
         self._restaurant_compact_mode = False
+        self._cafe_workspace_mode = False
         self.setObjectName("restaurantPOSWidget")
         self.setLayoutDirection(qt_layout_direction())
         root = QVBoxLayout(self)
@@ -460,8 +561,28 @@ class RestaurantPOSWidget(QWidget):
         visible = bool(visible)
         self.menu_scroll.setVisible(visible)
         if hasattr(self, "menu_toggle_btn"):
-            self.menu_toggle_btn.setText(("▴  " if visible else "▾  ") + _("restaurant.menu_items"))
+            key = "restaurant.cafe_menu_items" if getattr(self, "_cafe_workspace_mode", False) else "restaurant.menu_items"
+            self.menu_toggle_btn.setText(("▴  " if visible else "▾  ") + _(key))
         self.lines.setMinimumHeight(430 if visible else 560)
+
+    def set_cafe_workspace_mode(self, enabled: bool) -> None:
+        """Apply cafe wording without changing the shared restaurant engine."""
+        enabled = bool(enabled)
+        self._cafe_workspace_mode = enabled
+        self.setProperty("restaurant_order_context", "cafe" if enabled else "restaurant")
+        self.search_edit.setPlaceholderText(_("restaurant.cafe_search_menu_or_barcode") if enabled else _("restaurant.search_menu_or_barcode"))
+        self.manual_button.setText("✍  " + (_("restaurant.cafe_manual_item") if enabled else _("restaurant.manual_item")))
+        self.send_kitchen_btn.setText(("🧑‍🍳  " + _("restaurant.cafe_send_to_barista")) if enabled else ("👨‍🍳  " + _("restaurant.send_to_kitchen")))
+        self.print_kitchen_btn.setText(("🖨  " + _("restaurant.cafe_print_barista_ticket")) if enabled else ("🖨  " + _("restaurant.print_kitchen_ticket")))
+        self.print_receipt_btn.setText(("🧾  " + _("restaurant.cafe_print_receipt")) if enabled else ("🧾  " + _("restaurant.print_receipt")))
+        self.close_btn.setText(("✅  " + _("restaurant.cafe_checkout")) if enabled else ("✅  " + _("restaurant.checkout")))
+        if hasattr(self, "menu_toggle_btn"):
+            self._set_menu_panel_visible(self.menu_scroll.isVisible())
+        for button, action in getattr(self, "_restaurant_menu_actions", {}).items():
+            action.setText(button.text())
+        for widget in (self, self.menu_toggle_btn, self.send_kitchen_btn, self.print_kitchen_btn, self.print_receipt_btn, self.close_btn):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
 
     def set_restaurant_compact_mode(self, enabled: bool) -> None:
         """Reduce secondary visual density when the restaurant shell is narrow.
@@ -500,13 +621,21 @@ class RestaurantPOSWidget(QWidget):
             self.session_meta_label.setText(_("restaurant.session_waiting_hint"))
             self.state_label.setText("")
             self.state_label.setProperty("restaurant_order_state", "empty")
+            self.set_cafe_workspace_mode(False)
             self._set_enabled(False)
             self._update_total()
             return
         self.session = self.service.get_session(int(session["id"]))
-        table_name = self.session.get("table_name") or self.session.get("table_id") or ""
-        self.title.setText("🧾  " + _("restaurant.active_session", table=table_name, session=self.session.get("id")))
-        self.session_meta_label.setText(_("restaurant.session_meta", table=table_name, session=self.session.get("id"), guests=self.session.get("guests") or 1))
+        order_type = str(self.session.get("order_type") or "dine_in")
+        self.set_cafe_workspace_mode(order_type == "cafe_quick_order")
+        if order_type == "cafe_quick_order":
+            table_name = _("restaurant.cafe_quick_order")
+            self.title.setText("☕  " + _("restaurant.cafe_active_order", session=self.session.get("id")))
+            self.session_meta_label.setText(_("restaurant.cafe_session_meta", session=self.session.get("id")))
+        else:
+            table_name = self.session.get("table_name") or self.session.get("table_id") or ""
+            self.title.setText("🧾  " + _("restaurant.active_session", table=table_name, session=self.session.get("id")))
+            self.session_meta_label.setText(_("restaurant.session_meta", table=table_name, session=self.session.get("id"), guests=self.session.get("guests") or 1))
         try:
             self.guests.setValue(int(self.session.get("guests") or 1))
         except Exception:
@@ -653,7 +782,8 @@ class RestaurantPOSWidget(QWidget):
         price = item.get("selling_price") or item.get("unit_price") or "0"
         unit = item.get("unit") or ""
         price_label = _display_money(price)
-        return f"🍽  {name}\n{price_label}" + (f"\n{unit}" if unit else "")
+        icon = "☕" if is_cafe_order(self.session) else "🍽"
+        return f"{icon}  {name}\n{price_label}" + (f"\n{unit}" if unit else "")
 
     def _reload_lines(self):
         self.order_model.set_lines(self.session.get("lines") or [])
@@ -681,6 +811,8 @@ class RestaurantPOSWidget(QWidget):
 
     def _line_amount(self, line):
         try:
+            if line.get("line_total") not in (None, ""):
+                return Decimal(str(line.get("line_total") or "0"))
             return Decimal(str(line.get("quantity") or "0")) * Decimal(str(line.get("unit_price") or "0"))
         except (InvalidOperation, TypeError):
             return Decimal("0")
@@ -762,6 +894,35 @@ class RestaurantPOSWidget(QWidget):
         if not self._require_restaurant_operation(restaurant_operation_policy.OP_ADD_LINE):
             return
         try:
+            if is_cafe_order(self.session):
+                groups = []
+                try:
+                    groups = self.service.list_modifier_groups(item_id=item.get("id"))
+                except Exception:
+                    groups = []
+                dialog = CafeItemOptionsDialog(item=item, modifier_groups=groups, parent=self)
+                if dialog.exec() != QDialog.Accepted:
+                    return
+                cafe_payload = dialog.payload()
+                self.service.add_cafe_line(
+                    session_id=int(self.session["id"]),
+                    item_id=item.get("id"),
+                    item_name=item.get("name") or item.get("item_name") or "",
+                    quantity="1",
+                    unit_price=item.get("selling_price") or item.get("unit_price") or "0",
+                    notes=cafe_payload.get("notes") or "",
+                    unit_id=item.get("unit_id"),
+                    unit=item.get("unit") or "",
+                    conversion_factor=item.get("conversion_factor") or "1",
+                    base_qty="1",
+                    barcode_scope=item.get("barcode_scope") or "menu",
+                    matched_barcode=item.get("barcode") or "",
+                    size=cafe_payload.get("size"),
+                    modifiers=cafe_payload.get("modifiers") or [],
+                )
+                self.load_session(self.session)
+                self.status.setText(_("restaurant.cafe_line_added"))
+                return
             self.service.add_line(
                 session_id=int(self.session["id"]),
                 item_id=item.get("id"),

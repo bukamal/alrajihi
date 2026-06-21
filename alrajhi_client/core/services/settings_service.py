@@ -380,6 +380,12 @@ class SettingsService:
                 'show_analytics_panel': self.get_bool('restaurant/ui/show_analytics_panel', False),
                 'table_card_density': self.get('restaurant/ui/table_card_density', density) or density,
             },
+            'cafe': {
+                'enabled': self.get_bool('cafe/enabled', True),
+                'quick_order_type': self.get('cafe/quick_order_type', 'cafe_quick_order') or 'cafe_quick_order',
+                'auto_open_quick_order': self.get_bool('cafe/auto_open_quick_order', True),
+                'preparation_route': self.get('cafe/preparation_route', 'barista') or 'barista',
+            },
             'default_payment_method': payment,
             'receipt_paper': self.get('restaurant/receipt_paper', printing.get('thermal_size', '80mm')) or '80mm',
             'kitchen_ticket_paper': self.get('restaurant/kitchen_ticket_paper', self.get('restaurant/receipt_paper', printing.get('thermal_size', '80mm'))) or '80mm',

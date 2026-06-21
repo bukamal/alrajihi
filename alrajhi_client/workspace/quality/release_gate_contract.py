@@ -96,6 +96,14 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (301, "DASHBOARD_PROFESSIONAL_EXCHANGE_SYNC"),
         (302, "DASHBOARD_PIXEL_STYLE_VISUAL_MATCHING"),
         (303, "DASHBOARD_RTL_CENTERING_ALIGNMENT"),
+        (304, "RESTAURANT_RUNTIME_ACCEPTANCE"),
+        (305, "RESTAURANT_UNIFIED_PRINTING_AUDIT"),
+        (306, "RESTAURANT_SHIFT_REPORT_OPERATIONAL_CONTROLS"),
+        (307, "CAFE_MODE_FOUNDATION"),
+        (308, "CAFE_SIZES_MODIFIERS"),
+        (309, "CAFE_WORKSPACE_SHELL"),
+        (310, "CAFE_INVENTORY_SHIFT_REPORT"),
+        (311, "CAFE_RUNTIME_ACCEPTANCE"),
     ]
 )
 
@@ -157,6 +165,14 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (301, "dashboard_professional_exchange_sync"),
         (302, "dashboard_pixel_style_visual_matching"),
         (303, "dashboard_rtl_centering_alignment"),
+        (304, "restaurant_runtime_acceptance"),
+        (305, "restaurant_unified_printing_audit"),
+        (306, "restaurant_shift_report_operational_controls"),
+        (307, "cafe_mode_foundation"),
+        (308, "cafe_sizes_modifiers"),
+        (309, "cafe_workspace_shell"),
+        (310, "cafe_inventory_shift_report"),
+        (311, "cafe_runtime_acceptance"),
     ]
 )
 
@@ -199,6 +215,14 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("dashboard_professional_exchange_sync", "dashboard", "Dashboard professional layout and exchange-rate sync", "tests/test_phase301_dashboard_professional_exchange_sync.py", phase=301),
     ReleaseGateCheck("dashboard_pixel_style_visual_matching", "dashboard", "Dashboard pixel-style visual matching", "tests/test_phase302_dashboard_pixel_style_visual_matching.py", phase=302),
     ReleaseGateCheck("dashboard_rtl_centering_alignment", "dashboard", "Dashboard RTL structure and centered identity alignment", "tests/test_phase303_dashboard_rtl_centering_alignment.py", phase=303),
+    ReleaseGateCheck("restaurant_runtime_acceptance", "restaurant", "Restaurant runtime acceptance scenario", "tests/test_phase304_restaurant_runtime_acceptance.py", phase=304),
+    ReleaseGateCheck("restaurant_unified_printing_audit", "restaurant", "Restaurant unified printing audit", "tests/test_phase305_restaurant_unified_printing_audit.py", phase=305),
+    ReleaseGateCheck("restaurant_shift_report_operational_controls", "restaurant", "Restaurant shift report and operational controls", "tests/test_phase306_restaurant_shift_report_operational_controls.py", phase=306),
+    ReleaseGateCheck("cafe_mode_foundation", "restaurant", "Cafe mode foundation on restaurant shell", "tests/test_phase307_cafe_mode_foundation.py", phase=307),
+    ReleaseGateCheck("cafe_sizes_modifiers", "restaurant", "Cafe sizes and modifiers on restaurant order lines", "tests/test_phase308_cafe_sizes_modifiers.py", phase=308),
+    ReleaseGateCheck("cafe_workspace_shell", "restaurant", "Cafe workspace shell and barista context", "tests/test_phase309_cafe_workspace_shell.py", phase=309),
+    ReleaseGateCheck("cafe_inventory_shift_report", "restaurant", "Cafe inventory and shift report", "tests/test_phase310_cafe_inventory_shift_report.py", phase=310),
+    ReleaseGateCheck("cafe_runtime_acceptance", "restaurant", "Cafe runtime acceptance", "tests/test_phase311_cafe_runtime_acceptance.py", phase=311),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

@@ -12,6 +12,8 @@ routing metadata: customer receipt, kitchen ticket, and session summary.
 from decimal import Decimal, InvalidOperation
 from typing import Any, Dict, Mapping
 
+from features.restaurant.restaurant_unified_printing_contract import normalize_restaurant_print_kind
+
 _VALID_PAPERS = {"58mm", "80mm", "thermal58", "thermal80", "a4"}
 _VALID_PAYMENT_METHODS = {"cash", "card", "credit", "bank_transfer", "bank", "mixed"}
 _VALID_CONSUMPTION_POINTS = {"checkout", "served"}
@@ -86,6 +88,17 @@ def normalize_restaurant_settings(raw: Mapping[str, Any] | None) -> Dict[str, An
         "auto_print_receipt_after_checkout": _bool(operations.get("auto_print_receipt_after_checkout"), False),
         "auto_print_session_summary_after_checkout": _bool(operations.get("auto_print_session_summary_after_checkout"), False),
     }
+    cafe = dict(raw.get("cafe") or {})
+    quick_order_type = str(cafe.get("quick_order_type") or "cafe_quick_order").strip() or "cafe_quick_order"
+    if quick_order_type not in {"cafe_quick_order"}:
+        quick_order_type = "cafe_quick_order"
+    normalized["cafe"] = {
+        **cafe,
+        "enabled": _bool(cafe.get("enabled"), True),
+        "quick_order_type": quick_order_type,
+        "auto_open_quick_order": _bool(cafe.get("auto_open_quick_order"), True),
+        "preparation_route": str(cafe.get("preparation_route") or "barista").strip() or "barista",
+    }
     normalized["printing"] = printing
     normalized["printer_routing"] = {
         "receipt": {
@@ -112,10 +125,10 @@ def normalize_restaurant_settings(raw: Mapping[str, Any] | None) -> Dict[str, An
 
 def restaurant_print_route(kind: str, settings: Mapping[str, Any] | None = None) -> Dict[str, Any]:
     normalized = normalize_restaurant_settings(settings)
-    key = "session_summary" if str(kind or "").lower() in {"summary", "session", "session_summary"} else str(kind or "receipt").lower()
-    if key == "kitchen_ticket":
-        key = "kitchen"
-    return dict((normalized.get("printer_routing") or {}).get(key) or normalized["printer_routing"]["receipt"])
+    key = normalize_restaurant_print_kind(kind)
+    route = dict((normalized.get("printer_routing") or {}).get(key) or normalized["printer_routing"]["receipt"])
+    route.setdefault("surface", "browser_html")
+    return route
 
 
 def restaurant_should_auto_print(kind: str, settings: Mapping[str, Any] | None = None) -> bool:

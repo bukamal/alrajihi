@@ -266,6 +266,8 @@ SETTINGS_SCOPE_DESCRIPTORS: tuple[SettingsScopeDescriptor, ...] = (
         operation_key_prefixes=("restaurant/operations",),
         keys=(
             _key("restaurant/enabled", VALUE_BOOL, "true"),
+            _key("cafe/enabled", VALUE_BOOL, "true"),
+            _key("cafe/auto_open_quick_order", VALUE_BOOL, "true"),
             _key("restaurant/ui/density", VALUE_CHOICE, "touch", choices=("compact", "comfortable", "touch")),
             _key("restaurant/default_payment_method", VALUE_CHOICE, "cash", choices=("cash", "card", "credit", "bank_transfer", "bank")),
             _key("restaurant/receipt_paper", VALUE_CHOICE, "80mm", choices=("80mm", "58mm")),

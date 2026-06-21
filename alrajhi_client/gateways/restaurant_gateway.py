@@ -75,7 +75,7 @@ class RestaurantGateway(ABC):
 
 
     @abstractmethod
-    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
+    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None, order_type: str | None = None) -> list[dict[str, Any]]:
         raise NotImplementedError
 
     @abstractmethod
@@ -144,6 +144,16 @@ class RestaurantGateway(ABC):
         raise NotImplementedError
 
 
+    @abstractmethod
+    def restaurant_shift_report(self, start_datetime: str = "", end_datetime: str = "", cashier_id: str = "") -> dict[str, Any]:
+        raise NotImplementedError
+
+
+    @abstractmethod
+    def cafe_shift_report(self, start_datetime: str = "", end_datetime: str = "", cashier_id: str = "") -> dict[str, Any]:
+        raise NotImplementedError
+
+
 
     @abstractmethod
     def list_modifier_groups(self, item_id: int | None = None, include_inactive: bool = False) -> list[dict[str, Any]]:
@@ -180,6 +190,10 @@ class RestaurantGateway(ABC):
 
     @abstractmethod
     def create_takeaway_order(self, customer_name: str = "", phone: str = "", notes: str = "") -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_cafe_quick_order(self, customer_name: str = "", phone: str = "", notes: str = "") -> dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod

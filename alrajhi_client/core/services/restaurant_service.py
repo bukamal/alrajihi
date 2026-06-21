@@ -7,6 +7,7 @@ from typing import Any
 from core.services.barcode_input_service import barcode_input_service
 from core.services.restaurant_operation_policy import restaurant_operation_policy
 from gateways.restaurant_gateway import create_restaurant_gateway
+from features.restaurant.cafe_size_modifier_policy import build_line_modifiers, cafe_line_notes
 
 
 class RestaurantService:
@@ -34,6 +35,17 @@ class RestaurantService:
         restaurant_operation_policy.require(restaurant_operation_policy.OP_OPEN_SESSION)
         result = self.gateway.open_table(table_id=table_id, guests=guests, waiter_id=waiter_id, notes=notes)
         restaurant_operation_policy.log(restaurant_operation_policy.OP_OPEN_SESSION, allowed=True, context="restaurant_service.open_table", values={"table_id": table_id, "guests": guests})
+        return result
+
+    def create_cafe_quick_order(self, customer_name: str = "", phone: str = "", notes: str = "") -> dict[str, Any]:
+        restaurant_operation_policy.require(restaurant_operation_policy.OP_OPEN_SESSION)
+        result = self.gateway.create_cafe_quick_order(customer_name=customer_name, phone=phone, notes=notes)
+        restaurant_operation_policy.log(
+            restaurant_operation_policy.OP_OPEN_SESSION,
+            allowed=True,
+            context="restaurant_service.create_cafe_quick_order",
+            values={"order_type": "cafe_quick_order"},
+        )
         return result
 
     def get_session(self, session_id: int) -> dict[str, Any]:
@@ -99,6 +111,68 @@ class RestaurantService:
         restaurant_operation_policy.log(restaurant_operation_policy.OP_ADD_LINE, allowed=True, context="restaurant_service.add_line", values={"session_id": session_id, "item_id": item_id, "quantity": quantity})
         return result
 
+    def add_cafe_line(
+        self,
+        session_id: int,
+        item_name: str,
+        item_id: int | None = None,
+        quantity: Any = "1",
+        unit_price: Any = "0",
+        notes: str = "",
+        unit_id: int | None = None,
+        unit: str = "",
+        conversion_factor: Any = "1",
+        base_qty: Any | None = None,
+        barcode_scope: str = "menu",
+        matched_barcode: str = "",
+        size: dict[str, Any] | None = None,
+        modifiers: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Add a cafe quick-order line with one size marker and optional add-ons.
+
+        Cafe uses the restaurant order/modifier contract instead of a separate
+        order engine.  The base line keeps normal currency/unit behavior; size
+        and add-ons are stored as line modifiers so totals, KOT notes, printing,
+        and later recipe expansion stay attached to the same restaurant line.
+        """
+        line_notes = cafe_line_notes(notes, size=size, modifiers=modifiers)
+        line = self.add_line(
+            session_id=session_id,
+            item_name=item_name,
+            item_id=item_id,
+            quantity=quantity,
+            unit_price=unit_price,
+            notes=line_notes,
+            unit_id=unit_id,
+            unit=unit,
+            conversion_factor=conversion_factor,
+            base_qty=base_qty,
+            barcode_scope=barcode_scope or "menu",
+            matched_barcode=matched_barcode,
+        )
+        line_id = int(line.get("id") or 0)
+        for modifier in build_line_modifiers(size=size, modifiers=modifiers):
+            self.gateway.add_order_line_modifier(
+                line_id=line_id,
+                option_id=modifier.get("option_id"),
+                name=modifier.get("name") or "",
+                price_delta=modifier.get("price_delta") or "0",
+                quantity=modifier.get("quantity") or "1",
+                action=modifier.get("action") or "add",
+                group_id=modifier.get("group_id"),
+                kitchen_label=modifier.get("kitchen_label") or modifier.get("name") or "",
+            )
+        restaurant_operation_policy.log(
+            restaurant_operation_policy.OP_ADD_LINE,
+            allowed=True,
+            context="restaurant_service.add_cafe_line",
+            values={"session_id": session_id, "item_id": item_id, "modifier_count": len(modifiers or []), "has_size": bool(size)},
+        )
+        try:
+            return self.gateway.get_session(session_id).get("lines", [])[-1] or line
+        except Exception:
+            return line
+
     def add_entry(self, session_id: int, raw_entry: Any, quantity: Any = "1", notes: str = "", mode: str = "auto") -> dict[str, Any]:
         """Add a restaurant order line from the unified barcode/manual entry pipeline.
 
@@ -158,8 +232,8 @@ class RestaurantService:
         restaurant_operation_policy.log(restaurant_operation_policy.OP_CHECKOUT, allowed=True, context="restaurant_service.checkout_session", values={"session_id": session_id, "payment_method": payment_method})
         return result
 
-    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
-        return self.gateway.list_kitchen_tickets(status=status, limit=limit, station_id=station_id)
+    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None, order_type: str | None = None) -> list[dict[str, Any]]:
+        return self.gateway.list_kitchen_tickets(status=status, limit=limit, station_id=station_id, order_type=order_type)
 
     def get_kitchen_ticket(self, ticket_id: int) -> dict[str, Any]:
         return self.gateway.get_kitchen_ticket(ticket_id=ticket_id)
@@ -275,6 +349,24 @@ class RestaurantService:
             {"start_date": start_date, "end_date": end_date},
         )
         return self.gateway.restaurant_analytics(start_date=start_date, end_date=end_date)
+
+
+    def restaurant_shift_report(self, start_datetime: str = "", end_datetime: str = "", cashier_id: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_VIEW_ANALYTICS,
+            "restaurant_service.restaurant_shift_report",
+            {"start_datetime": start_datetime, "end_datetime": end_datetime, "cashier_id": cashier_id},
+        )
+        return self.gateway.restaurant_shift_report(start_datetime=start_datetime, end_datetime=end_datetime, cashier_id=cashier_id)
+
+
+    def cafe_shift_report(self, start_datetime: str = "", end_datetime: str = "", cashier_id: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_VIEW_ANALYTICS,
+            "restaurant_service.cafe_shift_report",
+            {"start_datetime": start_datetime, "end_datetime": end_datetime, "cashier_id": cashier_id, "order_type": "cafe_quick_order"},
+        )
+        return self.gateway.cafe_shift_report(start_datetime=start_datetime, end_datetime=end_datetime, cashier_id=cashier_id)
 
 
     # Phase 34: modifiers + recipe integration

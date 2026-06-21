@@ -184,6 +184,8 @@ class RestaurantDashboard(QWidget):
 
         self.order_mode_btn = QPushButton("🧾  " + _("restaurant.mode.order"))
         self.order_mode_btn.setObjectName("restaurantOrderModeButton")
+        self.cafe_mode_btn = QPushButton("☕  " + _("restaurant.mode.cafe"))
+        self.cafe_mode_btn.setObjectName("restaurantCafeModeButton")
         self.kitchen_mode_btn = QPushButton("👨‍🍳  " + _("restaurant.mode.kitchen"))
         self.kitchen_mode_btn.setObjectName("restaurantKitchenModeButton")
         self.tables_mode_btn = QPushButton("🪑  " + _("restaurant.mode.tables"))
@@ -194,10 +196,12 @@ class RestaurantDashboard(QWidget):
         self.mode_badge.setObjectName("restaurantModeBadge")
         self.refresh_button = QPushButton("↻  " + _("common.refresh"))
         self.refresh_button.setObjectName("restaurantRefreshButton")
-        for button in (self.order_mode_btn, self.kitchen_mode_btn, self.tables_mode_btn, self.analytics_mode_btn, self.refresh_button):
+        for button in (self.order_mode_btn, self.cafe_mode_btn, self.kitchen_mode_btn, self.tables_mode_btn, self.analytics_mode_btn, self.refresh_button):
             button.setMinimumHeight(44)
         self.analytics_mode_btn.setVisible(bool(self._ui_settings.get("show_analytics_panel")))
+        self.cafe_mode_btn.setVisible(bool(self._ui_settings.get("cafe_enabled", True)))
         header.addWidget(self.order_mode_btn)
+        header.addWidget(self.cafe_mode_btn)
         header.addWidget(self.kitchen_mode_btn)
         header.addWidget(self.tables_mode_btn)
         header.addWidget(self.analytics_mode_btn)
@@ -246,7 +250,38 @@ class RestaurantDashboard(QWidget):
         self.order_page.setObjectName("restaurantOrderModePage")
         order_page_layout = QVBoxLayout(self.order_page)
         order_page_layout.setContentsMargins(0, 0, 0, 0)
-        order_page_layout.setSpacing(0)
+        order_page_layout.setSpacing(8)
+
+        # Phase 309: Cafe is presented as its own operator shell while still
+        # reusing the restaurant engine for orders, payment, printing, currency,
+        # inventory and recipes.  This shell is intentionally hidden in regular
+        # table-service mode so table concepts do not leak into cafe operation.
+        self.cafe_shell_card = QFrame()
+        self.cafe_shell_card.setObjectName("restaurantCafeWorkspaceShell")
+        cafe_shell = QHBoxLayout(self.cafe_shell_card)
+        cafe_shell.setContentsMargins(14, 8, 14, 8)
+        cafe_shell.setSpacing(10)
+        cafe_title_box = QVBoxLayout()
+        cafe_title_box.setSpacing(2)
+        self.cafe_shell_title = QLabel("☕  " + _("restaurant.cafe_workspace_title"))
+        self.cafe_shell_title.setObjectName("restaurantCafeWorkspaceTitle")
+        self.cafe_shell_subtitle = QLabel(_("restaurant.cafe_workspace_subtitle"))
+        self.cafe_shell_subtitle.setObjectName("restaurantCafeWorkspaceSubtitle")
+        cafe_title_box.addWidget(self.cafe_shell_title)
+        cafe_title_box.addWidget(self.cafe_shell_subtitle)
+        cafe_shell.addLayout(cafe_title_box, 1)
+        self.new_cafe_order_btn = QPushButton("➕  " + _("restaurant.cafe_new_quick_order"))
+        self.new_cafe_order_btn.setObjectName("restaurantCafeQuickOrderButton")
+        self.cafe_preparation_btn = QPushButton("🧑‍🍳  " + _("restaurant.cafe_preparation"))
+        self.cafe_preparation_btn.setObjectName("restaurantCafePreparationButton")
+        self.cafe_report_btn = QPushButton("📊  " + _("restaurant.cafe_shift_report"))
+        self.cafe_report_btn.setObjectName("restaurantCafeReportButton")
+        for button in (self.new_cafe_order_btn, self.cafe_preparation_btn, self.cafe_report_btn):
+            button.setMinimumHeight(42)
+            cafe_shell.addWidget(button)
+        self.cafe_shell_card.setVisible(False)
+        order_page_layout.addWidget(self.cafe_shell_card)
+
         self.splitter = QSplitter(Qt.Horizontal)  # compatibility handle for older tests/plugins
         # Legacy ratio contract marker: self.splitter.setStretchFactor(1, 6)
         self.splitter.setObjectName("restaurantOperationSplitter")
@@ -313,6 +348,10 @@ class RestaurantDashboard(QWidget):
         layout.addWidget(self.status)
 
         self.order_mode_btn.clicked.connect(self.show_order_mode)
+        self.cafe_mode_btn.clicked.connect(self.show_cafe_mode)
+        self.new_cafe_order_btn.clicked.connect(self.start_new_cafe_order)
+        self.cafe_preparation_btn.clicked.connect(self.show_cafe_preparation_mode)
+        self.cafe_report_btn.clicked.connect(self.show_cafe_report_mode)
         self.kitchen_mode_btn.clicked.connect(self.show_kitchen_mode)
         self.tables_mode_btn.clicked.connect(self.show_tables_mode)
         self.analytics_mode_btn.clicked.connect(self.show_analytics_mode)
@@ -332,11 +371,18 @@ class RestaurantDashboard(QWidget):
             settings = settings_service.get_restaurant_settings()
         except Exception:
             settings = {}
-        return dict(settings.get("ui") or {})
+        ui = dict(settings.get("ui") or {})
+        cafe = dict(settings.get("cafe") or {})
+        ui["cafe_enabled"] = bool(cafe.get("enabled", True))
+        ui["cafe_auto_open_quick_order"] = bool(cafe.get("auto_open_quick_order", True))
+        return ui
 
     def _set_mode_button_state(self, mode: str) -> None:
-        for name, button in (("order", self.order_mode_btn), ("kitchen", self.kitchen_mode_btn), ("tables", self.tables_mode_btn), ("analytics", self.analytics_mode_btn)):
-            button.setProperty("active", name == mode)
+        # Cafe preparation/report pages are cafe operator states, not generic
+        # kitchen/analytics modes from the user's perspective.
+        active_mode = "cafe" if mode in {"cafe", "cafe_preparation", "cafe_report"} else mode
+        for name, button in (("order", self.order_mode_btn), ("cafe", self.cafe_mode_btn), ("kitchen", self.kitchen_mode_btn), ("tables", self.tables_mode_btn), ("analytics", self.analytics_mode_btn)):
+            button.setProperty("active", name == active_mode)
             button.style().unpolish(button)
             button.style().polish(button)
 
@@ -360,19 +406,32 @@ class RestaurantDashboard(QWidget):
             return RESTAURANT_ANALYTICS_SPLITTER_SIZES.get(layout_mode, RESTAURANT_ANALYTICS_SPLITTER_SIZES["standard"])
         return RESTAURANT_ORDER_SPLITTER_SIZES.get(layout_mode, RESTAURANT_ORDER_SPLITTER_SIZES["standard"])
 
+    def _is_cafe_operator_mode(self) -> bool:
+        return self._current_mode in {"cafe", "cafe_preparation", "cafe_report"}
+
+    def _set_kds_cafe_context(self, enabled: bool) -> None:
+        if hasattr(self, "kds") and hasattr(self.kds, "set_cafe_context"):
+            self.kds.set_cafe_context(bool(enabled))
+
     def _apply_responsive_layout(self) -> None:
         layout_mode = self._resolve_responsive_layout_mode()
         self._responsive_layout_mode = layout_mode
         compact = layout_mode == "compact"
         wide = layout_mode == "wide"
+        cafe_mode = self._is_cafe_operator_mode()
         self.setProperty("restaurant_layout_mode", layout_mode)
+        self.setProperty("restaurant_operator_mode", "cafe" if cafe_mode else "restaurant")
         self.table_ops_card.setProperty("restaurant_layout_mode", layout_mode)
         self.workspace_stack.setProperty("restaurant_layout_mode", layout_mode)
+        if hasattr(self, "cafe_shell_card"):
+            self.cafe_shell_card.setVisible(self._current_mode == "cafe")
+        if hasattr(self.pos, "set_cafe_workspace_mode"):
+            self.pos.set_cafe_workspace_mode(cafe_mode)
         for widget in (self, self.table_ops_card, self.workspace_stack, self.splitter, self.kitchen_splitter):
             widget.setProperty("restaurant_layout_mode", layout_mode)
             widget.style().unpolish(widget)
             widget.style().polish(widget)
-        self._apply_table_operations_compact_mode(compact or self._current_mode in {"kitchen", "analytics"})
+        self._apply_table_operations_compact_mode(compact or self._current_mode in {"cafe", "cafe_preparation", "cafe_report", "kitchen", "analytics"})
         if hasattr(self.pos, "set_restaurant_compact_mode"):
             # Phase 299: restaurant order screen always favors operator density;
             # detailed bill adjustments remain in their dialog, not as permanent boxes.
@@ -380,11 +439,28 @@ class RestaurantDashboard(QWidget):
         # Legacy Phase 296 guard reference: self.pos.setVisible(self._current_mode == "order" or wide)
         # Legacy Phase 296 sizes: "compact": [360, 0, 780], "standard": [360, 0, 860], "wide": [420, 700, 560]
         if self._current_mode == "order":
+            self._set_kds_cafe_context(False)
             self.workspace_stack.setCurrentWidget(self.order_page)
             self.table_ops_card.setVisible(True)
             self.table_map.setVisible(False)
             self.splitter.setVisible(False)
+            self.mode_badge.setText(_("restaurant.touch_mode"))
+        elif self._current_mode == "cafe":
+            self._set_kds_cafe_context(False)
+            self.workspace_stack.setCurrentWidget(self.order_page)
+            self.table_ops_card.setVisible(False)
+            self.table_map.setVisible(False)
+            self.splitter.setVisible(False)
+            self.mode_badge.setText(_("restaurant.cafe_workspace_badge"))
+        elif self._current_mode == "cafe_preparation":
+            self._set_kds_cafe_context(True)
+            self.workspace_stack.setCurrentWidget(self.kitchen_page)
+            self.table_ops_card.setVisible(False)
+            self.kitchen_table_map.setVisible(False)
+            self.kitchen_splitter.setSizes(RESTAURANT_FULLSCREEN_KITCHEN_SIZES.get(layout_mode, RESTAURANT_FULLSCREEN_KITCHEN_SIZES["standard"]))
+            self.mode_badge.setText(_("restaurant.cafe_barista_badge"))
         elif self._current_mode == "kitchen":
+            self._set_kds_cafe_context(False)
             self.workspace_stack.setCurrentWidget(self.kitchen_page)
             self.table_ops_card.setVisible(False)
             sizes = RESTAURANT_FULLSCREEN_KITCHEN_SIZES.get(layout_mode, RESTAURANT_FULLSCREEN_KITCHEN_SIZES["standard"])
@@ -393,12 +469,22 @@ class RestaurantDashboard(QWidget):
             else:
                 self.kitchen_table_map.setVisible(True)
             self.kitchen_splitter.setSizes(sizes)
+            self.mode_badge.setText(_("restaurant.touch_mode"))
         elif self._current_mode == "tables":
+            self._set_kds_cafe_context(False)
             self.workspace_stack.setCurrentWidget(self.tables_page)
             self.table_ops_card.setVisible(True)
+            self.mode_badge.setText(_("restaurant.touch_mode"))
         elif self._current_mode == "analytics":
+            self._set_kds_cafe_context(False)
             self.workspace_stack.setCurrentWidget(self.analytics)
             self.table_ops_card.setVisible(False)
+            self.mode_badge.setText(_("restaurant.touch_mode"))
+        elif self._current_mode == "cafe_report":
+            self._set_kds_cafe_context(False)
+            self.workspace_stack.setCurrentWidget(self.analytics)
+            self.table_ops_card.setVisible(False)
+            self.mode_badge.setText(_("restaurant.cafe_report_badge"))
 
     def _apply_table_operations_compact_mode(self, compact: bool) -> None:
         self.table_ops_menu_btn.setVisible(bool(compact))
@@ -419,6 +505,59 @@ class RestaurantDashboard(QWidget):
         self._current_mode = "order"
         self._set_mode_button_state("order")
         self._apply_responsive_layout()
+
+    def show_cafe_mode(self):
+        if not self._ui_settings.get("cafe_enabled", True):
+            return
+        self._current_mode = "cafe"
+        self._set_mode_button_state("cafe")
+        self._apply_responsive_layout()
+        try:
+            current = self._current_session() or {}
+            if current.get("order_type") != "cafe_quick_order" and self._ui_settings.get("cafe_auto_open_quick_order", True):
+                session = self.service.create_cafe_quick_order(notes="cafe_quick_order")
+                self.pos.load_session(session)
+            elif current.get("order_type") == "cafe_quick_order":
+                self.pos.load_session(current)
+            self.status.setText(_("restaurant.cafe_workspace_ready"))
+        except Exception as exc:
+            self.status.setText(str(exc))
+
+    def start_new_cafe_order(self):
+        if not self._ui_settings.get("cafe_enabled", True):
+            return
+        try:
+            session = self.service.create_cafe_quick_order(notes="cafe_quick_order")
+            self.pos.load_session(session)
+            self.show_cafe_mode()
+            self.status.setText(_("restaurant.cafe_new_order_started", session=session.get("id")))
+        except Exception as exc:
+            self.status.setText(str(exc))
+
+    def show_cafe_preparation_mode(self):
+        if not self._ui_settings.get("cafe_enabled", True):
+            return
+        self._current_mode = "cafe_preparation"
+        self._set_mode_button_state("cafe_preparation")
+        self._apply_responsive_layout()
+        try:
+            self.kds.reload()
+            self.status.setText(_("restaurant.cafe_preparation_ready"))
+        except Exception as exc:
+            self.status.setText(str(exc))
+
+    def show_cafe_report_mode(self):
+        if not self._ui_settings.get("cafe_enabled", True):
+            return
+        self._current_mode = "cafe_report"
+        self._set_mode_button_state("cafe_report")
+        self._apply_responsive_layout()
+        try:
+            self.analytics.set_cafe_context(True)
+            self.analytics.reload()
+            self.status.setText(_("restaurant.cafe_report_ready"))
+        except Exception as exc:
+            self.status.setText(str(exc))
 
     def show_kitchen_mode(self):
         self._current_mode = "kitchen"
@@ -441,6 +580,7 @@ class RestaurantDashboard(QWidget):
         self._set_mode_button_state("analytics")
         self._apply_responsive_layout()
         try:
+            self.analytics.set_cafe_context(False)
             self.analytics.reload()
         except Exception:
             pass
@@ -455,12 +595,12 @@ class RestaurantDashboard(QWidget):
             self.kitchen_table_map.set_tables(self._last_tables)
             self.full_table_map.set_tables(self._last_tables)
             self._update_table_operation_buttons()
-            if self._current_mode == "kitchen":
+            if self._current_mode in {"kitchen", "cafe_preparation"}:
                 try:
                     self.kds.reload()
                 except Exception:
                     pass
-            if self._current_mode == "analytics":
+            if self._current_mode in {"analytics", "cafe_report"}:
                 try:
                     self.analytics.reload()
                 except Exception:
@@ -472,7 +612,7 @@ class RestaurantDashboard(QWidget):
     def _after_kitchen_sent(self):
         self.reload()
         try:
-            if self._current_mode == "kitchen":
+            if self._current_mode in {"kitchen", "cafe_preparation"}:
                 self.kds.reload()
         except Exception:
             pass

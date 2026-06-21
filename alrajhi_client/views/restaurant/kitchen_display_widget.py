@@ -20,6 +20,7 @@ class KitchenDisplayWidget(QWidget):
         self.service = service
         self.current_ticket = None
         self._last_tickets: list[dict] = []
+        self._cafe_context = False
         self.setObjectName("restaurantKitchenDisplay")
         self.setLayoutDirection(qt_layout_direction())
         root = QVBoxLayout(self)
@@ -113,6 +114,23 @@ class KitchenDisplayWidget(QWidget):
         self._load_stations()
         self.reload()
 
+    def set_cafe_context(self, enabled: bool) -> None:
+        self._cafe_context = bool(enabled)
+        self.setProperty("restaurant_kds_context", "cafe" if self._cafe_context else "restaurant")
+        self.title.setText(("☕  " + _("restaurant.cafe_preparation_board")) if self._cafe_context else ("👨‍🍳  " + _("restaurant.kds.title")))
+        self.preparing_btn.setText(("🔥  " + _("restaurant.cafe_preparing")) if self._cafe_context else ("🔥  " + _("restaurant.kds.preparing")))
+        self.ready_btn.setText(("✅  " + _("restaurant.cafe_ready")) if self._cafe_context else ("✅  " + _("restaurant.kds.ready")))
+        self.served_btn.setText(("📦  " + _("restaurant.cafe_delivered")) if self._cafe_context else ("🍽  " + _("restaurant.kds.served")))
+        for widget in (self, self.title, self.preparing_btn, self.ready_btn, self.served_btn):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+
+    def _ticket_context_label(self, ticket: dict) -> str:
+        table = ticket.get("table_name") or ticket.get("table_id") or ""
+        if self._cafe_context and str(table).strip().lower() == "cafe":
+            return _("restaurant.cafe_order_label")
+        return str(table or "")
+
     def _set_actions_enabled(self, enabled: bool):
         for button in (self.preparing_btn, self.ready_btn, self.served_btn):
             button.setEnabled(bool(enabled))
@@ -133,7 +151,8 @@ class KitchenDisplayWidget(QWidget):
         try:
             station_id = self.station_filter.currentData() if hasattr(self, "station_filter") else None
             status = self.status_filter.currentData() if hasattr(self, "status_filter") else "active"
-            tickets = self.service.list_kitchen_tickets(status=status or "active", limit=120, station_id=station_id)
+            order_type = "cafe_quick_order" if getattr(self, "_cafe_context", False) else None
+            tickets = self.service.list_kitchen_tickets(status=status or "active", limit=120, station_id=station_id, order_type=order_type)
             self._last_tickets = list(tickets or [])
             for ticket in self._last_tickets:
                 item = QListWidgetItem(self._ticket_label(ticket))
@@ -172,7 +191,7 @@ class KitchenDisplayWidget(QWidget):
         station = ticket.get('station_name') or _("restaurant.kds.all_stations")
         elapsed = ticket.get("elapsed_minutes") or 0
         overdue = "  ⚠ " + _("restaurant.kds.overdue") if ticket.get("is_overdue") else ""
-        table = ticket.get('table_name') or ticket.get('table_id') or ''
+        table = self._ticket_context_label(ticket)
         status_label = _(f"restaurant.kds.status.{status}")
         lines_label = _("restaurant.lines_count")
         minutes_label = _("restaurant.kds.minutes")
@@ -204,7 +223,7 @@ class KitchenDisplayWidget(QWidget):
 
     def _render_ticket(self, ticket: dict):
         status = ticket.get("status") or "sent"
-        self.detail_title.setText(f"{self._status_icon(status)}  {_(f'restaurant.kds.status.{status}')} — {ticket.get('table_name') or ticket.get('table_id')} — #{ticket.get('id')}")
+        self.detail_title.setText(f"{self._status_icon(status)}  {_(f'restaurant.kds.status.{status}')} — {self._ticket_context_label(ticket)} — #{ticket.get('id')}")
         station = ticket.get("station_name") or _("restaurant.kds.all_stations")
         elapsed = ticket.get("elapsed_minutes") or 0
         overdue = " — " + _("restaurant.kds.overdue") if ticket.get("is_overdue") else ""

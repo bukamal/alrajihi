@@ -418,7 +418,7 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['success']};
             border-color: {colors['success']};
         }}
-        QPushButton#restaurantOrderModeButton, QPushButton#restaurantKitchenModeButton,
+        QPushButton#restaurantOrderModeButton, QPushButton#restaurantCafeModeButton, QPushButton#restaurantKitchenModeButton,
         QPushButton#restaurantAnalyticsModeButton {{
             background-color: {colors['card_bg']};
             border: 1px solid {colors['border']};
@@ -426,7 +426,7 @@ def build_global_qss(colors: dict) -> str:
             padding: 8px 14px;
             font-weight: 900;
         }}
-        QPushButton#restaurantOrderModeButton[active="true"], QPushButton#restaurantKitchenModeButton[active="true"],
+        QPushButton#restaurantOrderModeButton[active="true"], QPushButton#restaurantCafeModeButton[active="true"], QPushButton#restaurantKitchenModeButton[active="true"],
         QPushButton#restaurantAnalyticsModeButton[active="true"] {{
             background-color: {colors['primary']};
             color: white;
@@ -471,6 +471,7 @@ def build_global_qss(colors: dict) -> str:
             font-size: 18px;
         }}
         QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantOrderModeButton,
+        QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantCafeModeButton,
         QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantKitchenModeButton,
         QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantAnalyticsModeButton,
         QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantRefreshButton {{
@@ -557,6 +558,72 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['text_secondary']};
             font-weight: 800;
             padding: 20px;
+        }}
+
+        /* Phase 309: Cafe workspace shell. */
+        QFrame#restaurantCafeWorkspaceShell {{
+            background-color: {colors['brand_soft']};
+            border: 1px solid {colors['primary']};
+            border-radius: {radius_lg}px;
+        }}
+        QLabel#restaurantCafeWorkspaceTitle {{
+            color: {colors['text_primary']};
+            font-size: 18px;
+            font-weight: 900;
+        }}
+        QLabel#restaurantCafeWorkspaceSubtitle {{
+            color: {colors['text_secondary']};
+            font-size: 12px;
+            font-weight: 800;
+        }}
+        QPushButton#restaurantCafeQuickOrderButton,
+        QPushButton#restaurantCafePreparationButton,
+        QPushButton#restaurantCafeReportButton {{
+            background-color: {colors['card_bg']};
+            color: {colors['primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 7px 12px;
+            font-weight: 900;
+        }}
+        QPushButton#restaurantCafeQuickOrderButton:hover,
+        QPushButton#restaurantCafePreparationButton:hover,
+        QPushButton#restaurantCafeReportButton:hover {{
+            background-color: {colors['primary']};
+            color: white;
+            border-color: {colors['primary']};
+        }}
+        QWidget#restaurantPOSWidget[restaurant_order_context="cafe"] QFrame#restaurantOrderHeaderCard,
+        QWidget#restaurantKitchenDisplay[restaurant_kds_context="cafe"] {{
+            border-color: {colors['primary']};
+        }}
+        QLabel#restaurantCafeOptionsHeader {{
+            background-color: {colors['brand_soft']};
+            color: {colors['text_primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 900;
+        }}
+        QComboBox#restaurantCafeSizeCombo, QLineEdit#restaurantCafePreparationNotes {{
+            background-color: {colors['card_bg']};
+            color: {colors['text_primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px 10px;
+            font-weight: 800;
+        }}
+        QLabel#restaurantCafeAddonGroupTitle {{
+            color: {colors['primary']};
+            font-size: 14px;
+            font-weight: 900;
+            padding-top: 8px;
+        }}
+        QCheckBox#restaurantCafeModifierCheck {{
+            color: {colors['text_primary']};
+            font-weight: 800;
+            padding: 4px 8px;
         }}
         QPushButton#restaurantKitchenButton {{ background-color: {colors['info']}; color: white; border: none; border-radius: {radius_md}px; font-weight: 900; }}
         QPushButton#restaurantPaymentButton {{ background-color: {colors['warning']}; color: white; border: none; border-radius: {radius_md}px; font-weight: 900; }}
@@ -753,6 +820,7 @@ def build_global_qss(colors: dict) -> str:
         }}
         QPushButton#restaurantTablesModeButton[active="true"],
         QPushButton#restaurantKitchenModeButton[active="true"],
+        QPushButton#restaurantCafeModeButton[active="true"],
         QPushButton#restaurantOrderModeButton[active="true"] {{
             background-color: {colors['primary']};
             color: white;

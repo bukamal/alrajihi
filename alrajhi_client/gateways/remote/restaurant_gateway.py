@@ -88,10 +88,12 @@ class RemoteRestaurantGateway(RestaurantGateway):
         return self.client._request("POST", f"/api/restaurant/sessions/{int(session_id)}/checkout", {"paid_amount": paid_amount, "payment_method": payment_method}) or {}
 
 
-    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
+    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None, order_type: str | None = None) -> list[dict[str, Any]]:
         params = {"status": status or "active", "limit": int(limit or 50)}
         if station_id is not None:
             params["station_id"] = int(station_id)
+        if order_type:
+            params["order_type"] = str(order_type)
         return self.client._request("GET", "/api/restaurant/kitchen/tickets", params) or []
 
     def get_kitchen_ticket(self, ticket_id: int) -> dict[str, Any]:
@@ -145,9 +147,22 @@ class RemoteRestaurantGateway(RestaurantGateway):
         return self.client._request("GET", "/api/restaurant/analytics", params) or {}
 
 
+    def restaurant_shift_report(self, start_datetime: str = "", end_datetime: str = "", cashier_id: str = "") -> dict[str, Any]:
+        params = {"start_datetime": start_datetime or "", "end_datetime": end_datetime or "", "cashier_id": cashier_id or ""}
+        return self.client._request("GET", "/api/restaurant/shift_report", params) or {}
+
+
+    def cafe_shift_report(self, start_datetime: str = "", end_datetime: str = "", cashier_id: str = "") -> dict[str, Any]:
+        params = {"start_datetime": start_datetime or "", "end_datetime": end_datetime or "", "cashier_id": cashier_id or ""}
+        return self.client._request("GET", "/api/restaurant/cafe_shift_report", params) or {}
+
+
 
     def create_takeaway_order(self, customer_name: str = "", phone: str = "", notes: str = "") -> dict[str, Any]:
         return self.client.post('/restaurant/takeaway_orders', json={'customer_name': customer_name, 'phone': phone, 'notes': notes})
+
+    def create_cafe_quick_order(self, customer_name: str = "", phone: str = "", notes: str = "") -> dict[str, Any]:
+        return self.client.post('/restaurant/cafe_orders', json={'customer_name': customer_name, 'phone': phone, 'notes': notes})
 
     def create_delivery_order(self, customer_name: str = "", phone: str = "", address: str = "", delivery_fee: Any = "0", driver_id: str = "", notes: str = "") -> dict[str, Any]:
         return self.client.post('/restaurant/delivery_orders', json={'customer_name': customer_name, 'phone': phone, 'address': address, 'delivery_fee': delivery_fee, 'driver_id': driver_id, 'notes': notes})

@@ -469,6 +469,13 @@ class RestaurantRepository:
         ).fetchall()
         return [dict(row) for row in rows]
 
+    def _kitchen_line_notes(self, line: dict[str, Any]) -> str:
+        base = str((line or {}).get("notes") or "").strip()
+        modifiers = str((line or {}).get("kitchen_modifier_notes") or "").strip()
+        if base and modifiers and modifiers not in base:
+            return f"{base} | {modifiers}"
+        return base or modifiers
+
     def send_to_kitchen(self, session_id: int, notes: str = "") -> dict[str, Any]:
         self.ensure_kitchen_station_schema()
         db = get_db()
@@ -476,7 +483,7 @@ class RestaurantRepository:
         raw_lines = db.execute("SELECT * FROM restaurant_order_lines WHERE session_id=? AND kitchen_status='new' ORDER BY id", (session_id,)).fetchall()
         if not raw_lines:
             return {"tickets": [], "ticket": None, "lines": [], "message": "no_new_lines"}
-        lines = [dict(row) for row in raw_lines]
+        lines = [self.get_order_line(int(row["id"])) for row in raw_lines]
         grouped: dict[int | None, list[dict[str, Any]]] = {}
         station_payloads: dict[int | None, dict[str, Any]] = {}
         for line in lines:
@@ -495,7 +502,7 @@ class RestaurantRepository:
             for line in station_lines:
                 db.execute(
                     "INSERT INTO kitchen_ticket_lines(ticket_id, order_line_id, station_id, item_name, quantity, notes) VALUES (?, ?, ?, ?, ?, ?)",
-                    (ticket_id, int(line["id"]), station_id, line.get("item_name"), line.get("quantity"), line.get("notes")),
+                    (ticket_id, int(line["id"]), station_id, line.get("item_name"), line.get("quantity"), self._kitchen_line_notes(line)),
                 )
                 db.execute("UPDATE restaurant_order_lines SET kitchen_station_id=?, kitchen_status='sent' WHERE id=?", (station_id, int(line["id"])))
             ticket = db.execute("SELECT * FROM kitchen_tickets WHERE id=?", (ticket_id,)).fetchone()
@@ -811,11 +818,12 @@ class RestaurantRepository:
         return payload
 
 
-    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None) -> list[dict[str, Any]]:
+    def list_kitchen_tickets(self, status: str = "active", limit: int = 50, station_id: int | None = None, order_type: str | None = None) -> list[dict[str, Any]]:
         self.ensure_kitchen_station_schema()
         db = get_db()
         limit = max(1, min(int(limit or 50), 200))
         status = str(status or "active").strip().lower()
+        order_type_expr = "COALESCE(s.order_type, 'dine_in')" if self.table_has_column("restaurant_sessions", "order_type") else "'dine_in'"
         where = []
         params: list[Any] = []
         if status in {"active", "open", ""}:
@@ -827,11 +835,14 @@ class RestaurantRepository:
         if station_id is not None:
             where.append("kt.station_id=?")
             params.append(int(station_id))
+        if order_type:
+            where.append(f"{order_type_expr}=?")
+            params.append(str(order_type))
         where_sql = "WHERE " + " AND ".join(where) if where else ""
         params.append(min(limit * 3, 200))
         rows = db.execute(
             f"""
-            SELECT kt.*, COALESCE(kt.branch_id, s.branch_id, t.branch_id) AS branch_id, s.table_id, t.name AS table_name, st.name AS station_name, st.code AS station_code,
+            SELECT kt.*, COALESCE(kt.branch_id, s.branch_id, t.branch_id) AS branch_id, s.table_id, {order_type_expr} AS order_type, t.name AS table_name, st.name AS station_name, st.code AS station_code,
                    COUNT(ktl.id) AS line_count
             FROM kitchen_tickets kt
             LEFT JOIN restaurant_sessions s ON s.id=kt.session_id
@@ -848,12 +859,14 @@ class RestaurantRepository:
         return _sort_restaurant_kitchen_tickets([dict(row) for row in rows])[:limit]
 
 
+
     def get_kitchen_ticket(self, ticket_id: int) -> dict[str, Any]:
         self.ensure_kitchen_station_schema()
         db = get_db()
+        order_type_expr = "COALESCE(s.order_type, 'dine_in')" if self.table_has_column("restaurant_sessions", "order_type") else "'dine_in'"
         row = db.execute(
-            """
-            SELECT kt.*, COALESCE(kt.branch_id, s.branch_id, t.branch_id) AS branch_id, s.table_id, t.name AS table_name, st.name AS station_name, st.code AS station_code
+            f"""
+            SELECT kt.*, COALESCE(kt.branch_id, s.branch_id, t.branch_id) AS branch_id, s.table_id, {order_type_expr} AS order_type, t.name AS table_name, st.name AS station_name, st.code AS station_code
             FROM kitchen_tickets kt
             LEFT JOIN restaurant_sessions s ON s.id=kt.session_id
             LEFT JOIN restaurant_tables t ON t.id=s.table_id
@@ -878,6 +891,7 @@ class RestaurantRepository:
         payload = dict(row)
         payload["lines"] = [dict(line) for line in lines]
         return payload
+
 
 
     def update_kitchen_ticket_status(self, ticket_id: int, status: str) -> dict[str, Any]:
@@ -1485,10 +1499,420 @@ class RestaurantRepository:
         }
 
 
+    def restaurant_shift_report(self, start_datetime: str = "", end_datetime: str = "", cashier_id: str = "") -> dict[str, Any]:
+        """Return a manager-facing restaurant shift report with close blockers."""
+        self.ensure_split_printer_schema()
+        db = get_db()
+        start = str(start_datetime or "").strip()
+        end = str(end_datetime or "").strip()
+        cashier = str(cashier_id or "").strip()
+
+        def _between(column: str, params: list[Any]) -> str:
+            clauses: list[str] = []
+            if start:
+                clauses.append(f"{column} >= ?")
+                params.append(start)
+            if end:
+                clauses.append(f"{column} <= ?")
+                params.append(end)
+            return (" AND " + " AND ".join(clauses)) if clauses else ""
+
+        session_params: list[Any] = []
+        session_filter = _between("s.opened_at", session_params)
+        session_rows = db.execute(
+            f"""
+            SELECT s.*, t.name AS table_name
+            FROM restaurant_sessions s
+            LEFT JOIN restaurant_tables t ON t.id=s.table_id
+            WHERE 1=1 {session_filter}
+            ORDER BY s.opened_at, s.id
+            """,
+            session_params,
+        ).fetchall()
+        sessions = [dict(row) for row in session_rows]
+        total_sessions = len(sessions)
+        closed_sessions = sum(1 for row in sessions if str(row.get("status") or "open") == "closed")
+        open_sessions_raw = [row for row in sessions if str(row.get("status") or "open") == "open"]
+
+        open_sessions: list[dict[str, Any]] = []
+        gross_sales = Decimal("0")
+        unpaid_open_balance = Decimal("0")
+        unpaid_open_count = 0
+        for row in sessions:
+            try:
+                balance = self.session_balance(int(row["id"]))
+            except Exception:
+                balance = {"total": "0", "paid": "0", "remaining": "0", "is_fully_paid": False}
+            gross_sales += self.decimal_value(balance.get("total"), "0")
+            if str(row.get("status") or "open") == "open":
+                remaining = self.decimal_value(balance.get("remaining"), "0")
+                if remaining > Decimal("0"):
+                    unpaid_open_balance += remaining
+                    unpaid_open_count += 1
+                open_sessions.append({
+                    "session_id": int(row.get("id") or 0),
+                    "table_id": row.get("table_id"),
+                    "table_name": row.get("table_name") or "",
+                    "waiter_id": row.get("waiter_id") or "",
+                    "opened_at": row.get("opened_at") or "",
+                    "order_type": row.get("order_type") or "dine_in",
+                    "total": str(self.decimal_value(balance.get("total"), "0")),
+                    "paid": str(self.decimal_value(balance.get("paid"), "0")),
+                    "remaining": str(remaining),
+                })
+
+        payment_params: list[Any] = []
+        payment_filter = _between("created_at", payment_params)
+        if cashier:
+            payment_filter += " AND COALESCE(notes, '') LIKE ?"
+            payment_params.append(f"%{cashier}%")
+        payment_rows = db.execute(
+            f"SELECT amount, payment_method FROM restaurant_payments WHERE status='posted' {payment_filter}",
+            payment_params,
+        ).fetchall()
+        payment_methods: dict[str, Decimal] = {}
+        for row in payment_rows:
+            method = str(row["payment_method"] or "cash")
+            payment_methods[method] = payment_methods.get(method, Decimal("0")) + self.decimal_value(row["amount"], "0")
+        payments_total = sum(payment_methods.values(), Decimal("0"))
+
+        item_params: list[Any] = []
+        item_filter = _between("s.opened_at", item_params)
+        item_rows = db.execute(
+            f"""
+            SELECT l.item_id, l.item_name,
+                   SUM(CAST(COALESCE(NULLIF(l.quantity, ''), '0') AS REAL)) AS quantity,
+                   SUM(CAST(COALESCE(NULLIF(l.quantity, ''), '0') AS REAL) * CAST(COALESCE(NULLIF(l.unit_price, ''), '0') AS REAL)) AS sales
+            FROM restaurant_order_lines l
+            JOIN restaurant_sessions s ON s.id=l.session_id
+            WHERE COALESCE(l.kitchen_status, 'new') <> 'cancelled' {item_filter}
+            GROUP BY l.item_id, l.item_name
+            ORDER BY sales DESC, quantity DESC
+            LIMIT 10
+            """,
+            item_params,
+        ).fetchall()
+
+        cancel_params: list[Any] = []
+        cancel_filter = _between("s.opened_at", cancel_params)
+        cancel_row = db.execute(
+            f"""
+            SELECT COALESCE(SUM(COALESCE(s.cancelled_line_count, 0)), 0) AS cancellations,
+                   COALESCE(SUM(COALESCE(s.modification_count, 0)), 0) AS modifications,
+                   SUM(CASE WHEN COALESCE(l.kitchen_status, 'new')='cancelled' THEN 1 ELSE 0 END) AS cancelled_lines_by_status
+            FROM restaurant_sessions s
+            LEFT JOIN restaurant_order_lines l ON l.session_id=s.id
+            WHERE 1=1 {cancel_filter}
+            """,
+            cancel_params,
+        ).fetchone()
+
+        def _scalar(sql: str, params: tuple[Any, ...] = ()) -> int:
+            try:
+                row = db.execute(sql, params).fetchone()
+                if row is None:
+                    return 0
+                return int(row[0] or 0)
+            except Exception:
+                return 0
+
+        active_kitchen_tickets = _scalar("SELECT COUNT(*) FROM kitchen_tickets WHERE COALESCE(status, 'sent') IN ('sent','preparing','ready')")
+        queued_print_jobs = _scalar("SELECT COUNT(*) FROM restaurant_print_jobs WHERE COALESCE(status, 'queued')='queued'")
+        controls_values = {
+            "open_sessions": len(open_sessions_raw),
+            "unpaid_open_sessions": unpaid_open_count,
+            "active_kitchen_tickets": active_kitchen_tickets,
+            "queued_print_jobs": queued_print_jobs,
+        }
+        blockers = [key for key, value in controls_values.items() if int(value or 0) > 0]
+        return {
+            "period": {"start_datetime": start, "end_datetime": end, "cashier_id": cashier},
+            "summary": {
+                "total_sessions": total_sessions,
+                "closed_sessions": closed_sessions,
+                "open_sessions": len(open_sessions_raw),
+                "gross_sales": str(gross_sales),
+                "payments_total": str(payments_total),
+                "cash_total": str(payment_methods.get("cash", Decimal("0"))),
+                "card_total": str(payment_methods.get("card", Decimal("0"))),
+                "unpaid_open_balance": str(unpaid_open_balance),
+                "cancellations": int((cancel_row or {})["cancellations"] or 0),
+                "modifications": int((cancel_row or {})["modifications"] or 0),
+                "cancelled_lines_by_status": int((cancel_row or {})["cancelled_lines_by_status"] or 0),
+            },
+            "payment_methods": {key: str(value) for key, value in sorted(payment_methods.items())},
+            "open_sessions": open_sessions,
+            "top_items": [dict(row) for row in item_rows],
+            "operational_controls": {**controls_values, "blockers": blockers, "can_close_shift": not blockers},
+        }
+
+
+    def cafe_shift_report(self, start_datetime: str = "", end_datetime: str = "", cashier_id: str = "") -> dict[str, Any]:
+        """Return cafe-only shift report without creating a separate cafe engine."""
+        self.ensure_split_printer_schema()
+        self.ensure_restaurant_inventory_consumption_schema()
+        db = get_db()
+        start = str(start_datetime or "").strip()
+        end = str(end_datetime or "").strip()
+        cashier = str(cashier_id or "").strip()
+
+        def _between(column: str, params: list[Any]) -> str:
+            clauses: list[str] = []
+            if start:
+                clauses.append(f"{column} >= ?")
+                params.append(start)
+            if end:
+                clauses.append(f"{column} <= ?")
+                params.append(end)
+            return (" AND " + " AND ".join(clauses)) if clauses else ""
+
+        session_params: list[Any] = []
+        session_filter = _between("s.opened_at", session_params)
+        session_rows = db.execute(
+            f"""
+            SELECT s.*, t.name AS table_name
+            FROM restaurant_sessions s
+            LEFT JOIN restaurant_tables t ON t.id=s.table_id
+            WHERE COALESCE(s.order_type, 'dine_in')='cafe_quick_order' {session_filter}
+            ORDER BY s.opened_at, s.id
+            """,
+            session_params,
+        ).fetchall()
+        sessions = [dict(row) for row in session_rows]
+        total_orders = len(sessions)
+        closed_orders = sum(1 for row in sessions if str(row.get("status") or "open") == "closed")
+        open_orders_raw = [row for row in sessions if str(row.get("status") or "open") == "open"]
+
+        open_orders: list[dict[str, Any]] = []
+        gross_sales = Decimal("0")
+        unpaid_open_balance = Decimal("0")
+        unpaid_open_count = 0
+        for row in sessions:
+            try:
+                balance = self.session_balance(int(row["id"]))
+            except Exception:
+                balance = {"total": "0", "paid": "0", "remaining": "0", "is_fully_paid": False}
+            gross_sales += self.decimal_value(balance.get("total"), "0")
+            if str(row.get("status") or "open") == "open":
+                remaining = self.decimal_value(balance.get("remaining"), "0")
+                if remaining > Decimal("0"):
+                    unpaid_open_balance += remaining
+                    unpaid_open_count += 1
+                open_orders.append({
+                    "session_id": int(row.get("id") or 0),
+                    "opened_at": row.get("opened_at") or "",
+                    "customer_name": row.get("customer_name") or "",
+                    "phone": row.get("phone") or "",
+                    "total": str(self.decimal_value(balance.get("total"), "0")),
+                    "paid": str(self.decimal_value(balance.get("paid"), "0")),
+                    "remaining": str(remaining),
+                })
+
+        payment_params: list[Any] = []
+        payment_filter = _between("p.created_at", payment_params)
+        if cashier:
+            payment_filter += " AND COALESCE(p.notes, '') LIKE ?"
+            payment_params.append(f"%{cashier}%")
+        payment_rows = db.execute(
+            f"""
+            SELECT p.amount, p.payment_method
+            FROM restaurant_payments p
+            JOIN restaurant_sessions s ON s.id=p.session_id
+            WHERE p.status='posted' AND COALESCE(s.order_type, 'dine_in')='cafe_quick_order' {payment_filter}
+            """,
+            payment_params,
+        ).fetchall()
+        payment_methods: dict[str, Decimal] = {}
+        for row in payment_rows:
+            method = str(row["payment_method"] or "cash")
+            payment_methods[method] = payment_methods.get(method, Decimal("0")) + self.decimal_value(row["amount"], "0")
+        payments_total = sum(payment_methods.values(), Decimal("0"))
+
+        item_params: list[Any] = []
+        item_filter = _between("s.opened_at", item_params)
+        top_drinks = db.execute(
+            f"""
+            SELECT l.item_id, l.item_name,
+                   CAST(SUM(CAST(COALESCE(NULLIF(l.quantity, ''), '0') AS REAL)) AS TEXT) AS quantity,
+                   CAST(SUM(CAST(COALESCE(NULLIF(l.quantity, ''), '0') AS REAL) * CAST(COALESCE(NULLIF(l.unit_price, ''), '0') AS REAL)) AS TEXT) AS sales
+            FROM restaurant_order_lines l
+            JOIN restaurant_sessions s ON s.id=l.session_id
+            WHERE COALESCE(s.order_type, 'dine_in')='cafe_quick_order'
+              AND COALESCE(l.kitchen_status, 'new') <> 'cancelled' {item_filter}
+            GROUP BY l.item_id, l.item_name
+            ORDER BY CAST(sales AS REAL) DESC, CAST(quantity AS REAL) DESC
+            LIMIT 10
+            """,
+            item_params,
+        ).fetchall()
+
+        modifier_params: list[Any] = []
+        modifier_filter = _between("s.opened_at", modifier_params)
+        top_modifiers = db.execute(
+            f"""
+            SELECT COALESCE(NULLIF(m.action, ''), 'add') AS action,
+                   m.name,
+                   CAST(SUM(CAST(COALESCE(NULLIF(m.quantity, ''), '1') AS REAL)) AS TEXT) AS quantity,
+                   CAST(SUM(CAST(COALESCE(NULLIF(m.price_delta, ''), '0') AS REAL) * CAST(COALESCE(NULLIF(m.quantity, ''), '1') AS REAL)) AS TEXT) AS sales_delta
+            FROM restaurant_order_line_modifiers m
+            JOIN restaurant_order_lines l ON l.id=m.line_id
+            JOIN restaurant_sessions s ON s.id=l.session_id
+            WHERE COALESCE(s.order_type, 'dine_in')='cafe_quick_order'
+              AND COALESCE(l.kitchen_status, 'new') <> 'cancelled' {modifier_filter}
+            GROUP BY COALESCE(NULLIF(m.action, ''), 'add'), m.name
+            ORDER BY SUM(CAST(COALESCE(NULLIF(m.quantity, ''), '1') AS REAL)) DESC, SUM(CAST(COALESCE(NULLIF(m.price_delta, ''), '0') AS REAL) * CAST(COALESCE(NULLIF(m.quantity, ''), '1') AS REAL)) DESC
+            LIMIT 12
+            """,
+            modifier_params,
+        ).fetchall()
+
+        consumption_params: list[Any] = []
+        consumption_filter = _between("c.created_at", consumption_params)
+        consumption_rows = db.execute(
+            f"""
+            SELECT c.component_item_id, c.component_name, c.unit,
+                   CAST(SUM(CAST(COALESCE(NULLIF(c.quantity, ''), '0') AS REAL)) AS TEXT) AS quantity,
+                   CAST(SUM(CAST(COALESCE(NULLIF(c.quantity, ''), '0') AS REAL) * CAST(COALESCE(NULLIF(c.unit_cost, ''), '0') AS REAL)) AS TEXT) AS cost_amount
+            FROM restaurant_inventory_consumption c
+            JOIN restaurant_sessions s ON s.id=c.session_id
+            WHERE COALESCE(s.order_type, 'dine_in')='cafe_quick_order' {consumption_filter}
+            GROUP BY c.component_item_id, c.component_name, c.unit
+            ORDER BY CAST(quantity AS REAL) DESC, c.component_name
+            LIMIT 20
+            """,
+            consumption_params,
+        ).fetchall()
+        inventory_consumption = [dict(row) for row in consumption_rows]
+
+        low_stock_alerts: list[dict[str, Any]] = []
+        if self.table_has_column("items", "reorder_level"):
+            consumed_ids = [row.get("component_item_id") for row in inventory_consumption if row.get("component_item_id") not in (None, "")]
+            if consumed_ids:
+                placeholders = ",".join("?" for _ in consumed_ids)
+                try:
+                    low_rows = db.execute(
+                        f"""
+                        SELECT id, name, unit,
+                               CAST(COALESCE(NULLIF(quantity, ''), '0') AS TEXT) AS quantity,
+                               CAST(COALESCE(NULLIF(reorder_level, ''), '0') AS TEXT) AS reorder_level
+                        FROM items
+                        WHERE id IN ({placeholders})
+                          AND CAST(COALESCE(NULLIF(reorder_level, ''), '0') AS REAL) > 0
+                          AND CAST(COALESCE(NULLIF(quantity, ''), '0') AS REAL) <= CAST(COALESCE(NULLIF(reorder_level, ''), '0') AS REAL)
+                        ORDER BY name COLLATE NOCASE
+                        LIMIT 20
+                        """,
+                        tuple(int(x) for x in consumed_ids),
+                    ).fetchall()
+                    low_stock_alerts = [dict(row) for row in low_rows]
+                except Exception:
+                    low_stock_alerts = []
+
+        cancel_params: list[Any] = []
+        cancel_filter = _between("s.opened_at", cancel_params)
+        cancel_row = db.execute(
+            f"""
+            SELECT COALESCE(SUM(COALESCE(s.cancelled_line_count, 0)), 0) AS cancellations,
+                   COALESCE(SUM(COALESCE(s.modification_count, 0)), 0) AS modifications,
+                   SUM(CASE WHEN COALESCE(l.kitchen_status, 'new')='cancelled' THEN 1 ELSE 0 END) AS cancelled_lines_by_status
+            FROM restaurant_sessions s
+            LEFT JOIN restaurant_order_lines l ON l.session_id=s.id
+            WHERE COALESCE(s.order_type, 'dine_in')='cafe_quick_order' {cancel_filter}
+            """,
+            cancel_params,
+        ).fetchone()
+
+        def _scalar(sql: str, params: tuple[Any, ...] = ()) -> int:
+            try:
+                row = db.execute(sql, params).fetchone()
+                if row is None:
+                    return 0
+                return int(row[0] or 0)
+            except Exception:
+                return 0
+
+        active_barista_tickets = _scalar(
+            """
+            SELECT COUNT(*)
+            FROM kitchen_tickets kt
+            JOIN restaurant_sessions s ON s.id=kt.session_id
+            WHERE COALESCE(s.order_type, 'dine_in')='cafe_quick_order'
+              AND COALESCE(kt.status, 'sent') IN ('sent','preparing','ready')
+            """
+        )
+        queued_print_jobs = _scalar(
+            """
+            SELECT COUNT(*)
+            FROM restaurant_print_jobs pj
+            JOIN restaurant_sessions s ON s.id=pj.session_id
+            WHERE COALESCE(s.order_type, 'dine_in')='cafe_quick_order'
+              AND COALESCE(pj.status, 'queued')='queued'
+            """
+        )
+        controls_values = {
+            "open_orders": len(open_orders_raw),
+            "unpaid_open_orders": unpaid_open_count,
+            "active_barista_tickets": active_barista_tickets,
+            "queued_print_jobs": queued_print_jobs,
+        }
+        blockers = [key for key, value in controls_values.items() if int(value or 0) > 0]
+        return {
+            "period": {"start_datetime": start, "end_datetime": end, "cashier_id": cashier, "order_type": "cafe_quick_order"},
+            "summary": {
+                "total_orders": total_orders,
+                "closed_orders": closed_orders,
+                "open_orders": len(open_orders_raw),
+                "gross_sales": str(gross_sales),
+                "payments_total": str(payments_total),
+                "cash_total": str(payment_methods.get("cash", Decimal("0"))),
+                "card_total": str(payment_methods.get("card", Decimal("0"))),
+                "unpaid_open_balance": str(unpaid_open_balance),
+                "cancellations": int((cancel_row or {})["cancellations"] or 0),
+                "modifications": int((cancel_row or {})["modifications"] or 0),
+                "cancelled_lines_by_status": int((cancel_row or {})["cancelled_lines_by_status"] or 0),
+                "low_stock_alerts": len(low_stock_alerts),
+            },
+            "payment_methods": {key: str(value) for key, value in sorted(payment_methods.items())},
+            "open_orders": open_orders,
+            "top_drinks": [dict(row) for row in top_drinks],
+            "top_modifiers": [dict(row) for row in top_modifiers],
+            "inventory_consumption": inventory_consumption,
+            "low_stock_alerts": low_stock_alerts,
+            "operational_controls": {**controls_values, "blockers": blockers, "can_close_shift": not blockers},
+        }
+
+
 
     # ------------------------------------------------------------------
     # Phase 34: restaurant modifiers + recipe/consumption integration
     # ------------------------------------------------------------------
+    def ensure_restaurant_inventory_consumption_schema(self) -> None:
+        self.ensure_modifier_recipe_schema()
+        db = get_db()
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS inventory_movements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_id INTEGER NOT NULL,
+                user_id TEXT,
+                movement_type TEXT NOT NULL,
+                quantity TEXT NOT NULL DEFAULT '0',
+                unit_cost TEXT NOT NULL DEFAULT '0',
+                reference_id INTEGER,
+                movement_date TEXT
+            );
+        """)
+        for ddl in (
+            "ALTER TABLE restaurant_inventory_consumption ADD COLUMN source_type TEXT NOT NULL DEFAULT 'restaurant_recipe'",
+            "ALTER TABLE restaurant_inventory_consumption ADD COLUMN movement_id INTEGER",
+            "ALTER TABLE restaurant_inventory_consumption ADD COLUMN unit_cost TEXT NOT NULL DEFAULT '0'",
+            "ALTER TABLE restaurant_inventory_consumption ADD COLUMN warehouse_id INTEGER",
+        ):
+            try:
+                db.execute(ddl)
+            except Exception:
+                pass
+        db.commit()
+
     def ensure_modifier_recipe_schema(self) -> None:
         self.ensure_kitchen_station_schema()
         db = get_db()
@@ -2060,14 +2484,17 @@ class RestaurantRepository:
         )
         db.commit()
 
-    def ensure_virtual_table(self, name: str, branch_id: int | None = None) -> int:
+    def ensure_virtual_table(self, name: str, branch_id: int | None = None, is_active: bool = True) -> int:
         self.ensure_schema()
         db = get_db()
         row = db.execute('SELECT id FROM restaurant_tables WHERE name=?', (name,)).fetchone()
         if row:
             return int(row['id'])
         now = datetime.datetime.now().isoformat(timespec='seconds')
-        cur = db.execute("INSERT INTO restaurant_tables(name, zone, seats, status, is_active, branch_id, created_at, updated_at) VALUES (?, 'Virtual', 1, 'occupied', 1, ?, ?, ?)", (name, branch_id, now, now))
+        cur = db.execute(
+            "INSERT INTO restaurant_tables(name, zone, seats, status, is_active, branch_id, created_at, updated_at) VALUES (?, 'Virtual', 1, 'occupied', ?, ?, ?, ?)",
+            (name, 1 if is_active else 0, branch_id, now, now),
+        )
         db.commit()
         return int(cur.lastrowid)
 
@@ -2079,6 +2506,18 @@ class RestaurantRepository:
         cur = db.execute(
             "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, branch_id, notes, order_type, customer_name, phone, delivery_status) VALUES (?, NULL, 1, 'open', ?, ?, ?, 'takeaway', ?, ?, 'pending')",
             (table_id, now, branch_id, notes or '', customer_name or '', phone or ''),
+        )
+        db.commit()
+        return self.get_session(int(cur.lastrowid))
+
+    def create_cafe_quick_order(self, customer_name: str = '', phone: str = '', notes: str = '', branch_id: int | None = None) -> dict[str, Any]:
+        self.ensure_delivery_takeaway_schema()
+        db = get_db()
+        now = datetime.datetime.now().isoformat(timespec='seconds')
+        table_id = self.ensure_virtual_table('Cafe', branch_id, is_active=False)
+        cur = db.execute(
+            "INSERT INTO restaurant_sessions(table_id, waiter_id, guests, status, opened_at, branch_id, notes, order_type, customer_name, phone, delivery_status) VALUES (?, NULL, 1, 'open', ?, ?, ?, 'cafe_quick_order', ?, ?, 'pending')",
+            (table_id, now, branch_id, notes or 'cafe_quick_order', customer_name or '', phone or ''),
         )
         db.commit()
         return self.get_session(int(cur.lastrowid))
@@ -2448,8 +2887,9 @@ class RestaurantRepository:
             "open_sessions": scalar("SELECT COUNT(*) FROM restaurant_sessions WHERE status='open'"),
             "new_unsent_lines": scalar("SELECT COUNT(*) FROM restaurant_order_lines WHERE COALESCE(kitchen_status, 'new')='new'"),
             "queued_print_jobs": scalar("SELECT COUNT(*) FROM restaurant_print_jobs WHERE status='queued'"),
-            "pending_delivery_orders": scalar("SELECT COUNT(*) FROM restaurant_orders WHERE order_type='delivery' AND status NOT IN ('closed','cancelled','delivered')"),
-            "pending_takeaway_orders": scalar("SELECT COUNT(*) FROM restaurant_orders WHERE order_type='takeaway' AND status NOT IN ('closed','cancelled','picked_up')"),
+            "pending_delivery_orders": scalar("SELECT COUNT(*) FROM restaurant_sessions WHERE COALESCE(order_type, 'dine_in')='delivery' AND COALESCE(delivery_status, 'pending') NOT IN ('delivered','cancelled') AND status NOT IN ('closed','cancelled')"),
+            "pending_takeaway_orders": scalar("SELECT COUNT(*) FROM restaurant_sessions WHERE COALESCE(order_type, 'dine_in')='takeaway' AND COALESCE(delivery_status, 'pending') NOT IN ('picked_up','delivered','cancelled') AND status NOT IN ('closed','cancelled')"),
+            "pending_cafe_orders": scalar("SELECT COUNT(*) FROM restaurant_sessions WHERE COALESCE(order_type, 'dine_in')='cafe_quick_order' AND status NOT IN ('closed','cancelled')"),
         }
         blocking = bool(missing or diagnostics["dangling_sessions"] or diagnostics["dangling_order_lines"] or diagnostics["dangling_kitchen_lines"])
         warnings = []
@@ -2459,6 +2899,8 @@ class RestaurantRepository:
             warnings.append("There are queued restaurant print jobs")
         if diagnostics["pending_delivery_orders"] or diagnostics["pending_takeaway_orders"]:
             warnings.append("There are pending delivery/takeaway orders")
+        if diagnostics.get("pending_cafe_orders"):
+            warnings.append("There are pending cafe quick orders")
         return {
             "ready": not blocking,
             "blocking": blocking,
