@@ -38,6 +38,20 @@ class RestaurantOperationPolicy:
     OP_UPDATE_KITCHEN_STATUS = "update_kitchen_status"
     OP_PRINT_RECEIPT = "print_receipt"
     OP_PRINT_KITCHEN_TICKET = "print_kitchen_ticket"
+    OP_RESERVE_TABLE = "reserve_table"
+    OP_CANCEL_RESERVATION = "cancel_reservation"
+    OP_TRANSFER_TABLE = "transfer_table"
+    OP_MERGE_TABLES = "merge_tables"
+    OP_MOVE_ORDER_LINE = "move_order_line"
+    OP_SPLIT_BILL = "split_bill"
+    OP_WAITER_WORKFLOW = "waiter_workflow"
+    OP_KITCHEN_STATION_MANAGE = "kitchen_station_manage"
+    OP_MODIFIER_MANAGE = "modifier_manage"
+    OP_RECIPE_MANAGE = "recipe_manage"
+    OP_DELIVERY_TAKEAWAY = "delivery_takeaway"
+    OP_PRINTER_MANAGE = "printer_manage"
+    OP_PRINT_QUEUE = "print_queue"
+    OP_VIEW_ANALYTICS = "view_analytics"
 
     OPERATIONS: Dict[str, RestaurantOperation] = {
         OP_USE: RestaurantOperation(OP_USE, "restaurant_use", "restaurant/operations/allow_use", True, "restaurant_operation_use"),
@@ -50,6 +64,20 @@ class RestaurantOperationPolicy:
         OP_UPDATE_KITCHEN_STATUS: RestaurantOperation(OP_UPDATE_KITCHEN_STATUS, "restaurant_update_kitchen_status", "restaurant/operations/allow_update_kitchen_status", True, "restaurant_operation_update_kitchen_status"),
         OP_PRINT_RECEIPT: RestaurantOperation(OP_PRINT_RECEIPT, "restaurant_print_receipt", "restaurant/operations/allow_print_receipt", True, "restaurant_operation_print_receipt"),
         OP_PRINT_KITCHEN_TICKET: RestaurantOperation(OP_PRINT_KITCHEN_TICKET, "restaurant_print_kitchen_ticket", "restaurant/operations/allow_print_kitchen_ticket", True, "restaurant_operation_print_kitchen_ticket"),
+        OP_RESERVE_TABLE: RestaurantOperation(OP_RESERVE_TABLE, "restaurant_reserve_table", "restaurant/operations/allow_reserve_table", True, "restaurant_operation_reserve_table"),
+        OP_CANCEL_RESERVATION: RestaurantOperation(OP_CANCEL_RESERVATION, "restaurant_cancel_reservation", "restaurant/operations/allow_cancel_reservation", True, "restaurant_operation_cancel_reservation"),
+        OP_TRANSFER_TABLE: RestaurantOperation(OP_TRANSFER_TABLE, "restaurant_transfer_table", "restaurant/operations/allow_transfer_table", True, "restaurant_operation_transfer_table"),
+        OP_MERGE_TABLES: RestaurantOperation(OP_MERGE_TABLES, "restaurant_merge_tables", "restaurant/operations/allow_merge_tables", True, "restaurant_operation_merge_tables"),
+        OP_MOVE_ORDER_LINE: RestaurantOperation(OP_MOVE_ORDER_LINE, "restaurant_move_order_line", "restaurant/operations/allow_move_order_line", True, "restaurant_operation_move_order_line"),
+        OP_SPLIT_BILL: RestaurantOperation(OP_SPLIT_BILL, "restaurant_split_bill", "restaurant/operations/allow_split_bill", True, "restaurant_operation_split_bill"),
+        OP_WAITER_WORKFLOW: RestaurantOperation(OP_WAITER_WORKFLOW, "restaurant_waiter_workflow", "restaurant/operations/allow_waiter_workflow", True, "restaurant_operation_waiter_workflow"),
+        OP_KITCHEN_STATION_MANAGE: RestaurantOperation(OP_KITCHEN_STATION_MANAGE, "restaurant_kitchen_station_manage", "restaurant/operations/allow_kitchen_station_manage", True, "restaurant_operation_kitchen_station_manage"),
+        OP_MODIFIER_MANAGE: RestaurantOperation(OP_MODIFIER_MANAGE, "restaurant_modifier_manage", "restaurant/operations/allow_modifier_manage", True, "restaurant_operation_modifier_manage"),
+        OP_RECIPE_MANAGE: RestaurantOperation(OP_RECIPE_MANAGE, "restaurant_recipe_manage", "restaurant/operations/allow_recipe_manage", True, "restaurant_operation_recipe_manage"),
+        OP_DELIVERY_TAKEAWAY: RestaurantOperation(OP_DELIVERY_TAKEAWAY, "restaurant_delivery_takeaway", "restaurant/operations/allow_delivery_takeaway", True, "restaurant_operation_delivery_takeaway"),
+        OP_PRINTER_MANAGE: RestaurantOperation(OP_PRINTER_MANAGE, "restaurant_printer_manage", "restaurant/operations/allow_printer_manage", True, "restaurant_operation_printer_manage"),
+        OP_PRINT_QUEUE: RestaurantOperation(OP_PRINT_QUEUE, "restaurant_print_queue", "restaurant/operations/allow_print_queue", True, "restaurant_operation_print_queue"),
+        OP_VIEW_ANALYTICS: RestaurantOperation(OP_VIEW_ANALYTICS, "restaurant_view_analytics", "restaurant/operations/allow_view_analytics", True, "restaurant_operation_view_analytics"),
     }
 
     def operation(self, key: str) -> RestaurantOperation:

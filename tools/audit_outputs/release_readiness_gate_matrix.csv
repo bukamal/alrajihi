@@ -28,4 +28,5 @@ restaurant_inventory_recipe,restaurant,Restaurant inventory recipe integration,2
 restaurant_ui_visual_cleanup,restaurant,Restaurant UI visual cleanup,292,tests/test_phase292_restaurant_ui_visual_cleanup.py,True,,True,True
 restaurant_table_operations,restaurant,Restaurant table operations hardening,293,tests/test_phase293_restaurant_table_operations_hardening.py,True,,True,True
 restaurant_settings_printer_routing,restaurant,Restaurant settings and printer routing,294,tests/test_phase294_restaurant_settings_printer_routing.py,True,,True,True
+restaurant_operation_governance,restaurant,Restaurant operation governance enforcement,295,tests/test_phase295_restaurant_operation_governance_enforcement.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

@@ -48,6 +48,20 @@ class PermissionService:
     ACTION_RESTAURANT_UPDATE_KITCHEN_STATUS = 'restaurant_update_kitchen_status'
     ACTION_RESTAURANT_PRINT_RECEIPT = 'restaurant_print_receipt'
     ACTION_RESTAURANT_PRINT_KITCHEN_TICKET = 'restaurant_print_kitchen_ticket'
+    ACTION_RESTAURANT_RESERVE_TABLE = 'restaurant_reserve_table'
+    ACTION_RESTAURANT_CANCEL_RESERVATION = 'restaurant_cancel_reservation'
+    ACTION_RESTAURANT_TRANSFER_TABLE = 'restaurant_transfer_table'
+    ACTION_RESTAURANT_MERGE_TABLES = 'restaurant_merge_tables'
+    ACTION_RESTAURANT_MOVE_ORDER_LINE = 'restaurant_move_order_line'
+    ACTION_RESTAURANT_SPLIT_BILL = 'restaurant_split_bill'
+    ACTION_RESTAURANT_WAITER_WORKFLOW = 'restaurant_waiter_workflow'
+    ACTION_RESTAURANT_KITCHEN_STATION_MANAGE = 'restaurant_kitchen_station_manage'
+    ACTION_RESTAURANT_MODIFIER_MANAGE = 'restaurant_modifier_manage'
+    ACTION_RESTAURANT_RECIPE_MANAGE = 'restaurant_recipe_manage'
+    ACTION_RESTAURANT_DELIVERY_TAKEAWAY = 'restaurant_delivery_takeaway'
+    ACTION_RESTAURANT_PRINTER_MANAGE = 'restaurant_printer_manage'
+    ACTION_RESTAURANT_PRINT_QUEUE = 'restaurant_print_queue'
+    ACTION_RESTAURANT_VIEW_ANALYTICS = 'restaurant_view_analytics'
     ACTION_USE_MANUFACTURING = 'manufacturing_use'
     ACTION_MANUFACTURING_BOM_CREATE = 'manufacturing_bom_create'
     ACTION_MANUFACTURING_BOM_EDIT = 'manufacturing_bom_edit'
@@ -142,6 +156,20 @@ class PermissionService:
         ACTION_RESTAURANT_UPDATE_KITCHEN_STATUS: True,
         ACTION_RESTAURANT_PRINT_RECEIPT: True,
         ACTION_RESTAURANT_PRINT_KITCHEN_TICKET: True,
+        ACTION_RESTAURANT_RESERVE_TABLE: True,
+        ACTION_RESTAURANT_CANCEL_RESERVATION: True,
+        ACTION_RESTAURANT_TRANSFER_TABLE: True,
+        ACTION_RESTAURANT_MERGE_TABLES: True,
+        ACTION_RESTAURANT_MOVE_ORDER_LINE: True,
+        ACTION_RESTAURANT_SPLIT_BILL: True,
+        ACTION_RESTAURANT_WAITER_WORKFLOW: True,
+        ACTION_RESTAURANT_KITCHEN_STATION_MANAGE: True,
+        ACTION_RESTAURANT_MODIFIER_MANAGE: True,
+        ACTION_RESTAURANT_RECIPE_MANAGE: True,
+        ACTION_RESTAURANT_DELIVERY_TAKEAWAY: True,
+        ACTION_RESTAURANT_PRINTER_MANAGE: True,
+        ACTION_RESTAURANT_PRINT_QUEUE: True,
+        ACTION_RESTAURANT_VIEW_ANALYTICS: True,
         ACTION_USE_MANUFACTURING: True,
         ACTION_MANUFACTURING_BOM_CREATE: True,
         ACTION_MANUFACTURING_BOM_EDIT: True,
@@ -272,6 +300,20 @@ class PermissionService:
                     self.ACTION_RESTAURANT_UPDATE_KITCHEN_STATUS: 'restaurant.kitchen.status.update',
                     self.ACTION_RESTAURANT_PRINT_RECEIPT: 'restaurant.receipt.print',
                     self.ACTION_RESTAURANT_PRINT_KITCHEN_TICKET: 'restaurant.kitchen_ticket.print',
+                    self.ACTION_RESTAURANT_RESERVE_TABLE: 'restaurant.table.reserve',
+                    self.ACTION_RESTAURANT_CANCEL_RESERVATION: 'restaurant.reservation.cancel',
+                    self.ACTION_RESTAURANT_TRANSFER_TABLE: 'restaurant.table.transfer',
+                    self.ACTION_RESTAURANT_MERGE_TABLES: 'restaurant.table.merge',
+                    self.ACTION_RESTAURANT_MOVE_ORDER_LINE: 'restaurant.line.move',
+                    self.ACTION_RESTAURANT_SPLIT_BILL: 'restaurant.bill.split',
+                    self.ACTION_RESTAURANT_WAITER_WORKFLOW: 'restaurant.waiter.workflow',
+                    self.ACTION_RESTAURANT_KITCHEN_STATION_MANAGE: 'restaurant.kitchen_station.manage',
+                    self.ACTION_RESTAURANT_MODIFIER_MANAGE: 'restaurant.modifier.manage',
+                    self.ACTION_RESTAURANT_RECIPE_MANAGE: 'restaurant.recipe.manage',
+                    self.ACTION_RESTAURANT_DELIVERY_TAKEAWAY: 'restaurant.delivery_takeaway',
+                    self.ACTION_RESTAURANT_PRINTER_MANAGE: 'restaurant.printer.manage',
+                    self.ACTION_RESTAURANT_PRINT_QUEUE: 'restaurant.print_queue.manage',
+                    self.ACTION_RESTAURANT_VIEW_ANALYTICS: 'restaurant.analytics.view',
                     self.ACTION_USE_MANUFACTURING: 'manufacturing.use',
                     self.ACTION_MANUFACTURING_BOM_CREATE: 'manufacturing.bom.create',
                     self.ACTION_MANUFACTURING_BOM_EDIT: 'manufacturing.bom.edit',
@@ -401,6 +443,34 @@ class PermissionService:
             allowed, reason = False, 'restrict_restaurant_receipt_print_to_admin'
         elif action == self.ACTION_RESTAURANT_PRINT_KITCHEN_TICKET and settings_service.get_bool('security/restrict_restaurant_kitchen_ticket_print_to_admin', False):
             allowed, reason = False, 'restrict_restaurant_kitchen_ticket_print_to_admin'
+        elif action == self.ACTION_RESTAURANT_RESERVE_TABLE and settings_service.get_bool('security/restrict_restaurant_reservation_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_reservation_to_admin'
+        elif action == self.ACTION_RESTAURANT_CANCEL_RESERVATION and settings_service.get_bool('security/restrict_restaurant_reservation_cancel_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_reservation_cancel_to_admin'
+        elif action == self.ACTION_RESTAURANT_TRANSFER_TABLE and settings_service.get_bool('security/restrict_restaurant_table_transfer_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_table_transfer_to_admin'
+        elif action == self.ACTION_RESTAURANT_MERGE_TABLES and settings_service.get_bool('security/restrict_restaurant_table_merge_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_table_merge_to_admin'
+        elif action == self.ACTION_RESTAURANT_MOVE_ORDER_LINE and settings_service.get_bool('security/restrict_restaurant_line_move_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_line_move_to_admin'
+        elif action == self.ACTION_RESTAURANT_SPLIT_BILL and settings_service.get_bool('security/restrict_restaurant_split_bill_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_split_bill_to_admin'
+        elif action == self.ACTION_RESTAURANT_WAITER_WORKFLOW and settings_service.get_bool('security/restrict_restaurant_waiter_workflow_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_waiter_workflow_to_admin'
+        elif action == self.ACTION_RESTAURANT_KITCHEN_STATION_MANAGE and settings_service.get_bool('security/restrict_restaurant_kitchen_station_manage_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_kitchen_station_manage_to_admin'
+        elif action == self.ACTION_RESTAURANT_MODIFIER_MANAGE and settings_service.get_bool('security/restrict_restaurant_modifier_manage_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_modifier_manage_to_admin'
+        elif action == self.ACTION_RESTAURANT_RECIPE_MANAGE and settings_service.get_bool('security/restrict_restaurant_recipe_manage_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_recipe_manage_to_admin'
+        elif action == self.ACTION_RESTAURANT_DELIVERY_TAKEAWAY and settings_service.get_bool('security/restrict_restaurant_delivery_takeaway_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_delivery_takeaway_to_admin'
+        elif action == self.ACTION_RESTAURANT_PRINTER_MANAGE and settings_service.get_bool('security/restrict_restaurant_printer_manage_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_printer_manage_to_admin'
+        elif action == self.ACTION_RESTAURANT_PRINT_QUEUE and settings_service.get_bool('security/restrict_restaurant_print_queue_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_print_queue_to_admin'
+        elif action == self.ACTION_RESTAURANT_VIEW_ANALYTICS and settings_service.get_bool('security/restrict_restaurant_analytics_to_admin', False):
+            allowed, reason = False, 'restrict_restaurant_analytics_to_admin'
         elif action == self.ACTION_USE_MANUFACTURING and settings_service.get_bool('security/restrict_manufacturing_to_authorized_users', False):
             allowed, reason = False, 'restrict_manufacturing_to_authorized_users'
         elif action == self.ACTION_MANUFACTURING_BOM_CREATE and settings_service.get_bool('security/restrict_manufacturing_bom_create_to_admin', False):
@@ -541,6 +611,30 @@ class PermissionService:
             self.ACTION_POS_OPEN_SHIFT: 'فتح وردية POS غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_POS_CLOSE_SHIFT: 'إغلاق وردية POS غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_POS_PRINT_RECEIPT: 'طباعة إيصال POS غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_USE_RESTAURANT: 'استخدام المطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_OPEN_SESSION: 'فتح جلسة مطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_ADD_LINE: 'إضافة سطر طلب مطعم غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_SEND_KITCHEN: 'إرسال الطلب للمطبخ غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_ADJUST_BILL: 'تعديل فاتورة المطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_RECORD_PAYMENT: 'تسجيل دفعة مطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_CHECKOUT: 'إغلاق طاولة المطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_UPDATE_KITCHEN_STATUS: 'تحديث حالة المطبخ غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_PRINT_RECEIPT: 'طباعة إيصال المطعم غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_PRINT_KITCHEN_TICKET: 'طباعة تذكرة المطبخ غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_RESERVE_TABLE: 'حجز طاولة مطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_CANCEL_RESERVATION: 'إلغاء حجز مطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_TRANSFER_TABLE: 'نقل طاولة مطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_MERGE_TABLES: 'دمج طاولات المطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_MOVE_ORDER_LINE: 'نقل سطر طلب مطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_SPLIT_BILL: 'تقسيم فاتورة المطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_WAITER_WORKFLOW: 'تشغيل سير عمل النادل غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_KITCHEN_STATION_MANAGE: 'إدارة محطات المطبخ غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_MODIFIER_MANAGE: 'إدارة إضافات المطعم غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_RECIPE_MANAGE: 'إدارة وصفات المطعم غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_DELIVERY_TAKEAWAY: 'تشغيل طلبات السفري/التوصيل غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_PRINTER_MANAGE: 'إدارة طابعات المطعم غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_PRINT_QUEUE: 'إدارة طابور طباعة المطعم غير مسموحة لهذا المستخدم حسب إعدادات الصلاحيات.',
+            self.ACTION_RESTAURANT_VIEW_ANALYTICS: 'عرض تحليلات المطعم غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_USE_MANUFACTURING: 'استخدام التصنيع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_MANUFACTURING_BOM_CREATE: 'إنشاء تركيبة تصنيع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',
             self.ACTION_MANUFACTURING_BOM_EDIT: 'تعديل تركيبة التصنيع غير مسموح لهذا المستخدم حسب إعدادات الصلاحيات.',

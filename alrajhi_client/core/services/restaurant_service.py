@@ -20,6 +20,10 @@ class RestaurantService:
     def __init__(self):
         self.gateway = create_restaurant_gateway()
 
+    def _require_and_log(self, operation: str, context: str, values: dict[str, Any] | None = None) -> None:
+        restaurant_operation_policy.require(operation)
+        restaurant_operation_policy.log(operation, allowed=True, context=context, values=values or {})
+
     def list_tables(self) -> list[dict[str, Any]]:
         return self.gateway.list_tables()
 
@@ -161,34 +165,84 @@ class RestaurantService:
         return self.gateway.get_kitchen_ticket(ticket_id=ticket_id)
 
     def update_kitchen_ticket_status(self, ticket_id: int, status: str) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_UPDATE_KITCHEN_STATUS,
+            "restaurant_service.update_kitchen_ticket_status",
+            {"ticket_id": ticket_id, "status": status},
+        )
         return self.gateway.update_kitchen_ticket_status(ticket_id=ticket_id, status=status)
 
     def reserve_table(self, table_id: int, customer_name: str = "", phone: str = "", reserved_at: str = "", guests: int = 1, notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_RESERVE_TABLE,
+            "restaurant_service.reserve_table",
+            {"table_id": table_id, "guests": guests},
+        )
         return self.gateway.reserve_table(table_id=table_id, customer_name=customer_name, phone=phone, reserved_at=reserved_at, guests=guests, notes=notes)
 
     def cancel_reservation(self, reservation_id: int) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_CANCEL_RESERVATION,
+            "restaurant_service.cancel_reservation",
+            {"reservation_id": reservation_id},
+        )
         return self.gateway.cancel_reservation(reservation_id=reservation_id)
 
     def transfer_session(self, session_id: int, target_table_id: int) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_TRANSFER_TABLE,
+            "restaurant_service.transfer_session",
+            {"session_id": session_id, "target_table_id": target_table_id},
+        )
         return self.gateway.transfer_session(session_id=session_id, target_table_id=target_table_id)
 
     def merge_sessions(self, source_session_id: int, target_session_id: int) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_MERGE_TABLES,
+            "restaurant_service.merge_sessions",
+            {"source_session_id": source_session_id, "target_session_id": target_session_id},
+        )
         return self.gateway.merge_sessions(source_session_id=source_session_id, target_session_id=target_session_id)
 
     def split_lines_to_table(self, session_id: int, line_ids: list[int], target_table_id: int, guests: int = 1, notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_MOVE_ORDER_LINE,
+            "restaurant_service.split_lines_to_table",
+            {"session_id": session_id, "line_ids": list(line_ids or []), "target_table_id": target_table_id},
+        )
         return self.gateway.split_lines_to_table(session_id=session_id, line_ids=line_ids, target_table_id=target_table_id, guests=guests, notes=notes)
 
     def close_session(self, session_id: int, invoice_id: int | None = None) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_CHECKOUT,
+            "restaurant_service.close_session",
+            {"session_id": session_id, "invoice_id": invoice_id},
+        )
         return self.gateway.close_session(session_id=session_id, invoice_id=invoice_id)
 
 
     def assign_waiter(self, session_id: int, waiter_id: str, notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_WAITER_WORKFLOW,
+            "restaurant_service.assign_waiter",
+            {"session_id": session_id, "waiter_id": waiter_id},
+        )
         return self.gateway.assign_waiter(session_id=session_id, waiter_id=waiter_id, notes=notes)
 
     def call_waiter(self, session_id: int, notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_WAITER_WORKFLOW,
+            "restaurant_service.call_waiter",
+            {"session_id": session_id},
+        )
         return self.gateway.call_waiter(session_id=session_id, notes=notes)
 
     def resolve_waiter_call(self, session_id: int, notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_WAITER_WORKFLOW,
+            "restaurant_service.resolve_waiter_call",
+            {"session_id": session_id},
+        )
         return self.gateway.resolve_waiter_call(session_id=session_id, notes=notes)
 
     def waiter_session_summary(self, session_id: int) -> dict[str, Any]:
@@ -198,13 +252,28 @@ class RestaurantService:
         return self.gateway.list_kitchen_stations(include_inactive=include_inactive)
 
     def upsert_kitchen_station(self, name: str, code: str = "", sort_order: int = 0, station_id: int | None = None, is_active: bool = True) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_KITCHEN_STATION_MANAGE,
+            "restaurant_service.upsert_kitchen_station",
+            {"station_id": station_id, "name": name, "is_active": is_active},
+        )
         return self.gateway.upsert_kitchen_station(name=name, code=code, sort_order=sort_order, station_id=station_id, is_active=is_active)
 
     def assign_menu_item_station(self, item_id: int, station_id: int) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_KITCHEN_STATION_MANAGE,
+            "restaurant_service.assign_menu_item_station",
+            {"item_id": item_id, "station_id": station_id},
+        )
         return self.gateway.assign_menu_item_station(item_id=item_id, station_id=station_id)
 
 
     def restaurant_analytics(self, start_date: str = "", end_date: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_VIEW_ANALYTICS,
+            "restaurant_service.restaurant_analytics",
+            {"start_date": start_date, "end_date": end_date},
+        )
         return self.gateway.restaurant_analytics(start_date=start_date, end_date=end_date)
 
 
@@ -213,12 +282,27 @@ class RestaurantService:
         return self.gateway.list_modifier_groups(item_id=item_id, include_inactive=include_inactive)
 
     def upsert_modifier_group(self, item_id: int | None, name: str, min_selected: int = 0, max_selected: int = 1, is_required: bool = False, group_id: int | None = None) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_MODIFIER_MANAGE,
+            "restaurant_service.upsert_modifier_group",
+            {"item_id": item_id, "group_id": group_id, "name": name},
+        )
         return self.gateway.upsert_modifier_group(item_id=item_id, name=name, min_selected=min_selected, max_selected=max_selected, is_required=is_required, group_id=group_id)
 
     def upsert_modifier_option(self, group_id: int, name: str, price_delta: Any = "0", item_id: int | None = None, kitchen_label: str = "", is_default: bool = False, option_id: int | None = None) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_MODIFIER_MANAGE,
+            "restaurant_service.upsert_modifier_option",
+            {"group_id": group_id, "option_id": option_id, "name": name},
+        )
         return self.gateway.upsert_modifier_option(group_id=group_id, name=name, price_delta=price_delta, item_id=item_id, kitchen_label=kitchen_label, is_default=is_default, option_id=option_id)
 
     def add_order_line_modifier(self, line_id: int, option_id: int | None = None, name: str = "", price_delta: Any = "0", quantity: Any = "1", action: str = "add", group_id: int | None = None, kitchen_label: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_MODIFIER_MANAGE,
+            "restaurant_service.add_order_line_modifier",
+            {"line_id": line_id, "option_id": option_id, "action": action},
+        )
         return self.gateway.add_order_line_modifier(line_id=line_id, option_id=option_id, name=name, price_delta=price_delta, quantity=quantity, action=action, group_id=group_id, kitchen_label=kitchen_label)
 
     def list_line_modifiers(self, line_id: int) -> list[dict[str, Any]]:
@@ -228,21 +312,46 @@ class RestaurantService:
         return self.gateway.get_recipe_by_item(item_id=item_id)
 
     def upsert_recipe(self, item_id: int, name: str = "", yield_quantity: Any = "1", lines: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_RECIPE_MANAGE,
+            "restaurant_service.upsert_recipe",
+            {"item_id": item_id, "line_count": len(lines or [])},
+        )
         return self.gateway.upsert_recipe(item_id=item_id, name=name, yield_quantity=yield_quantity, lines=lines or [])
 
     def consume_session_recipes(self, session_id: int, invoice_id: int | None = None) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_RECIPE_MANAGE,
+            "restaurant_service.consume_session_recipes",
+            {"session_id": session_id, "invoice_id": invoice_id},
+        )
         return self.gateway.consume_session_recipes(session_id=session_id, invoice_id=invoice_id)
 
 
 
     # Phase 35: takeaway/delivery workflow
     def create_takeaway_order(self, customer_name: str = "", phone: str = "", notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_DELIVERY_TAKEAWAY,
+            "restaurant_service.create_takeaway_order",
+            {"customer_name": customer_name},
+        )
         return self.gateway.create_takeaway_order(customer_name=customer_name, phone=phone, notes=notes)
 
     def create_delivery_order(self, customer_name: str = "", phone: str = "", address: str = "", delivery_fee: Any = "0", driver_id: str = "", notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_DELIVERY_TAKEAWAY,
+            "restaurant_service.create_delivery_order",
+            {"customer_name": customer_name, "driver_id": driver_id},
+        )
         return self.gateway.create_delivery_order(customer_name=customer_name, phone=phone, address=address, delivery_fee=delivery_fee, driver_id=driver_id, notes=notes)
 
     def update_delivery_status(self, session_id: int, status: str, driver_id: str = "", notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_DELIVERY_TAKEAWAY,
+            "restaurant_service.update_delivery_status",
+            {"session_id": session_id, "status": status, "driver_id": driver_id},
+        )
         return self.gateway.update_delivery_status(session_id=session_id, status=status, driver_id=driver_id, notes=notes)
 
     def list_restaurant_orders(self, order_type: str = "", status: str = "open", limit: int = 100) -> list[dict[str, Any]]:
@@ -250,27 +359,57 @@ class RestaurantService:
 
     # Phase 36: split bill + printer routing
     def create_split_bills(self, session_id: int, splits: list[dict[str, Any]], notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_SPLIT_BILL,
+            "restaurant_service.create_split_bills",
+            {"session_id": session_id, "split_count": len(splits or [])},
+        )
         return self.gateway.create_split_bills(session_id=session_id, splits=splits, notes=notes)
 
     def list_split_bills(self, session_id: int) -> list[dict[str, Any]]:
         return self.gateway.list_split_bills(session_id=session_id)
 
     def pay_split_bill(self, split_bill_id: int, amount: Any, payment_method: str = "cash", notes: str = "") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_RECORD_PAYMENT,
+            "restaurant_service.pay_split_bill",
+            {"split_bill_id": split_bill_id, "payment_method": payment_method},
+        )
         return self.gateway.pay_split_bill(split_bill_id=split_bill_id, amount=amount, payment_method=payment_method, notes=notes)
 
     def list_printers(self, include_inactive: bool = False) -> list[dict[str, Any]]:
         return self.gateway.list_printers(include_inactive=include_inactive)
 
     def upsert_printer(self, name: str, printer_type: str = "kitchen", device_uri: str = "", printer_id: int | None = None, is_active: bool = True) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_PRINTER_MANAGE,
+            "restaurant_service.upsert_printer",
+            {"printer_id": printer_id, "printer_type": printer_type, "is_active": is_active},
+        )
         return self.gateway.upsert_printer(name=name, printer_type=printer_type, device_uri=device_uri, printer_id=printer_id, is_active=is_active)
 
     def assign_station_printer(self, station_id: int, printer_id: int) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_PRINTER_MANAGE,
+            "restaurant_service.assign_station_printer",
+            {"station_id": station_id, "printer_id": printer_id},
+        )
         return self.gateway.assign_station_printer(station_id=station_id, printer_id=printer_id)
 
     def queue_ticket_print(self, ticket_id: int, job_type: str = "kot") -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_PRINT_QUEUE,
+            "restaurant_service.queue_ticket_print",
+            {"ticket_id": ticket_id, "job_type": job_type},
+        )
         return self.gateway.queue_ticket_print(ticket_id=ticket_id, job_type=job_type)
 
     def mark_print_job_done(self, job_id: int) -> dict[str, Any]:
+        self._require_and_log(
+            restaurant_operation_policy.OP_PRINT_QUEUE,
+            "restaurant_service.mark_print_job_done",
+            {"job_id": job_id},
+        )
         return self.gateway.mark_print_job_done(job_id=job_id)
 
     # Phase 37: production readiness diagnostics

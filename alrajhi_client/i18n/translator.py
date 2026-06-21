@@ -7264,3 +7264,68 @@ for _lang, _values in _PHASE294_TRANSLATIONS.items():
         _translations.setdefault(_lang, {}).update(_values)
     except Exception:
         pass
+
+_PHASE295_TRANSLATIONS = {
+    'ar': {
+        'restaurant_operation_reserve_table': 'حجز طاولة مطعم',
+        'restaurant_operation_cancel_reservation': 'إلغاء حجز مطعم',
+        'restaurant_operation_transfer_table': 'نقل جلسة إلى طاولة أخرى',
+        'restaurant_operation_merge_tables': 'دمج طاولات المطعم',
+        'restaurant_operation_move_order_line': 'نقل سطر طلب إلى طاولة أخرى',
+        'restaurant_operation_split_bill': 'تقسيم فاتورة المطعم',
+        'restaurant_operation_waiter_workflow': 'سير عمل النادل',
+        'restaurant_operation_kitchen_station_manage': 'إدارة محطات المطبخ',
+        'restaurant_operation_modifier_manage': 'إدارة إضافات المطعم',
+        'restaurant_operation_recipe_manage': 'إدارة وصفات المطعم',
+        'restaurant_operation_delivery_takeaway': 'تشغيل السفري والتوصيل',
+        'restaurant_operation_printer_manage': 'إدارة طابعات المطعم',
+        'restaurant_operation_print_queue': 'إدارة طابور طباعة المطعم',
+        'restaurant_operation_view_analytics': 'عرض تحليلات المطعم',
+        'restaurant_operation_governance_extended': 'تم توسيع حوكمة وصلاحيات عمليات المطعم.',
+    },
+    'de': {
+        'restaurant_operation_reserve_table': 'Restauranttisch reservieren',
+        'restaurant_operation_cancel_reservation': 'Restaurantreservierung stornieren',
+        'restaurant_operation_transfer_table': 'Sitzung auf anderen Tisch übertragen',
+        'restaurant_operation_merge_tables': 'Restauranttische zusammenführen',
+        'restaurant_operation_move_order_line': 'Bestellzeile auf anderen Tisch verschieben',
+        'restaurant_operation_split_bill': 'Restaurantrechnung aufteilen',
+        'restaurant_operation_waiter_workflow': 'Kellner-Workflow',
+        'restaurant_operation_kitchen_station_manage': 'Küchenstationen verwalten',
+        'restaurant_operation_modifier_manage': 'Restaurantoptionen verwalten',
+        'restaurant_operation_recipe_manage': 'Restaurantrezepte verwalten',
+        'restaurant_operation_delivery_takeaway': 'Abholung und Lieferung ausführen',
+        'restaurant_operation_printer_manage': 'Restaurantdrucker verwalten',
+        'restaurant_operation_print_queue': 'Restaurant-Druckwarteschlange verwalten',
+        'restaurant_operation_view_analytics': 'Restaurantanalysen anzeigen',
+        'restaurant_operation_governance_extended': 'Restaurant-Governance und Berechtigungen wurden erweitert.',
+    },
+    'en': {
+        'restaurant_operation_reserve_table': 'Reserve restaurant table',
+        'restaurant_operation_cancel_reservation': 'Cancel restaurant reservation',
+        'restaurant_operation_transfer_table': 'Transfer session to another table',
+        'restaurant_operation_merge_tables': 'Merge restaurant tables',
+        'restaurant_operation_move_order_line': 'Move order line to another table',
+        'restaurant_operation_split_bill': 'Split restaurant bill',
+        'restaurant_operation_waiter_workflow': 'Waiter workflow',
+        'restaurant_operation_kitchen_station_manage': 'Manage kitchen stations',
+        'restaurant_operation_modifier_manage': 'Manage restaurant modifiers',
+        'restaurant_operation_recipe_manage': 'Manage restaurant recipes',
+        'restaurant_operation_delivery_takeaway': 'Run takeaway and delivery',
+        'restaurant_operation_printer_manage': 'Manage restaurant printers',
+        'restaurant_operation_print_queue': 'Manage restaurant print queue',
+        'restaurant_operation_view_analytics': 'View restaurant analytics',
+        'restaurant_operation_governance_extended': 'Restaurant operation governance and permissions were extended.',
+    },
+}
+
+for _lang, _values in _PHASE295_TRANSLATIONS.items():
+    try:
+        _translations.setdefault(_lang, {}).update(_values)
+    except Exception:
+        pass
+try:
+    for _lang, _values in _PHASE295_TRANSLATIONS.items():
+        _PHASE57_TRANSLATIONS.setdefault(_lang, {}).update(_values)
+except Exception:
+    pass

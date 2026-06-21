@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
 
 from core.services.restaurant_service import restaurant_service
 from core.services.settings_service import settings_service
+from core.services.restaurant_operation_policy import restaurant_operation_policy
 from i18n.translator import qt_layout_direction, translate as _
 from views.restaurant.table_map_widget import RestaurantTableMapWidget
 from views.restaurant.restaurant_pos_widget import RestaurantPOSWidget
@@ -345,13 +346,27 @@ class RestaurantDashboard(QWidget):
             has_selected_line = bool(self.pos.lines.selected_line())
         except Exception:
             has_selected_line = False
-        self.reserve_table_btn.setEnabled(bool(self._free_tables(include_reserved=False)))
-        self.transfer_table_btn.setEnabled(has_session and bool(self._free_tables(include_reserved=True, exclude_table_id=self._current_table_id())))
-        self.merge_table_btn.setEnabled(has_session and bool(self._other_active_tables()))
-        self.move_line_btn.setEnabled(has_session and has_selected_line and bool([t for t in self._last_tables or [] if int(t.get("id") or 0) != int(self._current_table_id() or 0)]))
+        policy_map = {
+            self.reserve_table_btn: restaurant_operation_policy.OP_RESERVE_TABLE,
+            self.transfer_table_btn: restaurant_operation_policy.OP_TRANSFER_TABLE,
+            self.merge_table_btn: restaurant_operation_policy.OP_MERGE_TABLES,
+            self.move_line_btn: restaurant_operation_policy.OP_MOVE_ORDER_LINE,
+        }
+        for button, operation in policy_map.items():
+            allowed_by_settings = restaurant_operation_policy.is_enabled_by_settings(operation)
+            button.setVisible(allowed_by_settings)
+        can_reserve = restaurant_operation_policy.can(restaurant_operation_policy.OP_RESERVE_TABLE)
+        can_transfer = restaurant_operation_policy.can(restaurant_operation_policy.OP_TRANSFER_TABLE)
+        can_merge = restaurant_operation_policy.can(restaurant_operation_policy.OP_MERGE_TABLES)
+        can_move_line = restaurant_operation_policy.can(restaurant_operation_policy.OP_MOVE_ORDER_LINE)
+        self.reserve_table_btn.setEnabled(can_reserve and bool(self._free_tables(include_reserved=False)))
+        self.transfer_table_btn.setEnabled(can_transfer and has_session and bool(self._free_tables(include_reserved=True, exclude_table_id=self._current_table_id())))
+        self.merge_table_btn.setEnabled(can_merge and has_session and bool(self._other_active_tables()))
+        self.move_line_btn.setEnabled(can_move_line and has_session and has_selected_line and bool([t for t in self._last_tables or [] if int(t.get("id") or 0) != int(self._current_table_id() or 0)]))
 
     def reserve_table(self) -> None:
         try:
+            restaurant_operation_policy.require(restaurant_operation_policy.OP_RESERVE_TABLE)
             self.reload()
             candidates = self._free_tables(include_reserved=False)
             if not candidates:
@@ -369,6 +384,7 @@ class RestaurantDashboard(QWidget):
 
     def transfer_current_session(self) -> None:
         try:
+            restaurant_operation_policy.require(restaurant_operation_policy.OP_TRANSFER_TABLE)
             session_id = self._current_session_id()
             if not session_id:
                 self.status.setText(_("restaurant.open_table_first"))
@@ -391,6 +407,7 @@ class RestaurantDashboard(QWidget):
 
     def merge_into_current_session(self) -> None:
         try:
+            restaurant_operation_policy.require(restaurant_operation_policy.OP_MERGE_TABLES)
             target_session_id = self._current_session_id()
             if not target_session_id:
                 self.status.setText(_("restaurant.open_table_first"))
@@ -414,6 +431,7 @@ class RestaurantDashboard(QWidget):
 
     def move_selected_line_to_table(self) -> None:
         try:
+            restaurant_operation_policy.require(restaurant_operation_policy.OP_MOVE_ORDER_LINE)
             session_id = self._current_session_id()
             if not session_id:
                 self.status.setText(_("restaurant.open_table_first"))
