@@ -172,8 +172,9 @@ class CurrencyManager:
         return self.format_amount(self.to_display(amount, from_currency=from_currency), self.display_currency(), decimals=decimals)
     
     def update_rate(self, currency_code: str, rate_to_usd: float):
-        """تحديث سعر الصرف الحالي (يُستخدم من settings_widget.py)"""
+        """تحديث سعر الصرف الحالي (يُستخدم من settings_widget.py ولوحة التحكم)."""
         self.gateway.update_rate(currency_code, rate_to_usd)
+        self._cache_rate(currency_code, rate_to_usd)
     
     def _abbreviate_number(self, num: Decimal) -> str:
         num_float = float(num)

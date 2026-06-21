@@ -24,7 +24,7 @@ def test_dashboard_removes_rendered_bottom_alerts_strip_but_keeps_compatibility_
 
 def test_dashboard_distinguishes_system_identity_from_company_identity():
     src = read('alrajhi_client/views/widgets/dashboard_widget.py')
-    assert "DashboardPanel(translate('system_identity')" in src
+    assert "DashboardPanel(translate('integrated_management_system')" in src
     assert "DashboardPanel(translate('company_current_info')" in src
     assert 'def _company_has_explicit_info' in src
     assert 'company_fallback_note' in src
@@ -37,10 +37,10 @@ def test_dashboard_identity_translations_exist():
     src = read('alrajhi_client/i18n/translator.py')
     for key in ('system_identity', 'company_current_info', 'company_info_fallback_note'):
         assert key in src
-    assert 'هوية النظام' in src
+    assert 'نظام إدارة متكامل' in src
     assert 'معلومات الشركة الحالية' in src
-    assert 'System identity' in src
-    assert 'Systemidentität' in src
+    assert 'Integrated management system' in src
+    assert 'Integriertes Verwaltungssystem' in src
 
 
 def test_phase_document_exists():

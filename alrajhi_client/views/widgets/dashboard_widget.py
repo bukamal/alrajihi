@@ -8,7 +8,7 @@ from i18n import translate, qt_layout_direction
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QGridLayout, QPushButton,
-    QComboBox, QHeaderView, QScrollArea, QSizePolicy
+    QComboBox, QHeaderView, QScrollArea, QSizePolicy, QLineEdit
 )
 
 import qtawesome as qta
@@ -184,23 +184,22 @@ class DashboardWidget(QWidget):
         self.main_layout.addWidget(self.trend_panel)
 
     def _build_middle_grid(self):
-        # Phase 286: visible professional dashboard layout.  The dashboard has
-        # three operational cards only: cash movement, current company identity,
-        # and daily shortcuts.  No hidden KPI strip, no chart panel, no lower
-        # alerts table.  In RTL, the quick actions remain visually on the right.
+        # Phase 301: professional dashboard composition based on the approved
+        # visual proposal. Keep the three operational cards only, but make the
+        # cashbox, company identity, and daily shortcuts visually balanced.
         row = QHBoxLayout()
         row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(14)
+        row.setSpacing(16)
         self.quick_panel = self._create_quick_actions_panel()
         self.company_panel = self._create_company_info_panel()
         self.project_panel = self._create_project_panel()
         for panel in (self.quick_panel, self.company_panel, self.project_panel):
             panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            panel.setMinimumHeight(286)
-            panel.setMaximumHeight(340)
+            panel.setMinimumHeight(360)
+            panel.setMaximumHeight(430)
         row.addWidget(self.quick_panel, 5)
         row.addWidget(self.company_panel, 4)
-        row.addWidget(self.project_panel, 7)
+        row.addWidget(self.project_panel, 5)
         self.main_layout.addLayout(row)
 
     def _build_bottom_grid(self):
@@ -213,28 +212,32 @@ class DashboardWidget(QWidget):
     def _create_quick_actions_panel(self):
         panel = DashboardPanel(translate('dashboard_daily_shortcuts'), 'bolt')
         panel.setObjectName('DashboardQuickActionsPanel')
-        panel.setMinimumHeight(286)
-        pos = QuickActionButton(translate('dashboard_pos_f9'), 'barcode', '#059669')
-        pos.setMinimumHeight(58)
-        pos.clicked.connect(lambda: self._switch_page('pos'))
-        panel.layout.addWidget(pos)
+        panel.setMinimumHeight(360)
+        panel.setStyleSheet(panel.styleSheet() + """
+            QFrame#DashboardQuickActionsPanel { background: #ffffff; border-radius: 20px; }
+        """)
         grid = QGridLayout()
-        grid.setSpacing(8)
+        grid.setSpacing(10)
         actions = [
+            (translate('dashboard_pos_f9'), 'desktop', '#059669', lambda: self._switch_page('pos')),
             (translate('sales_invoice'), 'file-invoice-dollar', '#2563eb', lambda: self._open_invoice('sale')),
             (translate('purchase_invoice'), 'shopping-cart', '#f59e0b', lambda: self._open_invoice('purchase')),
             (translate('new_customer'), 'user-plus', '#8b5cf6', self._open_add_customer),
-            (translate('new_supplier'), 'truck-loading', '#ec4899', self._open_add_supplier),
+            (translate('new_supplier'), 'truck-loading', '#0891b2', self._open_add_supplier),
             (translate('new_item'), 'box', '#0ea5e9', self._open_add_item),
-            (translate('receipt_voucher'), 'hand-holding-usd', '#10b981', lambda: self._open_voucher('receipt')),
+            (translate('receipt_voucher'), 'hand-holding-usd', '#16a34a', lambda: self._open_voucher('receipt')),
             (translate('payment_voucher'), 'money-bill-wave', '#ef4444', lambda: self._open_voucher('payment')),
-            (translate('expense'), 'file-invoice', '#dc2626', lambda: self._open_voucher('expense')),
-            (translate('monitoring_short'), 'heartbeat', '#64748b', lambda: self._switch_page('monitoring')),
+            (translate('expense'), 'file-invoice', '#f97316', lambda: self._open_voucher('expense')),
         ]
         for i, (text, icon, color, callback) in enumerate(actions):
             btn = QuickActionButton(text, icon, color)
+            btn.setMinimumHeight(60)
             btn.clicked.connect(callback)
-            grid.addWidget(btn, i // 2, i % 2)
+            grid.addWidget(btn, i // 3, i % 3)
+        monitor = QuickActionButton(translate('monitoring_short'), 'eye', '#1e3a8a')
+        monitor.setMinimumHeight(54)
+        monitor.clicked.connect(lambda: self._switch_page('monitoring'))
+        grid.addWidget(monitor, 3, 0, 1, 3)
         panel.layout.addLayout(grid)
         panel.layout.addStretch()
         return panel
@@ -253,13 +256,13 @@ class DashboardWidget(QWidget):
             QLabel#CompanyLogoBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 8px; }
             QLabel#CompanyName { color: #0f172a; font-size: 17px; font-weight: 900; border: none; }
             QLabel#CompanyLine { color: #475569; font-size: 12px; font-weight: 700; border: none; }
-            QLabel#CompanyFallbackNote { color: #b45309; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 4px 8px; font-size: 11px; font-weight: 800; }
+            QLabel#CompanyFallbackNote { color: #64748b; background: transparent; border: none; font-size: 1px; }
         ''')
 
         self.company_logo_label = QLabel()
         self.company_logo_label.setObjectName('CompanyLogoBox')
         self.company_logo_label.setAlignment(Qt.AlignCenter)
-        self.company_logo_label.setFixedHeight(82)
+        self.company_logo_label.setFixedHeight(108)
         panel.layout.addWidget(self.company_logo_label)
 
         self.company_name_label = QLabel('—')
@@ -347,17 +350,28 @@ class DashboardWidget(QWidget):
         self.company_contact_label.setText(' | '.join(contact_parts) if contact_parts else translate('contact_not_set'))
         self.company_tax_label.setText(translate('tax_number_value', value=tax_number) if tax_number else translate('tax_number_not_set'))
         if hasattr(self, 'company_fallback_note'):
-            self.company_fallback_note.setVisible(not explicit_company_info)
+            self.company_fallback_note.setVisible(False)
         pix = QPixmap(str(logo_path))
         if pix.isNull():
             pix = QPixmap(logo_png(256))
         if not pix.isNull():
-            self.company_logo_label.setPixmap(pix.scaled(QSize(72, 72), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.company_logo_label.setPixmap(pix.scaled(QSize(92, 92), Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _create_project_panel(self):
-        panel = DashboardPanel(translate('cashbox'), 'cash-register')
+        panel = DashboardPanel(translate('cashbox'), 'wallet')
         panel.setObjectName('DashboardCashPanel')
-        panel.setMinimumHeight(286)
+        panel.setMinimumHeight(360)
+        panel.setStyleSheet(panel.styleSheet() + """
+            QFrame#DashboardCashPanel { background: #ffffff; border-radius: 20px; }
+            QLabel#CashSectionTitle { color: #1d4ed8; font-size: 14px; font-weight: 900; border: none; }
+            QLabel#CashMetricTitle { color: #64748b; font-size: 12px; font-weight: 800; border: none; }
+            QLabel#CashMetricValue { color: #0f172a; font-size: 18px; font-weight: 900; border: none; }
+            QLabel#CashBalanceValue { color: #1d4ed8; font-size: 30px; font-weight: 900; border: none; }
+            QLabel#CashBalanceTitle { color: #1e3a8a; font-size: 13px; font-weight: 900; border: none; }
+            QLineEdit#CashExchangeRateInput { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 6px 8px; font-size: 12px; font-weight: 800; }
+            QPushButton#CashExchangeSaveButton { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 10px; padding: 6px 10px; font-weight: 900; }
+            QPushButton#CashExchangeSaveButton:hover { background: #dbeafe; }
+        """)
 
         self.cash_labels = {}
         self._cash_view_mode = 'today'
@@ -373,43 +387,44 @@ class DashboardWidget(QWidget):
         self.cash_visibility_btn.setCursor(Qt.PointingHandCursor)
         self.cash_visibility_btn.setIcon(qta.icon('fa5s.eye', color='#334155'))
         self.cash_visibility_btn.clicked.connect(self._toggle_cash_visibility)
-        self.cash_visibility_btn.setStyleSheet('''
-            QPushButton { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; }
-            QPushButton:hover { background: #e2e8f0; }
-        ''')
+        self.cash_visibility_btn.setStyleSheet('QPushButton { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; } QPushButton:hover { background: #e2e8f0; }')
         self.cash_mode_btn = QPushButton(translate('today_movement'))
         self.cash_mode_btn.setCursor(Qt.PointingHandCursor)
         self.cash_mode_btn.setMinimumHeight(30)
         self.cash_mode_btn.clicked.connect(self._toggle_cash_movement_mode)
-        self.cash_mode_btn.setStyleSheet('''
-            QPushButton { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 15px; color: #1d4ed8; font-weight: 900; padding: 4px 14px; }
-            QPushButton:hover { background: #dbeafe; }
-        ''')
+        self.cash_mode_btn.setStyleSheet('QPushButton { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 15px; color: #1d4ed8; font-weight: 900; padding: 4px 14px; } QPushButton:hover { background: #dbeafe; }')
         header.addWidget(self.cash_visibility_btn)
         header.addStretch()
         header.addWidget(self.cash_mode_btn)
         panel.layout.addLayout(header)
 
+        movement_box = QFrame()
+        movement_box.setObjectName('CashMovementBox')
+        movement_box.setStyleSheet('QFrame#CashMovementBox { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 16px; } QLabel { border: none; }')
+        movement_layout = QVBoxLayout(movement_box)
+        movement_layout.setContentsMargins(12, 10, 12, 12)
+        movement_layout.setSpacing(10)
+        self.cash_section_title = QLabel(translate('today_movement'))
+        self.cash_section_title.setObjectName('CashSectionTitle')
+        self.cash_section_title.setAlignment(Qt.AlignCenter)
+        movement_layout.addWidget(self.cash_section_title)
+
         def make_amount_card(key, title, icon_name, accent='#2563eb'):
             card = QFrame()
-            card.setStyleSheet(f'''
-                QFrame {{ background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; }}
-                QLabel {{ border: none; }}
-                QLabel#CashMetricTitle {{ font-size: 11px; font-weight: 800; color: #64748b; }}
-                QLabel#CashMetricValue {{ font-size: 14px; font-weight: 900; color: #0f172a; }}
-            ''')
+            card.setStyleSheet('QFrame { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; } QLabel { border: none; }')
             lay = QHBoxLayout(card)
-            lay.setContentsMargins(10, 7, 10, 7)
+            lay.setContentsMargins(10, 9, 10, 9)
             icon = QLabel()
-            icon.setPixmap(qta.icon(f'fa5s.{icon_name}', color=accent).pixmap(QSize(17, 17)))
+            icon.setPixmap(qta.icon(f'fa5s.{icon_name}', color=accent).pixmap(QSize(18, 18)))
             text_col = QVBoxLayout()
-            text_col.setSpacing(1)
+            text_col.setSpacing(2)
             title_label = QLabel(title)
             title_label.setObjectName('CashMetricTitle')
             title_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
             value_label = QLabel('—')
             value_label.setObjectName('CashMetricValue')
             value_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            value_label.setStyleSheet(f'color: {accent};')
             text_col.addWidget(title_label)
             text_col.addWidget(value_label)
             lay.addLayout(text_col, 1)
@@ -417,72 +432,40 @@ class DashboardWidget(QWidget):
             self.cash_labels[key] = value_label
             return card
 
-        movement_box = QFrame()
-        movement_box.setObjectName('CashMovementBox')
-        movement_box.setStyleSheet('''
-            QFrame#CashMovementBox { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 16px; }
-            QLabel#CashSectionTitle { color: #1d4ed8; font-size: 13px; font-weight: 900; border: none; }
-        ''')
-        movement_layout = QVBoxLayout(movement_box)
-        movement_layout.setContentsMargins(10, 8, 10, 10)
-        movement_layout.setSpacing(7)
-        self.cash_section_title = QLabel(translate('today_movement'))
-        self.cash_section_title.setObjectName('CashSectionTitle')
-        self.cash_section_title.setAlignment(Qt.AlignRight)
-        movement_layout.addWidget(self.cash_section_title)
         movement_grid = QGridLayout()
-        movement_grid.setSpacing(7)
-        movement_grid.addWidget(make_amount_card('received', translate('received'), 'arrow-down', '#059669'), 0, 0)
-        movement_grid.addWidget(make_amount_card('paid', translate('paid'), 'arrow-up', '#dc2626'), 0, 1)
-        movement_grid.addWidget(make_amount_card('net', translate('net'), 'balance-scale', '#2563eb'), 0, 2)
+        movement_grid.setSpacing(10)
+        movement_grid.addWidget(make_amount_card('paid', translate('paid'), 'arrow-down', '#dc2626'), 0, 0)
+        movement_grid.addWidget(make_amount_card('received', translate('received'), 'arrow-up', '#059669'), 0, 1)
         movement_layout.addLayout(movement_grid)
         panel.layout.addWidget(movement_box)
 
         balance_box = QFrame()
-        balance_box.setStyleSheet('''
-            QFrame { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
-            QLabel { border: none; }
-        ''')
-        balance_layout = QHBoxLayout(balance_box)
-        balance_layout.setContentsMargins(10, 7, 10, 7)
+        balance_box.setObjectName('CashBalanceBox')
+        balance_box.setStyleSheet('QFrame#CashBalanceBox { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 16px; } QLabel { border: none; }')
+        balance_layout = QVBoxLayout(balance_box)
+        balance_layout.setContentsMargins(12, 10, 12, 10)
+        balance_layout.setSpacing(4)
         balance_title = QLabel(translate('cashbox_current_balance'))
-        balance_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        balance_title.setStyleSheet('font-size: 12px; font-weight: 900; color: #475569;')
+        balance_title.setObjectName('CashBalanceTitle')
+        balance_title.setAlignment(Qt.AlignCenter)
         balance_value = QLabel('—')
-        balance_value.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        balance_value.setStyleSheet('font-size: 14px; font-weight: 900; color: #0f172a;')
-        balance_layout.addWidget(balance_value)
-        balance_layout.addStretch()
+        balance_value.setObjectName('CashBalanceValue')
+        balance_value.setAlignment(Qt.AlignCenter)
         balance_layout.addWidget(balance_title)
+        balance_layout.addWidget(balance_value)
         self.cash_labels['cash_balance'] = balance_value
         panel.layout.addWidget(balance_box)
 
         currency_box = QFrame()
         currency_box.setObjectName('CashCurrencyBox')
-        currency_box.setStyleSheet('''
-            QFrame#CashCurrencyBox {
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 14px;
-            }
-            QLabel#CashCurrencyTitle {
-                color: #334155;
-                font-size: 12px;
-                font-weight: 900;
-            }
-            QLabel#CashExchangeRate {
-                color: #0f172a;
-                font-size: 12px;
-                font-weight: 800;
-            }
-        ''')
+        currency_box.setStyleSheet('QFrame#CashCurrencyBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; } QLabel { border: none; }')
         currency_layout = QGridLayout(currency_box)
-        currency_layout.setContentsMargins(10, 8, 10, 8)
+        currency_layout.setContentsMargins(10, 9, 10, 9)
         currency_layout.setHorizontalSpacing(8)
-        currency_layout.setVerticalSpacing(6)
+        currency_layout.setVerticalSpacing(8)
 
         currency_title = QLabel(translate('display_currency'))
-        currency_title.setObjectName('CashCurrencyTitle')
+        currency_title.setObjectName('CashMetricTitle')
         currency_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.currency_combo = QComboBox()
         self.currency_combo.setObjectName('CashCurrencyCombo')
@@ -490,17 +473,27 @@ class DashboardWidget(QWidget):
         self.currency_combo.currentIndexChanged.connect(self.on_currency_changed)
 
         exchange_title = QLabel(translate('exchange_rate'))
-        exchange_title.setObjectName('CashCurrencyTitle')
+        exchange_title.setObjectName('CashMetricTitle')
         exchange_title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.exchange_rate_input = QLineEdit()
+        self.exchange_rate_input.setObjectName('CashExchangeRateInput')
+        self.exchange_rate_input.setPlaceholderText('14000.00')
+        self.exchange_rate_input.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.exchange_rate_input.returnPressed.connect(self._save_exchange_rate_from_dashboard)
+        self.exchange_rate_save_btn = QPushButton(translate('save'))
+        self.exchange_rate_save_btn.setObjectName('CashExchangeSaveButton')
+        self.exchange_rate_save_btn.clicked.connect(self._save_exchange_rate_from_dashboard)
         self.exchange_rate_label = QLabel('—')
         self.exchange_rate_label.setObjectName('CashExchangeRate')
         self.exchange_rate_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
 
-        currency_layout.addWidget(self.currency_combo, 0, 0)
-        currency_layout.addWidget(currency_title, 0, 1)
-        currency_layout.addWidget(self.exchange_rate_label, 1, 0)
-        currency_layout.addWidget(exchange_title, 1, 1)
-        currency_layout.setColumnStretch(0, 1)
+        currency_layout.addWidget(self.currency_combo, 0, 0, 1, 2)
+        currency_layout.addWidget(currency_title, 0, 2)
+        currency_layout.addWidget(self.exchange_rate_save_btn, 1, 0)
+        currency_layout.addWidget(self.exchange_rate_input, 1, 1)
+        currency_layout.addWidget(exchange_title, 1, 2)
+        currency_layout.addWidget(self.exchange_rate_label, 2, 0, 1, 2)
+        currency_layout.setColumnStretch(1, 1)
         panel.layout.addWidget(currency_box)
         panel.layout.addStretch()
         self.load_currencies()
@@ -514,10 +507,10 @@ class DashboardWidget(QWidget):
         uses project assets and remains stable even when the user changes company
         settings.
         """
-        panel = DashboardPanel(translate('system_identity'), 'building')
+        panel = DashboardPanel(translate('integrated_management_system'), 'building')
         panel.setObjectName('DeveloperBrandPanel')
-        panel.setMinimumHeight(138)
-        panel.setMaximumHeight(168)
+        panel.setMinimumHeight(154)
+        panel.setMaximumHeight(190)
         panel.setStyleSheet(panel.styleSheet() + f"""
             QFrame#DeveloperBrandPanel {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ffffff, stop:1 #f1f5f9);
@@ -559,11 +552,11 @@ class DashboardWidget(QWidget):
         text_col = QVBoxLayout()
         text_col.setContentsMargins(0, 0, 0, 0)
         text_col.setSpacing(4)
-        title = QLabel(_dashboard_product_name())
+        title = QLabel(translate('integrated_management_system'))
         title.setObjectName('SystemBrandTitle')
         title.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         title.setWordWrap(True)
-        subtitle = QLabel(translate('developer_identity_caption'))
+        subtitle = QLabel(translate('integrated_management_subtitle'))
         subtitle.setObjectName('SystemBrandSubtitle')
         subtitle.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         subtitle.setWordWrap(True)
@@ -601,6 +594,32 @@ class DashboardWidget(QWidget):
             self.health_labels[key] = value_label
         panel.layout.addStretch()
         return panel
+
+    def _save_exchange_rate_from_dashboard(self):
+        if not hasattr(self, 'exchange_rate_input'):
+            return
+        code = self.currency_combo.currentData() if hasattr(self, 'currency_combo') else currency.get_display_currency()
+        code = str(code or currency.get_display_currency() or 'USD')
+        if code == currency.storage_currency():
+            show_toast(translate('exchange_rate_base_currency_no_update'), 'info', self)
+            return
+        raw = str(self.exchange_rate_input.text() or '').strip().replace(',', '')
+        try:
+            rate = Decimal(raw)
+        except Exception:
+            show_toast(translate('invalid_exchange_rate'), 'error', self)
+            return
+        if rate <= 0:
+            show_toast(translate('invalid_exchange_rate'), 'error', self)
+            return
+        try:
+            currency.update_rate(code, float(rate))
+            if hasattr(currency, '_cache_rate'):
+                currency._cache_rate(code, rate)
+            show_toast(translate('exchange_rate_updated'), 'success', self)
+            self.refresh_all()
+        except Exception as exc:
+            show_toast(translate('exchange_rate_update_failed', error=str(exc)), 'error', self)
 
     def setup_currency_bar(self, parent_layout):
         # Retained for external compatibility; the redesigned dashboard embeds the
@@ -778,12 +797,19 @@ class DashboardWidget(QWidget):
             return
         try:
             base_curr = currency.storage_currency()
-            syp_value = currency.convert(Decimal('1'), base_curr, 'SYP')
-            syp_text = currency.format_amount(syp_value, 'SYP', decimals=2)
-            self.exchange_rate_label.setText(translate('exchange_rate_value', base=base_curr, amount=syp_text))
+            display_curr = str(display_curr or currency.get_display_currency())
+            rate_value = currency.get_current_rate(display_curr)
+            if hasattr(self, 'exchange_rate_input'):
+                self.exchange_rate_input.blockSignals(True)
+                self.exchange_rate_input.setText(f'{Decimal(str(rate_value)):,.2f}')
+                self.exchange_rate_input.setEnabled(display_curr != base_curr)
+                self.exchange_rate_input.blockSignals(False)
+            converted = currency.convert(Decimal('1'), base_curr, display_curr)
+            converted_text = currency.format_amount(converted, display_curr, decimals=2)
+            self.exchange_rate_label.setText(translate('exchange_rate_value', base=base_curr, amount=converted_text))
         except Exception as exc:
             self.exchange_rate_label.setText(translate('not_available'))
-            print(f'⚠️ تعذر تحميل سعر صرف الليرة السورية: {exc}')
+            print(f'⚠️ تعذر تحميل سعر الصرف: {exc}')
 
         if hasattr(self, 'currency_combo') and not self._loading_currencies:
             for i in range(self.currency_combo.count()):

@@ -16,8 +16,8 @@ def test_dashboard_has_visible_professional_three_card_layout_not_placeholder_on
     assert 'DashboardQuickActionsPanel' in src
     assert 'DashboardCompanyPanel' in src
     assert 'DashboardCashPanel' in src
-    assert 'setMaximumHeight(340)' in middle
-    assert 'row.addWidget(self.project_panel, 7)' in middle
+    assert 'setMaximumHeight(430)' in middle
+    assert 'row.addWidget(self.project_panel, 5)' in middle
     assert 'row.addWidget(self.company_panel, 4)' in middle
     assert 'row.addWidget(self.quick_panel, 5)' in middle
 
@@ -36,16 +36,16 @@ def test_system_identity_band_is_compact_and_not_company_fallback():
     brand = src.split('def _create_brand_panel', 1)[1].split('def _create_health_panel', 1)[0]
     assert 'SystemBrandLogoBox' in brand
     assert 'SystemBrandTitle' in brand
-    assert 'developer_identity_caption' in brand
-    assert 'setMaximumHeight(168)' in brand
+    assert 'integrated_management_subtitle' in brand
+    assert 'setMaximumHeight(190)' in brand
     assert 'QHBoxLayout()' in brand
     assert 'company_' not in brand.lower()
 
 
 def test_phase286_translations_and_release_gate_registration_exist():
     i18n = read('alrajhi_client/i18n/translator.py')
-    assert 'developer_identity_caption' in i18n
-    assert 'هوية النظام والمطوّر' in i18n
+    assert 'integrated_management_subtitle' in i18n
+    assert 'نظام إدارة متكامل' in i18n
     gate = read('alrajhi_client/workspace/quality/release_gate_contract.py')
     assert 'PHASE286_DASHBOARD_VISIBLE_PROFESSIONAL_LAYOUT' in gate
     assert 'test_phase286_dashboard_visible_professional_layout.py' in gate

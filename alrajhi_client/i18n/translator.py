@@ -6980,13 +6980,37 @@ _translations['en'].update({
 
 # Phase 286: visible dashboard identity professionalization.
 _translations['ar'].update({
-    'developer_identity_caption': 'هوية النظام والمطوّر — مستقلة عن بيانات الشركة المستخدمة',
+    'developer_identity_caption': 'نظام إدارة متكامل',
 })
 _translations['de'].update({
-    'developer_identity_caption': 'System- und Entwickleridentität — unabhängig von den aktuellen Firmendaten',
+    'developer_identity_caption': 'Integriertes Verwaltungssystem',
 })
 _translations['en'].update({
-    'developer_identity_caption': 'System and developer identity — independent from current company data',
+    'developer_identity_caption': 'Integrated management system',
+})
+
+
+# Phase 301: professional dashboard and exchange-rate editing.
+_translations['ar'].update({
+    'integrated_management_subtitle': 'للمحاسبة والمبيعات والمشتريات والمخزون والتصنيع',
+    'invalid_exchange_rate': 'سعر الصرف غير صالح',
+    'exchange_rate_updated': 'تم تحديث سعر الصرف',
+    'exchange_rate_update_failed': 'تعذر تحديث سعر الصرف: {error}',
+    'exchange_rate_base_currency_no_update': 'عملة الأساس لا تحتاج سعر صرف',
+})
+_translations['de'].update({
+    'integrated_management_subtitle': 'Für Buchhaltung, Verkauf, Einkauf, Lager und Fertigung',
+    'invalid_exchange_rate': 'Ungültiger Wechselkurs',
+    'exchange_rate_updated': 'Wechselkurs aktualisiert',
+    'exchange_rate_update_failed': 'Wechselkurs konnte nicht aktualisiert werden: {error}',
+    'exchange_rate_base_currency_no_update': 'Die Basiswährung benötigt keinen Wechselkurs',
+})
+_translations['en'].update({
+    'integrated_management_subtitle': 'For accounting, sales, purchases, inventory, and manufacturing',
+    'invalid_exchange_rate': 'Invalid exchange rate',
+    'exchange_rate_updated': 'Exchange rate updated',
+    'exchange_rate_update_failed': 'Could not update exchange rate: {error}',
+    'exchange_rate_base_currency_no_update': 'The base currency does not need an exchange rate',
 })
 
 # Phase 287: restaurant order state machine labels.

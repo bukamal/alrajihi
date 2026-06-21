@@ -34,4 +34,5 @@ restaurant_qss_runtime_hotfix,restaurant,Restaurant QSS runtime hotfix,297,tests
 restaurant_fullscreen_operational_shell,restaurant,Restaurant fullscreen operational shell,298,tests/test_phase298_restaurant_fullscreen_operational_shell.py,True,,True,True
 restaurant_order_workspace_declutter,restaurant,Restaurant order workspace declutter,299,tests/test_phase299_restaurant_order_workspace_declutter.py,True,,True,True
 restaurant_order_search_header_collapsible_menu,restaurant,Restaurant order search header and collapsible menu,300,tests/test_phase300_restaurant_order_search_header_collapsible_menu.py,True,,True,True
+dashboard_professional_exchange_sync,dashboard,Dashboard professional layout and exchange-rate sync,301,tests/test_phase301_dashboard_professional_exchange_sync.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

@@ -190,6 +190,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("restaurant_fullscreen_operational_shell", "restaurant", "Restaurant fullscreen operational shell", "tests/test_phase298_restaurant_fullscreen_operational_shell.py", phase=298),
     ReleaseGateCheck("restaurant_order_workspace_declutter", "restaurant", "Restaurant order workspace declutter", "tests/test_phase299_restaurant_order_workspace_declutter.py", phase=299),
     ReleaseGateCheck("restaurant_order_search_header_collapsible_menu", "restaurant", "Restaurant order search header and collapsible menu", "tests/test_phase300_restaurant_order_search_header_collapsible_menu.py", phase=300),
+    ReleaseGateCheck("dashboard_professional_exchange_sync", "dashboard", "Dashboard professional layout and exchange-rate sync", "tests/test_phase301_dashboard_professional_exchange_sync.py", phase=301),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 
