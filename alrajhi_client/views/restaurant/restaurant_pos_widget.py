@@ -324,8 +324,8 @@ class RestaurantPOSWidget(QWidget):
         self.lines = RestaurantOrderGrid(self)
         self.lines.setObjectName("restaurantOrderLines")
         self.lines.setModel(self.order_model)
-        self.lines.setMinimumHeight(340)
-        root.addWidget(self.lines, 4)
+        self.lines.setMinimumHeight(360)
+        root.addWidget(self.lines, 5)
 
         self.send_kitchen_btn = QPushButton("👨‍🍳  " + _("restaurant.send_to_kitchen"))
         self.print_kitchen_btn = QPushButton("🖨  " + _("restaurant.print_kitchen_ticket"))
@@ -405,8 +405,8 @@ class RestaurantPOSWidget(QWidget):
         self.menu_grid.setContentsMargins(8, 8, 8, 8)
         self.menu_grid.setSpacing(10)
         self.menu_scroll.setWidget(self.menu_host)
-        self.menu_scroll.setMinimumHeight(150)
-        root.addWidget(self.menu_scroll, 2)
+        self.menu_scroll.setMinimumHeight(120)
+        root.addWidget(self.menu_scroll, 1)
 
         self.status = QLabel("")
         self.status.setObjectName("restaurantPOSStatus")
@@ -442,8 +442,8 @@ class RestaurantPOSWidget(QWidget):
         for name, widget in getattr(self, "summary_metric_widgets", {}).items():
             widget.setVisible((not enabled) or name in decisive)
         self.total_label.setVisible(not enabled)
-        self.menu_scroll.setMinimumHeight(110 if enabled else 150)
-        self.lines.setMinimumHeight(260 if enabled else 340)
+        self.menu_scroll.setMinimumHeight(96 if enabled else 120)
+        self.lines.setMinimumHeight(330 if enabled else 360)
         for button in getattr(self, "_restaurant_action_buttons", ()):  # visual density only
             button.setMinimumHeight(50 if enabled else 66)
             button.setMinimumWidth(92 if enabled else 116)
@@ -597,12 +597,13 @@ class RestaurantPOSWidget(QWidget):
         name = item.get("name") or item.get("item_name") or ""
         price = item.get("selling_price") or item.get("unit_price") or "0"
         unit = item.get("unit") or ""
-        return f"🍽  {name}\n{price} {unit}".strip()
+        price_label = _display_money(price)
+        return f"🍽  {name}\n{price_label}" + (f"\n{unit}" if unit else "")
 
     def _reload_lines(self):
         self.order_model.set_lines(self.session.get("lines") or [])
         try:
-            self.lines.apply_named_preset("cashier")
+            self.lines.apply_named_preset("compact")
         except Exception:
             pass
         self._update_total()

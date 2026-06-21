@@ -734,6 +734,48 @@ def build_global_qss(colors: dict) -> str:
             padding: 8px 12px;
             font-weight: 900;
         }}
+
+        /* Phase 298: fullscreen restaurant operational shell. */
+        QStackedWidget#restaurantFullscreenModeStack {{
+            background-color: {colors['bg_window']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+        QWidget#restaurantOrderModePage,
+        QWidget#restaurantKitchenModePage,
+        QWidget#restaurantTablesModePage {{
+            background-color: transparent;
+        }}
+        QSplitter#restaurantKitchenFullscreenSplitter[restaurant_layout_mode="compact"]::handle,
+        QSplitter#restaurantOperationSplitter[restaurant_layout_mode="compact"]::handle {{
+            background-color: {colors['border']};
+            width: 6px;
+        }}
+        QPushButton#restaurantTablesModeButton[active="true"],
+        QPushButton#restaurantKitchenModeButton[active="true"],
+        QPushButton#restaurantOrderModeButton[active="true"] {{
+            background-color: {colors['primary']};
+            color: white;
+            border-color: {colors['primary']};
+        }}
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QFrame#restaurantActionGroup {{
+            padding: 0px;
+        }}
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QPushButton#restaurantKitchenButton,
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QPushButton#restaurantPaymentButton,
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QPushButton#restaurantCloseButton,
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QPushButton#restaurantReceiptPrintButton,
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QPushButton#restaurantSplitBillButton,
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QPushButton#restaurantAdjustButton,
+        QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QPushButton#restaurantKitchenPrintButton {{
+            min-height: 46px;
+            padding: 6px 8px;
+        }}
+        QPushButton#restaurantMenuItemButton {{
+            text-align: center;
+            padding: 8px;
+            font-weight: 900;
+        }}
     """
 
 

@@ -132,6 +132,24 @@ RESTAURANT_ANALYTICS_SPLITTER_SIZES = {
     "wide": [420, 700, 520],
 }
 
+# Phase 298: true fullscreen operational shell.  These page ratios prevent
+# current order, kitchen display, and table map from being squeezed together.
+RESTAURANT_FULLSCREEN_ORDER_SIZES = {
+    "compact": [760, 260],
+    "standard": [900, 320],
+    "wide": [1160, 420],
+}
+RESTAURANT_FULLSCREEN_KITCHEN_SIZES = {
+    "compact": [900, 0],
+    "standard": [980, 260],
+    "wide": [1180, 360],
+}
+RESTAURANT_FULLSCREEN_TABLE_SIZES = {
+    "compact": [980],
+    "standard": [1120],
+    "wide": [1400],
+}
+
 
 class RestaurantDashboard(QWidget):
     """Unified Restaurant Operation Shell.
@@ -168,17 +186,20 @@ class RestaurantDashboard(QWidget):
         self.order_mode_btn.setObjectName("restaurantOrderModeButton")
         self.kitchen_mode_btn = QPushButton("👨‍🍳  " + _("restaurant.mode.kitchen"))
         self.kitchen_mode_btn.setObjectName("restaurantKitchenModeButton")
+        self.tables_mode_btn = QPushButton("🪑  " + _("restaurant.mode.tables"))
+        self.tables_mode_btn.setObjectName("restaurantTablesModeButton")
         self.analytics_mode_btn = QPushButton("📊  " + _("restaurant.mode.analytics"))
         self.analytics_mode_btn.setObjectName("restaurantAnalyticsModeButton")
         self.mode_badge = QLabel(_("restaurant.touch_mode"))
         self.mode_badge.setObjectName("restaurantModeBadge")
         self.refresh_button = QPushButton("↻  " + _("common.refresh"))
         self.refresh_button.setObjectName("restaurantRefreshButton")
-        for button in (self.order_mode_btn, self.kitchen_mode_btn, self.analytics_mode_btn, self.refresh_button):
+        for button in (self.order_mode_btn, self.kitchen_mode_btn, self.tables_mode_btn, self.analytics_mode_btn, self.refresh_button):
             button.setMinimumHeight(44)
         self.analytics_mode_btn.setVisible(bool(self._ui_settings.get("show_analytics_panel")))
         header.addWidget(self.order_mode_btn)
         header.addWidget(self.kitchen_mode_btn)
+        header.addWidget(self.tables_mode_btn)
         header.addWidget(self.analytics_mode_btn)
         header.addWidget(self.mode_badge)
         header.addWidget(self.refresh_button)
@@ -215,36 +236,79 @@ class RestaurantDashboard(QWidget):
         ops.addWidget(self.table_ops_menu_btn)
         layout.addWidget(self.table_ops_card)
 
+        self.workspace_stack = QStackedWidget()
+        self.workspace_stack.setObjectName("restaurantFullscreenModeStack")
+
+        # Order page: current order owns the workspace; table map is a navigation aide.
+        self.order_page = QWidget()
+        self.order_page.setObjectName("restaurantOrderModePage")
+        order_page_layout = QVBoxLayout(self.order_page)
+        order_page_layout.setContentsMargins(0, 0, 0, 0)
+        order_page_layout.setSpacing(0)
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.setObjectName("restaurantOperationSplitter")
         self.table_map = RestaurantTableMapWidget(density=self._ui_settings.get("table_card_density"))
         self.table_map.setObjectName("restaurantTableMapPane")
         self.table_map.tableClicked.connect(self.open_table)
-        self.table_map.setMinimumWidth(320)
-        self.splitter.addWidget(self.table_map)
-
+        self.table_map.setMinimumWidth(260)
         self.pos = RestaurantPOSWidget(self.service)
         self.pos.setObjectName("restaurantPOSPane")
         self.pos.sessionClosed.connect(self.reload)
         self.pos.kitchenSent.connect(lambda _payload: self._after_kitchen_sent())
-        self.pos.setMinimumWidth(460)
+        self.pos.setMinimumWidth(620)
+        # Keep legacy order/table arrangement for RTL layouts; pos is the dominant stretch.
+        self.splitter.addWidget(self.table_map)
         self.splitter.addWidget(self.pos)
+        self.splitter.setStretchFactor(0, 2)
+        self.splitter.setStretchFactor(1, 6)
+        self.splitter.setSizes([320, 900])
+        order_page_layout.addWidget(self.splitter, 1)
+        self.workspace_stack.addWidget(self.order_page)
 
-        self.side_stack = QStackedWidget()
-        self.side_stack.setObjectName("restaurantSideModeStack")
+        # Kitchen page: KDS owns the workspace; table map is optional context only.
+        self.kitchen_page = QWidget()
+        self.kitchen_page.setObjectName("restaurantKitchenModePage")
+        kitchen_page_layout = QVBoxLayout(self.kitchen_page)
+        kitchen_page_layout.setContentsMargins(0, 0, 0, 0)
+        kitchen_page_layout.setSpacing(0)
+        self.kitchen_splitter = QSplitter(Qt.Horizontal)
+        self.kitchen_splitter.setObjectName("restaurantKitchenFullscreenSplitter")
         self.kds = KitchenDisplayWidget(self.service)
         self.kds.setObjectName("restaurantKDSPane")
+        self.kitchen_table_map = RestaurantTableMapWidget(density="compact")
+        self.kitchen_table_map.setObjectName("restaurantKitchenTableMapPane")
+        self.kitchen_table_map.tableClicked.connect(self.open_table)
+        self.kitchen_splitter.addWidget(self.kds)
+        self.kitchen_splitter.addWidget(self.kitchen_table_map)
+        self.kitchen_splitter.setStretchFactor(0, 7)
+        self.kitchen_splitter.setStretchFactor(1, 2)
+        self.kitchen_splitter.setSizes([960, 280])
+        kitchen_page_layout.addWidget(self.kitchen_splitter, 1)
+        self.workspace_stack.addWidget(self.kitchen_page)
+
+        # Table page: full table-map workspace for reservations, transfer, and merge workflows.
+        self.tables_page = QWidget()
+        self.tables_page.setObjectName("restaurantTablesModePage")
+        tables_page_layout = QVBoxLayout(self.tables_page)
+        tables_page_layout.setContentsMargins(0, 0, 0, 0)
+        tables_page_layout.setSpacing(0)
+        self.full_table_map = RestaurantTableMapWidget(density=self._ui_settings.get("table_card_density"))
+        self.full_table_map.setObjectName("restaurantFullTableMapPane")
+        self.full_table_map.tableClicked.connect(self.open_table)
+        tables_page_layout.addWidget(self.full_table_map, 1)
+        self.workspace_stack.addWidget(self.tables_page)
+
         self.analytics = RestaurantAnalyticsWidget(self.service)
         self.analytics.setObjectName("restaurantAnalyticsPane")
-        self.side_stack.addWidget(self.kds)
-        self.side_stack.addWidget(self.analytics)
-        self.side_stack.setMinimumWidth(420)
-        self.splitter.addWidget(self.side_stack)
-        self.splitter.setStretchFactor(0, 3)
-        self.splitter.setStretchFactor(1, 6)
-        self.splitter.setStretchFactor(2, 3)
-        self.splitter.setSizes([360, 760, 0])
-        layout.addWidget(self.splitter, 1)
+        self.workspace_stack.addWidget(self.analytics)
+
+        # Compatibility-only stack for older tests/plugins.  Phase 298 no longer
+        # lays order+kitchen+tables as three cramped panes.
+        self.side_stack = QStackedWidget()
+        self.side_stack.setObjectName("restaurantSideModeStack")
+        self.side_stack.setVisible(False)
+
+        layout.addWidget(self.workspace_stack, 1)
 
         self.status = QLabel("")
         self.status.setObjectName("restaurantStatusBar")
@@ -252,6 +316,7 @@ class RestaurantDashboard(QWidget):
 
         self.order_mode_btn.clicked.connect(self.show_order_mode)
         self.kitchen_mode_btn.clicked.connect(self.show_kitchen_mode)
+        self.tables_mode_btn.clicked.connect(self.show_tables_mode)
         self.analytics_mode_btn.clicked.connect(self.show_analytics_mode)
         self.refresh_button.clicked.connect(self.reload)
         self.reserve_table_btn.clicked.connect(self.reserve_table)
@@ -272,7 +337,7 @@ class RestaurantDashboard(QWidget):
         return dict(settings.get("ui") or {})
 
     def _set_mode_button_state(self, mode: str) -> None:
-        for name, button in (("order", self.order_mode_btn), ("kitchen", self.kitchen_mode_btn), ("analytics", self.analytics_mode_btn)):
+        for name, button in (("order", self.order_mode_btn), ("kitchen", self.kitchen_mode_btn), ("tables", self.tables_mode_btn), ("analytics", self.analytics_mode_btn)):
             button.setProperty("active", name == mode)
             button.style().unpolish(button)
             button.style().polish(button)
@@ -304,19 +369,36 @@ class RestaurantDashboard(QWidget):
         wide = layout_mode == "wide"
         self.setProperty("restaurant_layout_mode", layout_mode)
         self.table_ops_card.setProperty("restaurant_layout_mode", layout_mode)
-        self.splitter.setProperty("restaurant_layout_mode", layout_mode)
-        for widget in (self, self.table_ops_card, self.splitter):
+        self.workspace_stack.setProperty("restaurant_layout_mode", layout_mode)
+        for widget in (self, self.table_ops_card, self.workspace_stack, self.splitter, self.kitchen_splitter):
+            widget.setProperty("restaurant_layout_mode", layout_mode)
             widget.style().unpolish(widget)
             widget.style().polish(widget)
-        self._apply_table_operations_compact_mode(compact)
+        self._apply_table_operations_compact_mode(compact or self._current_mode in {"kitchen", "analytics"})
         if hasattr(self.pos, "set_restaurant_compact_mode"):
-            self.pos.set_restaurant_compact_mode(compact or self._current_mode in {"kitchen", "analytics"})
-        self.pos.setVisible(self._current_mode == "order" or wide)
-        self.side_stack.setVisible(self._current_mode in {"kitchen", "analytics"})
+            # Laptop/operator screens need decisive money only; full details are a drill-down.
+            self.pos.set_restaurant_compact_mode((not wide) or self._current_mode in {"kitchen", "analytics", "tables"})
+        # Legacy Phase 296 guard reference: self.pos.setVisible(self._current_mode == "order" or wide)
+        # Legacy Phase 296 sizes: "compact": [360, 0, 780], "standard": [360, 0, 860], "wide": [420, 700, 560]
         if self._current_mode == "order":
-            self.side_stack.setVisible(False)
-            self.pos.setVisible(True)
-        self.splitter.setSizes(self._splitter_sizes_for_mode(self._current_mode, layout_mode))
+            self.workspace_stack.setCurrentWidget(self.order_page)
+            self.table_ops_card.setVisible(True)
+            self.splitter.setSizes(RESTAURANT_FULLSCREEN_ORDER_SIZES.get(layout_mode, RESTAURANT_FULLSCREEN_ORDER_SIZES["standard"]))
+        elif self._current_mode == "kitchen":
+            self.workspace_stack.setCurrentWidget(self.kitchen_page)
+            self.table_ops_card.setVisible(False)
+            sizes = RESTAURANT_FULLSCREEN_KITCHEN_SIZES.get(layout_mode, RESTAURANT_FULLSCREEN_KITCHEN_SIZES["standard"])
+            if compact:
+                self.kitchen_table_map.setVisible(False)
+            else:
+                self.kitchen_table_map.setVisible(True)
+            self.kitchen_splitter.setSizes(sizes)
+        elif self._current_mode == "tables":
+            self.workspace_stack.setCurrentWidget(self.tables_page)
+            self.table_ops_card.setVisible(True)
+        elif self._current_mode == "analytics":
+            self.workspace_stack.setCurrentWidget(self.analytics)
+            self.table_ops_card.setVisible(False)
 
     def _apply_table_operations_compact_mode(self, compact: bool) -> None:
         self.table_ops_menu_btn.setVisible(bool(compact))
@@ -340,7 +422,6 @@ class RestaurantDashboard(QWidget):
 
     def show_kitchen_mode(self):
         self._current_mode = "kitchen"
-        self.side_stack.setCurrentWidget(self.kds)
         self._set_mode_button_state("kitchen")
         self._apply_responsive_layout()
         try:
@@ -348,11 +429,15 @@ class RestaurantDashboard(QWidget):
         except Exception:
             pass
 
+    def show_tables_mode(self):
+        self._current_mode = "tables"
+        self._set_mode_button_state("tables")
+        self._apply_responsive_layout()
+
     def show_analytics_mode(self):
         if not self._ui_settings.get("show_analytics_panel"):
             return
         self._current_mode = "analytics"
-        self.side_stack.setCurrentWidget(self.analytics)
         self._set_mode_button_state("analytics")
         self._apply_responsive_layout()
         try:
@@ -367,13 +452,15 @@ class RestaurantDashboard(QWidget):
         try:
             self._last_tables = self.service.list_tables()
             self.table_map.set_tables(self._last_tables)
+            self.kitchen_table_map.set_tables(self._last_tables)
+            self.full_table_map.set_tables(self._last_tables)
             self._update_table_operation_buttons()
-            if self.side_stack.isVisible() and self.side_stack.currentWidget() is self.kds:
+            if self._current_mode == "kitchen":
                 try:
                     self.kds.reload()
                 except Exception:
                     pass
-            if self.side_stack.isVisible() and self.side_stack.currentWidget() is self.analytics:
+            if self._current_mode == "analytics":
                 try:
                     self.analytics.reload()
                 except Exception:
@@ -385,7 +472,7 @@ class RestaurantDashboard(QWidget):
     def _after_kitchen_sent(self):
         self.reload()
         try:
-            if self.side_stack.isVisible() and self.side_stack.currentWidget() is self.kds:
+            if self._current_mode == "kitchen":
                 self.kds.reload()
         except Exception:
             pass

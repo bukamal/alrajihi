@@ -31,4 +31,5 @@ restaurant_settings_printer_routing,restaurant,Restaurant settings and printer r
 restaurant_operation_governance,restaurant,Restaurant operation governance enforcement,295,tests/test_phase295_restaurant_operation_governance_enforcement.py,True,,True,True
 restaurant_responsive_workspace,restaurant,Restaurant responsive workspace stabilization,296,tests/test_phase296_restaurant_responsive_workspace_stabilization.py,True,,True,True
 restaurant_qss_runtime_hotfix,restaurant,Restaurant QSS runtime hotfix,297,tests/test_phase297_restaurant_qss_runtime_hotfix.py,True,,True,True
+restaurant_fullscreen_operational_shell,restaurant,Restaurant fullscreen operational shell,298,tests/test_phase298_restaurant_fullscreen_operational_shell.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True
