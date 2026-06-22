@@ -119,6 +119,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (324, "APPAREL_TRANSACTION_VARIANT_SELECTION_UX"),
         (325, "APPAREL_CATALOG_BOUNDARY_PRICING_HARDENING"),
         (326, "TRANSACTION_HEADER_FOOTER_LAYOUT_HOTFIX"),
+        (327, "APPAREL_TRANSACTION_PRICE_CURRENCY_HOTFIX"),
     ]
 )
 
@@ -203,6 +204,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (324, "apparel_transaction_variant_selection_ux"),
         (325, "apparel_catalog_boundary_pricing_hardening"),
         (326, "transaction_header_footer_layout_hotfix"),
+        (327, "apparel_transaction_price_currency_hotfix"),
     ]
 )
 
@@ -268,6 +270,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("apparel_transaction_variant_selection_ux", "materials", "Apparel variant selection UX for purchase/sales transaction rows", "tests/test_phase324_apparel_transaction_variant_selection_ux.py", phase=324),
     ReleaseGateCheck("apparel_catalog_boundary_pricing_hardening", "materials", "Apparel catalog boundary and transaction pricing hardening", "tests/test_phase325_apparel_catalog_boundary_pricing_hardening.py", phase=325),
     ReleaseGateCheck("transaction_header_footer_layout_hotfix", "ui", "One-row transaction header, horizontal invoice footer, and material editor identity-card removal", "tests/test_phase326_transaction_header_footer_layout_hotfix.py", phase=326),
+    ReleaseGateCheck("apparel_transaction_price_currency_hotfix", "materials", "Apparel transaction variant lookup prices convert to display currency only once", "tests/test_phase327_apparel_transaction_price_currency_hotfix.py", phase=327),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

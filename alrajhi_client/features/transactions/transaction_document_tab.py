@@ -575,6 +575,11 @@ class TransactionDocumentTab(BaseDocumentTab):
         Material documents may show the parent material, but invoices must post
         concrete color/size variants.  This transform is used by quick search
         and the editable item-cell delegate in both local and API modes.
+
+        Phase 327: lookup rows may already carry display-currency prices.  The
+        transform must therefore be idempotent; otherwise a Syrian-pound catalog
+        price such as 20,000 is converted a second time and becomes a huge
+        invoice value.
         """
         if not item:
             return None
@@ -635,15 +640,28 @@ class TransactionDocumentTab(BaseDocumentTab):
         seen = set()
         terms = []
         for row in rows:
-            values = [
-                row.get("lookup_label"),
-                row.get("search_label"),
-                row.get("name"),
-                row.get("item_name"),
-                row.get("barcode"),
-                row.get("code"),
-                row.get("matched_barcode"),
-            ]
+            if row.get("barcode_scope") == "variant" or row.get("matched_variant"):
+                # In invoice lookup popups, apparel rows must show the concrete
+                # color/size option only.  Showing the base material name as a
+                # separate suggestion makes it look selectable beside variants.
+                values = [
+                    row.get("lookup_label"),
+                    row.get("search_label"),
+                    row.get("matched_barcode"),
+                    row.get("barcode"),
+                    row.get("variant_sku"),
+                    row.get("variant"),
+                ]
+            else:
+                values = [
+                    row.get("lookup_label"),
+                    row.get("search_label"),
+                    row.get("name"),
+                    row.get("item_name"),
+                    row.get("barcode"),
+                    row.get("code"),
+                    row.get("matched_barcode"),
+                ]
             for value in values:
                 value = str(value or "").strip()
                 key = value.casefold()
@@ -721,14 +739,28 @@ class TransactionDocumentTab(BaseDocumentTab):
             except Exception:
                 rows = []
         for row in rows or []:
-            candidates = (
-                row.get("lookup_label"),
-                row.get("search_label"),
-                row.get("matched_barcode"),
-                row.get("barcode"),
-                row.get("code"),
-                row.get("variant"),
-            )
+            if row.get("barcode_scope") == "variant" or row.get("matched_variant"):
+                # Do not let an exact base-material name choose an arbitrary
+                # apparel variant.  The user must choose a color/size label or
+                # scan the variant barcode.
+                candidates = (
+                    row.get("lookup_label"),
+                    row.get("search_label"),
+                    row.get("matched_barcode"),
+                    row.get("barcode"),
+                    row.get("variant_sku"),
+                    row.get("variant"),
+                )
+            else:
+                candidates = (
+                    row.get("lookup_label"),
+                    row.get("search_label"),
+                    row.get("matched_barcode"),
+                    row.get("barcode"),
+                    row.get("code"),
+                    row.get("name"),
+                    row.get("item_name"),
+                )
             if any(str(value or "").strip().casefold() == needle for value in candidates):
                 return dict(row)
         return None
@@ -815,6 +847,8 @@ class TransactionDocumentTab(BaseDocumentTab):
 
     def _item_prices_to_display(self, item: dict | None) -> dict:
         item = dict(item or {})
+        if item.get("_prices_in_display_currency"):
+            return item
         for key in ("purchase_price", "selling_price", "price", "unit_price", "base_unit_price", "average_cost"):
             if item.get(key) not in (None, ""):
                 item[key] = self._to_display_money(item.get(key))
@@ -832,6 +866,7 @@ class TransactionDocumentTab(BaseDocumentTab):
                 if matched_variant.get(key) not in (None, ""):
                     matched_variant[key] = self._to_display_money(matched_variant.get(key))
             item["matched_variant"] = matched_variant
+        item["_prices_in_display_currency"] = True
         return item
 
     def _invoice_lines_to_display(self, lines: list[dict] | None) -> list[dict]:
