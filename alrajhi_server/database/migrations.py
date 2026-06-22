@@ -162,6 +162,12 @@ def init_database():
             unit_cost TEXT DEFAULT '0',
             cost_amount TEXT DEFAULT '0',
             production_order_id INTEGER,
+            variant_id INTEGER,
+            variant_color TEXT,
+            variant_size TEXT,
+            variant_sku TEXT,
+            barcode_scope TEXT,
+            matched_barcode TEXT,
             FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
             FOREIGN KEY (item_id) REFERENCES items(id)
         );
@@ -281,6 +287,12 @@ def init_database():
             reference_id INTEGER,
             movement_date TEXT NOT NULL,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            variant_id INTEGER,
+            variant_color TEXT,
+            variant_size TEXT,
+            variant_sku TEXT,
+            barcode_scope TEXT,
+            matched_barcode TEXT,
             FOREIGN KEY (item_id) REFERENCES items(id),
             FOREIGN KEY (user_id) REFERENCES users(id)
         );

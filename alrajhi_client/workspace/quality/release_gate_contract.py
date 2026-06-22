@@ -109,6 +109,8 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (314, "RESTAURANT_CAFE_UI_DECOUPLING_HOTFIX"),
         (315, "PRODUCT_VARIANTS_FOUNDATION"),
         (316, "APPAREL_WORKSPACE_SHELL"),
+        (317, "APPAREL_VARIANT_TRANSACTION_INTEGRATION"),
+        (318, "WORKSPACE_SHELL_TRANSACTION_LAYOUT_UNIFICATION"),
     ]
 )
 
@@ -183,6 +185,8 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (314, "restaurant_cafe_ui_decoupling_hotfix"),
         (315, "product_variants_foundation"),
         (316, "apparel_workspace_shell"),
+        (317, "apparel_variant_transaction_integration"),
+        (318, "workspace_shell_transaction_layout_unification"),
     ]
 )
 
@@ -238,6 +242,8 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("restaurant_cafe_ui_decoupling_hotfix", "restaurant", "Restaurant shell no longer embeds cafe entry", "tests/test_phase314_restaurant_cafe_ui_decoupling_hotfix.py", phase=314),
     ReleaseGateCheck("product_variants_foundation", "materials", "Product variants foundation for apparel color/size stock identity", "tests/test_phase315_product_variants_foundation.py", phase=315),
     ReleaseGateCheck("apparel_workspace_shell", "materials", "Standalone apparel workspace shell backed by product variants", "tests/test_phase316_apparel_workspace_shell.py", phase=316),
+    ReleaseGateCheck("apparel_variant_transaction_integration", "materials", "Apparel variant transaction/POS stock integration", "tests/test_phase317_apparel_variant_transaction_integration.py", phase=317),
+    ReleaseGateCheck("workspace_shell_transaction_layout_unification", "shell", "Workspace shell and transaction layout unification", "tests/test_phase318_workspace_shell_transaction_layout_unification.py", phase=318),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

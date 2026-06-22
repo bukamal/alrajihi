@@ -235,6 +235,24 @@ class TransactionLineModel(QAbstractTableModel):
                 errors.append(tr("transaction_return_line_qty_exceeds", row=row_number, item=item))
         return errors
 
+    def _variant_info(self, item: dict[str, Any] | None) -> dict[str, Any]:
+        item = item or {}
+        matched = item.get("matched_variant") or {}
+        if not isinstance(matched, dict):
+            matched = {}
+        variant_id = matched.get("variant_id") or matched.get("id") or item.get("variant_id")
+        color = matched.get("color") or item.get("variant_color") or ""
+        size = matched.get("size") or item.get("variant_size") or ""
+        sku = matched.get("sku") or item.get("variant_sku") or ""
+        label = " / ".join(str(v).strip() for v in (color, size) if str(v or "").strip())
+        return {
+            "variant_id": variant_id,
+            "variant_color": str(color or ""),
+            "variant_size": str(size or ""),
+            "variant_sku": str(sku or ""),
+            "variant": label,
+        }
+
     def set_item(self, row_index: int, item: dict[str, Any], price_key: str = "selling_price", qty=None, warehouse_available=None) -> bool:
         """Resolve a material into an existing line.
 
@@ -258,6 +276,8 @@ class TransactionLineModel(QAbstractTableModel):
         unit = matched_unit.get("unit_name") or matched_unit.get("unit") or item.get("unit") or item.get("unit_name") or ""
         unit_id = matched_unit.get("unit_id") if matched_unit else item.get("unit_id")
         scanned_barcode = item.get("matched_barcode") or matched_unit.get("barcode") or item.get("barcode") or item.get("code") or ""
+        variant_info = self._variant_info(item)
+        barcode_scope = item.get("barcode_scope") or ("variant" if variant_info.get("variant_id") else ("unit" if matched_unit else "item"))
         unit_options = self._unit_options_for_item(item, unit, unit_id, factor)
         current_qty = self._decimal(self.lines[row_index].get("qty"))
         qty_value = self._decimal(qty) if qty is not None else (current_qty if current_qty > 0 else Decimal("1"))
@@ -276,6 +296,13 @@ class TransactionLineModel(QAbstractTableModel):
             "available": self._decimal(warehouse_available) if warehouse_available is not None else item.get("available", ""),
             "batch": item.get("batch") or "",
             "expiry": item.get("expiry") or "",
+            "variant": variant_info.get("variant") or "",
+            "variant_id": variant_info.get("variant_id"),
+            "variant_color": variant_info.get("variant_color") or "",
+            "variant_size": variant_info.get("variant_size") or "",
+            "variant_sku": variant_info.get("variant_sku") or "",
+            "barcode_scope": barcode_scope,
+            "matched_barcode": scanned_barcode,
         })
         self._recalculate_row(row_index)
         self._emit_row_changed(row_index)
@@ -303,6 +330,13 @@ class TransactionLineModel(QAbstractTableModel):
                 "item_id": item_id,
                 "barcode": self._line_value(line, "barcode", "") or "",
                 "item": self._item_name(line),
+                "variant": self._variant_label(line),
+                "variant_id": self._line_value(line, "variant_id"),
+                "variant_color": self._line_value(line, "variant_color", "") or "",
+                "variant_size": self._line_value(line, "variant_size", "") or "",
+                "variant_sku": self._line_value(line, "variant_sku", "") or "",
+                "barcode_scope": self._line_value(line, "barcode_scope", "") or "",
+                "matched_barcode": self._line_value(line, "matched_barcode", "") or self._line_value(line, "barcode", "") or "",
                 "unit": unit,
                 "unit_id": self._line_value(line, "unit_id"),
                 "unit_options": self._unit_options_for_line(line, unit, self._line_value(line, "unit_id"), factor),
@@ -363,6 +397,13 @@ class TransactionLineModel(QAbstractTableModel):
                 "item_id": self._line_value(line, "item_id"),
                 "barcode": self._line_value(line, "barcode", self._line_value(line, "item_barcode", "")) or "",
                 "item": self._item_name(line),
+                "variant": self._variant_label(line),
+                "variant_id": self._line_value(line, "variant_id"),
+                "variant_color": self._line_value(line, "variant_color", "") or "",
+                "variant_size": self._line_value(line, "variant_size", "") or "",
+                "variant_sku": self._line_value(line, "variant_sku", "") or "",
+                "barcode_scope": self._line_value(line, "barcode_scope", "") or "",
+                "matched_barcode": self._line_value(line, "matched_barcode", "") or self._line_value(line, "barcode", "") or "",
                 "original_qty_base": original_base,
                 "previous_qty_base": previous_base,
                 "returnable_qty_base": returnable_base,
@@ -407,6 +448,13 @@ class TransactionLineModel(QAbstractTableModel):
                 "item_id": self._line_value(line, "item_id"),
                 "barcode": self._line_value(line, "barcode", self._line_value(line, "item_barcode", "")) or "",
                 "item": self._item_name(line),
+                "variant": self._variant_label(line),
+                "variant_id": self._line_value(line, "variant_id"),
+                "variant_color": self._line_value(line, "variant_color", "") or "",
+                "variant_size": self._line_value(line, "variant_size", "") or "",
+                "variant_sku": self._line_value(line, "variant_sku", "") or "",
+                "barcode_scope": self._line_value(line, "barcode_scope", "") or "",
+                "matched_barcode": self._line_value(line, "matched_barcode", "") or self._line_value(line, "barcode", "") or "",
                 "original_qty": self._line_value(line, "original_qty", ""),
                 "previous_qty": self._line_value(line, "previous_qty", ""),
                 "returnable_qty": self._line_value(line, "returnable_qty", ""),
@@ -601,6 +649,11 @@ class TransactionLineModel(QAbstractTableModel):
         item_id = self._line_value(line, "item_id")
         return f"#{item_id}" if item_id else ""
 
+    def _variant_label(self, line) -> str:
+        color = self._line_value(line, "variant_color", "") or ""
+        size = self._line_value(line, "variant_size", "") or ""
+        return " / ".join(str(v).strip() for v in (color, size) if str(v or "").strip())
+
     def _recalculate_row_data(self, row: dict[str, Any]) -> None:
         price = self._decimal(row.get("price")) or self._decimal(row.get("cost"))
         if self._has_column("cost") and not self._has_column("price"):
@@ -662,6 +715,12 @@ class TransactionLineModel(QAbstractTableModel):
                 "total": self._decimal(row.get("total")),
                 "description": row.get("notes", ""),
                 "conversion_factor": conversion_factor,
+                "variant_id": row.get("variant_id"),
+                "variant_color": row.get("variant_color", ""),
+                "variant_size": row.get("variant_size", ""),
+                "variant_sku": row.get("variant_sku", ""),
+                "barcode_scope": row.get("barcode_scope", ""),
+                "matched_barcode": row.get("matched_barcode") or row.get("barcode", ""),
                 "base_qty": base_qty,
                 "quantity_in_base": base_qty,
                 "discount_percent": 0,
@@ -695,5 +754,11 @@ class TransactionLineModel(QAbstractTableModel):
                 "reason": row.get("reason") or "",
                 "notes": row.get("notes") or row.get("reason") or "",
                 "restock": row.get("restock") or "",
+                "variant_id": row.get("variant_id"),
+                "variant_color": row.get("variant_color", ""),
+                "variant_size": row.get("variant_size", ""),
+                "variant_sku": row.get("variant_sku", ""),
+                "barcode_scope": row.get("barcode_scope", ""),
+                "matched_barcode": row.get("matched_barcode") or row.get("barcode", ""),
             })
         return payload

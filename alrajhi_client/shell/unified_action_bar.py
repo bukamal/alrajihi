@@ -29,8 +29,8 @@ class UnifiedActionBar(QFrame):
 
     def _build_ui(self) -> None:
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 6, 12, 6)
-        layout.setSpacing(8)
+        layout.setContentsMargins(10, 5, 10, 5)
+        layout.setSpacing(6)
 
         self.context_label = QLabel(translate("workspace.actions"))
         self.context_label.setObjectName("ActionBarContext")
@@ -49,7 +49,7 @@ class UnifiedActionBar(QFrame):
             button.setObjectName(f"ActionBarButton_{key}")
             button.setCursor(Qt.PointingHandCursor)
             button.setIcon(qta.icon(icon))
-            button.setIconSize(QSize(16, 16))
+            button.setIconSize(QSize(15, 15))
             text = translate(label_key)
             if shortcut:
                 text = f"{text} ({shortcut})"
@@ -99,6 +99,7 @@ class UnifiedActionBar(QFrame):
         self.user_label.setToolTip(translate("current_user"))
         layout.addWidget(self.user_label)
 
+        self.setFixedHeight(44)
         self.setStyleSheet("""
             QFrame#UnifiedActionBar {
                 background: palette(base);
@@ -111,8 +112,8 @@ class UnifiedActionBar(QFrame):
             }
             QToolButton {
                 border: 1px solid palette(mid);
-                border-radius: 9px;
-                padding: 6px 10px;
+                border-radius: 8px;
+                padding: 5px 8px;
                 background: palette(window);
                 font-weight: 700;
             }
@@ -120,7 +121,7 @@ class UnifiedActionBar(QFrame):
             QToolButton:disabled { color: palette(mid); }
             QLabel#ActionBarUserLabel {
                 border: 1px solid palette(mid);
-                border-radius: 9px;
+                border-radius: 8px;
                 padding: 5px 10px;
                 background: palette(window);
                 font-weight: 800;
@@ -129,7 +130,7 @@ class UnifiedActionBar(QFrame):
                 background-color: #ef4444;
                 color: white;
                 border: 1px solid white;
-                border-radius: 9px;
+                border-radius: 8px;
                 padding: 0 5px;
                 font-size: 10px;
                 font-weight: 800;

@@ -105,7 +105,11 @@ class POSLineModel(QAbstractTableModel):
         if key == 'barcode':
             return line.barcode or ''
         if key == 'item':
-            return line.name or ''
+            label = line.name or ''
+            variant = ' / '.join(str(v).strip() for v in (getattr(line, 'variant_color', ''), getattr(line, 'variant_size', '')) if str(v or '').strip())
+            return f"{label} — {variant}" if variant else label
+        if key == 'variant':
+            return ' / '.join(str(v).strip() for v in (getattr(line, 'variant_color', ''), getattr(line, 'variant_size', '')) if str(v or '').strip())
         if key == 'unit':
             return line.unit or ''
         if key == 'qty':
@@ -119,5 +123,7 @@ class POSLineModel(QAbstractTableModel):
         if key == 'available':
             return self._format_decimal(line.available_qty)
         if key == 'barcode_scope':
+            if str(line.barcode_scope) == 'variant':
+                return translate('pos_barcode_scope_variant')
             return translate('pos_barcode_scope_unit') if str(line.barcode_scope) == 'unit' else translate('pos_barcode_scope_item')
         return ''

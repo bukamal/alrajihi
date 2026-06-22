@@ -41,22 +41,9 @@ class ItemDialog(CenteredDialog):
         main_layout.setSpacing(12)
         main_layout.setContentsMargins(14, 14, 14, 14)
 
-        header_card = QFrame()
-        header_card.setObjectName("HeaderCard")
-        header_layout = QHBoxLayout(header_card)
-        header_layout.setContentsMargins(16, 12, 16, 12)
-        header_layout.setSpacing(12)
-
-        title_box = QVBoxLayout()
-        title_box.setSpacing(3)
-        title_label = QLabel(translate("item_data_title") if not self.is_edit else translate("item_edit_data_title"))
-        title_label.setObjectName("DialogTitle")
-        subtitle_label = QLabel(translate("item_dialog_subtitle"))
-        subtitle_label.setObjectName("DialogSubtitle")
-        title_box.addWidget(title_label)
-        title_box.addWidget(subtitle_label)
-        header_layout.addLayout(title_box, 1)
-
+        # Phase318: the shell/window title already identifies the material form.
+        # Do not render a separate top identity card such as "new item"; keep the
+        # surface focused on editable business fields.
         self.new_btn = QPushButton(translate("new"))
         self.new_btn.setObjectName("softAction")
         self.new_btn.clicked.connect(self.clear_for_new)
@@ -65,10 +52,6 @@ class ItemDialog(CenteredDialog):
         self.top_save_btn.clicked.connect(self.save)
         self.top_cancel_btn = QPushButton(translate("cancel"))
         self.top_cancel_btn.clicked.connect(self.reject)
-        header_layout.addWidget(self.new_btn)
-        header_layout.addWidget(self.top_save_btn)
-        header_layout.addWidget(self.top_cancel_btn)
-        main_layout.addWidget(header_card)
 
         content_frame = QFrame()
         content_frame.setObjectName("ContentCard")

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog, QToolButton
+from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog, QToolButton, QSizePolicy
 from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer, QDateTime, QSize
 from PyQt5.QtGui import QIcon, QKeySequence
 import qtawesome as qta
@@ -151,8 +151,8 @@ class IconMenuBar(QWidget):
         self._buttons = []
         self._menus = []
         self._layout = QHBoxLayout(self)
-        self._layout.setContentsMargins(12, 4, 12, 5)
-        self._layout.setSpacing(6)
+        self._layout.setContentsMargins(8, 4, 8, 5)
+        self._layout.setSpacing(4)
         self._layout.addStretch(1)
 
     def clear(self):
@@ -177,14 +177,16 @@ class IconMenuBar(QWidget):
         btn.setObjectName('MainNavToolButton')
         btn.setCursor(Qt.PointingHandCursor)
         btn.setIcon(icon)
-        btn.setIconSize(QSize(32, 32))
+        btn.setIconSize(QSize(26, 26))
         btn.setText('' if is_home else label)
         btn.setToolTip(label or translate('dashboard'))
         btn.setToolButtonStyle(Qt.ToolButtonIconOnly if is_home else Qt.ToolButtonTextUnderIcon)
         btn.setPopupMode(QToolButton.InstantPopup)
         btn.setMenu(menu)
-        btn.setMinimumWidth(74 if is_home else 92)
-        btn.setMinimumHeight(64)
+        btn.setMinimumWidth(62 if is_home else 78)
+        btn.setMaximumWidth(88 if not is_home else 68)
+        btn.setMinimumHeight(58)
+        btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self._layout.insertWidget(max(0, self._layout.count() - 1), btn)
         self._buttons.append(btn)
         self._menus.append(menu)
@@ -268,8 +270,8 @@ class MainWindow(QMainWindow):
                 background: transparent;
                 border: none;
                 border-radius: 12px;
-                padding: 4px 10px;
-                font-size: 11px;
+                padding: 3px 6px;
+                font-size: 10px;
                 font-weight: 800;
                 color: palette(text);
             }
@@ -278,7 +280,7 @@ class MainWindow(QMainWindow):
             }
             QToolButton#MainNavToolButton::menu-indicator { image: none; width: 0px; }
         """)
-        self.menu_bar.setFixedHeight(74)
+        self.menu_bar.setFixedHeight(66)
         main_layout.addWidget(self.menu_bar)
 
         # Phase 234: the old utility top bar is kept as a compatibility object
@@ -377,7 +379,7 @@ class MainWindow(QMainWindow):
         """
         self.menu_bar.clear()
         self.menu_bar.setLayoutDirection(qt_layout_direction(self._current_language))
-        self.menu_bar.setFixedHeight(74)
+        self.menu_bar.setFixedHeight(66)
         self.menu_bar.setStyleSheet("""
             QWidget#IconMenuBar {
                 background-color: palette(window);
@@ -387,8 +389,8 @@ class MainWindow(QMainWindow):
                 background: transparent;
                 border: none;
                 border-radius: 12px;
-                padding: 4px 10px;
-                font-size: 11px;
+                padding: 3px 6px;
+                font-size: 10px;
                 font-weight: 800;
                 color: palette(text);
             }
@@ -1429,6 +1431,10 @@ class MainWindow(QMainWindow):
             self.workspace.open_singleton(pid, page_title(pid), self.pages[pid], self.workspace_icon_for_page(pid))
             self.workspace_state_store.add_recent(self._workspace_entry_for_page(pid))
             self._set_page_context(pid)
+            if hasattr(self, 'action_bar'):
+                # Phase318: the dashboard is an executive landing page; hide the
+                # shared command strip there and keep it for operational workspaces.
+                self.action_bar.setVisible(pid != 'dashboard')
             self._update_global_search_context(pid)
             if hasattr(self.pages[pid], 'refresh'):
                 self.pages[pid].refresh()

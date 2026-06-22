@@ -85,6 +85,69 @@ def _recalculate_average_cost(db, item_id, user_id):
     db.query("UPDATE items SET average_cost=? WHERE id=? AND user_id=?", (str(avg), item_id, user_id))
 
 
+def _variant_payload_from_line(line):
+    line = dict(line or {})
+    variant_id = line.get('variant_id')
+    try:
+        variant_id = int(variant_id) if variant_id not in (None, '', 0, '0') else None
+    except Exception:
+        variant_id = None
+    return {
+        'variant_id': variant_id,
+        'variant_color': str(line.get('variant_color') or ''),
+        'variant_size': str(line.get('variant_size') or ''),
+        'variant_sku': str(line.get('variant_sku') or ''),
+        'barcode_scope': str(line.get('barcode_scope') or ('variant' if variant_id else '')),
+        'matched_barcode': str(line.get('matched_barcode') or line.get('barcode') or ''),
+    }
+
+def _insert_invoice_line(db, invoice_id, line, unit_cost, base_qty, conv_factor):
+    vp = _variant_payload_from_line(line)
+    return db.query('''
+        INSERT INTO invoice_lines (
+            invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base,
+            unit_cost, cost_amount, conversion_factor, variant_id, variant_color,
+            variant_size, variant_sku, barcode_scope, matched_barcode
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ''', (
+        invoice_id, line['item_id'], str(line['quantity']), str(unit_cost), str(line['total']),
+        line.get('unit', ''), str(base_qty), str(unit_cost), '0', str(conv_factor),
+        vp['variant_id'], vp['variant_color'], vp['variant_size'], vp['variant_sku'],
+        vp['barcode_scope'], vp['matched_barcode']
+    ))
+
+def _insert_inventory_movement(db, user_id, line, movement_type, quantity, unit_cost, reference_id):
+    vp = _variant_payload_from_line(line)
+    db.query('''
+        INSERT INTO inventory_movements (
+            item_id, user_id, movement_type, quantity, unit_cost, reference_id, movement_date,
+            variant_id, variant_color, variant_size, variant_sku, barcode_scope, matched_barcode
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+    ''', (
+        line['item_id'], user_id, movement_type, str(quantity), str(unit_cost), reference_id, datetime.datetime.now().isoformat(),
+        vp['variant_id'], vp['variant_color'], vp['variant_size'], vp['variant_sku'],
+        vp['barcode_scope'], vp['matched_barcode']
+    ))
+    if vp.get('variant_id'):
+        _update_item_variant_quantity(db, vp['variant_id'], user_id)
+
+def _update_item_variant_quantity(db, variant_id, user_id):
+    if not variant_id:
+        return
+    try:
+        row = db.query('''
+            SELECT SUM(CASE
+                WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+                WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
+                ELSE 0 END) AS total_qty
+            FROM inventory_movements
+            WHERE variant_id=? AND user_id=?
+        ''', (variant_id, user_id)).fetchone()
+        qty = Decimal(str(row['total_qty'])) if row and row['total_qty'] is not None else Decimal('0')
+        db.query("UPDATE item_variants SET quantity=?, updated_at=? WHERE id=?", (str(qty), datetime.datetime.now().isoformat(), variant_id))
+    except Exception:
+        pass
+
 def _available_item_quantity(db, item_id, user_id):
     row = db.query('''
         SELECT SUM(CASE
@@ -97,8 +160,23 @@ def _available_item_quantity(db, item_id, user_id):
     return Decimal(str(row['total_qty'])) if row and row['total_qty'] is not None else Decimal('0')
 
 
+def _available_variant_quantity(db, variant_id, user_id):
+    row = db.query('''
+        SELECT SUM(CASE
+            WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+            WHEN movement_type IN ('sale','production_consume','purchase_return') THEN -CAST(quantity AS REAL)
+            ELSE 0 END) AS total_qty
+        FROM inventory_movements
+        WHERE variant_id=? AND user_id=?
+    ''', (variant_id, user_id)).fetchone()
+    if row and row['total_qty'] is not None:
+        return Decimal(str(row['total_qty']))
+    row = db.query("SELECT quantity FROM item_variants WHERE id=?", (variant_id,)).fetchone()
+    return Decimal(str(row['quantity'])) if row and row['quantity'] is not None else Decimal('0')
+
 def _assert_sale_stock_available(db, user_id, lines):
     required_by_item = {}
+    required_by_variant = {}
     for line in lines or []:
         item_id = line['item_id']
         conv_factor = Decimal(str(line.get('conversion_factor', 1) or 1))
@@ -106,14 +184,30 @@ def _assert_sale_stock_available(db, user_id, lines):
             conv_factor = Decimal('1')
         qty = Decimal(str(line.get('quantity', 0) or 0))
         base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
-        required_by_item[item_id] = required_by_item.get(item_id, Decimal('0')) + base_qty
+        vp = _variant_payload_from_line(line)
+        if vp.get('variant_id'):
+            required_by_variant[vp['variant_id']] = required_by_variant.get(vp['variant_id'], Decimal('0')) + base_qty
+        else:
+            required_by_item[item_id] = required_by_item.get(item_id, Decimal('0')) + base_qty
+    for variant_id, required_qty in required_by_variant.items():
+        available = _available_variant_quantity(db, variant_id, user_id)
+        if required_qty > available:
+            row = db.query('''
+                SELECT i.name AS item_name, v.color, v.size
+                FROM item_variants v JOIN items i ON i.id=v.item_id
+                WHERE v.id=? AND i.user_id=?
+            ''', (variant_id, user_id)).fetchone()
+            name = str(variant_id)
+            if row:
+                attrs = " / ".join(str(v or '').strip() for v in (row['color'], row['size']) if str(v or '').strip())
+                name = f"{row['item_name']} — {attrs}" if attrs else row['item_name']
+            raise ValueError(f"الكمية غير كافية للمتغير {name}: المطلوب {required_qty} والمتاح {available}")
     for item_id, required_qty in required_by_item.items():
         available = _available_item_quantity(db, item_id, user_id)
         if required_qty > available:
             item = db.query("SELECT name FROM items WHERE id=? AND user_id=?", (item_id, user_id)).fetchone()
             name = item['name'] if item and 'name' in item.keys() else str(item_id)
             raise ValueError(f"الكمية غير كافية للمادة {name}: المطلوب {required_qty} والمتاح {available}")
-
 
 
 def _setting(db, key, default=''):
@@ -596,31 +690,20 @@ def add_invoice():
             qty = Decimal(str(line.get('quantity', 0) or 0))
             base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
             unit_cost = Decimal(str(line['unit_price']))
-            db.query('''
-                INSERT INTO invoice_lines (invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
-            ''', (
-                invoice_id, line['item_id'], str(line['quantity']), str(unit_cost), str(line['total']),
-                line.get('unit', ''), str(base_qty), str(unit_cost), '0', str(conv_factor)
-            ))
+            cursor_line = _insert_invoice_line(db, invoice_id, line, unit_cost, base_qty, conv_factor)
+            line_id = cursor_line.lastrowid
             if data['type'] == 'purchase':
                 unit_cost_base = unit_cost / conv_factor
                 # تسجيل حركة شراء
-                db.query('''
-                    INSERT INTO inventory_movements (item_id, user_id, movement_type, quantity, unit_cost, reference_id, movement_date)
-                    VALUES (?,?,?,?,?,?,?)
-                ''', (line['item_id'], user_id, 'purchase', str(base_qty), str(unit_cost_base), invoice_id, datetime.datetime.now().isoformat()))
+                _insert_inventory_movement(db, user_id, line, 'purchase', base_qty, unit_cost_base, invoice_id)
                 cost_amt = unit_cost_base * base_qty
-                db.query("UPDATE invoice_lines SET cost_amount=? WHERE invoice_id=? AND item_id=?", (str(cost_amt), invoice_id, line['item_id']))
+                db.query("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
             else:  # sale
                 item = db.query("SELECT CAST(average_cost AS TEXT) as avg_cost FROM items WHERE id=?", (line['item_id'],)).fetchone()
                 avg_cost = Decimal(str(item['avg_cost'])) if item else Decimal('0')
                 cost_amt = base_qty * avg_cost
-                db.query("UPDATE invoice_lines SET cost_amount=? WHERE invoice_id=? AND item_id=?", (str(cost_amt), invoice_id, line['item_id']))
-                db.query('''
-                    INSERT INTO inventory_movements (item_id, user_id, movement_type, quantity, unit_cost, reference_id, movement_date)
-                    VALUES (?,?,?,?,?,?,?)
-                ''', (line['item_id'], user_id, 'sale', str(base_qty), str(unit_cost), invoice_id, datetime.datetime.now().isoformat()))
+                db.query("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
+                _insert_inventory_movement(db, user_id, line, 'sale', base_qty, unit_cost, invoice_id)
         for item_id in {line['item_id'] for line in data['lines']}:
             _update_item_quantity(db, item_id, user_id)
             _recalculate_average_cost(db, item_id, user_id)
@@ -682,6 +765,7 @@ def update_invoice(invoice_id):
         _apply_invoice_financial_effect(db, old_invoice_dict, Decimal('-1'))
         old_lines = db.query("SELECT * FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()
         old_item_ids = [row['item_id'] for row in old_lines]
+        old_variant_ids = [row['variant_id'] for row in old_lines if row['variant_id']]
         _post_invoice_ledger_reversal(db, user_id, invoice_id, old_invoice_dict, old_lines)
         db.query("DELETE FROM inventory_movements WHERE reference_id=? AND user_id=? AND movement_type IN ('purchase','sale')", (invoice_id, user_id))
         db.query("DELETE FROM invoice_lines WHERE invoice_id=?", (invoice_id,))
@@ -707,13 +791,7 @@ def update_invoice(invoice_id):
             qty = Decimal(str(line.get('quantity', 0) or 0))
             base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
             unit_cost = Decimal(str(line['unit_price']))
-            cursor_line = db.query('''
-                INSERT INTO invoice_lines (invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
-                VALUES (?,?,?,?,?,?,?,?,?,?)
-            ''', (
-                invoice_id, line['item_id'], str(line['quantity']), str(unit_cost), str(line['total']),
-                line.get('unit', ''), str(base_qty), str(unit_cost), '0', str(conv_factor)
-            ))
+            cursor_line = _insert_invoice_line(db, invoice_id, line, unit_cost, base_qty, conv_factor)
             line_id = cursor_line.lastrowid
             if data['type'] == 'purchase':
                 movement_type = 'purchase'
@@ -726,13 +804,13 @@ def update_invoice(invoice_id):
                 movement_cost = unit_cost
                 cost_amt = base_qty * avg_cost
             db.query("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
-            db.query('''
-                INSERT INTO inventory_movements (item_id, user_id, movement_type, quantity, unit_cost, reference_id, movement_date)
-                VALUES (?,?,?,?,?,?,?)
-            ''', (line['item_id'], user_id, movement_type, str(base_qty), str(movement_cost), invoice_id, datetime.datetime.now().isoformat()))
+            _insert_inventory_movement(db, user_id, line, movement_type, base_qty, movement_cost, invoice_id)
         for item_id in set(old_item_ids + [line['item_id'] for line in data['lines']]):
             _update_item_quantity(db, item_id, user_id)
             _recalculate_average_cost(db, item_id, user_id)
+        new_variant_ids = [line.get('variant_id') for line in data['lines'] if line.get('variant_id')]
+        for variant_id in set(old_variant_ids + new_variant_ids):
+            _update_item_variant_quantity(db, variant_id, user_id)
         _post_invoice_ledger_entries(db, user_id, invoice_id, data)
         _apply_invoice_financial_effect(db, {
             'user_id': user_id, 'type': data['type'], 'customer_id': data.get('customer_id'),

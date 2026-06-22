@@ -43,10 +43,14 @@ class POSLine:
     conversion_factor: Decimal = Decimal('1')
     base_qty: Decimal = Decimal('0')
     barcode_scope: str = 'item'
+    variant_id: Optional[int] = None
+    variant_color: str = ''
+    variant_size: str = ''
+    variant_sku: str = ''
 
     @property
     def line_key(self) -> str:
-        return f"{self.item_id}:{self.unit_id or ''}:{self.conversion_factor}"
+        return f"{self.item_id}:{self.variant_id or ''}:{self.unit_id or ''}:{self.conversion_factor}"
 
     @property
     def total_usd(self) -> Decimal:
@@ -66,6 +70,11 @@ class POSLine:
             'description': 'POS',
             'barcode': self.barcode,
             'barcode_scope': self.barcode_scope,
+            'variant_id': self.variant_id,
+            'variant_color': self.variant_color,
+            'variant_size': self.variant_size,
+            'variant_sku': self.variant_sku,
+            'matched_barcode': self.barcode,
         }
 
     def as_dict(self) -> Dict:
@@ -81,6 +90,10 @@ class POSLine:
             'unit_price_usd': self.unit_price_usd,
             'available_qty': self.available_qty,
             'barcode_scope': self.barcode_scope,
+            'variant_id': self.variant_id,
+            'variant_color': self.variant_color,
+            'variant_size': self.variant_size,
+            'variant_sku': self.variant_sku,
             'total_usd': self.total_usd,
         }
 
@@ -193,6 +206,17 @@ class POSService:
             raise POSException(translate('pos_scan_empty'))
         raise POSException(translate('pos_item_not_found', text=result.normalized or code))
 
+    def _variant_info(self, item: Dict) -> Dict:
+        matched = item.get('matched_variant') or {}
+        if not isinstance(matched, dict):
+            matched = {}
+        return {
+            'variant_id': self._int_or_none(matched.get('variant_id') or matched.get('id') or item.get('variant_id')),
+            'variant_color': str(matched.get('color') or item.get('variant_color') or ''),
+            'variant_size': str(matched.get('size') or item.get('variant_size') or ''),
+            'variant_sku': str(matched.get('sku') or item.get('variant_sku') or ''),
+        }
+
     def _line_base_qty_for_item(self, cart: POSCart, item_id: int, excluding: POSLine | None = None) -> Decimal:
         total = Decimal('0')
         for line in cart.lines:
@@ -212,7 +236,8 @@ class POSService:
         unit_id = self._unit_id(item)
         unit_name = self._unit_name(item)
         barcode = self._matched_barcode(item, code)
-        barcode_scope = str(item.get('barcode_scope') or ('unit' if self._matched_unit(item) else 'item'))
+        variant_info = self._variant_info(item)
+        barcode_scope = str(item.get('barcode_scope') or ('variant' if variant_info.get('variant_id') else ('unit' if self._matched_unit(item) else 'item')))
         warehouse_id = cart.warehouse_id or warehouse_service.default_warehouse_id()
         try:
             available_base = self._decimal(warehouse_service.available_qty(item_id, warehouse_id))
@@ -225,7 +250,7 @@ class POSService:
             raise POSException(translate('pos_invalid_sale_price'))
         is_service = item.get('item_type') == 'خدمة'
         line_base_qty = qty * factor
-        existing = next((line for line in cart.lines if line.line_key == f"{item_id}:{unit_id or ''}:{factor}"), None)
+        existing = next((line for line in cart.lines if line.line_key == f"{item_id}:{variant_info.get('variant_id') or ''}:{unit_id or ''}:{factor}"), None)
         item_total_base = self._line_base_qty_for_item(cart, item_id, excluding=existing)
         new_base_total = item_total_base + line_base_qty + ((existing.base_qty or existing.qty * existing.conversion_factor) if existing else Decimal('0'))
         allow_negative = bool(settings_service.get_pos_settings().get('allow_negative_stock'))
@@ -248,6 +273,10 @@ class POSService:
             unit_price_usd=unit_price,
             available_qty=available_display,
             barcode_scope=barcode_scope,
+            variant_id=variant_info.get('variant_id'),
+            variant_color=variant_info.get('variant_color') or '',
+            variant_size=variant_info.get('variant_size') or '',
+            variant_sku=variant_info.get('variant_sku') or '',
         )
         cart.lines.append(line)
         return line

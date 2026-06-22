@@ -21,6 +21,7 @@ from PyQt5.QtWidgets import (
     QToolButton,
     QWidget,
     QCompleter,
+    QFrame,
 )
 
 from workspace.documents.base_document_tab import BaseDocumentTab
@@ -122,6 +123,7 @@ class TransactionDocumentTab(BaseDocumentTab):
 
         title_row = QHBoxLayout()
         self.title_label = QLabel(f"<b>{self.context.title}</b>")
+        self.title_label.setVisible(False)
         self.title_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.presets_combo = QComboBox(self)
         for preset in presets():
@@ -140,7 +142,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         columns_btn.clicked.connect(self._show_columns)
         reset_columns_btn = QPushButton(tr("transaction_reset_view"))
         reset_columns_btn.clicked.connect(self._reset_grid_layout)
-        title_row.addWidget(self.title_label, 1)
+        title_row.addStretch(1)
         title_row.addWidget(QLabel(tr("transaction_preset")))
         title_row.addWidget(self.presets_combo)
         title_row.addWidget(self.auto_responsive_btn)
@@ -207,6 +209,10 @@ class TransactionDocumentTab(BaseDocumentTab):
             self.return_tools.clear_btn.clicked.connect(self._clear_return_quantities)
             root.addWidget(self.return_tools)
 
+        # Phase318: keep the legacy splitter object as a compatibility anchor,
+        # but make the line grid the full-width primary work area. Notes and the
+        # invoice summary move below the grid in a compact footer, so sales and
+        # purchase invoices share the same operational structure.
         self.content_splitter = QSplitter(Qt.Horizontal)
         self.grid = TransactionLineGrid(self.columns, self, identity=f"transaction_lines_{self.context.document_type}")
         self.grid.configure_item_delegate(
@@ -222,17 +228,22 @@ class TransactionDocumentTab(BaseDocumentTab):
             self.grid.horizontalHeader().sectionResized.connect(self._save_grid_layout)
         except Exception:
             pass
-        self.content_splitter.addWidget(self.grid)
+        self.grid.setMinimumHeight(430)
+        root.addWidget(self.grid, 1)
 
-        self.side_panel = QWidget()
-        side_layout = QVBoxLayout(self.side_panel)
+        self.side_panel = QFrame(self)
+        self.side_panel.setObjectName("TransactionFooterPanel")
+        side_layout = QHBoxLayout(self.side_panel)
         side_layout.setContentsMargins(0, 0, 0, 0)
         side_layout.setSpacing(8)
         self.notes = QTextEdit()
+        self.notes.setMaximumHeight(78)
         self.notes.setPlaceholderText(tr("transaction_notes_terms_attachments"))
         self.totals_panel = TransactionTotalsPanel(self)
         if hasattr(self.totals_panel, "set_currency"):
             self.totals_panel.set_currency(self.display_currency)
+        if hasattr(self.totals_panel, "set_transaction_type"):
+            self.totals_panel.set_transaction_type(self.inv_type)
         self.totals_panel.paidChanged.connect(self._payment_changed)
         self.totals_panel.pay_full_btn.clicked.connect(self._mark_paid_full)
         self.totals_panel.unpaid_btn.clicked.connect(self._mark_unpaid)
@@ -240,12 +251,9 @@ class TransactionDocumentTab(BaseDocumentTab):
             self.totals_panel.payment_frame.setToolTip(tr("transaction_return_payment_tooltip"))
             self.totals_panel.unpaid_btn.setText(tr("transaction_credit_settlement"))
             self.totals_panel.pay_full_btn.setText(tr("transaction_refund_full"))
-        side_layout.addWidget(self.notes, 2)
-        side_layout.addWidget(self.totals_panel, 1)
-        self.content_splitter.addWidget(self.side_panel)
-        self.content_splitter.setStretchFactor(0, 7)
-        self.content_splitter.setStretchFactor(1, 2)
-        root.addWidget(self.content_splitter, 1)
+        side_layout.addWidget(self.notes, 1)
+        side_layout.addWidget(self.totals_panel, 2)
+        root.addWidget(self.side_panel)
 
         actions = [
             ("transaction_new", self._new),

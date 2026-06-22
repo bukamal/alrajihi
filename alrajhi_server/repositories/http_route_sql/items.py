@@ -451,13 +451,13 @@ def get_item_by_barcode(barcode=None):
                            WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
                            ELSE 0 END)
                        FROM inventory_movements
-                       WHERE item_id = i.id AND user_id = i.user_id
-                   ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS available,
+                       WHERE variant_id = v.id AND user_id = i.user_id
+                   ), CAST(COALESCE(v.quantity, '0') AS REAL)) AS available,
                    COALESCE((
                        SELECT SUM(CAST(quantity AS REAL))
                        FROM inventory_movements
-                       WHERE item_id = i.id AND user_id = i.user_id AND movement_type = 'opening'
-                   ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS opening_quantity
+                       WHERE variant_id = v.id AND user_id = i.user_id AND movement_type = 'opening'
+                   ), CAST(COALESCE(v.quantity, '0') AS REAL)) AS opening_quantity
             FROM item_variants v
             JOIN items i ON i.id = v.item_id
             LEFT JOIN categories c ON i.category_id = c.id

@@ -611,13 +611,13 @@ class DatabaseConnection:
                                    WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
                                    ELSE 0 END)
                                FROM inventory_movements
-                               WHERE item_id = i.id AND user_id = i.user_id
-                           ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS available,
+                               WHERE variant_id = v.id AND user_id = i.user_id
+                           ), CAST(COALESCE(v.quantity, '0') AS REAL)) AS available,
                            COALESCE((
                                SELECT SUM(CAST(quantity AS REAL))
                                FROM inventory_movements
-                               WHERE item_id = i.id AND user_id = i.user_id AND movement_type = 'opening'
-                           ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS opening_quantity
+                               WHERE variant_id = v.id AND user_id = i.user_id AND movement_type = 'opening'
+                           ), CAST(COALESCE(v.quantity, '0') AS REAL)) AS opening_quantity
                     FROM item_variants v
                     JOIN items i ON i.id = v.item_id
                     LEFT JOIN categories c ON i.category_id = c.id
@@ -1148,6 +1148,36 @@ class DatabaseConnection:
         inv['lines'] = [dict(line) for line in lines]
         return inv
 
+    def _variant_payload_from_line(self, line: Dict) -> Dict:
+        variant_id = line.get('variant_id')
+        try:
+            variant_id = int(variant_id) if variant_id not in (None, '', 0, '0') else None
+        except Exception:
+            variant_id = None
+        return {
+            'variant_id': variant_id,
+            'variant_color': str(line.get('variant_color') or ''),
+            'variant_size': str(line.get('variant_size') or ''),
+            'variant_sku': str(line.get('variant_sku') or ''),
+            'barcode_scope': str(line.get('barcode_scope') or ('variant' if variant_id else '')),
+            'matched_barcode': str(line.get('matched_barcode') or line.get('barcode') or ''),
+        }
+
+    def _insert_invoice_line(self, conn, invoice_id: int, line: Dict, unit_cost, base_qty, conv_factor):
+        vp = self._variant_payload_from_line(line)
+        return conn.execute("""
+            INSERT INTO invoice_lines (
+                invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base,
+                unit_cost, cost_amount, conversion_factor, variant_id, variant_color,
+                variant_size, variant_sku, barcode_scope, matched_barcode
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            invoice_id, line['item_id'], str(line['quantity']), str(unit_cost), str(line['total']),
+            line.get('unit', ''), str(base_qty), str(unit_cost), '0', str(conv_factor),
+            vp['variant_id'], vp['variant_color'], vp['variant_size'], vp['variant_sku'],
+            vp['barcode_scope'], vp['matched_barcode']
+        ))
+
     def add_invoice(self, data: Dict) -> int:
         if self.is_remote():
             return self._rest_client.add_invoice(data)
@@ -1176,18 +1206,11 @@ class DatabaseConnection:
                 qty = Decimal(str(line.get('quantity', 0) or 0))
                 base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
                 unit_cost = Decimal(str(line['unit_price']))
-                cursor2 = conn.execute('''
-                    INSERT INTO invoice_lines (invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
-                    VALUES (?,?,?,?,?,?,?,?,?,?)
-                ''', (
-                    invoice_id, line['item_id'], str(line['quantity']),
-                    str(unit_cost), str(line['total']), line.get('unit', ''),
-                    str(base_qty), str(unit_cost), '0', str(conv_factor)
-                ))
+                cursor2 = self._insert_invoice_line(conn, invoice_id, line, unit_cost, base_qty, conv_factor)
                 line_id = cursor2.lastrowid
                 if data['type'] == 'purchase':
                     unit_cost_base = unit_cost / conv_factor
-                    self._record_inventory_movement(line['item_id'], 'purchase', base_qty, unit_cost_base, invoice_id)
+                    self._record_inventory_movement(line['item_id'], 'purchase', base_qty, unit_cost_base, invoice_id, line)
                     cost_amt = unit_cost_base * base_qty
                     conn.execute("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
                 else:
@@ -1195,7 +1218,7 @@ class DatabaseConnection:
                     avg_cost = Decimal(str(item['avg_cost'])) if item else Decimal('0')
                     cost_amt = base_qty * avg_cost
                     conn.execute("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
-                    self._record_inventory_movement(line['item_id'], 'sale', base_qty, unit_cost, invoice_id)
+                    self._record_inventory_movement(line['item_id'], 'sale', base_qty, unit_cost, invoice_id, line)
             if data['type'] == 'sale' and data.get('customer_id'):
                 self._update_customer_balance(data['customer_id'], Decimal(str(data['total'])) - Decimal(str(data['paid_amount'])))
             elif data['type'] == 'purchase' and data.get('supplier_id'):
@@ -1235,7 +1258,9 @@ class DatabaseConnection:
             if old_paid > 0:
                 self._update_cash_balance(old_paid, add=(inv['type'] == 'purchase'))
 
-            old_item_ids = [row['item_id'] for row in conn.execute("SELECT item_id FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()]
+            old_lines_for_stock = conn.execute("SELECT item_id, variant_id FROM invoice_lines WHERE invoice_id=?", (invoice_id,)).fetchall()
+            old_item_ids = [row['item_id'] for row in old_lines_for_stock]
+            old_variant_ids = [row['variant_id'] for row in old_lines_for_stock if row['variant_id']]
             conn.execute("DELETE FROM inventory_movements WHERE reference_id=? AND movement_type IN ('purchase','sale')", (invoice_id,))
             conn.execute("DELETE FROM invoice_lines WHERE invoice_id=?", (invoice_id,))
             conn.execute('''
@@ -1260,29 +1285,26 @@ class DatabaseConnection:
                 qty = Decimal(str(line.get('quantity', 0) or 0))
                 base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * conv_factor)) or 0))
                 unit_cost = Decimal(str(line['unit_price']))
-                cursor2 = conn.execute('''
-                    INSERT INTO invoice_lines (invoice_id, item_id, quantity, unit_price, total, unit, quantity_in_base, unit_cost, cost_amount, conversion_factor)
-                    VALUES (?,?,?,?,?,?,?,?,?,?)
-                ''', (
-                    invoice_id, line['item_id'], str(line['quantity']), str(unit_cost), str(line['total']),
-                    line.get('unit', ''), str(base_qty), str(unit_cost), '0', str(conv_factor)
-                ))
+                cursor2 = self._insert_invoice_line(conn, invoice_id, line, unit_cost, base_qty, conv_factor)
                 line_id = cursor2.lastrowid
                 new_item_ids.append(line['item_id'])
                 if data['type'] == 'purchase':
                     unit_cost_base = unit_cost / conv_factor
-                    self._record_inventory_movement(line['item_id'], 'purchase', base_qty, unit_cost_base, invoice_id)
+                    self._record_inventory_movement(line['item_id'], 'purchase', base_qty, unit_cost_base, invoice_id, line)
                     cost_amt = unit_cost_base * base_qty
                 else:
                     item = conn.execute("SELECT CAST(average_cost AS TEXT) as avg_cost FROM items WHERE id=?", (line['item_id'],)).fetchone()
                     avg_cost = Decimal(str(item['avg_cost'])) if item else Decimal('0')
                     cost_amt = base_qty * avg_cost
-                    self._record_inventory_movement(line['item_id'], 'sale', base_qty, unit_cost, invoice_id)
+                    self._record_inventory_movement(line['item_id'], 'sale', base_qty, unit_cost, invoice_id, line)
                 conn.execute("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
 
             for item_id in set(old_item_ids + new_item_ids):
                 self._update_item_quantity(item_id)
                 self._recalculate_average_cost(item_id)
+            new_variant_ids = [line.get('variant_id') for line in data['lines'] if line.get('variant_id')]
+            for variant_id in set(old_variant_ids + new_variant_ids):
+                self._update_item_variant_quantity(variant_id)
 
             new_total = Decimal(str(data['total']))
             new_paid = Decimal(str(data.get('paid_amount', data.get('paid', 0))))
@@ -1621,18 +1643,45 @@ class DatabaseConnection:
         self._update_item_quantity(item_id)
         self._recalculate_average_cost(item_id)
 
-    def _record_inventory_movement(self, item_id, movement_type, quantity, unit_cost, reference_id):
+    def _record_inventory_movement(self, item_id, movement_type, quantity, unit_cost, reference_id, line: Dict | None = None):
         from auth.session import UserSession
         uid = UserSession.get_current_user_id()
         conn = self.get_connection()
         now = datetime.datetime.now().isoformat()
-        conn.execute('''
-            INSERT INTO inventory_movements (item_id, user_id, movement_type, quantity, unit_cost, reference_id, movement_date)
-            VALUES (?,?,?,?,?,?,?)
-        ''', (item_id, uid, movement_type, str(quantity), str(unit_cost), reference_id, now))
+        vp = self._variant_payload_from_line(line or {})
+        conn.execute("""
+            INSERT INTO inventory_movements (
+                item_id, user_id, movement_type, quantity, unit_cost, reference_id, movement_date,
+                variant_id, variant_color, variant_size, variant_sku, barcode_scope, matched_barcode
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            item_id, uid, movement_type, str(quantity), str(unit_cost), reference_id, now,
+            vp['variant_id'], vp['variant_color'], vp['variant_size'], vp['variant_sku'],
+            vp['barcode_scope'], vp['matched_barcode']
+        ))
         self._update_item_quantity(item_id)
+        if vp.get('variant_id'):
+            self._update_item_variant_quantity(vp['variant_id'])
         if movement_type in ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse'):
             self._recalculate_average_cost(item_id)
+
+    def _update_item_variant_quantity(self, variant_id):
+        if not variant_id:
+            return
+        conn = self.get_connection()
+        try:
+            row = conn.execute("""
+                SELECT SUM(CASE
+                    WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+                    WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
+                    ELSE 0 END) AS total_qty
+                FROM inventory_movements
+                WHERE variant_id=?
+            """, (variant_id,)).fetchone()
+            qty = Decimal(str(row['total_qty'])) if row and row['total_qty'] is not None else Decimal('0')
+            conn.execute("UPDATE item_variants SET quantity=?, updated_at=? WHERE id=?", (str(qty), datetime.datetime.now().isoformat(), variant_id))
+        except Exception:
+            pass
 
     def _update_item_quantity(self, item_id):
         conn = self.get_connection()

@@ -73,7 +73,8 @@ class TransactionTotalsPanel(QWidget):
         self.paid_spin.valueChanged.connect(self.paidChanged)
         payment.addWidget(QLabel(tr("transaction_payment_method")), 1, 0)
         payment.addWidget(self.payment_method_combo, 1, 1)
-        payment.addWidget(QLabel(tr("transaction_paid")), 2, 0)
+        self.paid_title_label = QLabel(tr("transaction_paid"))
+        payment.addWidget(self.paid_title_label, 2, 0)
         payment.addWidget(self.paid_spin, 2, 1)
         quick = QHBoxLayout()
         self.pay_full_btn = QPushButton(tr("transaction_pay_full"), self)
@@ -83,6 +84,15 @@ class TransactionTotalsPanel(QWidget):
         payment.addLayout(quick, 3, 0, 1, 2)
         layout.addWidget(self.payment_frame)
         layout.addStretch(1)
+
+
+    def set_transaction_type(self, transaction_type: str | None) -> None:
+        """Use user-facing payment wording that matches the document direction."""
+        key = "transaction_paid" if str(transaction_type or "sale") == "purchase" else "transaction_received"
+        try:
+            self.paid_title_label.setText(tr(key))
+        except Exception:
+            pass
 
     def set_currency(self, currency_code: str | None) -> None:
         """Apply the active display currency to labels and paid input.

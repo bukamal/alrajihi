@@ -16,6 +16,7 @@ def pos_line_schema() -> list[TransactionColumn]:
         TransactionColumn("row", "#", True, True, True, 46, editable=False),
         TransactionColumn("barcode", "transaction_column_barcode", False, True, False, 140, editable=False),
         TransactionColumn("item", "transaction_column_item", True, True, True, 280, True, editable=False),
+        TransactionColumn("variant", "transaction_column_variant", False, False, False, 120, editable=False),
         TransactionColumn("unit", "transaction_column_unit", False, True, True, 95, editable=False),
         TransactionColumn("qty", "transaction_column_qty", True, True, True, 95, numeric=True, editable=False),
         TransactionColumn("base_qty", "pos_column_base_qty", False, False, False, 110, numeric=True, editable=False),

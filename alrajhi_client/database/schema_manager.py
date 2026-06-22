@@ -81,14 +81,28 @@ REQUIRED_COLUMNS = {
         "cost_amount": "TEXT DEFAULT '0'",
         "production_order_id": "INTEGER",
         "conversion_factor": "REAL DEFAULT 1.0",
+        "variant_id": "INTEGER",
+        "variant_color": "TEXT",
+        "variant_size": "TEXT",
+        "variant_sku": "TEXT",
+        "barcode_scope": "TEXT",
+        "matched_barcode": "TEXT",
     },
     "sales_return_lines": {
         "unit_id": "INTEGER",
         "conversion_factor": "REAL DEFAULT 1.0",
+        "variant_id": "INTEGER",
+        "variant_color": "TEXT",
+        "variant_size": "TEXT",
+        "variant_sku": "TEXT",
     },
     "purchase_return_lines": {
         "unit_id": "INTEGER",
         "conversion_factor": "REAL DEFAULT 1.0",
+        "variant_id": "INTEGER",
+        "variant_color": "TEXT",
+        "variant_size": "TEXT",
+        "variant_sku": "TEXT",
     },
     "inventory_movements": {
         "item_id": "INTEGER",
@@ -99,6 +113,12 @@ REQUIRED_COLUMNS = {
         "reference_id": "INTEGER",
         "movement_date": "TEXT",
         "created_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+        "variant_id": "INTEGER",
+        "variant_color": "TEXT",
+        "variant_size": "TEXT",
+        "variant_sku": "TEXT",
+        "barcode_scope": "TEXT",
+        "matched_barcode": "TEXT",
     },
     "vouchers": {
         "exchange_rate_to_usd": "REAL DEFAULT 1.0",
@@ -360,7 +380,13 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
     unit_cost TEXT,
     reference_id INTEGER,
     movement_date TEXT NOT NULL,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    variant_id INTEGER,
+    variant_color TEXT,
+    variant_size TEXT,
+    variant_sku TEXT,
+    barcode_scope TEXT,
+    matched_barcode TEXT
 );
 
 CREATE TABLE IF NOT EXISTS warehouse_movements (
