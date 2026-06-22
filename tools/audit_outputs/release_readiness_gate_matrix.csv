@@ -64,4 +64,16 @@ apparel_transaction_price_currency_hotfix,materials,Apparel transaction variant 
 dashboard_pos_transaction_ux_polish,ui,"Dashboard, POS and transaction header UX polish",328,tests/test_phase328_dashboard_pos_transaction_ux_polish.py,True,,True,True
 purchase_variant_cost_currency_hotfix,materials,Purchase invoice apparel variant inherited cost is not re-converted,329,tests/test_phase329_purchase_variant_cost_currency_hotfix.py,True,,True,True
 purchase_apparel_inherited_cost_rate_fallback,materials,Purchase invoice apparel inherited cost uses rate fallback for SYP display,330,tests/test_phase330_purchase_apparel_inherited_cost_rate_fallback.py,True,,True,True
+ui_registry_shell_manifest,ui,UI registry and shell manifest foundation,331,tests/test_phase331_ui_registry_shell_manifest.py,True,,True,True
+design_tokens_typography_normalization,ui,Design tokens and typography normalization,332,tests/test_phase332_design_tokens_typography_normalization.py,True,,True,True
+main_menu_action_bar_contract,shell,Main menu/action bar contract,333,tests/test_phase333_main_menu_action_bar_contract.py,True,,True,True
+universal_column_contract_foundation,ui,Universal column contract foundation,334,tests/test_phase334_universal_column_contract_foundation.py,True,,True,True
+operational_column_contract_integration,ui,Restaurant/Cafe/POS/Apparel column contract integration,335,tests/test_phase335_operational_column_contract_integration.py,True,,True,True
+printing_export_column_mapping,printing,Print/export column mapping,336,tests/test_phase336_printing_export_column_mapping.py,True,,True,True
+editable_table_keyboard_standard,ui,Editable table keyboard standard,337,tests/test_phase337_editable_table_keyboard_standard.py,True,,True,True
+unified_barcode_printing_profiles,printing,Unified barcode printing profiles,338,tests/test_phase338_unified_barcode_printing_profiles.py,True,,True,True
+barcode_multi_print_ui,printing,Barcode multi-print UI for items/apparel/restaurant/cafe,339,tests/test_phase339_barcode_multi_print_ui.py,True,,True,True
+final_ux_regression_guards,quality,Final UX regression guard for shell/actions/columns/keyboard/barcode,340,tools/phase340_final_ux_regression_guard.py,True,tools/audit_outputs/final_ux_regression_matrix.csv,True,True
+settings_surface_contract,settings,Unified settings surface for columns and barcode profiles,341,tools/phase341_settings_surface_guard.py,True,tools/audit_outputs/settings_surface_matrix.csv,True,True
+settings_runtime_wiring,settings,Settings surface runtime wiring and column customizer integration,342,tools/phase342_settings_runtime_wiring_guard.py,True,tools/audit_outputs/settings_runtime_wiring_matrix.csv,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

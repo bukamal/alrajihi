@@ -18,6 +18,8 @@ from currency import currency
 from models.table_models import GenericTableModel
 from ui.smart_table_view import SmartTableView
 from utils import show_toast
+from views.dialogs.batch_print_dialog import BatchPrintDialog
+from workspace.tables import table_column_contract
 
 
 class ApparelWorkspaceWidget(QWidget):
@@ -109,6 +111,14 @@ class ApparelWorkspaceWidget(QWidget):
         self.lookup_btn = QPushButton(translate("apparel.lookup_variant"))
         self.lookup_btn.clicked.connect(self.lookup_barcode)
         c.addWidget(self.lookup_btn)
+        self.print_selected_barcode_btn = QPushButton(translate("barcode.print_selected"))
+        self.print_selected_barcode_btn.setIcon(qta.icon("fa5s.barcode"))
+        self.print_selected_barcode_btn.clicked.connect(self.print_selected_variant_barcodes)
+        c.addWidget(self.print_selected_barcode_btn)
+        self.batch_variant_barcode_btn = QPushButton(translate("barcode.batch_print_variants"))
+        self.batch_variant_barcode_btn.setIcon(qta.icon("fa5s.tags"))
+        self.batch_variant_barcode_btn.clicked.connect(self.batch_print_variant_barcodes)
+        c.addWidget(self.batch_variant_barcode_btn)
         root.addWidget(controls)
 
         summary = QFrame(self)
@@ -148,6 +158,7 @@ class ApparelWorkspaceWidget(QWidget):
         reports_layout.addLayout(report_metrics)
         self.report_table = QTableWidget(self)
         self.report_table.setObjectName("apparelReportsTable")
+        self.report_table.setProperty("column_contract_id", "apparel.reports")
         self.report_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.report_table.setAlternatingRowColors(True)
         self.report_table.setMinimumHeight(118)
@@ -217,6 +228,8 @@ class ApparelWorkspaceWidget(QWidget):
 
         self.table = SmartTableView(self)
         self.table.set_table_identity("apparel.workspace.variant_matrix")
+        if hasattr(self.table, "set_column_contract"):
+            self.table.set_column_contract("apparel", "variants")
         self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.setAlternatingRowColors(True)
         root.addWidget(self.table, 1)
@@ -422,6 +435,49 @@ class ApparelWorkspaceWidget(QWidget):
         ))
         self._load_variants()
 
+    def _selected_variant_rows(self) -> List[Dict[str, Any]]:
+        model = self.table.model() if hasattr(self, "table") else None
+        selected = self.table.selectionModel().selectedRows() if model is not None and self.table.selectionModel() else []
+        rows: List[Dict[str, Any]] = []
+        for index in selected:
+            if 0 <= index.row() < len(self._current_rows):
+                rows.append(dict(self._current_rows[index.row()]))
+        return rows
+
+    def _variant_print_rows(self, rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        result: List[Dict[str, Any]] = []
+        for row in rows:
+            barcode = str(row.get("barcode") or "").strip()
+            if not barcode or barcode == "—":
+                continue
+            result.append({
+                "id": row.get("id"),
+                "name": row.get("item") or row.get("item_name") or "",
+                "item_name": row.get("item") or row.get("item_name") or "",
+                "variant_color": row.get("color") or "",
+                "variant_size": row.get("size") or "",
+                "variant_code": row.get("sku") or row.get("variant_code") or "",
+                "variant_barcode": barcode,
+                "barcode": barcode,
+                "price": row.get("sale_price") if row.get("sale_price") != "—" else "",
+                "copies": 1,
+            })
+        return result
+
+    def print_selected_variant_barcodes(self) -> None:
+        rows = self._variant_print_rows(self._selected_variant_rows())
+        if not rows:
+            show_toast(translate("barcode.select_variant_for_print"), "error", self)
+            return
+        BatchPrintDialog(self, selected_items=rows, profile_id="apparel.variant_labels").exec()
+
+    def batch_print_variant_barcodes(self) -> None:
+        rows = self._variant_print_rows(self._current_rows)
+        if not rows:
+            show_toast(translate("barcode.no_variant_barcodes_to_print"), "error", self)
+            return
+        BatchPrintDialog(self, profile_id="apparel.variant_labels", available_items=rows).exec()
+
     def _update_summary(self, rows: List[Dict[str, Any]]) -> None:
         colors = {str(row.get("color") or "") for row in rows if row.get("color") not in (None, "", "—")}
         sizes = {str(row.get("size") or "") for row in rows if row.get("size") not in (None, "", "—")}
@@ -451,24 +507,22 @@ class ApparelWorkspaceWidget(QWidget):
         self._render_low_stock_report(low_rows[:12])
 
     def _render_low_stock_report(self, rows: List[Dict[str, Any]]) -> None:
-        headers = [
-            translate("apparel_col_item"), translate("apparel_col_color"), translate("apparel_col_size"),
-            translate("apparel_col_quantity"), translate("apparel_col_reorder_level"), translate("apparel_col_sku"),
-        ]
+        contract = table_column_contract("apparel", "reports")
+        columns = list(contract.columns if contract else [])
+        if not columns:
+            columns = []
+        headers = [translate(column.label_key) for column in columns]
+        keys = [column.key for column in columns]
         self.report_table.clear()
         self.report_table.setColumnCount(len(headers))
         self.report_table.setRowCount(len(rows))
         self.report_table.setHorizontalHeaderLabels(headers)
         for r, row in enumerate(rows):
-            values = [
-                row.get("item") or "",
-                row.get("color") or "—",
-                row.get("size") or "—",
-                self._format_qty(row.get("quantity") or 0),
-                self._format_qty(row.get("reorder_level") or 0),
-                row.get("sku") or "—",
-            ]
-            for c, value in enumerate(values):
+            for c, key in enumerate(keys):
+                if key in {"quantity", "reorder_level"}:
+                    value = self._format_qty(row.get(key) or 0)
+                else:
+                    value = row.get(key) or "—"
                 cell = QTableWidgetItem(str(value))
                 cell.setTextAlignment(Qt.AlignCenter if c else Qt.AlignVCenter | Qt.AlignLeft)
                 self.report_table.setItem(r, c, cell)

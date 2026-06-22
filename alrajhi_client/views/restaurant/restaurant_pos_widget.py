@@ -452,6 +452,10 @@ class RestaurantPOSWidget(QWidget):
         self.lines = RestaurantOrderGrid(self)
         self.lines.setObjectName("restaurantOrderLines")
         self.lines.setModel(self.order_model)
+        try:
+            self.lines.set_column_contract("restaurant", "order_lines")
+        except Exception:
+            pass
         self.lines.setMinimumHeight(520)
         root.addWidget(self.lines, 14)
 
@@ -570,6 +574,13 @@ class RestaurantPOSWidget(QWidget):
         enabled = bool(enabled)
         self._cafe_workspace_mode = enabled
         self.setProperty("restaurant_order_context", "cafe" if enabled else "restaurant")
+        try:
+            page_id = "cafe" if enabled else "restaurant"
+            self.order_model.set_order_context(page_id)
+            self.lines.set_schema(self.order_model.columns)
+            self.lines.set_column_contract(page_id, "order_lines")
+        except Exception:
+            pass
         self.search_edit.setPlaceholderText(_("restaurant.cafe_search_menu_or_barcode") if enabled else _("restaurant.search_menu_or_barcode"))
         self.manual_button.setText("✍  " + (_("restaurant.cafe_manual_item") if enabled else _("restaurant.manual_item")))
         self.send_kitchen_btn.setText(("🧑‍🍳  " + _("restaurant.cafe_send_to_barista")) if enabled else ("👨‍🍳  " + _("restaurant.send_to_kitchen")))

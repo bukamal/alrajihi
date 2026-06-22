@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-"""Restaurant order line-grid schema.
+"""Restaurant/cafe order line-grid schemas.
 
-Restaurant POS is touch-first, but its open-session order lines should still use
-our shared transaction grid vocabulary: schema keys, required columns, presets,
-responsive visibility, and unit-barcode columns stay aligned with invoices/POS.
+Restaurant and cafe remain backed by the same service engine, but their visible,
+printable and exportable columns are now declared by the central universal
+column registry.  The functions return the legacy TransactionColumn objects used
+by TransactionLineGrid so existing models and delegates stay stable.
 """
 
 from features.transactions.grids.transaction_column_schema import TransactionColumn
+from features.transactions.grids.universal_column_adapter import transaction_columns_from_contract
 
 
-def restaurant_order_schema() -> list[TransactionColumn]:
+def _fallback_restaurant_order_schema() -> list[TransactionColumn]:
     return [
         TransactionColumn("row", "#", True, True, True, 46, editable=False),
         TransactionColumn("item", "transaction_column_item", True, True, True, 280, True, editable=False),
@@ -25,3 +27,11 @@ def restaurant_order_schema() -> list[TransactionColumn]:
         TransactionColumn("barcode_scope", "pos_column_barcode_scope", False, False, False, 125, editable=False),
         TransactionColumn("notes", "transaction_column_notes", False, False, False, 180, editable=False),
     ]
+
+
+def restaurant_order_schema() -> list[TransactionColumn]:
+    return transaction_columns_from_contract("restaurant", "order_lines", _fallback_restaurant_order_schema())
+
+
+def cafe_order_schema() -> list[TransactionColumn]:
+    return transaction_columns_from_contract("cafe", "order_lines", _fallback_restaurant_order_schema())

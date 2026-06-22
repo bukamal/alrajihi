@@ -12,7 +12,7 @@ import html
 import io
 import os
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Tuple
 
 try:
     from barcode import Code128, EAN13
@@ -87,6 +87,15 @@ class LabelOptions:
     show_price: bool = True
     show_barcode_text: bool = True
     columns: int = 2
+    profile_id: str = "items.default"
+    template_id: str = "material_label_default"
+    printable_fields: Tuple[str, ...] = ()
+    show_variant_color_size: bool = False
+    show_variant_code: bool = False
+    show_section: bool = False
+    show_table_zone: bool = False
+    show_modifier_group: bool = False
+    show_size: bool = False
 
 
 class BarcodeLabelService:
@@ -119,6 +128,15 @@ class BarcodeLabelService:
             show_price=bool(options.get('show_price', True)),
             show_barcode_text=bool(options.get('show_barcode_text', True)),
             columns=columns,
+            profile_id=str(options.get('profile_id') or 'items.default'),
+            template_id=str(options.get('template_id') or 'material_label_default'),
+            printable_fields=tuple(options.get('printable_fields') or ()),
+            show_variant_color_size=bool(options.get('show_variant_color_size', False)),
+            show_variant_code=bool(options.get('show_variant_code', False)),
+            show_section=bool(options.get('show_section', False)),
+            show_table_zone=bool(options.get('show_table_zone', False)),
+            show_modifier_group=bool(options.get('show_modifier_group', False)),
+            show_size=bool(options.get('show_size', False)),
         )
 
     def resolve_symbology(self, barcode: str, requested: str = 'AUTO') -> str:
@@ -169,6 +187,41 @@ class BarcodeLabelService:
                 return value
         return ''
 
+    def _first_text(self, item: Dict, *keys: str) -> str:
+        for key in keys:
+            value = str(item.get(key, '') or '').strip()
+            if value:
+                return value
+        return ''
+
+    def _field_chip(self, label: str, value: str) -> str:
+        value = str(value or '').strip()
+        if not value:
+            return ''
+        return f"<span class='field-chip'><b>{html.escape(label)}</b> {html.escape(value)}</span>"
+
+    def extra_fields_html(self, item: Dict, opts: LabelOptions) -> str:
+        chips: List[str] = []
+        if opts.show_variant_color_size:
+            color = self._first_text(item, 'variant_color', 'color')
+            size = self._first_text(item, 'variant_size', 'size')
+            if color or size:
+                chips.append(self._field_chip(_tr('apparel.variant', default='Variant'), ' / '.join(v for v in (color, size) if v)))
+        if opts.show_variant_code:
+            chips.append(self._field_chip(_tr('variant_code', default='Variant code'), self._first_text(item, 'variant_code', 'code')))
+        if opts.show_section:
+            chips.append(self._field_chip(_tr('section', default='Section'), self._first_text(item, 'section', 'category')))
+        if opts.show_table_zone:
+            chips.append(self._field_chip(_tr('zone', default='Zone'), self._first_text(item, 'zone', 'area')))
+        if opts.show_modifier_group:
+            chips.append(self._field_chip(_tr('group', default='Group'), self._first_text(item, 'group', 'modifier_group')))
+        if opts.show_size:
+            chips.append(self._field_chip(_tr('size', default='Size'), self._first_text(item, 'size', 'cup_size')))
+        chips = [chip for chip in chips if chip]
+        if not chips:
+            return ''
+        return f"<div class='extra-fields'>{''.join(chips)}</div>"
+
     def label_html(self, item: Dict, options: Optional[Dict | LabelOptions] = None) -> str:
         opts = self.normalize_options(options)
         size = self.SIZES[opts.label_size]
@@ -178,10 +231,11 @@ class BarcodeLabelService:
         logo_value = company_info.get('logo_data_uri') or company_info.get('logo_path') or company_info.get('logo')
         logo_src = _file_to_data_uri(logo_value) if opts.show_logo else ''
         barcode = str(item.get('barcode', '') or '').strip()
+        qr_value = str(item.get('qr_value', '') or item.get('qr', '') or barcode).strip()
         name = self.localized_item_name(item)
         price = str(item.get('price', '') or item.get('selling_price', '') or '').strip()
-        img = self.barcode_png_base64(barcode, opts.symbology)
-        qr_img = self.qr_png_base64(barcode) if opts.show_qr else ''
+        img = self.barcode_png_base64(barcode, opts.symbology) if barcode else ''
+        qr_img = self.qr_png_base64(qr_value) if opts.show_qr and qr_value else ''
         price_label = _tr('price', default='Price')
         parts = []
         if logo_src or (opts.show_company and company):
@@ -190,17 +244,21 @@ class BarcodeLabelService:
             parts.append(f"<div class='label-top'>{logo}{comp}</div>")
         if opts.show_name and name:
             parts.append(f"<div class='item-name'>{html.escape(name)}</div>")
+        extra = self.extra_fields_html(item, opts)
+        if extra:
+            parts.append(extra)
         parts.append("<div class='code-row'>")
-        parts.append(f"<img class='barcode-img' src='data:image/png;base64,{img}' alt='barcode' />")
+        if img:
+            parts.append(f"<img class='barcode-img' src='data:image/png;base64,{img}' alt='barcode' />")
         if qr_img:
             parts.append(f"<img class='qr-img' src='data:image/png;base64,{qr_img}' alt='qr' />")
         parts.append("</div>")
-        if opts.show_barcode_text:
-            parts.append(f"<div class='barcode-text'>{html.escape(barcode)}</div>")
+        if opts.show_barcode_text and (barcode or qr_value):
+            parts.append(f"<div class='barcode-text'>{html.escape(barcode or qr_value)}</div>")
         if opts.show_price and price:
             parts.append(f"<div class='price'><span>{html.escape(price_label)}</span>: {html.escape(price)}</div>")
         return f"""
-        <div class="barcode-label size-{opts.label_size}" dir="{direction}" lang="{html.escape(lang)}">
+        <div class="barcode-label size-{opts.label_size} profile-{html.escape(opts.profile_id).replace('.', '-')}" data-template="{html.escape(opts.template_id)}" dir="{direction}" lang="{html.escape(lang)}">
             {''.join(parts)}
         </div>
         """
@@ -230,7 +288,10 @@ class BarcodeLabelService:
     .label-logo {{ width: {size['logo_mm']}mm; height: {size['logo_mm']}mm; object-fit: contain; flex: 0 0 auto; }}
     .company {{ font-size: {max(7, size['font_pt']-1)}pt; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: {max(22, size['width_mm']-12)}mm; }}
     .item-name {{ font-size: {size['font_pt']}pt; font-weight: 700; margin-bottom: 1mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: {direction}; text-align: center; }}
-    .code-row {{ display: flex; align-items: center; justify-content: center; gap: 1.5mm; direction: ltr; }}
+    .extra-fields {{ display: flex; flex-wrap: wrap; gap: .6mm; justify-content: center; align-items: center; margin: .5mm 0 .8mm; direction: {direction}; }}
+    .field-chip {{ display: inline-block; border: 1px solid #e5e7eb; background: #f9fafb; border-radius: 999px; padding: .2mm 1mm; font-size: {max(6, size['font_pt']-2)}pt; line-height: 1.25; max-width: {max(18, size['width_mm']-6)}mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }}
+    .field-chip b {{ font-weight: 800; color: #374151; margin-inline-end: .7mm; }}
+    .code-row {{ display: flex; align-items: center; justify-content: center; gap: 1.5mm; direction: ltr; min-height: {max(10, size['height_mm']-20)}mm; }}
     .barcode-img {{ width: {size['barcode_width_mm']}mm; max-height: {max(12, size['height_mm']-17)}mm; object-fit: contain; display: block; }}
     .qr-img {{ width: {size['qr_mm']}mm; height: {size['qr_mm']}mm; object-fit: contain; display: block; }}
     .barcode-text {{ font-size: {max(7, size['font_pt']-1)}pt; font-family: 'Consolas','Courier New',monospace; direction: ltr; unicode-bidi: embed; margin-top: .6mm; }}

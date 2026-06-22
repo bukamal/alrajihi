@@ -231,6 +231,17 @@ class TransactionDocumentTab(BaseDocumentTab):
         # purchase invoices share the same operational structure.
         self.content_splitter = QSplitter(Qt.Horizontal)
         self.grid = TransactionLineGrid(self.columns, self, identity=f"transaction_lines_{self.context.document_type}")
+        try:
+            page_table = {
+                "sales_invoice": ("sales_invoices", "lines"),
+                "purchase_invoice": ("purchase_invoices", "lines"),
+                "sales_return": ("returns", "lines"),
+                "purchase_return": ("purchase_returns", "lines"),
+            }.get(self.context.document_type)
+            if page_table and hasattr(self.grid, "set_column_contract"):
+                self.grid.set_column_contract(*page_table)
+        except Exception:
+            pass
         self.grid.configure_item_delegate(
             items_provider=self._material_lookup_rows,
             price_key_provider=self._line_price_key,

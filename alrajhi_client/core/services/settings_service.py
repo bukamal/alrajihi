@@ -253,7 +253,72 @@ class SettingsService:
         audit_service.log('UPDATE', 'SETTINGS_PRINTING', None, old_values=old, new_values=new, details='تعديل إعدادات الطباعة')
 
 
+    # ========== Barcode profile settings ==========
+    def get_barcode_profile_settings(self, profile_id: str = 'items.default') -> Dict[str, Any]:
+        """Return settings for a sector-specific barcode profile.
+
+        Phase 338 keeps per-profile storage under the profile prefix declared in
+        the UI registry while preserving global material barcode defaults.
+        """
+        try:
+            from printing.barcode_profiles import barcode_profile_options
+            return barcode_profile_options(profile_id)
+        except Exception:
+            printing = self.get_printing_settings()
+            return {
+                'profile_id': profile_id or 'items.default',
+                'label_size': printing.get('barcode_label_size', '50x30'),
+                'symbology': printing.get('barcode_symbology', 'AUTO'),
+                'copies': int(printing.get('barcode_copies', 1) or 1),
+                'columns': int(printing.get('barcode_columns', 2) or 2),
+                'show_company': bool(printing.get('barcode_show_company', True)),
+                'show_logo': bool(printing.get('barcode_show_logo', True)),
+                'show_qr': bool(printing.get('barcode_show_qr', True)),
+                'show_name': bool(printing.get('barcode_show_name', True)),
+                'show_price': bool(printing.get('barcode_show_price', True)),
+                'show_barcode_text': bool(printing.get('barcode_show_text', True)),
+            }
+
+
     # ========== Backup settings ==========
+    def save_barcode_profile_settings(self, profile_id: str = 'items.default', **values: Any) -> Dict[str, Any]:
+        """Persist sector-specific barcode profile settings.
+
+        These settings live under each profile prefix declared in the workspace
+        registry, for example ``printing/barcode/apparel/variant_labels``.
+        The global material barcode settings remain available as fallback.
+        """
+        try:
+            from printing.barcode_profiles import barcode_profile, PROFILE_BOOL_FIELDS
+        except Exception:
+            return {}
+        profile = barcode_profile(profile_id or 'items.default')
+        prefix = str(profile.settings_prefix or '').rstrip('/')
+        old = self.get_barcode_profile_settings(profile.profile_id)
+        if not prefix:
+            return old
+        text_fields = {
+            'template_id': values.get('template_id') or profile.default_template_id,
+            'label_size': values.get('label_size') or '50x30',
+            'symbology': str(values.get('symbology') or 'AUTO').upper(),
+        }
+        numeric_fields = {
+            'copies': max(1, min(999, int(values.get('copies') or 1))),
+            'columns': max(1, min(4, int(values.get('columns') or 2))),
+        }
+        for key, value in text_fields.items():
+            self.set(f'{prefix}/{key}', value)
+        for key, value in numeric_fields.items():
+            self.set(f'{prefix}/{key}', str(value))
+        for key in PROFILE_BOOL_FIELDS:
+            if key in values:
+                self.set(f'{prefix}/{key}', 'true' if bool(values.get(key)) else 'false')
+        self.clear_cache()
+        new = self.get_barcode_profile_settings(profile.profile_id)
+        audit_service.log('UPDATE', 'SETTINGS_BARCODE_PROFILE', None, old_values=old, new_values=new, details=f'تعديل إعدادات باركود {profile.profile_id}')
+        return new
+
+
     def get_backup_settings(self) -> Dict[str, Any]:
         return {
             'enabled': str(self.get('backup/enabled', 'false')).lower() == 'true',

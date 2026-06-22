@@ -153,6 +153,7 @@ inventory_balances_html = require_template("inventory_balances_html")
 inventory_movements_html = require_template("inventory_movements_html")
 inventory_ledger_html = require_template("inventory_ledger_html")
 from core.services.barcode_label_service import barcode_label_service
+from printing.barcode_profiles import barcode_profile_options, normalize_barcode_items
 from core.services.settings_service import settings_service
 
 
@@ -286,23 +287,19 @@ class PrintingService:
 
 
     # ========== Unified barcode label printing ==========
-    def barcode_label_options(self, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Return barcode label options from printing settings plus optional overrides."""
-        cfg = settings_service.get_printing_settings()
-        opts = {
-            'label_size': cfg.get('barcode_label_size', '50x30'),
-            'symbology': cfg.get('barcode_symbology', 'AUTO'),
-            'show_company': bool(cfg.get('barcode_show_company', True)),
-            'show_logo': bool(cfg.get('barcode_show_logo', cfg.get('show_logo', True))),
-            'show_qr': bool(cfg.get('barcode_show_qr', True)),
-            'show_name': bool(cfg.get('barcode_show_name', True)),
-            'show_price': bool(cfg.get('barcode_show_price', True)),
-            'show_barcode_text': bool(cfg.get('barcode_show_text', True)),
-            'columns': int(cfg.get('barcode_columns', 2) or 2),
-        }
-        if overrides:
-            opts.update({k: v for k, v in overrides.items() if v is not None})
-        return opts
+    def barcode_label_options(self, overrides: Optional[Dict[str, Any]] = None, profile_id: str = 'items.default') -> Dict[str, Any]:
+        """Return profile-aware barcode label options from project settings.
+
+        Backward compatible callers still receive the material profile, while
+        restaurant/cafe/apparel can pass their profile id and get sector-specific
+        fields, copies and template defaults without leaving Browser HTML print.
+        """
+        if overrides and overrides.get('profile_id'):
+            profile_id = str(overrides.get('profile_id') or profile_id)
+        return barcode_profile_options(profile_id, overrides or {})
+
+    def barcode_profile_options(self, profile_id: str = 'items.default', overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return self.barcode_label_options(overrides, profile_id)
 
 
     def barcode_default_printer_name(self) -> str:
@@ -320,7 +317,7 @@ class PrintingService:
             pass
         return ''
 
-    def barcode_labels_print_settings(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None) -> bool:
+    def barcode_labels_print_settings(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None, profile_id: str = 'items.default') -> bool:
         """Open barcode labels as settings-driven browser HTML.
 
         Barcode, material-card and batch-label buttons now follow the same
@@ -328,30 +325,42 @@ class PrintingService:
         project settings, open it in the browser, and let the browser perform
         the physical print.
         """
-        html = self.barcode_labels_html(items, options)
+        html = self.barcode_labels_html(items, options, profile_id=profile_id)
         return self._print_button_render(html, parent, _tr("barcode_print_title"), document_type='barcode_labels')
 
-    def barcode_labels_html(self, items: List[Dict[str, Any]], options: Optional[Dict[str, Any]] = None) -> str:
-        return barcode_label_service.labels_document_html(items or [], self.barcode_label_options(options))
+    def barcode_labels_html(self, items: List[Dict[str, Any]], options: Optional[Dict[str, Any]] = None, profile_id: str = 'items.default') -> str:
+        if options and options.get('profile_id'):
+            profile_id = str(options.get('profile_id') or profile_id)
+        opts = self.barcode_label_options(options, profile_id)
+        return barcode_label_service.labels_document_html(normalize_barcode_items(items or [], opts.get('profile_id', profile_id)), opts)
 
-    def barcode_labels_preview(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None) -> None:
-        self.preview_html(self.barcode_labels_html(items, options), parent, _tr("barcode_preview_title"))
+    def barcode_profile_labels_html(self, profile_id: str, items: List[Dict[str, Any]], options: Optional[Dict[str, Any]] = None) -> str:
+        return self.barcode_labels_html(items, options, profile_id=profile_id)
 
-    def barcode_labels_print(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None, printer_name: str = '') -> bool:
+    def barcode_labels_preview(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None, profile_id: str = 'items.default') -> None:
+        self.preview_html(self.barcode_labels_html(items, options, profile_id=profile_id), parent, _tr("barcode_preview_title"))
+
+    def barcode_profile_labels_preview(self, profile_id: str, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None) -> None:
+        self.barcode_labels_preview(items, parent, options, profile_id=profile_id)
+
+    def barcode_labels_print(self, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None, printer_name: str = '', profile_id: str = 'items.default') -> bool:
         # printer_name is retained for API compatibility; visible label printing
         # is browser HTML only.
         return self._print_button_render(
-            self.barcode_labels_html(items, options),
+            self.barcode_labels_html(items, options, profile_id=profile_id),
             parent,
             _tr("barcode_print_title"),
             document_type='barcode_labels',
         )
 
-    def barcode_labels_pdf(self, items: List[Dict[str, Any]], parent=None, default_name: str = "barcodes.pdf", options: Optional[Dict[str, Any]] = None) -> bool:
-        return self.save_pdf(self.barcode_labels_html(items, options), parent, default_name)
+    def barcode_profile_labels_print(self, profile_id: str, items: List[Dict[str, Any]], parent=None, options: Optional[Dict[str, Any]] = None) -> bool:
+        return self.barcode_labels_print_settings(items, parent, options, profile_id=profile_id)
 
-    def barcode_labels_png(self, items: List[Dict[str, Any]], parent=None, default_name: str = "barcodes.png", options: Optional[Dict[str, Any]] = None) -> bool:
-        return self.save_html_png(self.barcode_labels_html(items, options), parent, default_name)
+    def barcode_labels_pdf(self, items: List[Dict[str, Any]], parent=None, default_name: str = "barcodes.pdf", options: Optional[Dict[str, Any]] = None, profile_id: str = 'items.default') -> bool:
+        return self.save_pdf(self.barcode_labels_html(items, options, profile_id=profile_id), parent, default_name)
+
+    def barcode_labels_png(self, items: List[Dict[str, Any]], parent=None, default_name: str = "barcodes.png", options: Optional[Dict[str, Any]] = None, profile_id: str = 'items.default') -> bool:
+        return self.save_html_png(self.barcode_labels_html(items, options, profile_id=profile_id), parent, default_name)
 
     def invoice_html(self, invoice: Dict[str, Any], paper: str = 'default') -> str:
         return invoice_html(invoice, paper)

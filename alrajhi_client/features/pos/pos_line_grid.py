@@ -13,6 +13,10 @@ class POSLineGrid(TransactionLineGrid):
     def __init__(self, parent=None, identity: str = 'pos.lines'):
         super().__init__(pos_line_schema(), parent=parent, identity=identity)
         try:
+            self.set_column_contract("pos", "lines")
+        except Exception:
+            pass
+        try:
             self.setAlternatingRowColors(True)
             self.setSortingEnabled(False)
             self.setSelectionBehavior(self.SelectRows)

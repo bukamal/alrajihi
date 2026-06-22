@@ -13,6 +13,10 @@ class RestaurantOrderGrid(TransactionLineGrid):
     def __init__(self, parent=None, identity: str = 'restaurant.order.lines'):
         super().__init__(restaurant_order_schema(), parent=parent, identity=identity)
         try:
+            self.set_column_contract("restaurant", "order_lines")
+        except Exception:
+            pass
+        try:
             self.setAlternatingRowColors(True)
             self.setSortingEnabled(False)
             self.setSelectionBehavior(self.SelectRows)

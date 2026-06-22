@@ -434,6 +434,8 @@ def _pos_receipt_display_payload(invoice: Dict[str, Any], settings: Dict[str, An
     payload['display_currency'] = display_currency
     payload['currency'] = display_currency
     payload['currency_code'] = display_currency
+    payload['table_contract_id'] = payload.get('table_contract_id') or 'pos.lines'
+    payload['line_table_contract_id'] = payload.get('line_table_contract_id') or 'pos.lines'
     payload['_print_context'] = 'pos_receipt'
     payload.setdefault('type', 'sale')
     payload.setdefault('status', payload.get('payment_status') or 'paid')
@@ -713,6 +715,105 @@ def _table(headers: List[str], rows: List[List[Any]], empty_text: str = _tr("pri
     return f"<table class='data-table' dir='{table_dir}'><thead><tr>{head}</tr></thead><tbody>{''.join(body)}</tbody></table>"
 
 
+
+
+def _contract_columns_for_print(contract_id: str):
+    try:
+        from workspace.tables import columns_for_output
+        return list(columns_for_output(contract_id, "print"))
+    except Exception:
+        return []
+
+
+def _contract_headers(contract_id: str) -> List[str]:
+    headers = []
+    for column in _contract_columns_for_print(contract_id):
+        label_key = getattr(column, "label_key", "") or getattr(column, "key", "")
+        headers.append("#" if label_key == "#" else _tr(label_key))
+    return headers
+
+
+def _variant_display(line: Dict[str, Any]) -> Any:
+    value = _line_value(line, "variant", "variant_name", "variant_label", "matched_variant", default="")
+    if value:
+        if isinstance(value, dict):
+            return value.get("label") or value.get("name") or " / ".join(str(value.get(k) or "") for k in ("color", "size") if value.get(k))
+        return value
+    color = _line_value(line, "color", "variant_color", default="")
+    size = _line_value(line, "size", "variant_size", default="")
+    return " / ".join(str(x) for x in (color, size) if x not in (None, ""))
+
+
+def _contract_cell_value(column_key: str, line: Dict[str, Any], row_number: int, currency_code: Optional[str], settings: Dict[str, Any], *, context: str = "") -> Any:
+    key = str(column_key or "")
+    if key == "row":
+        return row_number
+    if key == "barcode":
+        return _line_value(line, "barcode", "item_barcode", "code")
+    if key == "item":
+        return _line_value(line, "item_name", "name", "description")
+    if key == "variant":
+        return _variant_display(line)
+    if key == "unit":
+        return _line_value(line, "unit", "unit_display", "unit_name")
+    if key in {"qty", "quantity", "base_qty", "available", "original_qty", "previous_qty", "returnable_qty", "reorder_level", "line_count", "guests"}:
+        aliases = {
+            "qty": ("quantity", "qty"),
+            "quantity": ("quantity", "qty"),
+            "base_qty": ("base_qty", "quantity_in_base"),
+            "available": ("available", "available_qty"),
+            "original_qty": ("original_qty", "sold_qty", "purchased_qty"),
+            "previous_qty": ("previous_qty", "previous_return_qty"),
+            "returnable_qty": ("returnable_qty", "remaining_qty"),
+            "line_count": ("line_count", "lines_count"),
+            "guests": ("guests",),
+        }
+        return _format_quantity(_line_value(line, *aliases.get(key, (key,)), default=""), settings)
+    if key in {"price", "unit_price"}:
+        return _format_money(_line_value(line, "unit_price", "price", default="0"), currency_code, settings)
+    if key == "cost":
+        return _format_money(_line_value(line, "cost", "unit_cost", "purchase_price", "unit_price", "price", default="0"), currency_code, settings)
+    if key in {"total", "line_total"}:
+        return _format_money(_line_value(line, "total", "line_total", default=_line_amount(line)), currency_code, settings)
+    if key == "discount":
+        return _format_percent(_line_value(line, "discount_percent", "discount_pct", "discount", default="0"), settings)
+    if key == "tax":
+        return _format_percent(_line_value(line, "tax_percent", "tax_pct", "tax", default="0"), settings)
+    if key == "batch":
+        return _line_value(line, "batch", "batch_no", "lot", default="")
+    if key == "expiry":
+        return _line_value(line, "expiry", "expiry_date", default="")
+    if key == "notes":
+        return _line_value(line, "notes", "kitchen_label", default="")
+    if key == "reason":
+        return _line_value(line, "reason", default="")
+    if key == "restock":
+        return _line_value(line, "restock", "restocked", default="")
+    if key == "modifiers":
+        value = _line_value(line, "modifiers", "modifier_names", "options", default="")
+        if isinstance(value, (list, tuple)):
+            return "، ".join(str(v) for v in value if str(v).strip())
+        return value
+    if key == "status":
+        return _restaurant_status(_line_value(line, "status", "kitchen_status", "preparation_status", default=""))
+    if key == "barcode_scope":
+        return _line_value(line, "barcode_scope", default="")
+    if key == "original_invoice":
+        return _line_value(line, "original_invoice", "original_invoice_no", default="")
+    return _line_value(line, key, default="")
+
+
+def _contract_table(contract_id: str, lines: Iterable[Any], currency_code: Optional[str], settings: Dict[str, Any], *, context: str = "", empty_text: str = "") -> tuple[List[str], List[List[Any]]]:
+    columns = _contract_columns_for_print(contract_id)
+    if not columns:
+        return [], []
+    headers = ["#" if column.label_key == "#" else _tr(column.label_key) for column in columns]
+    rows: List[List[Any]] = []
+    for i, raw in enumerate(lines or [], 1):
+        line = raw if isinstance(raw, dict) else {}
+        rows.append([_contract_cell_value(column.key, line, i, currency_code, settings, context=context) for column in columns])
+    return headers, rows
+
 def _summary_cards(summary: Optional[Dict[str, Any]]) -> str:
     if not summary:
         return ""
@@ -863,29 +964,36 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
     currency_label = _currency_label(currency_code, settings)
 
     raw_lines: Iterable[Any] = invoice.get("lines") or invoice.get("items") or []
-    rows: List[List[Any]] = []
-    for i, raw in enumerate(raw_lines, 1):
-        line = raw if isinstance(raw, dict) else {}
-        if is_pos_receipt:
-            rows.append([
-                i,
-                _line_value(line, "item_name", "name", "description"),
-                _format_quantity(_line_value(line, "quantity", "qty"), settings),
-                _format_money(_line_value(line, "unit_price", "price"), currency_code, settings),
-                _format_money(_line_amount(line), currency_code, settings),
-            ])
-        else:
-            rows.append([
-                i,
-                _line_value(line, "barcode", "item_barcode", "code"),
-                _line_value(line, "item_name", "name", "description"),
-                _line_value(line, "unit", "unit_display", "unit_name"),
-                _format_quantity(_line_value(line, "quantity", "qty"), settings),
-                _format_money(_line_value(line, "unit_price", "price"), currency_code, settings),
-                _format_percent(_line_value(line, "discount_percent", "discount_pct", "discount", default="0"), settings),
-                _format_percent(_line_value(line, "tax_percent", "tax_pct", "tax", default="0"), settings),
-                _format_money(_line_amount(line), currency_code, settings),
-            ])
+    contract_id = (
+        invoice.get("line_table_contract_id")
+        or invoice.get("table_contract_id")
+        or ("pos.lines" if is_pos_receipt else ("purchase_invoices.lines" if inv_type == "purchase" else "sales_invoices.lines"))
+    )
+    table_headers, rows = _contract_table(str(contract_id or ""), raw_lines, currency_code, settings, context="pos" if is_pos_receipt else inv_type)
+    if not table_headers:
+        rows = []
+        for i, raw in enumerate(raw_lines, 1):
+            line = raw if isinstance(raw, dict) else {}
+            if is_pos_receipt:
+                rows.append([
+                    i,
+                    _line_value(line, "item_name", "name", "description"),
+                    _format_quantity(_line_value(line, "quantity", "qty"), settings),
+                    _format_money(_line_value(line, "unit_price", "price"), currency_code, settings),
+                    _format_money(_line_amount(line), currency_code, settings),
+                ])
+            else:
+                rows.append([
+                    i,
+                    _line_value(line, "barcode", "item_barcode", "code"),
+                    _line_value(line, "item_name", "name", "description"),
+                    _line_value(line, "unit", "unit_display", "unit_name"),
+                    _format_quantity(_line_value(line, "quantity", "qty"), settings),
+                    _format_money(_line_value(line, "unit_price", "price"), currency_code, settings),
+                    _format_percent(_line_value(line, "discount_percent", "discount_pct", "discount", default="0"), settings),
+                    _format_percent(_line_value(line, "tax_percent", "tax_pct", "tax", default="0"), settings),
+                    _format_money(_line_amount(line), currency_code, settings),
+                ])
 
     qr_html = ""
     if _bool_setting(settings, "show_qr", True):
@@ -900,13 +1008,15 @@ def invoice_html(invoice: Dict[str, Any], paper: str = "default") -> str:
         [(_tr("print_warehouse"), warehouse), (_tr("print_payment_method"), payment_method), (_tr("currency"), currency_label)],
         [(_tr("print_user"), user_name), (_tr("status"), status), ("", "")],
     ]
-    table_headers = ["#", _tr("print_barcode"), _tr("print_item"), _tr("print_unit"), _tr("print_quantity"), _tr("print_price"), _tr("print_discount_percent"), _tr("print_tax_percent"), _tr("print_total")]
+    if not table_headers:
+        table_headers = ["#", _tr("print_barcode"), _tr("print_item"), _tr("print_unit"), _tr("print_quantity"), _tr("print_price"), _tr("print_discount_percent"), _tr("print_tax_percent"), _tr("print_total")]
     if is_pos_receipt:
         meta_rows = [
             [(_tr("print_document_number"), ref), (_tr("print_document_date"), date)],
             [(_tr("print_payment_method"), payment_method), (_tr("currency"), currency_label)],
         ]
-        table_headers = ["#", _tr("print_item"), _tr("print_quantity"), _tr("print_price"), _tr("print_total")]
+        if not table_headers:
+            table_headers = ["#", _tr("print_item"), _tr("print_quantity"), _tr("print_price"), _tr("print_total")]
 
     body = f"""
     {_company_header(settings, title)}
@@ -1117,22 +1227,26 @@ def restaurant_receipt_html(data: Dict[str, Any], paper: str = "default") -> str
     guests = session.get("guests") or ""
     waiter = session.get("waiter_name") or session.get("waiter_id") or session.get("user_name") or ""
 
-    rows: List[List[Any]] = []
-    for i, line in enumerate(lines, 1):
-        total = line.get("total") or line.get("line_total") or _restaurant_line_total(line)
-        status = line.get("kitchen_status") or line.get("status") or ""
-        item = _line_value(line, "item_name", "name", "description")
-        unit = _line_value(line, "unit", "unit_name", default="")
-        qty = _restaurant_qty(_line_value(line, "quantity", "qty", default="0"), settings)
-        qty_cell = f"{qty} {_s(unit)}".strip()
-        rows.append([
-            i,
-            item,
-            qty_cell,
-            _restaurant_money(_line_value(line, "unit_price", "price", default="0"), currency_code, settings),
-            _restaurant_money(total, currency_code, settings),
-            _restaurant_status(status),
-        ])
+    contract_id = (data or {}).get("line_table_contract_id") or (data or {}).get("table_contract_id") or session.get("line_table_contract_id") or "restaurant.order_lines"
+    table_headers, rows = _contract_table(str(contract_id or "restaurant.order_lines"), lines, currency_code, settings, context="restaurant")
+    if not table_headers:
+        rows = []
+        for i, line in enumerate(lines, 1):
+            total = line.get("total") or line.get("line_total") or _restaurant_line_total(line)
+            status = line.get("kitchen_status") or line.get("status") or ""
+            item = _line_value(line, "item_name", "name", "description")
+            unit = _line_value(line, "unit", "unit_name", default="")
+            qty = _restaurant_qty(_line_value(line, "quantity", "qty", default="0"), settings)
+            qty_cell = f"{qty} {_s(unit)}".strip()
+            rows.append([
+                i,
+                item,
+                qty_cell,
+                _restaurant_money(_line_value(line, "unit_price", "price", default="0"), currency_code, settings),
+                _restaurant_money(total, currency_code, settings),
+                _restaurant_status(status),
+            ])
+        table_headers = ["#", _tr("print_item"), _tr("print_quantity"), _tr("print_price"), _tr("print_total"), _tr("restaurant_column_status")]
 
     payment_rows: List[List[Any]] = []
     for i, pay in enumerate(payments, 1):
@@ -1170,7 +1284,7 @@ def restaurant_receipt_html(data: Dict[str, Any], paper: str = "default") -> str
         [(_tr("restaurant_opened_at"), opened), (_tr("restaurant_closed_at"), closed), (_tr("restaurant_waiter"), waiter)],
         [(_tr("print_currency"), _currency_label(currency_code, settings)), (_tr("restaurant_order_state"), _restaurant_status(session.get("order_state") or session.get("status") or "")), (_tr("print_notes"), session.get("notes") or "")],
     ])}
-    {_table(["#", _tr("print_item"), _tr("print_quantity"), _tr("print_price"), _tr("print_total"), _tr("restaurant_column_status")], rows, _tr("print_no_lines"))}
+    {_table(table_headers, rows, _tr("print_no_lines"))}
     {_totals_table([
         (_tr("print_subtotal"), subtotal, ""),
         (_tr("print_discount"), discount, ""),
@@ -1202,16 +1316,20 @@ def restaurant_kitchen_ticket_html(data: Dict[str, Any], paper: str = "default")
     station = ticket.get("station_name") or ticket.get("station_code") or ""
     elapsed = ticket.get("elapsed_minutes") or ticket.get("wait_minutes") or ""
     overdue_badge = f"<div class='notes-box'><strong>⚠ {_s(_tr('restaurant.kds.overdue'))}</strong></div>" if ticket.get("is_overdue") else ""
-    rows: List[List[Any]] = []
-    for i, line in enumerate(lines, 1):
-        qty = _restaurant_qty(_line_value(line, "quantity", "qty", default="1"), settings)
-        unit = _line_value(line, "unit", "unit_name", default="")
-        rows.append([
-            i,
-            _line_value(line, "item_name", "name"),
-            f"{qty} {_s(unit)}".strip(),
-            _line_value(line, "notes", "kitchen_label", default=""),
-        ])
+    contract_id = ticket.get("line_table_contract_id") or ticket.get("table_contract_id") or "restaurant.kds_lines"
+    table_headers, rows = _contract_table(str(contract_id or "restaurant.kds_lines"), lines, _restaurant_payload_currency(data, settings), settings, context="kitchen")
+    if not table_headers:
+        rows = []
+        for i, line in enumerate(lines, 1):
+            qty = _restaurant_qty(_line_value(line, "quantity", "qty", default="1"), settings)
+            unit = _line_value(line, "unit", "unit_name", default="")
+            rows.append([
+                i,
+                _line_value(line, "item_name", "name"),
+                f"{qty} {_s(unit)}".strip(),
+                _line_value(line, "notes", "kitchen_label", default=""),
+            ])
+        table_headers = ["#", _tr("print_item"), _tr("print_quantity"), _tr("print_notes")]
     body = f"""
     {_company_header(settings, title)}
     {overdue_badge}
@@ -1220,7 +1338,7 @@ def restaurant_kitchen_ticket_html(data: Dict[str, Any], paper: str = "default")
         [(_tr("restaurant_sent_at"), ticket.get("sent_at") or ticket.get("created_at") or ""), (_tr("restaurant_ticket_status"), _restaurant_status(status)), (_tr("restaurant.kds.minutes"), elapsed)],
         [(_tr("print_notes"), ticket.get("notes") or ""), (_tr("restaurant_priority"), ticket.get("priority") or ""), (_tr("restaurant_order_state"), _restaurant_status(ticket.get("order_state") or ""))],
     ])}
-    {_table(["#", _tr("print_item"), _tr("print_quantity"), _tr("print_notes")], rows, _tr("print_no_lines"))}
+    {_table(table_headers, rows, _tr("print_no_lines"))}
     {_footer(settings, _tr("restaurant_kitchen_ticket_footer"))}
     """
     return base_document(title, body, paper, settings)

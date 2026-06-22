@@ -3,15 +3,17 @@ from __future__ import annotations
 
 """POS line-grid schema.
 
-The POS screen is touch/cashier-oriented, but it must use the same column schema
-concept used by transaction documents.  This keeps column keys, required-column
-rules, presets, i18n labels, and future restaurant/POS alignment consistent.
+The POS screen is touch/cashier-oriented, but it must use the same universal
+column contract used by transaction documents and operational restaurant/cafe
+screens.  Phase 335 binds POS display/print/export columns to the central
+registry while preserving the legacy TransactionColumn consumer API.
 """
 
 from features.transactions.grids.transaction_column_schema import TransactionColumn
+from features.transactions.grids.universal_column_adapter import transaction_columns_from_contract
 
 
-def pos_line_schema() -> list[TransactionColumn]:
+def _fallback_pos_line_schema() -> list[TransactionColumn]:
     return [
         TransactionColumn("row", "#", True, True, True, 46, editable=False),
         TransactionColumn("barcode", "transaction_column_barcode", False, True, False, 140, editable=False),
@@ -25,3 +27,7 @@ def pos_line_schema() -> list[TransactionColumn]:
         TransactionColumn("available", "transaction_column_available", False, True, False, 110, numeric=True, editable=False),
         TransactionColumn("barcode_scope", "pos_column_barcode_scope", False, False, False, 120, editable=False),
     ]
+
+
+def pos_line_schema() -> list[TransactionColumn]:
+    return transaction_columns_from_contract("pos", "lines", _fallback_pos_line_schema())

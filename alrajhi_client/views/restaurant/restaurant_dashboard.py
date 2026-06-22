@@ -15,6 +15,7 @@ from i18n.translator import qt_layout_direction, translate as _
 from views.restaurant.table_map_widget import RestaurantTableMapWidget
 from views.restaurant.restaurant_pos_widget import RestaurantPOSWidget
 from views.restaurant.kitchen_display_widget import KitchenDisplayWidget
+from views.dialogs.batch_print_dialog import BatchPrintDialog
 from views.restaurant.restaurant_analytics_widget import RestaurantAnalyticsWidget
 from workspace.operational.operational_shell_contract import bind_operational_shell
 
@@ -204,7 +205,11 @@ class RestaurantDashboard(QWidget):
         self.mode_badge.setObjectName("restaurantModeBadge")
         self.refresh_button = QPushButton("↻  " + _("common.refresh"))
         self.refresh_button.setObjectName("restaurantRefreshButton")
-        for button in (self.order_mode_btn, self.cafe_mode_btn, self.kitchen_mode_btn, self.tables_mode_btn, self.analytics_mode_btn, self.refresh_button):
+        self.menu_barcode_btn = QPushButton("🏷️  " + _("barcode.restaurant_menu_labels"))
+        self.menu_barcode_btn.setObjectName("restaurantMenuBarcodeButton")
+        self.table_barcode_btn = QPushButton("▦  " + _("barcode.restaurant_table_labels"))
+        self.table_barcode_btn.setObjectName("restaurantTableBarcodeButton")
+        for button in (self.order_mode_btn, self.cafe_mode_btn, self.kitchen_mode_btn, self.tables_mode_btn, self.analytics_mode_btn, self.refresh_button, self.menu_barcode_btn, self.table_barcode_btn):
             button.setMinimumHeight(44)
         self.analytics_mode_btn.setVisible(bool(self._ui_settings.get("show_analytics_panel")) and not self._standalone_cafe_workspace)
         self.cafe_mode_btn.setVisible(False)
@@ -213,12 +218,16 @@ class RestaurantDashboard(QWidget):
             self.kitchen_mode_btn.setVisible(False)
             self.tables_mode_btn.setVisible(False)
             self.analytics_mode_btn.setVisible(False)
+            self.menu_barcode_btn.setVisible(False)
+            self.table_barcode_btn.setVisible(False)
         header.addWidget(self.order_mode_btn)
         # Cafe is intentionally not added to the restaurant header after Phase 314.
         header.addWidget(self.kitchen_mode_btn)
         header.addWidget(self.tables_mode_btn)
         header.addWidget(self.analytics_mode_btn)
         header.addWidget(self.mode_badge)
+        header.addWidget(self.menu_barcode_btn)
+        header.addWidget(self.table_barcode_btn)
         header.addWidget(self.refresh_button)
         layout.addWidget(header_card)
 
@@ -289,7 +298,11 @@ class RestaurantDashboard(QWidget):
         self.cafe_preparation_btn.setObjectName("restaurantCafePreparationButton")
         self.cafe_report_btn = QPushButton("📊  " + _("restaurant.cafe_shift_report"))
         self.cafe_report_btn.setObjectName("restaurantCafeReportButton")
-        for button in (self.new_cafe_order_btn, self.cafe_preparation_btn, self.cafe_report_btn):
+        self.cafe_products_barcode_btn = QPushButton("🏷️  " + _("barcode.cafe_product_labels"))
+        self.cafe_products_barcode_btn.setObjectName("cafeProductsBarcodeButton")
+        self.cafe_modifiers_barcode_btn = QPushButton("☕  " + _("barcode.cafe_modifier_labels"))
+        self.cafe_modifiers_barcode_btn.setObjectName("cafeModifiersBarcodeButton")
+        for button in (self.new_cafe_order_btn, self.cafe_preparation_btn, self.cafe_report_btn, self.cafe_products_barcode_btn, self.cafe_modifiers_barcode_btn):
             button.setMinimumHeight(42)
             cafe_shell.addWidget(button)
         self.cafe_shell_card.setVisible(False)
@@ -371,6 +384,10 @@ class RestaurantDashboard(QWidget):
         self.tables_mode_btn.clicked.connect(self.show_tables_mode)
         self.analytics_mode_btn.clicked.connect(self.show_analytics_mode)
         self.refresh_button.clicked.connect(self.reload)
+        self.menu_barcode_btn.clicked.connect(self.print_restaurant_menu_barcodes)
+        self.table_barcode_btn.clicked.connect(self.print_restaurant_table_barcodes)
+        self.cafe_products_barcode_btn.clicked.connect(self.print_cafe_product_barcodes)
+        self.cafe_modifiers_barcode_btn.clicked.connect(self.print_cafe_modifier_barcodes)
         self.reserve_table_btn.clicked.connect(self.reserve_table)
         self.transfer_table_btn.clicked.connect(self.transfer_current_session)
         self.merge_table_btn.clicked.connect(self.merge_into_current_session)
@@ -382,6 +399,24 @@ class RestaurantDashboard(QWidget):
         else:
             self.show_order_mode()
         self.reload()
+
+    def _open_barcode_batch_dialog(self, profile_id: str) -> None:
+        try:
+            BatchPrintDialog(self, profile_id=profile_id).exec()
+        except Exception as exc:
+            self.status.setText(str(exc))
+
+    def print_restaurant_menu_barcodes(self) -> None:
+        self._open_barcode_batch_dialog("restaurant.menu_items")
+
+    def print_restaurant_table_barcodes(self) -> None:
+        self._open_barcode_batch_dialog("restaurant.table_labels")
+
+    def print_cafe_product_barcodes(self) -> None:
+        self._open_barcode_batch_dialog("cafe.products")
+
+    def print_cafe_modifier_barcodes(self) -> None:
+        self._open_barcode_batch_dialog("cafe.modifier_labels")
 
     def _restaurant_ui_settings(self) -> dict:
         try:

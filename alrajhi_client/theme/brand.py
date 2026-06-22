@@ -15,9 +15,34 @@ BRAND = {
     'radius_sm': 8,
     'radius_md': 12,
     'radius_lg': 18,
+    'spacing_xs': 4,
     'spacing_sm': 8,
     'spacing_md': 14,
     'spacing_lg': 24,
+    # Phase 332: central typography and shell metrics.  New widgets should
+    # consume these values instead of introducing local font-size/height
+    # constants.  Values are intentionally conservative so the UI becomes
+    # readable without breaking dense accounting workflows.
+    'font_size_body_pt': 11,
+    'font_size_table_pt': 10,
+    'font_size_caption_px': 11,
+    'font_size_value_px': 13,
+    'font_size_title_px': 20,
+    'font_size_hero_px': 25,
+    'nav_height': 74,
+    'nav_icon_size': 26,
+    'nav_button_min_width': 76,
+    'nav_button_max_width': 112,
+    'nav_button_home_width': 64,
+    'nav_button_height': 64,
+    'nav_font_px': 12,
+    'action_bar_height': 52,
+    'action_button_icon': 18,
+    'action_button_font_px': 12,
+    'action_button_min_height': 38,
+    'table_header_padding': 10,
+    'table_cell_padding': 7,
+    'input_min_height': 34,
 }
 
 # Product palette extracted into stable design tokens.

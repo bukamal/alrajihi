@@ -8,7 +8,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 
 from currency import currency
 from i18n import translate
-from .restaurant_order_schema import restaurant_order_schema
+from .restaurant_order_schema import cafe_order_schema, restaurant_order_schema
 from core.money_display_policy import policy_for
 
 
@@ -23,9 +23,19 @@ class RestaurantOrderModel(QAbstractTableModel):
 
     def __init__(self, lines: list[dict[str, Any]] | None = None, display_currency: str | None = None, parent=None):
         super().__init__(parent)
+        self._order_context = "restaurant"
         self.columns = restaurant_order_schema()
         self.lines: list[dict[str, Any]] = list(lines or [])
         self.display_currency = display_currency or currency.get_display_currency()
+
+    def set_order_context(self, context: str) -> None:
+        context = "cafe" if str(context or "").strip().lower() == "cafe" else "restaurant"
+        if context == self._order_context:
+            return
+        self.beginResetModel()
+        self._order_context = context
+        self.columns = cafe_order_schema() if context == "cafe" else restaurant_order_schema()
+        self.endResetModel()
 
     def set_lines(self, lines: list[dict[str, Any]] | None) -> None:
         self.beginResetModel()

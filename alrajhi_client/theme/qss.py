@@ -10,12 +10,23 @@ def build_global_qss(colors: dict) -> str:
     radius_md = BRAND['radius_md']
     radius_lg = BRAND['radius_lg']
     font = BRAND['font_family']
+    body_pt = BRAND.get('font_size_body_pt', 11)
+    table_pt = BRAND.get('font_size_table_pt', 10)
+    caption_px = BRAND.get('font_size_caption_px', 11)
+    value_px = BRAND.get('font_size_value_px', 13)
+    title_px = BRAND.get('font_size_title_px', 20)
+    hero_px = BRAND.get('font_size_hero_px', 25)
+    nav_px = BRAND.get('nav_font_px', 12)
+    action_px = BRAND.get('action_button_font_px', 12)
+    input_min = BRAND.get('input_min_height', 34)
+    table_header_padding = BRAND.get('table_header_padding', 10)
+    table_cell_padding = BRAND.get('table_cell_padding', 7)
     return f"""
         QMainWindow, QDialog, QWidget {{
             background-color: {colors['bg_window']};
             color: {colors['text_primary']};
             font-family: {font};
-            font-size: 10pt;
+            font-size: {body_pt}pt;
         }}
         QFrame#sidebar, QFrame#MainFrame, QFrame#card, QGroupBox {{
             background-color: {colors['bg_panel']};
@@ -38,7 +49,7 @@ def build_global_qss(colors: dict) -> str:
         QLabel#success {{ color: {colors['success']}; }}
         QLabel#fieldError {{
             color: {colors['danger']};
-            font-size: 11px;
+            font-size: {caption_px}px;
             padding: 1px 4px 5px 4px;
         }}
         QPushButton {{
@@ -61,7 +72,7 @@ def build_global_qss(colors: dict) -> str:
             background-color: {colors['primary']};
             color: white;
             border: none;
-            font-size: 14px;
+            font-size: {value_px}px;
             font-weight: bold;
             padding: 10px 20px;
             min-height: 40px;
@@ -84,6 +95,7 @@ def build_global_qss(colors: dict) -> str:
             border: 1px solid {colors['border']};
             border-radius: {radius_sm}px;
             padding: 8px;
+            min-height: {input_min}px;
             selection-background-color: {colors['selection_bg']};
             selection-color: {colors['selection_text']};
         }}
@@ -108,7 +120,7 @@ def build_global_qss(colors: dict) -> str:
             selection-color: {colors['selection_text']};
         }}
         QTableView::item, QTableWidget::item, QTreeView::item, QTreeWidget::item {{
-            padding: 6px;
+            padding: {table_cell_padding}px;
             border-bottom: 1px solid {colors['border']};
         }}
         QTableView::item:selected, QTableWidget::item:selected,
@@ -137,7 +149,7 @@ def build_global_qss(colors: dict) -> str:
         QHeaderView::section {{
             background-color: {colors['header_bg']};
             color: {colors['header_text']};
-            padding: 8px;
+            padding: {table_header_padding}px;
             border: none;
             border-bottom: 1px solid {colors['border']};
             font-weight: bold;
@@ -217,7 +229,7 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['header_text']};
             border: none;
             border-left: 1px solid {colors['border']};
-            padding: 8px;
+            padding: {table_header_padding}px;
             font-weight: bold;
         }}
 
@@ -225,8 +237,10 @@ def build_global_qss(colors: dict) -> str:
             background-color: {colors['bg_panel']};
             color: {colors['text_primary']};
             border-bottom: 1px solid {colors['border']};
+            font-size: {nav_px}px;
+            font-weight: 800;
         }}
-        QMenuBar::item {{ padding: 7px 10px; border-radius: 6px; }}
+        QMenuBar::item {{ padding: 10px 14px; border-radius: 8px; }}
         QMenuBar::item:selected, QMenu::item:selected {{ background-color: {colors['primary']}; color: white; }}
         QMenu {{
             background-color: {colors['bg_panel']};
@@ -245,7 +259,8 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['text_primary']};
             border: 1px solid transparent;
             border-radius: {radius_sm}px;
-            padding: 6px;
+            padding: 7px 9px;
+            font-size: {action_px}px;
             font-weight: bold;
         }}
         QToolButton:hover {{
@@ -258,13 +273,13 @@ def build_global_qss(colors: dict) -> str:
             border-radius: {radius_lg}px;
         }}
         QLabel#heroTitle {{
-            font-size: 25px;
+            font-size: {hero_px}px;
             font-weight: 800;
             color: {colors['text_primary']};
         }}
         QLabel#heroSubtitle, QLabel#sectionHint {{
             color: {colors['text_secondary']};
-            font-size: 12px;
+            font-size: {action_px}px;
         }}
         QLabel#statusPill {{
             border-radius: 13px;
@@ -476,7 +491,7 @@ def build_global_qss(colors: dict) -> str:
         QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantAnalyticsModeButton,
         QWidget#restaurantDashboard[restaurant_layout_mode="compact"] QPushButton#restaurantRefreshButton {{
             padding: 6px 10px;
-            font-size: 12px;
+            font-size: {action_px}px;
         }}
         QLabel#restaurantMenuSectionTitle {{
             font-size: 15px;
@@ -573,7 +588,7 @@ def build_global_qss(colors: dict) -> str:
         }}
         QLabel#restaurantCafeWorkspaceSubtitle {{
             color: {colors['text_secondary']};
-            font-size: 12px;
+            font-size: {action_px}px;
             font-weight: 800;
         }}
         QPushButton#restaurantCafeQuickOrderButton,
@@ -616,7 +631,7 @@ def build_global_qss(colors: dict) -> str:
         }}
         QLabel#restaurantCafeAddonGroupTitle {{
             color: {colors['primary']};
-            font-size: 14px;
+            font-size: {value_px}px;
             font-weight: 900;
             padding-top: 8px;
         }}
@@ -727,7 +742,7 @@ def build_global_qss(colors: dict) -> str:
         QLabel#restaurantOrderSummaryLabel {{
             color: {colors['text_secondary']};
             font-weight: 800;
-            font-size: 12px;
+            font-size: {action_px}px;
         }}
         QLabel#restaurantOrderSummaryValue_subtotal,
         QLabel#restaurantOrderSummaryValue_discount,
@@ -776,18 +791,18 @@ def build_global_qss(colors: dict) -> str:
             font-size: 15px;
         }}
         QWidget#restaurantPOSWidget[restaurant_compact_mode="true"] QLabel#restaurantSessionMeta {{
-            font-size: 11px;
+            font-size: {caption_px}px;
         }}
         QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] {{
             padding: 0px;
         }}
         QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] QLabel#restaurantOrderSummaryLabel {{
-            font-size: 11px;
+            font-size: {caption_px}px;
         }}
         QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] QLabel#restaurantOrderSummaryValue_total,
         QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] QLabel#restaurantOrderSummaryValue_paid,
         QFrame#restaurantOrderSummaryCard[restaurant_compact_mode="true"] QLabel#restaurantOrderSummaryValue_remaining {{
-            font-size: 13px;
+            font-size: {value_px}px;
         }}
 
         QLabel#restaurantKDSCounter_sent,
@@ -817,7 +832,7 @@ def build_global_qss(colors: dict) -> str:
         }}
         QLabel#TransactionInlineHeaderLabel {{
             color: {colors['text_secondary']};
-            font-size: 9px;
+            font-size: {caption_px}px;
             font-weight: 800;
             padding: 0px 1px;
         }}
@@ -833,12 +848,12 @@ def build_global_qss(colors: dict) -> str:
         }}
         QLabel#TransactionSummaryCaption {{
             color: {colors['text_secondary']};
-            font-size: 9px;
+            font-size: {caption_px}px;
             font-weight: 800;
         }}
         QLabel#TransactionSummaryValue {{
             color: {colors['text_primary']};
-            font-size: 11px;
+            font-size: {caption_px}px;
             font-weight: 900;
         }}
 
@@ -937,7 +952,7 @@ def build_global_qss(colors: dict) -> str:
             padding: 0px;
         }}
         QWidget#restaurantPOSWidget QTableView#restaurantOrderLines {{
-            font-size: 14px;
+            font-size: {value_px}px;
         }}
     """
 

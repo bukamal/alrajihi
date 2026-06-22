@@ -1,0 +1,16 @@
+{
+  "phase": 340,
+  "checks": 20,
+  "categories": {
+    "registry": 1,
+    "actions": 2,
+    "navigation": 1,
+    "columns": 8,
+    "design": 1,
+    "keyboard": 2,
+    "barcode": 5
+  },
+  "issues": 0,
+  "ready": true,
+  "issues_detail": []
+}

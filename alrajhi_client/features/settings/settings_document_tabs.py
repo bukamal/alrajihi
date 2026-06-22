@@ -399,6 +399,27 @@ class PrintingSettingsTab(SettingsSectionDocumentTab):
     )
 
 
+class BarcodeProfilesSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.barcode_profiles'
+    fields = (
+        ('printing/barcode/items/default/label_size', 'barcode.items.default.label_size', 'choice:40x30|50x30|60x40|80mm'),
+        ('printing/barcode/items/default/columns', 'barcode.items.default.columns', 'int'),
+        ('printing/barcode/items/default/show_price', 'barcode.show_price', 'bool'),
+        ('printing/barcode/apparel/variant_labels/label_size', 'barcode.apparel.variant_labels.label_size', 'choice:40x30|50x30|60x40|80mm'),
+        ('printing/barcode/apparel/variant_labels/columns', 'barcode.apparel.variant_labels.columns', 'int'),
+        ('printing/barcode/apparel/variant_labels/show_variant_color_size', 'barcode.show_variant_color_size', 'bool'),
+        ('printing/barcode/apparel/variant_labels/show_variant_code', 'barcode.show_variant_code', 'bool'),
+        ('printing/barcode/restaurant/menu_items/label_size', 'barcode.restaurant.menu_items.label_size', 'choice:40x30|50x30|60x40|80mm'),
+        ('printing/barcode/restaurant/menu_items/show_section', 'barcode.show_section', 'bool'),
+        ('printing/barcode/restaurant/table_labels/label_size', 'barcode.restaurant.table_labels.label_size', 'choice:40x30|50x30|60x40|80mm'),
+        ('printing/barcode/restaurant/table_labels/show_table_zone', 'barcode.show_table_zone', 'bool'),
+        ('printing/barcode/cafe/products/label_size', 'barcode.cafe.products.label_size', 'choice:40x30|50x30|60x40|80mm'),
+        ('printing/barcode/cafe/products/show_size', 'barcode.show_size', 'bool'),
+        ('printing/barcode/cafe/modifier_labels/label_size', 'barcode.cafe.modifier_labels.label_size', 'choice:40x30|50x30|60x40|80mm'),
+        ('printing/barcode/cafe/modifier_labels/show_modifier_group', 'barcode.show_modifier_group', 'bool'),
+    )
+
+
 class UISettingsTab(SettingsSectionDocumentTab):
     section_key = 'settings.ui'
     fields = (
@@ -436,6 +457,7 @@ SETTINGS_SECTION_TABS = {
     'cafe': CafeSettingsTab,
     'apparel': ApparelSettingsTab,
     'printing': PrintingSettingsTab,
+    'barcode_profiles': BarcodeProfilesSettingsTab,
     'users': UsersSettingsTab,
     'ui': UISettingsTab,
     'security': SecuritySettingsTab,

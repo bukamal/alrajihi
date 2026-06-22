@@ -123,6 +123,16 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (328, "DASHBOARD_POS_TRANSACTION_UX_POLISH"),
         (329, "PURCHASE_VARIANT_COST_CURRENCY_HOTFIX"),
         (330, "PURCHASE_APPAREL_INHERITED_COST_RATE_FALLBACK"),
+        (331, "UI_REGISTRY_AND_SHELL_MANIFEST"),
+        (332, "DESIGN_TOKENS_TYPOGRAPHY_NORMALIZATION"),
+        (333, "MAIN_MENU_ACTION_BAR_CONTRACT"),
+        (334, "UNIVERSAL_COLUMN_CONTRACT_FOUNDATION"),
+        (335, "OPERATIONAL_COLUMN_CONTRACT_INTEGRATION"),
+        (336, "PRINTING_EXPORT_COLUMN_MAPPING"),
+        (337, "EDITABLE_TABLE_KEYBOARD_STANDARD"),
+        (338, "UNIFIED_BARCODE_PRINTING_PROFILES"),
+        (339, "BARCODE_MULTI_PRINT_UI"),
+        (340, "FINAL_UX_REGRESSION_GUARDS"),
     ]
 )
 
@@ -211,6 +221,16 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (328, "dashboard_pos_transaction_ux_polish"),
         (329, "purchase_variant_cost_currency_hotfix"),
         (330, "purchase_apparel_inherited_cost_rate_fallback"),
+        (331, "ui_registry_shell_manifest"),
+        (332, "design_tokens_typography_normalization"),
+        (333, "main_menu_action_bar_contract"),
+        (334, "universal_column_contract_foundation"),
+        (335, "operational_column_contract_integration"),
+        (336, "printing_export_column_mapping"),
+        (337, "editable_table_keyboard_standard"),
+        (338, "unified_barcode_printing_profiles"),
+        (339, "barcode_multi_print_ui"),
+        (340, "final_ux_regression_guards"),
     ]
 )
 
@@ -280,6 +300,18 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("dashboard_pos_transaction_ux_polish", "ui", "Dashboard, POS and transaction header UX polish", "tests/test_phase328_dashboard_pos_transaction_ux_polish.py", phase=328),
     ReleaseGateCheck("purchase_variant_cost_currency_hotfix", "materials", "Purchase invoice apparel variant inherited cost is not re-converted", "tests/test_phase329_purchase_variant_cost_currency_hotfix.py", phase=329),
     ReleaseGateCheck("purchase_apparel_inherited_cost_rate_fallback", "materials", "Purchase invoice apparel inherited cost uses rate fallback for SYP display", "tests/test_phase330_purchase_apparel_inherited_cost_rate_fallback.py", phase=330),
+    ReleaseGateCheck("ui_registry_shell_manifest", "ui", "UI registry and shell manifest foundation", "tests/test_phase331_ui_registry_shell_manifest.py", phase=331),
+    ReleaseGateCheck("design_tokens_typography_normalization", "ui", "Design tokens and typography normalization", "tests/test_phase332_design_tokens_typography_normalization.py", phase=332),
+    ReleaseGateCheck("main_menu_action_bar_contract", "shell", "Main menu/action bar contract", "tests/test_phase333_main_menu_action_bar_contract.py", phase=333),
+    ReleaseGateCheck("universal_column_contract_foundation", "ui", "Universal column contract foundation", "tests/test_phase334_universal_column_contract_foundation.py", phase=334),
+    ReleaseGateCheck("operational_column_contract_integration", "ui", "Restaurant/Cafe/POS/Apparel column contract integration", "tests/test_phase335_operational_column_contract_integration.py", phase=335),
+    ReleaseGateCheck("printing_export_column_mapping", "printing", "Print/export column mapping", "tests/test_phase336_printing_export_column_mapping.py", phase=336),
+    ReleaseGateCheck("editable_table_keyboard_standard", "ui", "Editable table keyboard standard", "tests/test_phase337_editable_table_keyboard_standard.py", phase=337),
+    ReleaseGateCheck("unified_barcode_printing_profiles", "printing", "Unified barcode printing profiles", "tests/test_phase338_unified_barcode_printing_profiles.py", phase=338),
+    ReleaseGateCheck("barcode_multi_print_ui", "printing", "Barcode multi-print UI for items/apparel/restaurant/cafe", "tests/test_phase339_barcode_multi_print_ui.py", phase=339),
+    ReleaseGateCheck("final_ux_regression_guards", "quality", "Final UX regression guard for shell/actions/columns/keyboard/barcode", "tools/phase340_final_ux_regression_guard.py", "tools/audit_outputs/final_ux_regression_matrix.csv", phase=340),
+    ReleaseGateCheck("settings_surface_contract", "settings", "Unified settings surface for columns and barcode profiles", "tools/phase341_settings_surface_guard.py", "tools/audit_outputs/settings_surface_matrix.csv", phase=341),
+    ReleaseGateCheck("settings_runtime_wiring", "settings", "Settings surface runtime wiring and column customizer integration", "tools/phase342_settings_runtime_wiring_guard.py", "tools/audit_outputs/settings_runtime_wiring_matrix.csv", phase=342),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

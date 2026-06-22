@@ -16,10 +16,11 @@ from PyQt5.QtWidgets import (
 )
 
 from i18n import translate
+from ui.table_keyboard_policy import StandardTableKeyboardMixin
 from views.widgets.components.table_preferences import TablePreferences
 
 
-class EditableSmartGrid(QTableWidget):
+class EditableSmartGrid(StandardTableKeyboardMixin, QTableWidget):
     """Standard editable grid for ERP line-entry tables.
 
     SmartTableView is the standard for read-only/model-backed tables. Some ERP
@@ -57,6 +58,7 @@ class EditableSmartGrid(QTableWidget):
         self.horizontalHeader().sectionMoved.connect(lambda *args: self._schedule_save_layout())
         self.verticalHeader().setDefaultSectionSize(34)
         self.setWordWrap(False)
+        self.init_standard_table_keyboard()
         self._install_shortcuts()
         QTimer.singleShot(0, self.restore_layout)
 

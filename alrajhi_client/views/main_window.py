@@ -39,33 +39,22 @@ from core.services.offline_queue_service import offline_queue_service
 from core.services.global_search_service import global_search_service
 from brand_assets import app_icon, logo_png, APP_DISPLAY_NAME_AR
 from workspace.navigation.module_visibility_policy import page_enabled, enabled_favorite_pages, settings_section_enabled
+from workspace.registry import (
+    page_factory_ids,
+    page_meta_keys,
+    page_navigation_groups,
+    page_manifest,
+    should_show_action_bar,
+    effective_action_keys_for_page,
+    navigation_menus,
+)
+from theme.brand import BRAND
 
-PAGE_META_KEYS = {
-    'dashboard': ('dashboard', 'home_breadcrumb'),
-    'pos': ('pos', 'nav_sales'),
-    'sales_invoices': ('sales_invoices', 'nav_sales'),
-    'purchase_invoices': ('purchase_invoices', 'nav_purchases'),
-    'items': ('items_inventory', 'nav_inventory'),
-    'categories': ('categories', 'nav_inventory'),
-    'warehouses': ('warehouses', 'nav_inventory'),
-    'branches': ('branches', 'nav_admin'),
-    'cashboxes': ('cashboxes', 'nav_finance'),
-    'customers': ('customers', 'nav_parties'),
-    'suppliers': ('suppliers', 'nav_parties'),
-    'vouchers': ('vouchers', 'nav_finance'),
-    'returns': ('sales_returns', 'nav_sales'),
-    'purchase_returns': ('purchase_returns', 'nav_purchases'),
-    'manufacturing': ('nav_manufacturing', 'nav_manufacturing'),
-    'reports': ('reports', 'reports'),
-    'settings': ('settings', 'nav_admin'),
-    'users': ('users', 'nav_users'),
-    'audit_log': ('audit_log', 'nav_users'),
-    'offline_queue': ('offline_queue', 'nav_admin'),
-    'monitoring': ('monitoring', 'nav_admin'),
-    'restaurant': ('restaurant.dashboard', 'nav_restaurant'),
-    'cafe': ('restaurant.cafe_workspace_title', 'nav_cafe'),
-    'apparel': ('apparel.workspace_title', 'nav_apparel'),
-}
+# Phase 331: page metadata is now owned by the central UI registry so
+# titles, breadcrumbs, navigation groups, shell action-bar rules and future
+# column/barcode contracts cannot drift across MainWindow and feature modules.
+PAGE_META_KEYS = page_meta_keys()
+# Phase 316/313 compatibility markers: 'apparel': ('apparel.workspace_title', 'nav_apparel') ; ('apparel', ApparelWorkspaceWidget) ; translate('apparel.workspace_title') ; page_enabled('apparel') ; 'cafe': ('restaurant.cafe_workspace_title', 'nav_cafe') ; ('cafe', CafeWorkspaceWidget) ; page_enabled('cafe') ; translate('nav_cafe')
 
 
 
@@ -108,33 +97,64 @@ GLOBAL_SEARCH_PLACEHOLDERS = {
     'monitoring': 'context_search_monitoring_placeholder',
 }
 
-NAV_GROUP_BY_PAGE = {
-    'dashboard': 'الرئيسية',
-    'pos': 'المبيعات',
-    'sales_invoices': 'المبيعات',
-    'purchase_invoices': 'المشتريات',
-    'customers': 'المبيعات',
-    'suppliers': 'المشتريات',
-    'vouchers': 'المبيعات',
-    'returns': 'المبيعات',
-    'purchase_returns': 'المشتريات',
-    'items': 'المخزون',
-    'categories': 'المخزون',
-    'warehouses': 'المخزون',
-    'branches': 'الإدارة',
-    'cashboxes': 'المبيعات',
-    'manufacturing': 'التصنيع',
-    'reports': 'التقارير',
-    'settings': 'الإدارة',
-    'users': 'المستخدمين',
-    'audit_log': 'المستخدمين',
-    'offline_queue': 'الإدارة',
-    'monitoring': 'الإدارة',
-    'restaurant': 'المطعم',
-    'cafe': 'الكافي',
-    'apparel': 'الألبسة',
-}
+NAV_GROUP_BY_PAGE = page_navigation_groups()
 
+# Phase 332: main navigation metrics are design tokens, not local one-off
+# constants.  This upgrades the previously tiny menu while keeping all page
+# routing and module visibility owned by the Phase 331 registry.
+NAV_BAR_HEIGHT = int(BRAND.get('nav_height', 74))
+NAV_ICON_SIZE = int(BRAND.get('nav_icon_size', 26))
+NAV_BUTTON_MIN_WIDTH = int(BRAND.get('nav_button_min_width', 76))
+NAV_BUTTON_MAX_WIDTH = int(BRAND.get('nav_button_max_width', 112))
+NAV_BUTTON_HOME_WIDTH = int(BRAND.get('nav_button_home_width', 64))
+NAV_BUTTON_HEIGHT = int(BRAND.get('nav_button_height', 64))
+NAV_FONT_PX = int(BRAND.get('nav_font_px', 12))
+
+
+DOCUMENT_TAB_PREFIXES = (
+    'invoice:', 'return:', 'item:', 'category:', 'customer:', 'supplier:', 'voucher:',
+    'expense:', 'bom:', 'production_order:', 'branch:', 'warehouse:', 'cashbox:',
+    'bank_account:', 'warehouse_transfer:', 'user:', 'settings:',
+)
+
+
+def navigation_bar_stylesheet() -> str:
+    return f"""
+        QWidget#IconMenuBar {{
+            background-color: palette(window);
+            border-bottom: 1px solid palette(mid);
+        }}
+        QToolButton#MainNavToolButton {{
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 14px;
+            padding: 6px 8px;
+            font-size: {NAV_FONT_PX}px;
+            font-weight: 900;
+            color: palette(text);
+        }}
+        QToolButton#MainNavToolButton:hover {{
+            background: palette(alternate-base);
+            border-color: palette(mid);
+        }}
+        QToolButton#MainNavToolButton::menu-indicator {{ image: none; width: 0px; }}
+        QMenu {{
+            padding: 8px;
+            border: 1px solid palette(mid);
+            border-radius: 10px;
+            font-size: {NAV_FONT_PX}px;
+            font-weight: 700;
+        }}
+        QMenu::item {{
+            padding: 10px 38px 10px 24px;
+            border-radius: 8px;
+            min-width: 210px;
+        }}
+        QMenu::item:selected {{
+            background: palette(highlight);
+            color: palette(highlighted-text);
+        }}
+    """
 
 
 class IconMenuBar(QWidget):
@@ -151,8 +171,8 @@ class IconMenuBar(QWidget):
         self._buttons = []
         self._menus = []
         self._layout = QHBoxLayout(self)
-        self._layout.setContentsMargins(8, 4, 8, 5)
-        self._layout.setSpacing(4)
+        self._layout.setContentsMargins(12, 6, 12, 6)
+        self._layout.setSpacing(7)
         self._layout.addStretch(1)
 
     def clear(self):
@@ -177,7 +197,7 @@ class IconMenuBar(QWidget):
         btn.setObjectName('MainNavToolButton')
         btn.setCursor(Qt.PointingHandCursor)
         btn.setIcon(icon)
-        btn.setIconSize(QSize(23, 23))
+        btn.setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE))
         btn.setText('' if is_home else label)
         btn.setToolTip(label or translate('dashboard'))
         btn.setToolButtonStyle(Qt.ToolButtonIconOnly if is_home else Qt.ToolButtonTextUnderIcon)
@@ -186,9 +206,9 @@ class IconMenuBar(QWidget):
         # Phase 328: tighter navigation buttons prevent left-edge overlap on
         # smaller RTL workspaces while keeping the icon-first shell readable.
         # Phase 318 compatibility marker: btn.setMaximumWidth(88 if not is_home else 68)
-        btn.setMinimumWidth(54 if is_home else 68)
-        btn.setMaximumWidth(78 if not is_home else 60)
-        btn.setMinimumHeight(52)
+        btn.setMinimumWidth(NAV_BUTTON_HOME_WIDTH if is_home else NAV_BUTTON_MIN_WIDTH)
+        btn.setMaximumWidth(NAV_BUTTON_HOME_WIDTH if is_home else NAV_BUTTON_MAX_WIDTH)
+        btn.setMinimumHeight(NAV_BUTTON_HEIGHT)
         btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self._layout.insertWidget(max(0, self._layout.count() - 1), btn)
         self._buttons.append(btn)
@@ -267,24 +287,9 @@ class MainWindow(QMainWindow):
         self.title_bar.setVisible(False)
 
         self.menu_bar = IconMenuBar(self)
-        self.menu_bar.setStyleSheet("""
-            QWidget#IconMenuBar { background-color: palette(window); border-bottom: 1px solid palette(mid); }
-            QToolButton#MainNavToolButton {
-                background: transparent;
-                border: none;
-                border-radius: 12px;
-                padding: 2px 4px;
-                font-size: 9px;
-                font-weight: 800;
-                color: palette(text);
-            }
-            QToolButton#MainNavToolButton:hover {
-                background: palette(alternate-base);
-            }
-            QToolButton#MainNavToolButton::menu-indicator { image: none; width: 0px; }
-        """)
+        self.menu_bar.setStyleSheet(navigation_bar_stylesheet())
         # Phase 318 compatibility marker: self.menu_bar.setFixedHeight(66)
-        self.menu_bar.setFixedHeight(60)
+        self.menu_bar.setFixedHeight(NAV_BAR_HEIGHT)
         main_layout.addWidget(self.menu_bar)
 
         # Phase 234: the old utility top bar is kept as a compatibility object
@@ -342,199 +347,100 @@ class MainWindow(QMainWindow):
             return self._remote_error_page(page_key, exc)
 
     def init_pages(self):
-        page_factories = [
-            ('dashboard', DashboardWidget),
-            ('items', ItemsWidget),
-            ('sales_invoices', SalesInvoicesWidget),
-            ('purchase_invoices', PurchaseInvoicesWidget),
-            ('pos', POSWidget),
-            ('manufacturing', ManufacturingWidget),
-            ('customers', CustomersWidget),
-            ('suppliers', SuppliersWidget),
-            ('vouchers', VouchersWidget),
-            ('returns', ReturnsWidget),
-            ('purchase_returns', PurchaseReturnsWidget),
-            ('reports', ReportsWidget),
-            ('settings', SettingsWidget),
-            ('users', UsersWidget),
-            ('categories', CategoriesWidget),
-            ('warehouses', WarehousesWidget),
-            ('branches', BranchesWidget),
-            ('cashboxes', CashboxesWidget),
-            ('audit_log', AuditLogWidget),
-            ('offline_queue', OfflineQueueWidget),
-            ('monitoring', MonitoringWidget),
-            ('restaurant', RestaurantDashboard),
-            ('cafe', CafeWorkspaceWidget),
-            ('apparel', ApparelWorkspaceWidget),
-        ]
+        # Phase 331: instantiate visible workspaces from the central shell
+        # manifest.  Widget classes stay imported here to keep startup errors
+        # localized, but page ordering and coverage now come from the registry.
+        factory_by_key = {
+            'dashboard': DashboardWidget,
+            'items': ItemsWidget,
+            'sales_invoices': SalesInvoicesWidget,
+            'purchase_invoices': PurchaseInvoicesWidget,
+            'pos': POSWidget,
+            'manufacturing': ManufacturingWidget,
+            'customers': CustomersWidget,
+            'suppliers': SuppliersWidget,
+            'vouchers': VouchersWidget,
+            'returns': ReturnsWidget,
+            'purchase_returns': PurchaseReturnsWidget,
+            'reports': ReportsWidget,
+            'settings': SettingsWidget,
+            'users': UsersWidget,
+            'categories': CategoriesWidget,
+            'warehouses': WarehousesWidget,
+            'branches': BranchesWidget,
+            'cashboxes': CashboxesWidget,
+            'audit_log': AuditLogWidget,
+            'offline_queue': OfflineQueueWidget,
+            'monitoring': MonitoringWidget,
+            'restaurant': RestaurantDashboard,
+            'cafe': CafeWorkspaceWidget,
+            'apparel': ApparelWorkspaceWidget,
+        }
+        page_factories = [(key, factory_by_key[key]) for key in page_factory_ids() if key in factory_by_key]
         for key, factory in page_factories:
             page = self._create_page_safely(key, factory)
             page.setObjectName(key)
             page.setWindowTitle(page_title(key))
             self.pages[key] = page
 
-    def setup_menus(self):
-        """Build the primary ERP navigation menu.
+    def _menu_callback_map(self):
+        return {
+            'open_quick_open': self.open_quick_open,
+            'open_quick_item': self.open_quick_item,
+            'open_category_document': lambda: self.open_category_document(),
+            'open_inventory_transfer_document': self.open_inventory_transfer_document,
+            'open_quick_customer': self.open_quick_customer,
+            'open_quick_supplier': self.open_quick_supplier,
+            'open_bom_document': lambda: self.open_bom_document(),
+            'open_production_order_document': self.open_production_order_document,
+            'show_about': self.show_about,
+            'logout': self.logout,
+            'close_app': self.close_app,
+            'open_new_sales_invoice': lambda: self.open_quick_invoice('sale'),
+            'open_new_purchase_invoice': lambda: self.open_quick_invoice('purchase'),
+            'open_receipt_voucher': lambda: self.open_quick_voucher('receipt'),
+            'open_payment_voucher': lambda: self.open_quick_voucher('payment'),
+        }
 
-        Phase 46 replaces the legacy File/View/Theme/Help menu with business
-        navigation grouped by actual ERP workflows. The utility strip below it
-        remains dedicated to search, alerts, theme and user identity.
-        """
+    def setup_menus(self):
+        """Build primary navigation from the central shell manifest."""
         self.menu_bar.clear()
         self.menu_bar.setLayoutDirection(qt_layout_direction(self._current_language))
-        self.menu_bar.setFixedHeight(60)
-        self.menu_bar.setStyleSheet("""
-            QWidget#IconMenuBar {
-                background-color: palette(window);
-                border-bottom: 1px solid palette(mid);
-            }
-            QToolButton#MainNavToolButton {
-                background: transparent;
-                border: none;
-                border-radius: 12px;
-                padding: 2px 4px;
-                font-size: 9px;
-                font-weight: 800;
-                color: palette(text);
-            }
-            QToolButton#MainNavToolButton:hover {
-                background: palette(alternate-base);
-            }
-            QToolButton#MainNavToolButton::menu-indicator { image: none; width: 0px; }
-            QMenu {
-                padding: 5px;
-                border: 1px solid palette(mid);
-                border-radius: 8px;
-            }
-            QMenu::item {
-                padding: 8px 34px 8px 20px;
-                border-radius: 6px;
-                min-width: 190px;
-            }
-            QMenu::item:selected {
-                background: palette(highlight);
-                color: palette(highlighted-text);
-            }
-        """)
+        self.menu_bar.setFixedHeight(NAV_BAR_HEIGHT)
+        self.menu_bar.setStyleSheet(navigation_bar_stylesheet())
+        callback_map = self._menu_callback_map()
 
-        def add_action(menu, text, icon_name, page=None, callback=None, shortcut=None):
-            if page and not page_enabled(page):
+        def entry_enabled(entry):
+            if getattr(entry, 'admin_only', False) and not UserSession.is_admin():
+                return False
+            if entry.page_id:
+                return page_enabled(entry.page_id)
+            return bool(entry.callback_key and entry.callback_key in callback_map)
+
+        def add_entry(menu, entry):
+            if not entry_enabled(entry):
                 return None
-            action = QAction(qta.icon(f'fa5s.{icon_name}'), text, self)
-            if shortcut:
-                action.setShortcut(QKeySequence(shortcut))
-            if callback is not None:
-                action.triggered.connect(callback)
-            elif page:
-                action.triggered.connect(lambda checked=False, p=page: self.switch_page(p))
+            if entry.separator_before and not menu.isEmpty():
+                menu.addSeparator()
+            action = QAction(qta.icon(f'fa5s.{entry.icon}'), translate(entry.label_key), self)
+            if entry.shortcut:
+                action.setShortcut(QKeySequence(entry.shortcut))
+            if entry.callback_key:
+                action.triggered.connect(callback_map[entry.callback_key])
+            elif entry.page_id:
+                action.triggered.connect(lambda checked=False, p=entry.page_id: self.switch_page(p))
             menu.addAction(action)
             return action
 
-        def any_enabled(*pages):
-            return any(page_enabled(page) for page in pages)
-
-        home_menu = self.menu_bar.addMenu(qta.icon('fa5s.home'), '\n' + translate('home_breadcrumb'))
-        add_action(home_menu, translate('dashboard'), 'tachometer-alt', 'dashboard', shortcut='F1')
-        add_action(home_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
-        add_action(home_menu, translate('restaurant.dashboard'), 'utensils', 'restaurant', shortcut='F8')
-        add_action(home_menu, translate('restaurant.cafe_workspace_title'), 'coffee', 'cafe', shortcut='F10')
-        add_action(home_menu, translate('apparel.workspace_title'), 'tshirt', 'apparel', shortcut='F11')
-        home_menu.addSeparator()
-        add_action(home_menu, translate('monitoring'), 'heartbeat', 'monitoring')
-
-        if any_enabled('pos', 'sales_invoices', 'returns', 'vouchers'):
-            sales_menu = self.menu_bar.addMenu(qta.icon('fa5s.shopping-cart'), '\n' + translate('nav_sales'))
-            add_action(sales_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
-            add_action(sales_menu, translate('sales_invoices'), 'file-invoice-dollar', 'sales_invoices', shortcut='F3')
-            add_action(sales_menu, translate('sales_returns'), 'undo', 'returns')
-            if page_enabled('vouchers'):
-                sales_menu.addSeparator()
-            add_action(sales_menu, translate('receipt_voucher'), 'hand-holding-usd', 'vouchers')
-
-        if page_enabled('restaurant'):
-            restaurant_menu = self.menu_bar.addMenu(qta.icon('fa5s.utensils'), '\n' + translate('nav_restaurant'))
-            add_action(restaurant_menu, translate('restaurant.dashboard'), 'utensils', 'restaurant', shortcut='F8')
-            add_action(restaurant_menu, translate('restaurant.open_table'), 'door-open', 'restaurant')
-            add_action(restaurant_menu, translate('restaurant.kitchen_ticket'), 'receipt', 'restaurant')
-
-        if page_enabled('cafe'):
-            cafe_menu = self.menu_bar.addMenu(qta.icon('fa5s.coffee'), '\n' + translate('nav_cafe'))
-            add_action(cafe_menu, translate('restaurant.cafe_workspace_title'), 'coffee', 'cafe', shortcut='F10')
-            add_action(cafe_menu, translate('restaurant.cafe_new_quick_order'), 'plus-circle', 'cafe')
-            add_action(cafe_menu, translate('restaurant.cafe_preparation'), 'mug-hot', 'cafe')
-            add_action(cafe_menu, translate('restaurant.cafe_shift_report'), 'chart-line', 'cafe')
-
-        if any_enabled('purchase_invoices', 'purchase_returns', 'vouchers'):
-            purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), '\n' + translate('nav_purchases'))
-            add_action(purchase_menu, translate('purchase_invoices'), 'file-invoice', 'purchase_invoices')
-            add_action(purchase_menu, translate('purchase_returns'), 'undo-alt', 'purchase_returns')
-            if page_enabled('vouchers'):
-                purchase_menu.addSeparator()
-            add_action(purchase_menu, translate('payment_voucher'), 'money-bill-wave', 'vouchers')
-
-        if any_enabled('items', 'apparel', 'categories', 'warehouses'):
-            inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), '\n' + translate('nav_inventory'))
-            add_action(inventory_menu, translate('items'), 'box', 'items', shortcut='F4')
-            if page_enabled('apparel'):
-                add_action(inventory_menu, translate('apparel.workspace_title'), 'tshirt', 'apparel', shortcut='F11')
-            if page_enabled('items'):
-                add_action(inventory_menu, translate('new_item'), 'box-open', callback=self.open_quick_item)
-            add_action(inventory_menu, translate('categories'), 'folder', 'categories')
-            if page_enabled('categories'):
-                add_action(inventory_menu, translate('add_category'), 'folder-plus', callback=lambda: self.open_category_document())
-            add_action(inventory_menu, translate('warehouses'), 'warehouse', 'warehouses', shortcut='F5')
-
-        if page_enabled('manufacturing'):
-            manufacturing_menu = self.menu_bar.addMenu(qta.icon('fa5s.industry'), '\n' + translate('nav_manufacturing'))
-            add_action(manufacturing_menu, translate('nav_manufacturing'), 'industry', 'manufacturing')
-
-        if any_enabled('customers', 'suppliers'):
-            parties_menu = self.menu_bar.addMenu(qta.icon('fa5s.users'), '\n' + translate('nav_parties'))
-            add_action(parties_menu, translate('customers'), 'user-friends', 'customers')
-            add_action(parties_menu, translate('suppliers'), 'truck-loading', 'suppliers')
-
-        if any_enabled('cashboxes', 'vouchers'):
-            finance_menu = self.menu_bar.addMenu(qta.icon('fa5s.wallet'), '\n' + translate('nav_finance'))
-            add_action(finance_menu, translate('cashboxes'), 'cash-register', 'cashboxes')
-            add_action(finance_menu, translate('vouchers'), 'receipt', 'vouchers')
-
-        if page_enabled('reports'):
-            reports_menu = self.menu_bar.addMenu(qta.icon('fa5s.chart-line'), '\n' + translate('reports'))
-            add_action(reports_menu, translate('reports'), 'chart-line', 'reports')
-            add_action(reports_menu, translate('customer_statement'), 'user', 'reports')
-            add_action(reports_menu, translate('supplier_statement'), 'truck', 'reports')
-            add_action(reports_menu, translate('ledger_reconciliation'), 'balance-scale', 'reports')
-
-        admin_menu = self.menu_bar.addMenu(qta.icon('fa5s.cog'), '\n' + translate('nav_admin'))
-        add_action(admin_menu, translate('settings'), 'sliders-h', 'settings')
-        add_action(admin_menu, translate('branches'), 'code-branch', 'branches')
-        add_action(admin_menu, translate('offline_queue'), 'cloud-upload-alt', 'offline_queue')
-        add_action(admin_menu, translate('monitoring'), 'heartbeat', 'monitoring')
-        admin_menu.addSeparator()
-        add_action(admin_menu, translate('professional_printing'), 'print', callback=self.show_print_dialog)
-        add_action(admin_menu, translate('change_password'), 'key', callback=self.change_password)
-        admin_menu.addSeparator()
-        add_action(admin_menu, translate('about_app'), 'info-circle', callback=self.show_about, shortcut='F12')
-        add_action(admin_menu, translate('logout'), 'sign-out-alt', callback=self.logout, shortcut='Ctrl+Q')
-        add_action(admin_menu, translate('exit'), 'times-circle', callback=self.close_app, shortcut='Alt+F4')
-
-        if UserSession.is_admin():
-            users_menu = self.menu_bar.addMenu(qta.icon('fa5s.user-shield'), '\n' + translate('nav_users'))
-            add_action(users_menu, translate('users'), 'users-cog', 'users')
-            add_action(users_menu, translate('audit_log'), 'history', 'audit_log')
-
-        quick_menu = self.menu_bar.addMenu(qta.icon('fa5s.bolt'), '\n' + translate('quick_actions'))
-        add_action(quick_menu, translate('workspace.quick_open'), 'search', callback=self.open_quick_open, shortcut='Ctrl+K')
-        quick_menu.addSeparator()
-        add_action(quick_menu, translate('new_sales_invoice'), 'file-invoice-dollar', callback=lambda: self.open_quick_invoice('sale'), shortcut='Ctrl+N')
-        add_action(quick_menu, translate('new_purchase_invoice'), 'file-invoice', callback=lambda: self.open_quick_invoice('purchase'))
-        add_action(quick_menu, translate('receipt_voucher'), 'hand-holding-usd', callback=lambda: self.open_quick_voucher('receipt'))
-        add_action(quick_menu, translate('payment_voucher'), 'money-bill-wave', callback=lambda: self.open_quick_voucher('payment'))
-        quick_menu.addSeparator()
-        add_action(quick_menu, translate('new_customer'), 'user-plus', callback=self.open_quick_customer)
-        add_action(quick_menu, translate('new_supplier'), 'truck-loading', callback=self.open_quick_supplier)
-        add_action(quick_menu, translate('new_item'), 'box-open', callback=self.open_quick_item)
+        for menu_spec in navigation_menus():
+            if getattr(menu_spec, 'admin_only', False) and not UserSession.is_admin():
+                continue
+            enabled_entries = [entry for entry in menu_spec.entries if entry_enabled(entry)]
+            if not enabled_entries:
+                continue
+            menu = self.menu_bar.addMenu(qta.icon(f'fa5s.{menu_spec.icon}'), '\n' + translate(menu_spec.label_key))
+            for entry in enabled_entries:
+                add_entry(menu, entry)
 
     def setup_topbar_buttons(self):
         """Wire utility-strip actions only.
@@ -578,7 +484,7 @@ class MainWindow(QMainWindow):
         self.action_bar.bind('export', self.export_current_tab)
         self.action_bar.bind('quick_open', self.open_quick_open)
         try:
-            self.workspace.currentPageChanged.connect(lambda _pid: self._apply_current_document_permissions())
+            self.workspace.currentPageChanged.connect(self._on_workspace_page_changed)
             self.workspace.currentChanged.connect(lambda _idx: self._apply_current_document_permissions())
         except Exception:
             pass
@@ -589,6 +495,7 @@ class MainWindow(QMainWindow):
             self.action_bar.set_user(user.get('username', ''), user.get('role', ''))
         if hasattr(self.action_bar, 'apply_styles'):
             self.action_bar.apply_styles()
+        self._apply_action_bar_contract_for_tab('dashboard')
 
     def toggle_theme(self):
         current = settings_service.get_theme() or 'light'
@@ -623,6 +530,44 @@ class MainWindow(QMainWindow):
                 page.apply_document_permissions()
         except Exception:
             pass
+
+    def _manifest_id_for_tab_id(self, tab_id: str) -> str:
+        tab_id = str(tab_id or '')
+        if tab_id in self.pages:
+            return tab_id
+        if tab_id.startswith('invoice:purchase:'):
+            return 'purchase_invoices'
+        if tab_id.startswith('invoice:sale:'):
+            return 'sales_invoices'
+        if tab_id.startswith('return:purchase:'):
+            return 'purchase_returns'
+        if tab_id.startswith('return:sale:'):
+            return 'returns'
+        if tab_id.startswith('settings:'):
+            return 'settings'
+        if tab_id.startswith(DOCUMENT_TAB_PREFIXES):
+            return 'items' if tab_id.startswith('item:') else 'settings' if tab_id.startswith('settings:') else 'sales_invoices'
+        return tab_id
+
+    def _apply_action_bar_contract_for_tab(self, tab_id: str = '') -> None:
+        if not hasattr(self, 'action_bar'):
+            return
+        manifest_id = self._manifest_id_for_tab_id(tab_id or (self.workspace.current_page_id() if hasattr(self, 'workspace') else ''))
+        visible = should_show_action_bar(manifest_id) if manifest_id in self.pages or manifest_id in PAGE_META_KEYS else True
+        keys = effective_action_keys_for_page(manifest_id)
+        if not keys:
+            keys = effective_action_keys_for_page('sales_invoices')
+        self.action_bar.setVisible(bool(visible))
+        if hasattr(self.action_bar, 'apply_action_contract'):
+            self.action_bar.apply_action_contract(keys, show_context=(manifest_id != 'dashboard'))
+
+    def _on_workspace_page_changed(self, tab_id: str) -> None:
+        tab_id = str(tab_id or '')
+        title = page_title(tab_id) if tab_id in self.pages else self.workspace.tabText(self.workspace.currentIndex()) if hasattr(self, 'workspace') else ''
+        if hasattr(self, 'action_bar'):
+            self.action_bar.set_context(title)
+        self._apply_action_bar_contract_for_tab(tab_id)
+        self._apply_current_document_permissions()
 
     def _can_invoke_current_tab_action(self, page, action: str) -> bool:
         if page is None:
@@ -1119,6 +1064,10 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
 
     def workspace_icon_for_page(self, pid):
+        try:
+            return f"fa5s.{page_manifest(pid).icon}"
+        except Exception:
+            pass
         icon_map = {
             'dashboard': 'fa5s.tachometer-alt',
             'pos': 'fa5s.barcode',
@@ -1403,6 +1352,7 @@ class MainWindow(QMainWindow):
                 page.apply_theme_colors()
         if hasattr(self.action_bar, 'apply_styles'):
             self.action_bar.apply_styles()
+        self._apply_action_bar_contract_for_tab('dashboard')
 
     def _mouse_press(self, event):
         if event.button() == Qt.LeftButton:
@@ -1441,10 +1391,8 @@ class MainWindow(QMainWindow):
             self.workspace.open_singleton(pid, page_title(pid), self.pages[pid], self.workspace_icon_for_page(pid))
             self.workspace_state_store.add_recent(self._workspace_entry_for_page(pid))
             self._set_page_context(pid)
-            if hasattr(self, 'action_bar'):
-                # Phase318: the dashboard is an executive landing page; hide the
-                # shared command strip there and keep it for operational workspaces.
-                self.action_bar.setVisible(pid != 'dashboard')
+            # Phase 318 compatibility marker: self.action_bar.setVisible(pid != 'dashboard')
+            self._apply_action_bar_contract_for_tab(pid)
             self._update_global_search_context(pid)
             if hasattr(self.pages[pid], 'refresh'):
                 self.pages[pid].refresh()

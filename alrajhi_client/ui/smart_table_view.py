@@ -416,6 +416,8 @@ class SmartTableView(CustomTableView):
         return rows
 
     def show_column_chooser(self) -> None:
+        if getattr(self, "_column_contract", None) is not None and self.show_contract_column_customizer():
+            return
         dialog = ColumnChooserDialog(self)
         dialog.exec_()
         self.save_layout()

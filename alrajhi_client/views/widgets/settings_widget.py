@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox,
     QPushButton, QGroupBox, QLabel, QMessageBox, QTabWidget, QFileDialog,
-    QSpinBox, QCheckBox, QTableWidgetItem, QHeaderView,
+    QSpinBox, QCheckBox, QTableWidget, QTableWidgetItem, QHeaderView,
     QDialog, QDialogButtonBox, QScrollArea, QFrame, QPlainTextEdit, QInputDialog
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QSettings
@@ -84,6 +84,7 @@ class SettingsWidget(QWidget):
             ('manufacturing', self.create_manufacturing_settings_tab, lambda: translate('phase233_ui_043')),
             ('reports', self.create_reports_settings_tab, lambda: translate('phase233_ui_044')),
             ('printing', self.create_printing_tab, lambda: '🖨️ ' + translate('printing_tab')),
+            ('settings_surface', self.create_settings_surface_tab, lambda: '🧩 ' + translate('settings_surface_tab')),
             ('pos', self.create_pos_tab, lambda: '🧾 ' + translate('pos_tab')),
             ('currency', self.create_currency_tab, lambda: '💰 ' + translate('currencies')),
             ('rates', self.create_rates_tab, lambda: '💱 ' + translate('exchange_rates')),
@@ -116,7 +117,7 @@ class SettingsWidget(QWidget):
                 'units', 'inventory', 'manufacturing',
             )),
             ('operations', lambda: translate('settings_group_operations'), (
-                'printing', 'pos', 'network',
+                'printing', 'settings_surface', 'pos', 'network',
             )),
             ('security', lambda: translate('settings_group_security'), (
                 'security', 'security_events', 'settings_audit', 'backup',
@@ -706,6 +707,225 @@ class SettingsWidget(QWidget):
         self._set_bool_setting('reports/export_pdf', self.reports_pdf.isChecked())
         settings_service.clear_cache(); audit_service.log('UPDATE', 'SETTINGS_REPORTS', None, details='تعديل إعدادات التقارير')
         show_toast('تم حفظ إعدادات التقارير', 'success', self)
+
+
+    def create_settings_surface_tab(self):
+        """Expose the unified UI/table/barcode settings surface.
+
+        Phase 341 turns the hidden registries into a settings-facing surface so
+        operators can audit column output and tune every barcode label profile
+        from one location.
+        """
+        scroll, layout = self._scroll_tab()
+        intro, intro_box = self._card(translate('settings_surface_title'), translate('settings_surface_help'))
+        intro_box.addWidget(self._note(translate('settings_surface_note'), 'info'))
+        layout.addWidget(intro)
+
+        columns_group, columns_box = self._card(translate('settings_surface_columns_title'), translate('settings_surface_columns_help'))
+        self.settings_surface_contract_combo = QComboBox()
+        try:
+            from workspace.tables.table_column_registry import TABLE_COLUMN_CONTRACTS
+            for cid, contract in sorted(TABLE_COLUMN_CONTRACTS.items()):
+                self.settings_surface_contract_combo.addItem(
+                    f"{cid} — {len(contract.columns)}", cid
+                )
+        except Exception as exc:
+            self.settings_surface_contract_combo.addItem(str(exc), '')
+        self.settings_surface_contract_combo.currentIndexChanged.connect(self.load_settings_surface_column_contract)
+        columns_box.addWidget(self.settings_surface_contract_combo)
+
+        self.settings_surface_columns_table = QTableWidget(0, 4)
+        self.settings_surface_columns_table.setHorizontalHeaderLabels([
+            translate('settings_surface_column_label'),
+            translate('settings_surface_visible_column'),
+            translate('settings_surface_printable_column'),
+            translate('settings_surface_exportable_column'),
+        ])
+        self.settings_surface_columns_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.settings_surface_columns_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.settings_surface_columns_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.settings_surface_columns_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.settings_surface_columns_table.setMinimumHeight(260)
+        columns_box.addWidget(self.settings_surface_columns_table)
+        self.load_settings_surface_column_contract()
+
+        save_columns = QPushButton(translate('settings_surface_save_columns'))
+        save_columns.setObjectName('primary')
+        save_columns.clicked.connect(self.save_settings_surface_column_contract)
+        reset_selected = QPushButton(translate('settings_surface_reset_selected_columns'))
+        reset_selected.clicked.connect(self.reset_settings_surface_selected_columns)
+        reset_columns = QPushButton(translate('settings_surface_reset_columns'))
+        reset_columns.clicked.connect(self.reset_unified_column_settings)
+        columns_box.addLayout(self._button_row(reset_columns, reset_selected, save_columns))
+        layout.addWidget(columns_group)
+
+        profiles_group, profiles_box = self._card(translate('settings_surface_barcode_profiles_title'), translate('settings_surface_barcode_profiles_help'))
+        self.barcode_profile_widgets = {}
+        try:
+            from workspace.registry import BARCODE_PRINT_PROFILES
+            for profile_id in sorted(BARCODE_PRINT_PROFILES.keys()):
+                card = self._barcode_profile_card(profile_id)
+                profiles_box.addWidget(card)
+        except Exception as exc:
+            profiles_box.addWidget(self._note(str(exc), 'warning'))
+        save_profiles = QPushButton(translate('settings_surface_save_barcode_profiles'))
+        save_profiles.setObjectName('primary')
+        save_profiles.clicked.connect(self.save_barcode_profile_settings_surface)
+        profiles_box.addLayout(self._button_row(save_profiles))
+        layout.addWidget(profiles_group)
+        layout.addStretch()
+        return scroll
+
+    def _barcode_profile_card(self, profile_id: str):
+        from workspace.registry import BARCODE_PRINT_PROFILES
+        from printing.barcode_profiles import barcode_profile_options, PROFILE_BOOL_FIELDS
+        profile = BARCODE_PRINT_PROFILES[profile_id]
+        options = barcode_profile_options(profile_id)
+        group, form = self._form_card(translate(f'barcode.profile.{profile_id}.title'), translate(f'barcode.profile.{profile_id}.help'))
+        widgets = {}
+        template = QLineEdit(str(options.get('template_id') or profile.default_template_id))
+        form.addRow(translate('settings_surface_template_id'), template)
+        widgets['template_id'] = template
+        size = QComboBox(); size.addItems(['40x30', '50x30', '60x40', '80mm'])
+        current_size = str(options.get('label_size') or '50x30')
+        if size.findText(current_size) < 0:
+            size.addItem(current_size)
+        size.setCurrentText(current_size)
+        form.addRow(translate('settings_barcode_label_size_label'), size)
+        widgets['label_size'] = size
+        sym = QComboBox(); sym.addItems(['AUTO', 'EAN13', 'CODE128', 'QR'])
+        current_sym = str(options.get('symbology') or 'AUTO').upper()
+        if sym.findText(current_sym) < 0:
+            sym.addItem(current_sym)
+        sym.setCurrentText(current_sym)
+        form.addRow(translate('settings_barcode_symbology_label'), sym)
+        widgets['symbology'] = sym
+        copies = QSpinBox(); copies.setRange(1, 999); copies.setValue(int(options.get('copies') or 1))
+        form.addRow(translate('settings_barcode_copies_label'), copies)
+        widgets['copies'] = copies
+        columns = QSpinBox(); columns.setRange(1, 4); columns.setValue(int(options.get('columns') or 2))
+        form.addRow(translate('settings_barcode_columns_label'), columns)
+        widgets['columns'] = columns
+        for key in PROFILE_BOOL_FIELDS:
+            chk = QCheckBox(translate(f'settings_surface_{key}'))
+            chk.setChecked(bool(options.get(key, False)))
+            form.addRow('', chk)
+            widgets[key] = chk
+        self.barcode_profile_widgets[profile_id] = widgets
+        return group
+
+    def _settings_surface_current_contract_id(self):
+        combo = getattr(self, 'settings_surface_contract_combo', None)
+        if combo is None:
+            return ''
+        return str(combo.currentData() or '')
+
+    def load_settings_surface_column_contract(self):
+        table = getattr(self, 'settings_surface_columns_table', None)
+        if table is None:
+            return
+        table.setRowCount(0)
+        contract_id = self._settings_surface_current_contract_id()
+        if not contract_id:
+            return
+        try:
+            from workspace.settings.column_preferences import contract_column_states
+            states = contract_column_states(contract_id)
+            table.setRowCount(len(states))
+            for row, state in enumerate(states):
+                label = translate(state.label_key)
+                if label == state.label_key:
+                    label = state.label_key
+                item = QTableWidgetItem(label)
+                item.setData(Qt.UserRole, state.column_key)
+                item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                table.setItem(row, 0, item)
+                for col, purpose in enumerate(('display', 'print', 'export'), start=1):
+                    chk = QCheckBox()
+                    chk.setChecked(bool(getattr(state, purpose)))
+                    chk.setToolTip(state.settings.get(purpose, ''))
+                    if purpose == 'display' and state.required:
+                        chk.setChecked(True)
+                        chk.setEnabled(False)
+                    holder = QWidget()
+                    h = QHBoxLayout(holder)
+                    h.setContentsMargins(0, 0, 0, 0)
+                    h.addStretch(1); h.addWidget(chk); h.addStretch(1)
+                    holder.setProperty('column_key', state.column_key)
+                    holder.setProperty('purpose', purpose)
+                    holder._checkbox = chk
+                    table.setCellWidget(row, col, holder)
+        except Exception as exc:
+            table.setRowCount(1)
+            table.setItem(0, 0, QTableWidgetItem(str(exc)))
+
+    def _settings_surface_column_values(self):
+        table = getattr(self, 'settings_surface_columns_table', None)
+        values = {}
+        if table is None:
+            return values
+        for row in range(table.rowCount()):
+            item = table.item(row, 0)
+            if item is None:
+                continue
+            key = str(item.data(Qt.UserRole) or '')
+            if not key:
+                continue
+            values[key] = {}
+            for col, purpose in enumerate(('display', 'print', 'export'), start=1):
+                holder = table.cellWidget(row, col)
+                chk = getattr(holder, '_checkbox', None)
+                if chk is not None:
+                    values[key][purpose] = bool(chk.isChecked())
+        return values
+
+    def save_settings_surface_column_contract(self):
+        try:
+            from workspace.settings.column_preferences import save_contract_column_preferences
+            save_contract_column_preferences(
+                self._settings_surface_current_contract_id(),
+                self._settings_surface_column_values(),
+            )
+            show_toast(translate('settings_surface_columns_saved'), 'success', self)
+        except Exception as exc:
+            QMessageBox.critical(self, translate('error'), str(exc))
+
+    def reset_settings_surface_selected_columns(self):
+        try:
+            from workspace.settings.column_preferences import reset_contract_column_preferences
+            reset_contract_column_preferences(self._settings_surface_current_contract_id())
+            self.load_settings_surface_column_contract()
+            show_toast(translate('settings_surface_columns_reset_done'), 'success', self)
+        except Exception as exc:
+            QMessageBox.critical(self, translate('error'), str(exc))
+
+    def reset_unified_column_settings(self):
+        try:
+            from workspace.tables.table_column_registry import TABLE_COLUMN_CONTRACTS
+            from workspace.settings.column_preferences import reset_all_column_preferences
+            reset_all_column_preferences(TABLE_COLUMN_CONTRACTS.values())
+            self.load_settings_surface_column_contract()
+            show_toast(translate('settings_surface_columns_reset_done'), 'success', self)
+        except Exception as exc:
+            QMessageBox.critical(self, translate('error'), str(exc))
+
+    def save_barcode_profile_settings_surface(self):
+        try:
+            for profile_id, widgets in getattr(self, 'barcode_profile_widgets', {}).items():
+                values = {}
+                for key, widget in widgets.items():
+                    if isinstance(widget, QCheckBox):
+                        values[key] = widget.isChecked()
+                    elif isinstance(widget, QSpinBox):
+                        values[key] = widget.value()
+                    elif isinstance(widget, QComboBox):
+                        values[key] = widget.currentText()
+                    elif isinstance(widget, QLineEdit):
+                        values[key] = widget.text().strip()
+                settings_service.save_barcode_profile_settings(profile_id, **values)
+            show_toast(translate('settings_surface_barcode_profiles_saved'), 'success', self)
+        except Exception as exc:
+            QMessageBox.critical(self, translate('error'), str(exc))
 
     def create_printing_tab(self):
         scroll, layout = self._scroll_tab()

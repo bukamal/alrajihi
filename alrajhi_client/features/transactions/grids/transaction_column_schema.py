@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+from workspace.tables import ColumnDefinition, table_column_contract
+
 from ..i18n import tr
 
 @dataclass(frozen=True)
@@ -16,10 +18,42 @@ class TransactionColumn:
     stretch: bool = False
     editable: bool = True
     numeric: bool = False
+    printable_default: bool = True
+    exportable_default: bool = True
 
     @property
     def title(self) -> str:
         return tr(self.title_key)
+
+    @property
+    def data_type(self) -> str:
+        if self.key in {"price", "cost", "discount", "tax", "total"}:
+            return "money"
+        if self.key in {"qty", "available", "original_qty", "previous_qty", "returnable_qty"}:
+            return "quantity"
+        return "number" if self.numeric else "text"
+
+    @property
+    def alignment(self) -> str:
+        if self.numeric or self.data_type in {"money", "quantity", "number"}:
+            return "right"
+        if self.key in {"item", "notes", "reason"}:
+            return "start"
+        return "center"
+
+    def to_column_definition(self, table_settings_prefix: str = "") -> ColumnDefinition:
+        return ColumnDefinition(
+            key=self.key,
+            label_key=self.title_key,
+            visible_default=bool(self.default_visible or self.required),
+            printable_default=bool(self.printable_default),
+            exportable_default=bool(self.exportable_default),
+            width=int(self.width or 120),
+            alignment=self.alignment,
+            data_type=self.data_type,
+            editable=bool(self.editable),
+            required=bool(self.required),
+        ).scoped(table_settings_prefix)
 
 SchemaFactory = Callable[[], list[TransactionColumn]]
 
@@ -106,3 +140,26 @@ def schema_for(document_type: str) -> list[TransactionColumn]:
     if document_type == "purchase_return":
         return purchase_return_schema()
     return sales_invoice_schema()
+
+
+def _page_table_for_document(document_type: str) -> tuple[str, str]:
+    mapping = {
+        "sales_invoice": ("sales_invoices", "lines"),
+        "purchase_invoice": ("purchase_invoices", "lines"),
+        "sales_return": ("returns", "lines"),
+        "purchase_return": ("purchase_returns", "lines"),
+    }
+    return mapping.get(document_type, ("sales_invoices", "lines"))
+
+
+def universal_contract_for_document(document_type: str):
+    page_id, table_id = _page_table_for_document(document_type)
+    return table_column_contract(page_id, table_id)
+
+
+def universal_columns_for_document(document_type: str) -> tuple[ColumnDefinition, ...]:
+    contract = universal_contract_for_document(document_type)
+    if contract:
+        return contract.columns
+    prefix = f"ui/columns/transactions/{document_type}"
+    return tuple(col.to_column_definition(prefix) for col in schema_for(document_type))

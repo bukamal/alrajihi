@@ -10,15 +10,25 @@ from PyQt5.QtWidgets import QLabel, QPushButton, QFrame, QGraphicsDropShadowEffe
 from PyQt5.QtGui import QColor
 from PyQt5.QtCore import Qt
 from theme_manager import ThemeManager
+from theme.brand import BRAND
 
 
 class DesignSystem:
-    RADIUS_SM = 8
-    RADIUS_MD = 12
-    RADIUS_LG = 18
-    SPACING_SM = 8
-    SPACING_MD = 14
-    SPACING_LG = 24
+    # Phase 332: expose the same design tokens used by global QSS and shell
+    # widgets.  This keeps dialogs/forms from drifting into local font sizes.
+    RADIUS_SM = int(BRAND.get('radius_sm', 8))
+    RADIUS_MD = int(BRAND.get('radius_md', 12))
+    RADIUS_LG = int(BRAND.get('radius_lg', 18))
+    SPACING_XS = int(BRAND.get('spacing_xs', 4))
+    SPACING_SM = int(BRAND.get('spacing_sm', 8))
+    SPACING_MD = int(BRAND.get('spacing_md', 14))
+    SPACING_LG = int(BRAND.get('spacing_lg', 24))
+    FONT_BODY_PT = int(BRAND.get('font_size_body_pt', 11))
+    FONT_TABLE_PT = int(BRAND.get('font_size_table_pt', 10))
+    FONT_CAPTION_PX = int(BRAND.get('font_size_caption_px', 11))
+    FONT_VALUE_PX = int(BRAND.get('font_size_value_px', 13))
+    FONT_TITLE_PX = int(BRAND.get('font_size_title_px', 20))
+    FONT_HERO_PX = int(BRAND.get('font_size_hero_px', 25))
 
     @staticmethod
     def color(name: str, fallback: str = '') -> str:
@@ -53,11 +63,12 @@ class DesignSystem:
         widget.setGraphicsEffect(shadow)
 
     @staticmethod
-    def title(text: str, size: int = 24) -> QLabel:
+    def title(text: str, size: int | None = None) -> QLabel:
         label = QLabel(text)
         label.setObjectName('heroTitle')
         label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet(f"font-size: {size}px; font-weight: 800; color: {DesignSystem.color('text_primary', '#1A202C')};")
+        px = int(size or DesignSystem.FONT_HERO_PX)
+        label.setStyleSheet(f"font-size: {px}px; font-weight: 800; color: {DesignSystem.color('text_primary', '#1A202C')};")
         return label
 
     @staticmethod
@@ -66,7 +77,7 @@ class DesignSystem:
         label.setObjectName('heroSubtitle')
         label.setAlignment(Qt.AlignCenter)
         label.setWordWrap(True)
-        label.setStyleSheet(f"font-size: 13px; color: {DesignSystem.color('text_secondary', '#4A5568')};")
+        label.setStyleSheet(f"font-size: {DesignSystem.FONT_VALUE_PX}px; color: {DesignSystem.color('text_secondary', '#4A5568')};")
         return label
 
     @staticmethod
@@ -97,7 +108,7 @@ class DesignSystem:
     def primary_button(text: str, icon=None) -> QPushButton:
         btn = QPushButton(text)
         btn.setObjectName('primary')
-        btn.setMinimumHeight(44)
+        btn.setMinimumHeight(int(BRAND.get('action_button_min_height', 38)) + 4)
         if icon is not None:
             btn.setIcon(icon)
         return btn
@@ -106,7 +117,7 @@ class DesignSystem:
     def secondary_button(text: str, icon=None) -> QPushButton:
         btn = QPushButton(text)
         btn.setObjectName('secondary')
-        btn.setMinimumHeight(40)
+        btn.setMinimumHeight(int(BRAND.get('action_button_min_height', 38)))
         if icon is not None:
             btn.setIcon(icon)
         return btn

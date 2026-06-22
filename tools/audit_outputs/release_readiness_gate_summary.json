@@ -1,21 +1,22 @@
 {
   "phase": 277,
   "baseline_phase": 276,
-  "checks": 66,
+  "checks": 78,
   "categories": {
-    "shell": 5,
-    "settings": 1,
+    "shell": 6,
+    "settings": 3,
     "security": 3,
     "sync": 2,
     "scenario": 2,
     "reports": 2,
-    "printing": 3,
+    "printing": 6,
     "packaging": 3,
     "dashboard": 5,
     "restaurant": 25,
     "materials": 12,
     "database": 1,
-    "ui": 2
+    "ui": 7,
+    "quality": 1
   },
   "issues": 0,
   "issue_groups": 0,

@@ -63,9 +63,12 @@ class TransactionPrintingBridge:
         total = self.host.lines_model.total_amount()
         paid = self.host.totals_panel.paid_amount()
         lines = self._invoice_lines()
+        table_contract_id = "sales_invoices.lines" if self.host.inv_type == "sale" else "purchase_invoices.lines"
         return {
             "id": self.host.invoice_id,
             "type": self.host.inv_type,
+            "table_contract_id": table_contract_id,
+            "line_table_contract_id": table_contract_id,
             "reference": self.host.ref_edit.text().strip(),
             "date": self.host.date_edit.date().toString("yyyy-MM-dd"),
             "customer_id": self.host._selected_party_id() if self.host.inv_type == "sale" else None,
@@ -99,8 +102,11 @@ class TransactionPrintingBridge:
         total = self.host.lines_model.total_amount()
         refund = self.host.totals_panel.paid_amount()
         return_no = self.host.ref_edit.text().strip()
+        table_contract_id = "returns.lines" if self.host.inv_type == "sale" else "purchase_returns.lines"
         return {
             "id": self.host.return_id or self.host.invoice_id,
+            "table_contract_id": table_contract_id,
+            "line_table_contract_id": table_contract_id,
             "type": "sale" if self.host.inv_type == "sale" else "purchase",
             "return_type": "sale_return" if self.host.inv_type == "sale" else "purchase_return",
             "reference": return_no,
@@ -145,12 +151,17 @@ class TransactionPrintingBridge:
                 "item_name": row.get("item", ""),
                 "name": row.get("item", ""),
                 "barcode": row.get("barcode", ""),
+                "variant": row.get("variant") or row.get("variant_name") or row.get("variant_label") or "",
+                "variant_id": row.get("variant_id"),
+                "color": row.get("color") or "",
+                "size": row.get("size") or "",
                 "unit": row.get("unit", ""),
                 "unit_id": row.get("unit_id"),
                 "quantity": qty,
                 "qty": qty,
                 "unit_price": price,
                 "price": price,
+                "cost": self._decimal(row.get("cost")) if row.get("cost") not in (None, "") else price,
                 "discount": self._decimal(row.get("discount")),
                 "discount_percent": self._decimal(row.get("discount")),
                 "tax": self._decimal(row.get("tax")),
@@ -159,6 +170,7 @@ class TransactionPrintingBridge:
                 "total": self._decimal(row.get("total")),
                 "description": row.get("notes", ""),
                 "notes": row.get("notes", ""),
+                "available": row.get("available") or row.get("available_qty") or "",
                 "batch": row.get("batch", ""),
                 "expiry": row.get("expiry", ""),
             })
@@ -179,6 +191,10 @@ class TransactionPrintingBridge:
                 "item_name": row.get("item", ""),
                 "name": row.get("item", ""),
                 "barcode": row.get("barcode", ""),
+                "variant": row.get("variant") or row.get("variant_name") or row.get("variant_label") or "",
+                "variant_id": row.get("variant_id"),
+                "color": row.get("color") or "",
+                "size": row.get("size") or "",
                 "unit": row.get("unit", ""),
                 "unit_id": row.get("unit_id"),
                 "quantity": qty,
