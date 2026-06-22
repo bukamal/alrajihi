@@ -7687,3 +7687,26 @@ _translations['en'].update({
     'apparel.bulk_result': 'Created: {created} — Existing: {skipped} — Errors: {errors}',
     'apparel.matrix_title': 'Color/size matrix',
 })
+
+# Phase 321: Apparel reports.
+_translations['ar'].update({
+    'apparel.reports_title': 'تقارير الألبسة',
+    'apparel.metric_sold': 'المباع: {qty}',
+    'apparel.report_low_stock': 'تحت الحد: {count}',
+    'apparel.report_top_color': 'أفضل لون: {color} / {qty}',
+    'apparel.report_top_size': 'أفضل مقاس: {size} / {qty}',
+})
+_translations['de'].update({
+    'apparel.reports_title': 'Bekleidungsberichte',
+    'apparel.metric_sold': 'Verkauft: {qty}',
+    'apparel.report_low_stock': 'Unter Meldebestand: {count}',
+    'apparel.report_top_color': 'Top-Farbe: {color} / {qty}',
+    'apparel.report_top_size': 'Top-Größe: {size} / {qty}',
+})
+_translations['en'].update({
+    'apparel.reports_title': 'Apparel reports',
+    'apparel.metric_sold': 'Sold: {qty}',
+    'apparel.report_low_stock': 'Below reorder: {count}',
+    'apparel.report_top_color': 'Top color: {color} / {qty}',
+    'apparel.report_top_size': 'Top size: {size} / {qty}',
+})

@@ -54,6 +54,53 @@ def _ensure_default_warehouse(db, uid, branch_id=None):
     """, (uid, branch_id, 'المستودع الرئيسي', 'MAIN-WH', 'تم إنشاؤه تلقائياً', now, now))
     db.commit(); return int(cur.lastrowid)
 
+def _ensure_variant_warehouse_schema(db):
+    db.query("""
+        CREATE TABLE IF NOT EXISTS item_warehouse_variant_balances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            item_id INTEGER NOT NULL,
+            variant_id INTEGER NOT NULL,
+            warehouse_id INTEGER NOT NULL,
+            variant_color TEXT,
+            variant_size TEXT,
+            variant_sku TEXT,
+            quantity TEXT DEFAULT '0',
+            average_cost TEXT DEFAULT '0',
+            updated_at TEXT,
+            UNIQUE(user_id, item_id, variant_id, warehouse_id)
+        )
+    """)
+    for table in ('warehouse_movements', 'warehouse_transfers'):
+        for col_name, col_type in (
+            ('variant_id', 'INTEGER'), ('variant_color', 'TEXT'), ('variant_size', 'TEXT'), ('variant_sku', 'TEXT'),
+            ('barcode_scope', 'TEXT'), ('matched_barcode', 'TEXT'),
+        ):
+            try:
+                db.query(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass
+    db.query("CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_variant ON item_warehouse_variant_balances(variant_id)")
+    db.query("CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_wh ON item_warehouse_variant_balances(warehouse_id)")
+    db.query("CREATE INDEX IF NOT EXISTS idx_wh_mov_variant ON warehouse_movements(variant_id)")
+
+
+def _variant_payload(data=None):
+    data = data or {}
+    variant_id = data.get('variant_id')
+    try:
+        variant_id = int(variant_id) if variant_id not in (None, '', 0, '0') else None
+    except Exception:
+        variant_id = None
+    return {
+        'variant_id': variant_id,
+        'variant_color': str(data.get('variant_color') or ''),
+        'variant_size': str(data.get('variant_size') or ''),
+        'variant_sku': str(data.get('variant_sku') or ''),
+        'barcode_scope': str(data.get('barcode_scope') or ('variant' if variant_id else '')),
+        'matched_barcode': str(data.get('matched_barcode') or data.get('barcode') or ''),
+    }
+
 def _payload(data, uid):
     data = data or {}; db = get_warehouse_repository()
     return {
@@ -100,6 +147,7 @@ def default_warehouse():
 def available_qty():
     uid = _uid(); db = get_warehouse_repository(); item_id = request.args.get('item_id', type=int)
     warehouse_id = request.args.get('warehouse_id', type=int) or _ensure_default_warehouse(db, uid)
+    variant_id = request.args.get('variant_id', type=int)
     try:
         _require_warehouse_access(db, uid, warehouse_id, 'warehouse.available_qty')
     except BranchAccessError as exc:
@@ -107,6 +155,10 @@ def available_qty():
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 404
     if not item_id: return jsonify({'quantity': '0'})
+    _ensure_variant_warehouse_schema(db)
+    if variant_id:
+        qty = _available_qty(db, uid, item_id, warehouse_id, variant_id=variant_id)
+        return jsonify({'quantity': str(qty)})
     row = db.query('SELECT quantity FROM item_warehouse_balances WHERE user_id=? AND item_id=? AND warehouse_id=?', (uid, item_id, warehouse_id)).fetchone()
     return jsonify({'quantity': str(row['quantity']) if row and row['quantity'] is not None else '0'})
 
@@ -267,19 +319,44 @@ def _ensure_balance_row(db, uid, item_id, warehouse_id, unit_cost='0'):
         VALUES (?, ?, ?, '0', ?, ?)
     """, (uid, item_id, warehouse_id, str(unit_cost or '0'), now))
 
-def _available_qty(db, uid, item_id, warehouse_id):
+def _available_qty(db, uid, item_id, warehouse_id, variant_id=None):
+    _ensure_variant_warehouse_schema(db)
+    if variant_id:
+        row = db.query("""
+            SELECT quantity FROM item_warehouse_variant_balances
+            WHERE user_id=? AND item_id=? AND variant_id=? AND warehouse_id=?
+        """, (uid, item_id, variant_id, warehouse_id)).fetchone()
+        return _dec(row['quantity']) if row and row['quantity'] is not None else Decimal('0')
     row = db.query("""
         SELECT quantity FROM item_warehouse_balances
         WHERE user_id=? AND item_id=? AND warehouse_id=?
     """, (uid, item_id, warehouse_id)).fetchone()
     return _dec(row['quantity']) if row and row['quantity'] is not None else Decimal('0')
 
+
+def _ensure_variant_balance_row(db, uid, item_id, variant_id, warehouse_id, unit_cost='0', variant_payload=None):
+    _ensure_variant_warehouse_schema(db)
+    vp = _variant_payload(variant_payload)
+    if db.query("""
+        SELECT id FROM item_warehouse_variant_balances
+        WHERE user_id=? AND item_id=? AND variant_id=? AND warehouse_id=?
+    """, (uid, item_id, variant_id, warehouse_id)).fetchone():
+        return
+    now = _now()
+    db.query("""
+        INSERT INTO item_warehouse_variant_balances
+        (user_id, item_id, variant_id, warehouse_id, variant_color, variant_size, variant_sku, quantity, average_cost, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, '0', ?, ?)
+    """, (uid, item_id, variant_id, warehouse_id, vp['variant_color'], vp['variant_size'], vp['variant_sku'], str(unit_cost or '0'), now))
+
 def _record_warehouse_movement(db, uid, item_id, warehouse_id, movement_type, quantity,
-                               unit_cost='0', reference_type=None, reference_id=None, notes=''):
+                               unit_cost='0', reference_type=None, reference_id=None, notes='', **variant_data):
+    _ensure_variant_warehouse_schema(db)
     item_id = int(item_id or 0)
     warehouse_id = int(warehouse_id or 0)
     qty = _dec(quantity)
     cost = _dec(unit_cost)
+    vp = _variant_payload(variant_data)
     if item_id <= 0:
         raise ValueError('المادة غير صحيحة')
     if warehouse_id <= 0:
@@ -299,11 +376,24 @@ def _record_warehouse_movement(db, uid, item_id, warehouse_id, movement_type, qu
         UPDATE item_warehouse_balances SET quantity=?, average_cost=?, updated_at=?
         WHERE user_id=? AND item_id=? AND warehouse_id=?
     """, (str(new_qty), avg_cost, now, uid, item_id, warehouse_id))
+    if vp['variant_id']:
+        _ensure_variant_balance_row(db, uid, item_id, vp['variant_id'], warehouse_id, cost, vp)
+        current_variant = _available_qty(db, uid, item_id, warehouse_id, variant_id=vp['variant_id'])
+        new_variant_qty = current_variant + qty
+        if new_variant_qty < 0:
+            raise ValueError('الرصيد غير كافٍ لهذا اللون/المقاس في المستودع المحدد')
+        db.query("""
+            UPDATE item_warehouse_variant_balances
+            SET quantity=?, average_cost=?, variant_color=?, variant_size=?, variant_sku=?, updated_at=?
+            WHERE user_id=? AND item_id=? AND variant_id=? AND warehouse_id=?
+        """, (str(new_variant_qty), avg_cost, vp['variant_color'], vp['variant_size'], vp['variant_sku'], now, uid, item_id, vp['variant_id'], warehouse_id))
     cur = db.query("""
         INSERT INTO warehouse_movements
-        (user_id, item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes, movement_date, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (uid, item_id, warehouse_id, movement_type, str(qty), str(cost), reference_type, reference_id, notes or '', now, now))
+        (user_id, item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes, movement_date, created_at,
+         variant_id, variant_color, variant_size, variant_sku, barcode_scope, matched_barcode)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (uid, item_id, warehouse_id, movement_type, str(qty), str(cost), reference_type, reference_id, notes or '', now, now,
+          vp['variant_id'], vp['variant_color'], vp['variant_size'], vp['variant_sku'], vp['barcode_scope'], vp['matched_barcode']))
     return int(cur.lastrowid)
 
 @warehouses_bp.route('/warehouses/balances', methods=['GET'])
@@ -389,7 +479,10 @@ def add_warehouse_movement():
         notes = data.get('notes') or ''
         mid = _record_warehouse_movement(
             db, uid, item_id, warehouse_id, movement_type, quantity, unit_cost,
-            reference_type, reference_id, notes
+            reference_type, reference_id, notes,
+            variant_id=data.get('variant_id'), variant_color=data.get('variant_color', ''),
+            variant_size=data.get('variant_size', ''), variant_sku=data.get('variant_sku', ''),
+            barcode_scope=data.get('barcode_scope', ''), matched_barcode=data.get('matched_barcode', '')
         )
         # Phase 25: shadow-post direct warehouse movements, except invoice and
         # return references which already have dedicated ledger hooks.
@@ -416,17 +509,39 @@ def reverse_warehouse_reference():
     rows = db.query("""
         SELECT m.* FROM warehouse_movements m
         JOIN warehouses w ON w.id=m.warehouse_id AND w.user_id=m.user_id
-        WHERE m.user_id=? AND m.reference_type=? AND m.reference_id=?
-    """ + branch_sql + " ORDER BY m.id DESC", tuple([uid, reference_type, reference_id] + branch_params)).fetchall()
+        WHERE m.user_id=? AND m.reference_id=? AND m.reference_type IN (?, ?)
+    """ + branch_sql + " ORDER BY m.id ASC", tuple([uid, reference_id, reference_type, 'reverse_' + str(reference_type)] + branch_params)).fetchall()
     try:
+        nets = {}
+        payloads = {}
         for r in rows:
-            _record_warehouse_movement(
-                db, uid, r['item_id'], r['warehouse_id'], 'reverse_' + str(r['movement_type']),
-                -_dec(r['quantity']), r['unit_cost'] or '0',
-                'reverse_' + str(reference_type), reference_id, 'عكس حركة مستودعية'
+            mt = str(r['movement_type'] or '')
+            base_mt = mt[8:] if mt.startswith('reverse_') else mt
+            vp = _variant_payload(dict(r))
+            # Phase 322: aggregate reversals per color/size variant so two
+            # variants of the same material cannot collapse into a generic item
+            # reversal in API/network mode.
+            key = (
+                r['item_id'], r['warehouse_id'], base_mt, str(r['unit_cost'] or '0'),
+                vp['variant_id'], vp['variant_color'], vp['variant_size'],
+                vp['variant_sku'], vp['barcode_scope'], vp['matched_barcode'],
             )
+            nets[key] = nets.get(key, Decimal('0')) + _dec(r['quantity'])
+            payloads[key] = vp
+        reversed_count = 0
+        for key, net_qty in nets.items():
+            if net_qty == 0:
+                continue
+            item_id, warehouse_id, base_mt, unit_cost, *_ = key
+            _record_warehouse_movement(
+                db, uid, item_id, warehouse_id, 'reverse_' + str(base_mt),
+                -net_qty, unit_cost,
+                'reverse_' + str(reference_type), reference_id, 'عكس حركة مستودعية',
+                **payloads.get(key, {})
+            )
+            reversed_count += 1
         db.commit()
-        return jsonify({'status': 'ok', 'reversed': len(rows)})
+        return jsonify({'status': 'ok', 'reversed': reversed_count})
     except Exception as exc:
         db.rollback()
         return jsonify({'error': str(exc)}), 400
@@ -440,7 +555,7 @@ def _next_transfer_no(db, uid):
 @warehouses_bp.route('/warehouses/transfers', methods=['POST'])
 @jwt_required()
 def create_warehouse_transfer():
-    uid = _uid(); db = get_warehouse_repository(); _ensure_transfer_schema(db)
+    uid = _uid(); db = get_warehouse_repository(); _ensure_transfer_schema(db); _ensure_variant_warehouse_schema(db)
     data = request.get_json() or {}
     try:
         item_id = int(data.get('item_id') or 0)
@@ -452,6 +567,7 @@ def create_warehouse_transfer():
             conv_factor = Decimal('1')
         base_qty = _dec(data.get('base_qty') or (qty * conv_factor))
         notes = str(data.get('notes') or '').strip()
+        vp = _variant_payload(data)
         if item_id <= 0:
             raise ValueError('اختر المادة')
         if from_wh <= 0 or to_wh <= 0:
@@ -464,19 +580,20 @@ def create_warehouse_transfer():
             raise ValueError('لا يمكن التحويل من أو إلى مستودع مؤرشف')
         _require_warehouse_access(db, uid, from_wh, 'warehouse_transfer.from')
         _require_warehouse_access(db, uid, to_wh, 'warehouse_transfer.to')
-        if _available_qty(db, uid, item_id, from_wh) < base_qty:
+        if _available_qty(db, uid, item_id, from_wh, variant_id=vp['variant_id']) < base_qty:
             raise ValueError('الرصيد غير كافٍ في المستودع المصدر')
         unit_cost = _item_cost(db, uid, item_id)
         now = _now()
         transfer_no = _next_transfer_no(db, uid)
         cur = db.query("""
             INSERT INTO warehouse_transfers
-            (user_id, transfer_no, item_id, from_warehouse_id, to_warehouse_id, quantity, base_qty, unit_id, unit_name, conversion_factor, barcode_scope, matched_barcode, unit_cost, notes, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
-        """, (uid, transfer_no, item_id, from_wh, to_wh, str(qty), str(base_qty), data.get('unit_id'), data.get('unit_name') or data.get('unit') or '', str(conv_factor), data.get('barcode_scope') or '', data.get('matched_barcode') or '', str(unit_cost), notes, now))
+            (user_id, transfer_no, item_id, from_warehouse_id, to_warehouse_id, quantity, base_qty, unit_id, unit_name, conversion_factor, barcode_scope, matched_barcode,
+             variant_id, variant_color, variant_size, variant_sku, unit_cost, notes, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+        """, (uid, transfer_no, item_id, from_wh, to_wh, str(qty), str(base_qty), data.get('unit_id'), data.get('unit_name') or data.get('unit') or '', str(conv_factor), vp['barcode_scope'], vp['matched_barcode'], vp['variant_id'], vp['variant_color'], vp['variant_size'], vp['variant_sku'], str(unit_cost), notes, now))
         tid = int(cur.lastrowid)
-        _record_warehouse_movement(db, uid, item_id, from_wh, 'transfer_out', -base_qty, unit_cost, 'warehouse_transfer', tid, f'تحويل إلى مستودع #{to_wh}: {notes}')
-        _record_warehouse_movement(db, uid, item_id, to_wh, 'transfer_in', base_qty, unit_cost, 'warehouse_transfer', tid, f'تحويل من مستودع #{from_wh}: {notes}')
+        _record_warehouse_movement(db, uid, item_id, from_wh, 'transfer_out', -base_qty, unit_cost, 'warehouse_transfer', tid, f'تحويل إلى مستودع #{to_wh}: {notes}', **vp)
+        _record_warehouse_movement(db, uid, item_id, to_wh, 'transfer_in', base_qty, unit_cost, 'warehouse_transfer', tid, f'تحويل من مستودع #{from_wh}: {notes}', **vp)
         _post_inventory_ledger_entry(db, uid, item_id, from_wh, 'transfer_out', 'out', base_qty, unit_cost, 'warehouse_transfer', tid, 'warehouse_transfers', tid, f'دفتر مخزون تحويل إلى مستودع #{to_wh}')
         _post_inventory_ledger_entry(db, uid, item_id, to_wh, 'transfer_in', 'in', base_qty, unit_cost, 'warehouse_transfer', tid, 'warehouse_transfers', tid, f'دفتر مخزون تحويل من مستودع #{from_wh}')
         db.commit()
@@ -488,7 +605,7 @@ def create_warehouse_transfer():
 @warehouses_bp.route('/warehouses/transfers/<int:transfer_id>/cancel', methods=['POST'])
 @jwt_required()
 def cancel_warehouse_transfer(transfer_id):
-    uid = _uid(); db = get_warehouse_repository(); _ensure_transfer_schema(db)
+    uid = _uid(); db = get_warehouse_repository(); _ensure_transfer_schema(db); _ensure_variant_warehouse_schema(db)
     t = db.query("SELECT * FROM warehouse_transfers WHERE id=? AND user_id=?", (transfer_id, uid)).fetchone()
     if not t:
         return jsonify({'error': 'التحويل غير موجود'}), 404
@@ -502,12 +619,13 @@ def cancel_warehouse_transfer(transfer_id):
     except ValueError as exc:
         return jsonify({'error': str(exc)}), 404
     qty = _dec(t['base_qty'] if 'base_qty' in t.keys() and t['base_qty'] not in (None, '') else t['quantity'])
-    if _available_qty(db, uid, t['item_id'], t['to_warehouse_id']) < qty:
+    vp = _variant_payload(dict(t))
+    if _available_qty(db, uid, t['item_id'], t['to_warehouse_id'], variant_id=vp['variant_id']) < qty:
         return jsonify({'error': 'لا يمكن إلغاء التحويل لأن رصيد المستودع المستلم غير كافٍ'}), 400
     try:
         unit_cost = _dec(t['unit_cost'])
-        _record_warehouse_movement(db, uid, t['item_id'], t['to_warehouse_id'], 'transfer_cancel_out', -qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي')
-        _record_warehouse_movement(db, uid, t['item_id'], t['from_warehouse_id'], 'transfer_cancel_in', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي')
+        _record_warehouse_movement(db, uid, t['item_id'], t['to_warehouse_id'], 'transfer_cancel_out', -qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي', **vp)
+        _record_warehouse_movement(db, uid, t['item_id'], t['from_warehouse_id'], 'transfer_cancel_in', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي', **vp)
         _post_inventory_ledger_entry(db, uid, t['item_id'], t['to_warehouse_id'], 'transfer_cancel_out', 'out', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'warehouse_transfers', transfer_id, 'دفتر مخزون إلغاء تحويل مستودعي')
         _post_inventory_ledger_entry(db, uid, t['item_id'], t['from_warehouse_id'], 'transfer_cancel_in', 'in', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'warehouse_transfers', transfer_id, 'دفتر مخزون إلغاء تحويل مستودعي')
         db.query("UPDATE warehouse_transfers SET status='cancelled', cancelled_at=? WHERE id=? AND user_id=?", (_now(), transfer_id, uid))

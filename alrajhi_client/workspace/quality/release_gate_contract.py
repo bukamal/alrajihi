@@ -112,6 +112,9 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (317, "APPAREL_VARIANT_TRANSACTION_INTEGRATION"),
         (318, "WORKSPACE_SHELL_TRANSACTION_LAYOUT_UNIFICATION"),
         (319, "APPAREL_MATRIX_BULK_VARIANT_BUILDER"),
+        (320, "APPAREL_INVENTORY_OPERATIONS"),
+        (321, "APPAREL_REPORTS"),
+        (322, "APPAREL_RUNTIME_ACCEPTANCE"),
     ]
 )
 
@@ -189,6 +192,9 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (317, "apparel_variant_transaction_integration"),
         (318, "workspace_shell_transaction_layout_unification"),
         (319, "apparel_matrix_bulk_variant_builder"),
+        (320, "apparel_inventory_operations"),
+        (321, "apparel_reports"),
+        (322, "apparel_runtime_acceptance"),
     ]
 )
 
@@ -247,6 +253,9 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("apparel_variant_transaction_integration", "materials", "Apparel variant transaction/POS stock integration", "tests/test_phase317_apparel_variant_transaction_integration.py", phase=317),
     ReleaseGateCheck("workspace_shell_transaction_layout_unification", "shell", "Workspace shell and transaction layout unification", "tests/test_phase318_workspace_shell_transaction_layout_unification.py", phase=318),
     ReleaseGateCheck("apparel_matrix_bulk_variant_builder", "materials", "Apparel color/size matrix and bulk variant builder", "tests/test_phase319_apparel_matrix_bulk_variant_builder.py", phase=319),
+    ReleaseGateCheck("apparel_inventory_operations", "materials", "Apparel variant-aware inventory operations", "tests/test_phase320_apparel_inventory_operations.py", phase=320),
+    ReleaseGateCheck("apparel_reports", "materials", "Apparel reports for color/size stock and sales", "tests/test_phase321_apparel_reports.py", phase=321),
+    ReleaseGateCheck("apparel_runtime_acceptance", "materials", "Apparel runtime acceptance for complete color/size workflow", "tests/test_phase322_apparel_runtime_acceptance.py", phase=322),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

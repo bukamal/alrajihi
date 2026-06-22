@@ -49,11 +49,11 @@ class RemoteWarehouseGateway(WarehouseGateway):
         wh_id = self.default_warehouse_id()
         return self.get(wh_id) if wh_id else None
 
-    def available_qty(self, item_id: int, warehouse_id: int | None = None):
-        return self.rest_client.warehouse_available_qty(item_id, warehouse_id)
+    def available_qty(self, item_id: int, warehouse_id: int | None = None, variant_id: int | None = None):
+        return self.rest_client.warehouse_available_qty(item_id, warehouse_id, variant_id=variant_id)
 
     def record_movement(self, item_id, warehouse_id, movement_type, quantity,
-                        unit_cost='0', reference_type=None, reference_id=None, notes=''):
+                        unit_cost='0', reference_type=None, reference_id=None, notes='', **variant_data):
         return self.rest_client.warehouse_record_movement({
             'item_id': item_id,
             'warehouse_id': warehouse_id,
@@ -63,6 +63,7 @@ class RemoteWarehouseGateway(WarehouseGateway):
             'reference_type': reference_type,
             'reference_id': reference_id,
             'notes': notes,
+            **variant_data,
         })
 
     def reverse_reference(self, reference_type, reference_id) -> None:

@@ -71,19 +71,19 @@ class WarehouseService:
             print(f"⚠️ تعذر جلب بيانات المستودع الافتراضي من الخادم: {exc}")
             return None
 
-    def available_qty(self, item_id: int, warehouse_id: int | None = None):
+    def available_qty(self, item_id: int, warehouse_id: int | None = None, variant_id: int | None = None):
         try:
-            return self.gateway.available_qty(item_id, warehouse_id)
+            return self.gateway.available_qty(item_id, warehouse_id, variant_id=variant_id)
         except Exception as exc:
             print(f"⚠️ تعذر جلب الرصيد المتاح من الخادم: {exc}")
             return None
 
 
-    def record_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type=None, reference_id=None, notes=''):
+    def record_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type=None, reference_id=None, notes='', **variant_data):
         system_refs = {'invoice', 'sales_return', 'purchase_return', 'production_order', 'manufacturing', 'restaurant', 'pos'}
         if reference_type not in system_refs:
             inventory_operation_policy.require(inventory_operation_policy.OP_DIRECT_MOVEMENT, context='warehouse_service.record_movement', payload={'item_id': item_id, 'warehouse_id': warehouse_id, 'movement_type': movement_type, 'quantity': str(quantity), 'reference_type': reference_type})
-        movement_id = self.gateway.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes)
+        movement_id = self.gateway.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes, **variant_data)
         # Phase 25: local shadow ledger for direct warehouse movements. Remote
         # mode is posted server-side; invoice/return references have dedicated
         # ledger hooks to avoid duplicate entries.
@@ -173,6 +173,7 @@ class WarehouseService:
             return
         if inv_type == 'sale' and not settings_service.get_inventory_settings().get('allow_negative_stock'):
             required_by_item = {}
+            required_by_variant = {}
             for line in invoice_data.get('lines') or []:
                 item_id = line.get('item_id')
                 if not item_id:
@@ -182,7 +183,11 @@ class WarehouseService:
                     conv_factor = Decimal('1')
                 display_qty = Decimal(str(line.get('quantity', 0) or 0))
                 qty = abs(Decimal(str(line.get('base_qty', line.get('quantity_in_base', display_qty * conv_factor)) or 0)))
-                required_by_item[item_id] = required_by_item.get(item_id, Decimal('0')) + qty
+                variant_id = line.get('variant_id')
+                if variant_id:
+                    required_by_variant[(item_id, variant_id)] = required_by_variant.get((item_id, variant_id), Decimal('0')) + qty
+                else:
+                    required_by_item[item_id] = required_by_item.get(item_id, Decimal('0')) + qty
             for item_id, required_qty in required_by_item.items():
                 available = self.available_qty(item_id, wh_id)
                 try:
@@ -191,6 +196,14 @@ class WarehouseService:
                     available_qty = Decimal('0')
                 if available_qty < required_qty:
                     raise ValueError(f'المخزون غير كافٍ للمادة {item_id}: المتاح {available_qty} والمطلوب {required_qty}. يمكن تغيير ذلك من إعداد السماح بالمخزون السالب.')
+            for (item_id, variant_id), required_qty in required_by_variant.items():
+                available = self.available_qty(item_id, wh_id, variant_id=variant_id)
+                try:
+                    available_qty = Decimal(str(available or 0))
+                except Exception:
+                    available_qty = Decimal('0')
+                if available_qty < required_qty:
+                    raise ValueError(f'المخزون غير كافٍ للون/المقاس {variant_id}: المتاح {available_qty} والمطلوب {required_qty}.')
         for line in invoice_data.get('lines') or []:
             item_id = line.get('item_id')
             if not item_id:
@@ -214,7 +227,7 @@ class WarehouseService:
                 note = 'استلام فاتورة شراء إلى المستودع'
             else:
                 continue
-            self.gateway.record_movement(item_id, wh_id, movement_type, signed_qty, unit_cost, 'invoice', invoice_id, note)
+            self.gateway.record_movement(item_id, wh_id, movement_type, signed_qty, unit_cost, 'invoice', invoice_id, note, variant_id=line.get('variant_id'), variant_color=line.get('variant_color', ''), variant_size=line.get('variant_size', ''), variant_sku=line.get('variant_sku', ''), barcode_scope=line.get('barcode_scope', ''), matched_barcode=line.get('matched_barcode', line.get('barcode', '')))
             self._record_invoice_ledger_entry(
                 invoice_id=invoice_id,
                 item_id=item_id,

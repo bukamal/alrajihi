@@ -298,6 +298,17 @@ class ProductService:
                 counter += 1
         return {'created': created, 'skipped': skipped, 'errors': errors}
 
+    def apparel_report(self, item_id: int | None = None) -> Dict[str, Any]:
+        """Return apparel stock/sales reports through the product gateway boundary."""
+        report = self.item_gateway.apparel_report(item_id=item_id) or {}
+        report.setdefault('summary', {})
+        report.setdefault('variants', [])
+        report.setdefault('low_stock', [])
+        report.setdefault('by_item', [])
+        report.setdefault('by_color', [])
+        report.setdefault('by_size', [])
+        return report
+
     def item_activity_summary(self, item_id: int) -> Dict[str, Any]:
         """Return usage counts for a material through the active gateway."""
         try:

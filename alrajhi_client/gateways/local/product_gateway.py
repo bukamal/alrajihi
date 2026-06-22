@@ -61,6 +61,130 @@ class LocalItemGateway(ItemGateway):
     def delete_variant(self, variant_id: int):
         return item_dao.delete_variant(variant_id)
 
+
+    def apparel_report(self, item_id: int | None = None) -> Dict[str, Any]:
+        """Return apparel report data from the local product gateway boundary."""
+        from auth.session import UserSession
+        uid = UserSession.get_current_user_id()
+        conn = item_dao.repo.db.get_connection()
+        params: list[Any] = [uid]
+        item_filter = ""
+        if item_id is not None:
+            item_filter = " AND i.id=?"
+            params.append(int(item_id))
+
+        rows = conn.execute(f"""
+            SELECT i.id AS item_id, i.name AS item, i.unit AS base_unit,
+                   v.id AS variant_id, v.color, v.size, v.sku, v.barcode,
+                   v.sale_price, v.cost_price, v.reorder_level, v.is_active,
+                   COALESCE((
+                       SELECT SUM(CASE
+                           WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse','transfer_in') THEN CAST(quantity AS REAL)
+                           WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume','transfer_out') THEN -CAST(quantity AS REAL)
+                           ELSE 0 END)
+                       FROM warehouse_movements
+                       WHERE variant_id = v.id AND user_id = ?
+                   ), CAST(COALESCE(v.quantity, '0') AS REAL)) AS quantity
+            FROM item_variants v
+            JOIN items i ON i.id = v.item_id
+            WHERE i.user_id=? AND i.deleted_at IS NULL AND COALESCE(v.is_active, 1)=1 {item_filter}
+            ORDER BY i.name, v.color, v.size, v.id
+        """, [uid] + params).fetchall()
+        variants = [dict(row) for row in rows]
+
+        def as_decimal(value: Any) -> Decimal:
+            try:
+                return Decimal(str(value or 0))
+            except Exception:
+                return Decimal('0')
+
+        for row in variants:
+            qty = as_decimal(row.get('quantity'))
+            reorder = as_decimal(row.get('reorder_level'))
+            row['quantity'] = str(qty)
+            row['reorder_level'] = str(reorder)
+            row['status'] = 'low' if reorder > 0 and qty <= reorder else 'ok'
+
+        sold_by_variant: Dict[int, Decimal] = {}
+        try:
+            sales_rows = conn.execute("""
+                SELECT il.variant_id, COALESCE(SUM(CAST(COALESCE(NULLIF(il.quantity_in_base,''), il.quantity, '0') AS REAL)), 0) AS qty
+                FROM invoice_lines il
+                JOIN invoices inv ON inv.id = il.invoice_id
+                WHERE inv.user_id=? AND inv.type='sale' AND COALESCE(inv.deleted_at, '')=''
+                  AND il.variant_id IS NOT NULL
+                GROUP BY il.variant_id
+            """, (uid,)).fetchall()
+            for row in sales_rows:
+                sold_by_variant[int(row['variant_id'])] = as_decimal(row['qty'])
+        except Exception:
+            pass
+        try:
+            return_rows = conn.execute("""
+                SELECT srl.variant_id, COALESCE(SUM(CAST(COALESCE(NULLIF(srl.quantity_in_base,''), srl.quantity, '0') AS REAL)), 0) AS qty
+                FROM sales_return_lines srl
+                JOIN sales_returns sr ON sr.id = srl.sales_return_id
+                WHERE sr.user_id=? AND COALESCE(sr.status, 'active')!='cancelled' AND COALESCE(sr.deleted_at, '')=''
+                  AND srl.variant_id IS NOT NULL
+                GROUP BY srl.variant_id
+            """, (uid,)).fetchall()
+            for row in return_rows:
+                vid = int(row['variant_id'])
+                sold_by_variant[vid] = sold_by_variant.get(vid, Decimal('0')) - as_decimal(row['qty'])
+        except Exception:
+            pass
+
+        by_item: Dict[int, Dict[str, Any]] = {}
+        by_color: Dict[str, Decimal] = {}
+        by_size: Dict[str, Decimal] = {}
+        for row in variants:
+            vid = int(row.get('variant_id') or 0)
+            sold = max(sold_by_variant.get(vid, Decimal('0')), Decimal('0'))
+            row['sold_quantity'] = str(sold)
+            item_key = int(row.get('item_id') or 0)
+            item_row = by_item.setdefault(item_key, {
+                'item_id': item_key, 'item': row.get('item') or '',
+                'variant_count': 0, 'quantity': Decimal('0'), 'sold_quantity': Decimal('0'), 'low_stock_count': 0,
+            })
+            item_row['variant_count'] += 1
+            item_row['quantity'] += as_decimal(row.get('quantity'))
+            item_row['sold_quantity'] += sold
+            if row.get('status') == 'low':
+                item_row['low_stock_count'] += 1
+            color = str(row.get('color') or '').strip() or '—'
+            size = str(row.get('size') or '').strip() or '—'
+            by_color[color] = by_color.get(color, Decimal('0')) + sold
+            by_size[size] = by_size.get(size, Decimal('0')) + sold
+
+        by_item_rows = []
+        for row in by_item.values():
+            by_item_rows.append({
+                **row,
+                'quantity': str(row['quantity']),
+                'sold_quantity': str(row['sold_quantity']),
+            })
+        by_item_rows.sort(key=lambda row: (str(row.get('item') or ''), int(row.get('item_id') or 0)))
+        color_rows = [{'color': key, 'sold_quantity': str(value)} for key, value in sorted(by_color.items(), key=lambda kv: (-kv[1], kv[0]))]
+        size_rows = [{'size': key, 'sold_quantity': str(value)} for key, value in sorted(by_size.items(), key=lambda kv: (-kv[1], kv[0]))]
+        low_rows = [row for row in variants if row.get('status') == 'low']
+        summary = {
+            'item_count': len(by_item_rows),
+            'variant_count': len(variants),
+            'low_stock_count': len(low_rows),
+            'total_quantity': str(sum((as_decimal(row.get('quantity')) for row in variants), Decimal('0'))),
+            'total_sold_quantity': str(sum((as_decimal(row.get('sold_quantity')) for row in variants), Decimal('0'))),
+            'color_count': len({str(row.get('color') or '') for row in variants if row.get('color')}),
+            'size_count': len({str(row.get('size') or '') for row in variants if row.get('size')}),
+        }
+        return {
+            'summary': summary,
+            'variants': variants,
+            'low_stock': low_rows,
+            'by_item': by_item_rows,
+            'by_color': color_rows,
+            'by_size': size_rows,
+        }
+
     def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
         if not item_ids:
             return {}

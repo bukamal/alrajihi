@@ -59,12 +59,12 @@ class WarehouseGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def available_qty(self, item_id: int, warehouse_id: int | None = None):
+    def available_qty(self, item_id: int, warehouse_id: int | None = None, variant_id: int | None = None):
         raise NotImplementedError
 
     @abstractmethod
     def record_movement(self, item_id, warehouse_id, movement_type, quantity,
-                        unit_cost='0', reference_type=None, reference_id=None, notes=''):
+                        unit_cost='0', reference_type=None, reference_id=None, notes='', **variant_data):
         raise NotImplementedError
 
     @abstractmethod

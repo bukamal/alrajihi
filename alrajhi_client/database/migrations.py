@@ -273,6 +273,25 @@ def init_database():
             UNIQUE(user_id, item_id, warehouse_id)
         );
 
+        CREATE TABLE IF NOT EXISTS item_warehouse_variant_balances (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            item_id INTEGER NOT NULL,
+            variant_id INTEGER NOT NULL,
+            warehouse_id INTEGER NOT NULL,
+            variant_color TEXT,
+            variant_size TEXT,
+            variant_sku TEXT,
+            quantity TEXT DEFAULT '0',
+            average_cost TEXT DEFAULT '0',
+            updated_at TEXT,
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (item_id) REFERENCES items(id),
+            FOREIGN KEY (variant_id) REFERENCES item_variants(id),
+            FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
+            UNIQUE(user_id, item_id, variant_id, warehouse_id)
+        );
+
         CREATE TABLE IF NOT EXISTS warehouse_movements (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
@@ -286,6 +305,12 @@ def init_database():
             notes TEXT,
             movement_date TEXT,
             created_at TEXT,
+            variant_id INTEGER,
+            variant_color TEXT,
+            variant_size TEXT,
+            variant_sku TEXT,
+            barcode_scope TEXT,
+            matched_barcode TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (item_id) REFERENCES items(id),
             FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
@@ -677,6 +702,9 @@ def init_database():
         'CREATE INDEX IF NOT EXISTS idx_wh_user ON warehouses(user_id);',
         'CREATE INDEX IF NOT EXISTS idx_wh_bal_item ON item_warehouse_balances(item_id);',
         'CREATE INDEX IF NOT EXISTS idx_wh_bal_wh ON item_warehouse_balances(warehouse_id);',
+        'CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_variant ON item_warehouse_variant_balances(variant_id);',
+        'CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_wh ON item_warehouse_variant_balances(warehouse_id);',
+        'CREATE INDEX IF NOT EXISTS idx_wh_mov_variant ON warehouse_movements(variant_id);',
         'CREATE INDEX IF NOT EXISTS idx_wh_mov_item ON warehouse_movements(item_id);',
         'CREATE INDEX IF NOT EXISTS idx_wh_mov_wh ON warehouse_movements(warehouse_id);',
         'CREATE INDEX IF NOT EXISTS idx_cashboxes_user_branch ON cashboxes(user_id, branch_id);',
@@ -1473,6 +1501,10 @@ def ensure_db():
                 conversion_factor TEXT DEFAULT '1',
                 barcode_scope TEXT,
                 matched_barcode TEXT,
+                variant_id INTEGER,
+                variant_color TEXT,
+                variant_size TEXT,
+                variant_sku TEXT,
                 unit_cost TEXT DEFAULT '0',
                 notes TEXT,
                 status TEXT DEFAULT 'active',

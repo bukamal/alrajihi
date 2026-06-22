@@ -50,12 +50,12 @@ class LocalWarehouseGateway(WarehouseGateway):
         warehouse = warehouse_dao.default_warehouse()
         return warehouse if isinstance(warehouse, dict) else None
 
-    def available_qty(self, item_id: int, warehouse_id: int | None = None):
-        return warehouse_dao.available_qty(item_id, warehouse_id)
+    def available_qty(self, item_id: int, warehouse_id: int | None = None, variant_id: int | None = None):
+        return warehouse_dao.available_qty(item_id, warehouse_id, variant_id=variant_id)
 
     def record_movement(self, item_id, warehouse_id, movement_type, quantity,
-                        unit_cost='0', reference_type=None, reference_id=None, notes=''):
-        return warehouse_dao.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes)
+                        unit_cost='0', reference_type=None, reference_id=None, notes='', **variant_data):
+        return warehouse_dao.record_movement(item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes, **variant_data)
 
     def reverse_reference(self, reference_type, reference_id) -> None:
         warehouse_dao.reverse_reference(reference_type, reference_id)

@@ -56,6 +56,24 @@ class WarehouseRepository(BaseRepository):
                 FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
                 UNIQUE(user_id, item_id, warehouse_id)
             );
+            CREATE TABLE IF NOT EXISTS item_warehouse_variant_balances (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                item_id INTEGER NOT NULL,
+                variant_id INTEGER NOT NULL,
+                warehouse_id INTEGER NOT NULL,
+                variant_color TEXT,
+                variant_size TEXT,
+                variant_sku TEXT,
+                quantity TEXT DEFAULT '0',
+                average_cost TEXT DEFAULT '0',
+                updated_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (item_id) REFERENCES items(id),
+                FOREIGN KEY (variant_id) REFERENCES item_variants(id),
+                FOREIGN KEY (warehouse_id) REFERENCES warehouses(id),
+                UNIQUE(user_id, item_id, variant_id, warehouse_id)
+            );
             CREATE TABLE IF NOT EXISTS warehouse_movements (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id TEXT NOT NULL,
@@ -69,6 +87,12 @@ class WarehouseRepository(BaseRepository):
                 notes TEXT,
                 movement_date TEXT,
                 created_at TEXT,
+                variant_id INTEGER,
+                variant_color TEXT,
+                variant_size TEXT,
+                variant_sku TEXT,
+                barcode_scope TEXT,
+                matched_barcode TEXT,
                 FOREIGN KEY (user_id) REFERENCES users(id),
                 FOREIGN KEY (item_id) REFERENCES items(id),
                 FOREIGN KEY (warehouse_id) REFERENCES warehouses(id)
@@ -88,6 +112,10 @@ class WarehouseRepository(BaseRepository):
                 conversion_factor TEXT DEFAULT '1',
                 barcode_scope TEXT,
                 matched_barcode TEXT,
+                variant_id INTEGER,
+                variant_color TEXT,
+                variant_size TEXT,
+                variant_sku TEXT,
                 unit_cost TEXT DEFAULT '0',
                 notes TEXT,
                 status TEXT DEFAULT 'active',
@@ -102,6 +130,8 @@ class WarehouseRepository(BaseRepository):
             CREATE INDEX IF NOT EXISTS idx_wh_user ON warehouses(user_id);
             CREATE INDEX IF NOT EXISTS idx_wh_bal_item ON item_warehouse_balances(item_id);
             CREATE INDEX IF NOT EXISTS idx_wh_bal_wh ON item_warehouse_balances(warehouse_id);
+            CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_variant ON item_warehouse_variant_balances(variant_id);
+            CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_wh ON item_warehouse_variant_balances(warehouse_id);
             CREATE INDEX IF NOT EXISTS idx_wh_mov_item ON warehouse_movements(item_id);
             CREATE INDEX IF NOT EXISTS idx_wh_mov_wh ON warehouse_movements(warehouse_id);
         ''')
@@ -112,13 +142,25 @@ class WarehouseRepository(BaseRepository):
         for col_name, col_type in (
             ('base_qty', 'TEXT'), ('unit_id', 'INTEGER'), ('unit_name', 'TEXT'),
             ('conversion_factor', "TEXT DEFAULT '1'"), ('barcode_scope', 'TEXT'), ('matched_barcode', 'TEXT'),
+            ('variant_id', 'INTEGER'), ('variant_color', 'TEXT'), ('variant_size', 'TEXT'), ('variant_sku', 'TEXT'),
         ):
             try:
                 conn.execute(f"ALTER TABLE warehouse_transfers ADD COLUMN {col_name} {col_type}")
             except Exception:
                 pass
+        for col_name, col_type in (
+            ('variant_id', 'INTEGER'), ('variant_color', 'TEXT'), ('variant_size', 'TEXT'),
+            ('variant_sku', 'TEXT'), ('barcode_scope', 'TEXT'), ('matched_barcode', 'TEXT'),
+        ):
+            try:
+                conn.execute(f"ALTER TABLE warehouse_movements ADD COLUMN {col_name} {col_type}")
+            except Exception:
+                pass
         try:
             conn.execute("CREATE INDEX IF NOT EXISTS idx_wh_transfer_unit ON warehouse_transfers(unit_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_wh_mov_variant ON warehouse_movements(variant_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_variant ON item_warehouse_variant_balances(variant_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_wh ON item_warehouse_variant_balances(warehouse_id)")
         except Exception:
             pass
         conn.commit()
@@ -351,20 +393,21 @@ class WarehouseRepository(BaseRepository):
         wh_id = self.default_warehouse_id()
         return self.get_by_id(wh_id) if wh_id else None
 
-    def available_qty(self, item_id: int, warehouse_id: int | None = None) -> Decimal:
+    def available_qty(self, item_id: int, warehouse_id: int | None = None, variant_id: int | None = None) -> Decimal:
         if self.db.is_remote():
-            return Decimal(str(self.db.get_rest_client().warehouse_available_qty(item_id, warehouse_id)))
+            return Decimal(str(self.db.get_rest_client().warehouse_available_qty(item_id, warehouse_id, variant_id=variant_id)))
         self.bootstrap_defaults()
         uid = self._uid()
         wh_id = warehouse_id or self.default_warehouse_id(uid)
         if not wh_id:
             return Decimal('0')
+        if variant_id:
+            return self._available_variant_qty(int(item_id), int(variant_id), int(wh_id))
         row = self.db.get_connection().execute("""
             SELECT quantity FROM item_warehouse_balances
             WHERE user_id=? AND item_id=? AND warehouse_id=?
         """, (uid, item_id, wh_id)).fetchone()
         return Decimal(str(row['quantity'])) if row and row['quantity'] is not None else Decimal('0')
-
     def _warehouse_active(self, warehouse_id: int) -> bool:
         uid = self._uid()
         row = self.db.get_connection().execute("""
@@ -394,9 +437,48 @@ class WarehouseRepository(BaseRepository):
             VALUES (?, ?, ?, '0', ?, ?)
         """, (uid, item_id, warehouse_id, str(unit_cost or '0'), now))
 
-    def record_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type=None, reference_id=None, notes='') -> int:
+    def _variant_payload(self, data: Dict | None = None) -> Dict:
+        data = data or {}
+        variant_id = data.get('variant_id')
+        try:
+            variant_id = int(variant_id) if variant_id not in (None, '', 0, '0') else None
+        except Exception:
+            variant_id = None
+        return {
+            'variant_id': variant_id,
+            'variant_color': str(data.get('variant_color') or ''),
+            'variant_size': str(data.get('variant_size') or ''),
+            'variant_sku': str(data.get('variant_sku') or ''),
+            'barcode_scope': str(data.get('barcode_scope') or ('variant' if variant_id else '')),
+            'matched_barcode': str(data.get('matched_barcode') or data.get('barcode') or ''),
+        }
+
+    def _ensure_variant_balance_row(self, item_id: int, variant_id: int, warehouse_id: int, unit_cost='0', variant_payload: Dict | None = None) -> None:
+        uid = self._uid()
+        now = self._now()
+        vp = self._variant_payload(variant_payload)
+        conn = self.db.get_connection()
+        if conn.execute("""
+            SELECT id FROM item_warehouse_variant_balances
+            WHERE user_id=? AND item_id=? AND variant_id=? AND warehouse_id=?
+        """, (uid, item_id, variant_id, warehouse_id)).fetchone():
+            return
+        conn.execute("""
+            INSERT INTO item_warehouse_variant_balances
+            (user_id, item_id, variant_id, warehouse_id, variant_color, variant_size, variant_sku, quantity, average_cost, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, '0', ?, ?)
+        """, (uid, item_id, variant_id, warehouse_id, vp['variant_color'], vp['variant_size'], vp['variant_sku'], str(unit_cost or '0'), now))
+
+    def _available_variant_qty(self, item_id: int, variant_id: int, warehouse_id: int) -> Decimal:
+        uid = self._uid()
+        row = self.db.get_connection().execute("""
+            SELECT quantity FROM item_warehouse_variant_balances
+            WHERE user_id=? AND item_id=? AND variant_id=? AND warehouse_id=?
+        """, (uid, item_id, variant_id, warehouse_id)).fetchone()
+        return Decimal(str(row['quantity'])) if row and row['quantity'] is not None else Decimal('0')
+    def record_movement(self, item_id, warehouse_id, movement_type, quantity, unit_cost='0', reference_type=None, reference_id=None, notes='', **variant_data) -> int:
         if self.db.is_remote():
-            return self.db.get_rest_client().warehouse_record_movement({
+            payload = {
                 'item_id': item_id,
                 'warehouse_id': warehouse_id,
                 'movement_type': movement_type,
@@ -405,7 +487,9 @@ class WarehouseRepository(BaseRepository):
                 'reference_type': reference_type,
                 'reference_id': reference_id,
                 'notes': notes or '',
-            })
+            }
+            payload.update(self._variant_payload(variant_data))
+            return self.db.get_rest_client().warehouse_record_movement(payload)
         self.bootstrap_defaults()
         uid = self._uid()
         qty = Decimal(str(quantity or 0))
@@ -414,6 +498,7 @@ class WarehouseRepository(BaseRepository):
             return 0
         if not self._warehouse_active(int(warehouse_id)):
             raise ValueError('المستودع غير نشط أو غير موجود')
+        vp = self._variant_payload(variant_data)
         conn = self.db.get_connection()
         now = self._now()
         self._ensure_balance_row(int(item_id), int(warehouse_id), cost)
@@ -421,18 +506,31 @@ class WarehouseRepository(BaseRepository):
         new_qty = current + qty
         if new_qty < 0:
             raise ValueError('الرصيد غير كافٍ في المستودع المحدد')
+        avg_cost = str(cost if cost > 0 else self._item_cost(item_id))
         conn.execute("""
             UPDATE item_warehouse_balances SET quantity=?, average_cost=?, updated_at=?
             WHERE user_id=? AND item_id=? AND warehouse_id=?
-        """, (str(new_qty), str(cost if cost > 0 else self._item_cost(item_id)), now, uid, int(item_id), int(warehouse_id)))
+        """, (str(new_qty), avg_cost, now, uid, int(item_id), int(warehouse_id)))
+        if vp['variant_id']:
+            self._ensure_variant_balance_row(int(item_id), int(vp['variant_id']), int(warehouse_id), cost, vp)
+            current_variant = self._available_variant_qty(int(item_id), int(vp['variant_id']), int(warehouse_id))
+            new_variant_qty = current_variant + qty
+            if new_variant_qty < 0:
+                raise ValueError('الرصيد غير كافٍ لهذا اللون/المقاس في المستودع المحدد')
+            conn.execute("""
+                UPDATE item_warehouse_variant_balances
+                SET quantity=?, average_cost=?, variant_color=?, variant_size=?, variant_sku=?, updated_at=?
+                WHERE user_id=? AND item_id=? AND variant_id=? AND warehouse_id=?
+            """, (str(new_variant_qty), avg_cost, vp['variant_color'], vp['variant_size'], vp['variant_sku'], now, uid, int(item_id), int(vp['variant_id']), int(warehouse_id)))
         cur = conn.execute("""
             INSERT INTO warehouse_movements
-            (user_id, item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes, movement_date, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (uid, int(item_id), int(warehouse_id), movement_type, str(qty), str(cost), reference_type, reference_id, notes or '', now, now))
+            (user_id, item_id, warehouse_id, movement_type, quantity, unit_cost, reference_type, reference_id, notes, movement_date, created_at,
+             variant_id, variant_color, variant_size, variant_sku, barcode_scope, matched_barcode)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (uid, int(item_id), int(warehouse_id), movement_type, str(qty), str(cost), reference_type, reference_id, notes or '', now, now,
+              vp['variant_id'], vp['variant_color'], vp['variant_size'], vp['variant_sku'], vp['barcode_scope'], vp['matched_barcode']))
         conn.commit()
         return int(cur.lastrowid)
-
     def reverse_reference(self, reference_type, reference_id) -> None:
         if self.db.is_remote():
             return self.db.get_rest_client().warehouse_reverse_reference(reference_type, reference_id)
@@ -450,16 +548,44 @@ class WarehouseRepository(BaseRepository):
             ORDER BY id ASC
         """, (uid, reference_id, reference_type, 'reverse_' + str(reference_type))).fetchall()
         nets = {}
+        variant_payloads = {}
         for r in rows:
             mt = str(r['movement_type'] or '')
             base_mt = mt[8:] if mt.startswith('reverse_') else mt
-            key = (r['item_id'], r['warehouse_id'], base_mt, str(r['unit_cost'] or '0'))
+            vp = self._variant_payload(dict(r))
+            # Phase 322: reverse-reference aggregation must include the apparel
+            # variant identity.  Otherwise two sizes/colors of the same item may
+            # collapse into one generic item reversal and corrupt variant stock.
+            key = (
+                r['item_id'],
+                r['warehouse_id'],
+                base_mt,
+                str(r['unit_cost'] or '0'),
+                vp['variant_id'],
+                vp['variant_color'],
+                vp['variant_size'],
+                vp['variant_sku'],
+                vp['barcode_scope'],
+                vp['matched_barcode'],
+            )
             nets[key] = nets.get(key, Decimal('0')) + Decimal(str(r['quantity'] or 0))
-        for (item_id, warehouse_id, base_mt, unit_cost), net_qty in nets.items():
+            variant_payloads[key] = vp
+        for key, net_qty in nets.items():
             if net_qty == 0:
                 continue
+            item_id, warehouse_id, base_mt, unit_cost, *_variant_key = key
             reverse_type = 'reverse_' + str(base_mt)
-            self.record_movement(item_id, warehouse_id, reverse_type, -net_qty, unit_cost, 'reverse_' + str(reference_type), reference_id, 'عكس حركة مستودعية')
+            self.record_movement(
+                item_id,
+                warehouse_id,
+                reverse_type,
+                -net_qty,
+                unit_cost,
+                'reverse_' + str(reference_type),
+                reference_id,
+                'عكس حركة مستودعية',
+                **variant_payloads.get(key, {}),
+            )
 
     def _next_transfer_no(self) -> str:
         uid = self._uid()
@@ -483,6 +609,7 @@ class WarehouseRepository(BaseRepository):
             conv_factor = Decimal('1')
         base_qty = Decimal(str(data.get('base_qty', qty * conv_factor) or 0))
         notes = str(data.get('notes') or '').strip()
+        vp = self._variant_payload(data)
         if item_id <= 0:
             raise ValueError('اختر المادة')
         if from_wh <= 0 or to_wh <= 0:
@@ -493,7 +620,7 @@ class WarehouseRepository(BaseRepository):
             raise ValueError('كمية التحويل يجب أن تكون أكبر من صفر')
         if not self._warehouse_active(from_wh) or not self._warehouse_active(to_wh):
             raise ValueError('لا يمكن التحويل من أو إلى مستودع مؤرشف')
-        available = self.available_qty(item_id, from_wh)
+        available = self.available_qty(item_id, from_wh, variant_id=vp['variant_id'])
         if available < base_qty:
             raise ValueError(f'الرصيد غير كافٍ في المستودع المصدر. المتاح: {available}')
         unit_cost = self._item_cost(item_id)
@@ -502,15 +629,15 @@ class WarehouseRepository(BaseRepository):
         now = self._now()
         cur = conn.execute("""
             INSERT INTO warehouse_transfers
-            (user_id, transfer_no, item_id, from_warehouse_id, to_warehouse_id, quantity, base_qty, unit_id, unit_name, conversion_factor, barcode_scope, matched_barcode, unit_cost, notes, status, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
-        """, (uid, transfer_no, item_id, from_wh, to_wh, str(qty), str(base_qty), data.get('unit_id'), data.get('unit_name') or data.get('unit') or '', str(conv_factor), data.get('barcode_scope') or '', data.get('matched_barcode') or '', str(unit_cost), notes, now))
+            (user_id, transfer_no, item_id, from_warehouse_id, to_warehouse_id, quantity, base_qty, unit_id, unit_name, conversion_factor, barcode_scope, matched_barcode,
+             variant_id, variant_color, variant_size, variant_sku, unit_cost, notes, status, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+        """, (uid, transfer_no, item_id, from_wh, to_wh, str(qty), str(base_qty), data.get('unit_id'), data.get('unit_name') or data.get('unit') or '', str(conv_factor), vp['barcode_scope'], vp['matched_barcode'], vp['variant_id'], vp['variant_color'], vp['variant_size'], vp['variant_sku'], str(unit_cost), notes, now))
         transfer_id = int(cur.lastrowid)
         conn.commit()
-        self.record_movement(item_id, from_wh, 'transfer_out', -base_qty, unit_cost, 'warehouse_transfer', transfer_id, f'تحويل إلى مستودع #{to_wh}: {notes}')
-        self.record_movement(item_id, to_wh, 'transfer_in', base_qty, unit_cost, 'warehouse_transfer', transfer_id, f'تحويل من مستودع #{from_wh}: {notes}')
+        self.record_movement(item_id, from_wh, 'transfer_out', -base_qty, unit_cost, 'warehouse_transfer', transfer_id, f'تحويل إلى مستودع #{to_wh}: {notes}', **vp)
+        self.record_movement(item_id, to_wh, 'transfer_in', base_qty, unit_cost, 'warehouse_transfer', transfer_id, f'تحويل من مستودع #{from_wh}: {notes}', **vp)
         return transfer_id
-
     def cancel_transfer(self, transfer_id: int) -> None:
         if self.db.is_remote():
             return self.db.get_rest_client().cancel_warehouse_transfer(transfer_id)
@@ -525,15 +652,15 @@ class WarehouseRepository(BaseRepository):
         if t['status'] != 'active':
             raise ValueError('التحويل ملغى مسبقاً')
         qty = Decimal(str(t['base_qty'] if 'base_qty' in t.keys() and t['base_qty'] not in (None, '') else t['quantity'] or 0))
-        if self.available_qty(t['item_id'], t['to_warehouse_id']) < qty:
+        vp = self._variant_payload(dict(t))
+        if self.available_qty(t['item_id'], t['to_warehouse_id'], variant_id=vp['variant_id']) < qty:
             raise ValueError('لا يمكن إلغاء التحويل لأن رصيد المستودع المستلم غير كافٍ')
         unit_cost = Decimal(str(t['unit_cost'] or 0))
-        self.record_movement(t['item_id'], t['to_warehouse_id'], 'transfer_cancel_out', -qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي')
-        self.record_movement(t['item_id'], t['from_warehouse_id'], 'transfer_cancel_in', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي')
+        self.record_movement(t['item_id'], t['to_warehouse_id'], 'transfer_cancel_out', -qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي', **vp)
+        self.record_movement(t['item_id'], t['from_warehouse_id'], 'transfer_cancel_in', qty, unit_cost, 'warehouse_transfer_cancel', transfer_id, 'إلغاء تحويل مستودعي', **vp)
         now = self._now()
         conn.execute("UPDATE warehouse_transfers SET status='cancelled', cancelled_at=? WHERE id=? AND user_id=?", (now, transfer_id, uid))
         conn.commit()
-
     def transfers(self, limit: int = 200) -> List[Dict]:
         if self.db.is_remote():
             return self.db.get_rest_client().get_warehouse_transfers(limit=limit)

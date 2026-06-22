@@ -53,4 +53,7 @@ apparel_workspace_shell,materials,Standalone apparel workspace shell backed by p
 apparel_variant_transaction_integration,materials,Apparel variant transaction/POS stock integration,317,tests/test_phase317_apparel_variant_transaction_integration.py,True,,True,True
 workspace_shell_transaction_layout_unification,shell,Workspace shell and transaction layout unification,318,tests/test_phase318_workspace_shell_transaction_layout_unification.py,True,,True,True
 apparel_matrix_bulk_variant_builder,materials,Apparel color/size matrix and bulk variant builder,319,tests/test_phase319_apparel_matrix_bulk_variant_builder.py,True,,True,True
+apparel_inventory_operations,materials,Apparel variant-aware inventory operations,320,tests/test_phase320_apparel_inventory_operations.py,True,,True,True
+apparel_reports,materials,Apparel reports for color/size stock and sales,321,tests/test_phase321_apparel_reports.py,True,,True,True
+apparel_runtime_acceptance,materials,Apparel runtime acceptance for complete color/size workflow,322,tests/test_phase322_apparel_runtime_acceptance.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

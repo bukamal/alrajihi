@@ -71,6 +71,14 @@ class ItemGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def apparel_report(self, item_id: int | None = None) -> Dict[str, Any]:
+        """Return apparel variant stock, sales, and low-stock report rows.
+
+        Implementations must preserve the gateway boundary for local/API mode.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
         """Return net sold quantities per item in base unit.
 

@@ -77,6 +77,9 @@ class RemoteItemGateway(ItemGateway):
     def delete_variant(self, variant_id: int):
         return self.rest_client.delete_item_variant(variant_id)
 
+    def apparel_report(self, item_id: int | None = None) -> Dict[str, Any]:
+        return self.rest_client.get_apparel_report(item_id=item_id)
+
     def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
         ids = [int(x) for x in (item_ids or []) if x is not None]
         if not ids:

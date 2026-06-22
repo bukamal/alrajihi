@@ -121,11 +121,38 @@ class ApparelWorkspaceWidget(QWidget):
         self.size_count_label = QLabel()
         self.quantity_label = QLabel()
         self.low_stock_label = QLabel()
-        for label in (self.variant_count_label, self.color_count_label, self.size_count_label, self.quantity_label, self.low_stock_label):
+        self.sold_qty_label = QLabel()
+        for label in (self.variant_count_label, self.color_count_label, self.size_count_label, self.quantity_label, self.low_stock_label, self.sold_qty_label):
             label.setAlignment(Qt.AlignCenter)
             label.setObjectName("apparelMetric")
             s.addWidget(label, 1)
         root.addWidget(summary)
+
+        reports = QFrame(self)
+        reports.setObjectName("apparelReportsCard")
+        reports_layout = QVBoxLayout(reports)
+        reports_layout.setContentsMargins(14, 12, 14, 12)
+        reports_layout.setSpacing(8)
+        reports_title = QLabel(translate("apparel.reports_title"))
+        reports_title.setObjectName("apparelSectionTitle")
+        reports_layout.addWidget(reports_title)
+        report_metrics = QHBoxLayout()
+        report_metrics.setSpacing(8)
+        self.report_low_label = QLabel()
+        self.report_best_color_label = QLabel()
+        self.report_best_size_label = QLabel()
+        for label in (self.report_low_label, self.report_best_color_label, self.report_best_size_label):
+            label.setAlignment(Qt.AlignCenter)
+            label.setObjectName("apparelMetric")
+            report_metrics.addWidget(label, 1)
+        reports_layout.addLayout(report_metrics)
+        self.report_table = QTableWidget(self)
+        self.report_table.setObjectName("apparelReportsTable")
+        self.report_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.report_table.setAlternatingRowColors(True)
+        self.report_table.setMinimumHeight(118)
+        reports_layout.addWidget(self.report_table)
+        root.addWidget(reports)
 
         builder = QFrame(self)
         builder.setObjectName("apparelBulkBuilderCard")
@@ -195,7 +222,7 @@ class ApparelWorkspaceWidget(QWidget):
         root.addWidget(self.table, 1)
 
         self.setStyleSheet("""
-            QFrame#apparelHeaderCard, QFrame#apparelControlCard, QFrame#apparelSummaryCard, QFrame#apparelBulkBuilderCard, QFrame#apparelMatrixCard {
+            QFrame#apparelHeaderCard, QFrame#apparelControlCard, QFrame#apparelSummaryCard, QFrame#apparelReportsCard, QFrame#apparelBulkBuilderCard, QFrame#apparelMatrixCard {
                 border: 1px solid palette(mid);
                 border-radius: 14px;
                 background: palette(base);
@@ -338,6 +365,7 @@ class ApparelWorkspaceWidget(QWidget):
             self.table.fit_columns_to_view()
         self._update_summary(rows)
         self._render_color_size_matrix(rows)
+        self._load_apparel_reports()
 
     def _render_color_size_matrix(self, rows: List[Dict[str, Any]]) -> None:
         selected = self._selected_item_id
@@ -404,6 +432,48 @@ class ApparelWorkspaceWidget(QWidget):
         self.size_count_label.setText(translate("apparel.metric_sizes", count=len(sizes)))
         self.quantity_label.setText(translate("apparel.metric_qty", qty=self._format_qty(total_qty)))
         self.low_stock_label.setText(translate("apparel.metric_low", count=low))
+
+    def _load_apparel_reports(self) -> None:
+        try:
+            report = product_service.apparel_report(item_id=self._selected_item_id)
+        except Exception:
+            report = {"summary": {}, "low_stock": [], "by_color": [], "by_size": []}
+        summary = report.get("summary") or {}
+        self.sold_qty_label.setText(translate("apparel.metric_sold", qty=self._format_qty(summary.get("total_sold_quantity") or 0)))
+        low_rows = report.get("low_stock") or []
+        by_color = report.get("by_color") or []
+        by_size = report.get("by_size") or []
+        best_color = by_color[0] if by_color else {}
+        best_size = by_size[0] if by_size else {}
+        self.report_low_label.setText(translate("apparel.report_low_stock", count=len(low_rows)))
+        self.report_best_color_label.setText(translate("apparel.report_top_color", color=best_color.get("color") or "—", qty=self._format_qty(best_color.get("sold_quantity") or 0)))
+        self.report_best_size_label.setText(translate("apparel.report_top_size", size=best_size.get("size") or "—", qty=self._format_qty(best_size.get("sold_quantity") or 0)))
+        self._render_low_stock_report(low_rows[:12])
+
+    def _render_low_stock_report(self, rows: List[Dict[str, Any]]) -> None:
+        headers = [
+            translate("apparel_col_item"), translate("apparel_col_color"), translate("apparel_col_size"),
+            translate("apparel_col_quantity"), translate("apparel_col_reorder_level"), translate("apparel_col_sku"),
+        ]
+        self.report_table.clear()
+        self.report_table.setColumnCount(len(headers))
+        self.report_table.setRowCount(len(rows))
+        self.report_table.setHorizontalHeaderLabels(headers)
+        for r, row in enumerate(rows):
+            values = [
+                row.get("item") or "",
+                row.get("color") or "—",
+                row.get("size") or "—",
+                self._format_qty(row.get("quantity") or 0),
+                self._format_qty(row.get("reorder_level") or 0),
+                row.get("sku") or "—",
+            ]
+            for c, value in enumerate(values):
+                cell = QTableWidgetItem(str(value))
+                cell.setTextAlignment(Qt.AlignCenter if c else Qt.AlignVCenter | Qt.AlignLeft)
+                self.report_table.setItem(r, c, cell)
+        self.report_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.report_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
 
     def lookup_barcode(self) -> None:
         barcode = self.barcode_edit.text().strip()

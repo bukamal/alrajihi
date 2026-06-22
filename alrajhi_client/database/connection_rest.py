@@ -278,9 +278,10 @@ class RestClient:
     def archive_warehouse(self, warehouse_id: int):
         return self._request('DELETE', f'/api/warehouses/{warehouse_id}', queue_on_failure=False)
 
-    def warehouse_available_qty(self, item_id: int, warehouse_id=None):
+    def warehouse_available_qty(self, item_id: int, warehouse_id=None, variant_id=None):
         params = {'item_id': item_id}
         if warehouse_id: params['warehouse_id'] = warehouse_id
+        if variant_id: params['variant_id'] = variant_id
         result = self._request('GET', '/api/warehouses/available_qty', params=params, queue_on_failure=False)
         return result.get('quantity', '0') if isinstance(result, dict) else '0'
 
@@ -429,6 +430,13 @@ class RestClient:
     def add_item_variant(self, item_id: int, data: Dict) -> int:
         result = self._request('POST', f'/api/items/{int(item_id)}/variants', data)
         return result['id']
+
+    def get_apparel_report(self, item_id=None):
+        params = {}
+        if item_id is not None:
+            params['item_id'] = int(item_id)
+        result = self._request('GET', '/api/items/variants/apparel-report', params=params, queue_on_failure=False)
+        return result if isinstance(result, dict) else {}
 
     def update_item_variant(self, variant_id: int, data: Dict):
         self._request('PUT', f'/api/items/variants/{int(variant_id)}', data)

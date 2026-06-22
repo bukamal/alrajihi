@@ -371,6 +371,21 @@ CREATE TABLE IF NOT EXISTS item_warehouse_balances (
     UNIQUE(user_id, item_id, warehouse_id)
 );
 
+CREATE TABLE IF NOT EXISTS item_warehouse_variant_balances (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    item_id INTEGER NOT NULL,
+    variant_id INTEGER NOT NULL,
+    warehouse_id INTEGER NOT NULL,
+    variant_color TEXT,
+    variant_size TEXT,
+    variant_sku TEXT,
+    quantity TEXT DEFAULT '0',
+    average_cost TEXT DEFAULT '0',
+    updated_at TEXT,
+    UNIQUE(user_id, item_id, variant_id, warehouse_id)
+);
+
 CREATE TABLE IF NOT EXISTS inventory_movements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     item_id INTEGER NOT NULL,
@@ -401,7 +416,13 @@ CREATE TABLE IF NOT EXISTS warehouse_movements (
     reference_id INTEGER,
     notes TEXT,
     movement_date TEXT,
-    created_at TEXT
+    created_at TEXT,
+    variant_id INTEGER,
+    variant_color TEXT,
+    variant_size TEXT,
+    variant_sku TEXT,
+    barcode_scope TEXT,
+    matched_barcode TEXT
 );
 
 CREATE TABLE IF NOT EXISTS inventory_ledger (
@@ -440,6 +461,10 @@ CREATE TABLE IF NOT EXISTS warehouse_transfers (
     conversion_factor TEXT DEFAULT '1',
     barcode_scope TEXT,
     matched_barcode TEXT,
+    variant_id INTEGER,
+    variant_color TEXT,
+    variant_size TEXT,
+    variant_sku TEXT,
     unit_cost TEXT DEFAULT '0',
     notes TEXT,
     status TEXT DEFAULT 'active',
@@ -498,6 +523,9 @@ def apply_common_schema(conn):
             "CREATE INDEX IF NOT EXISTS idx_item_variants_item ON item_variants(item_id)",
             "CREATE INDEX IF NOT EXISTS idx_item_variants_barcode ON item_variants(barcode)",
             "CREATE INDEX IF NOT EXISTS idx_item_variants_sku ON item_variants(sku)",
+            "CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_variant ON item_warehouse_variant_balances(variant_id)",
+            "CREATE INDEX IF NOT EXISTS idx_wh_variant_balances_wh ON item_warehouse_variant_balances(warehouse_id)",
+            "CREATE INDEX IF NOT EXISTS idx_wh_mov_variant ON warehouse_movements(variant_id)",
         ],
         "invoices": [
             "CREATE INDEX IF NOT EXISTS idx_invoices_branch ON invoices(branch_id)",
