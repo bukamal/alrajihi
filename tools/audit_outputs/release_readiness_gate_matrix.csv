@@ -58,4 +58,5 @@ apparel_reports,materials,Apparel reports for color/size stock and sales,321,tes
 apparel_runtime_acceptance,materials,Apparel runtime acceptance for complete color/size workflow,322,tests/test_phase322_apparel_runtime_acceptance.py,True,,True,True
 startup_variant_schema_hotfix,database,Startup schema upgrade for apparel variant warehouse columns,323,tests/test_phase323_startup_variant_schema_hotfix.py,True,,True,True
 apparel_transaction_variant_selection_ux,materials,Apparel variant selection UX for purchase/sales transaction rows,324,tests/test_phase324_apparel_transaction_variant_selection_ux.py,True,,True,True
+apparel_catalog_boundary_pricing_hardening,materials,Apparel catalog boundary and transaction pricing hardening,325,tests/test_phase325_apparel_catalog_boundary_pricing_hardening.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

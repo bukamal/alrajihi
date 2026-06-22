@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from decimal import Decimal
 
-from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QComboBox, QLabel, QHeaderView
+from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QComboBox, QLabel, QHeaderView, QCheckBox
 from i18n import translate, qt_layout_direction
 from core.services.product_service import product_service
 from core.services.settings_service import settings_service
@@ -67,7 +67,10 @@ class ItemsWidget(BaseWidget):
         self.stock_filter = QComboBox()
         self.preset_filter = QComboBox()
         self.density_filter = QComboBox()
+        self.show_apparel_base_filter = QCheckBox(translate('show_apparel_base_materials'))
+        self.show_apparel_base_filter.setToolTip(translate('show_apparel_base_materials_hint'))
         self._all_categories = []
+        self._apparel_variant_count_cache = {}
         self.material_shell_contract = material_shell_contract()
         self.document_descriptor = self.material_shell_contract.descriptor
         self.document_permission_binder = DocumentPermissionBinder(self.document_descriptor)
@@ -83,6 +86,7 @@ class ItemsWidget(BaseWidget):
         self.stock_filter.currentIndexChanged.connect(self._on_filter_changed)
         self.preset_filter.currentIndexChanged.connect(self._on_preset_changed)
         self.density_filter.currentIndexChanged.connect(self._on_density_changed)
+        self.show_apparel_base_filter.stateChanged.connect(self._on_filter_changed)
         self._restore_material_grid_view()
         self.refresh()
 
@@ -180,6 +184,7 @@ class ItemsWidget(BaseWidget):
             for density_name in ('compact', 'comfortable', 'touch'):
                 self.density_filter.addItem(translate(f'density_{density_name}'), density_name)
         filter_layout.addWidget(self.density_filter)
+        filter_layout.addWidget(self.show_apparel_base_filter)
         filter_layout.addStretch()
         self.layout().insertLayout(1, filter_layout)
 
@@ -213,6 +218,29 @@ class ItemsWidget(BaseWidget):
     def _apply_density(self, density):
         if hasattr(self.table, 'set_density'):
             self.table.set_density(density or 'comfortable')
+
+
+    def _show_apparel_base_materials(self):
+        return bool(self.show_apparel_base_filter.isChecked()) if hasattr(self, 'show_apparel_base_filter') else False
+
+    def _item_has_apparel_variants(self, item):
+        try:
+            item_id = int((item or {}).get('id') or 0)
+        except Exception:
+            item_id = 0
+        if not item_id:
+            return False
+        if item_id not in self._apparel_variant_count_cache:
+            try:
+                self._apparel_variant_count_cache[item_id] = bool(product_service.item_variants(item_id))
+            except Exception:
+                self._apparel_variant_count_cache[item_id] = False
+        return bool(self._apparel_variant_count_cache[item_id])
+
+    def _filter_apparel_base_materials(self, items):
+        if self._show_apparel_base_materials():
+            return list(items or [])
+        return [item for item in (items or []) if not self._item_has_apparel_variants(item)]
 
     def _filter_limit(self):
         try:
@@ -376,14 +404,16 @@ class ItemsWidget(BaseWidget):
 
     def refresh(self):
         search = self.search_edit.text().strip().lower() or None
+        self._apparel_variant_count_cache = {}
         has_material_filters = any([
             self.category_filter.currentData(),
             self.type_filter.currentData(),
             self.stock_filter.currentData(),
+            not self._show_apparel_base_materials(),
         ])
         if has_material_filters:
             raw_items, raw_total = product_service.items_pair(search=search, limit=self._filter_limit(), offset=0)
-            filtered = [it for it in (raw_items or []) if self._passes_filters(it)]
+            filtered = [it for it in self._filter_apparel_base_materials(raw_items or []) if self._passes_filters(it)]
             self.total_count = len(filtered)
             total_pages = max(1, (self.total_count + self.page_size - 1) // self.page_size)
             if self.current_page >= total_pages:
@@ -393,6 +423,7 @@ class ItemsWidget(BaseWidget):
         else:
             offset = self.current_page * self.page_size
             items, self.total_count = self.fetch_data(search=search, limit=self.page_size, offset=offset)
+            items = self._filter_apparel_base_materials(items)
             total_pages = max(1, (self.total_count + self.page_size - 1) // self.page_size)
             if self.current_page >= total_pages:
                 self.current_page = max(0, total_pages - 1)

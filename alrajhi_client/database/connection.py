@@ -1163,6 +1163,19 @@ class DatabaseConnection:
             'matched_barcode': str(line.get('matched_barcode') or line.get('barcode') or ''),
         }
 
+
+    def _update_variant_last_purchase_cost(self, conn, variant_id, unit_cost_base) -> None:
+        try:
+            variant_id = int(variant_id or 0)
+        except Exception:
+            variant_id = 0
+        if not variant_id:
+            return
+        conn.execute(
+            "UPDATE item_variants SET cost_price=?, updated_at=? WHERE id=?",
+            (str(unit_cost_base or '0'), datetime.datetime.now().isoformat(), variant_id),
+        )
+
     def _insert_invoice_line(self, conn, invoice_id: int, line: Dict, unit_cost, base_qty, conv_factor):
         vp = self._variant_payload_from_line(line)
         return conn.execute("""
@@ -1211,6 +1224,7 @@ class DatabaseConnection:
                 if data['type'] == 'purchase':
                     unit_cost_base = unit_cost / conv_factor
                     self._record_inventory_movement(line['item_id'], 'purchase', base_qty, unit_cost_base, invoice_id, line)
+                    self._update_variant_last_purchase_cost(conn, line.get('variant_id'), unit_cost_base)
                     cost_amt = unit_cost_base * base_qty
                     conn.execute("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
                 else:
@@ -1291,6 +1305,7 @@ class DatabaseConnection:
                 if data['type'] == 'purchase':
                     unit_cost_base = unit_cost / conv_factor
                     self._record_inventory_movement(line['item_id'], 'purchase', base_qty, unit_cost_base, invoice_id, line)
+                    self._update_variant_last_purchase_cost(conn, line.get('variant_id'), unit_cost_base)
                     cost_amt = unit_cost_base * base_qty
                 else:
                     item = conn.execute("SELECT CAST(average_cost AS TEXT) as avg_cost FROM items WHERE id=?", (line['item_id'],)).fetchone()

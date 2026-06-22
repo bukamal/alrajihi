@@ -7710,3 +7710,20 @@ _translations['en'].update({
     'apparel.report_top_color': 'Top color: {color} / {qty}',
     'apparel.report_top_size': 'Top size: {size} / {qty}',
 })
+
+# Phase 325: Apparel catalog boundary and transaction pricing hardening.
+_translations['ar'].update({
+    'show_apparel_base_materials': 'إظهار مواد الألبسة الأساسية',
+    'show_apparel_base_materials_hint': 'يعرض المواد الأب للألبسة في شاشة المواد. الافتراضي إخفاؤها وإدارتها من واجهة الألبسة.',
+    'apparel.transaction_base_item_blocked': 'هذه مادة ألبسة لها ألوان ومقاسات. اختر متغير اللون/المقاس أو امسح باركود المتغير.',
+})
+_translations['de'].update({
+    'show_apparel_base_materials': 'Bekleidungs-Basisartikel anzeigen',
+    'show_apparel_base_materials_hint': 'Zeigt übergeordnete Bekleidungsartikel in der Materialliste. Standardmäßig werden sie in der Bekleidungsansicht verwaltet.',
+    'apparel.transaction_base_item_blocked': 'Dieser Bekleidungsartikel hat Farben/Größen. Wählen Sie eine konkrete Variante oder scannen Sie den Variantenbarcode.',
+})
+_translations['en'].update({
+    'show_apparel_base_materials': 'Show apparel base items',
+    'show_apparel_base_materials_hint': 'Show parent apparel items in the materials list. By default they are managed from the apparel workspace.',
+    'apparel.transaction_base_item_blocked': 'This apparel item has colors/sizes. Select a concrete variant or scan the variant barcode.',
+})

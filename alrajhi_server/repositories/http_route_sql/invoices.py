@@ -101,6 +101,19 @@ def _variant_payload_from_line(line):
         'matched_barcode': str(line.get('matched_barcode') or line.get('barcode') or ''),
     }
 
+
+def _update_variant_last_purchase_cost(db, variant_id, unit_cost_base):
+    try:
+        variant_id = int(variant_id or 0)
+    except Exception:
+        variant_id = 0
+    if not variant_id:
+        return
+    db.query(
+        "UPDATE item_variants SET cost_price=?, updated_at=? WHERE id=?",
+        (str(unit_cost_base or '0'), datetime.datetime.now().isoformat(), variant_id),
+    )
+
 def _insert_invoice_line(db, invoice_id, line, unit_cost, base_qty, conv_factor):
     vp = _variant_payload_from_line(line)
     return db.query('''
@@ -696,6 +709,7 @@ def add_invoice():
                 unit_cost_base = unit_cost / conv_factor
                 # تسجيل حركة شراء
                 _insert_inventory_movement(db, user_id, line, 'purchase', base_qty, unit_cost_base, invoice_id)
+                _update_variant_last_purchase_cost(db, line.get('variant_id'), unit_cost_base)
                 cost_amt = unit_cost_base * base_qty
                 db.query("UPDATE invoice_lines SET cost_amount=? WHERE id=?", (str(cost_amt), line_id))
             else:  # sale
@@ -796,6 +810,7 @@ def update_invoice(invoice_id):
             if data['type'] == 'purchase':
                 movement_type = 'purchase'
                 movement_cost = unit_cost / conv_factor
+                _update_variant_last_purchase_cost(db, line.get('variant_id'), movement_cost)
                 cost_amt = movement_cost * base_qty
             else:
                 movement_type = 'sale'

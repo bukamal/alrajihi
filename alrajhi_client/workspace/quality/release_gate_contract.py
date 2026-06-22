@@ -117,6 +117,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (322, "APPAREL_RUNTIME_ACCEPTANCE"),
         (323, "STARTUP_VARIANT_SCHEMA_HOTFIX"),
         (324, "APPAREL_TRANSACTION_VARIANT_SELECTION_UX"),
+        (325, "APPAREL_CATALOG_BOUNDARY_PRICING_HARDENING"),
     ]
 )
 
@@ -199,6 +200,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (322, "apparel_runtime_acceptance"),
         (323, "startup_variant_schema_hotfix"),
         (324, "apparel_transaction_variant_selection_ux"),
+        (325, "apparel_catalog_boundary_pricing_hardening"),
     ]
 )
 
@@ -262,6 +264,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("apparel_runtime_acceptance", "materials", "Apparel runtime acceptance for complete color/size workflow", "tests/test_phase322_apparel_runtime_acceptance.py", phase=322),
     ReleaseGateCheck("startup_variant_schema_hotfix", "database", "Startup schema upgrade for apparel variant warehouse columns", "tests/test_phase323_startup_variant_schema_hotfix.py", phase=323),
     ReleaseGateCheck("apparel_transaction_variant_selection_ux", "materials", "Apparel variant selection UX for purchase/sales transaction rows", "tests/test_phase324_apparel_transaction_variant_selection_ux.py", phase=324),
+    ReleaseGateCheck("apparel_catalog_boundary_pricing_hardening", "materials", "Apparel catalog boundary and transaction pricing hardening", "tests/test_phase325_apparel_catalog_boundary_pricing_hardening.py", phase=325),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

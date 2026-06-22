@@ -270,7 +270,9 @@ class TransactionLineModel(QAbstractTableModel):
             or item.get("factor")
             or 1
         )
-        explicit_price = item.get("unit_price") if item.get("unit_price") not in (None, "") else item.get("price")
+        explicit_price = item.get("unit_price") if item.get("unit_price") not in (None, "") else item.get(price_key)
+        if explicit_price in (None, ""):
+            explicit_price = item.get("price")
         base_price = self._decimal(item.get("base_unit_price") or item.get(price_key) or item.get("selling_price") or item.get("purchase_price") or 0)
         price = self._decimal(explicit_price) if explicit_price not in (None, "") else self._money(base_price * factor)
         unit = matched_unit.get("unit_name") or matched_unit.get("unit") or item.get("unit") or item.get("unit_name") or ""

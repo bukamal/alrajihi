@@ -126,9 +126,16 @@ class TransactionItemDelegate(QStyledItemDelegate):
         if item and hasattr(model, "set_item"):
             if self.item_transform:
                 try:
-                    item = self.item_transform(item)
+                    transformed = self.item_transform(item)
+                    if not transformed:
+                        item = None
+                    else:
+                        item = transformed
                 except Exception:
-                    pass
+                    item = None
+            if not item:
+                model.setData(index, text, Qt.EditRole)
+                return
             price_key = self.price_key_provider() if self.price_key_provider else "selling_price"
             try:
                 available = self.availability_provider(item) if self.availability_provider else None

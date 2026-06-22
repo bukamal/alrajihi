@@ -219,7 +219,7 @@ class TransactionDocumentTab(BaseDocumentTab):
             items_provider=self._material_lookup_rows,
             price_key_provider=self._line_price_key,
             availability_provider=self._warehouse_available_for_item,
-            item_transform=self._item_prices_to_display,
+            item_transform=self._transaction_item_to_display,
         )
         self.grid.setModel(self.lines_model)
         self._restore_grid_layout()
@@ -437,16 +437,41 @@ class TransactionDocumentTab(BaseDocumentTab):
             "matched_variant": matched_variant,
             "barcode_scope": "variant",
             "matched_barcode": barcode,
-            "barcode": barcode or item.get("barcode") or item.get("code") or "",
+            # A variant row must never fall back to the base-material barcode in
+            # transaction grids.  Empty variant barcode remains empty so the
+            # cashier/accountant does not accidentally post to the base material.
+            "barcode": barcode,
             "lookup_label": self._variant_lookup_label(item, variant),
             "search_label": self._variant_lookup_label(item, variant),
         })
-        if variant.get("sale_price") not in (None, ""):
-            row["selling_price"] = variant.get("sale_price")
-            row["price"] = variant.get("sale_price")
-        if variant.get("cost_price") not in (None, ""):
-            row["purchase_price"] = variant.get("cost_price")
-            row["average_cost"] = variant.get("cost_price")
+        def first_price(*values):
+            for value in values:
+                if value not in (None, ""):
+                    return value
+            return None
+        sale_price = first_price(
+            variant.get("sale_price"),
+            item.get("selling_price"),
+            item.get("sale_price"),
+            item.get("retail_price"),
+        )
+        cost_price = first_price(
+            variant.get("cost_price"),
+            item.get("purchase_price"),
+            item.get("average_cost"),
+            item.get("cost_price"),
+        )
+        if sale_price not in (None, ""):
+            row["selling_price"] = sale_price
+            if self.inv_type == "sale":
+                row["price"] = sale_price
+                row["unit_price"] = sale_price
+        if cost_price not in (None, ""):
+            row["purchase_price"] = cost_price
+            row["average_cost"] = cost_price
+            if self.inv_type == "purchase":
+                row["price"] = cost_price
+                row["unit_price"] = cost_price
         return row
 
     def _material_lookup_rows(self, search: str | None = None, limit: int = 60) -> list[dict]:
@@ -492,6 +517,40 @@ class TransactionDocumentTab(BaseDocumentTab):
                 continue
             expanded.append(self._item_prices_to_display(item))
         return expanded[:limit] if limit else expanded
+
+    def _item_has_active_variants(self, item: dict | None) -> bool:
+        item = item or {}
+        if item.get("variant_id") or item.get("matched_variant"):
+            return False
+        try:
+            item_id = int(item.get("id") or 0)
+        except Exception:
+            item_id = 0
+        if not item_id:
+            return False
+        cache = getattr(self, "_apparel_base_variant_cache", None)
+        if cache is None:
+            cache = {}
+            self._apparel_base_variant_cache = cache
+        if item_id not in cache:
+            try:
+                cache[item_id] = bool(catalog_service.item_variants(item_id))
+            except Exception:
+                cache[item_id] = False
+        return bool(cache[item_id])
+
+    def _transaction_item_to_display(self, item: dict | None) -> dict | None:
+        """Normalize a resolved transaction item while blocking apparel bases.
+
+        Material documents may show the parent material, but invoices must post
+        concrete color/size variants.  This transform is used by quick search
+        and the editable item-cell delegate in both local and API modes.
+        """
+        if not item:
+            return None
+        if self._item_has_active_variants(item):
+            return None
+        return self._item_prices_to_display(item)
 
     def _warehouse_available_for_item(self, item: dict):
         if self.inv_type != "sale" or not item or not item.get("id"):
@@ -604,7 +663,10 @@ class TransactionDocumentTab(BaseDocumentTab):
             message_key = getattr(lookup, "message_key", "transaction_item_not_found") if lookup is not None else "transaction_item_not_found"
             QMessageBox.warning(self, tr("items"), tr(message_key))
             return
-        item = self._item_prices_to_display(item)
+        item = self._transaction_item_to_display(item)
+        if not item:
+            QMessageBox.warning(self, tr("items"), tr("apparel.transaction_base_item_blocked"))
+            return
         available = None
         try:
             if self.inv_type == "sale" and item.get("id"):
