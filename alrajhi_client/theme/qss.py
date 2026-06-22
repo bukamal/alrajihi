@@ -802,6 +802,46 @@ def build_global_qss(colors: dict) -> str:
             font-weight: 900;
         }}
 
+
+        /* Phase 326: compact one-row transaction header and horizontal footer. */
+        QFrame#TransactionInlineHeaderBar {{
+            background-color: {colors['bg_panel']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 6px;
+        }}
+        QFrame#TransactionInlineHeaderField {{
+            background-color: transparent;
+            border: none;
+            padding: 0px;
+        }}
+        QLabel#TransactionInlineHeaderLabel {{
+            color: {colors['text_secondary']};
+            font-size: 10px;
+            font-weight: 800;
+            padding: 0px 2px;
+        }}
+        QFrame#TransactionFooterPanel {{
+            background-color: transparent;
+            border: none;
+        }}
+        QFrame#TransactionHorizontalSummaryFrame,
+        QFrame#TransactionHorizontalPaymentFrame {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QLabel#TransactionSummaryCaption {{
+            color: {colors['text_secondary']};
+            font-size: 10px;
+            font-weight: 800;
+        }}
+        QLabel#TransactionSummaryValue {{
+            color: {colors['text_primary']};
+            font-size: 12px;
+            font-weight: 900;
+        }}
+
         /* Phase 298: fullscreen restaurant operational shell. */
         QStackedWidget#restaurantFullscreenModeStack {{
             background-color: {colors['bg_window']};

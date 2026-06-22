@@ -121,7 +121,11 @@ class TransactionDocumentTab(BaseDocumentTab):
         root.setContentsMargins(10, 10, 10, 10)
         root.setSpacing(8)
 
-        title_row = QHBoxLayout()
+        # Phase326: keep the document title hidden and collapse all local
+        # invoice controls into one inline row directly above the line grid.
+        # The global workspace chrome already identifies the open document, so
+        # repeating a stacked title/actions area here wastes vertical space and
+        # creates the crowded header shown on wide RTL screens.
         self.title_label = QLabel(f"<b>{self.context.title}</b>")
         self.title_label.setVisible(False)
         self.title_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
@@ -129,6 +133,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         for preset in presets():
             self.presets_combo.addItem(preset.title, preset.name)
         self._set_preset_combo(self._manual_preset_name)
+        self.presets_combo.setMaximumWidth(138)
         self.presets_combo.currentIndexChanged.connect(self._on_preset_changed)
         self.auto_responsive_btn = QToolButton(self)
         self.auto_responsive_btn.setText(tr("transaction_auto_responsive"))
@@ -136,43 +141,43 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.auto_responsive_btn.setChecked(self.grid_preferences.auto_responsive(self.context.document_type, bool(self.transaction_settings.get("line_grid_auto_responsive", True))))
         self.auto_responsive_btn.toggled.connect(self._toggle_auto_responsive)
         save_btn = QPushButton(tr("transaction_save_shortcut"))
+        save_btn.setMaximumWidth(118)
         self.header_save_btn = save_btn
         save_btn.clicked.connect(self.workspace_save)
         columns_btn = QPushButton(tr("transaction_columns"))
+        columns_btn.setMaximumWidth(96)
         columns_btn.clicked.connect(self._show_columns)
         reset_columns_btn = QPushButton(tr("transaction_reset_view"))
+        reset_columns_btn.setMaximumWidth(116)
         reset_columns_btn.clicked.connect(self._reset_grid_layout)
-        title_row.addStretch(1)
-        title_row.addWidget(QLabel(tr("transaction_preset")))
-        title_row.addWidget(self.presets_combo)
-        title_row.addWidget(self.auto_responsive_btn)
-        title_row.addWidget(columns_btn)
-        title_row.addWidget(reset_columns_btn)
-        title_row.addWidget(save_btn)
-        root.addLayout(title_row)
 
-        header = QGridLayout()
-        header.setHorizontalSpacing(8)
-        header.setVerticalSpacing(4)
         self.party_combo = QComboBox()
         self.party_combo.setEditable(True)
+        self.party_combo.setMinimumWidth(150)
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
+        self.date_edit.setMinimumWidth(112)
         self.warehouse_combo = QComboBox()
+        self.warehouse_combo.setMinimumWidth(142)
         self.ref_edit = QLineEdit()
         self.ref_edit.setPlaceholderText(tr("transaction_reference"))
+        self.ref_edit.setMinimumWidth(118)
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText(tr("transaction_search_material_barcode"))
+        self.search_input.setMinimumWidth(170)
         self.currency_label = QLabel(self._currency_label_text())
+        self.currency_label.setMinimumWidth(54)
+        self.currency_label.setAlignment(Qt.AlignCenter)
         self._install_material_completer()
         self.search_input.returnPressed.connect(self.add_item_from_search)
         add_btn = QPushButton(tr("add"))
+        add_btn.setMaximumWidth(82)
         add_btn.clicked.connect(self.add_item_from_search)
         if self.is_return:
             self.original_invoice_combo = QComboBox()
             self.original_invoice_combo.setEditable(True)
             self.original_invoice_combo.setInsertPolicy(QComboBox.NoInsert)
-            self.original_invoice_combo.setMinimumWidth(260)
+            self.original_invoice_combo.setMinimumWidth(240)
             try:
                 self.original_invoice_combo.completer().setCompletionMode(0)
             except Exception:
@@ -181,25 +186,30 @@ class TransactionDocumentTab(BaseDocumentTab):
             self.search_input.setPlaceholderText(tr("transaction_select_original_then_load"))
             self.search_input.setEnabled(False)
             add_btn.setText(tr("transaction_load_lines"))
+            add_btn.setMaximumWidth(118)
 
-        fields = []
+        inline_header = QFrame(self)
+        inline_header.setObjectName("TransactionInlineHeaderBar")
+        header = QHBoxLayout(inline_header)
+        header.setContentsMargins(0, 0, 0, 0)
+        header.setSpacing(6)
         if self.is_return:
-            fields.append((tr("transaction_original_invoice"), self.original_invoice_combo))
-        fields.extend([
-            (tr("customers") if self.inv_type == "sale" else tr("suppliers"), self.party_combo),
-            (tr("date"), self.date_edit),
-            (tr("warehouses"), self.warehouse_combo),
-            (tr("currency"), self.currency_label),
-            (tr("transaction_reference"), self.ref_edit),
-            (tr("transaction_quick_search") if not self.is_return else "", self.search_input),
-            ("", add_btn),
-        ])
-        for col, (label, widget) in enumerate(fields):
-            if label:
-                header.addWidget(QLabel(label), 0, col)
-            header.addWidget(widget, 1, col)
-        header.setColumnStretch(0, 2)
-        root.addLayout(header)
+            header.addWidget(self._inline_header_field(tr("transaction_original_invoice"), self.original_invoice_combo, stretch=2))
+        header.addWidget(self._inline_header_field(tr("customers") if self.inv_type == "sale" else tr("suppliers"), self.party_combo, stretch=2))
+        header.addWidget(self._inline_header_field(tr("date"), self.date_edit))
+        header.addWidget(self._inline_header_field(tr("warehouses"), self.warehouse_combo, stretch=1))
+        header.addWidget(self._inline_header_field(tr("currency"), self.currency_label))
+        header.addWidget(self._inline_header_field(tr("transaction_reference"), self.ref_edit))
+        header.addWidget(self._inline_header_field(tr("transaction_quick_search") if not self.is_return else "", self.search_input, stretch=2))
+        header.addWidget(add_btn)
+        header.addSpacing(4)
+        header.addWidget(QLabel(tr("transaction_preset")))
+        header.addWidget(self.presets_combo)
+        header.addWidget(self.auto_responsive_btn)
+        header.addWidget(columns_btn)
+        header.addWidget(reset_columns_btn)
+        header.addWidget(save_btn)
+        root.addWidget(inline_header)
 
         self.return_tools = None
         if self.is_return:
@@ -238,6 +248,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         side_layout.setSpacing(8)
         self.notes = QTextEdit()
         self.notes.setMaximumHeight(78)
+        self.notes.setMinimumHeight(72)
         self.notes.setPlaceholderText(tr("transaction_notes_terms_attachments"))
         self.totals_panel = TransactionTotalsPanel(self)
         if hasattr(self.totals_panel, "set_currency"):
@@ -251,8 +262,8 @@ class TransactionDocumentTab(BaseDocumentTab):
             self.totals_panel.payment_frame.setToolTip(tr("transaction_return_payment_tooltip"))
             self.totals_panel.unpaid_btn.setText(tr("transaction_credit_settlement"))
             self.totals_panel.pay_full_btn.setText(tr("transaction_refund_full"))
-        side_layout.addWidget(self.notes, 1)
-        side_layout.addWidget(self.totals_panel, 2)
+        side_layout.addWidget(self.notes, 2)
+        side_layout.addWidget(self.totals_panel, 5)
         root.addWidget(self.side_panel)
 
         actions = [
@@ -288,6 +299,25 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.party_combo.currentIndexChanged.connect(lambda *_: self.set_dirty(True) if not self._loading else None)
         self.warehouse_combo.currentIndexChanged.connect(lambda *_: self.set_dirty(True) if not self._loading else None)
         self.totals_panel.payment_method_combo.currentIndexChanged.connect(lambda *_: self.set_dirty(True) if not self._loading else None)
+
+
+    def _inline_header_field(self, label_text: str, widget: QWidget, *, stretch: int = 0) -> QFrame:
+        """Return a compact label+control capsule for the invoice header row."""
+        box = QFrame(self)
+        box.setObjectName("TransactionInlineHeaderField")
+        layout = QHBoxLayout(box)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(3)
+        label = QLabel(label_text)
+        label.setObjectName("TransactionInlineHeaderLabel")
+        label.setVisible(bool(str(label_text or "").strip()))
+        layout.addWidget(label)
+        layout.addWidget(widget, 1)
+        if stretch:
+            box.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        else:
+            box.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        return box
 
     def _install_shortcuts(self) -> None:
         QShortcut(QKeySequence.Save, self, activated=self.workspace_save)

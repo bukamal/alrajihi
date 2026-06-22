@@ -143,7 +143,11 @@ class MaterialDocumentTab(BaseDocumentTab):
         root.setContentsMargins(14, 14, 14, 14)
         root.setSpacing(10)
 
-        root.addWidget(self._build_header())
+        # Phase326: the workspace/tab title already identifies this document.
+        # Do not render the top identity card ("new material") above the form;
+        # keep the editor focused on the business fields.
+        self.header_frame = self._build_header()
+        self.header_frame.setVisible(False)
 
         body = QSplitter(Qt.Horizontal, self)
         body.setObjectName('ItemEditorResponsiveSplitter')

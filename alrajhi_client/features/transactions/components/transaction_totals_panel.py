@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from PyQt5.QtCore import pyqtSignal, QSignalBlocker
+from PyQt5.QtCore import Qt, pyqtSignal, QSignalBlocker
 from PyQt5.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
@@ -12,6 +12,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QVBoxLayout,
+    QSizePolicy,
     QWidget,
 )
 
@@ -26,17 +27,21 @@ class TransactionTotalsPanel(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        layout = QVBoxLayout(self)
+        # Phase326: the footer summary is an inline operational strip.  The old
+        # vertical cards consumed too much height below the invoice grid and made
+        # the purchase/sales footer feel crowded in RTL layouts.
+        layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
         self.summary_frame = QFrame(self)
         self.summary_frame.setFrameShape(QFrame.StyledPanel)
+        self.summary_frame.setObjectName("TransactionHorizontalSummaryFrame")
+        self.summary_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         summary = QGridLayout(self.summary_frame)
-        summary.setContentsMargins(10, 10, 10, 10)
-        summary.setHorizontalSpacing(12)
-        summary.setVerticalSpacing(6)
-        summary.addWidget(QLabel(html_bold("transaction_totals_summary")), 0, 0, 1, 2)
+        summary.setContentsMargins(10, 8, 10, 8)
+        summary.setHorizontalSpacing(14)
+        summary.setVerticalSpacing(3)
         self.subtotal_label = QLabel("0.00")
         self.discount_label = QLabel("0.00")
         self.tax_label = QLabel("0.00")
@@ -50,40 +55,48 @@ class TransactionTotalsPanel(QWidget):
             ("transaction_remaining", self.remaining_label),
             ("transaction_net_total", self.net_total_label),
         ]
-        for row, (title_key, widget) in enumerate(rows, start=1):
-            summary.addWidget(QLabel(tr(title_key)), row, 0)
-            summary.addWidget(widget, row, 1)
-        layout.addWidget(self.summary_frame)
+        summary.addWidget(QLabel(html_bold("transaction_totals_summary")), 0, 0, 2, 1)
+        for col, (title_key, widget) in enumerate(rows, start=1):
+            caption = QLabel(tr(title_key))
+            caption.setObjectName("TransactionSummaryCaption")
+            widget.setObjectName("TransactionSummaryValue")
+            widget.setAlignment(Qt.AlignCenter) if hasattr(widget, "setAlignment") else None
+            summary.addWidget(caption, 0, col)
+            summary.addWidget(widget, 1, col)
+            summary.setColumnStretch(col, 1)
+        layout.addWidget(self.summary_frame, 5)
 
         self.payment_frame = QFrame(self)
         self.payment_frame.setFrameShape(QFrame.StyledPanel)
-        payment = QGridLayout(self.payment_frame)
-        payment.setContentsMargins(10, 10, 10, 10)
-        payment.setHorizontalSpacing(12)
-        payment.setVerticalSpacing(6)
-        payment.addWidget(QLabel(html_bold("transaction_payment")), 0, 0, 1, 2)
+        self.payment_frame.setObjectName("TransactionHorizontalPaymentFrame")
+        self.payment_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        payment = QHBoxLayout(self.payment_frame)
+        payment.setContentsMargins(10, 8, 10, 8)
+        payment.setSpacing(8)
+        payment.addWidget(QLabel(html_bold("transaction_payment")))
+        payment.addWidget(QLabel(tr("transaction_payment_method")))
         self.payment_method_combo = QComboBox(self)
         self.payment_method_combo.addItem(tr("payment_cash"), "cash")
         self.payment_method_combo.addItem(tr("payment_card"), "card")
         self.payment_method_combo.addItem(tr("payment_bank_transfer"), "bank_transfer")
         self.payment_method_combo.addItem(tr("payment_credit"), "credit")
+        self.payment_method_combo.setMaximumWidth(150)
+        payment.addWidget(self.payment_method_combo)
         self.paid_spin = QDoubleSpinBox(self)
         self.paid_spin.setMaximum(999999999.0)
         self.paid_spin.setDecimals(2)
         self.paid_spin.valueChanged.connect(self.paidChanged)
-        payment.addWidget(QLabel(tr("transaction_payment_method")), 1, 0)
-        payment.addWidget(self.payment_method_combo, 1, 1)
         self.paid_title_label = QLabel(tr("transaction_paid"))
-        payment.addWidget(self.paid_title_label, 2, 0)
-        payment.addWidget(self.paid_spin, 2, 1)
-        quick = QHBoxLayout()
+        payment.addWidget(self.paid_title_label)
+        payment.addWidget(self.paid_spin)
         self.pay_full_btn = QPushButton(tr("transaction_pay_full"), self)
         self.unpaid_btn = QPushButton(tr("transaction_unpaid"), self)
-        quick.addWidget(self.pay_full_btn)
-        quick.addWidget(self.unpaid_btn)
-        payment.addLayout(quick, 3, 0, 1, 2)
-        layout.addWidget(self.payment_frame)
-        layout.addStretch(1)
+        self.pay_full_btn.setMaximumWidth(96)
+        self.unpaid_btn.setMaximumWidth(96)
+        payment.addWidget(self.pay_full_btn)
+        payment.addWidget(self.unpaid_btn)
+        layout.addWidget(self.payment_frame, 3)
+
 
 
     def set_transaction_type(self, transaction_type: str | None) -> None:
