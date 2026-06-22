@@ -96,6 +96,26 @@ def init_database():
             FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
         );
 
+
+        CREATE TABLE IF NOT EXISTS item_variants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            color TEXT DEFAULT '',
+            size TEXT DEFAULT '',
+            sku TEXT,
+            barcode TEXT,
+            sale_price TEXT,
+            cost_price TEXT,
+            quantity TEXT DEFAULT '0',
+            reorder_level TEXT DEFAULT '0',
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT,
+            FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+            UNIQUE(item_id, color, size)
+        );
+        
+
         CREATE TABLE IF NOT EXISTS invoices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,
@@ -1250,6 +1270,10 @@ def migrate_phase260_rbac_contract_permissions(conn):
         ('cafe.print', 'cafe', 'print', 'document:cafe:print: cafe print'),
         ('cafe.report', 'cafe', 'report', 'document:cafe:export: cafe report'),
         ('cafe.view', 'cafe', 'view', 'document:cafe:view: cafe view'),
+        ('apparel.export', 'apparel', 'export', 'document:apparel:export: apparel export'),
+        ('apparel.variant', 'apparel', 'variant', 'document:apparel:create: apparel variant'),
+        ('apparel.variant.update', 'apparel', 'variant_update', 'document:apparel:update: apparel variant update'),
+        ('apparel.view', 'apparel', 'view', 'document:apparel:view: apparel view'),
         ('categories.create', 'categories', 'create', 'document:category:create: categories create'),
         ('categories.delete', 'categories', 'delete', 'document:category:delete: categories delete'),
         ('categories.update', 'categories', 'update', 'document:category:update: categories update'),

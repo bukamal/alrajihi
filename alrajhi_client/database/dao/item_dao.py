@@ -42,6 +42,21 @@ class ItemDAO:
     def get_by_barcode(self, barcode):
         return self.repo.get_by_barcode(barcode)
 
+    def get_variants(self, item_id):
+        return self.repo.get_variants(item_id)
+
+    def get_variant_by_barcode(self, barcode):
+        return self.repo.get_variant_by_barcode(barcode)
+
+    def add_variant(self, item_id, data):
+        return self.repo.add_variant(item_id, data)
+
+    def update_variant(self, variant_id, data):
+        return self.repo.update_variant(variant_id, data)
+
+    def delete_variant(self, variant_id):
+        return self.repo.delete_variant(variant_id)
+
 # إنشاء كائن مفرد للاستخدام المباشر
 item_dao = ItemDAO()
 

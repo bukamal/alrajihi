@@ -47,4 +47,7 @@ cafe_inventory_shift_report,restaurant,Cafe inventory and shift report,310,tests
 cafe_runtime_acceptance,restaurant,Cafe runtime acceptance,311,tests/test_phase311_cafe_runtime_acceptance.py,True,,True,True
 cafe_analytics_fstring_hotfix,restaurant,Cafe analytics f-string hotfix,312,tests/test_phase312_cafe_analytics_fstring_hotfix.py,True,,True,True
 standalone_cafe_workspace_activation,restaurant,Standalone cafe workspace activation,313,tests/test_phase313_standalone_cafe_workspace_activation.py,True,,True,True
+restaurant_cafe_ui_decoupling_hotfix,restaurant,Restaurant shell no longer embeds cafe entry,314,tests/test_phase314_restaurant_cafe_ui_decoupling_hotfix.py,True,,True,True
+product_variants_foundation,materials,Product variants foundation for apparel color/size stock identity,315,tests/test_phase315_product_variants_foundation.py,True,,True,True
+apparel_workspace_shell,materials,Standalone apparel workspace shell backed by product variants,316,tests/test_phase316_apparel_workspace_shell.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

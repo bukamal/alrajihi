@@ -64,4 +64,29 @@ class ItemRepository(BaseRepository):
         conn.execute("DELETE FROM item_units WHERE item_id=?", (item_id,))
         conn.commit()
 
+    def get_variants(self, item_id: int) -> List[Dict]:
+        if hasattr(self.db, 'get_item_variants'):
+            return self.db.get_item_variants(item_id)
+        return []
+
+    def get_variant_by_barcode(self, barcode: str) -> Optional[Dict]:
+        if hasattr(self.db, 'get_item_variant_by_barcode'):
+            return self.db.get_item_variant_by_barcode(barcode)
+        return None
+
+    def add_variant(self, item_id: int, data: Dict) -> int:
+        if not hasattr(self.db, 'add_item_variant'):
+            raise NotImplementedError("Item variants are not supported by this database connection")
+        return self.db.add_item_variant(item_id, data)
+
+    def update_variant(self, variant_id: int, data: Dict):
+        if not hasattr(self.db, 'update_item_variant'):
+            raise NotImplementedError("Item variants are not supported by this database connection")
+        return self.db.update_item_variant(variant_id, data)
+
+    def delete_variant(self, variant_id: int):
+        if not hasattr(self.db, 'delete_item_variant'):
+            raise NotImplementedError("Item variants are not supported by this database connection")
+        return self.db.delete_item_variant(variant_id)
+
 

@@ -208,6 +208,25 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     description TEXT
 );
 
+
+CREATE TABLE IF NOT EXISTS item_variants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL,
+    color TEXT DEFAULT '',
+    size TEXT DEFAULT '',
+    sku TEXT,
+    barcode TEXT,
+    sale_price TEXT,
+    cost_price TEXT,
+    quantity TEXT DEFAULT '0',
+    reorder_level TEXT DEFAULT '0',
+    is_active INTEGER DEFAULT 1,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+    UNIQUE(item_id, color, size)
+);
+
 CREATE TABLE IF NOT EXISTS branches (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT NOT NULL,
@@ -448,6 +467,11 @@ def apply_common_schema(conn):
         "item_units": [
             "CREATE INDEX IF NOT EXISTS idx_item_units_item ON item_units(item_id)",
             "CREATE INDEX IF NOT EXISTS idx_item_units_barcode ON item_units(barcode)",
+        ],
+        "item_variants": [
+            "CREATE INDEX IF NOT EXISTS idx_item_variants_item ON item_variants(item_id)",
+            "CREATE INDEX IF NOT EXISTS idx_item_variants_barcode ON item_variants(barcode)",
+            "CREATE INDEX IF NOT EXISTS idx_item_variants_sku ON item_variants(sku)",
         ],
         "invoices": [
             "CREATE INDEX IF NOT EXISTS idx_invoices_branch ON invoices(branch_id)",

@@ -378,6 +378,46 @@ class DatabaseConnection:
             self._local_conn = None
 
 
+    def _assert_unique_variant_barcode(self, user_id, barcode, item_id=None, variant_id=None):
+        barcode = str(barcode).strip() if barcode is not None else ''
+        if not barcode:
+            return None
+        conn = self.get_connection()
+        item_row = conn.execute("SELECT id, name FROM items WHERE user_id=? AND barcode=? AND deleted_at IS NULL", (user_id, barcode)).fetchone()
+        if item_row:
+            raise ValueError(f"الباركود '{barcode}' مستخدم بالفعل للمادة: {item_row['name']}")
+        try:
+            unit_row = conn.execute("""
+                SELECT i.id, i.name, u.unit_name
+                FROM item_units u
+                JOIN items i ON i.id = u.item_id
+                WHERE i.user_id=? AND i.deleted_at IS NULL AND u.barcode=?
+            """, (user_id, barcode)).fetchone()
+        except sqlite3.OperationalError:
+            unit_row = None
+        if unit_row:
+            raise ValueError(f"الباركود '{barcode}' مستخدم بالفعل لوحدة '{unit_row['unit_name']}' في المادة: {unit_row['name']}")
+        params = [user_id, barcode]
+        sql = """
+            SELECT v.id, v.item_id, v.color, v.size, i.name
+            FROM item_variants v
+            JOIN items i ON i.id = v.item_id
+            WHERE i.user_id=? AND i.deleted_at IS NULL AND COALESCE(v.is_active, 1)=1 AND v.barcode=?
+        """
+        # item_id is accepted for call-site context only; variant barcodes must
+        # never duplicate the base material or any other variant on the same item.
+        if variant_id is not None:
+            sql += " AND v.id<>?"
+            params.append(variant_id)
+        try:
+            row = conn.execute(sql, params).fetchone()
+        except sqlite3.OperationalError:
+            return barcode
+        if row:
+            label = " / ".join(part for part in [row['color'], row['size']] if part)
+            raise ValueError(f"الباركود '{barcode}' مستخدم بالفعل لمتغير المادة: {row['name']} {label}")
+        return barcode
+
     def _assert_unique_barcode(self, user_id, barcode, item_id=None):
         barcode = str(barcode).strip() if barcode is not None else ''
         if not barcode:
@@ -407,6 +447,7 @@ class DatabaseConnection:
                 raise ValueError(f"الباركود '{barcode}' مستخدم بالفعل لوحدة '{unit['unit_name']}' في المادة: {unit['name']}")
         except sqlite3.OperationalError:
             pass
+        self._assert_unique_variant_barcode(user_id, barcode, item_id=item_id)
 
     def _log_audit_local(self, user_id, username, action, table_name, record_id, details, ip='127.0.0.1'):
         if self.mode == "client":
@@ -556,7 +597,65 @@ class DatabaseConnection:
         except sqlite3.OperationalError:
             unit_row = None
         if not unit_row:
-            return None
+            try:
+                variant_row = conn.execute("""
+                    SELECT v.id AS matched_variant_id, v.color AS matched_variant_color,
+                           v.size AS matched_variant_size, v.sku AS matched_variant_sku,
+                           v.barcode AS matched_variant_barcode, v.sale_price AS matched_variant_sale_price,
+                           v.cost_price AS matched_variant_cost_price,
+                           v.quantity AS matched_variant_quantity, v.reorder_level AS matched_variant_reorder_level,
+                           i.*, c.name AS category_name,
+                           COALESCE((
+                               SELECT SUM(CASE
+                                   WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+                                   WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
+                                   ELSE 0 END)
+                               FROM inventory_movements
+                               WHERE item_id = i.id AND user_id = i.user_id
+                           ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS available,
+                           COALESCE((
+                               SELECT SUM(CAST(quantity AS REAL))
+                               FROM inventory_movements
+                               WHERE item_id = i.id AND user_id = i.user_id AND movement_type = 'opening'
+                           ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS opening_quantity
+                    FROM item_variants v
+                    JOIN items i ON i.id = v.item_id
+                    LEFT JOIN categories c ON i.category_id = c.id
+                    WHERE i.user_id=? AND i.deleted_at IS NULL AND COALESCE(v.is_active, 1)=1 AND v.barcode=?
+                    LIMIT 1
+                """, (uid, value)).fetchone()
+            except sqlite3.OperationalError:
+                variant_row = None
+            if not variant_row:
+                return None
+            data = dict(variant_row)
+            item = {k: v for k, v in data.items() if not k.startswith('matched_')}
+            matched_variant = {
+                'id': data.get('matched_variant_id'),
+                'variant_id': data.get('matched_variant_id'),
+                'color': data.get('matched_variant_color') or '',
+                'size': data.get('matched_variant_size') or '',
+                'sku': data.get('matched_variant_sku') or '',
+                'barcode': data.get('matched_variant_barcode') or value,
+                'sale_price': data.get('matched_variant_sale_price'),
+                'cost_price': data.get('matched_variant_cost_price'),
+                'quantity': data.get('matched_variant_quantity') or '0',
+                'reorder_level': data.get('matched_variant_reorder_level') or '0',
+            }
+            item = self._attach_item_units_local(item)
+            item.update({
+                'matched_variant': matched_variant,
+                'barcode_scope': 'variant',
+                'variant_id': matched_variant['variant_id'],
+                'variant_color': matched_variant['color'],
+                'variant_size': matched_variant['size'],
+                'variant_sku': matched_variant['sku'],
+                'matched_barcode': value,
+                'barcode': value,
+                'selling_price': matched_variant['sale_price'] if matched_variant.get('sale_price') not in (None, '') else item.get('selling_price'),
+                'purchase_price': matched_variant['cost_price'] if matched_variant.get('cost_price') not in (None, '') else item.get('purchase_price'),
+            })
+            return item
         data = dict(unit_row)
         item = {k: v for k, v in data.items() if not k.startswith('matched_')}
         matched_unit = {
@@ -677,6 +776,140 @@ class DatabaseConnection:
             WHERE i.id=? AND (? IS NULL OR i.user_id=?)
         """, (item_id, uid, uid)).fetchone()
         return dict(row) if row else None
+
+    # ------------------- Variants للمواد / الألبسة -------------------
+    def get_item_variants(self, item_id: int) -> List[Dict]:
+        if self.is_remote():
+            return self._rest_client.get_item_variants(item_id)
+        conn = self.get_connection()
+        try:
+            rows = conn.execute("""
+                SELECT id, item_id, color, size, sku, barcode, sale_price, cost_price,
+                       quantity, reorder_level, is_active, created_at, updated_at
+                FROM item_variants
+                WHERE item_id=? AND COALESCE(is_active, 1)=1
+                ORDER BY color, size, id
+            """, (item_id,)).fetchall()
+        except sqlite3.OperationalError:
+            return []
+        return [dict(row) for row in rows]
+
+    def get_item_variant_by_barcode(self, barcode: str) -> Optional[Dict]:
+        value = str(barcode or '').strip()
+        if not value:
+            return None
+        if self.is_remote():
+            return self._rest_client.get_item_variant_by_barcode(value)
+        from auth.session import UserSession
+        uid = UserSession.get_current_user_id()
+        conn = self.get_connection()
+        try:
+            row = conn.execute("""
+                SELECT v.id, v.item_id, v.color, v.size, v.sku, v.barcode, v.sale_price,
+                       v.cost_price, v.quantity, v.reorder_level, v.is_active, v.created_at, v.updated_at,
+                       i.name AS item_name, i.unit AS base_unit
+                FROM item_variants v
+                JOIN items i ON i.id = v.item_id
+                WHERE i.user_id=? AND i.deleted_at IS NULL AND COALESCE(v.is_active, 1)=1 AND v.barcode=?
+                LIMIT 1
+            """, (uid, value)).fetchone()
+        except sqlite3.OperationalError:
+            return None
+        return dict(row) if row else None
+
+    def _assert_unique_variant_identity(self, item_id: int, color: str, size: str, variant_id: int | None = None):
+        conn = self.get_connection()
+        params = [item_id, color, size]
+        sql = "SELECT id FROM item_variants WHERE item_id=? AND COALESCE(color,'')=? AND COALESCE(size,'')=? AND COALESCE(is_active, 1)=1"
+        if variant_id is not None:
+            sql += " AND id<>?"
+            params.append(variant_id)
+        row = conn.execute(sql, params).fetchone()
+        if row:
+            raise ValueError(f"متغير المادة للون/المقاس موجود مسبقًا: {color} / {size}")
+
+    def add_item_variant(self, item_id: int, data: Dict) -> int:
+        if self.is_remote():
+            return self._rest_client.add_item_variant(item_id, data)
+        from auth.session import UserSession
+        uid = UserSession.get_current_user_id()
+        conn = self.get_connection()
+        item = conn.execute("SELECT id FROM items WHERE id=? AND user_id=? AND deleted_at IS NULL", (item_id, uid)).fetchone()
+        if not item:
+            raise ValueError("المادة الأصلية غير موجودة")
+        color = str(data.get('color') or '').strip()
+        size = str(data.get('size') or '').strip()
+        if not color and not size:
+            raise ValueError("يجب تحديد لون أو مقاس واحد على الأقل")
+        self._assert_unique_variant_identity(item_id, color, size)
+        barcode = self._assert_unique_variant_barcode(uid, data.get('barcode'), item_id=item_id)
+        now = datetime.datetime.now().isoformat()
+        cursor = conn.execute("""
+            INSERT INTO item_variants (item_id, color, size, sku, barcode, sale_price, cost_price, quantity, reorder_level, is_active, created_at, updated_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            item_id, color, size, str(data.get('sku') or '').strip() or None, barcode,
+            str(data.get('sale_price') if data.get('sale_price') is not None else ''),
+            str(data.get('cost_price') if data.get('cost_price') is not None else ''),
+            str(data.get('quantity') if data.get('quantity') is not None else '0'),
+            str(data.get('reorder_level') if data.get('reorder_level') is not None else '0'),
+            1 if data.get('is_active', 1) not in (0, False, '0', 'false', 'False') else 0,
+            now, now,
+        ))
+        conn.commit()
+        return cursor.lastrowid
+
+    def update_item_variant(self, variant_id: int, data: Dict):
+        if self.is_remote():
+            return self._rest_client.update_item_variant(variant_id, data)
+        from auth.session import UserSession
+        uid = UserSession.get_current_user_id()
+        conn = self.get_connection()
+        current = conn.execute("""
+            SELECT v.* FROM item_variants v
+            JOIN items i ON i.id = v.item_id
+            WHERE v.id=? AND i.user_id=? AND i.deleted_at IS NULL
+        """, (variant_id, uid)).fetchone()
+        if not current:
+            raise ValueError("متغير المادة غير موجود")
+        current = dict(current)
+        color = str(data.get('color', current.get('color') or '') or '').strip()
+        size = str(data.get('size', current.get('size') or '') or '').strip()
+        if not color and not size:
+            raise ValueError("يجب تحديد لون أو مقاس واحد على الأقل")
+        self._assert_unique_variant_identity(int(current['item_id']), color, size, variant_id=variant_id)
+        barcode = self._assert_unique_variant_barcode(uid, data.get('barcode', current.get('barcode')), item_id=int(current['item_id']), variant_id=variant_id)
+        now = datetime.datetime.now().isoformat()
+        conn.execute("""
+            UPDATE item_variants
+            SET color=?, size=?, sku=?, barcode=?, sale_price=?, cost_price=?, quantity=?, reorder_level=?, is_active=?, updated_at=?
+            WHERE id=?
+        """, (
+            color, size, str(data.get('sku', current.get('sku') or '') or '').strip() or None, barcode,
+            str(data.get('sale_price', current.get('sale_price') or '') or ''),
+            str(data.get('cost_price', current.get('cost_price') or '') or ''),
+            str(data.get('quantity', current.get('quantity') or '0') or '0'),
+            str(data.get('reorder_level', current.get('reorder_level') or '0') or '0'),
+            1 if data.get('is_active', current.get('is_active', 1)) not in (0, False, '0', 'false', 'False') else 0,
+            now, variant_id,
+        ))
+        conn.commit()
+
+    def delete_item_variant(self, variant_id: int):
+        if self.is_remote():
+            return self._rest_client.delete_item_variant(variant_id)
+        from auth.session import UserSession
+        uid = UserSession.get_current_user_id()
+        conn = self.get_connection()
+        conn.execute("""
+            UPDATE item_variants
+            SET is_active=0, updated_at=?
+            WHERE id IN (
+                SELECT v.id FROM item_variants v JOIN items i ON i.id = v.item_id
+                WHERE v.id=? AND i.user_id=? AND i.deleted_at IS NULL
+            )
+        """, (datetime.datetime.now().isoformat(), variant_id, uid))
+        conn.commit()
 
     # ------------------- CRUD للعملاء مع Pagination -------------------
     def get_customers(self, search: str = None, limit: int = None, offset: int = None) -> Tuple[List[Dict], int]:

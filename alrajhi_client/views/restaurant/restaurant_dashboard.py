@@ -188,8 +188,12 @@ class RestaurantDashboard(QWidget):
 
         self.order_mode_btn = QPushButton("🧾  " + _("restaurant.mode.order"))
         self.order_mode_btn.setObjectName("restaurantOrderModeButton")
+        # Phase 314: the cafe is a standalone top-level workspace.  Keep an
+        # unattached compatibility button for older plugins/tests that inspect
+        # attributes, but never expose it inside the restaurant toolbar.
         self.cafe_mode_btn = QPushButton("☕  " + _("restaurant.mode.cafe"))
         self.cafe_mode_btn.setObjectName("restaurantCafeModeButton")
+        self.cafe_mode_btn.setVisible(False)
         self.kitchen_mode_btn = QPushButton("👨‍🍳  " + _("restaurant.mode.kitchen"))
         self.kitchen_mode_btn.setObjectName("restaurantKitchenModeButton")
         self.tables_mode_btn = QPushButton("🪑  " + _("restaurant.mode.tables"))
@@ -203,14 +207,14 @@ class RestaurantDashboard(QWidget):
         for button in (self.order_mode_btn, self.cafe_mode_btn, self.kitchen_mode_btn, self.tables_mode_btn, self.analytics_mode_btn, self.refresh_button):
             button.setMinimumHeight(44)
         self.analytics_mode_btn.setVisible(bool(self._ui_settings.get("show_analytics_panel")) and not self._standalone_cafe_workspace)
-        self.cafe_mode_btn.setVisible(bool(self._ui_settings.get("cafe_enabled", True)) and not self._standalone_cafe_workspace)
+        self.cafe_mode_btn.setVisible(False)
         if self._standalone_cafe_workspace:
             self.order_mode_btn.setVisible(False)
             self.kitchen_mode_btn.setVisible(False)
             self.tables_mode_btn.setVisible(False)
             self.analytics_mode_btn.setVisible(False)
         header.addWidget(self.order_mode_btn)
-        header.addWidget(self.cafe_mode_btn)
+        # Cafe is intentionally not added to the restaurant header after Phase 314.
         header.addWidget(self.kitchen_mode_btn)
         header.addWidget(self.tables_mode_btn)
         header.addWidget(self.analytics_mode_btn)
@@ -437,7 +441,7 @@ class RestaurantDashboard(QWidget):
         self.table_ops_card.setProperty("restaurant_layout_mode", layout_mode)
         self.workspace_stack.setProperty("restaurant_layout_mode", layout_mode)
         if hasattr(self, "cafe_shell_card"):
-            self.cafe_shell_card.setVisible(self._current_mode == "cafe" or self._standalone_cafe_workspace)
+            self.cafe_shell_card.setVisible(bool(self._standalone_cafe_workspace and self._current_mode in {"cafe", "cafe_preparation", "cafe_report"}))
         if hasattr(self.pos, "set_cafe_workspace_mode"):
             self.pos.set_cafe_workspace_mode(cafe_mode)
         for widget in (self, self.table_ops_card, self.workspace_stack, self.splitter, self.kitchen_splitter):
@@ -522,6 +526,8 @@ class RestaurantDashboard(QWidget):
         self._apply_responsive_layout()
 
     def show_cafe_mode(self):
+        if not self._standalone_cafe_workspace:
+            return
         if not self._ui_settings.get("cafe_enabled", True):
             return
         self._current_mode = "cafe"
@@ -539,6 +545,8 @@ class RestaurantDashboard(QWidget):
             self.status.setText(str(exc))
 
     def start_new_cafe_order(self):
+        if not self._standalone_cafe_workspace:
+            return
         if not self._ui_settings.get("cafe_enabled", True):
             return
         try:
@@ -550,6 +558,8 @@ class RestaurantDashboard(QWidget):
             self.status.setText(str(exc))
 
     def show_cafe_preparation_mode(self):
+        if not self._standalone_cafe_workspace:
+            return
         if not self._ui_settings.get("cafe_enabled", True):
             return
         self._current_mode = "cafe_preparation"
@@ -562,6 +572,8 @@ class RestaurantDashboard(QWidget):
             self.status.setText(str(exc))
 
     def show_cafe_report_mode(self):
+        if not self._standalone_cafe_workspace:
+            return
         if not self._ui_settings.get("cafe_enabled", True):
             return
         self._current_mode = "cafe_report"

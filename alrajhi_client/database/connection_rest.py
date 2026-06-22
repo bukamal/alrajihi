@@ -411,6 +411,31 @@ class RestClient:
     def delete_item(self, item_id: int):
         self._request('DELETE', f'/api/items/{item_id}')
 
+    def get_item_variants(self, item_id: int):
+        result = self._request('GET', f'/api/items/{int(item_id)}/variants', queue_on_failure=False)
+        return result.get('variants', []) if isinstance(result, dict) else (result or [])
+
+    def get_item_variant_by_barcode(self, barcode: str):
+        value = str(barcode or '').strip()
+        if not value:
+            return None
+        try:
+            return self._request('GET', '/api/items/variants/by-barcode', params={'barcode': value}, queue_on_failure=False)
+        except Exception as exc:
+            if 'API error 404' in str(exc):
+                return None
+            raise
+
+    def add_item_variant(self, item_id: int, data: Dict) -> int:
+        result = self._request('POST', f'/api/items/{int(item_id)}/variants', data)
+        return result['id']
+
+    def update_item_variant(self, variant_id: int, data: Dict):
+        self._request('PUT', f'/api/items/variants/{int(variant_id)}', data)
+
+    def delete_item_variant(self, variant_id: int):
+        self._request('DELETE', f'/api/items/variants/{int(variant_id)}')
+
     # ------------------- العملاء -------------------
     def get_customers(self, search=None, limit=None, offset=None) -> Tuple[List[Dict], int]:
         params = {}

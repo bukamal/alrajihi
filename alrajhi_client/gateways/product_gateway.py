@@ -51,6 +51,26 @@ class ItemGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_variants(self, item_id: int) -> List[Dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_variant_by_barcode(self, barcode: str) -> Optional[Dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def add_variant(self, item_id: int, data: Dict[str, Any]) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_variant(self, variant_id: int, data: Dict[str, Any]):
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_variant(self, variant_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
     def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
         """Return net sold quantities per item in base unit.
 

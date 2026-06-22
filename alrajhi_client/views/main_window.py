@@ -26,6 +26,7 @@ from views.widgets.offline_queue_widget import OfflineQueueWidget
 from views.widgets.monitoring_widget import MonitoringWidget
 from views.restaurant.restaurant_dashboard import RestaurantDashboard
 from views.cafe import CafeWorkspaceWidget
+from views.apparel import ApparelWorkspaceWidget
 from shell import QuickOpenDialog, QuickOpenItem, TabbedWorkspace, WorkspaceEntry, WorkspaceStateStore, UnifiedActionBar, NotificationCenter, NotificationItem
 from shell.shortcuts import bind_workspace_shortcuts
 from views.dialogs.change_password_dialog import ChangePasswordDialog
@@ -63,6 +64,7 @@ PAGE_META_KEYS = {
     'monitoring': ('monitoring', 'nav_admin'),
     'restaurant': ('restaurant.dashboard', 'nav_restaurant'),
     'cafe': ('restaurant.cafe_workspace_title', 'nav_cafe'),
+    'apparel': ('apparel.workspace_title', 'nav_apparel'),
 }
 
 
@@ -130,6 +132,7 @@ NAV_GROUP_BY_PAGE = {
     'monitoring': 'الإدارة',
     'restaurant': 'المطعم',
     'cafe': 'الكافي',
+    'apparel': 'الألبسة',
 }
 
 
@@ -357,6 +360,7 @@ class MainWindow(QMainWindow):
             ('monitoring', MonitoringWidget),
             ('restaurant', RestaurantDashboard),
             ('cafe', CafeWorkspaceWidget),
+            ('apparel', ApparelWorkspaceWidget),
         ]
         for key, factory in page_factories:
             page = self._create_page_safely(key, factory)
@@ -429,6 +433,7 @@ class MainWindow(QMainWindow):
         add_action(home_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
         add_action(home_menu, translate('restaurant.dashboard'), 'utensils', 'restaurant', shortcut='F8')
         add_action(home_menu, translate('restaurant.cafe_workspace_title'), 'coffee', 'cafe', shortcut='F10')
+        add_action(home_menu, translate('apparel.workspace_title'), 'tshirt', 'apparel', shortcut='F11')
         home_menu.addSeparator()
         add_action(home_menu, translate('monitoring'), 'heartbeat', 'monitoring')
 
@@ -462,9 +467,11 @@ class MainWindow(QMainWindow):
                 purchase_menu.addSeparator()
             add_action(purchase_menu, translate('payment_voucher'), 'money-bill-wave', 'vouchers')
 
-        if any_enabled('items', 'categories', 'warehouses'):
+        if any_enabled('items', 'apparel', 'categories', 'warehouses'):
             inventory_menu = self.menu_bar.addMenu(qta.icon('fa5s.boxes'), '\n' + translate('nav_inventory'))
             add_action(inventory_menu, translate('items'), 'box', 'items', shortcut='F4')
+            if page_enabled('apparel'):
+                add_action(inventory_menu, translate('apparel.workspace_title'), 'tshirt', 'apparel', shortcut='F11')
             if page_enabled('items'):
                 add_action(inventory_menu, translate('new_item'), 'box-open', callback=self.open_quick_item)
             add_action(inventory_menu, translate('categories'), 'folder', 'categories')
@@ -1111,6 +1118,7 @@ class MainWindow(QMainWindow):
             'pos': 'fa5s.barcode',
             'restaurant': 'fa5s.utensils',
             'cafe': 'fa5s.coffee',
+            'apparel': 'fa5s.tshirt',
             'sales_invoices': 'fa5s.file-invoice-dollar',
             'purchase_invoices': 'fa5s.file-invoice',
             'items': 'fa5s.box',
@@ -1140,7 +1148,7 @@ class MainWindow(QMainWindow):
         items = []
         favorites = self.workspace_state_store.favorites()
         if not favorites:
-            favorites = enabled_favorite_pages(['dashboard', 'restaurant', 'cafe', 'items', 'sales_invoices', 'reports'])
+            favorites = enabled_favorite_pages(['dashboard', 'restaurant', 'cafe', 'apparel', 'items', 'sales_invoices', 'reports'])
             self.workspace_state_store.set_favorites(favorites)
         for pid in enabled_favorite_pages(favorites):
             if pid in self.pages and page_enabled(pid):
@@ -1151,7 +1159,7 @@ class MainWindow(QMainWindow):
         for pid in self.pages:
             if page_enabled(pid):
                 items.append(QuickOpenItem(pid, page_title(pid), page_breadcrumb(pid), self.workspace_icon_for_page(pid)))
-        for section in ('company', 'accounting', 'transactions', 'materials', 'categories', 'parties', 'finance', 'inventory', 'branches', 'manufacturing', 'reports', 'pos', 'restaurant', 'cafe', 'printing', 'users', 'ui', 'security'):
+        for section in ('company', 'accounting', 'transactions', 'materials', 'apparel', 'categories', 'parties', 'finance', 'inventory', 'branches', 'manufacturing', 'reports', 'pos', 'restaurant', 'cafe', 'printing', 'users', 'ui', 'security'):
             if settings_section_enabled(section):
                 items.append(QuickOpenItem(f'settings:{section}', translate(f'settings.{section}'), translate('settings'), 'fa5s.sliders-h'))
         seen = set()

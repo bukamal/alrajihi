@@ -116,6 +116,24 @@ SETTINGS_SCOPE_DESCRIPTORS: tuple[SettingsScopeDescriptor, ...] = (
         print_keys=("printing/barcode/label_size", "printing/barcode/symbology", "printing/barcode/show_price"),
         notes="Material master-data, units, barcode and label printing settings.",
     ),
+
+    SettingsScopeDescriptor(
+        scope="apparel",
+        section_key="apparel",
+        title_key="settings.apparel",
+        service_getter="get_material_settings",
+        ui_sections=("apparel", "materials", "inventory", "printing"),
+        operation_key_prefixes=("apparel/operations", "materials/operations"),
+        keys=(
+            _key("apparel/enabled", VALUE_BOOL, "true"),
+            _key("apparel/default_size_set", default="XS,S,M,L,XL,XXL"),
+            _key("apparel/default_color_set", default="أبيض,أسود,أزرق,أحمر"),
+            _key("apparel/barcode_required", VALUE_BOOL, "true"),
+            _key("apparel/ui/density", VALUE_CHOICE, "comfortable", choices=("compact", "comfortable", "touch")),
+        ),
+        print_keys=("printing/barcode/label_size", "printing/barcode/symbology", "printing/barcode/show_price"),
+        notes="Standalone apparel workspace settings. Product identity remains item-variant based, not unit based.",
+    ),
     SettingsScopeDescriptor(
         scope="categories",
         section_key="categories",

@@ -61,6 +61,22 @@ class RemoteItemGateway(ItemGateway):
     def clear_units(self, item_id: int):
         raise NotImplementedError("Remote item units are saved atomically through item create/update payloads.")
 
+    def get_variants(self, item_id: int) -> List[Dict]:
+        return self.rest_client.get_item_variants(item_id)
+
+    def get_variant_by_barcode(self, barcode: str) -> Optional[Dict]:
+        variant = self.rest_client.get_item_variant_by_barcode(barcode)
+        return variant if isinstance(variant, dict) else None
+
+    def add_variant(self, item_id: int, data: Dict[str, Any]) -> int:
+        return self.rest_client.add_item_variant(item_id, data)
+
+    def update_variant(self, variant_id: int, data: Dict[str, Any]):
+        return self.rest_client.update_item_variant(variant_id, data)
+
+    def delete_variant(self, variant_id: int):
+        return self.rest_client.delete_item_variant(variant_id)
+
     def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
         ids = [int(x) for x in (item_ids or []) if x is not None]
         if not ids:

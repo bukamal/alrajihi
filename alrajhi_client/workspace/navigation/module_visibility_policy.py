@@ -24,6 +24,7 @@ PAGE_MODULE_KEYS = {
     'pos': (('pos/enabled', True),),
     'restaurant': (('restaurant/enabled', True),),
     'cafe': (('cafe/enabled', True),),
+    'apparel': (('apparel/enabled', True),),
     'manufacturing': (('manufacturing/enabled', True),),
     'reports': (('reports/enabled', True),),
     'items': (('inventory/enabled', True),),
@@ -51,6 +52,7 @@ SETTINGS_SECTION_KEYS = {
     'pos': (('pos/enabled', True),),
     'restaurant': (('restaurant/enabled', True),),
     'cafe': (('cafe/enabled', True),),
+    'apparel': (('apparel/enabled', True),),
     'users': (('users/enabled', True),),
 }
 

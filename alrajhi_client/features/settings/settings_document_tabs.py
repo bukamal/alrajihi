@@ -358,6 +358,17 @@ class CafeSettingsTab(SettingsSectionDocumentTab):
     )
 
 
+class ApparelSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.apparel'
+    fields = (
+        ('apparel/enabled', 'settings.apparel_enabled', 'bool'),
+        ('apparel/default_size_set', 'apparel.default_size_set', 'string'),
+        ('apparel/default_color_set', 'apparel.default_color_set', 'string'),
+        ('apparel/barcode_required', 'apparel.barcode_required', 'bool'),
+        ('apparel/ui/density', 'touch_density', 'choice:compact|comfortable|touch'),
+    )
+
+
 class PrintingSettingsTab(SettingsSectionDocumentTab):
     section_key = 'settings.printing'
     fields = (
@@ -423,6 +434,7 @@ SETTINGS_SECTION_TABS = {
     'pos': PosSettingsTab,
     'restaurant': RestaurantSettingsTab,
     'cafe': CafeSettingsTab,
+    'apparel': ApparelSettingsTab,
     'printing': PrintingSettingsTab,
     'users': UsersSettingsTab,
     'ui': UISettingsTab,

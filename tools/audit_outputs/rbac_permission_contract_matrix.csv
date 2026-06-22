@@ -1,4 +1,8 @@
 ﻿key,module,action,description,source,shell_family,api_resource,network_mode,branch_scoped,legacy_alias,admin,manager,accountant,cashier,viewer,migration_seeded
+apparel.export,apparel,export,document:apparel:export: apparel export,document:apparel:export,list_workspace,/api/rbac,remote_available,False,,True,True,True,False,False,True
+apparel.variant,apparel,variant,document:apparel:create: apparel variant,document:apparel:create,list_workspace,/api/rbac,remote_available,False,,True,True,False,False,False,True
+apparel.variant.update,apparel,variant_update,document:apparel:update: apparel variant update,document:apparel:update,list_workspace,/api/rbac,remote_available,False,,True,True,False,False,False,True
+apparel.view,apparel,view,document:apparel:view: apparel view,document:apparel:view,list_workspace,/api/rbac,remote_available,False,,True,True,True,False,True,True
 bank_accounts.create,bank_accounts,create,document:bank_account:create: bank_accounts create,document:bank_account:create,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
 bank_accounts.delete,bank_accounts,delete,document:bank_account:delete: bank_accounts delete,document:bank_account:delete,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
 bank_accounts.update,bank_accounts,update,document:bank_account:update: bank_accounts update,document:bank_account:update,document,/api/rbac,remote_available,False,,True,True,True,False,False,True

@@ -106,6 +106,9 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (311, "CAFE_RUNTIME_ACCEPTANCE"),
         (312, "CAFE_ANALYTICS_FSTRING_HOTFIX"),
         (313, "STANDALONE_CAFE_WORKSPACE_ACTIVATION"),
+        (314, "RESTAURANT_CAFE_UI_DECOUPLING_HOTFIX"),
+        (315, "PRODUCT_VARIANTS_FOUNDATION"),
+        (316, "APPAREL_WORKSPACE_SHELL"),
     ]
 )
 
@@ -177,6 +180,9 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (311, "cafe_runtime_acceptance"),
         (312, "cafe_analytics_fstring_hotfix"),
         (313, "standalone_cafe_workspace_activation"),
+        (314, "restaurant_cafe_ui_decoupling_hotfix"),
+        (315, "product_variants_foundation"),
+        (316, "apparel_workspace_shell"),
     ]
 )
 
@@ -229,6 +235,9 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("cafe_runtime_acceptance", "restaurant", "Cafe runtime acceptance", "tests/test_phase311_cafe_runtime_acceptance.py", phase=311),
     ReleaseGateCheck("cafe_analytics_fstring_hotfix", "restaurant", "Cafe analytics f-string hotfix", "tests/test_phase312_cafe_analytics_fstring_hotfix.py", phase=312),
     ReleaseGateCheck("standalone_cafe_workspace_activation", "restaurant", "Standalone cafe workspace activation", "tests/test_phase313_standalone_cafe_workspace_activation.py", phase=313),
+    ReleaseGateCheck("restaurant_cafe_ui_decoupling_hotfix", "restaurant", "Restaurant shell no longer embeds cafe entry", "tests/test_phase314_restaurant_cafe_ui_decoupling_hotfix.py", phase=314),
+    ReleaseGateCheck("product_variants_foundation", "materials", "Product variants foundation for apparel color/size stock identity", "tests/test_phase315_product_variants_foundation.py", phase=315),
+    ReleaseGateCheck("apparel_workspace_shell", "materials", "Standalone apparel workspace shell backed by product variants", "tests/test_phase316_apparel_workspace_shell.py", phase=316),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

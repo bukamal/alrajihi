@@ -89,6 +89,15 @@ def _assert_unique_barcode(db, user_id, barcode, item_id=None):
     unit_row = db.query(unit_sql, unit_params).fetchone()
     if unit_row:
         raise ValueError(f"الباركود '{value}' مستخدم بالفعل لوحدة '{unit_row['unit_name']}' في المادة: {unit_row['name']}")
+    variant_row = db.query("""
+        SELECT v.id, v.color, v.size, i.name
+        FROM item_variants v
+        JOIN items i ON i.id = v.item_id
+        WHERE i.user_id=? AND i.deleted_at IS NULL AND COALESCE(v.is_active, 1)=1 AND v.barcode=?
+    """, (user_id, value)).fetchone()
+    if variant_row:
+        label = " / ".join(part for part in [variant_row['color'], variant_row['size']] if part)
+        raise ValueError(f"الباركود '{value}' مستخدم بالفعل لمتغير المادة: {variant_row['name']} {label}")
     return value
 
 
@@ -115,6 +124,15 @@ def _assert_unique_unit_barcode(db, user_id, barcode, item_id=None, unit_name=''
     row = db.query(unit_sql, unit_params).fetchone()
     if row:
         raise ValueError(f"باركود الوحدة '{value}' مستخدم بالفعل لوحدة '{row['unit_name']}' في المادة: {row['name']}")
+    variant_row = db.query("""
+        SELECT v.id, v.color, v.size, i.name
+        FROM item_variants v
+        JOIN items i ON i.id = v.item_id
+        WHERE i.user_id=? AND i.deleted_at IS NULL AND COALESCE(v.is_active, 1)=1 AND v.barcode=?
+    """, (user_id, value)).fetchone()
+    if variant_row:
+        label = " / ".join(part for part in [variant_row['color'], variant_row['size']] if part)
+        raise ValueError(f"باركود الوحدة '{value}' مستخدم بالفعل لمتغير المادة: {variant_row['name']} {label}")
     return value
 
 def _normalize_units(db, user_id, item_id, units, base_barcode=None):
@@ -150,6 +168,75 @@ def _normalize_units(db, user_id, item_id, units, base_barcode=None):
             'notes': str(source.get('notes') or '').strip(),
         })
     return result
+
+def _assert_unique_variant_barcode(db, user_id, barcode, variant_id=None):
+    value = _validate_barcode_format(barcode)
+    if not value:
+        return None
+    row = db.query("SELECT id, name FROM items WHERE user_id=? AND barcode=? AND deleted_at IS NULL", (user_id, value)).fetchone()
+    if row:
+        raise ValueError(f"الباركود '{value}' مستخدم بالفعل للمادة: {row['name']}")
+    unit_row = db.query("""
+        SELECT i.id, i.name, u.unit_name
+        FROM item_units u
+        JOIN items i ON i.id = u.item_id
+        WHERE i.user_id=? AND i.deleted_at IS NULL AND u.barcode=?
+    """, (user_id, value)).fetchone()
+    if unit_row:
+        raise ValueError(f"الباركود '{value}' مستخدم بالفعل لوحدة '{unit_row['unit_name']}' في المادة: {unit_row['name']}")
+    params = [user_id, value]
+    sql = """
+        SELECT v.id, v.color, v.size, i.name
+        FROM item_variants v
+        JOIN items i ON i.id = v.item_id
+        WHERE i.user_id=? AND i.deleted_at IS NULL AND COALESCE(v.is_active, 1)=1 AND v.barcode=?
+    """
+    if variant_id is not None:
+        sql += " AND v.id<>?"
+        params.append(variant_id)
+    row = db.query(sql, params).fetchone()
+    if row:
+        label = " / ".join(part for part in [row['color'], row['size']] if part)
+        raise ValueError(f"الباركود '{value}' مستخدم بالفعل لمتغير المادة: {row['name']} {label}")
+    return value
+
+
+def _normalize_variant_payload(db, user_id, item_id, data, variant_id=None):
+    source = data or {}
+    color = str(source.get('color') or '').strip()
+    size = str(source.get('size') or '').strip()
+    if not color and not size:
+        raise ValueError('يجب تحديد لون أو مقاس واحد على الأقل')
+    exists = db.query(
+        "SELECT id FROM items WHERE id=? AND user_id=? AND deleted_at IS NULL",
+        (item_id, user_id),
+    ).fetchone()
+    if not exists:
+        raise ValueError('المادة الأصلية غير موجودة')
+    params = [item_id, color, size]
+    duplicate_sql = """
+        SELECT id FROM item_variants
+        WHERE item_id=? AND COALESCE(color,'')=? AND COALESCE(size,'')=? AND COALESCE(is_active, 1)=1
+    """
+    if variant_id is not None:
+        duplicate_sql += " AND id<>?"
+        params.append(variant_id)
+    duplicate = db.query(duplicate_sql, params).fetchone()
+    if duplicate:
+        raise ValueError(f'متغير المادة للون/المقاس موجود مسبقًا: {color} / {size}')
+    barcode = _assert_unique_variant_barcode(db, user_id, source.get('barcode'), variant_id=variant_id)
+    return {
+        'color': color,
+        'size': size,
+        'sku': str(source.get('sku') or '').strip() or None,
+        'barcode': barcode,
+        'sale_price': str(source.get('sale_price') if source.get('sale_price') is not None else ''),
+        'cost_price': str(source.get('cost_price') if source.get('cost_price') is not None else ''),
+        'quantity': str(source.get('quantity') if source.get('quantity') is not None else '0'),
+        'reorder_level': str(source.get('reorder_level') if source.get('reorder_level') is not None else '0'),
+        'is_active': 1 if source.get('is_active', 1) not in (0, False, '0', 'false', 'False') else 0,
+    }
+
 
 def _save_item_units(db, item_id, units, user_id=None, base_barcode=None):
     if user_id is None:
@@ -351,7 +438,63 @@ def get_item_by_barcode(barcode=None):
     """
     unit_row = db.query(unit_sql, (user_id, value)).fetchone()
     if not unit_row:
-        return jsonify({'error': 'not_found', 'barcode': value}), 404
+        variant_sql = """
+            SELECT v.id AS matched_variant_id, v.color AS matched_variant_color,
+                   v.size AS matched_variant_size, v.sku AS matched_variant_sku,
+                   v.barcode AS matched_variant_barcode, v.sale_price AS matched_variant_sale_price,
+                   v.cost_price AS matched_variant_cost_price, v.quantity AS matched_variant_quantity,
+                   v.reorder_level AS matched_variant_reorder_level,
+                   i.*, c.name AS category_name,
+                   COALESCE((
+                       SELECT SUM(CASE
+                           WHEN movement_type IN ('opening','purchase','adjustment','production_out','sales_return','consumption_reverse') THEN CAST(quantity AS REAL)
+                           WHEN movement_type IN ('sale','production_consume','purchase_return','restaurant_consume') THEN -CAST(quantity AS REAL)
+                           ELSE 0 END)
+                       FROM inventory_movements
+                       WHERE item_id = i.id AND user_id = i.user_id
+                   ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS available,
+                   COALESCE((
+                       SELECT SUM(CAST(quantity AS REAL))
+                       FROM inventory_movements
+                       WHERE item_id = i.id AND user_id = i.user_id AND movement_type = 'opening'
+                   ), CAST(COALESCE(i.quantity, '0') AS REAL)) AS opening_quantity
+            FROM item_variants v
+            JOIN items i ON i.id = v.item_id
+            LEFT JOIN categories c ON i.category_id = c.id
+            WHERE i.user_id=? AND i.deleted_at IS NULL AND COALESCE(v.is_active, 1)=1 AND v.barcode=?
+            LIMIT 1
+        """
+        variant_row = db.query(variant_sql, (user_id, value)).fetchone()
+        if not variant_row:
+            return jsonify({'error': 'not_found', 'barcode': value}), 404
+        data = dict(variant_row)
+        item = {k: v for k, v in data.items() if not k.startswith('matched_')}
+        matched_variant = {
+            'id': data.get('matched_variant_id'),
+            'variant_id': data.get('matched_variant_id'),
+            'color': data.get('matched_variant_color') or '',
+            'size': data.get('matched_variant_size') or '',
+            'sku': data.get('matched_variant_sku') or '',
+            'barcode': data.get('matched_variant_barcode') or value,
+            'sale_price': data.get('matched_variant_sale_price'),
+            'cost_price': data.get('matched_variant_cost_price'),
+            'quantity': data.get('matched_variant_quantity') or '0',
+            'reorder_level': data.get('matched_variant_reorder_level') or '0',
+        }
+        item = _attach_units(db, item)
+        item.update({
+            'matched_variant': matched_variant,
+            'barcode_scope': 'variant',
+            'variant_id': matched_variant['variant_id'],
+            'variant_color': matched_variant['color'],
+            'variant_size': matched_variant['size'],
+            'variant_sku': matched_variant['sku'],
+            'matched_barcode': value,
+            'barcode': value,
+            'selling_price': matched_variant['sale_price'] if matched_variant.get('sale_price') not in (None, '') else item.get('selling_price'),
+            'purchase_price': matched_variant['cost_price'] if matched_variant.get('cost_price') not in (None, '') else item.get('purchase_price'),
+        })
+        return jsonify(item)
     data = dict(unit_row)
     item = {k: v for k, v in data.items() if not k.startswith('matched_')}
     matched_unit = {
@@ -469,6 +612,127 @@ def get_item_activity_summary(item_id):
         return jsonify({'error': 'not found'}), 404
     return jsonify(_get_item_usage_summary(db, item_id, user_id))
 
+
+
+@items_bp.route('/items/variants/by-barcode', methods=['GET'])
+@jwt_required()
+def get_variant_by_barcode():
+    user_id = get_jwt_identity()
+    value = str(request.args.get('barcode', '') or '').strip()
+    if not value:
+        return jsonify({'error': 'barcode_required'}), 400
+    try:
+        value = _validate_barcode_format(value)
+    except ValueError:
+        return jsonify({'error': 'not_found', 'barcode': value}), 404
+    db = get_item_repository()
+    row = db.query("""
+        SELECT v.id, v.item_id, v.color, v.size, v.sku, v.barcode, v.sale_price,
+               v.cost_price, v.quantity, v.reorder_level, v.is_active, v.created_at, v.updated_at,
+               i.name AS item_name, i.unit AS base_unit
+        FROM item_variants v
+        JOIN items i ON i.id = v.item_id
+        WHERE i.user_id=? AND i.deleted_at IS NULL AND COALESCE(v.is_active, 1)=1 AND v.barcode=?
+        LIMIT 1
+    """, (user_id, value)).fetchone()
+    if not row:
+        return jsonify({'error': 'not_found', 'barcode': value}), 404
+    return jsonify(dict(row))
+
+
+@items_bp.route('/items/<int:item_id>/variants', methods=['GET'])
+@jwt_required()
+def get_item_variants(item_id):
+    user_id = get_jwt_identity()
+    db = get_item_repository()
+    exists = db.query("SELECT id FROM items WHERE id=? AND user_id=? AND deleted_at IS NULL", (item_id, user_id)).fetchone()
+    if not exists:
+        return jsonify({'error': 'not found'}), 404
+    rows = db.query("""
+        SELECT id, item_id, color, size, sku, barcode, sale_price, cost_price,
+               quantity, reorder_level, is_active, created_at, updated_at
+        FROM item_variants
+        WHERE item_id=? AND COALESCE(is_active, 1)=1
+        ORDER BY color, size, id
+    """, (item_id,)).fetchall()
+    return jsonify({'variants': [dict(row) for row in rows]})
+
+
+@items_bp.route('/items/<int:item_id>/variants', methods=['POST'])
+@jwt_required()
+def add_item_variant(item_id):
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    db = get_item_repository()
+    try:
+        payload = _normalize_variant_payload(db, user_id, item_id, data)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    now = datetime.datetime.now().isoformat()
+    cursor = db.query("""
+        INSERT INTO item_variants (item_id, color, size, sku, barcode, sale_price, cost_price, quantity, reorder_level, is_active, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+    """, (
+        item_id, payload['color'], payload['size'], payload['sku'], payload['barcode'],
+        payload['sale_price'], payload['cost_price'], payload['quantity'], payload['reorder_level'],
+        payload['is_active'], now, now,
+    ))
+    variant_id = cursor.lastrowid
+    db.commit()
+    audit_log('CREATE', 'ITEM_VARIANT', variant_id, new_values={'item_id': item_id, **payload}, details='إنشاء متغير مادة')
+    db.commit()
+    return jsonify({'id': variant_id}), 201
+
+
+@items_bp.route('/items/variants/<int:variant_id>', methods=['PUT'])
+@jwt_required()
+def update_item_variant(variant_id):
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    db = get_item_repository()
+    current = db.query("""
+        SELECT v.* FROM item_variants v
+        JOIN items i ON i.id = v.item_id
+        WHERE v.id=? AND i.user_id=? AND i.deleted_at IS NULL
+    """, (variant_id, user_id)).fetchone()
+    if not current:
+        return jsonify({'error': 'not found'}), 404
+    current = dict(current)
+    merged = {**current, **data}
+    try:
+        payload = _normalize_variant_payload(db, user_id, int(current['item_id']), merged, variant_id=variant_id)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    db.query("""
+        UPDATE item_variants
+        SET color=?, size=?, sku=?, barcode=?, sale_price=?, cost_price=?, quantity=?, reorder_level=?, is_active=?, updated_at=?
+        WHERE id=?
+    """, (
+        payload['color'], payload['size'], payload['sku'], payload['barcode'], payload['sale_price'],
+        payload['cost_price'], payload['quantity'], payload['reorder_level'], payload['is_active'],
+        datetime.datetime.now().isoformat(), variant_id,
+    ))
+    db.commit()
+    audit_log('UPDATE', 'ITEM_VARIANT', variant_id, old_values=current, new_values=payload, details='تعديل متغير مادة')
+    db.commit()
+    return jsonify({'status': 'ok'})
+
+
+@items_bp.route('/items/variants/<int:variant_id>', methods=['DELETE'])
+@jwt_required()
+def delete_item_variant(variant_id):
+    user_id = get_jwt_identity()
+    db = get_item_repository()
+    db.query("""
+        UPDATE item_variants
+        SET is_active=0, updated_at=?
+        WHERE id IN (
+            SELECT v.id FROM item_variants v JOIN items i ON i.id = v.item_id
+            WHERE v.id=? AND i.user_id=? AND i.deleted_at IS NULL
+        )
+    """, (datetime.datetime.now().isoformat(), variant_id, user_id))
+    db.commit()
+    return jsonify({'status': 'ok'})
 
 
 @items_bp.route('/items/<int:item_id>', methods=['GET'])

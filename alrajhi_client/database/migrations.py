@@ -99,6 +99,26 @@ def init_database():
             FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE
         );
 
+
+        CREATE TABLE IF NOT EXISTS item_variants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            color TEXT DEFAULT '',
+            size TEXT DEFAULT '',
+            sku TEXT,
+            barcode TEXT,
+            sale_price TEXT,
+            cost_price TEXT,
+            quantity TEXT DEFAULT '0',
+            reorder_level TEXT DEFAULT '0',
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT,
+            FOREIGN KEY (item_id) REFERENCES items(id) ON DELETE CASCADE,
+            UNIQUE(item_id, color, size)
+        );
+        
+
         CREATE TABLE IF NOT EXISTS invoices (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT NOT NULL,

@@ -45,6 +45,22 @@ class LocalItemGateway(ItemGateway):
     def clear_units(self, item_id: int):
         return item_dao.clear_units(item_id)
 
+    def get_variants(self, item_id: int) -> List[Dict]:
+        return records(item_dao.get_variants(item_id), 'variants')
+
+    def get_variant_by_barcode(self, barcode: str) -> Optional[Dict]:
+        variant = item_dao.get_variant_by_barcode(barcode)
+        return variant if isinstance(variant, dict) else None
+
+    def add_variant(self, item_id: int, data: Dict[str, Any]) -> int:
+        return item_dao.add_variant(item_id, data)
+
+    def update_variant(self, variant_id: int, data: Dict[str, Any]):
+        return item_dao.update_variant(variant_id, data)
+
+    def delete_variant(self, variant_id: int):
+        return item_dao.delete_variant(variant_id)
+
     def sold_quantities(self, item_ids: list[int]) -> Dict[int, Decimal]:
         if not item_ids:
             return {}

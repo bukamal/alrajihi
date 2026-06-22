@@ -14,6 +14,7 @@ CAFE_PAGE_ID = "cafe"
 CAFE_SETTINGS_KEY = "cafe/enabled"
 CAFE_ENGINE_BACKING = "restaurant"
 CAFE_ORDER_TYPE = "cafe_quick_order"
+CAFE_EMBEDDED_RESTAURANT_ENTRY_ALLOWED = False
 
 CAFE_PERMISSION_KEYS: tuple[str, ...] = (
     "cafe.view",
@@ -69,6 +70,7 @@ def cafe_standalone_navigation_contract() -> dict[str, object]:
         "hidden_restaurant_sections": CAFE_HIDDEN_RESTAURANT_SECTIONS,
         "permissions": CAFE_PERMISSION_KEYS,
         "forbidden_engine_files": CAFE_FORBIDDEN_ENGINE_FILES,
+        "embedded_restaurant_entry_allowed": CAFE_EMBEDDED_RESTAURANT_ENTRY_ALLOWED,
     }
 
 
@@ -80,4 +82,15 @@ def cafe_uses_shared_restaurant_engine() -> bool:
         and contract["engine_backing"] == "restaurant"
         and contract["order_type"] == "cafe_quick_order"
         and "table_map" in contract["hidden_restaurant_sections"]
+    )
+
+
+def cafe_is_decoupled_from_restaurant_visible_shell() -> bool:
+    """Cafe must be a top-level workspace, not an embedded restaurant mode."""
+    contract = cafe_standalone_navigation_contract()
+    return (
+        contract["page_id"] == "cafe"
+        and contract["embedded_restaurant_entry_allowed"] is False
+        and "quick_order" in contract["visible_sections"]
+        and "merge_tables" in contract["hidden_restaurant_sections"]
     )

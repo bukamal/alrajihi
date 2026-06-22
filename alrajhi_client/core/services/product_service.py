@@ -172,6 +172,78 @@ class ProductService:
 
 
 
+    # ---------- Item variants / apparel foundation ----------
+    def _normalize_variant_payload(self, item_id: int, data: Dict[str, Any], variant_id: int | None = None) -> Dict[str, Any]:
+        item_id = int(item_id or 0)
+        if not item_id or not self.item_by_id(item_id):
+            raise ValueError("المادة الأصلية غير موجودة")
+        row = dict(data or {})
+        color = str(row.get('color') or '').strip()
+        size = str(row.get('size') or '').strip()
+        if not color and not size:
+            raise ValueError("يجب تحديد لون أو مقاس واحد على الأقل")
+        for existing in self.item_variants(item_id):
+            if variant_id is not None and int(existing.get('id') or 0) == int(variant_id):
+                continue
+            if str(existing.get('color') or '').strip().casefold() == color.casefold() and str(existing.get('size') or '').strip().casefold() == size.casefold():
+                raise ValueError(f"متغير المادة للون/المقاس موجود مسبقًا: {color} / {size}")
+        barcode = self._normalize_unit_barcode(row.get('barcode'))
+        if barcode:
+            existing = self.item_by_barcode(barcode)
+            if existing:
+                same_variant = existing.get('barcode_scope') == 'variant' and int(existing.get('variant_id') or 0) == int(variant_id or 0)
+                if not same_variant:
+                    raise ValueError(f"الباركود '{barcode}' مستخدم بالفعل للمادة: {existing.get('name', existing.get('id'))}")
+        normalized = {
+            'color': color,
+            'size': size,
+            'sku': str(row.get('sku') or '').strip() or None,
+            'barcode': barcode,
+            'sale_price': str(row.get('sale_price') if row.get('sale_price') is not None else ''),
+            'cost_price': str(row.get('cost_price') if row.get('cost_price') is not None else ''),
+            'quantity': str(row.get('quantity') if row.get('quantity') is not None else '0'),
+            'reorder_level': str(row.get('reorder_level') if row.get('reorder_level') is not None else '0'),
+            'is_active': 1 if row.get('is_active', 1) not in (0, False, '0', 'false', 'False') else 0,
+        }
+        return normalized
+
+    def item_variants(self, item_id: int) -> List[Dict]:
+        return records(self.item_gateway.get_variants(int(item_id or 0)), 'variants')
+
+    def item_variant_by_barcode(self, barcode: str) -> Optional[Dict]:
+        variant = self.item_gateway.get_variant_by_barcode(barcode)
+        return variant if isinstance(variant, dict) else None
+
+    def add_variant(self, item_id: int, data: Dict[str, Any]) -> int:
+        payload = self._normalize_variant_payload(item_id, data)
+        variant_id = self.item_gateway.add_variant(int(item_id), payload)
+        audit_service.log('CREATE', 'ITEM_VARIANT', variant_id, new_values={'item_id': item_id, **payload}, details='إنشاء متغير مادة')
+        return variant_id
+
+    def update_variant(self, variant_id: int, data: Dict[str, Any]) -> None:
+        # Resolve parent item through the gateway list.  This keeps UI callers out
+        # of SQL while preserving local/remote behavior.
+        current = None
+        for item in self.items(limit=None):
+            for variant in self.item_variants(int(item.get('id') or 0)):
+                if int(variant.get('id') or 0) == int(variant_id):
+                    current = variant
+                    break
+            if current:
+                break
+        if not current:
+            raise ValueError("متغير المادة غير موجود")
+        old = dict(current)
+        item_id = int(current.get('item_id') or 0)
+        merged = {**current, **dict(data or {})}
+        payload = self._normalize_variant_payload(item_id, merged, variant_id=int(variant_id))
+        self.item_gateway.update_variant(int(variant_id), payload)
+        audit_service.log('UPDATE', 'ITEM_VARIANT', variant_id, old_values=old, new_values=payload, details='تعديل متغير مادة')
+
+    def delete_variant(self, variant_id: int) -> None:
+        self.item_gateway.delete_variant(int(variant_id))
+        audit_service.log('ARCHIVE', 'ITEM_VARIANT', variant_id, details='تعطيل متغير مادة')
+
     def item_activity_summary(self, item_id: int) -> Dict[str, Any]:
         """Return usage counts for a material through the active gateway."""
         try:
