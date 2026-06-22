@@ -389,14 +389,115 @@ class TransactionDocumentTab(BaseDocumentTab):
     def _line_price_key(self) -> str:
         return "purchase_price" if self.inv_type == "purchase" else "selling_price"
 
+    def _variant_label(self, variant: dict | None) -> str:
+        variant = variant or {}
+        return " / ".join(
+            str(value or "").strip()
+            for value in (variant.get("color"), variant.get("size"))
+            if str(value or "").strip()
+        )
+
+    def _variant_lookup_label(self, item: dict, variant: dict) -> str:
+        base_name = str(item.get("name") or item.get("item_name") or "").strip()
+        parts = [base_name]
+        variant_text = self._variant_label(variant)
+        if variant_text:
+            parts.append(variant_text)
+        code = str(variant.get("sku") or "").strip()
+        if code:
+            parts.append(code)
+        barcode = str(variant.get("barcode") or "").strip()
+        if barcode:
+            parts.append(barcode)
+        return " — ".join(part for part in parts if part)
+
+    def _variant_row_from_item(self, item: dict, variant: dict) -> dict:
+        row = dict(item or {})
+        variant = dict(variant or {})
+        barcode = str(variant.get("barcode") or "").strip()
+        matched_variant = {
+            "id": variant.get("id"),
+            "variant_id": variant.get("id"),
+            "color": variant.get("color") or "",
+            "size": variant.get("size") or "",
+            "sku": variant.get("sku") or "",
+            "barcode": barcode,
+            "sale_price": variant.get("sale_price"),
+            "cost_price": variant.get("cost_price"),
+            "quantity": variant.get("quantity") or "0",
+            "reorder_level": variant.get("reorder_level") or "0",
+        }
+        row.update({
+            "base_item_name": item.get("name") or item.get("item_name") or "",
+            "variant_id": variant.get("id"),
+            "variant_color": variant.get("color") or "",
+            "variant_size": variant.get("size") or "",
+            "variant_sku": variant.get("sku") or "",
+            "variant": self._variant_label(variant),
+            "matched_variant": matched_variant,
+            "barcode_scope": "variant",
+            "matched_barcode": barcode,
+            "barcode": barcode or item.get("barcode") or item.get("code") or "",
+            "lookup_label": self._variant_lookup_label(item, variant),
+            "search_label": self._variant_lookup_label(item, variant),
+        })
+        if variant.get("sale_price") not in (None, ""):
+            row["selling_price"] = variant.get("sale_price")
+            row["price"] = variant.get("sale_price")
+        if variant.get("cost_price") not in (None, ""):
+            row["purchase_price"] = variant.get("cost_price")
+            row["average_cost"] = variant.get("cost_price")
+        return row
+
     def _material_lookup_rows(self, search: str | None = None, limit: int = 60) -> list[dict]:
         rows = catalog_service.items(search=search or None, limit=limit) or []
-        return [self._item_prices_to_display(row) for row in rows]
+        normalized_search = str(search or "").strip().casefold()
+        if normalized_search and not rows:
+            # A user may type only a color, size, variant code, or variant barcode.
+            # Base material search will not find that text, so perform a bounded
+            # catalog pass and filter the expanded variant labels below.
+            try:
+                rows = catalog_service.items(search=None, limit=max(limit or 60, 200)) or []
+            except Exception:
+                rows = []
+        expanded: list[dict] = []
+        for row in rows:
+            item = dict(row or {})
+            variants = []
+            try:
+                item_id = int(item.get("id") or 0)
+                variants = catalog_service.item_variants(item_id) if item_id else []
+            except Exception:
+                variants = []
+            if variants:
+                for variant in variants:
+                    variant_row = self._variant_row_from_item(item, variant)
+                    label = str(variant_row.get("lookup_label") or "").casefold()
+                    barcode = str(variant_row.get("matched_barcode") or "").casefold()
+                    # Keep all variants when the user searched by the base material
+                    # name; filter only when the typed text clearly targets a
+                    # specific variant/code/barcode.
+                    if (
+                        not normalized_search
+                        or normalized_search in str(item.get("name") or item.get("item_name") or "").casefold()
+                        or normalized_search in label
+                        or normalized_search in barcode
+                    ):
+                        expanded.append(self._item_prices_to_display(variant_row))
+                # For apparel items, transactions should normally select a
+                # concrete color/size variant.  The base row is intentionally
+                # not offered in manual suggestions to avoid selling/purchasing
+                # the general material by mistake.  Scanning the base barcode is
+                # still supported for ordinary/non-variant workflows.
+                continue
+            expanded.append(self._item_prices_to_display(item))
+        return expanded[:limit] if limit else expanded
 
     def _warehouse_available_for_item(self, item: dict):
         if self.inv_type != "sale" or not item or not item.get("id"):
             return None
-        return warehouse_service.available_qty(int(item.get("id")), self._selected_warehouse_id())
+        variant_id = item.get("variant_id") or (item.get("matched_variant") or {}).get("variant_id") or (item.get("matched_variant") or {}).get("id")
+        return warehouse_service.available_qty(int(item.get("id")), self._selected_warehouse_id(), variant_id=variant_id)
 
     def _selected_original_invoice_id(self):
         return self.original_invoice_combo.currentData() if self.is_return and hasattr(self, "original_invoice_combo") else None
@@ -438,13 +539,23 @@ class TransactionDocumentTab(BaseDocumentTab):
             if normalized and barcode_input_service.looks_like_scan(normalized):
                 self._material_completer_model.setStringList([])
                 return
-            rows = catalog_service.items(search=text or None, limit=50) or []
+            rows = self._material_lookup_rows(text or None, 50) or []
         except Exception:
             rows = []
+        self._material_completer_rows = rows
         seen = set()
         terms = []
         for row in rows:
-            for value in (row.get("name"), row.get("item_name"), row.get("barcode"), row.get("code")):
+            values = [
+                row.get("lookup_label"),
+                row.get("search_label"),
+                row.get("name"),
+                row.get("item_name"),
+                row.get("barcode"),
+                row.get("code"),
+                row.get("matched_barcode"),
+            ]
+            for value in values:
                 value = str(value or "").strip()
                 key = value.casefold()
                 if value and key not in seen:
@@ -480,21 +591,25 @@ class TransactionDocumentTab(BaseDocumentTab):
         text = self.search_input.text().strip()
         if not text:
             return
-        try:
-            lookup = barcode_input_service.lookup_entry(text, mode="auto")
-            item = lookup.item
-        except Exception as exc:
-            QMessageBox.warning(self, tr("items"), str(exc))
-            return
+        item = self._row_for_search_text(text)
+        lookup = None
         if not item:
-            message_key = getattr(lookup, "message_key", "transaction_item_not_found") if "lookup" in locals() else "transaction_item_not_found"
+            try:
+                lookup = barcode_input_service.lookup_entry(text, mode="auto")
+                item = lookup.item
+            except Exception as exc:
+                QMessageBox.warning(self, tr("items"), str(exc))
+                return
+        if not item:
+            message_key = getattr(lookup, "message_key", "transaction_item_not_found") if lookup is not None else "transaction_item_not_found"
             QMessageBox.warning(self, tr("items"), tr(message_key))
             return
         item = self._item_prices_to_display(item)
         available = None
         try:
             if self.inv_type == "sale" and item.get("id"):
-                available = warehouse_service.available_qty(int(item.get("id")), self._selected_warehouse_id())
+                variant_id = item.get("variant_id") or (item.get("matched_variant") or {}).get("variant_id") or (item.get("matched_variant") or {}).get("id")
+                available = warehouse_service.available_qty(int(item.get("id")), self._selected_warehouse_id(), variant_id=variant_id)
         except Exception:
             available = None
         self.lines_model.add_item(item, self._line_price_key(), warehouse_available=available)
@@ -502,6 +617,29 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.set_dirty(True)
         self._refresh_totals()
         self.grid.scrollToBottom()
+
+    def _row_for_search_text(self, text: str) -> dict | None:
+        needle = str(text or "").strip().casefold()
+        if not needle:
+            return None
+        rows = getattr(self, "_material_completer_rows", None) or []
+        if not rows:
+            try:
+                rows = self._material_lookup_rows(text, 80)
+            except Exception:
+                rows = []
+        for row in rows or []:
+            candidates = (
+                row.get("lookup_label"),
+                row.get("search_label"),
+                row.get("matched_barcode"),
+                row.get("barcode"),
+                row.get("code"),
+                row.get("variant"),
+            )
+            if any(str(value or "").strip().casefold() == needle for value in candidates):
+                return dict(row)
+        return None
 
     def _add_empty_line_from_ui(self) -> None:
         if self.is_return:
@@ -595,6 +733,13 @@ class TransactionDocumentTab(BaseDocumentTab):
                 if matched.get(key) not in (None, ""):
                     matched[key] = self._to_display_money(matched.get(key))
             item["matched_unit"] = matched
+        matched_variant = item.get("matched_variant")
+        if isinstance(matched_variant, dict):
+            matched_variant = dict(matched_variant)
+            for key in ("sale_price", "cost_price", "price", "unit_price"):
+                if matched_variant.get(key) not in (None, ""):
+                    matched_variant[key] = self._to_display_money(matched_variant.get(key))
+            item["matched_variant"] = matched_variant
         return item
 
     def _invoice_lines_to_display(self, lines: list[dict] | None) -> list[dict]:

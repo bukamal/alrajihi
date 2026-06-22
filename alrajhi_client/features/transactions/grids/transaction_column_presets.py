@@ -25,27 +25,27 @@ _PRESETS: tuple[TransactionColumnPreset, ...] = (
     TransactionColumnPreset(
         "compact",
         "transaction_preset_compact",
-        ("row", "item", "unit", "qty", "price", "cost", "total"),
+        ("row", "item", "variant", "unit", "qty", "price", "cost", "total"),
     ),
     TransactionColumnPreset(
         "cashier",
         "transaction_preset_cashier",
-        ("row", "barcode", "item", "qty", "price", "total"),
+        ("row", "barcode", "item", "variant", "qty", "price", "total"),
     ),
     TransactionColumnPreset(
         "accountant",
         "transaction_preset_accountant",
-        ("row", "original_invoice", "barcode", "item", "unit", "qty", "price", "cost", "discount", "tax", "total", "notes"),
+        ("row", "original_invoice", "barcode", "item", "variant", "unit", "qty", "price", "cost", "discount", "tax", "total", "notes"),
     ),
     TransactionColumnPreset(
         "warehouse",
         "transaction_preset_warehouse",
-        ("row", "barcode", "item", "unit", "qty", "available", "original_qty", "previous_qty", "returnable_qty", "batch", "expiry", "total"),
+        ("row", "barcode", "item", "variant", "unit", "qty", "available", "original_qty", "previous_qty", "returnable_qty", "batch", "expiry", "total"),
     ),
     TransactionColumnPreset(
         "manager",
         "transaction_preset_manager",
-        ("row", "original_invoice", "barcode", "item", "unit", "qty", "available", "original_qty", "previous_qty", "returnable_qty", "price", "cost", "discount", "tax", "reason", "restock", "batch", "expiry", "total", "notes"),
+        ("row", "original_invoice", "barcode", "item", "variant", "unit", "qty", "available", "original_qty", "previous_qty", "returnable_qty", "price", "cost", "discount", "tax", "reason", "restock", "batch", "expiry", "total", "notes"),
     ),
 )
 

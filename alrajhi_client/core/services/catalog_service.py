@@ -39,6 +39,15 @@ class CatalogService:
     def item_units(self, item_id: int) -> List[Dict]:
         return product_service.item_units(item_id)
 
+    def item_variants(self, item_id: int) -> List[Dict]:
+        """Return active color/size variants for a material through ProductService.
+
+        Transaction UIs use this read-only catalog facade so local SQLite,
+        API/network mode, and multi-user server mode keep the same service
+        boundary.  UI code must not query ``item_variants`` directly.
+        """
+        return product_service.item_variants(item_id)
+
     def item_by_id(self, item_id: int) -> Optional[Dict]:
         return product_service.item_by_id(item_id)
 

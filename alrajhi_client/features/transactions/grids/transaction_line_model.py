@@ -284,7 +284,7 @@ class TransactionLineModel(QAbstractTableModel):
         self.lines[row_index].update({
             "item_id": item.get("id"),
             "barcode": scanned_barcode,
-            "item": item.get("name") or item.get("item_name") or "",
+            "item": item.get("base_item_name") or item.get("item_name") or item.get("name") or "",
             "unit": unit,
             "unit_id": unit_id,
             "unit_options": unit_options,

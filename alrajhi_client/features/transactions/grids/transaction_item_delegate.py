@@ -45,13 +45,38 @@ class TransactionItemDelegate(QStyledItemDelegate):
         seen: set[str] = set()
         terms: list[str] = []
         for row in rows or []:
-            for value in (row.get("name"), row.get("item_name"), row.get("barcode"), row.get("code")):
+            for value in (
+                row.get("lookup_label"),
+                row.get("search_label"),
+                row.get("name"),
+                row.get("item_name"),
+                row.get("barcode"),
+                row.get("code"),
+                row.get("matched_barcode"),
+            ):
                 text = str(value or "").strip()
                 key = text.casefold()
                 if text and key not in seen:
                     seen.add(key)
                     terms.append(text)
         return terms
+
+    def _row_for_text(self, text: str) -> dict[str, Any] | None:
+        needle = str(text or "").strip().casefold()
+        if not needle:
+            return None
+        for row in self._items(text, 80):
+            for value in (
+                row.get("lookup_label"),
+                row.get("search_label"),
+                row.get("matched_barcode"),
+                row.get("barcode"),
+                row.get("code"),
+                row.get("variant"),
+            ):
+                if str(value or "").strip().casefold() == needle:
+                    return dict(row)
+        return None
 
     def _refresh_completer(self, editor: QLineEdit, text: str) -> None:
         model = getattr(editor, "_transaction_item_completer_model", None)
@@ -91,11 +116,13 @@ class TransactionItemDelegate(QStyledItemDelegate):
         if not text:
             model.setData(index, "", Qt.EditRole)
             return
-        try:
-            lookup = barcode_input_service.lookup_entry(text, mode="auto")
-        except Exception:
-            lookup = None
-        item = getattr(lookup, "item", None) if lookup is not None else None
+        item = self._row_for_text(text)
+        if not item:
+            try:
+                lookup = barcode_input_service.lookup_entry(text, mode="auto")
+            except Exception:
+                lookup = None
+            item = getattr(lookup, "item", None) if lookup is not None else None
         if item and hasattr(model, "set_item"):
             if self.item_transform:
                 try:
