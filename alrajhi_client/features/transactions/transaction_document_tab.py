@@ -454,6 +454,10 @@ class TransactionDocumentTab(BaseDocumentTab):
         row = dict(item or {})
         variant = dict(variant or {})
         barcode = str(variant.get("barcode") or "").strip()
+        variant_sale_price = variant.get("sale_price")
+        variant_cost_price = variant.get("cost_price")
+        inherits_sale_price = variant_sale_price in (None, "")
+        inherits_purchase_price = variant_cost_price in (None, "")
         matched_variant = {
             "id": variant.get("id"),
             "variant_id": variant.get("id"),
@@ -461,8 +465,8 @@ class TransactionDocumentTab(BaseDocumentTab):
             "size": variant.get("size") or "",
             "sku": variant.get("sku") or "",
             "barcode": barcode,
-            "sale_price": variant.get("sale_price"),
-            "cost_price": variant.get("cost_price"),
+            "sale_price": variant_sale_price,
+            "cost_price": variant_cost_price,
             "quantity": variant.get("quantity") or "0",
             "reorder_level": variant.get("reorder_level") or "0",
         }
@@ -482,6 +486,13 @@ class TransactionDocumentTab(BaseDocumentTab):
             "barcode": barcode,
             "lookup_label": self._variant_lookup_label(item, variant),
             "search_label": self._variant_lookup_label(item, variant),
+            # Phase 329: inherited apparel prices are especially prone to being
+            # converted multiple times on purchase rows when they originate from
+            # the base material.  Keep an explicit marker so the line model can
+            # collapse repeated display-currency conversion without touching
+            # variants that have their own dedicated prices.
+            "_apparel_variant_inherits_sale_price": inherits_sale_price,
+            "_apparel_variant_inherits_purchase_price": inherits_purchase_price,
         })
         def first_price(*values):
             for value in values:
@@ -594,6 +605,12 @@ class TransactionDocumentTab(BaseDocumentTab):
             return None
         if self._item_has_active_variants(item):
             return None
+        if item.get("matched_variant") or item.get("variant_id"):
+            matched_variant = item.get("matched_variant") or {}
+            if isinstance(matched_variant, dict):
+                item = dict(item)
+                item.setdefault("_apparel_variant_inherits_sale_price", matched_variant.get("sale_price") in (None, ""))
+                item.setdefault("_apparel_variant_inherits_purchase_price", matched_variant.get("cost_price") in (None, ""))
         return self._item_prices_to_display(item)
 
     def _warehouse_available_for_item(self, item: dict):

@@ -120,6 +120,8 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (325, "APPAREL_CATALOG_BOUNDARY_PRICING_HARDENING"),
         (326, "TRANSACTION_HEADER_FOOTER_LAYOUT_HOTFIX"),
         (327, "APPAREL_TRANSACTION_PRICE_CURRENCY_HOTFIX"),
+        (328, "DASHBOARD_POS_TRANSACTION_UX_POLISH"),
+        (329, "PURCHASE_VARIANT_COST_CURRENCY_HOTFIX"),
     ]
 )
 
@@ -272,6 +274,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("transaction_header_footer_layout_hotfix", "ui", "One-row transaction header, horizontal invoice footer, and material editor identity-card removal", "tests/test_phase326_transaction_header_footer_layout_hotfix.py", phase=326),
     ReleaseGateCheck("apparel_transaction_price_currency_hotfix", "materials", "Apparel transaction variant lookup prices convert to display currency only once", "tests/test_phase327_apparel_transaction_price_currency_hotfix.py", phase=327),
     ReleaseGateCheck("dashboard_pos_transaction_ux_polish", "ui", "Dashboard, POS and transaction header UX polish", "tests/test_phase328_dashboard_pos_transaction_ux_polish.py", phase=328),
+    ReleaseGateCheck("purchase_variant_cost_currency_hotfix", "materials", "Purchase invoice apparel variant inherited cost is not re-converted", "tests/test_phase329_purchase_variant_cost_currency_hotfix.py", phase=329),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

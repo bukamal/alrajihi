@@ -253,6 +253,53 @@ class TransactionLineModel(QAbstractTableModel):
             "variant": label,
         }
 
+    def _apparel_variant_price_guard(self, item: dict[str, Any], value, price_key: str):
+        """Collapse repeated display-currency conversion for inherited apparel prices.
+
+        Apparel variants can inherit purchase/sale prices from the parent
+        material.  Purchase invoices use the ``cost`` column and historically
+        passed through a slightly different branch than sales, which could
+        convert an already-displayed SYP price again and produce values such as
+        3,920,000,000,000 instead of 20,000.  The guard is intentionally narrow:
+        it only applies to concrete variant rows that inherited their price from
+        the base material, never to normal materials or variants with their own
+        explicit price.
+        """
+        if not item or not (item.get("variant_id") or item.get("matched_variant")):
+            return value
+        inherit_key = (
+            "_apparel_variant_inherits_purchase_price"
+            if price_key == "purchase_price"
+            else "_apparel_variant_inherits_sale_price"
+        )
+        if not item.get(inherit_key):
+            return value
+        try:
+            amount = self._decimal(value)
+            if amount <= 0:
+                return value
+            from currency import currency  # lazy import: keeps model import lightweight
+            storage = currency.storage_currency()
+            display = currency.display_currency()
+            if storage == display:
+                return amount
+            ratio = self._decimal(currency.convert(1, storage, display), "1")
+            if ratio <= 1:
+                return amount
+            # Collapse only clear repeated conversion signatures.  For SYP with
+            # a 14,000 rate this turns 3.92e12 -> 2.8e8 -> 20,000, and also
+            # protects older 280,000,000 rows.  The loop is capped to avoid
+            # touching legitimate large values indefinitely.
+            fixed = amount
+            for _ in range(3):
+                if fixed >= (ratio * ratio) and (fixed / ratio) >= Decimal("1"):
+                    fixed = fixed / ratio
+                else:
+                    break
+            return self._money(fixed)
+        except Exception:
+            return value
+
     def set_item(self, row_index: int, item: dict[str, Any], price_key: str = "selling_price", qty=None, warehouse_available=None) -> bool:
         """Resolve a material into an existing line.
 
@@ -273,7 +320,10 @@ class TransactionLineModel(QAbstractTableModel):
         explicit_price = item.get("unit_price") if item.get("unit_price") not in (None, "") else item.get(price_key)
         if explicit_price in (None, ""):
             explicit_price = item.get("price")
-        base_price = self._decimal(item.get("base_unit_price") or item.get(price_key) or item.get("selling_price") or item.get("purchase_price") or 0)
+        explicit_price = self._apparel_variant_price_guard(item, explicit_price, price_key)
+        base_candidate = item.get("base_unit_price") or item.get(price_key) or item.get("selling_price") or item.get("purchase_price") or 0
+        base_candidate = self._apparel_variant_price_guard(item, base_candidate, price_key)
+        base_price = self._decimal(base_candidate)
         price = self._decimal(explicit_price) if explicit_price not in (None, "") else self._money(base_price * factor)
         unit = matched_unit.get("unit_name") or matched_unit.get("unit") or item.get("unit") or item.get("unit_name") or ""
         unit_id = matched_unit.get("unit_id") if matched_unit else item.get("unit_id")
