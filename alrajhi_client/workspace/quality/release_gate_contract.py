@@ -271,6 +271,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("apparel_catalog_boundary_pricing_hardening", "materials", "Apparel catalog boundary and transaction pricing hardening", "tests/test_phase325_apparel_catalog_boundary_pricing_hardening.py", phase=325),
     ReleaseGateCheck("transaction_header_footer_layout_hotfix", "ui", "One-row transaction header, horizontal invoice footer, and material editor identity-card removal", "tests/test_phase326_transaction_header_footer_layout_hotfix.py", phase=326),
     ReleaseGateCheck("apparel_transaction_price_currency_hotfix", "materials", "Apparel transaction variant lookup prices convert to display currency only once", "tests/test_phase327_apparel_transaction_price_currency_hotfix.py", phase=327),
+    ReleaseGateCheck("dashboard_pos_transaction_ux_polish", "ui", "Dashboard, POS and transaction header UX polish", "tests/test_phase328_dashboard_pos_transaction_ux_polish.py", phase=328),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

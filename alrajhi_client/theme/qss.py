@@ -803,12 +803,12 @@ def build_global_qss(colors: dict) -> str:
         }}
 
 
-        /* Phase 326: compact one-row transaction header and horizontal footer. */
+        /* Phase 326/328: compact one-row transaction header and horizontal footer. */
         QFrame#TransactionInlineHeaderBar {{
             background-color: {colors['bg_panel']};
             border: 1px solid {colors['border']};
             border-radius: {radius_md}px;
-            padding: 6px;
+            padding: 4px;
         }}
         QFrame#TransactionInlineHeaderField {{
             background-color: transparent;
@@ -817,9 +817,9 @@ def build_global_qss(colors: dict) -> str:
         }}
         QLabel#TransactionInlineHeaderLabel {{
             color: {colors['text_secondary']};
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 800;
-            padding: 0px 2px;
+            padding: 0px 1px;
         }}
         QFrame#TransactionFooterPanel {{
             background-color: transparent;
@@ -833,12 +833,12 @@ def build_global_qss(colors: dict) -> str:
         }}
         QLabel#TransactionSummaryCaption {{
             color: {colors['text_secondary']};
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 800;
         }}
         QLabel#TransactionSummaryValue {{
             color: {colors['text_primary']};
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 900;
         }}
 

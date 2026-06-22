@@ -194,14 +194,16 @@ class DashboardWidget(QWidget):
         self.quick_panel = self._create_quick_actions_panel()
         self.company_panel = self._create_company_info_panel()
         self.project_panel = self._create_project_panel()
+        # Phase 328: dashboard cards fill the landing page instead of leaving
+        # large dead bands under the cards on common laptop/desktop heights.
         for panel in (self.quick_panel, self.company_panel, self.project_panel):
-            panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            panel.setMinimumHeight(390)
-            panel.setMaximumHeight(430)
+            panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            panel.setMinimumHeight(500)
+            panel.setMaximumHeight(16777215)
         row.addWidget(self.quick_panel, 5)
         row.addWidget(self.company_panel, 4)
         row.addWidget(self.project_panel, 5)
-        self.main_layout.addLayout(row)
+        self.main_layout.addLayout(row, 1)
 
     def _build_bottom_grid(self):
         # Phase 286: keep the developer/system identity card as a compact,
@@ -213,7 +215,7 @@ class DashboardWidget(QWidget):
     def _create_quick_actions_panel(self):
         panel = DashboardPanel(translate('dashboard_daily_shortcuts'), 'bolt')
         panel.setObjectName('DashboardQuickActionsPanel')
-        panel.setMinimumHeight(360)
+        panel.setMinimumHeight(430)
         panel.setStyleSheet(panel.styleSheet() + """
             QFrame#DashboardQuickActionsPanel { background: #ffffff; border-radius: 24px; }
         """)
@@ -232,16 +234,18 @@ class DashboardWidget(QWidget):
         ]
         for i, (text, icon, color, callback) in enumerate(actions):
             btn = QuickActionButton(text, icon, color)
-            btn.setMinimumHeight(72)
+            btn.setMinimumHeight(92)
+            btn.setIconSize(QSize(24, 24))
             btn.setLayoutDirection(qt_layout_direction())
-            btn.setStyleSheet(btn.styleSheet() + ' QPushButton { text-align: center; }')
+            btn.setStyleSheet(btn.styleSheet() + ' QPushButton { text-align: center; padding-left: 10px; padding-right: 10px; }')
             btn.clicked.connect(callback)
             # Phase 303: dashboard keeps RTL structure while shortcut labels are centered.
             grid.addWidget(btn, i // 3, 2 - (i % 3))
         monitor = QuickActionButton(translate('monitoring_short'), 'eye', '#1e3a8a')
-        monitor.setMinimumHeight(62)
+        monitor.setMinimumHeight(78)
+        monitor.setIconSize(QSize(24, 24))
         monitor.setLayoutDirection(qt_layout_direction())
-        monitor.setStyleSheet(monitor.styleSheet() + ' QPushButton { text-align: center; }')
+        monitor.setStyleSheet(monitor.styleSheet() + ' QPushButton { text-align: center; padding-left: 10px; padding-right: 10px; }')
         monitor.clicked.connect(lambda: self._switch_page('monitoring'))
         grid.addWidget(monitor, 3, 0, 1, 3)
         panel.layout.addLayout(grid)
@@ -258,7 +262,7 @@ class DashboardWidget(QWidget):
         panel = DashboardPanel(translate('company_current_info'), 'building')
         panel.setObjectName('DashboardCompanyPanel')
         panel.setLayoutDirection(qt_layout_direction())
-        panel.setMinimumHeight(286)
+        panel.setMinimumHeight(430)
         panel.setStyleSheet(panel.styleSheet() + '''
             QFrame#DashboardCompanyPanel { background: #ffffff; border-radius: 24px; }
             QLabel#CompanyLogoBox { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 22px; padding: 10px; }
@@ -369,7 +373,7 @@ class DashboardWidget(QWidget):
         panel = DashboardPanel(translate('cashbox'), 'wallet')
         panel.setObjectName('DashboardCashPanel')
         panel.setLayoutDirection(qt_layout_direction())
-        panel.setMinimumHeight(360)
+        panel.setMinimumHeight(430)
         panel.setStyleSheet(panel.styleSheet() + """
             QFrame#DashboardCashPanel { background: #ffffff; border-radius: 24px; }
             QLabel#CashSectionTitle { color: #1d4ed8; font-size: 15px; font-weight: 900; border: none; }
@@ -519,8 +523,8 @@ class DashboardWidget(QWidget):
         panel = QFrame()
         panel.setObjectName('DeveloperBrandPanel')
         panel.setLayoutDirection(qt_layout_direction())
-        panel.setMinimumHeight(170)
-        panel.setMaximumHeight(190)
+        panel.setMinimumHeight(210)
+        panel.setMaximumHeight(260)
         panel.setStyleSheet(f"""
             QFrame#DeveloperBrandPanel {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #f8fbff, stop:0.52 #ffffff, stop:1 #eef6ff);

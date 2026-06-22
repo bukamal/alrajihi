@@ -102,8 +102,9 @@ class KPIStatCard(QFrame):
 
 class QuickActionButton(QPushButton):
     def __init__(self, text, icon_name, color, parent=None):
-        super().__init__(qta.icon(f'fa5s.{icon_name}', color='white'), f'  {text}', parent)
+        super().__init__(qta.icon(f'fa5s.{icon_name}', color='white'), str(text), parent)
         self.setCursor(Qt.PointingHandCursor)
+        self.setIconSize(QSize(24, 24))
         self.setMinimumHeight(58)
         self.setStyleSheet(f'''
             QPushButton {{

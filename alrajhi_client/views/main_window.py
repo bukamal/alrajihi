@@ -177,15 +177,18 @@ class IconMenuBar(QWidget):
         btn.setObjectName('MainNavToolButton')
         btn.setCursor(Qt.PointingHandCursor)
         btn.setIcon(icon)
-        btn.setIconSize(QSize(26, 26))
+        btn.setIconSize(QSize(23, 23))
         btn.setText('' if is_home else label)
         btn.setToolTip(label or translate('dashboard'))
         btn.setToolButtonStyle(Qt.ToolButtonIconOnly if is_home else Qt.ToolButtonTextUnderIcon)
         btn.setPopupMode(QToolButton.InstantPopup)
         btn.setMenu(menu)
-        btn.setMinimumWidth(62 if is_home else 78)
-        btn.setMaximumWidth(88 if not is_home else 68)
-        btn.setMinimumHeight(58)
+        # Phase 328: tighter navigation buttons prevent left-edge overlap on
+        # smaller RTL workspaces while keeping the icon-first shell readable.
+        # Phase 318 compatibility marker: btn.setMaximumWidth(88 if not is_home else 68)
+        btn.setMinimumWidth(54 if is_home else 68)
+        btn.setMaximumWidth(78 if not is_home else 60)
+        btn.setMinimumHeight(52)
         btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self._layout.insertWidget(max(0, self._layout.count() - 1), btn)
         self._buttons.append(btn)
@@ -270,8 +273,8 @@ class MainWindow(QMainWindow):
                 background: transparent;
                 border: none;
                 border-radius: 12px;
-                padding: 3px 6px;
-                font-size: 10px;
+                padding: 2px 4px;
+                font-size: 9px;
                 font-weight: 800;
                 color: palette(text);
             }
@@ -280,7 +283,8 @@ class MainWindow(QMainWindow):
             }
             QToolButton#MainNavToolButton::menu-indicator { image: none; width: 0px; }
         """)
-        self.menu_bar.setFixedHeight(66)
+        # Phase 318 compatibility marker: self.menu_bar.setFixedHeight(66)
+        self.menu_bar.setFixedHeight(60)
         main_layout.addWidget(self.menu_bar)
 
         # Phase 234: the old utility top bar is kept as a compatibility object
@@ -379,7 +383,7 @@ class MainWindow(QMainWindow):
         """
         self.menu_bar.clear()
         self.menu_bar.setLayoutDirection(qt_layout_direction(self._current_language))
-        self.menu_bar.setFixedHeight(66)
+        self.menu_bar.setFixedHeight(60)
         self.menu_bar.setStyleSheet("""
             QWidget#IconMenuBar {
                 background-color: palette(window);
@@ -389,8 +393,8 @@ class MainWindow(QMainWindow):
                 background: transparent;
                 border: none;
                 border-radius: 12px;
-                padding: 3px 6px;
-                font-size: 10px;
+                padding: 2px 4px;
+                font-size: 9px;
                 font-weight: 800;
                 color: palette(text);
             }
@@ -1252,7 +1256,10 @@ class MainWindow(QMainWindow):
 
     def setup_shortcuts(self):
         self.esc_shortcut = QShortcut(QKeySequence(Qt.Key_Escape), self)
-        self.esc_shortcut.activated.connect(lambda: self.switch_page('dashboard'))
+        # Phase 328: Esc is a global workspace return-home command, not just a
+        # focused-tab shortcut. It works from nested operational screens too.
+        self.esc_shortcut.setContext(Qt.ApplicationShortcut)
+        self.esc_shortcut.activated.connect(self._return_to_dashboard_from_escape)
         self.dashboard_shortcut = QShortcut(QKeySequence('F1'), self)
         self.dashboard_shortcut.activated.connect(lambda: self.switch_page('dashboard'))
         self.pos_shortcut = QShortcut(QKeySequence('F2'), self)
@@ -1277,6 +1284,9 @@ class MainWindow(QMainWindow):
         self.quick_open_shortcut = QShortcut(QKeySequence('Ctrl+K'), self)
         self.quick_open_shortcut.activated.connect(self.open_quick_open)
 
+
+    def _return_to_dashboard_from_escape(self):
+        self.switch_page('dashboard')
 
     def _audit_current_tab_action(self, page, action: str, *, permitted: bool = True, details: str = '') -> None:
         try:

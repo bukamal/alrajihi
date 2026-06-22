@@ -61,4 +61,5 @@ apparel_transaction_variant_selection_ux,materials,Apparel variant selection UX 
 apparel_catalog_boundary_pricing_hardening,materials,Apparel catalog boundary and transaction pricing hardening,325,tests/test_phase325_apparel_catalog_boundary_pricing_hardening.py,True,,True,True
 transaction_header_footer_layout_hotfix,ui,"One-row transaction header, horizontal invoice footer, and material editor identity-card removal",326,tests/test_phase326_transaction_header_footer_layout_hotfix.py,True,,True,True
 apparel_transaction_price_currency_hotfix,materials,Apparel transaction variant lookup prices convert to display currency only once,327,tests/test_phase327_apparel_transaction_price_currency_hotfix.py,True,,True,True
+dashboard_pos_transaction_ux_polish,ui,"Dashboard, POS and transaction header UX polish",328,tests/test_phase328_dashboard_pos_transaction_ux_polish.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True
