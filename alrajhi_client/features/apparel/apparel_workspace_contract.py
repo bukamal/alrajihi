@@ -13,6 +13,8 @@ APPAREL_PAGE_ID = "apparel"
 APPAREL_SETTINGS_KEY = "apparel/enabled"
 APPAREL_ENGINE_BACKING = "product_variants"
 APPAREL_VARIANT_SCOPE = "variant"
+APPAREL_MATRIX_SCOPE = "color_size_matrix"
+APPAREL_BULK_BUILDER = "product_service_create_missing_variants"
 APPAREL_VISIBLE_COLUMNS = (
     "item",
     "color",
@@ -47,6 +49,8 @@ def apparel_workspace_contract() -> dict[str, object]:
         "settings_key": APPAREL_SETTINGS_KEY,
         "engine_backing": APPAREL_ENGINE_BACKING,
         "variant_scope": APPAREL_VARIANT_SCOPE,
+        "matrix_scope": APPAREL_MATRIX_SCOPE,
+        "bulk_builder": APPAREL_BULK_BUILDER,
         "visible_columns": list(APPAREL_VISIBLE_COLUMNS),
         "uses_product_service": True,
         "forbidden_engine_files": list(APPAREL_FORBIDDEN_ENGINE_FILES),

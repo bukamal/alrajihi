@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFrame, QLabel, QLineEdit, QPushButton,
-    QComboBox, QHeaderView
+    QComboBox, QHeaderView, QCheckBox, QTableWidget, QTableWidgetItem
 )
 import qtawesome as qta
 
@@ -57,6 +57,7 @@ class ApparelWorkspaceWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction())
         self._items: List[Dict[str, Any]] = []
         self._selected_item_id: int | None = None
+        self._current_rows: List[Dict[str, Any]] = []
         self._init_ui()
         self.refresh()
 
@@ -126,9 +127,66 @@ class ApparelWorkspaceWidget(QWidget):
             s.addWidget(label, 1)
         root.addWidget(summary)
 
+        builder = QFrame(self)
+        builder.setObjectName("apparelBulkBuilderCard")
+        b = QVBoxLayout(builder)
+        b.setContentsMargins(14, 12, 14, 12)
+        b.setSpacing(8)
+        builder_title = QLabel(translate("apparel.bulk_builder_title"))
+        builder_title.setObjectName("apparelSectionTitle")
+        b.addWidget(builder_title)
+        builder_row = QHBoxLayout()
+        builder_row.setSpacing(8)
+        self.bulk_colors_edit = QLineEdit()
+        self.bulk_colors_edit.setPlaceholderText(translate("apparel.bulk_colors_placeholder"))
+        self.bulk_colors_edit.setText(self._settings_csv("apparel/default_color_set", "أبيض,أسود,أزرق,أحمر"))
+        builder_row.addWidget(QLabel(translate("apparel_col_color")))
+        builder_row.addWidget(self.bulk_colors_edit, 2)
+        self.bulk_sizes_edit = QLineEdit()
+        self.bulk_sizes_edit.setPlaceholderText(translate("apparel.bulk_sizes_placeholder"))
+        self.bulk_sizes_edit.setText(self._settings_csv("apparel/default_size_set", "XS,S,M,L,XL,XXL"))
+        builder_row.addWidget(QLabel(translate("apparel_col_size")))
+        builder_row.addWidget(self.bulk_sizes_edit, 2)
+        self.bulk_code_prefix_edit = QLineEdit()
+        self.bulk_code_prefix_edit.setPlaceholderText(translate("apparel.bulk_code_prefix"))
+        builder_row.addWidget(QLabel(translate("apparel.variant_code_prefix")))
+        builder_row.addWidget(self.bulk_code_prefix_edit, 1)
+        b.addLayout(builder_row)
+        builder_actions = QHBoxLayout()
+        builder_actions.setSpacing(8)
+        self.auto_code_check = QCheckBox(translate("apparel.auto_variant_code"))
+        self.auto_code_check.setChecked(True)
+        self.auto_barcode_check = QCheckBox(translate("apparel.auto_barcode"))
+        self.auto_barcode_check.setChecked(str(settings_service.get("apparel/barcode_required", "true")).lower() in {"1", "true", "yes", "on"})
+        self.create_bulk_btn = QPushButton(translate("apparel.create_missing_variants"))
+        self.create_bulk_btn.setIcon(qta.icon("fa5s.layer-group"))
+        self.create_bulk_btn.clicked.connect(self.create_missing_variants)
+        builder_actions.addWidget(self.auto_code_check)
+        builder_actions.addWidget(self.auto_barcode_check)
+        builder_actions.addStretch(1)
+        builder_actions.addWidget(self.create_bulk_btn)
+        b.addLayout(builder_actions)
+        root.addWidget(builder)
+
         self.result_label = QLabel(translate("apparel.variant_lookup_hint"))
         self.result_label.setObjectName("muted")
         root.addWidget(self.result_label)
+
+        matrix_card = QFrame(self)
+        matrix_card.setObjectName("apparelMatrixCard")
+        matrix_layout = QVBoxLayout(matrix_card)
+        matrix_layout.setContentsMargins(14, 12, 14, 12)
+        matrix_layout.setSpacing(8)
+        matrix_title = QLabel(translate("apparel.matrix_title"))
+        matrix_title.setObjectName("apparelSectionTitle")
+        matrix_layout.addWidget(matrix_title)
+        self.matrix_table = QTableWidget(self)
+        self.matrix_table.setObjectName("apparelColorSizeMatrix")
+        self.matrix_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.matrix_table.setAlternatingRowColors(True)
+        self.matrix_table.setMinimumHeight(170)
+        matrix_layout.addWidget(self.matrix_table)
+        root.addWidget(matrix_card)
 
         self.table = SmartTableView(self)
         self.table.set_table_identity("apparel.workspace.variant_matrix")
@@ -137,12 +195,14 @@ class ApparelWorkspaceWidget(QWidget):
         root.addWidget(self.table, 1)
 
         self.setStyleSheet("""
-            QFrame#apparelHeaderCard, QFrame#apparelControlCard, QFrame#apparelSummaryCard {
+            QFrame#apparelHeaderCard, QFrame#apparelControlCard, QFrame#apparelSummaryCard, QFrame#apparelBulkBuilderCard, QFrame#apparelMatrixCard {
                 border: 1px solid palette(mid);
                 border-radius: 14px;
                 background: palette(base);
             }
             QLabel#apparelTitle { font-size: 20px; font-weight: 900; }
+            QLabel#apparelSectionTitle { font-size: 15px; font-weight: 900; }
+            QTableWidget#apparelColorSizeMatrix { gridline-color: palette(mid); border: 0; }
             QLabel#apparelMetric { padding: 10px; border-radius: 10px; background: palette(alternate-base); font-weight: 800; }
             QLineEdit, QComboBox { min-height: 34px; padding: 5px 9px; }
             QPushButton { min-height: 34px; padding: 6px 12px; font-weight: 800; }
@@ -150,6 +210,41 @@ class ApparelWorkspaceWidget(QWidget):
 
     def _display_headers(self) -> List[str]:
         return [translate(key) for key in self.HEADERS]
+
+    def _settings_csv(self, key: str, default: str) -> str:
+        try:
+            value = settings_service.get(key, default)
+        except Exception:
+            value = default
+        return str(value or default)
+
+    def _csv_values(self, text: str) -> List[str]:
+        values: List[str] = []
+        seen = set()
+        for part in str(text or "").replace(";", ",").split(","):
+            value = part.strip()
+            if not value:
+                continue
+            marker = value.casefold()
+            if marker in seen:
+                continue
+            seen.add(marker)
+            values.append(value)
+        return values
+
+    def _variant_code(self, item: Dict[str, Any], color: str, size: str, index: int) -> str:
+        prefix = self.bulk_code_prefix_edit.text().strip() if hasattr(self, "bulk_code_prefix_edit") else ""
+        if not prefix:
+            prefix = str(item.get("barcode") or item.get("id") or "ITEM")
+        def clean(value: str) -> str:
+            return "".join(ch for ch in str(value or "").strip().upper() if ch.isalnum())[:6] or "X"
+        return f"{clean(prefix)}-{clean(color)}-{clean(size)}-{index:02d}"
+
+    def _variant_identity_set(self, rows: List[Dict[str, Any]]) -> set[Tuple[str, str]]:
+        return {
+            (str(row.get("color") or "").strip().casefold(), str(row.get("size") or "").strip().casefold())
+            for row in rows
+        }
 
     def _format_qty(self, value: Any) -> str:
         try:
@@ -234,6 +329,7 @@ class ApparelWorkspaceWidget(QWidget):
             if selected is not None and int(item.get("id") or 0) != int(selected):
                 continue
             rows.extend(self._variant_rows_for_item(item))
+        self._current_rows = rows
         model = GenericTableModel(rows, self._display_headers(), data_keys=list(self.DATA_KEYS))
         self.table.setModel(model)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
@@ -241,6 +337,62 @@ class ApparelWorkspaceWidget(QWidget):
         if hasattr(self.table, "fit_columns_to_view"):
             self.table.fit_columns_to_view()
         self._update_summary(rows)
+        self._render_color_size_matrix(rows)
+
+    def _render_color_size_matrix(self, rows: List[Dict[str, Any]]) -> None:
+        selected = self._selected_item_id
+        if selected is None:
+            self.matrix_table.clear()
+            self.matrix_table.setRowCount(0)
+            self.matrix_table.setColumnCount(0)
+            return
+        colors = sorted({str(row.get("color") or "—") for row in rows}, key=lambda value: value.casefold())
+        sizes = sorted({str(row.get("size") or "—") for row in rows}, key=lambda value: value.casefold())
+        self.matrix_table.clear()
+        self.matrix_table.setRowCount(len(colors))
+        self.matrix_table.setColumnCount(len(sizes))
+        self.matrix_table.setVerticalHeaderLabels(colors)
+        self.matrix_table.setHorizontalHeaderLabels(sizes)
+        qty_by_cell: Dict[Tuple[str, str], Decimal] = {}
+        for row in rows:
+            key = (str(row.get("color") or "—"), str(row.get("size") or "—"))
+            qty_by_cell[key] = qty_by_cell.get(key, Decimal("0")) + Decimal(str(row.get("_raw_quantity") or 0))
+        for r, color in enumerate(colors):
+            for c, size in enumerate(sizes):
+                value = self._format_qty(qty_by_cell.get((color, size), Decimal("0")))
+                item = QTableWidgetItem(value)
+                item.setTextAlignment(Qt.AlignCenter)
+                self.matrix_table.setItem(r, c, item)
+        self.matrix_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.matrix_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
+    def create_missing_variants(self) -> None:
+        item_id = self._selected_item_id
+        if item_id is None:
+            self.result_label.setText(translate("apparel.bulk_select_item_required"))
+            return
+        colors = self._csv_values(self.bulk_colors_edit.text())
+        sizes = self._csv_values(self.bulk_sizes_edit.text())
+        if not colors or not sizes:
+            self.result_label.setText(translate("apparel.bulk_colors_sizes_required"))
+            return
+        try:
+            result = product_service.create_missing_variants(
+                int(item_id), colors, sizes,
+                auto_code=self.auto_code_check.isChecked(),
+                auto_barcode=self.auto_barcode_check.isChecked(),
+                code_prefix=self.bulk_code_prefix_edit.text().strip() or None,
+            )
+        except Exception as exc:
+            self.result_label.setText(str(exc))
+            return
+        self.result_label.setText(translate(
+            "apparel.bulk_result",
+            created=int(result.get("created") or 0),
+            skipped=int(result.get("skipped") or 0),
+            errors=int(result.get("errors") or 0),
+        ))
+        self._load_variants()
 
     def _update_summary(self, rows: List[Dict[str, Any]]) -> None:
         colors = {str(row.get("color") or "") for row in rows if row.get("color") not in (None, "", "—")}

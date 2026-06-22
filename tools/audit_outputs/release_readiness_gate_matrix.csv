@@ -52,4 +52,5 @@ product_variants_foundation,materials,Product variants foundation for apparel co
 apparel_workspace_shell,materials,Standalone apparel workspace shell backed by product variants,316,tests/test_phase316_apparel_workspace_shell.py,True,,True,True
 apparel_variant_transaction_integration,materials,Apparel variant transaction/POS stock integration,317,tests/test_phase317_apparel_variant_transaction_integration.py,True,,True,True
 workspace_shell_transaction_layout_unification,shell,Workspace shell and transaction layout unification,318,tests/test_phase318_workspace_shell_transaction_layout_unification.py,True,,True,True
+apparel_matrix_bulk_variant_builder,materials,Apparel color/size matrix and bulk variant builder,319,tests/test_phase319_apparel_matrix_bulk_variant_builder.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

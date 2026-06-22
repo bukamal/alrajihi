@@ -7642,3 +7642,48 @@ _translations['en'].update({
     'apparel_col_sale_price': 'Sale price',
     'apparel_col_status': 'Status',
 })
+
+
+# Phase 319: Apparel color/size matrix and bulk variant builder.
+_translations['ar'].update({
+    'apparel.bulk_builder_title': 'إنشاء متغيرات الألبسة دفعة واحدة',
+    'apparel.bulk_colors_placeholder': 'أبيض، أسود، أزرق...',
+    'apparel.bulk_sizes_placeholder': 'S, M, L, XL...',
+    'apparel.variant_code_prefix': 'بادئة رمز المتغير',
+    'apparel.bulk_code_prefix': 'مثال: SHIRT',
+    'apparel.auto_variant_code': 'توليد رمز المتغير تلقائيًا',
+    'apparel.auto_barcode': 'توليد باركود تلقائيًا',
+    'apparel.create_missing_variants': 'إنشاء التركيبات الناقصة',
+    'apparel.bulk_select_item_required': 'اختر مادة محددة قبل إنشاء متغيرات الألبسة.',
+    'apparel.bulk_colors_sizes_required': 'يجب إدخال لون واحد ومقاس واحد على الأقل.',
+    'apparel.bulk_result': 'تم الإنشاء: {created} — موجود مسبقًا: {skipped} — أخطاء: {errors}',
+    'apparel.matrix_title': 'مصفوفة اللون والمقاس',
+})
+_translations['de'].update({
+    'apparel.bulk_builder_title': 'Bekleidungsvarianten gesammelt erstellen',
+    'apparel.bulk_colors_placeholder': 'Weiß, Schwarz, Blau...',
+    'apparel.bulk_sizes_placeholder': 'S, M, L, XL...',
+    'apparel.variant_code_prefix': 'Präfix für Variantencode',
+    'apparel.bulk_code_prefix': 'Beispiel: SHIRT',
+    'apparel.auto_variant_code': 'Variantencode automatisch erzeugen',
+    'apparel.auto_barcode': 'Barcode automatisch erzeugen',
+    'apparel.create_missing_variants': 'Fehlende Kombinationen erstellen',
+    'apparel.bulk_select_item_required': 'Wählen Sie zuerst einen bestimmten Artikel aus.',
+    'apparel.bulk_colors_sizes_required': 'Mindestens eine Farbe und eine Größe sind erforderlich.',
+    'apparel.bulk_result': 'Erstellt: {created} — Bereits vorhanden: {skipped} — Fehler: {errors}',
+    'apparel.matrix_title': 'Farb-/Größenmatrix',
+})
+_translations['en'].update({
+    'apparel.bulk_builder_title': 'Bulk-create apparel variants',
+    'apparel.bulk_colors_placeholder': 'White, Black, Blue...',
+    'apparel.bulk_sizes_placeholder': 'S, M, L, XL...',
+    'apparel.variant_code_prefix': 'Variant code prefix',
+    'apparel.bulk_code_prefix': 'Example: SHIRT',
+    'apparel.auto_variant_code': 'Generate variant code automatically',
+    'apparel.auto_barcode': 'Generate barcode automatically',
+    'apparel.create_missing_variants': 'Create missing combinations',
+    'apparel.bulk_select_item_required': 'Select a specific item before creating apparel variants.',
+    'apparel.bulk_colors_sizes_required': 'Enter at least one color and one size.',
+    'apparel.bulk_result': 'Created: {created} — Existing: {skipped} — Errors: {errors}',
+    'apparel.matrix_title': 'Color/size matrix',
+})

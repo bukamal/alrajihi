@@ -111,6 +111,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (316, "APPAREL_WORKSPACE_SHELL"),
         (317, "APPAREL_VARIANT_TRANSACTION_INTEGRATION"),
         (318, "WORKSPACE_SHELL_TRANSACTION_LAYOUT_UNIFICATION"),
+        (319, "APPAREL_MATRIX_BULK_VARIANT_BUILDER"),
     ]
 )
 
@@ -187,6 +188,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (316, "apparel_workspace_shell"),
         (317, "apparel_variant_transaction_integration"),
         (318, "workspace_shell_transaction_layout_unification"),
+        (319, "apparel_matrix_bulk_variant_builder"),
     ]
 )
 
@@ -244,6 +246,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("apparel_workspace_shell", "materials", "Standalone apparel workspace shell backed by product variants", "tests/test_phase316_apparel_workspace_shell.py", phase=316),
     ReleaseGateCheck("apparel_variant_transaction_integration", "materials", "Apparel variant transaction/POS stock integration", "tests/test_phase317_apparel_variant_transaction_integration.py", phase=317),
     ReleaseGateCheck("workspace_shell_transaction_layout_unification", "shell", "Workspace shell and transaction layout unification", "tests/test_phase318_workspace_shell_transaction_layout_unification.py", phase=318),
+    ReleaseGateCheck("apparel_matrix_bulk_variant_builder", "materials", "Apparel color/size matrix and bulk variant builder", "tests/test_phase319_apparel_matrix_bulk_variant_builder.py", phase=319),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

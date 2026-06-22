@@ -244,6 +244,60 @@ class ProductService:
         self.item_gateway.delete_variant(int(variant_id))
         audit_service.log('ARCHIVE', 'ITEM_VARIANT', variant_id, details='تعطيل متغير مادة')
 
+    def create_missing_variants(self, item_id: int, colors: List[str], sizes: List[str], *,
+                                auto_code: bool = True, auto_barcode: bool = False,
+                                code_prefix: str | None = None) -> Dict[str, int]:
+        """Create missing color/size variants through the existing item gateway.
+
+        This is intentionally a ProductService operation so local and API/network
+        modes follow the same gateway boundary.  The UI never creates an
+        independent apparel repository or touches SQL.  The visible label for
+        ``sku`` remains translated as Variant code / رمز المتغير.
+        """
+        item = self.item_by_id(int(item_id or 0))
+        if not item:
+            raise ValueError("المادة الأصلية غير موجودة")
+        normalized_colors = []
+        normalized_sizes = []
+        for bucket, source in ((normalized_colors, colors or []), (normalized_sizes, sizes or [])):
+            seen = set()
+            for value in source:
+                text = str(value or '').strip()
+                marker = text.casefold()
+                if text and marker not in seen:
+                    seen.add(marker)
+                    bucket.append(text)
+        if not normalized_colors or not normalized_sizes:
+            raise ValueError("يجب تحديد الألوان والمقاسات")
+        existing = {
+            (str(row.get('color') or '').strip().casefold(), str(row.get('size') or '').strip().casefold())
+            for row in self.item_variants(int(item_id))
+        }
+        created = skipped = errors = 0
+        counter = 1
+        prefix = str(code_prefix or item.get('barcode') or item.get('id') or 'ITEM')
+        def clean(value: str) -> str:
+            return ''.join(ch for ch in str(value or '').strip().upper() if ch.isalnum())[:6] or 'X'
+        for color in normalized_colors:
+            for size in normalized_sizes:
+                key = (color.casefold(), size.casefold())
+                if key in existing:
+                    skipped += 1
+                    continue
+                payload: Dict[str, Any] = {'color': color, 'size': size}
+                if auto_code:
+                    payload['sku'] = f"{clean(prefix)}-{clean(color)}-{clean(size)}-{counter:02d}"
+                if auto_barcode:
+                    payload['barcode'] = self.generate_barcode('CODE128', prefix='APP')
+                try:
+                    self.add_variant(int(item_id), payload)
+                    existing.add(key)
+                    created += 1
+                except Exception:
+                    errors += 1
+                counter += 1
+        return {'created': created, 'skipped': skipped, 'errors': errors}
+
     def item_activity_summary(self, item_id: int) -> Dict[str, Any]:
         """Return usage counts for a material through the active gateway."""
         try:
