@@ -56,4 +56,5 @@ apparel_matrix_bulk_variant_builder,materials,Apparel color/size matrix and bulk
 apparel_inventory_operations,materials,Apparel variant-aware inventory operations,320,tests/test_phase320_apparel_inventory_operations.py,True,,True,True
 apparel_reports,materials,Apparel reports for color/size stock and sales,321,tests/test_phase321_apparel_reports.py,True,,True,True
 apparel_runtime_acceptance,materials,Apparel runtime acceptance for complete color/size workflow,322,tests/test_phase322_apparel_runtime_acceptance.py,True,,True,True
+startup_variant_schema_hotfix,database,Startup schema upgrade for apparel variant warehouse columns,323,tests/test_phase323_startup_variant_schema_hotfix.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

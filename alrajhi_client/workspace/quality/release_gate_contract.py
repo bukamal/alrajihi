@@ -256,6 +256,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("apparel_inventory_operations", "materials", "Apparel variant-aware inventory operations", "tests/test_phase320_apparel_inventory_operations.py", phase=320),
     ReleaseGateCheck("apparel_reports", "materials", "Apparel reports for color/size stock and sales", "tests/test_phase321_apparel_reports.py", phase=321),
     ReleaseGateCheck("apparel_runtime_acceptance", "materials", "Apparel runtime acceptance for complete color/size workflow", "tests/test_phase322_apparel_runtime_acceptance.py", phase=322),
+    ReleaseGateCheck("startup_variant_schema_hotfix", "database", "Startup schema upgrade for apparel variant warehouse columns", "tests/test_phase323_startup_variant_schema_hotfix.py", phase=323),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 
