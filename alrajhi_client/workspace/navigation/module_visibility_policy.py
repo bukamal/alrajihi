@@ -23,6 +23,7 @@ PAGE_MODULE_KEYS = {
     'purchase_returns': (('transactions/enabled', True),),
     'pos': (('pos/enabled', True),),
     'restaurant': (('restaurant/enabled', True),),
+    'cafe': (('cafe/enabled', True),),
     'manufacturing': (('manufacturing/enabled', True),),
     'reports': (('reports/enabled', True),),
     'items': (('inventory/enabled', True),),
@@ -49,6 +50,7 @@ SETTINGS_SECTION_KEYS = {
     'reports': (('reports/enabled', True),),
     'pos': (('pos/enabled', True),),
     'restaurant': (('restaurant/enabled', True),),
+    'cafe': (('cafe/enabled', True),),
     'users': (('users/enabled', True),),
 }
 

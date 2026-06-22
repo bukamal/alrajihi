@@ -9,6 +9,11 @@ branches.manage_all,branches,manage_all,rbac:branch_scope:manage_all: branches m
 branches.update,branches,update,document:branch:update: branches update,document:branch:update,document,/api/rbac,remote_available,True,,True,True,False,False,False,True
 branches.view,branches,view,document:branch:view: branches view,document:branch:view,document,/api/rbac,remote_available,True,,True,True,True,False,True,True
 branches.view_all,branches,view_all,rbac:branch_scope:view_all: branches view all,rbac:branch_scope:view_all,security,/api/rbac,remote_available,False,,True,True,False,False,False,True
+cafe.order,cafe,order,document:cafe:create: cafe order,document:cafe:create,operational_shell,/api/rbac,remote_available,True,,True,True,False,False,False,True
+cafe.payment,cafe,payment,document:cafe:update: cafe payment,document:cafe:update,operational_shell,/api/rbac,remote_available,True,,True,True,False,False,False,True
+cafe.print,cafe,print,document:cafe:print: cafe print,document:cafe:print,operational_shell,/api/rbac,remote_available,True,,True,True,True,False,False,True
+cafe.report,cafe,report,document:cafe:export: cafe report,document:cafe:export,operational_shell,/api/rbac,remote_available,True,,True,True,False,False,False,True
+cafe.view,cafe,view,document:cafe:view: cafe view,document:cafe:view,operational_shell,/api/rbac,remote_available,True,,True,True,True,False,True,True
 cashboxes.create,cashboxes,create,document:cashbox:create: cashboxes create,document:cashbox:create,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
 cashboxes.delete,cashboxes,delete,document:cashbox:delete: cashboxes delete,document:cashbox:delete,document,/api/rbac,remote_available,False,,True,True,True,False,False,True
 cashboxes.update,cashboxes,update,document:cashbox:update: cashboxes update,document:cashbox:update,document,/api/rbac,remote_available,False,,True,True,True,False,False,True

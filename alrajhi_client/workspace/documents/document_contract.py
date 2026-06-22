@@ -659,6 +659,28 @@ DOCUMENT_SHELL_DESCRIPTORS: tuple[DocumentDescriptor, ...] = (
         server_blueprint="restaurant",
         notes="OperationalShell: table/session/kitchen policy is intentionally different from document tabs.",
     ),
+    DocumentDescriptor(
+        document_type="cafe",
+        shell_family=SHELL_OPERATIONAL,
+        title_key="restaurant.cafe_workspace_title",
+        i18n_scope="cafe.shell",
+        settings_scope="cafe",
+        gateway="restaurant_gateway",
+        api_resource="/api/restaurant",
+        network_mode=NETWORK_REMOTE_AVAILABLE,
+        permissions=DocumentPermissions(view="cafe.view", create="cafe.order", update="cafe.payment", print="cafe.print", export="cafe.report", cancel="restaurant.cancel"),
+        capabilities=DocumentCapabilities(save=True, print=True, export=True, delete=False, cancel=True, barcode=True, audit=True, offline_queue=True),
+        currency_policy=CURRENCY_DISPLAY,
+        branch_policy=BRANCH_REQUIRED,
+        audit_scope="cafe",
+        workspace_route="cafe widget",
+        list_route="cafe",
+        document_class="views.cafe.cafe_workspace_widget.CafeWorkspaceWidget",
+        local_gateway="gateways.local.restaurant_gateway.LocalRestaurantGateway",
+        remote_gateway="gateways.remote.restaurant_gateway.RemoteRestaurantGateway",
+        server_blueprint="restaurant",
+        notes="Standalone Cafe UI: visible module is separate, but orders/payment/printing/inventory reuse the restaurant engine.",
+    ),
 )
 
 

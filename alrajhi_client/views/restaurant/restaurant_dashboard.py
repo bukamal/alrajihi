@@ -159,9 +159,11 @@ class RestaurantDashboard(QWidget):
     analytics are explicit modes instead of permanent crowded panes.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, workspace_context: str = "restaurant"):
         super().__init__(parent)
         bind_operational_shell(self, 'restaurant')
+        self._workspace_context = str(workspace_context or 'restaurant')
+        self._standalone_cafe_workspace = self._workspace_context == 'cafe'
         self.service = restaurant_service
         self._last_tables: list[dict] = []
         self._ui_settings = self._restaurant_ui_settings()
@@ -177,8 +179,10 @@ class RestaurantDashboard(QWidget):
         header_card.setObjectName("restaurantHeaderCard")
         header = QHBoxLayout(header_card)
         header.setContentsMargins(16, 10, 16, 10)
-        title = QLabel("🍽  " + _("restaurant.operation_shell"))
+        title_text = "☕  " + _("restaurant.cafe_workspace_title") if self._standalone_cafe_workspace else "🍽  " + _("restaurant.operation_shell")
+        title = QLabel(title_text)
         title.setObjectName("restaurantDashboardTitle")
+        self.dashboard_title = title
         header.addWidget(title)
         header.addStretch()
 
@@ -198,8 +202,13 @@ class RestaurantDashboard(QWidget):
         self.refresh_button.setObjectName("restaurantRefreshButton")
         for button in (self.order_mode_btn, self.cafe_mode_btn, self.kitchen_mode_btn, self.tables_mode_btn, self.analytics_mode_btn, self.refresh_button):
             button.setMinimumHeight(44)
-        self.analytics_mode_btn.setVisible(bool(self._ui_settings.get("show_analytics_panel")))
-        self.cafe_mode_btn.setVisible(bool(self._ui_settings.get("cafe_enabled", True)))
+        self.analytics_mode_btn.setVisible(bool(self._ui_settings.get("show_analytics_panel")) and not self._standalone_cafe_workspace)
+        self.cafe_mode_btn.setVisible(bool(self._ui_settings.get("cafe_enabled", True)) and not self._standalone_cafe_workspace)
+        if self._standalone_cafe_workspace:
+            self.order_mode_btn.setVisible(False)
+            self.kitchen_mode_btn.setVisible(False)
+            self.tables_mode_btn.setVisible(False)
+            self.analytics_mode_btn.setVisible(False)
         header.addWidget(self.order_mode_btn)
         header.addWidget(self.cafe_mode_btn)
         header.addWidget(self.kitchen_mode_btn)
@@ -280,6 +289,8 @@ class RestaurantDashboard(QWidget):
             button.setMinimumHeight(42)
             cafe_shell.addWidget(button)
         self.cafe_shell_card.setVisible(False)
+        if self._standalone_cafe_workspace:
+            self.cafe_shell_card.setProperty("standalone_cafe_workspace", True)
         order_page_layout.addWidget(self.cafe_shell_card)
 
         self.splitter = QSplitter(Qt.Horizontal)  # compatibility handle for older tests/plugins
@@ -360,7 +371,9 @@ class RestaurantDashboard(QWidget):
         self.transfer_table_btn.clicked.connect(self.transfer_current_session)
         self.merge_table_btn.clicked.connect(self.merge_into_current_session)
         self.move_line_btn.clicked.connect(self.move_selected_line_to_table)
-        if self._ui_settings.get("show_kitchen_panel"):
+        if self._standalone_cafe_workspace:
+            self.show_cafe_mode()
+        elif self._ui_settings.get("show_kitchen_panel"):
             self.show_kitchen_mode()
         else:
             self.show_order_mode()
@@ -424,7 +437,7 @@ class RestaurantDashboard(QWidget):
         self.table_ops_card.setProperty("restaurant_layout_mode", layout_mode)
         self.workspace_stack.setProperty("restaurant_layout_mode", layout_mode)
         if hasattr(self, "cafe_shell_card"):
-            self.cafe_shell_card.setVisible(self._current_mode == "cafe")
+            self.cafe_shell_card.setVisible(self._current_mode == "cafe" or self._standalone_cafe_workspace)
         if hasattr(self.pos, "set_cafe_workspace_mode"):
             self.pos.set_cafe_workspace_mode(cafe_mode)
         for widget in (self, self.table_ops_card, self.workspace_stack, self.splitter, self.kitchen_splitter):
@@ -502,6 +515,8 @@ class RestaurantDashboard(QWidget):
         }.get(button, "")
 
     def show_order_mode(self):
+        if self._standalone_cafe_workspace:
+            return self.show_cafe_mode()
         self._current_mode = "order"
         self._set_mode_button_state("order")
         self._apply_responsive_layout()
@@ -560,6 +575,8 @@ class RestaurantDashboard(QWidget):
             self.status.setText(str(exc))
 
     def show_kitchen_mode(self):
+        if self._standalone_cafe_workspace:
+            return self.show_cafe_preparation_mode()
         self._current_mode = "kitchen"
         self._set_mode_button_state("kitchen")
         self._apply_responsive_layout()
@@ -569,11 +586,15 @@ class RestaurantDashboard(QWidget):
             pass
 
     def show_tables_mode(self):
+        if self._standalone_cafe_workspace:
+            return self.show_cafe_mode()
         self._current_mode = "tables"
         self._set_mode_button_state("tables")
         self._apply_responsive_layout()
 
     def show_analytics_mode(self):
+        if self._standalone_cafe_workspace:
+            return self.show_cafe_report_mode()
         if not self._ui_settings.get("show_analytics_panel"):
             return
         self._current_mode = "analytics"

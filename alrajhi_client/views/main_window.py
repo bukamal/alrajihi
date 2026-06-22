@@ -25,6 +25,7 @@ from views.widgets.audit_log_widget import AuditLogWidget
 from views.widgets.offline_queue_widget import OfflineQueueWidget
 from views.widgets.monitoring_widget import MonitoringWidget
 from views.restaurant.restaurant_dashboard import RestaurantDashboard
+from views.cafe import CafeWorkspaceWidget
 from shell import QuickOpenDialog, QuickOpenItem, TabbedWorkspace, WorkspaceEntry, WorkspaceStateStore, UnifiedActionBar, NotificationCenter, NotificationItem
 from shell.shortcuts import bind_workspace_shortcuts
 from views.dialogs.change_password_dialog import ChangePasswordDialog
@@ -61,6 +62,7 @@ PAGE_META_KEYS = {
     'offline_queue': ('offline_queue', 'nav_admin'),
     'monitoring': ('monitoring', 'nav_admin'),
     'restaurant': ('restaurant.dashboard', 'nav_restaurant'),
+    'cafe': ('restaurant.cafe_workspace_title', 'nav_cafe'),
 }
 
 
@@ -127,6 +129,7 @@ NAV_GROUP_BY_PAGE = {
     'offline_queue': 'الإدارة',
     'monitoring': 'الإدارة',
     'restaurant': 'المطعم',
+    'cafe': 'الكافي',
 }
 
 
@@ -353,6 +356,7 @@ class MainWindow(QMainWindow):
             ('offline_queue', OfflineQueueWidget),
             ('monitoring', MonitoringWidget),
             ('restaurant', RestaurantDashboard),
+            ('cafe', CafeWorkspaceWidget),
         ]
         for key, factory in page_factories:
             page = self._create_page_safely(key, factory)
@@ -424,6 +428,7 @@ class MainWindow(QMainWindow):
         add_action(home_menu, translate('dashboard'), 'tachometer-alt', 'dashboard', shortcut='F1')
         add_action(home_menu, translate('pos'), 'barcode', 'pos', shortcut='F2')
         add_action(home_menu, translate('restaurant.dashboard'), 'utensils', 'restaurant', shortcut='F8')
+        add_action(home_menu, translate('restaurant.cafe_workspace_title'), 'coffee', 'cafe', shortcut='F10')
         home_menu.addSeparator()
         add_action(home_menu, translate('monitoring'), 'heartbeat', 'monitoring')
 
@@ -441,6 +446,13 @@ class MainWindow(QMainWindow):
             add_action(restaurant_menu, translate('restaurant.dashboard'), 'utensils', 'restaurant', shortcut='F8')
             add_action(restaurant_menu, translate('restaurant.open_table'), 'door-open', 'restaurant')
             add_action(restaurant_menu, translate('restaurant.kitchen_ticket'), 'receipt', 'restaurant')
+
+        if page_enabled('cafe'):
+            cafe_menu = self.menu_bar.addMenu(qta.icon('fa5s.coffee'), '\n' + translate('nav_cafe'))
+            add_action(cafe_menu, translate('restaurant.cafe_workspace_title'), 'coffee', 'cafe', shortcut='F10')
+            add_action(cafe_menu, translate('restaurant.cafe_new_quick_order'), 'plus-circle', 'cafe')
+            add_action(cafe_menu, translate('restaurant.cafe_preparation'), 'mug-hot', 'cafe')
+            add_action(cafe_menu, translate('restaurant.cafe_shift_report'), 'chart-line', 'cafe')
 
         if any_enabled('purchase_invoices', 'purchase_returns', 'vouchers'):
             purchase_menu = self.menu_bar.addMenu(qta.icon('fa5s.truck'), '\n' + translate('nav_purchases'))
@@ -1098,6 +1110,7 @@ class MainWindow(QMainWindow):
             'dashboard': 'fa5s.tachometer-alt',
             'pos': 'fa5s.barcode',
             'restaurant': 'fa5s.utensils',
+            'cafe': 'fa5s.coffee',
             'sales_invoices': 'fa5s.file-invoice-dollar',
             'purchase_invoices': 'fa5s.file-invoice',
             'items': 'fa5s.box',
@@ -1127,7 +1140,7 @@ class MainWindow(QMainWindow):
         items = []
         favorites = self.workspace_state_store.favorites()
         if not favorites:
-            favorites = enabled_favorite_pages(['dashboard', 'restaurant', 'items', 'sales_invoices', 'reports'])
+            favorites = enabled_favorite_pages(['dashboard', 'restaurant', 'cafe', 'items', 'sales_invoices', 'reports'])
             self.workspace_state_store.set_favorites(favorites)
         for pid in enabled_favorite_pages(favorites):
             if pid in self.pages and page_enabled(pid):
@@ -1138,7 +1151,7 @@ class MainWindow(QMainWindow):
         for pid in self.pages:
             if page_enabled(pid):
                 items.append(QuickOpenItem(pid, page_title(pid), page_breadcrumb(pid), self.workspace_icon_for_page(pid)))
-        for section in ('company', 'accounting', 'transactions', 'materials', 'categories', 'parties', 'finance', 'inventory', 'branches', 'manufacturing', 'reports', 'pos', 'restaurant', 'printing', 'users', 'ui', 'security'):
+        for section in ('company', 'accounting', 'transactions', 'materials', 'categories', 'parties', 'finance', 'inventory', 'branches', 'manufacturing', 'reports', 'pos', 'restaurant', 'cafe', 'printing', 'users', 'ui', 'security'):
             if settings_section_enabled(section):
                 items.append(QuickOpenItem(f'settings:{section}', translate(f'settings.{section}'), translate('settings'), 'fa5s.sliders-h'))
         seen = set()
@@ -1242,6 +1255,8 @@ class MainWindow(QMainWindow):
         self.warehouse_shortcut.activated.connect(lambda: self.switch_page('warehouses'))
         self.restaurant_shortcut = QShortcut(QKeySequence('F8'), self)
         self.restaurant_shortcut.activated.connect(lambda: self.switch_page('restaurant'))
+        self.cafe_shortcut = QShortcut(QKeySequence('F10'), self)
+        self.cafe_shortcut.activated.connect(lambda: self.switch_page('cafe'))
         self.legacy_pos_shortcut = QShortcut(QKeySequence('F9'), self)
         self.legacy_pos_shortcut.activated.connect(lambda: self.switch_page('pos'))
         self.close_tab_shortcuts = bind_workspace_shortcuts(self, self.workspace)

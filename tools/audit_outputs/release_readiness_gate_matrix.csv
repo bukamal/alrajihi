@@ -46,4 +46,5 @@ cafe_workspace_shell,restaurant,Cafe workspace shell and barista context,309,tes
 cafe_inventory_shift_report,restaurant,Cafe inventory and shift report,310,tests/test_phase310_cafe_inventory_shift_report.py,True,,True,True
 cafe_runtime_acceptance,restaurant,Cafe runtime acceptance,311,tests/test_phase311_cafe_runtime_acceptance.py,True,,True,True
 cafe_analytics_fstring_hotfix,restaurant,Cafe analytics f-string hotfix,312,tests/test_phase312_cafe_analytics_fstring_hotfix.py,True,,True,True
+standalone_cafe_workspace_activation,restaurant,Standalone cafe workspace activation,313,tests/test_phase313_standalone_cafe_workspace_activation.py,True,,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

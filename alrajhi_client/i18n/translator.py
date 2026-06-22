@@ -7512,3 +7512,26 @@ _translations['en'].update({
     'restaurant.cafe_top_modifier': 'Top add-on',
     'restaurant.cafe_low_stock_alerts': 'Cafe low-stock alerts',
 })
+
+# Phase 313: Standalone cafe workspace activation.
+_translations['ar'].update({
+    'nav_cafe': 'الكافي',
+    'settings.cafe': 'إعدادات الكافي',
+    'settings_module_cafe': 'تفعيل الكافي',
+    'settings_cafe_contract_title': 'عقد الكافي',
+    'settings_cafe_contract_help': 'تفعيل واجهة الكافي المستقلة مع استمرار استخدام محرك المطعم للطلبات والدفع والطباعة والمخزون.',
+})
+_translations['de'].update({
+    'nav_cafe': 'Café',
+    'settings.cafe': 'Café-Einstellungen',
+    'settings_module_cafe': 'Café aktivieren',
+    'settings_cafe_contract_title': 'Café-Vertrag',
+    'settings_cafe_contract_help': 'Aktiviert den eigenständigen Café-Arbeitsbereich und nutzt weiterhin den Restaurantmotor für Bestellung, Zahlung, Druck und Bestand.',
+})
+_translations['en'].update({
+    'nav_cafe': 'Cafe',
+    'settings.cafe': 'Cafe settings',
+    'settings_module_cafe': 'Enable cafe',
+    'settings_cafe_contract_title': 'Cafe contract',
+    'settings_cafe_contract_help': 'Enables the standalone cafe workspace while keeping orders, payment, printing, and inventory on the restaurant engine.',
+})

@@ -279,6 +279,27 @@ SETTINGS_SCOPE_DESCRIPTORS: tuple[SettingsScopeDescriptor, ...] = (
         ),
         print_keys=("restaurant/receipt_paper", "restaurant/kitchen_ticket_paper", "restaurant/session_summary_paper", "language/print"),
     ),
+
+    SettingsScopeDescriptor(
+        scope="cafe",
+        section_key="cafe",
+        title_key="settings.cafe",
+        service_getter="get_restaurant_settings",
+        ui_sections=("cafe", "restaurant", "printing"),
+        operation_key_prefixes=("cafe/operations", "restaurant/operations"),
+        keys=(
+            _key("cafe/enabled", VALUE_BOOL, "true"),
+            _key("cafe/auto_open_quick_order", VALUE_BOOL, "true"),
+            _key("cafe/quick_order_type", VALUE_CHOICE, "cafe_quick_order", choices=("cafe_quick_order",)),
+            _key("cafe/preparation_route", VALUE_CHOICE, "barista", choices=("barista",)),
+            _key("cafe/receipt_paper", VALUE_CHOICE, "80mm", choices=("80mm", "58mm")),
+            _key("cafe/barista_ticket_paper", VALUE_CHOICE, "80mm", choices=("80mm", "58mm")),
+            _key("cafe/printing/receipt_printer", required=False),
+            _key("cafe/printing/barista_printer", required=False),
+        ),
+        print_keys=("cafe/receipt_paper", "cafe/barista_ticket_paper", "language/print"),
+        notes="Standalone cafe workspace settings; the business engine remains restaurant-backed.",
+    ),
     SettingsScopeDescriptor(
         scope="users",
         section_key="users",
@@ -301,7 +322,7 @@ SETTINGS_SCOPE_DESCRIPTORS: tuple[SettingsScopeDescriptor, ...] = (
         section_key="settings",
         title_key="settings",
         service_getter="get_language_settings",
-        ui_sections=("company", "accounting", "inventory", "transactions", "materials", "parties", "finance", "manufacturing", "reports", "pos", "restaurant", "printing", "ui", "security"),
+        ui_sections=("company", "accounting", "inventory", "transactions", "materials", "parties", "finance", "manufacturing", "reports", "pos", "restaurant", "cafe", "printing", "ui", "security"),
         keys=(
             _key("language", VALUE_CHOICE, "ar", choices=("ar", "en", "de")),
             _key("language/print", VALUE_CHOICE, "ar", choices=("ar", "en", "de")),

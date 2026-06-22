@@ -344,6 +344,20 @@ class RestaurantSettingsTab(SettingsSectionDocumentTab):
     )
 
 
+class CafeSettingsTab(SettingsSectionDocumentTab):
+    section_key = 'settings.cafe'
+    fields = (
+        ('cafe/enabled', 'settings.cafe_enabled', 'bool'),
+        ('cafe/auto_open_quick_order', 'settings.cafe_auto_open_quick_order', 'bool'),
+        ('cafe/quick_order_type', 'restaurant.cafe_quick_order', 'choice:cafe_quick_order'),
+        ('cafe/preparation_route', 'restaurant.cafe_preparation', 'choice:barista'),
+        ('cafe/receipt_paper', 'receipt_paper', 'choice:80mm|58mm'),
+        ('cafe/barista_ticket_paper', 'restaurant.cafe_print_barista_ticket', 'choice:80mm|58mm'),
+        ('cafe/printing/receipt_printer', 'restaurant.cafe_print_receipt', 'string'),
+        ('cafe/printing/barista_printer', 'restaurant.cafe_preparation', 'string'),
+    )
+
+
 class PrintingSettingsTab(SettingsSectionDocumentTab):
     section_key = 'settings.printing'
     fields = (
@@ -408,6 +422,7 @@ SETTINGS_SECTION_TABS = {
     'reports': ReportsSettingsTab,
     'pos': PosSettingsTab,
     'restaurant': RestaurantSettingsTab,
+    'cafe': CafeSettingsTab,
     'printing': PrintingSettingsTab,
     'users': UsersSettingsTab,
     'ui': UISettingsTab,

@@ -108,6 +108,11 @@ _LEGACY_ACTION_ALIASES: Mapping[str, str] = {
     "restaurant.order.update": "restaurant_adjust_bill",
     "restaurant.print": "restaurant_print_receipt",
     "restaurant.cancel": "restaurant_adjust_bill",
+    "cafe.view": "restaurant_use",
+    "cafe.order": "restaurant_add_line",
+    "cafe.payment": "restaurant_record_payment",
+    "cafe.print": "restaurant_print_receipt",
+    "cafe.report": "restaurant_view_analytics",
 }
 
 

@@ -392,6 +392,7 @@ class SettingsWidget(QWidget):
 
         modules_group, form = self._form_card(translate('settings_modules_title'), translate('settings_modules_help'))
         self._make_bool_row(form, 'contract_restaurant_enabled', 'restaurant/enabled', 'settings_module_restaurant', True)
+        self._make_bool_row(form, 'contract_cafe_enabled', 'cafe/enabled', 'settings_module_cafe', True)
         self._make_bool_row(form, 'contract_manufacturing_enabled', 'manufacturing/enabled', 'settings_module_manufacturing', True)
         self._make_bool_row(form, 'contract_inventory_enabled', 'inventory/enabled', 'settings_module_inventory', True)
         self._make_bool_row(form, 'contract_finance_enabled', 'finance/enabled', 'settings_module_finance', True)
@@ -455,6 +456,7 @@ class SettingsWidget(QWidget):
     def save_contracts_settings(self):
         mapping = {
             'restaurant/enabled': self.contract_restaurant_enabled.isChecked(),
+            'cafe/enabled': self.contract_cafe_enabled.isChecked(),
             'manufacturing/enabled': self.contract_manufacturing_enabled.isChecked(),
             'inventory/enabled': self.contract_inventory_enabled.isChecked(),
             'finance/enabled': self.contract_finance_enabled.isChecked(),
