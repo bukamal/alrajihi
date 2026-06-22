@@ -18,7 +18,7 @@ def test_phase329_purchase_variant_cost_guard_is_narrow_and_purchase_specific():
     assert "def _apparel_variant_price_guard" in model
     assert 'if not item.get(inherit_key):' in model
     assert '"_apparel_variant_inherits_purchase_price"' in model
-    assert 'price_key == "purchase_price"' in model
+    assert 'price_key in purchase_like_keys' in model
     assert 'fixed >= (ratio * ratio)' in model
     assert 'fixed = fixed / ratio' in model
     assert 'return self._money(fixed)' in model

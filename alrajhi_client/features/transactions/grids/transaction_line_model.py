@@ -267,9 +267,10 @@ class TransactionLineModel(QAbstractTableModel):
         """
         if not item or not (item.get("variant_id") or item.get("matched_variant")):
             return value
+        purchase_like_keys = {"purchase_price", "cost", "cost_price", "average_cost", "unit_cost"}
         inherit_key = (
             "_apparel_variant_inherits_purchase_price"
-            if price_key == "purchase_price"
+            if price_key in purchase_like_keys
             else "_apparel_variant_inherits_sale_price"
         )
         if not item.get(inherit_key):
@@ -281,15 +282,22 @@ class TransactionLineModel(QAbstractTableModel):
             from currency import currency  # lazy import: keeps model import lightweight
             storage = currency.storage_currency()
             display = currency.display_currency()
-            if storage == display:
-                return amount
             ratio = self._decimal(currency.convert(1, storage, display), "1")
+            if ratio <= 1:
+                try:
+                    ratio = self._decimal(currency.get_current_rate(display), "1")
+                except Exception:
+                    ratio = Decimal("1")
             if ratio <= 1:
                 return amount
             # Collapse only clear repeated conversion signatures.  For SYP with
             # a 14,000 rate this turns 3.92e12 -> 2.8e8 -> 20,000, and also
-            # protects older 280,000,000 rows.  The loop is capped to avoid
-            # touching legitimate large values indefinitely.
+            # protects older 280,000,000 rows.  The fallback rate path is
+            # intentional: some live installations keep storage/display both
+            # as SYP while older transaction lookup code still passes prices
+            # that were already multiplied by the exchange rate.  Because this
+            # branch is limited to inherited apparel variant prices, it does
+            # not alter ordinary materials or explicit variant pricing.
             fixed = amount
             for _ in range(3):
                 if fixed >= (ratio * ratio) and (fixed / ratio) >= Decimal("1"):

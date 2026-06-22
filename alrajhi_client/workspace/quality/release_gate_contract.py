@@ -122,6 +122,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (327, "APPAREL_TRANSACTION_PRICE_CURRENCY_HOTFIX"),
         (328, "DASHBOARD_POS_TRANSACTION_UX_POLISH"),
         (329, "PURCHASE_VARIANT_COST_CURRENCY_HOTFIX"),
+        (330, "PURCHASE_APPAREL_INHERITED_COST_RATE_FALLBACK"),
     ]
 )
 
@@ -207,6 +208,9 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (325, "apparel_catalog_boundary_pricing_hardening"),
         (326, "transaction_header_footer_layout_hotfix"),
         (327, "apparel_transaction_price_currency_hotfix"),
+        (328, "dashboard_pos_transaction_ux_polish"),
+        (329, "purchase_variant_cost_currency_hotfix"),
+        (330, "purchase_apparel_inherited_cost_rate_fallback"),
     ]
 )
 
@@ -275,6 +279,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("apparel_transaction_price_currency_hotfix", "materials", "Apparel transaction variant lookup prices convert to display currency only once", "tests/test_phase327_apparel_transaction_price_currency_hotfix.py", phase=327),
     ReleaseGateCheck("dashboard_pos_transaction_ux_polish", "ui", "Dashboard, POS and transaction header UX polish", "tests/test_phase328_dashboard_pos_transaction_ux_polish.py", phase=328),
     ReleaseGateCheck("purchase_variant_cost_currency_hotfix", "materials", "Purchase invoice apparel variant inherited cost is not re-converted", "tests/test_phase329_purchase_variant_cost_currency_hotfix.py", phase=329),
+    ReleaseGateCheck("purchase_apparel_inherited_cost_rate_fallback", "materials", "Purchase invoice apparel inherited cost uses rate fallback for SYP display", "tests/test_phase330_purchase_apparel_inherited_cost_rate_fallback.py", phase=330),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 
