@@ -47,9 +47,21 @@ class CustomTableView(StandardTableKeyboardMixin, QTableView):
         self.refresh_style()
 
     def set_table_identity(self, identity: str):
-        """Set a stable key used to persist column widths/order/visibility."""
+        """Set a stable key used to persist layout and bind a column contract.
+
+        Phase 343 applies the universal column contracts to legacy SmartTable
+        screens by stable identity, so older list/report widgets do not need to
+        manually call ``set_column_contract`` one by one.
+        """
         if identity:
             self.setObjectName(identity)
+            try:
+                from workspace.tables import table_column_contract_for_identity
+                contract = table_column_contract_for_identity(identity)
+                if contract is not None:
+                    self.set_column_contract(contract_id=contract.contract_id)
+            except Exception:
+                pass
             self.restore_layout()
 
     def set_column_contract(self, page_id: str = "", table_id: str = "", contract_id: str = "") -> None:

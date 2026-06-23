@@ -1,0 +1,48 @@
+﻿category,key,workspace_type,ok,detail
+workspace_policy,apparel,matrix,True,object=RuntimeWorkspace_matrix_apparel; density=comfortable
+workspace_policy,audit_log,report,True,object=RuntimeWorkspace_report_audit_log; density=compact
+workspace_policy,branches,list,True,object=RuntimeWorkspace_list_branches; density=comfortable
+workspace_policy,cafe,operational,True,object=RuntimeWorkspace_operational_cafe; density=touch
+workspace_policy,cashboxes,list,True,object=RuntimeWorkspace_list_cashboxes; density=comfortable
+workspace_policy,categories,list,True,object=RuntimeWorkspace_list_categories; density=comfortable
+workspace_policy,customers,list,True,object=RuntimeWorkspace_list_customers; density=comfortable
+workspace_policy,dashboard,dashboard,True,object=RuntimeWorkspace_dashboard_dashboard; density=comfortable
+workspace_policy,items,list,True,object=RuntimeWorkspace_list_items; density=comfortable
+workspace_policy,manufacturing,document,True,object=RuntimeWorkspace_document_manufacturing; density=compact
+workspace_policy,monitoring,operational,True,object=RuntimeWorkspace_operational_monitoring; density=touch
+workspace_policy,offline_queue,operational,True,object=RuntimeWorkspace_operational_offline_queue; density=touch
+workspace_policy,pos,operational,True,object=RuntimeWorkspace_operational_pos; density=touch
+workspace_policy,purchase_invoices,document,True,object=RuntimeWorkspace_document_purchase_invoices; density=compact
+workspace_policy,purchase_returns,document,True,object=RuntimeWorkspace_document_purchase_returns; density=compact
+workspace_policy,reports,report,True,object=RuntimeWorkspace_report_reports; density=compact
+workspace_policy,restaurant,operational,True,object=RuntimeWorkspace_operational_restaurant; density=touch
+workspace_policy,returns,document,True,object=RuntimeWorkspace_document_returns; density=compact
+workspace_policy,sales_invoices,document,True,object=RuntimeWorkspace_document_sales_invoices; density=compact
+workspace_policy,settings,settings,True,object=RuntimeWorkspace_settings_settings; density=comfortable
+workspace_policy,suppliers,list,True,object=RuntimeWorkspace_list_suppliers; density=comfortable
+workspace_policy,users,list,True,object=RuntimeWorkspace_list_users; density=comfortable
+workspace_policy,vouchers,document,True,object=RuntimeWorkspace_document_vouchers; density=compact
+workspace_policy,warehouses,list,True,object=RuntimeWorkspace_list_warehouses; density=comfortable
+workspace_type_default,dashboard,dashboard,True,"{'spacing': 18, 'margin': 18, 'table_density': 'comfortable', 'button_role': 'dashboard_shortcut'}"
+workspace_type_default,document,document,True,"{'spacing': 10, 'margin': 12, 'table_density': 'compact', 'button_role': 'document_action'}"
+workspace_type_default,list,list,True,"{'spacing': 12, 'margin': 14, 'table_density': 'comfortable', 'button_role': 'list_action'}"
+workspace_type_default,matrix,matrix,True,"{'spacing': 12, 'margin': 14, 'table_density': 'comfortable', 'button_role': 'matrix_action'}"
+workspace_type_default,operational,operational,True,"{'spacing': 14, 'margin': 14, 'table_density': 'touch', 'button_role': 'operation_action'}"
+workspace_type_default,report,report,True,"{'spacing': 12, 'margin': 14, 'table_density': 'compact', 'button_role': 'report_action'}"
+workspace_type_default,settings,settings,True,"{'spacing': 12, 'margin': 14, 'table_density': 'comfortable', 'button_role': 'settings_action'}"
+critical_page,dashboard,dashboard,True,covered
+critical_page,pos,operational,True,covered
+critical_page,sales_invoices,document,True,covered
+critical_page,purchase_invoices,document,True,covered
+critical_page,items,list,True,covered
+critical_page,warehouses,list,True,covered
+critical_page,cashboxes,list,True,covered
+critical_page,restaurant,operational,True,covered
+critical_page,cafe,operational,True,covered
+critical_page,apparel,matrix,True,covered
+critical_page,reports,report,True,covered
+critical_page,settings,settings,True,covered
+static_wiring,main_window_runtime_polish_hook,alrajhi_client/views/main_window.py,True,apply_runtime_visual_polish
+static_wiring,runtime_visual_polish_module,alrajhi_client/ui/runtime_visual_polish.py,True,visualWorkspaceType
+static_wiring,runtime_qss_selectors,alrajhi_client/theme/qss.py,True,Phase 344: runtime visual polish sweep
+static_wiring,table_visual_role,alrajhi_client/ui/runtime_visual_polish.py,True,runtime_table

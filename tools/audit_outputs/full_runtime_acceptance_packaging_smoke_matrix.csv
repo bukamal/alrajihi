@@ -1,0 +1,41 @@
+﻿key,category,title,status,required,domain,detail
+transactions_pages_registered,runtime_surface,"Sales, purchase, returns and document printing: registered pages",pass,True,transactions,"sales_invoices,purchase_invoices,returns,purchase_returns"
+transactions_table_contracts,columns,"Sales, purchase, returns and document printing: table contracts",pass,True,transactions,"sales_invoices.lines,purchase_invoices.lines,returns.lines,purchase_returns.lines"
+transactions_barcode_profiles,barcode,"Sales, purchase, returns and document printing: barcode profiles",pass,False,transactions,
+transactions_scenario_smoke_plans,scenario,"Sales, purchase, returns and document printing: non-destructive scenario smoke plans",pass,True,transactions,"sales_invoice_full_cycle,purchase_invoice_full_cycle,sales_return_edit_print,purchase_return_edit_print"
+pos_pages_registered,runtime_surface,POS checkout and receipt printing: registered pages,pass,True,pos,pos
+pos_table_contracts,columns,POS checkout and receipt printing: table contracts,pass,True,pos,pos.lines
+pos_barcode_profiles,barcode,POS checkout and receipt printing: barcode profiles,pass,True,pos,items.default
+pos_scenario_smoke_plans,scenario,POS checkout and receipt printing: non-destructive scenario smoke plans,pass,True,pos,pos_fast_sale_receipt
+restaurant_pages_registered,runtime_surface,"Restaurant order, KDS, table and checkout flow: registered pages",pass,True,restaurant,restaurant
+restaurant_table_contracts,columns,"Restaurant order, KDS, table and checkout flow: table contracts",pass,True,restaurant,"restaurant.order_lines,restaurant.kitchen_queue,restaurant.tables,restaurant.kds_lines"
+restaurant_barcode_profiles,barcode,"Restaurant order, KDS, table and checkout flow: barcode profiles",pass,True,restaurant,"restaurant.menu_items,restaurant.table_labels"
+restaurant_scenario_smoke_plans,scenario,"Restaurant order, KDS, table and checkout flow: non-destructive scenario smoke plans",pass,True,restaurant,restaurant_table_order_checkout
+cafe_pages_registered,runtime_surface,"Cafe products, modifiers and preparation flow: registered pages",pass,True,cafe,cafe
+cafe_table_contracts,columns,"Cafe products, modifiers and preparation flow: table contracts",pass,True,cafe,"cafe.order_lines,cafe.preparation_queue,cafe.preparation_lines,cafe.shift_report"
+cafe_barcode_profiles,barcode,"Cafe products, modifiers and preparation flow: barcode profiles",pass,True,cafe,"cafe.products,cafe.modifier_labels"
+cafe_scenario_smoke_plans,scenario,"Cafe products, modifiers and preparation flow: non-destructive scenario smoke plans",pass,False,cafe,
+apparel_pages_registered,runtime_surface,"Apparel variants, matrix and barcode labels: registered pages",pass,True,apparel,apparel
+apparel_table_contracts,columns,"Apparel variants, matrix and barcode labels: table contracts",pass,True,apparel,"apparel.variants,apparel.matrix,apparel.reports"
+apparel_barcode_profiles,barcode,"Apparel variants, matrix and barcode labels: barcode profiles",pass,True,apparel,apparel.variant_labels
+apparel_scenario_smoke_plans,scenario,"Apparel variants, matrix and barcode labels: non-destructive scenario smoke plans",pass,True,apparel,material_barcode_lookup_label
+inventory_manufacturing_finance_pages_registered,runtime_surface,"Inventory, manufacturing and finance smoke scenarios: registered pages",pass,True,inventory_manufacturing_finance,"warehouses,manufacturing,vouchers,cashboxes"
+inventory_manufacturing_finance_table_contracts,columns,"Inventory, manufacturing and finance smoke scenarios: table contracts",pass,True,inventory_manufacturing_finance,"warehouses.warehouses,warehouses.balances,warehouses.transfers,manufacturing.orders,vouchers.voucher_lines,cashboxes.cashboxes"
+inventory_manufacturing_finance_barcode_profiles,barcode,"Inventory, manufacturing and finance smoke scenarios: barcode profiles",pass,False,inventory_manufacturing_finance,
+inventory_manufacturing_finance_scenario_smoke_plans,scenario,"Inventory, manufacturing and finance smoke scenarios: non-destructive scenario smoke plans",pass,True,inventory_manufacturing_finance,"inventory_transfer_print,bom_cost_print,production_order_lifecycle,voucher_cash_bank_flow"
+reports_settings_quality_pages_registered,runtime_surface,"Reports, settings, diagnostics and release quality: registered pages",pass,True,reports_settings_quality,"reports,settings,audit_log,offline_queue,monitoring"
+reports_settings_quality_table_contracts,columns,"Reports, settings, diagnostics and release quality: table contracts",pass,True,reports_settings_quality,"reports.result,audit_log.events,offline_queue.queue,monitoring.health"
+reports_settings_quality_barcode_profiles,barcode,"Reports, settings, diagnostics and release quality: barcode profiles",pass,False,reports_settings_quality,
+reports_settings_quality_scenario_smoke_plans,scenario,"Reports, settings, diagnostics and release quality: non-destructive scenario smoke plans",pass,True,reports_settings_quality,report_income_statement_print_export
+scenario_runtime_smoke_contract_valid,scenario,Scenario runtime smoke hooks validate without warnings,pass,True,all,12 scenarios / 337 checks
+scenario_runtime_dry_run_no_failures,scenario,Static and dry-run scenario checks pass; UI callbacks remain explicitly skipped,pass,True,all,passed=245; skipped_callbacks=92; failed=0
+runtime_build_files_present,packaging,Runtime and Windows build entry files are present,pass,True,packaging,"requirements.txt,alrajhi_client/main.py,alrajhi_server/run_server.py,build/build_windows.ps1,build/pyinstaller_hidden_imports.py,.github/workflows/build-windows-installer.yml"
+windows_packaging_gate_ready,packaging,Windows runtime packaging gate is clean before building EXE,pass,True,packaging,checks=10; issue_groups=0
+windows_build_runs_core_release_guards,packaging,Windows build script runs core release/printing/package guards,pass,True,packaging,"release_packaging_guard.py,release_hidden_imports_guard.py,windows_runtime_packaging_gate_audit.py,unified_printing_guard.py"
+release_gate_ready,quality,Release readiness gate has no missing required phase docs/tests/tools,pass,True,quality,checks=81; issue_groups=0; issues=0
+manual_windows_exe_launch,manual,Launch the real Windows EXE on a clean machine,manual_required,False,packaging,Requires an actual Windows build artifact and clean Windows host.
+manual_a4_print,manual,Print A4 invoice/report sample with Arabic/English/German data,manual_required,False,printing,Requires a physical or virtual A4 printer.
+manual_thermal_receipt,manual,Print POS/restaurant/cafe thermal receipt,manual_required,False,printing,Requires thermal receipt hardware or driver.
+manual_barcode_printer,manual,Print item/apparel/restaurant/cafe barcode labels,manual_required,False,barcode,Requires label printer and final label-stock dimensions.
+manual_remote_api_multi_user,manual,"Run remote/API mode with more than one user, branch, warehouse and cashbox",manual_required,False,network,Requires server deployment/network session; local CI cannot prove this end-to-end.
+manual_backup_restore_upgrade,manual,"Upgrade old database, backup, restore and re-open the application",manual_required,False,database,Requires representative customer database snapshots.

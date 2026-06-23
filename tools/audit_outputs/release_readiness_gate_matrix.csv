@@ -76,4 +76,7 @@ barcode_multi_print_ui,printing,Barcode multi-print UI for items/apparel/restaur
 final_ux_regression_guards,quality,Final UX regression guard for shell/actions/columns/keyboard/barcode,340,tools/phase340_final_ux_regression_guard.py,True,tools/audit_outputs/final_ux_regression_matrix.csv,True,True
 settings_surface_contract,settings,Unified settings surface for columns and barcode profiles,341,tools/phase341_settings_surface_guard.py,True,tools/audit_outputs/settings_surface_matrix.csv,True,True
 settings_runtime_wiring,settings,Settings surface runtime wiring and column customizer integration,342,tools/phase342_settings_runtime_wiring_guard.py,True,tools/audit_outputs/settings_runtime_wiring_matrix.csv,True,True
+runtime_application_sweep,ui,Runtime application sweep for remaining table contracts,343,tools/phase343_runtime_application_sweep_guard.py,True,tools/audit_outputs/runtime_table_contract_sweep_matrix.csv,True,True
+visual_runtime_polish_sweep,ui,Visual runtime polish sweep for legacy and modern workspaces,344,tools/phase344_visual_runtime_polish_guard.py,True,tools/audit_outputs/visual_runtime_polish_matrix.csv,True,True
+full_runtime_acceptance_packaging_smoke,quality,Full runtime acceptance and packaging smoke matrix,345,tools/phase345_full_runtime_acceptance_packaging_smoke.py,True,tools/audit_outputs/full_runtime_acceptance_packaging_smoke_matrix.csv,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

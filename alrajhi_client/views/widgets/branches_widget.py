@@ -98,7 +98,7 @@ class BranchesWidget(QWidget):
         header.addWidget(self.default_btn)
         header.addWidget(refresh_btn)
         layout.addLayout(header)
-        self.table = SmartTableView()
+        self.table = SmartTableView(identity="branches.list")
         self.table.setSelectionBehavior(QTableView.SelectRows)
         self.table.doubleClicked.connect(lambda _idx: self.edit_branch())
         layout.addWidget(self.table)

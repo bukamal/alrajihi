@@ -1,0 +1,115 @@
+﻿category,key,contract_id,ok,detail
+manifest_table,apparel.variants,apparel.variants,True,registered
+manifest_table,apparel.matrix,apparel.matrix,True,registered
+manifest_table,apparel.reports,apparel.reports,True,registered
+manifest_table,audit_log.events,audit_log.events,True,registered
+manifest_table,branches.branches,branches.branches,True,registered
+manifest_table,cafe.order_lines,cafe.order_lines,True,registered
+manifest_table,cafe.preparation_queue,cafe.preparation_queue,True,registered
+manifest_table,cafe.shift_report,cafe.shift_report,True,registered
+manifest_table,cashboxes.cashboxes,cashboxes.cashboxes,True,registered
+manifest_table,categories.categories,categories.categories,True,registered
+manifest_table,customers.customers,customers.customers,True,registered
+manifest_table,items.materials,items.materials,True,registered
+manifest_table,manufacturing.orders,manufacturing.orders,True,registered
+manifest_table,monitoring.health,monitoring.health,True,registered
+manifest_table,offline_queue.queue,offline_queue.queue,True,registered
+manifest_table,pos.lines,pos.lines,True,registered
+manifest_table,purchase_invoices.lines,purchase_invoices.lines,True,registered
+manifest_table,purchase_returns.lines,purchase_returns.lines,True,registered
+manifest_table,reports.result,reports.result,True,registered
+manifest_table,restaurant.order_lines,restaurant.order_lines,True,registered
+manifest_table,restaurant.kitchen_queue,restaurant.kitchen_queue,True,registered
+manifest_table,restaurant.tables,restaurant.tables,True,registered
+manifest_table,returns.lines,returns.lines,True,registered
+manifest_table,sales_invoices.lines,sales_invoices.lines,True,registered
+manifest_table,suppliers.suppliers,suppliers.suppliers,True,registered
+manifest_table,users.users,users.users,True,registered
+manifest_table,vouchers.voucher_lines,vouchers.voucher_lines,True,registered
+manifest_table,warehouses.warehouses,warehouses.warehouses,True,registered
+runtime_identity,BranchesWidget.main,branches.branches,True,registered
+runtime_identity,CategoriesWidget.main,categories.categories,True,registered
+runtime_identity,CustomersWidget.main,customers.customers,True,registered
+runtime_identity,InvoicesWidget.purchases,purchase_invoices.list,True,registered
+runtime_identity,InvoicesWidget.sales,sales_invoices.list,True,registered
+runtime_identity,ItemsWidget.main,items.materials,True,registered
+runtime_identity,PurchaseReturnsWidget.purchase_returns,purchase_returns.list,True,registered
+runtime_identity,ReturnsWidget.sales_returns,returns.list,True,registered
+runtime_identity,SuppliersWidget.main,suppliers.suppliers,True,registered
+runtime_identity,UsersWidget.main,users.users,True,registered
+runtime_identity,VouchersWidget.main,vouchers.list,True,registered
+runtime_identity,audit_log.list,audit_log.events,True,registered
+runtime_identity,batch_print.apparel.variant_labels,batch_print.labels,True,registered
+runtime_identity,batch_print.cafe.modifier_labels,batch_print.labels,True,registered
+runtime_identity,batch_print.cafe.products,batch_print.labels,True,registered
+runtime_identity,batch_print.items.default,batch_print.labels,True,registered
+runtime_identity,batch_print.restaurant.menu_items,batch_print.labels,True,registered
+runtime_identity,batch_print.restaurant.table_labels,batch_print.labels,True,registered
+runtime_identity,branches.list,branches.branches,True,registered
+runtime_identity,cashboxes.banks,cashboxes.banks,True,registered
+runtime_identity,cashboxes.cashboxes,cashboxes.cashboxes,True,registered
+runtime_identity,cashboxes.movements,cashboxes.movements,True,registered
+runtime_identity,cashboxes.shifts,cashboxes.shifts,True,registered
+runtime_identity,categories.list,categories.categories,True,registered
+runtime_identity,customers,customers.customers,True,registered
+runtime_identity,manufacturing.workspace.bom,manufacturing.bom,True,registered
+runtime_identity,manufacturing.workspace.orders,manufacturing.orders,True,registered
+runtime_identity,materials.workspace.items_grid,items.materials,True,registered
+runtime_identity,reports.result,reports.result,True,registered
+runtime_identity,returns.list,returns.list,True,registered
+runtime_identity,suppliers,suppliers.suppliers,True,registered
+runtime_identity,users.list,users.users,True,registered
+runtime_identity,vouchers.list,vouchers.list,True,registered
+runtime_identity,warehouses.balances,warehouses.balances,True,registered
+runtime_identity,warehouses.list,warehouses.warehouses,True,registered
+runtime_identity,warehouses.movements,warehouses.movements,True,registered
+runtime_identity,warehouses.transfers,warehouses.transfers,True,registered
+contract_payload,apparel.matrix,apparel.matrix,True,columns=7 display=7 print=7 export=7
+contract_payload,apparel.reports,apparel.reports,True,columns=6 display=6 print=6 export=6
+contract_payload,apparel.variants,apparel.variants,True,columns=9 display=9 print=8 export=9
+contract_payload,audit_log.events,audit_log.events,True,columns=8 display=8 print=8 export=8
+contract_payload,batch_print.labels,batch_print.labels,True,columns=6 display=6 print=6 export=6
+contract_payload,branches.branches,branches.branches,True,columns=8 display=8 print=8 export=8
+contract_payload,cafe.order_lines,cafe.order_lines,True,columns=9 display=7 print=8 export=9
+contract_payload,cafe.preparation_lines,cafe.preparation_lines,True,columns=4 display=4 print=4 export=4
+contract_payload,cafe.preparation_queue,cafe.preparation_queue,True,columns=6 display=6 print=6 export=6
+contract_payload,cafe.preparation_tickets,cafe.preparation_tickets,True,columns=6 display=6 print=6 export=6
+contract_payload,cafe.shift_report,cafe.shift_report,True,columns=8 display=8 print=8 export=8
+contract_payload,cashboxes.banks,cashboxes.banks,True,columns=6 display=6 print=6 export=6
+contract_payload,cashboxes.cashboxes,cashboxes.cashboxes,True,columns=6 display=6 print=6 export=6
+contract_payload,cashboxes.movements,cashboxes.movements,True,columns=7 display=7 print=7 export=7
+contract_payload,cashboxes.shifts,cashboxes.shifts,True,columns=8 display=8 print=8 export=8
+contract_payload,categories.categories,categories.categories,True,columns=6 display=6 print=6 export=6
+contract_payload,customers.customers,customers.customers,True,columns=4 display=4 print=4 export=4
+contract_payload,items.materials,items.materials,True,columns=12 display=12 print=12 export=12
+contract_payload,manufacturing.bom,manufacturing.bom,True,columns=8 display=8 print=8 export=8
+contract_payload,manufacturing.orders,manufacturing.orders,True,columns=8 display=8 print=8 export=8
+contract_payload,monitoring.health,monitoring.health,True,columns=4 display=4 print=4 export=4
+contract_payload,offline_queue.queue,offline_queue.queue,True,columns=4 display=4 print=4 export=4
+contract_payload,pos.lines,pos.lines,True,columns=11 display=4 print=8 export=6
+contract_payload,purchase_invoices.lines,purchase_invoices.lines,True,columns=13 display=13 print=13 export=13
+contract_payload,purchase_invoices.list,purchase_invoices.list,True,columns=9 display=9 print=9 export=9
+contract_payload,purchase_returns.lines,purchase_returns.lines,True,columns=15 display=15 print=15 export=15
+contract_payload,purchase_returns.list,purchase_returns.list,True,columns=9 display=9 print=9 export=9
+contract_payload,reports.result,reports.result,True,columns=10 display=10 print=10 export=10
+contract_payload,restaurant.kds_lines,restaurant.kds_lines,True,columns=4 display=4 print=4 export=4
+contract_payload,restaurant.kds_tickets,restaurant.kds_tickets,True,columns=6 display=6 print=6 export=6
+contract_payload,restaurant.kitchen_queue,restaurant.kitchen_queue,True,columns=6 display=6 print=6 export=6
+contract_payload,restaurant.order_lines,restaurant.order_lines,True,columns=11 display=4 print=5 export=7
+contract_payload,restaurant.tables,restaurant.tables,True,columns=5 display=5 print=5 export=5
+contract_payload,returns.lines,returns.lines,True,columns=15 display=15 print=15 export=15
+contract_payload,returns.list,returns.list,True,columns=9 display=9 print=9 export=9
+contract_payload,sales_invoices.lines,sales_invoices.lines,True,columns=12 display=12 print=12 export=12
+contract_payload,sales_invoices.list,sales_invoices.list,True,columns=10 display=10 print=10 export=10
+contract_payload,suppliers.suppliers,suppliers.suppliers,True,columns=4 display=4 print=4 export=4
+contract_payload,users.users,users.users,True,columns=6 display=6 print=6 export=6
+contract_payload,vouchers.list,vouchers.list,True,columns=6 display=6 print=6 export=6
+contract_payload,vouchers.voucher_lines,vouchers.voucher_lines,True,columns=6 display=6 print=6 export=6
+contract_payload,warehouses.balances,warehouses.balances,True,columns=7 display=7 print=7 export=7
+contract_payload,warehouses.movements,warehouses.movements,True,columns=8 display=8 print=8 export=8
+contract_payload,warehouses.transfers,warehouses.transfers,True,columns=9 display=9 print=9 export=9
+contract_payload,warehouses.warehouses,warehouses.warehouses,True,columns=8 display=8 print=8 export=8
+static_wiring,custom_table_identity_autobind,alrajhi_client/views/custom_table_view.py,True,table_column_contract_for_identity
+static_wiring,cashboxes_contract_identities,alrajhi_client/views/widgets/cashboxes_widget.py,True,cashboxes.cashboxes
+static_wiring,branches_contract_identity,alrajhi_client/views/widgets/branches_widget.py,True,branches.list
+static_wiring,reports_contract_identity,alrajhi_client/views/widgets/reports_widget.py,True,reports.result

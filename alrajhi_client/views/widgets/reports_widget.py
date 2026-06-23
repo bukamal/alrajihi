@@ -392,52 +392,52 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
 
     def setup_income_tab(self):
         layout = QVBoxLayout(self.income_tab)
-        self.income_table = SmartTableView()
+        self.income_table = SmartTableView(identity="reports.result")
         layout.addWidget(self.income_table)
 
     def setup_balance_tab(self):
         layout = QVBoxLayout(self.balance_tab)
-        self.balance_table = SmartTableView()
+        self.balance_table = SmartTableView(identity="reports.result")
         layout.addWidget(self.balance_table)
 
     def setup_warehouse_tabs(self):
         self.wh_valuation_status = QLabel()
         val_layout = QVBoxLayout(self.wh_valuation_tab)
         val_layout.addWidget(self.wh_valuation_status)
-        self.wh_valuation_table = SmartTableView()
+        self.wh_valuation_table = SmartTableView(identity="reports.result")
         val_layout.addWidget(self.wh_valuation_table)
 
         self.wh_balances_status = QLabel()
         bal_layout = QVBoxLayout(self.wh_balances_tab)
         bal_layout.addWidget(self.wh_balances_status)
-        self.wh_balances_table = SmartTableView()
+        self.wh_balances_table = SmartTableView(identity="warehouses.balances")
         bal_layout.addWidget(self.wh_balances_table)
 
         mov_layout = QVBoxLayout(self.wh_movements_tab)
-        self.wh_movements_table = SmartTableView()
+        self.wh_movements_table = SmartTableView(identity="warehouses.movements")
         mov_layout.addWidget(self.wh_movements_table)
 
         trans_layout = QVBoxLayout(self.wh_transfers_tab)
-        self.wh_transfers_table = SmartTableView()
+        self.wh_transfers_table = SmartTableView(identity="warehouses.transfers")
         trans_layout.addWidget(self.wh_transfers_table)
 
     def setup_cash_bank_tabs(self):
         self.cash_summary_status = QLabel()
         cash_layout = QVBoxLayout(self.cash_summary_tab)
         cash_layout.addWidget(self.cash_summary_status)
-        self.cash_summary_table = SmartTableView()
+        self.cash_summary_table = SmartTableView(identity="reports.result")
         cash_layout.addWidget(self.cash_summary_table)
 
         cash_mov_layout = QVBoxLayout(self.cash_movements_tab)
-        self.cash_movements_table = SmartTableView()
+        self.cash_movements_table = SmartTableView(identity="cashboxes.movements")
         cash_mov_layout.addWidget(self.cash_movements_table)
 
         bank_mov_layout = QVBoxLayout(self.bank_movements_tab)
-        self.bank_movements_table = SmartTableView()
+        self.bank_movements_table = SmartTableView(identity="cashboxes.movements")
         bank_mov_layout.addWidget(self.bank_movements_table)
 
         shifts_layout = QVBoxLayout(self.pos_shifts_tab)
-        self.pos_shifts_table = SmartTableView()
+        self.pos_shifts_table = SmartTableView(identity="cashboxes.shifts")
         shifts_layout.addWidget(self.pos_shifts_table)
 
     def setup_phase36_tabs(self):

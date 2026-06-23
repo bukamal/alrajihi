@@ -31,16 +31,16 @@ class CashboxesWidget(QWidget):
     def _cash_ui(self):
         layout=QVBoxLayout(self.cash_tab); bar=QHBoxLayout(); self.cash_search=QLineEdit(); self.cash_search.setPlaceholderText(tr('search_cashboxes')); self.cash_search.textChanged.connect(self.refresh_cashboxes)
         self.add_cashbox_btn=QPushButton(tr('add_cashbox')); self.add_cashbox_btn.clicked.connect(self.add_cashbox); self.edit_cashbox_btn=QPushButton(tr('edit')); self.edit_cashbox_btn.clicked.connect(self.edit_cashbox); self.archive_cashbox_btn=QPushButton(tr('archive')); self.archive_cashbox_btn.clicked.connect(self.archive_cashbox)
-        bar.addWidget(self.cash_search,1); bar.addWidget(self.add_cashbox_btn); bar.addWidget(self.edit_cashbox_btn); bar.addWidget(self.archive_cashbox_btn); layout.addLayout(bar); self.cash_table=SmartTableView(); self.cash_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.cash_table)
+        bar.addWidget(self.cash_search,1); bar.addWidget(self.add_cashbox_btn); bar.addWidget(self.edit_cashbox_btn); bar.addWidget(self.archive_cashbox_btn); layout.addLayout(bar); self.cash_table=SmartTableView(identity="cashboxes.cashboxes"); self.cash_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.cash_table)
     def _bank_ui(self):
         layout=QVBoxLayout(self.bank_tab); bar=QHBoxLayout(); self.bank_search=QLineEdit(); self.bank_search.setPlaceholderText(tr('search_banks')); self.bank_search.textChanged.connect(self.refresh_banks)
         self.add_bank_btn=QPushButton(tr('add_bank_account')); self.add_bank_btn.clicked.connect(self.add_bank); self.edit_bank_btn=QPushButton(tr('edit')); self.edit_bank_btn.clicked.connect(self.edit_bank); self.archive_bank_btn=QPushButton(tr('archive')); self.archive_bank_btn.clicked.connect(self.archive_bank)
-        bar.addWidget(self.bank_search,1); bar.addWidget(self.add_bank_btn); bar.addWidget(self.edit_bank_btn); bar.addWidget(self.archive_bank_btn); layout.addLayout(bar); self.bank_table=SmartTableView(); self.bank_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.bank_table)
+        bar.addWidget(self.bank_search,1); bar.addWidget(self.add_bank_btn); bar.addWidget(self.edit_bank_btn); bar.addWidget(self.archive_bank_btn); layout.addLayout(bar); self.bank_table=SmartTableView(identity="cashboxes.banks"); self.bank_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.bank_table)
     def _shift_ui(self):
-        layout=QVBoxLayout(self.shift_tab); bar=QHBoxLayout(); refresh=QPushButton(tr('refresh')); refresh.clicked.connect(self.refresh_shifts); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.shift_table=SmartTableView(); self.shift_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.shift_table)
+        layout=QVBoxLayout(self.shift_tab); bar=QHBoxLayout(); refresh=QPushButton(tr('refresh')); refresh.clicked.connect(self.refresh_shifts); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.shift_table=SmartTableView(identity="cashboxes.shifts"); self.shift_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.shift_table)
 
     def _mov_ui(self):
-        layout=QVBoxLayout(self.mov_tab); bar=QHBoxLayout(); refresh=QPushButton(tr('refresh')); refresh.clicked.connect(self.refresh_movements); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.mov_table=SmartTableView(); self.mov_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.mov_table)
+        layout=QVBoxLayout(self.mov_tab); bar=QHBoxLayout(); refresh=QPushButton(tr('refresh')); refresh.clicked.connect(self.refresh_movements); bar.addStretch(); bar.addWidget(refresh); layout.addLayout(bar); self.mov_table=SmartTableView(identity="cashboxes.movements"); self.mov_table.setSelectionBehavior(QTableView.SelectRows); layout.addWidget(self.mov_table)
     def set_global_filter(self, text: str):
         text = (text or '').strip().lower()
         # Generic visual filter for widgets that expose one or more Qt tables.

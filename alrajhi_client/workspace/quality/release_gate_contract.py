@@ -133,6 +133,11 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (338, "UNIFIED_BARCODE_PRINTING_PROFILES"),
         (339, "BARCODE_MULTI_PRINT_UI"),
         (340, "FINAL_UX_REGRESSION_GUARDS"),
+        (341, "SETTINGS_SURFACE_CONTRACT"),
+        (342, "SETTINGS_RUNTIME_WIRING_COLUMN_CUSTOMIZER"),
+        (343, "RUNTIME_APPLICATION_SWEEP"),
+        (344, "VISUAL_RUNTIME_POLISH_SWEEP"),
+        (345, "FULL_RUNTIME_ACCEPTANCE_PACKAGING_SMOKE"),
     ]
 )
 
@@ -231,6 +236,11 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (338, "unified_barcode_printing_profiles"),
         (339, "barcode_multi_print_ui"),
         (340, "final_ux_regression_guards"),
+        (341, "unified_settings_surface_contract"),
+        (342, "settings_runtime_wiring_column_customizer"),
+        (343, "runtime_application_sweep"),
+        (344, "visual_runtime_polish_sweep"),
+        (345, "full_runtime_acceptance_packaging_smoke"),
     ]
 )
 
@@ -312,6 +322,9 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("final_ux_regression_guards", "quality", "Final UX regression guard for shell/actions/columns/keyboard/barcode", "tools/phase340_final_ux_regression_guard.py", "tools/audit_outputs/final_ux_regression_matrix.csv", phase=340),
     ReleaseGateCheck("settings_surface_contract", "settings", "Unified settings surface for columns and barcode profiles", "tools/phase341_settings_surface_guard.py", "tools/audit_outputs/settings_surface_matrix.csv", phase=341),
     ReleaseGateCheck("settings_runtime_wiring", "settings", "Settings surface runtime wiring and column customizer integration", "tools/phase342_settings_runtime_wiring_guard.py", "tools/audit_outputs/settings_runtime_wiring_matrix.csv", phase=342),
+    ReleaseGateCheck("runtime_application_sweep", "ui", "Runtime application sweep for remaining table contracts", "tools/phase343_runtime_application_sweep_guard.py", "tools/audit_outputs/runtime_table_contract_sweep_matrix.csv", phase=343),
+    ReleaseGateCheck("visual_runtime_polish_sweep", "ui", "Visual runtime polish sweep for legacy and modern workspaces", "tools/phase344_visual_runtime_polish_guard.py", "tools/audit_outputs/visual_runtime_polish_matrix.csv", phase=344),
+    ReleaseGateCheck("full_runtime_acceptance_packaging_smoke", "quality", "Full runtime acceptance and packaging smoke matrix", "tools/phase345_full_runtime_acceptance_packaging_smoke.py", "tools/audit_outputs/full_runtime_acceptance_packaging_smoke_matrix.csv", phase=345),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

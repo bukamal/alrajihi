@@ -49,6 +49,7 @@ from workspace.registry import (
     navigation_menus,
 )
 from theme.brand import BRAND
+from ui.runtime_visual_polish import apply_runtime_visual_polish
 
 # Phase 331: page metadata is now owned by the central UI registry so
 # titles, breadcrumbs, navigation groups, shell action-bar rules and future
@@ -561,6 +562,16 @@ class MainWindow(QMainWindow):
         if hasattr(self.action_bar, 'apply_action_contract'):
             self.action_bar.apply_action_contract(keys, show_context=(manifest_id != 'dashboard'))
 
+    def _apply_runtime_visual_polish_for_tab(self, tab_id: str = '') -> None:
+        """Normalize legacy and modern page surfaces without changing data logic."""
+        try:
+            manifest_id = self._manifest_id_for_tab_id(tab_id or (self.workspace.current_page_id() if hasattr(self, 'workspace') else ''))
+            widget = self.workspace.currentWidget() if hasattr(self, 'workspace') else None
+            if widget is not None:
+                apply_runtime_visual_polish(widget, manifest_id)
+        except Exception:
+            pass
+
     def _on_workspace_page_changed(self, tab_id: str) -> None:
         tab_id = str(tab_id or '')
         title = page_title(tab_id) if tab_id in self.pages else self.workspace.tabText(self.workspace.currentIndex()) if hasattr(self, 'workspace') else ''
@@ -568,6 +579,7 @@ class MainWindow(QMainWindow):
             self.action_bar.set_context(title)
         self._apply_action_bar_contract_for_tab(tab_id)
         self._apply_current_document_permissions()
+        self._apply_runtime_visual_polish_for_tab(tab_id)
 
     def _can_invoke_current_tab_action(self, page, action: str) -> bool:
         if page is None:
@@ -747,6 +759,10 @@ class MainWindow(QMainWindow):
 
     def _open_document_tab(self, tab_id, title, widget, icon_name='fa5s.file-alt', singleton=False):
         self.workspace.open_tab(tab_id, title, widget, icon_name=icon_name, singleton=singleton)
+        try:
+            apply_runtime_visual_polish(widget, self._manifest_id_for_tab_id(tab_id))
+        except Exception:
+            pass
         if hasattr(widget, 'dirtyChanged'):
             widget.dirtyChanged.connect(lambda dirty, tid=tab_id: self.workspace.mark_dirty(tid, dirty))
         if hasattr(widget, 'titleChanged'):
@@ -1394,6 +1410,10 @@ class MainWindow(QMainWindow):
             # Phase 318 compatibility marker: self.action_bar.setVisible(pid != 'dashboard')
             self._apply_action_bar_contract_for_tab(pid)
             self._update_global_search_context(pid)
+            try:
+                apply_runtime_visual_polish(self.pages[pid], pid)
+            except Exception:
+                pass
             if hasattr(self.pages[pid], 'refresh'):
                 self.pages[pid].refresh()
 

@@ -954,6 +954,51 @@ def build_global_qss(colors: dict) -> str:
         QWidget#restaurantPOSWidget QTableView#restaurantOrderLines {{
             font-size: {value_px}px;
         }}
+
+
+        /* Phase 344: runtime visual polish sweep.  These selectors are driven
+           by safe dynamic properties applied by ui.runtime_visual_polish and
+           intentionally cover old and new workspaces without local QSS drift. */
+        QWidget[visualWorkspaceType="dashboard"], QWidget[visualWorkspaceType="list"],
+        QWidget[visualWorkspaceType="document"], QWidget[visualWorkspaceType="operational"],
+        QWidget[visualWorkspaceType="matrix"], QWidget[visualWorkspaceType="report"],
+        QWidget[visualWorkspaceType="settings"] {{
+            background-color: {colors['bg_window']};
+            color: {colors['text_primary']};
+        }}
+        QFrame[visualRole="card"], QGroupBox[visualRole="card"] {{
+            background-color: {colors['card_bg']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+        QTableView[visualRole="runtime_table"], QTableWidget[visualRole="runtime_table"] {{
+            background-color: {colors['bg_table']};
+            alternate-background-color: {colors['bg_table_alt']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            gridline-color: {colors['border']};
+        }}
+        QWidget[visualWorkspaceType="document"] QTableView[visualRole="runtime_table"],
+        QWidget[visualWorkspaceType="report"] QTableView[visualRole="runtime_table"] {{
+            font-size: {table_pt}pt;
+        }}
+        QWidget[visualWorkspaceType="operational"] QTableView[visualRole="runtime_table"] {{
+            font-size: {value_px}px;
+        }}
+        QPushButton[visualRole="dashboard_shortcut"], QPushButton[visualRole="operation_action"] {{
+            min-height: 44px;
+            padding: 10px 14px;
+            border-radius: {radius_md}px;
+            font-weight: 900;
+        }}
+        QPushButton[visualRole="document_action"], QPushButton[visualRole="list_action"],
+        QPushButton[visualRole="report_action"], QPushButton[visualRole="settings_action"],
+        QPushButton[visualRole="matrix_action"] {{
+            min-height: {BRAND.get('action_button_min_height', 38)}px;
+            padding: 8px 13px;
+            border-radius: {radius_sm}px;
+            font-weight: 800;
+        }}
     """
 
 
