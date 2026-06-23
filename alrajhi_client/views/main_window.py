@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog, QToolButton, QSizePolicy
+from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog, QToolButton, QSizePolicy, QStackedWidget
 from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer, QDateTime, QSize
 from PyQt5.QtGui import QIcon, QKeySequence
 import qtawesome as qta
@@ -230,6 +230,7 @@ class MainWindow(QMainWindow):
         self.resize(1400, 900)
         self.drag_pos = None
         self.workspace_state_store = WorkspaceStateStore()
+        self._dashboard_active = False
 
         set_language(self._current_language)
         theme = settings_service.get_theme()
@@ -310,9 +311,12 @@ class MainWindow(QMainWindow):
         workspace_shell_layout.setContentsMargins(0, 0, 0, 0)
         workspace_shell_layout.setSpacing(0)
 
-        self.workspace = TabbedWorkspace(workspace_shell)
+        self.workspace_host = QStackedWidget(workspace_shell)
+        self.workspace_host.setObjectName("WorkspaceHost")
+        self.workspace = TabbedWorkspace(self.workspace_host)
         self.stack = self.workspace  # compatibility alias during the tabbed-shell migration
-        workspace_shell_layout.addWidget(self.workspace, 1)
+        self.workspace_host.addWidget(self.workspace)
+        workspace_shell_layout.addWidget(self.workspace_host, 1)
 
         self.notification_center = NotificationCenter(workspace_shell)
         self.notification_center.actionRequested.connect(self.handle_notification_action)
@@ -321,6 +325,7 @@ class MainWindow(QMainWindow):
 
         self.pages = {}
         self.init_pages()
+        self._install_fixed_dashboard_surface()
 
         self.title_bar.mousePressEvent = self._mouse_press
         self.title_bar.mouseMoveEvent = self._mouse_move
@@ -383,6 +388,62 @@ class MainWindow(QMainWindow):
             page.setObjectName(key)
             page.setWindowTitle(page_title(key))
             self.pages[key] = page
+
+    def _install_fixed_dashboard_surface(self):
+        """Keep Dashboard as a fixed shell surface, never as a closable tab."""
+        dashboard = self.pages.get('dashboard')
+        if dashboard is None or not hasattr(self, 'workspace_host'):
+            return
+        dashboard.setProperty('fixedDashboardSurface', True)
+        dashboard.setProperty('visualRole', 'dashboard_fixed_surface')
+        dashboard.setWindowTitle('')
+        if self.workspace_host.indexOf(dashboard) < 0:
+            self.workspace_host.insertWidget(0, dashboard)
+        self.workspace_host.setCurrentWidget(dashboard)
+        self._dashboard_active = True
+
+    def _active_shell_page(self):
+        if getattr(self, '_dashboard_active', False):
+            return self.pages.get('dashboard')
+        return self.workspace.currentWidget() if hasattr(self, 'workspace') else None
+
+    def _active_page_id(self):
+        if getattr(self, '_dashboard_active', False):
+            return 'dashboard'
+        if hasattr(self, 'workspace'):
+            return self.workspace.current_page_id()
+        return None
+
+    def _show_fixed_dashboard(self, refresh=False):
+        dashboard = self.pages.get('dashboard') if hasattr(self, 'pages') else None
+        if dashboard is None:
+            return
+        self._dashboard_active = True
+        if hasattr(self, 'workspace_host') and self.workspace_host.indexOf(dashboard) >= 0:
+            self.workspace_host.setCurrentWidget(dashboard)
+        if hasattr(self, 'title_label'):
+            self.title_label.setText(translate('app_title'))
+        if hasattr(self, 'action_bar'):
+            self.action_bar.set_context('')
+        self._apply_action_bar_contract_for_tab('dashboard')
+        self._update_global_search_context('dashboard')
+        try:
+            apply_runtime_visual_polish(dashboard, 'dashboard')
+        except Exception:
+            pass
+        if refresh:
+            for method_name in ('refresh_all', 'refresh'):
+                if hasattr(dashboard, method_name):
+                    try:
+                        getattr(dashboard, method_name)()
+                    except Exception:
+                        pass
+                    break
+
+    def _activate_tabbed_workspace(self):
+        self._dashboard_active = False
+        if hasattr(self, 'workspace_host'):
+            self.workspace_host.setCurrentWidget(self.workspace)
 
     def _menu_callback_map(self):
         return {
@@ -487,6 +548,8 @@ class MainWindow(QMainWindow):
         try:
             self.workspace.currentPageChanged.connect(self._on_workspace_page_changed)
             self.workspace.currentChanged.connect(lambda _idx: self._apply_current_document_permissions())
+            self.workspace.emptyWorkspace.connect(lambda: self._show_fixed_dashboard(refresh=False))
+            self.workspace.tabClosed.connect(lambda _tab_id: self._ensure_workspace_or_dashboard())
         except Exception:
             pass
 
@@ -497,6 +560,14 @@ class MainWindow(QMainWindow):
         if hasattr(self.action_bar, 'apply_styles'):
             self.action_bar.apply_styles()
         self._apply_action_bar_contract_for_tab('dashboard')
+
+    def _ensure_workspace_or_dashboard(self):
+        if hasattr(self, 'workspace') and self.workspace.count() <= 0:
+            self._show_fixed_dashboard(refresh=False)
+        elif not getattr(self, '_dashboard_active', False):
+            current_id = self.workspace.current_page_id() if hasattr(self, 'workspace') else None
+            if current_id:
+                self._on_workspace_page_changed(current_id)
 
     def toggle_theme(self):
         current = settings_service.get_theme() or 'light'
@@ -515,7 +586,7 @@ class MainWindow(QMainWindow):
             return None
 
     def _apply_current_document_permissions(self):
-        page = self.stack.currentWidget() if hasattr(self, 'stack') else None
+        page = self._active_shell_page() if hasattr(self, '_active_shell_page') else (self.stack.currentWidget() if hasattr(self, 'stack') else None)
         if page is None:
             return
         try:
@@ -553,7 +624,7 @@ class MainWindow(QMainWindow):
     def _apply_action_bar_contract_for_tab(self, tab_id: str = '') -> None:
         if not hasattr(self, 'action_bar'):
             return
-        manifest_id = self._manifest_id_for_tab_id(tab_id or (self.workspace.current_page_id() if hasattr(self, 'workspace') else ''))
+        manifest_id = self._manifest_id_for_tab_id(tab_id or (self._active_page_id() if hasattr(self, '_active_page_id') else (self.workspace.current_page_id() if hasattr(self, 'workspace') else '')))
         visible = should_show_action_bar(manifest_id) if manifest_id in self.pages or manifest_id in PAGE_META_KEYS else True
         keys = effective_action_keys_for_page(manifest_id)
         if not keys:
@@ -565,14 +636,16 @@ class MainWindow(QMainWindow):
     def _apply_runtime_visual_polish_for_tab(self, tab_id: str = '') -> None:
         """Normalize legacy and modern page surfaces without changing data logic."""
         try:
-            manifest_id = self._manifest_id_for_tab_id(tab_id or (self.workspace.current_page_id() if hasattr(self, 'workspace') else ''))
-            widget = self.workspace.currentWidget() if hasattr(self, 'workspace') else None
+            manifest_id = self._manifest_id_for_tab_id(tab_id or (self._active_page_id() if hasattr(self, '_active_page_id') else (self.workspace.current_page_id() if hasattr(self, 'workspace') else '')))
+            widget = self._active_shell_page() if hasattr(self, '_active_shell_page') else (self.workspace.currentWidget() if hasattr(self, 'workspace') else None)
             if widget is not None:
                 apply_runtime_visual_polish(widget, manifest_id)
         except Exception:
             pass
 
     def _on_workspace_page_changed(self, tab_id: str) -> None:
+        if getattr(self, '_dashboard_active', False):
+            return
         tab_id = str(tab_id or '')
         title = page_title(tab_id) if tab_id in self.pages else self.workspace.tabText(self.workspace.currentIndex()) if hasattr(self, 'workspace') else ''
         if hasattr(self, 'action_bar'):
@@ -603,7 +676,7 @@ class MainWindow(QMainWindow):
 
     def refresh_current_view(self):
         """Refresh current page from the shell utility button."""
-        page = self.stack.currentWidget() if hasattr(self, 'stack') else None
+        page = self._active_shell_page() if hasattr(self, '_active_shell_page') else (self.stack.currentWidget() if hasattr(self, 'stack') else None)
         refreshed = False
         for method_name in ('refresh_all', 'refresh', 'load_data'):
             if page is not None and hasattr(page, method_name):
@@ -688,6 +761,13 @@ class MainWindow(QMainWindow):
             self.switch_page(action_key)
 
     def _set_page_context(self, pid):
+        if pid == 'dashboard':
+            if hasattr(self, 'title_label'):
+                self.title_label.setText(translate('app_title'))
+            if hasattr(self, 'action_bar'):
+                self.action_bar.set_context('')
+                self._apply_current_document_permissions()
+            return
         title, breadcrumb = page_title(pid), page_breadcrumb(pid)
         if hasattr(self, 'title_label'):
             self.title_label.setText(f"{translate('app_title')} — {title}")
@@ -758,6 +838,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
 
     def _open_document_tab(self, tab_id, title, widget, icon_name='fa5s.file-alt', singleton=False):
+        self._activate_tabbed_workspace()
         self.workspace.open_tab(tab_id, title, widget, icon_name=icon_name, singleton=singleton)
         try:
             apply_runtime_visual_polish(widget, self._manifest_id_for_tab_id(tab_id))
@@ -785,6 +866,44 @@ class MainWindow(QMainWindow):
         tab_id = self.workspace._widget_ids.get(widget) if hasattr(self.workspace, '_widget_ids') else None
         if tab_id:
             self.workspace.mark_dirty(tab_id, False)
+        # Phase 347: a successful Save closes the owning workspace tab.  The
+        # close is queued so feature-specific saved handlers can still refresh
+        # parent lists and rename tabs before the lifecycle manager removes the
+        # tab and falls back to the fixed Dashboard when needed.
+        try:
+            if self._should_close_tab_after_save(widget):
+                QTimer.singleShot(0, lambda w=widget: self._close_saved_document_tab(w))
+        except Exception:
+            pass
+
+    def _should_close_tab_after_save(self, widget) -> bool:
+        try:
+            if widget is None or not hasattr(self, 'workspace'):
+                return False
+            if getattr(widget, 'prevent_close_after_save', False):
+                return False
+            if getattr(widget, 'stay_open_after_save', False):
+                return False
+            return self.workspace.indexOf(widget) >= 0
+        except Exception:
+            return False
+
+    def _close_saved_document_tab(self, widget) -> bool:
+        try:
+            if widget is None or not hasattr(self, 'workspace'):
+                return False
+            index = self.workspace.indexOf(widget)
+            if index < 0:
+                return False
+            # Mark clean immediately before close so the just-saved document does
+            # not show an unnecessary discard prompt. close_tab_at owns neighbour
+            # selection and fixed-dashboard fallback.
+            tab_id = self.workspace._widget_ids.get(widget) if hasattr(self.workspace, '_widget_ids') else None
+            if tab_id:
+                self.workspace.mark_dirty(tab_id, False)
+            return bool(self.workspace.close_tab_at(index))
+        except Exception:
+            return False
 
     def open_item_document(self, item_id=None):
         try:
@@ -1261,7 +1380,7 @@ class MainWindow(QMainWindow):
             pass
 
     def _invoke_current_tab_command(self, command_names):
-        page = self.stack.currentWidget() if hasattr(self, 'stack') else None
+        page = self._active_shell_page() if hasattr(self, '_active_shell_page') else (self.stack.currentWidget() if hasattr(self, 'stack') else None)
         if page is None:
             return False
         action_map = {
@@ -1307,6 +1426,9 @@ class MainWindow(QMainWindow):
                 self.action_bar.set_alert_badge(0)
 
     def _current_page_id(self):
+        active_id = self._active_page_id() if hasattr(self, '_active_page_id') else None
+        if active_id:
+            return active_id
         current = self.stack.currentWidget() if hasattr(self, 'stack') else None
         for pid, widget in getattr(self, 'pages', {}).items():
             if widget is current:
@@ -1368,7 +1490,7 @@ class MainWindow(QMainWindow):
                 page.apply_theme_colors()
         if hasattr(self.action_bar, 'apply_styles'):
             self.action_bar.apply_styles()
-        self._apply_action_bar_contract_for_tab('dashboard')
+        self._apply_action_bar_contract_for_tab(self._active_page_id() or 'dashboard')
 
     def _mouse_press(self, event):
         if event.button() == Qt.LeftButton:
@@ -1392,6 +1514,8 @@ class MainWindow(QMainWindow):
             self.max_btn.setIcon(qta.icon('fa5s.window-restore'))
 
     def switch_page(self, pid):
+        if pid == 'dashboard':
+            return self._show_fixed_dashboard(refresh=True)
         if isinstance(pid, str) and pid.startswith('settings:'):
             section = pid.split(':', 1)[1]
             if not settings_section_enabled(section):
@@ -1404,6 +1528,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, page_title(pid), translate('module_disabled'))
             return
         if pid in self.pages:
+            self._activate_tabbed_workspace()
             self.workspace.open_singleton(pid, page_title(pid), self.pages[pid], self.workspace_icon_for_page(pid))
             self.workspace_state_store.add_recent(self._workspace_entry_for_page(pid))
             self._set_page_context(pid)

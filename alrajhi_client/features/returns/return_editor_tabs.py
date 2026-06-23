@@ -126,7 +126,7 @@ class _ReturnDocumentMixin:
         return payload
 
     def workspace_save(self) -> None:
-        self.actions_component.save()
+        self._save_return_document(close_after_save=False)
 
     def workspace_print(self) -> None:
         _ret_print_dialog(self, self.return_kind, 'direct')
@@ -134,11 +134,11 @@ class _ReturnDocumentMixin:
     def workspace_export(self) -> None:
         _ret_print_dialog(self, self.return_kind, 'direct')
 
-    def accept(self):
+    def _save_return_document(self, close_after_save: bool = False):
         ok, error_key = self.lines_component.validate()
         if not ok:
             QMessageBox.warning(self, translate('return_save_failed'), translate(error_key))
-            return
+            return False
         try:
             payload = self.document_payload()
             if getattr(self, 'edit_return_id', None):
@@ -154,9 +154,15 @@ class _ReturnDocumentMixin:
             self.saved.emit(saved_id or self.document_id)
             self.setWindowTitle(self.workspace_title().rstrip(' *'))
             self.titleChanged.emit(self.windowTitle())
-            QDialog.accept(self)
+            if close_after_save:
+                QDialog.accept(self)
+            return True
         except Exception as exc:
             QMessageBox.warning(self, translate('return_save_failed'), str(exc))
+            return False
+
+    def accept(self):
+        self._save_return_document(close_after_save=True)
 
 
 class SalesReturnEditorTab(_ReturnDocumentMixin, SalesReturnDialog):

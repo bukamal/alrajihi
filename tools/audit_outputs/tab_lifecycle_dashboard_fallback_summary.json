@@ -1,0 +1,14 @@
+{
+  "phase": 346,
+  "checks": 16,
+  "categories": {
+    "dashboard": 4,
+    "tabs": 7,
+    "save": 5
+  },
+  "issues": 0,
+  "issue_groups": 0,
+  "ready": true,
+  "issues_detail": {},
+  "matrix": "/mnt/data/phase347_work/tools/audit_outputs/tab_lifecycle_dashboard_fallback_matrix.csv"
+}

@@ -138,6 +138,8 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (343, "RUNTIME_APPLICATION_SWEEP"),
         (344, "VISUAL_RUNTIME_POLISH_SWEEP"),
         (345, "FULL_RUNTIME_ACCEPTANCE_PACKAGING_SMOKE"),
+        (346, "TAB_LIFECYCLE_DASHBOARD_FALLBACK"),
+        (347, "SAVE_CLOSES_TAB"),
     ]
 )
 
@@ -241,6 +243,8 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (343, "runtime_application_sweep"),
         (344, "visual_runtime_polish_sweep"),
         (345, "full_runtime_acceptance_packaging_smoke"),
+        (346, "tab_lifecycle_dashboard_fallback"),
+        (347, "save_closes_tab"),
     ]
 )
 
@@ -325,6 +329,8 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("runtime_application_sweep", "ui", "Runtime application sweep for remaining table contracts", "tools/phase343_runtime_application_sweep_guard.py", "tools/audit_outputs/runtime_table_contract_sweep_matrix.csv", phase=343),
     ReleaseGateCheck("visual_runtime_polish_sweep", "ui", "Visual runtime polish sweep for legacy and modern workspaces", "tools/phase344_visual_runtime_polish_guard.py", "tools/audit_outputs/visual_runtime_polish_matrix.csv", phase=344),
     ReleaseGateCheck("full_runtime_acceptance_packaging_smoke", "quality", "Full runtime acceptance and packaging smoke matrix", "tools/phase345_full_runtime_acceptance_packaging_smoke.py", "tools/audit_outputs/full_runtime_acceptance_packaging_smoke_matrix.csv", phase=345),
+    ReleaseGateCheck("tab_lifecycle_dashboard_fallback", "shell", "Fixed dashboard surface and safe tab-close lifecycle", "tools/phase346_tab_lifecycle_dashboard_fallback_guard.py", "tools/audit_outputs/tab_lifecycle_dashboard_fallback_matrix.csv", phase=346),
+    ReleaseGateCheck("save_closes_tab", "shell", "Successful Save closes the owning workspace tab", "tools/phase347_save_closes_tab_guard.py", "tools/audit_outputs/save_closes_tab_matrix.csv", phase=347),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

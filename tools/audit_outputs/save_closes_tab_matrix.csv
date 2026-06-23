@@ -1,0 +1,13 @@
+﻿key,category,title,status,detail
+dashboard_still_fixed_surface,dashboard,Dashboard remains a fixed shell surface and is not opened as a tab,pass,
+dashboard_has_no_tab_visual_label,dashboard,Dashboard clears action context/title and does not expose a visual tab label,pass,
+document_saved_signal_bound_once,save_close,Document tabs bind saved to MainWindow._on_document_saved,pass,
+save_success_queues_close,save_close,Successful Save queues a tab close after saved handlers finish,pass,
+save_close_opt_out_supported,save_close,Tabs may explicitly opt out with prevent_close_after_save/stay_open_after_save,pass,
+save_close_requires_real_tab,save_close,Only widgets currently inside TabbedWorkspace are closed after Save,pass,
+close_saved_uses_lifecycle_manager,save_close,"Save-close uses close_tab_at, not raw removeTab/close/accept",pass,
+close_saved_marks_clean_before_close,save_close,Saved tab is marked clean before close to avoid discard prompt,pass,
+global_save_does_not_directly_close,save_close,Ctrl+S invokes Save; closure is owned by saved-signal policy,pass,
+embedded_dialog_save_still_safe,save_close,Embedded dialog save avoids direct accept; shell closes the tab after saved emits,pass,
+return_workspace_save_still_emits_shell_close,save_close,Returns save through the document save path; saved signal triggers shell close,pass,
+tab_close_fallback_preserved,tabs,Closing the last tab still falls back to the fixed dashboard,pass,

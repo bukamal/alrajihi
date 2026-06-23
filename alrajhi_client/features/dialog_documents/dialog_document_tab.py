@@ -129,7 +129,10 @@ class DialogDocumentTab(BaseDocumentTab):
         return super().can_close()
 
     def workspace_save(self) -> None:
-        for name in ('workspace_save', 'save', 'on_save', 'accept'):
+        # Phase 346: a save command inside a tab must persist data only; it must
+        # not call QDialog.accept()/reject() because that closes the embedded
+        # widget and can leave a white workspace pane.
+        for name in ('save_without_closing', 'workspace_save', 'save', 'on_save', 'save_current'):
             method = getattr(self.dialog, name, None)
             if callable(method):
                 method()

@@ -79,4 +79,6 @@ settings_runtime_wiring,settings,Settings surface runtime wiring and column cust
 runtime_application_sweep,ui,Runtime application sweep for remaining table contracts,343,tools/phase343_runtime_application_sweep_guard.py,True,tools/audit_outputs/runtime_table_contract_sweep_matrix.csv,True,True
 visual_runtime_polish_sweep,ui,Visual runtime polish sweep for legacy and modern workspaces,344,tools/phase344_visual_runtime_polish_guard.py,True,tools/audit_outputs/visual_runtime_polish_matrix.csv,True,True
 full_runtime_acceptance_packaging_smoke,quality,Full runtime acceptance and packaging smoke matrix,345,tools/phase345_full_runtime_acceptance_packaging_smoke.py,True,tools/audit_outputs/full_runtime_acceptance_packaging_smoke_matrix.csv,True,True
+tab_lifecycle_dashboard_fallback,shell,Fixed dashboard surface and safe tab-close lifecycle,346,tools/phase346_tab_lifecycle_dashboard_fallback_guard.py,True,tools/audit_outputs/tab_lifecycle_dashboard_fallback_matrix.csv,True,True
+save_closes_tab,shell,Successful Save closes the owning workspace tab,347,tools/phase347_save_closes_tab_guard.py,True,tools/audit_outputs/save_closes_tab_matrix.csv,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

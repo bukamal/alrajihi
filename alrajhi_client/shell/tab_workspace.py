@@ -10,15 +10,25 @@ from PyQt5.QtWidgets import QMessageBox, QTabWidget, QWidget
 from i18n.translator import translate
 
 
+FIXED_SURFACE_TAB_IDS = {"dashboard"}
+
+
 class TabbedWorkspace(QTabWidget):
     """ERP workspace built on internal tabs instead of one-page-at-a-time windows.
 
     The class intentionally keeps a tiny compatibility surface with QStackedWidget
     (`currentWidget`, `setCurrentWidget`) so the legacy MainWindow can migrate in
     phases without rewriting every page at once.
+
+    Phase 346: fixed shell surfaces such as the dashboard are *not* tabs.  Closing
+    a tab always selects a valid neighbour or emits ``emptyWorkspace`` so the main
+    shell can return to the fixed dashboard surface instead of leaving a blank
+    white pane.
     """
 
     currentPageChanged = pyqtSignal(str)
+    tabClosed = pyqtSignal(str)
+    emptyWorkspace = pyqtSignal()
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -62,6 +72,11 @@ class TabbedWorkspace(QTabWidget):
         return self.open_tab(widget.objectName() or f"page_{id(widget)}", widget.windowTitle() or "", widget)
 
     def open_tab(self, tab_id: str, title: str, widget: QWidget, icon_name: str = "fa5s.folder-open", singleton: bool = True) -> int:
+        if tab_id in FIXED_SURFACE_TAB_IDS:
+            # The dashboard is a fixed shell surface owned by MainWindow.  It must
+            # never appear as a closable tab and must never contribute to session
+            # persistence.  Returning -1 makes accidental callers harmless.
+            return -1
         if singleton and tab_id in self._tab_ids:
             self.setCurrentWidget(self._tab_ids[tab_id])
             return self.currentIndex()
@@ -96,6 +111,8 @@ class TabbedWorkspace(QTabWidget):
         if widget is None:
             return False
         tab_id = self._widget_ids.get(widget, "")
+        if tab_id in FIXED_SURFACE_TAB_IDS:
+            return False
         if hasattr(widget, 'can_close') and not widget.can_close():
             return False
         if tab_id and self._dirty.get(tab_id):
@@ -108,6 +125,7 @@ class TabbedWorkspace(QTabWidget):
             )
             if reply != QMessageBox.Yes:
                 return False
+        next_index = index - 1 if index > 0 else 0
         self.removeTab(index)
         if tab_id:
             self._tab_ids.pop(tab_id, None)
@@ -115,12 +133,17 @@ class TabbedWorkspace(QTabWidget):
             self._meta.pop(tab_id, None)
         self._widget_ids.pop(widget, None)
         widget.setParent(None)
+        if self.count() > 0:
+            self.setCurrentIndex(min(next_index, self.count() - 1))
+        else:
+            self.emptyWorkspace.emit()
+        if tab_id:
+            self.tabClosed.emit(tab_id)
         return True
 
     def close_current_tab(self) -> bool:
         index = self.currentIndex()
         return False if index < 0 else self.close_tab_at(index)
-
 
     def open_tab_ids(self) -> List[str]:
         return [self._widget_ids.get(self.widget(index), "") for index in range(self.count()) if self.widget(index) is not None]
@@ -128,7 +151,7 @@ class TabbedWorkspace(QTabWidget):
     def tab_entry_data(self) -> List[Tuple[str, str, str, bool]]:
         entries: List[Tuple[str, str, str, bool]] = []
         for tab_id in self.open_tab_ids():
-            if not tab_id:
+            if not tab_id or tab_id in FIXED_SURFACE_TAB_IDS:
                 continue
             title, icon_name, singleton = self._meta.get(tab_id, (tab_id, "fa5s.folder-open", True))
             entries.append((tab_id, title, icon_name, singleton))

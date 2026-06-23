@@ -9,7 +9,13 @@ class ReturnActionsComponent:
         self.host = host
 
     def save(self) -> None:
-        self.host.accept()
+        # Phase 346: embedded tab save buttons persist only; they must not close
+        # the workspace tab.  Dialog-level accept remains available for true
+        # modal usages through host.accept().
+        if hasattr(self.host, '_save_return_document'):
+            self.host._save_return_document(close_after_save=False)
+        else:
+            self.host.accept()
 
     def print(self) -> None:
         self.host.workspace_print()

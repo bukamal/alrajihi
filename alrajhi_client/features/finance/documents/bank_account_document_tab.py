@@ -141,6 +141,6 @@ class BankAccountDocumentTab(BaseDocumentTab):
         while parent is not None:
             if hasattr(parent, 'indexOf') and hasattr(parent, 'removeTab'):
                 idx = parent.indexOf(self)
-                if idx >= 0 and self.can_close(): parent.removeTab(idx)
+                if idx >= 0 and self.can_close(): parent.close_tab_at(idx) if hasattr(parent, 'close_tab_at') else parent.removeTab(idx)
                 return
             parent = parent.parent()
