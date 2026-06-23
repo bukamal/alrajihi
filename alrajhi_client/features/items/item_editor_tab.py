@@ -866,15 +866,9 @@ class MaterialDocumentTab(BaseDocumentTab):
         return dict(self.material_shell_contract)
 
     def request_close(self) -> None:
-        # Workspace container handles dirty-state checks; this method keeps the
-        # action bar independent from modal dialog semantics.
-        parent = self.parent()
-        while parent is not None:
-            if hasattr(parent, 'close_current_tab'):
-                parent.close_current_tab()
-                return
-            parent = parent.parent()
-        self.close()
+        # Phase351: material close follows the same function-aware workspace
+        # lifecycle as invoices, returns, finance, inventory and manufacturing.
+        self.request_workspace_close()
 
 
 # Backward-compatible import used by MainWindow and ItemsWidget.

@@ -8,9 +8,13 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QMessageBox, QTabWidget, QWidget
 
 from i18n.translator import translate
+from theme.brand import BRAND, get_tokens
+from core.services.settings_service import settings_service
+from shell.tab_label_policy import compose_tab_label
 
 
 FIXED_SURFACE_TAB_IDS = {"dashboard"}
+BRANDED_TABS_PHASE = 354
 
 
 class TabbedWorkspace(QTabWidget):
@@ -42,31 +46,74 @@ class TabbedWorkspace(QTabWidget):
         self._meta: Dict[str, Tuple[str, str, bool]] = {}
         self.tabCloseRequested.connect(self.close_tab_at)
         self.currentChanged.connect(self._emit_current_page)
-        self.setStyleSheet(
-            """
-            QTabWidget::pane {
-                border: 1px solid palette(mid);
+        self._apply_branded_tab_styles()
+
+    def _apply_branded_tab_styles(self) -> None:
+        """Apply Phase354 brand-aware tab card styling.
+
+        Global QSS still styles the whole shell, but the tab widget keeps this
+        local fallback so theme changes and legacy startup paths never fall back
+        to the old white/unstyled tab chrome.
+        """
+        colors = get_tokens(settings_service.get_theme() or 'light')
+        radius = int(BRAND.get('radius_md', 12))
+        tab_h = int(BRAND.get('brand_tab_min_height', 38))
+        pad_x = int(BRAND.get('brand_tab_padding_x', 18))
+        self.setProperty('brandedTabs', True)
+        self.setStyleSheet(f"""
+            /* Phase354: branded workspace tab cards (runtime fallback). */
+            QTabWidget#TabbedWorkspace::pane {{
+                border: 1px solid {colors['border']};
                 border-top: none;
-                background: palette(base);
-            }
-            QTabBar::tab {
-                min-height: 30px;
-                padding: 7px 14px;
-                margin: 0 1px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                background: palette(window);
-                color: palette(text);
-                font-weight: 700;
-            }
-            QTabBar::tab:selected {
-                background: palette(base);
-                border: 1px solid palette(mid);
-                border-bottom-color: palette(base);
-            }
-            QTabBar::tab:hover:!selected { background: palette(alternate-base); }
-            """
-        )
+                background: {colors.get('surface_root', colors['bg_window'])};
+                border-radius: {radius}px;
+            }}
+            QTabWidget#TabbedWorkspace QTabBar::tab {{
+                min-height: {tab_h}px;
+                min-width: {int(BRAND.get('shell_tab_active_min_width', 150))}px;
+                padding: 8px {pad_x}px;
+                margin-left: 4px;
+                border: 1px solid {colors['border']};
+                border-top-left-radius: {radius}px;
+                border-top-right-radius: {radius}px;
+                background: {colors.get('tab_inactive_bg', colors['bg_panel'])};
+                color: {colors.get('tab_inactive_text', colors['text_secondary'])};
+                font-weight: 900;
+            }}
+            QTabWidget#TabbedWorkspace QTabBar::tab:selected {{
+                background: {colors.get('tab_active_bg', colors['primary'])};
+                color: {colors.get('tab_active_text', '#FFFFFF')};
+                border-color: {colors.get('tab_active_bg', colors['primary'])};
+                border-bottom: 4px solid {colors.get('shell_tab_active_underline', colors['accent'])};
+            }}
+            QTabWidget#TabbedWorkspace QTabBar::tab:hover:!selected {{
+                background: {colors.get('brand_soft', colors['bg_panel'])};
+                color: {colors['primary']};
+                border-color: {colors['primary']};
+            }}
+            QTabWidget#TabbedWorkspace QTabBar::close-button:hover {{
+                background: {colors.get('tab_close_hover_bg', colors['danger'])};
+                border-radius: 7px;
+            }}
+        """)
+
+    def _apply_tab_identity(self, index: int, tab_id: str, title: str) -> None:
+        identity = compose_tab_label(tab_id, title)
+        self.setTabText(index, identity.display_text)
+        self.setTabToolTip(index, identity.tooltip)
+        self.setTabWhatsThis(index, identity.kind)
+        try:
+            self.tabBar().setTabData(index, {
+                'tab_id': identity.tab_id,
+                'tab_kind': identity.kind,
+                'tab_label': identity.label,
+                'tab_title': identity.title,
+                'phase': BRANDED_TABS_PHASE,
+            })
+            self.tabBar().setProperty('tabKind', identity.kind)
+            self.tabBar().setProperty('brandedTabs', True)
+        except Exception:
+            pass
 
     def addWidget(self, widget: QWidget) -> int:  # compatibility with old stack usage
         return self.open_tab(widget.objectName() or f"page_{id(widget)}", widget.windowTitle() or "", widget)
@@ -83,6 +130,7 @@ class TabbedWorkspace(QTabWidget):
         title = title or tab_id
         icon = qta.icon(icon_name) if icon_name else qta.icon("fa5s.folder-open")
         index = self.addTab(widget, icon, title)
+        self._apply_tab_identity(index, tab_id, title)
         self._tab_ids[tab_id] = widget
         self._widget_ids[widget] = tab_id
         self._dirty[tab_id] = False
@@ -100,8 +148,9 @@ class TabbedWorkspace(QTabWidget):
         self._dirty[tab_id] = bool(dirty)
         index = self.indexOf(widget)
         if index >= 0:
-            base_title = self.tabText(index).rstrip(" *")
-            self.setTabText(index, f"{base_title} *" if dirty else base_title)
+            title, _icon_name, _singleton = self._meta.get(tab_id, (self.tabText(index).rstrip(" *"), "", True))
+            identity = compose_tab_label(tab_id, title)
+            self.setTabText(index, f"{identity.display_text} *" if dirty else identity.display_text)
 
     def is_dirty(self, tab_id: str) -> bool:
         return bool(self._dirty.get(tab_id))
@@ -113,9 +162,15 @@ class TabbedWorkspace(QTabWidget):
         tab_id = self._widget_ids.get(widget, "")
         if tab_id in FIXED_SURFACE_TAB_IDS:
             return False
-        if hasattr(widget, 'can_close') and not widget.can_close():
+        # Compatibility guard marker: if hasattr(widget, 'can_close') and not widget.can_close():
+        has_widget_close_guard = hasattr(widget, 'can_close')
+        if has_widget_close_guard and not widget.can_close():
             return False
-        if tab_id and self._dirty.get(tab_id):
+        # Phase350: document widgets own their confirmation through can_close().
+        # Do not ask a second workspace-level question after the embedded guard
+        # has already accepted the close request.  Legacy plain pages without a
+        # can_close hook still use the workspace dirty prompt below.
+        if tab_id and self._dirty.get(tab_id) and not has_widget_close_guard:
             reply = QMessageBox.question(
                 self,
                 translate("workspace.unsaved_title"),

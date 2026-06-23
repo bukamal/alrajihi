@@ -1,0 +1,66 @@
+key,category,description,status,detail
+brand_phase,tokens,BRAND phase advanced to branded shell runtime polish,pass,358
+light_shell_tokens,tokens,light palette includes Phase 354 shell tokens,pass,
+dark_shell_tokens,tokens,dark palette includes Phase 354 shell tokens,pass,
+shell_token_shell_tab_main_badge_bg,token,Badge surface for main workspace tabs.,pass,shell_tab_main_badge_bg
+shell_token_shell_tab_sub_badge_bg,token,Badge surface for document/sub-workspace tabs.,pass,shell_tab_sub_badge_bg
+shell_token_shell_tab_badge_text,token,Readable text color for tab type badges.,pass,shell_tab_badge_text
+shell_token_shell_tab_active_underline,token,Active tab underline/accent.,pass,shell_tab_active_underline
+shell_token_shell_menu_hover_bg,token,Hover surface for icon menu buttons and menu entries.,pass,shell_menu_hover_bg
+shell_token_shell_menu_open_bg,token,Pressed/open menu button surface.,pass,shell_menu_open_bg
+shell_token_shell_action_context_bg,token,Context label chip background.,pass,shell_action_context_bg
+shell_token_shell_action_primary_bg,token,Primary action button background.,pass,shell_action_primary_bg
+shell_token_shell_action_secondary_bg,token,Secondary action button background.,pass,shell_action_secondary_bg
+shell_token_shell_action_utility_bg,token,Utility button/user chip background.,pass,shell_action_utility_bg
+shell_object_TabbedWorkspace,object,Required shell runtime object name/property target.,pass,TabbedWorkspace
+shell_object_MainNavToolButton,object,Required shell runtime object name/property target.,pass,MainNavToolButton
+shell_object_UnifiedActionBar,object,Required shell runtime object name/property target.,pass,UnifiedActionBar
+shell_object_ActionBarContext,object,Required shell runtime object name/property target.,pass,ActionBarContext
+shell_object_ActionBarButton_save,object,Required shell runtime object name/property target.,pass,ActionBarButton_save
+shell_object_ActionBarButton_print,object,Required shell runtime object name/property target.,pass,ActionBarButton_print
+shell_object_ActionBarUtilityButton_theme,object,Required shell runtime object name/property target.,pass,ActionBarUtilityButton_theme
+shell_object_ActionBarUserLabel,object,Required shell runtime object name/property target.,pass,ActionBarUserLabel
+file_shell_identity,file,Required branded shell runtime file exists,pass,alrajhi_client/theme/shell_identity.py
+file_tab_label_policy,file,Required branded shell runtime file exists,pass,alrajhi_client/shell/tab_label_policy.py
+file_tab_workspace,file,Required branded shell runtime file exists,pass,alrajhi_client/shell/tab_workspace.py
+file_unified_action_bar,file,Required branded shell runtime file exists,pass,alrajhi_client/shell/unified_action_bar.py
+file_main_window,file,Required branded shell runtime file exists,pass,alrajhi_client/views/main_window.py
+file_qss,file,Required branded shell runtime file exists,pass,alrajhi_client/theme/qss.py
+qss_Phase354: branded workspace tab card,qss,QSS contains Phase354: branded workspace tab cards,pass,Phase354: branded workspace tab cards
+qss_QTabWidget#TabbedWorkspace::pane,qss,QSS contains QTabWidget#TabbedWorkspace::pane,pass,QTabWidget#TabbedWorkspace::pane
+"qss_QTabBar::tab[tabKind=""main""]",qss,"QSS contains QTabBar::tab[tabKind=""main""]",pass,"QTabBar::tab[tabKind=""main""]"
+"qss_QTabBar::tab[tabKind=""sub""]",qss,"QSS contains QTabBar::tab[tabKind=""sub""]",pass,"QTabBar::tab[tabKind=""sub""]"
+qss_Phase354: branded icon menu and acti,qss,QSS contains Phase354: branded icon menu and action bar runtime,pass,Phase354: branded icon menu and action bar runtime
+qss_QWidget#IconMenuBar,qss,QSS contains QWidget#IconMenuBar,pass,QWidget#IconMenuBar
+qss_QToolButton#MainNavToolButton,qss,QSS contains QToolButton#MainNavToolButton,pass,QToolButton#MainNavToolButton
+qss_QFrame#UnifiedActionBar,qss,QSS contains QFrame#UnifiedActionBar,pass,QFrame#UnifiedActionBar
+qss_QLabel#ActionBarContext,qss,QSS contains QLabel#ActionBarContext,pass,QLabel#ActionBarContext
+object_TabbedWorkspace,object_name,Required shell object name/role is present in runtime code,pass,TabbedWorkspace
+object_MainNavToolButton,object_name,Required shell object name/role is present in runtime code,pass,MainNavToolButton
+object_UnifiedActionBar,object_name,Required shell object name/role is present in runtime code,pass,UnifiedActionBar
+object_ActionBarContext,object_name,Required shell object name/role is present in runtime code,pass,ActionBarContext
+object_ActionBarButton_save,object_name,Required shell object name/role is present in runtime code,pass,ActionBarButton_save
+object_ActionBarButton_print,object_name,Required shell object name/role is present in runtime code,pass,ActionBarButton_print
+object_ActionBarUtilityButton_theme,object_name,Required shell object name/role is present in runtime code,pass,ActionBarUtilityButton_theme
+object_ActionBarUserLabel,object_name,Required shell object name/role is present in runtime code,pass,ActionBarUserLabel
+runtime_tab_label_policy_BRANDED_TAB_PHASE = 354,runtime,alrajhi_client/shell/tab_label_policy.py uses BRANDED_TAB_PHASE = 354,pass,BRANDED_TAB_PHASE = 354
+runtime_tab_label_policy_compose_tab_label,runtime,alrajhi_client/shell/tab_label_policy.py uses compose_tab_label,pass,compose_tab_label
+runtime_tab_label_policy_label_for_kind,runtime,alrajhi_client/shell/tab_label_policy.py uses label_for_kind,pass,label_for_kind
+runtime_tab_label_policy_رئيسي,runtime,alrajhi_client/shell/tab_label_policy.py uses رئيسي,pass,رئيسي
+runtime_tab_label_policy_فرعي,runtime,alrajhi_client/shell/tab_label_policy.py uses فرعي,pass,فرعي
+runtime_tab_workspace_BRANDED_TABS_PHASE = 354,runtime,alrajhi_client/shell/tab_workspace.py uses BRANDED_TABS_PHASE = 354,pass,BRANDED_TABS_PHASE = 354
+runtime_tab_workspace_compose_tab_label,runtime,alrajhi_client/shell/tab_workspace.py uses compose_tab_label,pass,compose_tab_label
+runtime_tab_workspace__apply_tab_identity,runtime,alrajhi_client/shell/tab_workspace.py uses _apply_tab_identity,pass,_apply_tab_identity
+runtime_tab_workspace_setTabToolTip,runtime,alrajhi_client/shell/tab_workspace.py uses setTabToolTip,pass,setTabToolTip
+runtime_tab_workspace_setTabData,runtime,alrajhi_client/shell/tab_workspace.py uses setTabData,pass,setTabData
+runtime_tab_workspace_brandedTabs,runtime,alrajhi_client/shell/tab_workspace.py uses brandedTabs,pass,brandedTabs
+runtime_unified_action_bar_BRANDED_ACTION_BAR_PHASE,runtime,alrajhi_client/shell/unified_action_bar.py uses BRANDED_ACTION_BAR_PHASE = 354,pass,BRANDED_ACTION_BAR_PHASE = 354
+runtime_unified_action_bar_shellChromeRole,runtime,alrajhi_client/shell/unified_action_bar.py uses shellChromeRole,pass,shellChromeRole
+runtime_unified_action_bar_ActionBarButton_save,runtime,alrajhi_client/shell/unified_action_bar.py uses ActionBarButton_save,pass,ActionBarButton_save
+runtime_unified_action_bar_ActionBarButton_print,runtime,alrajhi_client/shell/unified_action_bar.py uses ActionBarButton_print,pass,ActionBarButton_print
+runtime_unified_action_bar_Phase354: branded icon m,runtime,alrajhi_client/shell/unified_action_bar.py uses Phase354: branded icon menu and action bar runtime,pass,Phase354: branded icon menu and action bar runtime
+runtime_main_window_navigation_bar_styleshee,runtime,alrajhi_client/views/main_window.py uses navigation_bar_stylesheet,pass,navigation_bar_stylesheet
+runtime_main_window_shellChromeRole,runtime,alrajhi_client/views/main_window.py uses shellChromeRole,pass,shellChromeRole
+runtime_main_window_MainNavToolButton,runtime,alrajhi_client/views/main_window.py uses MainNavToolButton,pass,MainNavToolButton
+runtime_main_window_menuLabel,runtime,alrajhi_client/views/main_window.py uses menuLabel,pass,menuLabel
+runtime_main_window_Phase354: branded icon m,runtime,alrajhi_client/views/main_window.py uses Phase354: branded icon menu and action bar runtime,pass,Phase354: branded icon menu and action bar runtime

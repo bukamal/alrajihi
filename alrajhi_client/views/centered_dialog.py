@@ -4,6 +4,7 @@ from .frameless_dialog import FramelessDialog
 from PyQt5.QtWidgets import QMessageBox, QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QShortcut
+from ui.dialog_branding import branded_question
 from utils import focus_first_input
 
 class CenteredDialog(FramelessDialog):
@@ -33,7 +34,7 @@ class CenteredDialog(FramelessDialog):
     def _confirm_discard_changes(self) -> bool:
         if not getattr(self, '_dirty_tracking_enabled', False) or not getattr(self, '_dirty', False):
             return True
-        reply = QMessageBox.question(
+        reply = branded_question(
             self,
             'تغييرات غير محفوظة',
             'لديك تغييرات غير محفوظة. هل تريد الخروج دون حفظ؟',

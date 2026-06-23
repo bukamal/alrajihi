@@ -19,17 +19,31 @@ def build_global_qss(colors: dict) -> str:
     nav_px = BRAND.get('nav_font_px', 12)
     action_px = BRAND.get('action_button_font_px', 12)
     input_min = BRAND.get('input_min_height', 34)
+    footer_px = BRAND.get('transaction_footer_font_px', value_px)
+    footer_value_px = BRAND.get('transaction_footer_value_font_px', value_px)
+    footer_action_px = BRAND.get('transaction_footer_action_font_px', action_px)
+    footer_action_min = BRAND.get('transaction_footer_action_min_height', 44)
+    brand_table_row_height = BRAND.get('brand_table_row_height', 38)
+    brand_table_header_min_height = BRAND.get('brand_table_header_min_height', 42)
+    brand_table_current_border = BRAND.get('brand_table_current_border_px', 2)
+    transaction_footer_min = BRAND.get('transaction_footer_panel_min_height', 88)
+    transaction_summary_min = BRAND.get('transaction_footer_summary_min_height', 74)
+    transaction_button_min_width = BRAND.get('transaction_footer_button_min_width', 126)
     table_header_padding = BRAND.get('table_header_padding', 10)
     table_cell_padding = BRAND.get('table_cell_padding', 7)
+    tab_min_height = BRAND.get('brand_tab_min_height', 38)
+    tab_padding_x = BRAND.get('brand_tab_padding_x', 18)
+    brand_button_min = BRAND.get('brand_button_min_height', 42)
+    dialog_header_height = BRAND.get('brand_dialog_header_height', 58)
     return f"""
         QMainWindow, QDialog, QWidget {{
-            background-color: {colors['bg_window']};
+            background-color: {colors.get('surface_root', colors['bg_window'])};
             color: {colors['text_primary']};
             font-family: {font};
             font-size: {body_pt}pt;
         }}
         QFrame#sidebar, QFrame#MainFrame, QFrame#card, QGroupBox {{
-            background-color: {colors['bg_panel']};
+            background-color: {colors.get('surface_raised', colors['bg_panel'])};
             border: 1px solid {colors['border']};
             border-radius: {radius_md}px;
         }}
@@ -75,7 +89,7 @@ def build_global_qss(colors: dict) -> str:
             font-size: {value_px}px;
             font-weight: bold;
             padding: 10px 20px;
-            min-height: 40px;
+            min-height: {brand_button_min}px;
         }}
         QPushButton#primary:hover {{ background-color: {colors['primary_hover']}; }}
         QPushButton#secondary {{
@@ -100,8 +114,9 @@ def build_global_qss(colors: dict) -> str:
             selection-color: {colors['selection_text']};
         }}
         QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus, QComboBox:focus,
-        QSpinBox:focus, QDoubleSpinBox:focus {{
+        QSpinBox:focus, QDoubleSpinBox:focus, QDateEdit:focus {{
             border: 2px solid {colors['border_focus']};
+            background-color: {colors.get('input_focus_bg', colors['input_bg'])};
         }}
         QLineEdit[invalid="true"], QTextEdit[invalid="true"], QPlainTextEdit[invalid="true"],
         QComboBox[invalid="true"], QSpinBox[invalid="true"], QDoubleSpinBox[invalid="true"] {{
@@ -128,6 +143,25 @@ def build_global_qss(colors: dict) -> str:
             background-color: {colors['selection_bg']};
             color: {colors['selection_text']};
         }}
+
+        /* Phase349: active field highlight for editable entry grids. */
+        QTableView[standard_table_keyboard="true"]::item:focus,
+        QTableWidget[standard_table_keyboard="true"]::item:focus,
+        QTableView[current_cell_highlight="true"]::item:focus,
+        QTableWidget[current_cell_highlight="true"]::item:focus,
+        QTableView#TransactionLineGrid::item:focus {{
+            background-color: {colors.get('current_cell_bg', colors['warning_soft'])};
+            color: {colors['text_primary']};
+            border: 2px solid {colors.get('current_cell_border', colors['primary'])};
+        }}
+        QTableView[standard_table_keyboard="true"] QLineEdit:focus,
+        QTableWidget[standard_table_keyboard="true"] QLineEdit:focus,
+        QTableView#TransactionLineGrid QLineEdit:focus {{
+            background-color: {colors.get('current_cell_bg', colors['warning_soft'])};
+            border: 2px solid {colors.get('current_cell_border', colors['primary'])};
+            selection-background-color: {colors['primary']};
+            selection-color: white;
+        }}
         QTableCornerButton::section {{
             background-color: {colors['header_bg']};
             border: none;
@@ -147,29 +181,47 @@ def build_global_qss(colors: dict) -> str:
             background: {colors['primary_2']};
         }}
         QHeaderView::section {{
-            background-color: {colors['header_bg']};
-            color: {colors['header_text']};
+            background-color: {colors.get('table_header_bg', colors['header_bg'])};
+            color: {colors.get('table_header_text', colors['header_text'])};
             padding: {table_header_padding}px;
             border: none;
             border-bottom: 1px solid {colors['border']};
             font-weight: bold;
             text-align: center;
         }}
+        /* Phase352: branded main/sub tab labels. */
         QTabWidget::pane {{
             border: 1px solid {colors['border']};
-            background-color: {colors['bg_window']};
-            border-radius: {radius_sm}px;
+            background-color: {colors.get('surface_root', colors['bg_window'])};
+            border-radius: {radius_md}px;
+            top: -1px;
         }}
         QTabBar::tab {{
-            background-color: {colors['bg_panel']};
-            color: {colors['text_secondary']};
-            padding: 8px 16px;
-            margin-left: 2px;
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
+            background-color: {colors.get('tab_inactive_bg', colors['bg_panel'])};
+            color: {colors.get('tab_inactive_text', colors['text_secondary'])};
+            padding: 8px {tab_padding_x}px;
+            min-height: {tab_min_height}px;
+            margin-left: 3px;
+            border: 1px solid {colors['border']};
+            border-top-left-radius: {radius_md}px;
+            border-top-right-radius: {radius_md}px;
+            font-weight: 800;
         }}
-        QTabBar::tab:hover {{ background-color: {colors['brand_soft']}; color: {colors['primary']}; }}
-        QTabBar::tab:selected {{ background-color: {colors['primary']}; color: white; font-weight: bold; }}
+        QTabBar::tab:hover {{
+            background-color: {colors['brand_soft']};
+            color: {colors['primary']};
+            border-color: {colors['primary']};
+        }}
+        QTabBar::tab:selected {{
+            background-color: {colors.get('tab_active_bg', colors['primary'])};
+            color: {colors.get('tab_active_text', '#FFFFFF')};
+            border-color: {colors.get('tab_active_bg', colors['primary'])};
+            font-weight: 900;
+        }}
+        QTabBar::close-button:hover {{
+            background-color: {colors.get('tab_close_hover_bg', colors['danger'])};
+            border-radius: 7px;
+        }}
 
         /* Phase 73: safe table/tab coverage without runtime event filters. */
         QAbstractItemView {{
@@ -225,34 +277,41 @@ def build_global_qss(colors: dict) -> str:
             selection-color: {colors['selection_text']};
         }}
         QTabWidget QHeaderView::section, QDialog QHeaderView::section {{
-            background-color: {colors['header_bg']};
-            color: {colors['header_text']};
+            background-color: {colors.get('table_header_bg', colors['header_bg'])};
+            color: {colors.get('table_header_text', colors['header_text'])};
             border: none;
             border-left: 1px solid {colors['border']};
             padding: {table_header_padding}px;
             font-weight: bold;
         }}
 
+        /* Phase352: branded menu and action chrome. */
         QMenuBar {{
-            background-color: {colors['bg_panel']};
+            background-color: {colors.get('menu_bg', colors['bg_panel'])};
             color: {colors['text_primary']};
-            border-bottom: 1px solid {colors['border']};
+            border-bottom: 1px solid {colors.get('menu_border', colors['border'])};
             font-size: {nav_px}px;
-            font-weight: 800;
+            font-weight: 900;
+            min-height: 34px;
         }}
-        QMenuBar::item {{ padding: 10px 14px; border-radius: 8px; }}
-        QMenuBar::item:selected, QMenu::item:selected {{ background-color: {colors['primary']}; color: white; }}
+        QMenuBar::item {{ padding: 11px 16px; border-radius: {radius_sm}px; }}
+        QMenuBar::item:selected, QMenu::item:selected {{
+            background-color: {colors.get('menu_active_bg', colors['primary'])};
+            color: {colors.get('menu_active_text', '#FFFFFF')};
+        }}
         QMenu {{
-            background-color: {colors['bg_panel']};
+            background-color: {colors.get('menu_bg', colors['bg_panel'])};
             color: {colors['text_primary']};
-            border: 1px solid {colors['border']};
+            border: 1px solid {colors.get('menu_border', colors['border'])};
+            padding: 6px;
         }}
+        QMenu::item {{ min-height: 28px; padding: 7px 18px; border-radius: {radius_sm}px; }}
         QToolBar {{
-            background-color: {colors['bg_panel']};
+            background-color: {colors.get('action_bar_bg', colors['bg_panel'])};
             border: 1px solid {colors['border']};
             border-radius: {radius_md}px;
-            spacing: 6px;
-            padding: 6px;
+            spacing: 8px;
+            padding: 8px;
         }}
         QToolButton {{
             background-color: transparent;
@@ -267,10 +326,200 @@ def build_global_qss(colors: dict) -> str:
             background-color: {colors['brand_soft']};
             border-color: {colors['border']};
         }}
-        QFrame#startupCard, QFrame#loginCard, QFrame#activationCard, QFrame#brandCard {{
-            background-color: {colors['card_bg']};
+        /* Phase352: first-run and licensing identity surfaces. */
+        QFrame#startupCard {{
+            background-color: qlineargradient(x1:0,y1:0,x2:1,y2:1,
+                stop:0 {colors.get('brand_gradient_start', colors['primary'])},
+                stop:0.55 {colors.get('brand_gradient_mid', colors['primary_2'])},
+                stop:1 {colors.get('brand_gradient_end', colors['accent'])});
+            border: 1px solid rgba(255,255,255,0.24);
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#loginCard {{
+            background-color: {colors.get('login_card_bg', colors['card_bg'])};
             border: 1px solid {colors['border']};
             border-radius: {radius_lg}px;
+        }}
+        QFrame#activationCard {{
+            background-color: {colors.get('activation_card_bg', colors['card_bg'])};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#brandCard {{
+            background-color: {colors.get('surface_raised', colors['card_bg'])};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+        }}
+        QLabel#brandMark {{
+            background-color: {colors.get('brand_mark_bg', colors['brand_soft'])};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_lg}px;
+            padding: 8px;
+        }}
+        QLabel#licenseStatusBadge {{
+            background-color: {colors.get('license_status_bg', colors['info_soft'])};
+            color: {colors['info']};
+            border: 1px solid {colors['info']};
+            border-radius: 14px;
+            padding: 6px 12px;
+            font-weight: 900;
+        }}
+        /* Phase353: branded first-run split panels and runtime polish. */
+        QFrame#firstRunBrandPanel {{
+            background-color: qlineargradient(x1:0,y1:0,x2:1,y2:1,
+                stop:0 {colors.get('brand_gradient_start', colors['primary'])},
+                stop:0.54 {colors.get('brand_gradient_mid', colors['primary_2'])},
+                stop:1 {colors.get('brand_gradient_end', colors['accent'])});
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#firstRunFormPanel {{
+            background-color: {colors.get('first_run_form_bg', colors.get('login_card_bg', colors['card_bg']))};
+            border: 1px solid {colors.get('first_run_card_border', colors['border'])};
+            border-radius: {radius_lg}px;
+        }}
+        /* Phase358: stable centered login layout, no split overlap. */
+        QFrame#firstRunLoginHeader {{
+            background-color: {colors.get('first_run_login_header_bg', colors.get('first_run_form_bg', colors['card_bg']))};
+            border: 1px solid {colors.get('first_run_card_border', colors['border'])};
+            border-radius: {radius_lg}px;
+            min-height: 112px;
+        }}
+        QLabel#firstRunLoginLogo {{
+            background-color: {colors.get('brand_mark_bg', colors['brand_soft'])};
+            border: 1px solid {colors.get('first_run_card_border', colors['border'])};
+            border-radius: {radius_md}px;
+            padding: 6px;
+        }}
+        QLabel#firstRunLoginTitle {{
+            color: {colors['text_primary']};
+            font-size: {title_px}px;
+            font-weight: 900;
+        }}
+        QLabel#firstRunLoginSubtitle {{
+            color: {colors['text_secondary']};
+            font-size: {value_px}px;
+            line-height: 145%;
+        }}
+        QLabel#firstRunLoginModeChip {{
+            background-color: {colors.get('info_soft', colors['brand_soft'])};
+            color: {colors['info']};
+            border: 1px solid {colors['info']};
+            border-radius: 13px;
+            padding: 5px 10px;
+            font-weight: 800;
+            min-height: 26px;
+        }}
+        QFrame#loginOptionsPanel {{
+            background-color: {colors.get('surface_sunken', colors['bg_sidebar'])};
+            border: 1px solid {colors.get('first_run_card_border', colors['border'])};
+            border-radius: {radius_md}px;
+        }}
+        QFrame#loginSeparator {{
+            background-color: {colors.get('first_run_card_border', colors['border'])};
+            border: none;
+        }}
+        QComboBox#loginUsernameCombo, QComboBox#loginLanguageCombo, QLineEdit#loginPasswordEdit {{
+            min-height: 42px;
+            border-radius: {radius_md}px;
+            padding: 0 12px;
+        }}
+        QPushButton#loginPasswordToggle {{
+            background-color: {colors.get('first_run_secondary_bg', colors['bg_panel'])};
+            color: {colors['primary']};
+            border: 1px solid {colors.get('first_run_card_border', colors['border'])};
+            border-radius: {radius_md}px;
+        }}
+        QLabel#loginAdminWarning {{
+            color: {colors['warning']};
+            font-size: {caption_px + 1}px;
+            font-weight: 700;
+        }}
+        QLabel#loginFooter {{
+            color: {colors['text_muted']};
+            font-size: {caption_px}px;
+            font-weight: 700;
+        }}
+        QLabel#firstRunHeroTitle {{
+            color: {colors.get('first_run_panel_text', '#FFFFFF')};
+            font-size: {hero_px + 2}px;
+            font-weight: 900;
+            letter-spacing: 0.3px;
+        }}
+        QLabel#firstRunSubtitle {{
+            color: {colors.get('first_run_panel_muted', 'rgba(255,255,255,0.76)')};
+            font-size: {value_px}px;
+            line-height: 150%;
+        }}
+        QLabel#firstRunChip, QLabel#firstRunStageChip {{
+            background-color: {colors.get('first_run_chip_bg', 'rgba(255,255,255,0.16)')};
+            color: {colors.get('first_run_chip_text', '#FFFFFF')};
+            border: 1px solid rgba(255,255,255,0.20);
+            border-radius: 14px;
+            padding: 6px 11px;
+            font-weight: 800;
+            min-height: {BRAND.get('first_run_chip_height', 30)}px;
+        }}
+        QLabel#firstRunFooter {{
+            color: {colors.get('first_run_footer_text', 'rgba(255,255,255,0.58)')};
+            font-size: {caption_px}px;
+            font-weight: 700;
+        }}
+        QLabel#firstRunFormTitle {{
+            color: {colors['text_primary']};
+            font-size: {title_px}px;
+            font-weight: 900;
+        }}
+        QLabel#firstRunFormSubtitle {{
+            color: {colors['text_secondary']};
+            font-size: {value_px}px;
+        }}
+        QPushButton#firstRunPrimary {{
+            background-color: {colors.get('first_run_primary_bg', colors['primary'])};
+            color: white;
+            border: none;
+            border-radius: {radius_md}px;
+            padding: 11px 22px;
+            font-size: {value_px + 1}px;
+            font-weight: 900;
+            min-height: {BRAND.get('first_run_primary_button_height', brand_button_min)}px;
+        }}
+        QPushButton#firstRunPrimary:hover {{ background-color: {colors['primary_hover']}; }}
+        QPushButton#firstRunSecondary {{
+            background-color: {colors.get('first_run_secondary_bg', colors['bg_panel'])};
+            color: {colors['primary']};
+            border: 1px solid {colors['primary']};
+            border-radius: {radius_md}px;
+            padding: 9px 16px;
+            font-weight: 900;
+            min-height: {BRAND.get('first_run_secondary_button_height', brand_button_min)}px;
+        }}
+        QFrame#activationDevicePanel {{
+            background-color: {colors.get('activation_device_bg', colors['info_soft'])};
+            border: 1px solid {colors.get('first_run_card_border', colors['border'])};
+            border-radius: {radius_md}px;
+            min-height: {BRAND.get('first_run_device_panel_height', 92)}px;
+        }}
+        QLabel#activationDeviceTitle {{
+            color: {colors['primary']};
+            font-weight: 900;
+            font-size: {value_px}px;
+        }}
+        QLabel#activationDeviceLine {{
+            color: {colors['text_secondary']};
+            font-size: {caption_px + 1}px;
+        }}
+        QProgressBar#firstRunProgressTrack {{
+            background-color: {colors.get('splash_progress_bg', 'rgba(255,255,255,0.24)')};
+            border: none;
+            border-radius: 7px;
+            min-height: 14px;
+            color: white;
+            font-weight: 800;
+        }}
+        QProgressBar#firstRunProgressTrack::chunk {{
+            background-color: {colors.get('splash_progress_chunk', '#FFFFFF')};
+            border-radius: 7px;
         }}
         QLabel#heroTitle {{
             font-size: {hero_px}px;
@@ -294,6 +543,205 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['text_primary']};
         }}
         QProgressBar::chunk {{ background-color: {colors['primary']}; border-radius: 6px; }}
+
+        /* Phase352: branded dialogs and system windows. */
+        QDialog QFrame#dialogHeader, QFrame#DialogHeader {{
+            min-height: {dialog_header_height}px;
+            background-color: {colors.get('dialog_header_bg', colors['brand_soft'])};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QDialog QWidget#dialogFooter, QFrame#DialogFooter {{
+            background-color: {colors.get('dialog_footer_bg', colors['bg_window'])};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px;
+        }}
+        QMessageBox, QFileDialog, QColorDialog {{
+            background-color: {colors.get('dialog_bg', colors['bg_panel'])};
+            color: {colors['text_primary']};
+        }}
+        QDialog QPushButton, QMessageBox QPushButton {{
+            min-height: {brand_button_min}px;
+            padding: 9px 18px;
+            font-weight: 900;
+        }}
+
+
+        /* Phase349: unified invoice-like footer summary and bottom actions. */
+        QFrame#TransactionFooterPanel {{
+            background-color: {colors['bg_panel']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 6px;
+        }}
+        QFrame#TransactionHorizontalSummaryFrame,
+        QFrame#TransactionHorizontalPaymentFrame {{
+            background-color: {colors.get('transaction_summary_bg', colors['card_bg'])};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 4px;
+            min-height: 68px;
+        }}
+        QLabel#TransactionSummaryCaption,
+        QLabel#TransactionPaymentCaption {{
+            color: {colors['text_secondary']};
+            font-size: {footer_px}px;
+            font-weight: 800;
+        }}
+        QLabel#TransactionSummaryValue {{
+            color: {colors.get('transaction_summary_value', colors['primary'])};
+            font-size: {footer_value_px}px;
+            font-weight: 900;
+            min-width: 72px;
+        }}
+        QFrame#TransactionHorizontalPaymentFrame QComboBox,
+        QFrame#TransactionHorizontalPaymentFrame QDoubleSpinBox {{
+            min-height: 36px;
+            font-size: {footer_px}px;
+            font-weight: 800;
+        }}
+        QPushButton#TransactionFooterMiniButton {{
+            min-height: 36px;
+            padding: 7px 12px;
+            font-size: {footer_px}px;
+            font-weight: 900;
+            border-radius: {radius_sm}px;
+        }}
+        QWidget#TransactionBottomActionBar {{
+            background-color: {colors['bg_panel']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            padding: 8px;
+        }}
+        QWidget#TransactionBottomActionBar QPushButton {{
+            min-height: {footer_action_min}px;
+            padding: 10px 18px;
+            font-size: {footer_action_px}px;
+            font-weight: 900;
+            border-radius: {radius_md}px;
+        }}
+        QWidget#TransactionBottomActionBar QPushButton[transaction_action="save"],
+        QWidget#TransactionBottomActionBar QPushButton[transaction_action="print"],
+        QWidget#TransactionBottomActionBar QPushButton[transaction_action="update"] {{
+            background-color: {colors.get('transaction_action_bg', colors['primary'])};
+            color: white;
+            border-color: {colors.get('transaction_action_bg', colors['primary'])};
+        }}
+        QWidget#TransactionBottomActionBar QPushButton[transaction_action="delete"] {{
+            background-color: {colors['danger_soft']};
+            color: {colors['danger']};
+            border-color: {colors['danger']};
+        }}
+
+
+        /* Phase355: branded table surface and active editable cell. */
+        QTableView[brand_table_surface="true"],
+        QTableWidget[brand_table_surface="true"],
+        QTreeView[brand_table_surface="true"] {{
+            background-color: {colors.get('bg_table', colors['bg_panel'])};
+            alternate-background-color: {colors.get('bg_table_alt', colors['surface_sunken'])};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            gridline-color: {colors['border']};
+            selection-background-color: {colors['selection_bg']};
+            selection-color: {colors['selection_text']};
+        }}
+        QTableView[brand_table_surface="true"]::item,
+        QTableWidget[brand_table_surface="true"]::item,
+        QTreeView[brand_table_surface="true"]::item {{
+            min-height: {brand_table_row_height}px;
+            padding: {table_cell_padding + 1}px {table_cell_padding + 3}px;
+        }}
+        QTableView[brand_table_surface="true"]::item:hover,
+        QTableWidget[brand_table_surface="true"]::item:hover {{
+            background-color: {colors.get('table_row_hover_bg', colors['brand_soft'])};
+        }}
+        QTableView[brand_entry_table="true"]::item:focus,
+        QTableWidget[brand_entry_table="true"]::item:focus,
+        QTableView[standard_table_keyboard="true"]::item:focus,
+        QTableWidget[standard_table_keyboard="true"]::item:focus,
+        QTableView[current_cell_highlight="true"]::item:focus,
+        QTableWidget[current_cell_highlight="true"]::item:focus,
+        QTableView#TransactionLineGrid::item:focus {{
+            background-color: {colors.get('table_current_bg', colors.get('current_cell_bg', colors['warning_soft']))};
+            color: {colors.get('table_current_text', colors['text_primary'])};
+            border: {brand_table_current_border}px solid {colors.get('table_current_border', colors.get('current_cell_border', colors['primary']))};
+            font-weight: 900;
+        }}
+        QTableView[brand_entry_table="true"] QLineEdit:focus,
+        QTableWidget[brand_entry_table="true"] QLineEdit:focus,
+        QTableView#TransactionLineGrid QLineEdit:focus {{
+            background-color: {colors.get('table_current_bg', colors.get('current_cell_bg', colors['warning_soft']))};
+            color: {colors.get('table_current_text', colors['text_primary'])};
+            border: {brand_table_current_border}px solid {colors.get('table_focus_ring', colors['primary'])};
+            selection-background-color: {colors['primary']};
+            selection-color: white;
+        }}
+        QHeaderView::section {{
+            min-height: {brand_table_header_min_height}px;
+            border-bottom: 3px solid {colors.get('table_header_line', colors.get('brand_gold', colors['primary']))};
+        }}
+
+        /* Phase355: branded transaction footer and bottom commands. */
+        QFrame#TransactionFooterPanel {{
+            min-height: {transaction_footer_min}px;
+            background-color: {colors.get('transaction_footer_surface', colors['bg_panel'])};
+            border: 1px solid {colors.get('transaction_footer_summary_border', colors['border'])};
+            border-radius: {radius_lg}px;
+            padding: 8px;
+        }}
+        QFrame#TransactionHorizontalSummaryFrame,
+        QFrame#TransactionHorizontalPaymentFrame {{
+            min-height: {transaction_summary_min}px;
+            background-color: {colors.get('transaction_footer_summary_bg', colors.get('transaction_summary_bg', colors['card_bg']))};
+            border: 1px solid {colors.get('transaction_footer_summary_border', colors['border'])};
+            border-radius: {radius_md}px;
+            padding: 6px;
+        }}
+        QLabel#TransactionSummaryCaption,
+        QLabel#TransactionPaymentCaption {{
+            color: {colors.get('transaction_footer_label', colors['text_secondary'])};
+            font-size: {footer_px}px;
+            font-weight: 900;
+            min-height: 18px;
+        }}
+        QLabel#TransactionSummaryValue {{
+            color: {colors.get('transaction_footer_value', colors.get('transaction_summary_value', colors['primary']))};
+            font-size: {footer_value_px + 1}px;
+            font-weight: 950;
+            min-width: 84px;
+            min-height: 24px;
+        }}
+        QTextEdit#TransactionFooterNotes {{
+            min-height: 72px;
+            background-color: {colors.get('transaction_footer_summary_bg', colors.get('transaction_summary_bg', colors['card_bg']))};
+            border: 1px solid {colors.get('transaction_footer_summary_border', colors['border'])};
+            border-radius: {radius_md}px;
+            font-size: {footer_px}px;
+            padding: 8px;
+        }}
+        QWidget#TransactionBottomActionBar QPushButton {{
+            min-height: {footer_action_min + 4}px;
+            min-width: {transaction_button_min_width}px;
+            padding: 11px 20px;
+            font-size: {footer_action_px + 1}px;
+            font-weight: 950;
+            border-radius: {radius_md}px;
+        }}
+        QWidget#TransactionBottomActionBar QPushButton[transaction_action="save"],
+        QWidget#TransactionBottomActionBar QPushButton[transaction_action="print"],
+        QWidget#TransactionBottomActionBar QPushButton[transaction_action="update"] {{
+            background-color: {colors.get('transaction_footer_primary_bg', colors.get('transaction_action_bg', colors['primary']))};
+            color: white;
+            border-color: {colors.get('transaction_footer_primary_bg', colors.get('transaction_action_bg', colors['primary']))};
+        }}
+        QWidget#TransactionBottomActionBar QPushButton[transaction_action="close"],
+        QWidget#TransactionBottomActionBar QPushButton[transaction_action="create"] {{
+            background-color: {colors.get('transaction_footer_secondary_bg', colors.get('transaction_close_bg', colors['bg_panel']))};
+            color: {colors['text_primary']};
+            border-color: {colors.get('transaction_footer_summary_border', colors['border'])};
+        }}
 
         /* Phase 24: modern restaurant touch UI. */
         QWidget#restaurantDashboard {{
@@ -956,6 +1404,211 @@ def build_global_qss(colors: dict) -> str:
         }}
 
 
+        /* Phase354: branded workspace tab cards.  Runtime labels include
+           a visible main/sub badge text; these selectors provide the identity
+           surface for both QTabWidget and TabbedWorkspace. */
+        QTabWidget#TabbedWorkspace::pane {{
+            border: 1px solid {colors['border']};
+            border-top: none;
+            background-color: {colors.get('surface_root', colors['bg_window'])};
+            border-radius: {radius_lg}px;
+        }}
+        QTabWidget#TabbedWorkspace QTabBar::tab,
+        QTabBar::tab[tabKind="main"],
+        QTabBar::tab[tabKind="sub"] {{
+            min-height: {BRAND.get('brand_tab_min_height', 38)}px;
+            min-width: {BRAND.get('shell_tab_active_min_width', 150)}px;
+            padding: 8px {BRAND.get('brand_tab_padding_x', 18)}px;
+            margin-left: 4px;
+            border: 1px solid {colors['border']};
+            border-top-left-radius: {radius_md}px;
+            border-top-right-radius: {radius_md}px;
+            background-color: {colors.get('tab_inactive_bg', colors['bg_panel'])};
+            color: {colors.get('tab_inactive_text', colors['text_secondary'])};
+            font-weight: 900;
+        }}
+        QTabWidget#TabbedWorkspace QTabBar::tab:selected {{
+            background-color: {colors.get('tab_active_bg', colors['primary'])};
+            color: {colors.get('tab_active_text', '#FFFFFF')};
+            border-color: {colors.get('tab_active_bg', colors['primary'])};
+            border-bottom: 4px solid {colors.get('shell_tab_active_underline', colors['accent'])};
+        }}
+        QTabWidget#TabbedWorkspace QTabBar::tab:hover:!selected {{
+            background-color: {colors.get('brand_soft', colors['bg_table_alt'])};
+            color: {colors['primary']};
+            border-color: {colors['primary']};
+        }}
+
+        /* Phase354: branded icon menu and action bar runtime. */
+        QWidget#IconMenuBar {{
+            background-color: {colors.get('menu_bg', colors['bg_panel'])};
+            border-bottom: 1px solid {colors.get('menu_border', colors['border'])};
+        }}
+        QToolButton#MainNavToolButton {{
+            border-radius: {BRAND.get('shell_menu_button_radius', 16)}px;
+            font-weight: 950;
+        }}
+        QToolButton#MainNavToolButton:hover {{
+            background-color: {colors.get('shell_menu_hover_bg', colors.get('brand_soft', colors['bg_table_alt']))};
+            color: {colors['primary']};
+            border-color: {colors['primary']};
+        }}
+        QFrame#UnifiedActionBar {{
+            background-color: {colors.get('action_bar_bg', colors['bg_panel'])};
+            border-bottom: 1px solid {colors['border']};
+        }}
+        QLabel#ActionBarContext {{
+            background-color: {colors.get('shell_action_context_bg', colors['bg_panel'])};
+            color: {colors['primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+            min-width: {BRAND.get('shell_action_context_min_width', 180)}px;
+            padding: 7px 12px;
+            font-weight: 950;
+        }}
+        QFrame#UnifiedActionBar QToolButton[shellChromeRole="primary"] {{
+            background-color: {colors.get('shell_action_primary_bg', colors['primary'])};
+            color: white;
+            border-color: {colors.get('shell_action_primary_bg', colors['primary'])};
+            min-width: {BRAND.get('shell_action_primary_min_width', 112)}px;
+            font-weight: 950;
+        }}
+        QFrame#UnifiedActionBar QToolButton[shellChromeRole="secondary"] {{
+            background-color: {colors.get('shell_action_secondary_bg', colors['bg_panel'])};
+        }}
+        QFrame#UnifiedActionBar QToolButton[shellChromeRole="utility"],
+        QLabel#ActionBarUserLabel[shellChromeRole="user"] {{
+            background-color: {colors.get('shell_action_utility_bg', colors['bg_panel'])};
+            color: {colors['text_secondary']};
+        }}
+
+
+
+
+        /* Phase356: branded dialogs and system windows. */
+        QDialog[brandDialog="true"], QMessageBox[brandDialog="true"] {{
+            background-color: {colors.get('dialog_overlay_bg', colors.get('surface_root', colors['bg_window']))};
+            color: {colors['text_primary']};
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#BrandDialogFrame {{
+            background-color: {colors.get('dialog_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('dialog_panel_border', colors['border'])};
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#BrandDialogHeader {{
+            min-height: {dialog_header_height}px;
+            background-color: {colors.get('brand_navy', colors['primary'])};
+            color: {colors.get('dialog_header_text', '#FFFFFF')};
+            border-top-left-radius: {radius_lg}px;
+            border-top-right-radius: {radius_lg}px;
+            border-bottom: 3px solid {colors.get('dialog_accent_line', colors.get('brand_gold', colors['warning']))};
+        }}
+        QLabel#BrandDialogTitle {{
+            color: {colors.get('dialog_header_text', '#FFFFFF')};
+            font-size: {title_px}px;
+            font-weight: 950;
+            background: transparent;
+        }}
+        QWidget[dialogSurface="body"] {{
+            background-color: {colors.get('dialog_bg', colors['bg_panel'])};
+            color: {colors['text_primary']};
+            border-bottom-left-radius: {radius_lg}px;
+            border-bottom-right-radius: {radius_lg}px;
+        }}
+        QWidget[dialogSurface="footer"], QDialogButtonBox[dialogSurface="footer"] {{
+            background-color: {colors.get('dialog_footer_bg', colors['bg_window'])};
+            border-top: 1px solid {colors['border']};
+            padding: 10px;
+        }}
+        QFrame#ModernPageHeader[dialogSurface="headerCard"], QFrame#BrandDialogHeaderCard {{
+            background-color: {colors.get('dialog_header_bg', colors['brand_soft'])};
+            border: 1px solid {colors.get('dialog_panel_border', colors['border'])};
+            border-right: 5px solid {colors.get('dialog_accent_line', colors.get('brand_gold', colors['warning']))};
+            border-radius: {radius_md}px;
+        }}
+        QDialog[brandDialog="true"] QLabel#ModernPageTitle,
+        QDialog[brandDialog="true"] QLabel[dialogLabelRole="title"] {{
+            color: {colors.get('dialog_title_text', colors['primary'])};
+            font-size: {title_px}px;
+            font-weight: 950;
+        }}
+        QDialog[brandDialog="true"] QLabel#ModernPageSubtitle,
+        QDialog[brandDialog="true"] QLabel[dialogLabelRole="subtitle"] {{
+            color: {colors.get('dialog_subtitle_text', colors['text_secondary'])};
+            font-size: {caption_px + 1}px;
+        }}
+        QDialog[brandDialog="true"] QPushButton,
+        QMessageBox[brandDialog="true"] QPushButton {{
+            min-height: {BRAND.get('dialog_action_min_height', 42)}px;
+            min-width: {BRAND.get('dialog_action_min_width', 104)}px;
+            border-radius: {radius_md}px;
+            font-size: {action_px}px;
+            font-weight: 900;
+            padding: 8px 16px;
+        }}
+        QPushButton[dialogActionRole="primary"] {{
+            background-color: {colors.get('dialog_primary_bg', colors['primary'])};
+            color: white;
+            border: 1px solid {colors.get('dialog_primary_bg', colors['primary'])};
+            min-width: {BRAND.get('dialog_primary_min_width', 126)}px;
+        }}
+        QPushButton[dialogActionRole="primary"]:hover {{
+            background-color: {colors['primary_hover']};
+            border-color: {colors['primary_hover']};
+        }}
+        QPushButton[dialogActionRole="secondary"] {{
+            background-color: {colors.get('dialog_secondary_bg', colors['bg_panel'])};
+            color: {colors['text_primary']};
+            border: 1px solid {colors['border']};
+        }}
+        QPushButton[dialogActionRole="close"] {{
+            background-color: {colors.get('dialog_close_bg', colors['bg_panel'])};
+            color: {colors['text_secondary']};
+            border: 1px solid {colors['border']};
+        }}
+        QPushButton[dialogActionRole="danger"] {{
+            background-color: {colors.get('dialog_danger_bg', colors['danger_soft'])};
+            color: {colors['danger']};
+            border: 1px solid {colors['danger']};
+        }}
+        QMessageBox QLabel {{
+            color: {colors['text_primary']};
+            font-size: {value_px}px;
+            font-weight: 750;
+            padding: 8px;
+        }}
+        QMessageBox QLabel#qt_msgbox_label {{
+            color: {colors['text_primary']};
+        }}
+        QMessageBox[dialogKind="message_warning"] {{
+            background-color: {colors.get('dialog_warning_bg', colors['warning_soft'])};
+        }}
+        QMessageBox[dialogKind="message_error"] {{
+            background-color: {colors.get('dialog_danger_bg', colors['danger_soft'])};
+        }}
+        QFrame#ToastNotification {{
+            border-radius: {radius_md}px;
+            border: 1px solid {colors['border']};
+            border-right: 5px solid {colors.get('dialog_accent_line', colors['accent'])};
+        }}
+        QFrame#ToastNotification[toastType="success"] {{
+            background-color: {colors.get('toast_success_bg', colors['success_soft'])};
+            color: {colors.get('toast_success_text', colors['success'])};
+        }}
+        QFrame#ToastNotification[toastType="info"] {{
+            background-color: {colors.get('toast_info_bg', colors['info_soft'])};
+            color: {colors.get('toast_info_text', colors['info'])};
+        }}
+        QFrame#ToastNotification[toastType="warning"] {{
+            background-color: {colors.get('toast_warning_bg', colors['warning_soft'])};
+            color: {colors.get('toast_warning_text', colors['warning'])};
+        }}
+        QFrame#ToastNotification[toastType="error"] {{
+            background-color: {colors.get('toast_error_bg', colors['danger_soft'])};
+            color: {colors.get('toast_error_text', colors['danger'])};
+        }}
+
         /* Phase 344: runtime visual polish sweep.  These selectors are driven
            by safe dynamic properties applied by ui.runtime_visual_polish and
            intentionally cover old and new workspaces without local QSS drift. */
@@ -1018,5 +1671,11 @@ def print_css_tokens(colors: dict) -> str:
             --arj-success: {colors['success']};
             --arj-warning: {colors['warning']};
             --arj-danger: {colors['danger']};
+            --arj-brand-ink: {colors.get('brand_ink', colors['text_primary'])};
+            --arj-brand-navy: {colors.get('brand_navy', colors['primary'])};
+            --arj-brand-blue: {colors.get('brand_blue', colors['primary'])};
+            --arj-brand-teal: {colors.get('brand_teal', colors['accent'])};
+            --arj-brand-gold: {colors.get('brand_gold', colors['warning'])};
+            --arj-brand-sand: {colors.get('brand_sand', colors['bg_window'])};
         }}
     """

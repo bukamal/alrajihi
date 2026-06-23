@@ -235,9 +235,5 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
             QMessageBox.warning(self, translate('printing'), str(exc))
 
     def _close_parent_tab(self) -> None:
-        parent = self.parent()
-        while parent is not None:
-            if hasattr(parent, 'close_current_tab'):
-                parent.close_current_tab(); return
-            parent = parent.parent()
-        self.close()
+        # Phase351: inventory transfer close uses the shared workspace lifecycle.
+        self.request_workspace_close()

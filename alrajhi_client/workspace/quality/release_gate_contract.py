@@ -140,6 +140,16 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (345, "FULL_RUNTIME_ACCEPTANCE_PACKAGING_SMOKE"),
         (346, "TAB_LIFECYCLE_DASHBOARD_FALLBACK"),
         (347, "SAVE_CLOSES_TAB"),
+        (348, "EDITABLE_ENTRY_RETURN_UNIFICATION"),
+        (349, "TRANSACTION_ENTRY_CASH_FOOTER_POLISH"),
+        (350, "INTERNAL_CLOSE_BUTTON_TAB_LIFECYCLE"),
+        (351, "FUNCTION_CLOSE_LIFECYCLE_UNIFICATION"),
+        (352, "BRAND_IDENTITY_VISUAL_SYSTEM"),
+        (353, "BRANDED_LOGIN_SPLASH_ACTIVATION_RUNTIME"),
+        (354, "BRANDED_TABS_MENU_ACTION_BAR"),
+        (355, "BRANDED_TABLES_TRANSACTION_FOOTER"),
+        (356, "BRANDED_DIALOGS_SYSTEM_WINDOWS"),
+        (358, "LOGIN_LAYOUT_STABILITY_HOTFIX"),
     ]
 )
 
@@ -245,6 +255,16 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (345, "full_runtime_acceptance_packaging_smoke"),
         (346, "tab_lifecycle_dashboard_fallback"),
         (347, "save_closes_tab"),
+        (348, "editable_entry_return_unification"),
+        (349, "transaction_entry_cash_footer"),
+        (350, "internal_close_button_tab_lifecycle"),
+        (351, "function_close_lifecycle_unification"),
+        (352, "brand_identity_visual_system"),
+        (353, "branded_login_splash_activation_runtime"),
+        (354, "branded_shell_runtime"),
+        (355, "branded_tables_transaction_footer"),
+        (356, "branded_dialogs_system_windows"),
+        (358, "login_layout_stability"),
     ]
 )
 
@@ -331,6 +351,16 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("full_runtime_acceptance_packaging_smoke", "quality", "Full runtime acceptance and packaging smoke matrix", "tools/phase345_full_runtime_acceptance_packaging_smoke.py", "tools/audit_outputs/full_runtime_acceptance_packaging_smoke_matrix.csv", phase=345),
     ReleaseGateCheck("tab_lifecycle_dashboard_fallback", "shell", "Fixed dashboard surface and safe tab-close lifecycle", "tools/phase346_tab_lifecycle_dashboard_fallback_guard.py", "tools/audit_outputs/tab_lifecycle_dashboard_fallback_matrix.csv", phase=346),
     ReleaseGateCheck("save_closes_tab", "shell", "Successful Save closes the owning workspace tab", "tools/phase347_save_closes_tab_guard.py", "tools/audit_outputs/save_closes_tab_matrix.csv", phase=347),
+    ReleaseGateCheck("editable_entry_return_unification", "ui", "Text focus, editable grid entry focus, and return document unification", "tools/phase348_editable_entry_return_unification_guard.py", "tools/audit_outputs/editable_entry_return_unification_matrix.csv", phase=348),
+    ReleaseGateCheck("transaction_entry_cash_footer_polish", "ui", "Editable current-cell highlight, cash party fallback, and unified transaction footer/actions", "tools/phase349_transaction_entry_cash_footer_guard.py", "tools/audit_outputs/transaction_entry_cash_footer_matrix.csv", phase=349),
+    ReleaseGateCheck("function_close_lifecycle", "shell", "Function close lifecycle unification", "tools/phase351_function_close_lifecycle_guard.py", "tools/audit_outputs/function_close_lifecycle_matrix.csv", phase=351),
+    ReleaseGateCheck("brand_identity_visual_system", "ui", "Brand identity token system for logo-inspired UI", "tools/phase352_brand_identity_visual_guard.py", "tools/audit_outputs/brand_identity_visual_matrix.csv", phase=352),
+    ReleaseGateCheck("branded_first_run_runtime", "ui", "Branded login/splash/activation runtime polish", "tools/phase353_branded_first_run_runtime_guard.py", "tools/audit_outputs/branded_first_run_runtime_matrix.csv", phase=353),
+    ReleaseGateCheck("branded_shell_runtime", "shell", "Branded tabs, menu and action bar runtime polish", "tools/phase354_branded_shell_runtime_guard.py", "tools/audit_outputs/branded_shell_runtime_matrix.csv", phase=354),
+    ReleaseGateCheck("branded_tables_transaction_footer", "ui", "Branded tables and transaction footer runtime polish", "tools/phase355_branded_tables_transaction_footer_guard.py", "tools/audit_outputs/branded_tables_transaction_footer_matrix.csv", phase=355),
+    ReleaseGateCheck("branded_dialogs_system_windows", "ui", "Branded dialogs and system-window runtime polish", "tools/phase356_branded_dialogs_system_windows_guard.py", "tools/audit_outputs/branded_dialogs_system_windows_matrix.csv", phase=356),
+    ReleaseGateCheck("qss_runtime_safety_hotfix", "ui", "QSS runtime f-string safety hotfix", "tools/phase357_qss_runtime_safety_hotfix_guard.py", "tools/audit_outputs/qss_runtime_safety_matrix.csv", phase=357),
+    ReleaseGateCheck("login_layout_stability", "ui", "Stable branded login layout without overlapping controls", "tools/phase358_login_layout_stability_guard.py", "tools/audit_outputs/login_layout_stability_matrix.csv", phase=358),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

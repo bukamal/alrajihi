@@ -1,0 +1,45 @@
+key,category,description,status,detail
+brand_phase,tokens,BRAND phase advanced to first-run runtime polish,pass,358
+light_first_run_tokens,tokens,light palette includes Phase 353 first-run tokens,pass,
+dark_first_run_tokens,tokens,dark palette includes Phase 353 first-run tokens,pass,
+surface_splash,surface,"Startup splash with logo, progress, stage chips and calm branded gradient.",pass,
+surface_login,surface,Split login surface: brand side panel plus focused credentials form.,pass,
+surface_activation,surface,"License activation surface with product identity, status and device context.",pass,
+file_first_run_identity,file,Required first-run runtime file exists,pass,alrajhi_client/theme/first_run_identity.py
+file_first_run_branding,file,Required first-run runtime file exists,pass,alrajhi_client/ui/first_run_branding.py
+file_splash_screen,file,Required first-run runtime file exists,pass,alrajhi_client/views/splash_screen.py
+file_login_dialog,file,Required first-run runtime file exists,pass,alrajhi_client/views/dialogs/login_dialog.py
+file_activation_dialog,file,Required first-run runtime file exists,pass,alrajhi_client/views/dialogs/activation_dialog.py
+qss_Phase353: branded first-run spli,qss,QSS contains Phase353: branded first-run split panels and runtime polish,pass,Phase353: branded first-run split panels and runtime polish
+qss_QFrame#firstRunBrandPanel,qss,QSS contains QFrame#firstRunBrandPanel,pass,QFrame#firstRunBrandPanel
+qss_QFrame#firstRunFormPanel,qss,QSS contains QFrame#firstRunFormPanel,pass,QFrame#firstRunFormPanel
+qss_QLabel#firstRunHeroTitle,qss,QSS contains QLabel#firstRunHeroTitle,pass,QLabel#firstRunHeroTitle
+qss_QPushButton#firstRunPrimary,qss,QSS contains QPushButton#firstRunPrimary,pass,QPushButton#firstRunPrimary
+qss_QFrame#activationDevicePanel,qss,QSS contains QFrame#activationDevicePanel,pass,QFrame#activationDevicePanel
+qss_QProgressBar#firstRunProgressTra,qss,QSS contains QProgressBar#firstRunProgressTrack,pass,QProgressBar#firstRunProgressTrack
+object_activationCard,object_name,First-run object name is present in runtime screens/helpers,pass,activationCard
+object_activationDevicePanel,object_name,First-run object name is present in runtime screens/helpers,pass,activationDevicePanel
+object_firstRunBrandPanel,object_name,First-run object name is present in runtime screens/helpers,pass,firstRunBrandPanel
+object_firstRunFormPanel,object_name,First-run object name is present in runtime screens/helpers,pass,firstRunFormPanel
+object_firstRunPrimary,object_name,First-run object name is present in runtime screens/helpers,pass,firstRunPrimary
+object_firstRunProgressTrack,object_name,First-run object name is present in runtime screens/helpers,pass,firstRunProgressTrack
+object_firstRunStageChip,object_name,First-run object name is present in runtime screens/helpers,pass,firstRunStageChip
+object_licenseStatusBadge,object_name,First-run object name is present in runtime screens/helpers,pass,licenseStatusBadge
+object_loginCard,object_name,First-run object name is present in runtime screens/helpers,pass,loginCard
+object_startupCard,object_name,First-run object name is present in runtime screens/helpers,pass,startupCard
+runtime_first_run_branding_FIRST_RUN_RUNTIME_PHAS,runtime,alrajhi_client/ui/first_run_branding.py uses FIRST_RUN_RUNTIME_PHASE = 353,pass,FIRST_RUN_RUNTIME_PHASE = 353
+runtime_first_run_branding_brand_side_panel,runtime,alrajhi_client/ui/first_run_branding.py uses brand_side_panel,pass,brand_side_panel
+runtime_first_run_branding_first_run_form_panel,runtime,alrajhi_client/ui/first_run_branding.py uses first_run_form_panel,pass,first_run_form_panel
+runtime_first_run_branding_activation_device_pane,runtime,alrajhi_client/ui/first_run_branding.py uses activation_device_panel,pass,activation_device_panel
+runtime_first_run_branding_set_first_run_primary,runtime,alrajhi_client/ui/first_run_branding.py uses set_first_run_primary,pass,set_first_run_primary
+runtime_splash_screen_apply_first_run_surfac,runtime,"alrajhi_client/views/splash_screen.py uses apply_first_run_surface(self.container, 'splash')",pass,"apply_first_run_surface(self.container, 'splash')"
+runtime_splash_screen_firstRunStageChip,runtime,alrajhi_client/views/splash_screen.py uses firstRunStageChip,pass,firstRunStageChip
+runtime_splash_screen_firstRunProgressTrack,runtime,alrajhi_client/views/splash_screen.py uses firstRunProgressTrack,pass,firstRunProgressTrack
+runtime_login_dialog_brand_side_panel(,runtime,alrajhi_client/views/dialogs/login_dialog.py uses brand_side_panel(,pass,brand_side_panel(
+runtime_login_dialog_first_run_form_panel(),runtime,alrajhi_client/views/dialogs/login_dialog.py uses first_run_form_panel(),pass,first_run_form_panel()
+runtime_login_dialog_set_first_run_primary,runtime,alrajhi_client/views/dialogs/login_dialog.py uses set_first_run_primary,pass,set_first_run_primary
+"runtime_login_dialog_firstRunSurface', 'log",runtime,"alrajhi_client/views/dialogs/login_dialog.py uses firstRunSurface', 'login'",pass,"firstRunSurface', 'login'"
+runtime_activation_dialog_brand_side_panel(,runtime,alrajhi_client/views/dialogs/activation_dialog.py uses brand_side_panel(,pass,brand_side_panel(
+runtime_activation_dialog_activation_device_pane,runtime,alrajhi_client/views/dialogs/activation_dialog.py uses activation_device_panel,pass,activation_device_panel
+runtime_activation_dialog_set_first_run_primary,runtime,alrajhi_client/views/dialogs/activation_dialog.py uses set_first_run_primary,pass,set_first_run_primary
+"runtime_activation_dialog_firstRunSurface', 'act",runtime,"alrajhi_client/views/dialogs/activation_dialog.py uses firstRunSurface', 'activation'",pass,"firstRunSurface', 'activation'"

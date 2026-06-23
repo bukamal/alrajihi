@@ -161,10 +161,13 @@ def tab_lifecycle_checks(root: Path | None = None) -> List[TabLifecycleCheck]:
         _check(
             "legacy_parent_tab_close_uses_lifecycle",
             "tabs",
-            "Legacy document close buttons call close_tab_at when available",
-            "close_tab_at(idx)" in _text("alrajhi_client/features/inventory/documents/warehouse_document_tab.py", base)
-            and "close_tab_at(idx)" in _text("alrajhi_client/features/finance/documents/cashbox_document_tab.py", base)
-            and "close_tab_at(idx)" in _text("alrajhi_client/features/finance/documents/bank_account_document_tab.py", base),
+            "Legacy document close buttons call the unified workspace lifecycle",
+            ("request_workspace_close()" in _text("alrajhi_client/features/inventory/documents/warehouse_document_tab.py", base)
+             or "close_tab_at(idx)" in _text("alrajhi_client/features/inventory/documents/warehouse_document_tab.py", base))
+            and ("request_workspace_close()" in _text("alrajhi_client/features/finance/documents/cashbox_document_tab.py", base)
+                 or "close_tab_at(idx)" in _text("alrajhi_client/features/finance/documents/cashbox_document_tab.py", base))
+            and ("request_workspace_close()" in _text("alrajhi_client/features/finance/documents/bank_account_document_tab.py", base)
+                 or "close_tab_at(idx)" in _text("alrajhi_client/features/finance/documents/bank_account_document_tab.py", base)),
         ),
     ]
 

@@ -202,24 +202,30 @@ class TransactionLineModel(QAbstractTableModel):
         }
 
     def return_validation_errors(self) -> list[str]:
-        """Validate return quantities in base units to survive unit changes."""
+        """Validate assisted and manual return quantities.
+
+        Phase348 keeps strict original-invoice limits when a row was loaded from
+        an invoice, but allows manual return rows entered from the same material
+        grid used by sales/purchase documents.
+        """
         errors: list[str] = []
         seen_original_lines = set()
         for row_number, row in enumerate(self.lines, start=1):
             if not row.get("item_id") and self._decimal(row.get("qty")) <= 0:
                 continue
             original_line_id = row.get("original_invoice_line_id")
-            if row.get("item_id") and not original_line_id:
-                errors.append(tr("transaction_return_line_missing_original", row=row_number))
-                continue
-            if original_line_id in seen_original_lines:
-                errors.append(tr("transaction_return_line_duplicate_original", row=row_number))
-            seen_original_lines.add(original_line_id)
+            if original_line_id:
+                if original_line_id in seen_original_lines:
+                    errors.append(tr("transaction_return_line_duplicate_original", row=row_number))
+                seen_original_lines.add(original_line_id)
             qty = self._decimal(row.get("qty"))
             if qty < 0:
                 errors.append(tr("transaction_return_line_negative_qty", row=row_number))
                 continue
             if qty == 0:
+                continue
+            if not original_line_id:
+                # Manual return: no original invoice ceiling is available.
                 continue
             factor = self._positive_decimal(row.get("conversion_factor") or 1)
             base_qty = qty * factor

@@ -48,7 +48,7 @@ from workspace.registry import (
     effective_action_keys_for_page,
     navigation_menus,
 )
-from theme.brand import BRAND
+from theme.brand import BRAND, get_tokens
 from ui.runtime_visual_polish import apply_runtime_visual_polish
 
 # Phase 331: page metadata is now owned by the central UI registry so
@@ -120,42 +120,59 @@ DOCUMENT_TAB_PREFIXES = (
 
 
 def navigation_bar_stylesheet() -> str:
+    colors = get_tokens(settings_service.get_theme() or 'light')
+    radius = int(BRAND.get('shell_menu_button_radius', 16))
     return f"""
+        /* Phase354: branded icon menu and action bar runtime. */
         QWidget#IconMenuBar {{
-            background-color: palette(window);
-            border-bottom: 1px solid palette(mid);
+            background-color: {colors.get('menu_bg', colors['bg_panel'])};
+            border-bottom: 1px solid {colors.get('menu_border', colors['border'])};
         }}
         QToolButton#MainNavToolButton {{
             background: transparent;
             border: 1px solid transparent;
-            border-radius: 14px;
-            padding: 6px 8px;
+            border-radius: {radius}px;
+            padding: 7px 9px;
             font-size: {NAV_FONT_PX}px;
-            font-weight: 900;
-            color: palette(text);
+            font-weight: 950;
+            color: {colors['text_primary']};
         }}
         QToolButton#MainNavToolButton:hover {{
-            background: palette(alternate-base);
-            border-color: palette(mid);
+            background: {colors.get('shell_menu_hover_bg', colors.get('brand_soft', colors['bg_table_alt']))};
+            border-color: {colors['primary']};
+            color: {colors['primary']};
+        }}
+        QToolButton#MainNavToolButton:pressed,
+        QToolButton#MainNavToolButton[popupMode="1"]:checked {{
+            background: {colors.get('shell_menu_open_bg', colors.get('brand_soft', colors['bg_table_alt']))};
+            border-color: {colors.get('brand_gold', colors['warning'])};
         }}
         QToolButton#MainNavToolButton::menu-indicator {{ image: none; width: 0px; }}
         QMenu {{
-            padding: 8px;
-            border: 1px solid palette(mid);
-            border-radius: 10px;
+            background: {colors.get('menu_bg', colors['bg_panel'])};
+            color: {colors['text_primary']};
+            padding: 9px;
+            border: 1px solid {colors.get('menu_border', colors['border'])};
+            border-radius: 12px;
             font-size: {NAV_FONT_PX}px;
-            font-weight: 700;
+            font-weight: 800;
         }}
         QMenu::item {{
-            padding: 10px 38px 10px 24px;
-            border-radius: 8px;
-            min-width: 210px;
+            padding: 11px 40px 11px 24px;
+            border-radius: 9px;
+            min-width: 230px;
         }}
         QMenu::item:selected {{
-            background: palette(highlight);
-            color: palette(highlighted-text);
+            background: {colors.get('menu_active_bg', colors['primary'])};
+            color: {colors.get('menu_active_text', '#FFFFFF')};
+        }}
+        QMenu::separator {{
+            height: 1px;
+            background: {colors['border']};
+            margin: 7px 10px;
         }}
     """
+
 
 
 class IconMenuBar(QWidget):
@@ -196,6 +213,8 @@ class IconMenuBar(QWidget):
         menu = QMenu(self)
         btn = QToolButton(self)
         btn.setObjectName('MainNavToolButton')
+        btn.setProperty('shellChromeRole', 'home' if is_home else 'main_menu')
+        btn.setProperty('menuLabel', label)
         btn.setCursor(Qt.PointingHandCursor)
         btn.setIcon(icon)
         btn.setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE))

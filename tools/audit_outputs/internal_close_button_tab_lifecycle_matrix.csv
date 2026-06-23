@@ -1,0 +1,12 @@
+code,area,title,path,ok,detail
+helper_exists,lifecycle,A unified helper closes the owning workspace tab rather than child widgets,alrajhi_client/workspace/shell/workspace_tab_close.py,True,
+helper_uses_close_tab_at,lifecycle,Internal close delegates to close_tab_at so confirmation/fallback are centralized,alrajhi_client/workspace/shell/workspace_tab_close.py,True,
+helper_avoids_blank_child_close_first,lifecycle,The fallback QWidget.close path is only used after no owning tab is found,alrajhi_client/workspace/shell/workspace_tab_close.py,True,
+base_document_request_close,documents,BaseDocumentTab exposes request_workspace_close for all document tabs,alrajhi_client/workspace/documents/base_document_tab.py,True,
+base_document_alias,documents,BaseDocumentTab provides close_workspace_tab compatibility alias,alrajhi_client/workspace/documents/base_document_tab.py,True,
+transaction_close_button_uses_workspace_lifecycle,transactions,Invoice/return bottom Close button calls request_workspace_close,alrajhi_client/features/transactions/transaction_document_tab.py,True,
+transaction_close_button_not_qwidget_close,transactions,Transaction bottom Close button no longer connects to self.close,alrajhi_client/features/transactions/transaction_document_tab.py,True,
+legacy_returns_request_close,returns,Legacy return tabs also expose request_workspace_close,alrajhi_client/features/returns/return_editor_tabs.py,True,
+legacy_returns_accept_routes_lifecycle,returns,Return close-after-save uses workspace lifecycle instead of direct QDialog.accept,alrajhi_client/features/returns/return_editor_tabs.py,True,
+tab_workspace_still_owns_confirmation,lifecycle,TabbedWorkspace remains the owner of can_close confirmation and dashboard fallback,alrajhi_client/shell/tab_workspace.py,True,
+phase_doc_exists,release,Phase 350 documentation exists,PHASE350_INTERNAL_CLOSE_BUTTON_TAB_LIFECYCLE.md,True,

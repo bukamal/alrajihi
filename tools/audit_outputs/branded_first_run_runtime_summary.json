@@ -1,0 +1,15 @@
+{
+  "phase": 353,
+  "checks": 44,
+  "issues": 0,
+  "issue_groups": 0,
+  "categories": {
+    "tokens": 3,
+    "surface": 3,
+    "file": 5,
+    "qss": 7,
+    "object_name": 10,
+    "runtime": 16
+  },
+  "ready": true
+}

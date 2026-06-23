@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from core.services.settings_service import settings_service
-from PyQt5.QtCore import QObject, QTimer, Qt
+from PyQt5.QtCore import QObject, QTimer, Qt, QEvent
 from PyQt5.QtWidgets import QApplication, QLineEdit, QTextEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QAbstractSpinBox
 try:
     from PyQt5 import sip
@@ -135,17 +135,43 @@ def _is_qobject_alive(obj):
 
 # ========== تحديد النص تلقائياً ==========
 class AutoSelectManager(QObject):
+    """Global text-focus policy.
+
+    Phase 348 makes text focus predictable across Arabic/English/German forms:
+    focus selects the current text, mouse-clicking an already focused input also
+    selects it, and editable combo/spinbox line edits follow the same rule.
+    """
+
     def __init__(self, app):
         super().__init__(app)
         self.app = app
         self.app.focusChanged.connect(self.on_focus_changed)
+        try:
+            self.app.installEventFilter(self)
+        except Exception:
+            pass
+
+    def eventFilter(self, obj, event):
+        try:
+            etype = event.type()
+            if etype in (QEvent.MouseButtonPress, QEvent.MouseButtonRelease):
+                line_edit = self._get_line_edit(obj)
+                if line_edit and _is_qobject_alive(line_edit):
+                    QTimer.singleShot(0, lambda le=line_edit: self._select_all(le))
+            elif etype == QEvent.FocusIn:
+                line_edit = self._get_line_edit(obj)
+                if line_edit and _is_qobject_alive(line_edit):
+                    QTimer.singleShot(0, lambda le=line_edit: self._select_all(le))
+        except Exception:
+            pass
+        return False
 
     def on_focus_changed(self, old, new):
         if new is None:
             return
         line_edit = self._get_line_edit(new)
         if line_edit and _is_qobject_alive(line_edit):
-            QTimer.singleShot(100, lambda le=line_edit: self._select_all(le))
+            QTimer.singleShot(80, lambda le=line_edit: self._select_all(le))
 
     def _get_line_edit(self, widget):
         if isinstance(widget, QLineEdit):
@@ -167,12 +193,9 @@ class AutoSelectManager(QObject):
             if hasattr(line_edit, 'selectAll'):
                 line_edit.selectAll()
         except RuntimeError:
-            # The widget may be destroyed between the timer check and execution.
             return
 
 def enable_auto_select_all(app):
     manager = AutoSelectManager(app)
     app.auto_select_manager = manager
-    print("✅ تم تفعيل تحديد النص تلقائياً عند التركيز")
-
-
+    print("✅ تم تفعيل تحديد النص تلقائياً عند التركيز والنقر")

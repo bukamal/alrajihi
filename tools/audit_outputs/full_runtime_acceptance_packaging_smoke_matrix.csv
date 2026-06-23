@@ -32,7 +32,7 @@ scenario_runtime_dry_run_no_failures,scenario,Static and dry-run scenario checks
 runtime_build_files_present,packaging,Runtime and Windows build entry files are present,pass,True,packaging,"requirements.txt,alrajhi_client/main.py,alrajhi_server/run_server.py,build/build_windows.ps1,build/pyinstaller_hidden_imports.py,.github/workflows/build-windows-installer.yml"
 windows_packaging_gate_ready,packaging,Windows runtime packaging gate is clean before building EXE,pass,True,packaging,checks=10; issue_groups=0
 windows_build_runs_core_release_guards,packaging,Windows build script runs core release/printing/package guards,pass,True,packaging,"release_packaging_guard.py,release_hidden_imports_guard.py,windows_runtime_packaging_gate_audit.py,unified_printing_guard.py"
-release_gate_ready,quality,Release readiness gate has no missing required phase docs/tests/tools,pass,True,quality,checks=83; issue_groups=0; issues=0
+release_gate_ready,quality,Release readiness gate has no missing required phase docs/tests/tools,pass,True,quality,checks=85; issue_groups=0; issues=0
 manual_windows_exe_launch,manual,Launch the real Windows EXE on a clean machine,manual_required,False,packaging,Requires an actual Windows build artifact and clean Windows host.
 manual_a4_print,manual,Print A4 invoice/report sample with Arabic/English/German data,manual_required,False,printing,Requires a physical or virtual A4 printer.
 manual_thermal_receipt,manual,Print POS/restaurant/cafe thermal receipt,manual_required,False,printing,Requires thermal receipt hardware or driver.

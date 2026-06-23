@@ -304,6 +304,10 @@ class SmartTableView(CustomTableView):
         self.apply_enterprise_defaults()
         self.restore_density()
         QTimer.singleShot(0, self.fit_columns_to_view)
+        try:
+            self.schedule_initial_entry_focus(start_edit=False)
+        except Exception:
+            pass
 
     def apply_enterprise_defaults(self) -> None:
         header = self.horizontalHeader()

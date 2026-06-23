@@ -96,9 +96,9 @@ def purchase_invoice_schema() -> list[TransactionColumn]:
 def sales_return_schema() -> list[TransactionColumn]:
     return [
         TransactionColumn("row", "#", True, True, True, 44, editable=False),
-        TransactionColumn("original_invoice", "transaction_column_original_invoice", False, True, False, 145, editable=False),
-        TransactionColumn("barcode", "transaction_column_barcode", False, True, False, 120, editable=False),
-        TransactionColumn("item", "transaction_column_item", True, True, True, 260, True, editable=False),
+        TransactionColumn("original_invoice", "transaction_column_original_invoice", False, False, False, 145, editable=False),
+        TransactionColumn("barcode", "transaction_column_barcode", False, True, False, 120),
+        TransactionColumn("item", "transaction_column_item", True, True, True, 260, True),
         TransactionColumn("variant", "transaction_column_variant", False, True, False, 130, editable=False),
         TransactionColumn("original_qty", "transaction_column_sold_qty", False, True, False, 90, numeric=True, editable=False),
         TransactionColumn("previous_qty", "transaction_column_previous_return", False, True, False, 100, numeric=True, editable=False),
@@ -107,7 +107,7 @@ def sales_return_schema() -> list[TransactionColumn]:
         TransactionColumn("qty", "transaction_column_return_qty", True, True, True, 110, numeric=True),
         TransactionColumn("reason", "transaction_column_reason", False, True, False, 150),
         TransactionColumn("restock", "transaction_column_restock", False, True, False, 120),
-        TransactionColumn("price", "transaction_column_unit_value", False, True, True, 110, numeric=True, editable=False),
+        TransactionColumn("price", "transaction_column_unit_value", False, True, True, 110, numeric=True),
         TransactionColumn("total", "transaction_column_total", True, True, True, 120, numeric=True, editable=False),
         TransactionColumn("notes", "transaction_column_notes", False, True, False, 180),
     ]
@@ -116,9 +116,9 @@ def sales_return_schema() -> list[TransactionColumn]:
 def purchase_return_schema() -> list[TransactionColumn]:
     return [
         TransactionColumn("row", "#", True, True, True, 44, editable=False),
-        TransactionColumn("original_invoice", "transaction_column_original_invoice", False, True, False, 145, editable=False),
-        TransactionColumn("barcode", "transaction_column_barcode", False, True, False, 120, editable=False),
-        TransactionColumn("item", "transaction_column_item", True, True, True, 260, True, editable=False),
+        TransactionColumn("original_invoice", "transaction_column_original_invoice", False, False, False, 145, editable=False),
+        TransactionColumn("barcode", "transaction_column_barcode", False, True, False, 120),
+        TransactionColumn("item", "transaction_column_item", True, True, True, 260, True),
         TransactionColumn("variant", "transaction_column_variant", False, True, False, 130, editable=False),
         TransactionColumn("original_qty", "transaction_column_purchased_qty", False, True, False, 90, numeric=True, editable=False),
         TransactionColumn("previous_qty", "transaction_column_previous_return", False, True, False, 100, numeric=True, editable=False),
@@ -126,7 +126,7 @@ def purchase_return_schema() -> list[TransactionColumn]:
         TransactionColumn("unit", "transaction_column_unit", False, True, True, 90),
         TransactionColumn("qty", "transaction_column_return_qty", True, True, True, 110, numeric=True),
         TransactionColumn("reason", "transaction_column_reason", False, True, False, 150),
-        TransactionColumn("price", "transaction_column_unit_value", False, True, True, 110, numeric=True, editable=False),
+        TransactionColumn("price", "transaction_column_unit_value", False, True, True, 110, numeric=True),
         TransactionColumn("total", "transaction_column_total", True, True, True, 120, numeric=True, editable=False),
         TransactionColumn("notes", "transaction_column_notes", False, True, False, 180),
     ]

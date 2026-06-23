@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QDialog, QMessageBox
 
 from i18n import translate
 from workspace.documents.document_contract import descriptor_for
+from workspace.shell.workspace_tab_close import close_owning_workspace_tab
 from core.services.sales_return_service import sales_return_service
 from core.services.purchase_return_service import purchase_return_service
 from views.widgets.returns_widget import (
@@ -125,6 +126,14 @@ class _ReturnDocumentMixin:
         payload['lines'] = self.lines_component.payload()
         return payload
 
+    def request_workspace_close(self) -> bool:
+        """Close the embedded return tab through the workspace lifecycle."""
+        try:
+            return bool(close_owning_workspace_tab(self))
+        except Exception:
+            QDialog.reject(self)
+            return True
+
     def workspace_save(self) -> None:
         self._save_return_document(close_after_save=False)
 
@@ -155,7 +164,7 @@ class _ReturnDocumentMixin:
             self.setWindowTitle(self.workspace_title().rstrip(' *'))
             self.titleChanged.emit(self.windowTitle())
             if close_after_save:
-                QDialog.accept(self)
+                self.request_workspace_close()
             return True
         except Exception as exc:
             QMessageBox.warning(self, translate('return_save_failed'), str(exc))

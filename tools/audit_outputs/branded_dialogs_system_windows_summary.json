@@ -1,0 +1,18 @@
+{
+  "phase": 356,
+  "checks": 81,
+  "issues": 0,
+  "issue_groups": 0,
+  "categories": {
+    "tokens": 3,
+    "token": 18,
+    "runtime": 28,
+    "frameless": 6,
+    "modern": 2,
+    "customizer": 2,
+    "toast": 2,
+    "file": 9,
+    "qss": 11
+  },
+  "ready": true
+}

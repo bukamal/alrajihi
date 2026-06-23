@@ -1,0 +1,14 @@
+{
+  "phase": 358,
+  "checks": 36,
+  "issues": 0,
+  "issue_groups": 0,
+  "categories": {
+    "tokens": 6,
+    "login_source": 13,
+    "helper": 7,
+    "qss_source": 8,
+    "qss_runtime": 2
+  },
+  "ready": true
+}

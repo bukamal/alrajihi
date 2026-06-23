@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Any, Optional, Type
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QVBoxLayout, QWidget, QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox, QTableWidget
+from PyQt5.QtWidgets import QVBoxLayout, QWidget, QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QCheckBox, QTableWidget, QPushButton
 
 from workspace.documents import BaseDocumentTab
 
@@ -32,6 +32,7 @@ class DialogDocumentTab(BaseDocumentTab):
         self.dialog = dialog_cls(self, *dialog_args, **dialog_kwargs)
         self._embed_dialog_widget(self.dialog)
         self._connect_dialog_lifecycle()
+        self._connect_embedded_close_controls()
         self._install_dirty_tracking()
         self.set_document_title(title or self.dialog.windowTitle() or document_type)
         self.set_dirty(False)
@@ -77,6 +78,36 @@ class DialogDocumentTab(BaseDocumentTab):
         if hasattr(self.dialog, 'dirtyChanged'):
             try:
                 self.dialog.dirtyChanged.connect(self.set_dirty)
+            except Exception:
+                pass
+
+
+    def _connect_embedded_close_controls(self) -> None:
+        """Route obvious embedded Close/Cancel buttons through the workspace tab.
+
+        Legacy dialogs can still contain their own buttons even when hosted as a
+        tab.  When a button semantically closes the whole business document, it
+        must use ``request_workspace_close()`` rather than ``QDialog.accept()``,
+        ``reject()`` or ``QWidget.close()`` so the tab lifecycle stays identical
+        to the tab-bar X button.
+        """
+        names = (
+            'close_btn', 'cancel_btn', 'bottom_close_btn', 'footer_close_btn',
+            'btn_close', 'btn_cancel', 'cancel_button', 'close_button',
+        )
+        for name in names:
+            button = getattr(self.dialog, name, None)
+            if button is None:
+                continue
+            clicked = getattr(button, 'clicked', None)
+            if clicked is None:
+                continue
+            try:
+                clicked.disconnect()
+            except Exception:
+                pass
+            try:
+                clicked.connect(self.request_workspace_close)
             except Exception:
                 pass
 

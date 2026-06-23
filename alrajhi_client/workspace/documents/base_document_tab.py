@@ -97,6 +97,33 @@ class BaseDocumentTab(QWidget):
         )
         return reply == QMessageBox.Yes
 
+
+    def request_workspace_close(self) -> bool:
+        """Close this document through the owning workspace tab lifecycle.
+
+        Phase350: embedded document close buttons must behave exactly like the
+        tab-bar X button, including unsaved-change confirmation, safe neighbour
+        selection, and fixed Dashboard fallback.
+        """
+        try:
+            from workspace.shell.functional_close_policy import request_function_workspace_close
+            function_key = getattr(self.document_descriptor, 'module_key', None) or getattr(self.document_state, 'document_type', None)
+            return bool(request_function_workspace_close(self, function_key=function_key))
+        except Exception:
+            try:
+                from workspace.shell.workspace_tab_close import close_owning_workspace_tab
+                return bool(close_owning_workspace_tab(self))
+            except Exception:
+                try:
+                    self.close()
+                    return True
+                except Exception:
+                    return False
+
+    def close_workspace_tab(self) -> bool:
+        """Compatibility alias for document widgets and action bars."""
+        return self.request_workspace_close()
+
     def workspace_save(self) -> None:
         raise NotImplementedError
 

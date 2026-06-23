@@ -1,0 +1,6 @@
+Barcode camera support requires optional runtime packages:
+  opencv-python
+  pyzbar
+
+On Windows builds, include pyzbar DLLs (libzbar-64.dll/libiconv.dll) in the PyInstaller bundle.
+On Ubuntu/PRoot, camera access depends on the host environment; USB scanner/manual entry remains supported.

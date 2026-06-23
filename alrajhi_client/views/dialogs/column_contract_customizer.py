@@ -23,6 +23,7 @@ from PyQt5.QtWidgets import (
 )
 
 from i18n import translate
+from ui.dialog_branding import apply_branded_dialog, normalize_dialog_buttons
 from workspace.settings.column_preferences import (
     contract_column_states,
     reset_contract_column_preferences,
@@ -39,6 +40,8 @@ class ColumnContractCustomizerDialog(QDialog):
             raise ValueError(f"Unknown column contract: {contract_id}")
         self.setWindowTitle(title or f"{translate('columns')} — {self.contract.contract_id}")
         self.setMinimumSize(620, 520)
+        self.setProperty('brandDialog', True)
+        self.setProperty('dialogKind', 'column_customizer')
         self._checks: Dict[str, Dict[str, QCheckBox]] = {}
         self._build_ui()
 
@@ -101,12 +104,17 @@ class ColumnContractCustomizerDialog(QDialog):
         save.setObjectName('primary')
         reset.clicked.connect(self._reset)
         save.clicked.connect(self._save)
+        close.setProperty('dialogActionRole', 'close')
+        reset.setProperty('dialogActionRole', 'secondary')
+        save.setProperty('dialogActionRole', 'primary')
         close.clicked.connect(self.reject)
         buttons.addWidget(reset)
         buttons.addStretch(1)
         buttons.addWidget(save)
         buttons.addWidget(close)
         outer.addLayout(buttons)
+        normalize_dialog_buttons(self)
+        apply_branded_dialog(self, self.windowTitle(), role='column_customizer')
 
     def preferences(self) -> Dict[str, Dict[str, bool]]:
         values: Dict[str, Dict[str, bool]] = {}

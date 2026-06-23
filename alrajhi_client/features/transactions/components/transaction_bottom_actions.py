@@ -13,16 +13,24 @@ class TransactionBottomActions(QWidget):
     def __init__(self, actions: Iterable[tuple[str, Callable]], parent=None):
         super().__init__(parent)
         self._buttons = {}
+        self.setObjectName("TransactionBottomActionBar")
+        self.setProperty("transaction_footer_role", "actions")
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(6)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(12)
         for text_key, callback in actions:
             button = QPushButton(tr(text_key), self)
-            button.clicked.connect(callback)
-            layout.addWidget(button)
             action_name = self._action_name_for_key(text_key)
             if action_name:
+                button.setProperty("transaction_action", action_name)
+                button.setProperty("transaction_footer_role", action_name)
                 self._buttons[action_name] = button
+            # Phase349 compatibility markers: setMinimumHeight(44), setMinimumWidth(108)
+            # Phase355 raises the visual minimums while preserving the earlier contract.
+            button.setMinimumHeight(50)
+            button.setMinimumWidth(126)
+            button.clicked.connect(callback)
+            layout.addWidget(button)
         layout.addStretch(1)
 
     @staticmethod

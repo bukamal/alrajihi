@@ -8,6 +8,7 @@ match the invoice/material visual language without a risky rewrite.
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QLabel, QFrame, QHBoxLayout, QVBoxLayout, QLayout, QTableView, QTableWidget, QPushButton, QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QTextEdit, QGroupBox, QTabWidget, QDialogButtonBox
 from theme_manager import ThemeManager
+from ui.dialog_branding import apply_branded_dialog, normalize_dialog_buttons
 
 
 def _modern_widget_style() -> str:
@@ -272,13 +273,18 @@ def apply_modern_widget(widget, title: str = '', subtitle: str = ''):
 
 
 def apply_modern_dialog(dialog, title: str = ''):
-    """Apply the unified dialog visual language."""
+    """Apply the unified dialog visual language.
+
+    Phase356 delegates final object names, button roles and system-window QSS
+    hooks to ``apply_branded_dialog`` so legacy dialogs, picker windows and
+    modern dialogs share one branded identity.
+    """
     dialog.setLayoutDirection(Qt.RightToLeft)
     current = dialog.styleSheet() or ''
     if 'ModernPageHeader' not in current:
         dialog.setStyleSheet(current + '\n' + _modern_widget_style())
     try:
-        dialog.resize(max(dialog.width(), 520), max(dialog.height(), 360))
+        dialog.resize(max(dialog.width(), 560), max(dialog.height(), 380))
     except Exception:
         pass
     container = getattr(dialog, 'content_widget', dialog)
@@ -287,8 +293,14 @@ def apply_modern_dialog(dialog, title: str = ''):
     if title and layout is not None:
         try:
             first = layout.itemAt(0).widget() if layout.count() else None
-            if not (first and first.objectName() == 'ModernPageHeader'):
-                layout.insertWidget(0, _make_header(title))
+            if not (first and first.objectName() in ('ModernPageHeader', 'BrandDialogHeaderCard')):
+                header = _make_header(title)
+                header.setObjectName('BrandDialogHeaderCard')
+                header.setProperty('dialogSurface', 'headerCard')
+                layout.insertWidget(0, header)
         except Exception:
             pass
     _normalize_child_controls(dialog)
+    normalize_dialog_buttons(dialog)
+    apply_branded_dialog(dialog, title, role='modern')
+

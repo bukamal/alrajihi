@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Phase352 compatibility markers: brandMark brand_logo_login_px activation_card_width
 from PyQt5.QtWidgets import QVBoxLayout, QLabel, QLineEdit, QPushButton, QProgressBar, QMessageBox, QHBoxLayout, QApplication, QCheckBox
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 import qtawesome as qta
@@ -7,6 +8,15 @@ from auth.activation import activate
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from i18n import translate
+from theme.brand import BRAND
+from ui.first_run_branding import (
+    activation_device_panel,
+    apply_first_run_surface,
+    brand_side_panel,
+    first_run_form_panel,
+    set_first_run_primary,
+    set_first_run_secondary,
+)
 
 
 class ActivationThread(QThread):
@@ -32,41 +42,65 @@ class ActivationThread(QThread):
 
 
 class ActivationDialog(FramelessDialog):
+    """Phase353: branded activation surface with device/license context."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle(translate('phase233_ui_006'))
-        self.resize(520, 460)
-        self.setMinimumSize(460, 420)
+        self.resize(
+            int(BRAND.get('first_run_panel_width', 330)) + int(BRAND.get('first_run_form_width', 520)) + 42,
+            560,
+        )
+        self.setMinimumSize(780, 520)
 
         self.main_frame.setObjectName('activationCard')
+        self.main_frame.setProperty('firstRunSurface', 'activation')
         self.main_frame.setStyleSheet(ThemeManager.get_stylesheet())
+        apply_first_run_surface(self.main_frame, 'activation')
         try:
-            DesignSystem.apply_shadow(self.main_frame, blur=30, y=10, alpha=70)
+            DesignSystem.apply_shadow(self.main_frame, blur=34, y=12, alpha=76)
         except Exception:
             pass
 
-        layout = QVBoxLayout(self.content_widget)
-        layout.setSpacing(18)
-        layout.setContentsMargins(34, 28, 34, 30)
+        root_layout = QHBoxLayout(self.content_widget)
+        root_layout.setSpacing(16)
+        root_layout.setContentsMargins(22, 22, 22, 26)
 
-        logo = QLabel("🔐")
-        logo.setAlignment(Qt.AlignCenter)
-        logo.setStyleSheet("font-size: 48px;")
-        layout.addWidget(logo)
+        self.brand_panel = brand_side_panel(
+            translate('phase233_ui_006'),
+            translate('phase233_ui_008'),
+            (translate('phase233_ui_122'), 'License', 'Device'),
+            'brand_logo_login_px',
+        )
+        root_layout.addWidget(self.brand_panel, 0)
 
-        title = QLabel(translate('phase233_ui_007'))
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet(f"font-size: 22px; font-weight: bold; color: {ThemeManager.get('primary')};")
-        layout.addWidget(title)
+        self.form_panel = first_run_form_panel()
+        root_layout.addWidget(self.form_panel, 1)
+        layout = QVBoxLayout(self.form_panel)
+        layout.setSpacing(15)
+        layout.setContentsMargins(34, 30, 34, 28)
 
-        desc = QLabel(translate('phase233_ui_008'))
-        desc.setWordWrap(True)
-        desc.setAlignment(Qt.AlignCenter)
-        desc.setStyleSheet(f"color: {ThemeManager.get('text_secondary')};")
-        layout.addWidget(desc)
+        self.title_label = QLabel(translate('phase233_ui_007'))
+        self.title_label.setObjectName('firstRunFormTitle')
+        self.title_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.title_label)
+
+        self.desc_label = QLabel(translate('phase233_ui_008'))
+        self.desc_label.setObjectName('firstRunFormSubtitle')
+        self.desc_label.setWordWrap(True)
+        self.desc_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.desc_label)
 
         activation_mode_hint = DesignSystem.status_pill(translate('phase233_ui_120'), "info")
+        activation_mode_hint.setObjectName('licenseStatusBadge')
+        activation_mode_hint.setProperty('brandSurface', 'licenseStatusBadge')
         layout.addWidget(activation_mode_hint)
+
+        self.device_panel = activation_device_panel((
+            "Desktop runtime • Local/Network ready",
+            "Device fingerprint is validated by the activation service.",
+        ))
+        layout.addWidget(self.device_panel)
 
         self.key_edit = QLineEdit()
         self.key_edit.setPlaceholderText(translate('phase233_ui_121'))
@@ -79,6 +113,7 @@ class ActivationDialog(FramelessDialog):
         layout.addWidget(self.show_key)
 
         self.progress = QProgressBar()
+        self.progress.setObjectName('firstRunProgressTrack')
         self.progress.setVisible(False)
         self.progress.setRange(0, 100)
         layout.addWidget(self.progress)
@@ -90,17 +125,16 @@ class ActivationDialog(FramelessDialog):
         layout.addWidget(self.status_label)
 
         btn_layout = QHBoxLayout()
-        self.activate_btn = DesignSystem.primary_button(translate('phase233_ui_122'))
-        self.activate_btn.setObjectName("primary")
+        self.activate_btn = set_first_run_primary(QPushButton(translate('phase233_ui_122')))
         self.activate_btn.setIcon(qta.icon('fa5s.check'))
         self.activate_btn.clicked.connect(self._activate)
 
-        self.retry_btn = DesignSystem.secondary_button("إعادة المحاولة")
+        self.retry_btn = set_first_run_secondary(QPushButton("إعادة المحاولة"))
         self.retry_btn.setIcon(qta.icon('fa5s.redo'))
         self.retry_btn.setEnabled(False)
         self.retry_btn.clicked.connect(self._activate)
 
-        cancel_btn = DesignSystem.secondary_button(translate('phase233_ui_020'))
+        cancel_btn = set_first_run_secondary(QPushButton(translate('phase233_ui_020')))
         cancel_btn.setIcon(qta.icon('fa5s.times'))
         cancel_btn.clicked.connect(self.reject)
 

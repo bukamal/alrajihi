@@ -251,10 +251,5 @@ class UserDocumentTab(BaseDocumentTab):
             QMessageBox.critical(self, translate('error'), str(exc))
 
     def _close_parent_tab(self):
-        parent = self.parent()
-        while parent is not None:
-            if hasattr(parent, 'close_current_tab'):
-                parent.close_current_tab()
-                return
-            parent = parent.parent()
-        self.close()
+        # Phase351: user document close uses the shared workspace lifecycle.
+        self.request_workspace_close()

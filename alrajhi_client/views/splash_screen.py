@@ -4,7 +4,9 @@ from PyQt5.QtCore import Qt, QPropertyAnimation
 from PyQt5.QtGui import QPixmap
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
+from ui.first_run_branding import apply_first_run_surface
 from brand_assets import logo_png, APP_DISPLAY_NAME_AR, APP_DESCRIPTION_AR
+from theme.brand import BRAND
 from i18n import translate
 
 
@@ -12,7 +14,7 @@ class ModernSplashScreen(QSplashScreen):
     """Startup splash with explicit boot-step status and error state."""
 
     def __init__(self):
-        pixmap = QPixmap(640, 420)
+        pixmap = QPixmap(int(BRAND.get('splash_width', 660)), int(BRAND.get('splash_height', 430)))
         pixmap.fill(Qt.transparent)
         super().__init__(pixmap)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
@@ -20,8 +22,9 @@ class ModernSplashScreen(QSplashScreen):
 
         self.container = QFrame(self)
         self.container.setObjectName('card')
-        self.container.setGeometry(0, 0, 640, 420)
+        self.container.setGeometry(0, 0, int(BRAND.get('splash_width', 660)), int(BRAND.get('splash_height', 430)))
         self.container.setObjectName('startupCard')
+        apply_first_run_surface(self.container, 'splash')
         self.container.setStyleSheet(DesignSystem.card_style(accent=True))
         DesignSystem.apply_shadow(self.container, blur=34, y=12, alpha=95)
         layout = QVBoxLayout(self.container)
@@ -31,12 +34,14 @@ class ModernSplashScreen(QSplashScreen):
 
         self.logo = QLabel()
         self.logo.setAlignment(Qt.AlignCenter)
-        self.logo.setPixmap(QPixmap(logo_png(256)).scaled(118, 118, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self.logo.setObjectName('brandMark')
+        logo_px = int(BRAND.get('brand_logo_large_px', 118))
+        self.logo.setPixmap(QPixmap(logo_png(256)).scaled(logo_px, logo_px, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         layout.addWidget(self.logo)
 
         self.app_title = QLabel(APP_DISPLAY_NAME_AR)
         self.app_title.setAlignment(Qt.AlignCenter)
-        self.app_title.setStyleSheet("font-size: 32px; font-weight: 900; color: white;")
+        self.app_title.setStyleSheet("font-size: 32px; font-weight: 900; color: white; letter-spacing: 0.4px;")
         layout.addWidget(self.app_title)
 
         self.subtitle = QLabel(APP_DESCRIPTION_AR)
@@ -50,8 +55,9 @@ class ModernSplashScreen(QSplashScreen):
         self.boot_chips = []
         for text in ("قاعدة البيانات", "الترخيص", "تسجيل الدخول", "الواجهة"):
             chip = QLabel(text)
+            chip.setObjectName('firstRunStageChip')
             chip.setAlignment(Qt.AlignCenter)
-            chip.setStyleSheet("background-color: rgba(255,255,255,0.16); color: white; border-radius: 12px; padding: 5px 10px; font-size: 11px;")
+            chip.setStyleSheet("background-color: rgba(255,255,255,0.16); color: white; border-radius: 12px; padding: 5px 10px; font-size: 11px; font-weight: 700;")
             chips.addWidget(chip)
             self.boot_chips.append(chip)
         layout.addLayout(chips)
@@ -62,6 +68,7 @@ class ModernSplashScreen(QSplashScreen):
         layout.addWidget(self.step_label)
 
         self.progress = QProgressBar()
+        self.progress.setObjectName('firstRunProgressTrack')
         self.progress.setRange(0, 100)
         self.progress.setTextVisible(True)
         self.progress.setFormat("%p%")
@@ -116,9 +123,9 @@ class ModernSplashScreen(QSplashScreen):
             active = 0 if value < 30 else 1 if value < 60 else 2 if value < 90 else 3
             for i, chip in enumerate(getattr(self, 'boot_chips', [])):
                 if i <= active:
-                    chip.setStyleSheet("background-color: white; color: #4f46e5; border-radius: 12px; padding: 5px 10px; font-size: 11px; font-weight: bold;")
+                    chip.setProperty('active', True); chip.setStyleSheet("background-color: white; color: #083A63; border-radius: 12px; padding: 5px 10px; font-size: 11px; font-weight: bold;")
                 else:
-                    chip.setStyleSheet("background-color: rgba(255,255,255,0.16); color: white; border-radius: 12px; padding: 5px 10px; font-size: 11px;")
+                    chip.setProperty('active', False); chip.setStyleSheet("background-color: rgba(255,255,255,0.16); color: white; border-radius: 12px; padding: 5px 10px; font-size: 11px; font-weight: 700;")
         except Exception:
             pass
         QApplication.processEvents()

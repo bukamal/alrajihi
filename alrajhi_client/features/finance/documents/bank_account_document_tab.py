@@ -137,10 +137,5 @@ class BankAccountDocumentTab(BaseDocumentTab):
             QMessageBox.warning(self, translate('bank_accounts'), str(exc))
 
     def _close_parent_tab(self) -> None:
-        parent = self.parent()
-        while parent is not None:
-            if hasattr(parent, 'indexOf') and hasattr(parent, 'removeTab'):
-                idx = parent.indexOf(self)
-                if idx >= 0 and self.can_close(): parent.close_tab_at(idx) if hasattr(parent, 'close_tab_at') else parent.removeTab(idx)
-                return
-            parent = parent.parent()
+        # Phase351: bank account document close uses the shared workspace lifecycle.
+        self.request_workspace_close()

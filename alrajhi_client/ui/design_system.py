@@ -29,10 +29,41 @@ class DesignSystem:
     FONT_VALUE_PX = int(BRAND.get('font_size_value_px', 13))
     FONT_TITLE_PX = int(BRAND.get('font_size_title_px', 20))
     FONT_HERO_PX = int(BRAND.get('font_size_hero_px', 25))
+    BRAND_BUTTON_MIN_HEIGHT = int(BRAND.get('brand_button_min_height', 42))
+    BRAND_LOGO_LOGIN_PX = int(BRAND.get('brand_logo_login_px', 96))
+    BRAND_TAB_MIN_HEIGHT = int(BRAND.get('brand_tab_min_height', 38))
 
     @staticmethod
     def color(name: str, fallback: str = '') -> str:
         return ThemeManager.get(name) or fallback
+
+
+    @staticmethod
+    def brand_gradient() -> str:
+        return (
+            "qlineargradient(x1:0,y1:0,x2:1,y2:1,"
+            f"stop:0 {DesignSystem.color('brand_gradient_start', '#071A2E')},"
+            f"stop:0.55 {DesignSystem.color('brand_gradient_mid', '#083A63')},"
+            f"stop:1 {DesignSystem.color('brand_gradient_end', '#087D78')})"
+        )
+
+    @staticmethod
+    def apply_visual_role(widget, role: str):
+        try:
+            widget.setProperty('visualRole', role)
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+        except Exception:
+            pass
+        return widget
+
+    @staticmethod
+    def brand_mark_label(text: str = '') -> QLabel:
+        label = QLabel(text)
+        label.setObjectName('brandMark')
+        label.setAlignment(Qt.AlignCenter)
+        label.setMinimumHeight(DesignSystem.BRAND_LOGO_LOGIN_PX)
+        return label
 
     @staticmethod
     def card_style(accent: bool = False) -> str:
@@ -40,8 +71,9 @@ class DesignSystem:
             return f"""
                 QFrame#startupCard {{
                     background-color: qlineargradient(x1:0,y1:0,x2:1,y2:1,
-                        stop:0 {DesignSystem.color('primary', '#0F3D75')},
-                        stop:1 {DesignSystem.color('primary_2', '#1E5AA8')});
+                        stop:0 {DesignSystem.color('brand_gradient_start', '#071A2E')},
+                        stop:0.55 {DesignSystem.color('brand_gradient_mid', '#083A63')},
+                        stop:1 {DesignSystem.color('brand_gradient_end', '#087D78')});
                     border-radius: {DesignSystem.RADIUS_LG}px;
                     border: 1px solid rgba(255,255,255,0.22);
                 }}
@@ -108,7 +140,7 @@ class DesignSystem:
     def primary_button(text: str, icon=None) -> QPushButton:
         btn = QPushButton(text)
         btn.setObjectName('primary')
-        btn.setMinimumHeight(int(BRAND.get('action_button_min_height', 38)) + 4)
+        btn.setMinimumHeight(DesignSystem.BRAND_BUTTON_MIN_HEIGHT)
         if icon is not None:
             btn.setIcon(icon)
         return btn
@@ -117,7 +149,7 @@ class DesignSystem:
     def secondary_button(text: str, icon=None) -> QPushButton:
         btn = QPushButton(text)
         btn.setObjectName('secondary')
-        btn.setMinimumHeight(int(BRAND.get('action_button_min_height', 38)))
+        btn.setMinimumHeight(max(int(BRAND.get('action_button_min_height', 38)), DesignSystem.BRAND_BUTTON_MIN_HEIGHT - 2))
         if icon is not None:
             btn.setIcon(icon)
         return btn

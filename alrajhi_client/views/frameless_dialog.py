@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QEasingCurve, QTimer
 import qtawesome as qta
 from theme_manager import ThemeManager
 from i18n import translate
+from ui.dialog_branding import apply_branded_dialog, normalize_dialog_buttons
 
 class FramelessDialog(QDialog):
     def __init__(self, parent=None):
@@ -12,12 +13,15 @@ class FramelessDialog(QDialog):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setModal(True)
         self.setLayoutDirection(Qt.RightToLeft)
+        self.setProperty('brandDialog', True)
+        self.setProperty('dialogKind', 'frameless')
         self.drag_pos = None
         
         self.main_frame = QFrame(self)
-        self.main_frame.setObjectName("MainFrame")
+        self.main_frame.setObjectName("BrandDialogFrame")
+        self.main_frame.setProperty('dialogSurface', 'frame')
         self.main_frame.setStyleSheet(f"""
-            #MainFrame {{
+            #BrandDialogFrame {{
                 background-color: {ThemeManager.get('bg_sidebar')};
                 border-radius: 16px;
                 border: 1px solid {ThemeManager.get('border')};
@@ -28,7 +32,9 @@ class FramelessDialog(QDialog):
         main_layout.addWidget(self.main_frame)
         
         self.title_bar = QFrame()
-        self.title_bar.setFixedHeight(45)
+        self.title_bar.setObjectName('BrandDialogHeader')
+        self.title_bar.setProperty('dialogSurface', 'header')
+        self.title_bar.setFixedHeight(58)
         self.title_bar.setStyleSheet(f"""
             background-color: {ThemeManager.get('bg_panel')};
             border-top-left-radius: 16px;
@@ -42,6 +48,7 @@ class FramelessDialog(QDialog):
         title_layout.addWidget(self.icon_label)
         
         self.title_label = QLabel(translate('phase233_ui_001'))
+        self.title_label.setObjectName('BrandDialogTitle')
         self.title_label.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {ThemeManager.get('text_primary')};")
         title_layout.addWidget(self.title_label)
         title_layout.addStretch()
@@ -49,22 +56,27 @@ class FramelessDialog(QDialog):
         self.close_btn = QPushButton()
         self.close_btn.setIcon(qta.icon('fa5s.times'))
         self.close_btn.setFixedSize(32, 32)
+        self.close_btn.setProperty('dialogActionRole', 'close')
         self.close_btn.clicked.connect(self.reject)
         title_layout.addWidget(self.close_btn)
         
         self.max_btn = QPushButton()
         self.max_btn.setIcon(qta.icon('fa5s.window-maximize'))
         self.max_btn.setFixedSize(32, 32)
+        self.max_btn.setProperty('dialogActionRole', 'secondary')
         self.max_btn.setVisible(False)
         title_layout.addWidget(self.max_btn)
         
         self.min_btn = QPushButton()
         self.min_btn.setIcon(qta.icon('fa5s.window-minimize'))
         self.min_btn.setFixedSize(32, 32)
+        self.min_btn.setProperty('dialogActionRole', 'secondary')
         self.min_btn.clicked.connect(self.showMinimized)
         title_layout.addWidget(self.min_btn)
         
         self.content_widget = QWidget()
+        self.content_widget.setObjectName('BrandDialogBody')
+        self.content_widget.setProperty('dialogSurface', 'body')
         
         container_layout = QVBoxLayout(self.main_frame)
         container_layout.setContentsMargins(0, 0, 0, 0)
@@ -76,6 +88,7 @@ class FramelessDialog(QDialog):
         self.title_bar.mouseMoveEvent = self._mouse_move
         self.title_bar.mouseReleaseEvent = self._mouse_release
         
+        apply_branded_dialog(self, self.windowTitle(), role='frameless')
         self.setStyleSheet(ThemeManager.get_stylesheet())
         
         self._position_timer = QTimer(self)
@@ -99,6 +112,7 @@ class FramelessDialog(QDialog):
     def setWindowTitle(self, title):
         self.title_label.setText(title)
         super().setWindowTitle(title)
+        apply_branded_dialog(self, title, role='frameless')
     
     def fade_in(self):
         self.setWindowOpacity(0)
@@ -137,6 +151,7 @@ class FramelessDialog(QDialog):
             self.move(x, y)
     
     def exec(self):
+        normalize_dialog_buttons(self)
         return super().exec()
 
 

@@ -14,4 +14,4 @@ dialog_document_save_excludes_direct_accept,save,Embedded dialog document save a
 return_workspace_save_uses_saved_signal_close,save,Return document tab save emits saved; shell closes the tab after success,pass,
 return_accept_is_explicit_close_path,save,Return dialog close path is explicit and separate from workspace save,pass,
 return_action_save_uses_saved_signal_close,save,Return action save button persists through document path; shell close follows saved signal,pass,
-legacy_parent_tab_close_uses_lifecycle,tabs,Legacy document close buttons call close_tab_at when available,pass,
+legacy_parent_tab_close_uses_lifecycle,tabs,Legacy document close buttons call the unified workspace lifecycle,pass,

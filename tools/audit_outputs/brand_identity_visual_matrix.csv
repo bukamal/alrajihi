@@ -1,0 +1,50 @@
+key,category,description,status,detail
+brand_logo_asset,assets,Bundled logo asset used as visual identity source,pass,alrajhi_client/assets/brand/logo.png
+light_brand_tokens,tokens,light palette contains all Phase 352 identity tokens,pass,
+dark_brand_tokens,tokens,dark palette contains all Phase 352 identity tokens,pass,
+identity_brand_ink,color,Deep logo ink for high contrast text and shell chrome.,pass,
+identity_brand_navy,color,Stable accounting/navy anchor used by menus and tab chrome.,pass,
+identity_brand_blue,color,Dominant blue extracted from the project logo.,pass,
+identity_brand_teal,color,Logo teal used for active accents and progression.,pass,
+identity_brand_gold,color,Restrained premium accent for warnings and highlights.,pass,
+identity_brand_sand,color,Warm neutral surface that prevents harsh white screens.,pass,
+identity_startup,surface,Splash/loading identity surface.,pass,
+identity_login,surface,Login card surface and input focus.,pass,
+identity_activation,surface,License activation and device status surface.,pass,
+identity_tabs,surface,Main/sub tab labels and close affordance.,pass,
+identity_menu,surface,Main menu chrome.,pass,
+identity_actions,surface,Action-bar hierarchy.,pass,
+identity_tables,surface,Grid headers and active editable cell.,pass,
+identity_dialogs,surface,Modal windows and confirmation flows.,pass,
+identity_transactions,surface,Invoice-like footer summary and bottom action bar.,pass,
+identity_branded_tables,surface,Phase355 branded table and active editable cell surfaces.,pass,
+identity_branded_transaction_footer,surface,Phase355 branded invoice footer and bottom commands.,pass,
+file_alrajhi_client/theme/brand.py,file,Required brand runtime file exists,pass,alrajhi_client/theme/brand.py
+file_alrajhi_client/theme/identity.py,file,Required brand runtime file exists,pass,alrajhi_client/theme/identity.py
+file_alrajhi_client/theme/qss.py,file,Required brand runtime file exists,pass,alrajhi_client/theme/qss.py
+file_alrajhi_client/ui/design_system.py,file,Required brand runtime file exists,pass,alrajhi_client/ui/design_system.py
+file_alrajhi_client/views/splash_screen.py,file,Required brand runtime file exists,pass,alrajhi_client/views/splash_screen.py
+file_alrajhi_client/views/dialogs/login_dialog.py,file,Required brand runtime file exists,pass,alrajhi_client/views/dialogs/login_dialog.py
+file_alrajhi_client/views/dialogs/activation_dialog.py,file,Required brand runtime file exists,pass,alrajhi_client/views/dialogs/activation_dialog.py
+qss_Phase352: branded main/sub tab l,qss,QSS contains Phase352: branded main/sub tab labels,pass,Phase352: branded main/sub tab labels
+qss_QTabBar::tab:selected,qss,QSS contains QTabBar::tab:selected,pass,QTabBar::tab:selected
+qss_QTabBar::close-button:hover,qss,QSS contains QTabBar::close-button:hover,pass,QTabBar::close-button:hover
+qss_Phase352: branded menu and actio,qss,QSS contains Phase352: branded menu and action chrome,pass,Phase352: branded menu and action chrome
+qss_Phase352: first-run and licensin,qss,QSS contains Phase352: first-run and licensing identity surfaces,pass,Phase352: first-run and licensing identity surfaces
+qss_Phase352: branded dialogs and sy,qss,QSS contains Phase352: branded dialogs and system windows,pass,Phase352: branded dialogs and system windows
+qss_QFrame#startupCard,qss,QSS contains QFrame#startupCard,pass,QFrame#startupCard
+qss_QFrame#loginCard,qss,QSS contains QFrame#loginCard,pass,QFrame#loginCard
+qss_QFrame#activationCard,qss,QSS contains QFrame#activationCard,pass,QFrame#activationCard
+qss_QLabel#brandMark,qss,QSS contains QLabel#brandMark,pass,QLabel#brandMark
+screen_splash_screen_brandMark,screen,alrajhi_client/views/splash_screen.py consumes brand marker brandMark,pass,alrajhi_client/views/splash_screen.py
+screen_splash_screen_brand_logo_large_px,screen,alrajhi_client/views/splash_screen.py consumes brand marker brand_logo_large_px,pass,alrajhi_client/views/splash_screen.py
+screen_splash_screen_splash_width,screen,alrajhi_client/views/splash_screen.py consumes brand marker splash_width,pass,alrajhi_client/views/splash_screen.py
+screen_login_dialog_brandMark,screen,alrajhi_client/views/dialogs/login_dialog.py consumes brand marker brandMark,pass,alrajhi_client/views/dialogs/login_dialog.py
+screen_login_dialog_brand_logo_login_px,screen,alrajhi_client/views/dialogs/login_dialog.py consumes brand marker brand_logo_login_px,pass,alrajhi_client/views/dialogs/login_dialog.py
+screen_login_dialog_login_card_width,screen,alrajhi_client/views/dialogs/login_dialog.py consumes brand marker login_card_width,pass,alrajhi_client/views/dialogs/login_dialog.py
+screen_activation_dialog_brandMark,screen,alrajhi_client/views/dialogs/activation_dialog.py consumes brand marker brandMark,pass,alrajhi_client/views/dialogs/activation_dialog.py
+screen_activation_dialog_brand_logo_login_px,screen,alrajhi_client/views/dialogs/activation_dialog.py consumes brand marker brand_logo_login_px,pass,alrajhi_client/views/dialogs/activation_dialog.py
+screen_activation_dialog_activation_card_width,screen,alrajhi_client/views/dialogs/activation_dialog.py consumes brand marker activation_card_width,pass,alrajhi_client/views/dialogs/activation_dialog.py
+screen_design_system_brand_gradient,screen,alrajhi_client/ui/design_system.py consumes brand marker brand_gradient,pass,alrajhi_client/ui/design_system.py
+screen_design_system_apply_visual_role,screen,alrajhi_client/ui/design_system.py consumes brand marker apply_visual_role,pass,alrajhi_client/ui/design_system.py
+screen_design_system_BRAND_BUTTON_MIN_HEIGHT,screen,alrajhi_client/ui/design_system.py consumes brand marker BRAND_BUTTON_MIN_HEIGHT,pass,alrajhi_client/ui/design_system.py

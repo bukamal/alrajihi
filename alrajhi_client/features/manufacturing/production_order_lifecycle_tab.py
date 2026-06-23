@@ -501,8 +501,5 @@ class ProductionOrderDetailsTab(BaseDocumentTab):
             QMessageBox.critical(self, translate('error'), msg)
 
     def _close_parent_tab(self) -> None:
-        parent = self.parent()
-        if parent and hasattr(parent, 'close_current_tab'):
-            parent.close_current_tab()
-        else:
-            self.close()
+        # Phase351: production lifecycle close uses the shared workspace lifecycle.
+        self.request_workspace_close()

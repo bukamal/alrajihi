@@ -1,0 +1,16 @@
+{
+  "phase": 352,
+  "checks": 49,
+  "issues": 0,
+  "issue_groups": 0,
+  "categories": {
+    "assets": 1,
+    "tokens": 2,
+    "color": 6,
+    "surface": 11,
+    "file": 7,
+    "qss": 10,
+    "screen": 12
+  },
+  "ready": true
+}

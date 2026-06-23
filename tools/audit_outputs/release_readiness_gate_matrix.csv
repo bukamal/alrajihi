@@ -1,16 +1,16 @@
 ﻿key,category,title,phase,tool_path,tool_exists,output_path,output_exists,required
 document_shell,shell,Document Shell contract,249,tools/document_shell_contract_audit.py,True,tools/audit_outputs/document_shell_contract_matrix.csv,False,True
 report_shell,shell,Report Shell contract,256,tools/report_shell_contract_audit.py,True,,True,True
-list_workspace,shell,List Workspace contract,257,tools/list_workspace_contract_audit.py,True,tools/audit_outputs/list_workspace_contract_matrix.csv,True,True
-operational_shell,shell,Operational Shell contract,258,tools/operational_shell_contract_audit.py,True,tools/audit_outputs/operational_shell_contract_matrix.csv,True,True
-settings_contract,settings,Settings contract coverage,259,tools/settings_contract_coverage_audit.py,True,tools/audit_outputs/settings_contract_coverage_matrix.csv,True,True
-rbac_contract,security,RBAC permission coverage,260,tools/rbac_permission_contract_audit.py,True,tools/audit_outputs/rbac_permission_contract_matrix.csv,True,True
-branch_contract,security,Branch access coverage,261,tools/branch_access_contract_audit.py,True,tools/audit_outputs/branch_access_contract_matrix.csv,True,True
-audit_contract,security,Audit trail coverage,264,tools/audit_trail_contract_audit.py,True,tools/audit_outputs/audit_trail_contract_matrix.csv,True,True
-offline_sync,sync,Offline sync contract,265,tools/offline_sync_contract_audit.py,True,tools/audit_outputs/offline_sync_contract_matrix.csv,True,True
-offline_replay,sync,Offline replay safety,270,tools/offline_replay_safety_audit.py,True,tools/audit_outputs/offline_replay_safety_matrix.csv,True,True
-e2e_scenarios,scenario,End-to-end scenario guard,271,tools/end_to_end_scenario_guard_audit.py,True,tools/audit_outputs/end_to_end_scenario_guard_matrix.csv,True,True
-runtime_smoke,scenario,Runtime smoke hooks,272,tools/scenario_runtime_smoke_audit.py,True,tools/audit_outputs/scenario_runtime_smoke_matrix.csv,True,True
+list_workspace,shell,List Workspace contract,257,tools/list_workspace_contract_audit.py,True,tools/audit_outputs/list_workspace_contract_matrix.csv,False,True
+operational_shell,shell,Operational Shell contract,258,tools/operational_shell_contract_audit.py,True,tools/audit_outputs/operational_shell_contract_matrix.csv,False,True
+settings_contract,settings,Settings contract coverage,259,tools/settings_contract_coverage_audit.py,True,tools/audit_outputs/settings_contract_coverage_matrix.csv,False,True
+rbac_contract,security,RBAC permission coverage,260,tools/rbac_permission_contract_audit.py,True,tools/audit_outputs/rbac_permission_contract_matrix.csv,False,True
+branch_contract,security,Branch access coverage,261,tools/branch_access_contract_audit.py,True,tools/audit_outputs/branch_access_contract_matrix.csv,False,True
+audit_contract,security,Audit trail coverage,264,tools/audit_trail_contract_audit.py,True,tools/audit_outputs/audit_trail_contract_matrix.csv,False,True
+offline_sync,sync,Offline sync contract,265,tools/offline_sync_contract_audit.py,True,tools/audit_outputs/offline_sync_contract_matrix.csv,False,True
+offline_replay,sync,Offline replay safety,270,tools/offline_replay_safety_audit.py,True,tools/audit_outputs/offline_replay_safety_matrix.csv,False,True
+e2e_scenarios,scenario,End-to-end scenario guard,271,tools/end_to_end_scenario_guard_audit.py,True,tools/audit_outputs/end_to_end_scenario_guard_matrix.csv,False,True
+runtime_smoke,scenario,Runtime smoke hooks,272,tools/scenario_runtime_smoke_audit.py,True,tools/audit_outputs/scenario_runtime_smoke_matrix.csv,False,True
 reports_currency,reports,Reports calculation/currency guard,275,tests/test_phase275_reports_calculation_currency_grouping.py,True,,True,True
 reports_printing,reports,Reports browser printing guard,276,tests/test_phase276_report_printing_unification_confirmation.py,True,,True,True
 printing_pyinstaller,printing,Printing PyInstaller loader guard,225,tools/phase225_printing_pyinstaller_guard.py,True,,True,True
@@ -73,12 +73,22 @@ printing_export_column_mapping,printing,Print/export column mapping,336,tests/te
 editable_table_keyboard_standard,ui,Editable table keyboard standard,337,tests/test_phase337_editable_table_keyboard_standard.py,True,,True,True
 unified_barcode_printing_profiles,printing,Unified barcode printing profiles,338,tests/test_phase338_unified_barcode_printing_profiles.py,True,,True,True
 barcode_multi_print_ui,printing,Barcode multi-print UI for items/apparel/restaurant/cafe,339,tests/test_phase339_barcode_multi_print_ui.py,True,,True,True
-final_ux_regression_guards,quality,Final UX regression guard for shell/actions/columns/keyboard/barcode,340,tools/phase340_final_ux_regression_guard.py,True,tools/audit_outputs/final_ux_regression_matrix.csv,True,True
-settings_surface_contract,settings,Unified settings surface for columns and barcode profiles,341,tools/phase341_settings_surface_guard.py,True,tools/audit_outputs/settings_surface_matrix.csv,True,True
-settings_runtime_wiring,settings,Settings surface runtime wiring and column customizer integration,342,tools/phase342_settings_runtime_wiring_guard.py,True,tools/audit_outputs/settings_runtime_wiring_matrix.csv,True,True
-runtime_application_sweep,ui,Runtime application sweep for remaining table contracts,343,tools/phase343_runtime_application_sweep_guard.py,True,tools/audit_outputs/runtime_table_contract_sweep_matrix.csv,True,True
-visual_runtime_polish_sweep,ui,Visual runtime polish sweep for legacy and modern workspaces,344,tools/phase344_visual_runtime_polish_guard.py,True,tools/audit_outputs/visual_runtime_polish_matrix.csv,True,True
-full_runtime_acceptance_packaging_smoke,quality,Full runtime acceptance and packaging smoke matrix,345,tools/phase345_full_runtime_acceptance_packaging_smoke.py,True,tools/audit_outputs/full_runtime_acceptance_packaging_smoke_matrix.csv,True,True
-tab_lifecycle_dashboard_fallback,shell,Fixed dashboard surface and safe tab-close lifecycle,346,tools/phase346_tab_lifecycle_dashboard_fallback_guard.py,True,tools/audit_outputs/tab_lifecycle_dashboard_fallback_matrix.csv,True,True
-save_closes_tab,shell,Successful Save closes the owning workspace tab,347,tools/phase347_save_closes_tab_guard.py,True,tools/audit_outputs/save_closes_tab_matrix.csv,True,True
+final_ux_regression_guards,quality,Final UX regression guard for shell/actions/columns/keyboard/barcode,340,tools/phase340_final_ux_regression_guard.py,True,tools/audit_outputs/final_ux_regression_matrix.csv,False,True
+settings_surface_contract,settings,Unified settings surface for columns and barcode profiles,341,tools/phase341_settings_surface_guard.py,True,tools/audit_outputs/settings_surface_matrix.csv,False,True
+settings_runtime_wiring,settings,Settings surface runtime wiring and column customizer integration,342,tools/phase342_settings_runtime_wiring_guard.py,True,tools/audit_outputs/settings_runtime_wiring_matrix.csv,False,True
+runtime_application_sweep,ui,Runtime application sweep for remaining table contracts,343,tools/phase343_runtime_application_sweep_guard.py,True,tools/audit_outputs/runtime_table_contract_sweep_matrix.csv,False,True
+visual_runtime_polish_sweep,ui,Visual runtime polish sweep for legacy and modern workspaces,344,tools/phase344_visual_runtime_polish_guard.py,True,tools/audit_outputs/visual_runtime_polish_matrix.csv,False,True
+full_runtime_acceptance_packaging_smoke,quality,Full runtime acceptance and packaging smoke matrix,345,tools/phase345_full_runtime_acceptance_packaging_smoke.py,True,tools/audit_outputs/full_runtime_acceptance_packaging_smoke_matrix.csv,False,True
+tab_lifecycle_dashboard_fallback,shell,Fixed dashboard surface and safe tab-close lifecycle,346,tools/phase346_tab_lifecycle_dashboard_fallback_guard.py,True,tools/audit_outputs/tab_lifecycle_dashboard_fallback_matrix.csv,False,True
+save_closes_tab,shell,Successful Save closes the owning workspace tab,347,tools/phase347_save_closes_tab_guard.py,True,tools/audit_outputs/save_closes_tab_matrix.csv,False,True
+editable_entry_return_unification,ui,"Text focus, editable grid entry focus, and return document unification",348,tools/phase348_editable_entry_return_unification_guard.py,True,tools/audit_outputs/editable_entry_return_unification_matrix.csv,False,True
+transaction_entry_cash_footer_polish,ui,"Editable current-cell highlight, cash party fallback, and unified transaction footer/actions",349,tools/phase349_transaction_entry_cash_footer_guard.py,True,tools/audit_outputs/transaction_entry_cash_footer_matrix.csv,False,True
+function_close_lifecycle,shell,Function close lifecycle unification,351,tools/phase351_function_close_lifecycle_guard.py,True,tools/audit_outputs/function_close_lifecycle_matrix.csv,False,True
+brand_identity_visual_system,ui,Brand identity token system for logo-inspired UI,352,tools/phase352_brand_identity_visual_guard.py,True,tools/audit_outputs/brand_identity_visual_matrix.csv,True,True
+branded_first_run_runtime,ui,Branded login/splash/activation runtime polish,353,tools/phase353_branded_first_run_runtime_guard.py,True,tools/audit_outputs/branded_first_run_runtime_matrix.csv,True,True
+branded_shell_runtime,shell,"Branded tabs, menu and action bar runtime polish",354,tools/phase354_branded_shell_runtime_guard.py,True,tools/audit_outputs/branded_shell_runtime_matrix.csv,True,True
+branded_tables_transaction_footer,ui,Branded tables and transaction footer runtime polish,355,tools/phase355_branded_tables_transaction_footer_guard.py,True,tools/audit_outputs/branded_tables_transaction_footer_matrix.csv,True,True
+branded_dialogs_system_windows,ui,Branded dialogs and system-window runtime polish,356,tools/phase356_branded_dialogs_system_windows_guard.py,True,tools/audit_outputs/branded_dialogs_system_windows_matrix.csv,True,True
+qss_runtime_safety_hotfix,ui,QSS runtime f-string safety hotfix,357,tools/phase357_qss_runtime_safety_hotfix_guard.py,True,tools/audit_outputs/qss_runtime_safety_matrix.csv,True,True
+login_layout_stability,ui,Stable branded login layout without overlapping controls,358,tools/phase358_login_layout_stability_guard.py,True,tools/audit_outputs/login_layout_stability_matrix.csv,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

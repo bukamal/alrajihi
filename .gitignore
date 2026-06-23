@@ -1,16 +1,10 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
-.mypy_cache/
-.ruff_cache/
 .venv/
 venv/
-.env
-*.db
-*.sqlite
-*.sqlite3
-
-# Ignore generated build output, but keep release/build contract files tracked.
+env/
+dist/
 build/*
 !build/
 !build/build_windows.ps1
@@ -18,6 +12,3 @@ build/*
 !build/pyinstaller_hidden_imports.py
 !build/hooks/
 !build/hooks/*.py
-
-dist/
-*.log

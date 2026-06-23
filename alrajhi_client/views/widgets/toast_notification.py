@@ -7,14 +7,16 @@ source widget happens to be located.
 """
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
 from PyQt5.QtWidgets import QLabel, QFrame, QVBoxLayout, QApplication
+from theme_manager import ThemeManager
+from theme.brand import BRAND
 
 
 class ToastNotification(QFrame):
     COLORS = {
-        'success': ('#ecfdf5', '#047857', '#10b981'),
-        'info': ('#eff6ff', '#1d4ed8', '#3b82f6'),
-        'warning': ('#fffbeb', '#b45309', '#f59e0b'),
-        'error': ('#fef2f2', '#b91c1c', '#ef4444'),
+        'success': ('toast_success_bg', 'toast_success_text', 'success'),
+        'info': ('toast_info_bg', 'toast_info_text', 'info'),
+        'warning': ('toast_warning_bg', 'toast_warning_text', 'warning'),
+        'error': ('toast_error_bg', 'toast_error_text', 'danger'),
     }
 
     MARGIN = 26
@@ -30,7 +32,12 @@ class ToastNotification(QFrame):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.ToolTip | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setObjectName('ToastNotification')
-        bg, fg, accent = self.COLORS[self.msg_type]
+        self.setProperty('toastType', self.msg_type)
+        bg_key, fg_key, accent_key = self.COLORS[self.msg_type]
+        tokens = ThemeManager.colors()
+        bg = tokens.get(bg_key, tokens.get('bg_panel'))
+        fg = tokens.get(fg_key, tokens.get('text_primary'))
+        accent = tokens.get(accent_key, tokens.get('accent'))
         self.setStyleSheet(f"""
             QFrame#ToastNotification {{
                 background: {bg};
@@ -41,7 +48,7 @@ class ToastNotification(QFrame):
             QLabel {{
                 color: {fg};
                 font-size: 13px;
-                font-weight: 700;
+                font-weight: 800;
                 padding: 9px 14px;
             }}
         """)
@@ -51,8 +58,8 @@ class ToastNotification(QFrame):
         label.setWordWrap(True)
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         layout.addWidget(label)
-        self.setMinimumWidth(360)
-        self.setMaximumWidth(560)
+        self.setMinimumWidth(BRAND.get('toast_min_width', 360))
+        self.setMaximumWidth(BRAND.get('toast_max_width', 560))
         self.adjustSize()
 
     @staticmethod

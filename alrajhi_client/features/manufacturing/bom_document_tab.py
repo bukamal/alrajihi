@@ -366,10 +366,6 @@ class BomDocumentTab(BaseDocumentTab):
             show_toast(str(exc), 'error', self)
 
     def _close_parent_tab(self) -> None:
-        # The workspace controls tab closing.  This button keeps the editor
-        # non-modal without calling reject()/accept() like the legacy dialog.
-        parent = self.parent()
-        if parent and hasattr(parent, 'close_current_tab'):
-            parent.close_current_tab()
-        else:
-            self.close()
+        # Phase351: manufacturing document close is routed through the unified
+        # workspace lifecycle so confirmation/fallback match every function.
+        self.request_workspace_close()

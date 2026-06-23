@@ -32,6 +32,154 @@ class LocalSalesReturnGateway(SalesReturnGateway):
             raise SalesReturnException('لا توجد جلسة مستخدم نشطة')
         return uid
 
+    def _ensure_manual_return_schema(self) -> None:
+        """Allow sales returns without an original invoice."""
+        conn = self._conn()
+        info = conn.execute("PRAGMA table_info(sales_returns)").fetchall()
+        row = next((r for r in info if str(r['name'] if hasattr(r, 'keys') else r[1]) == 'original_invoice_id'), None)
+        not_null = bool(row['notnull'] if row is not None and hasattr(row, 'keys') else (row[3] if row is not None else 0))
+        if not not_null:
+            return
+        conn.execute('PRAGMA foreign_keys=OFF')
+        conn.execute('ALTER TABLE sales_returns RENAME TO sales_returns_phase348_legacy')
+        conn.execute("""
+            CREATE TABLE sales_returns (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                return_no TEXT,
+                original_invoice_id INTEGER,
+                customer_id INTEGER,
+                date TEXT,
+                total TEXT DEFAULT '0',
+                refund_amount TEXT DEFAULT '0',
+                credit_amount TEXT DEFAULT '0',
+                warehouse_id INTEGER,
+                branch_id INTEGER,
+                cashbox_id INTEGER,
+                bank_account_id INTEGER,
+                payment_method TEXT DEFAULT 'cash',
+                notes TEXT,
+                status TEXT DEFAULT 'active',
+                deleted_at TEXT,
+                created_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (original_invoice_id) REFERENCES invoices(id),
+                FOREIGN KEY (customer_id) REFERENCES customers(id)
+            )
+        """)
+        cols = [r['name'] if hasattr(r, 'keys') else r[1] for r in info]
+        common = [c for c in cols if c in {
+            'id','user_id','return_no','original_invoice_id','customer_id','date','total','refund_amount','credit_amount',
+            'warehouse_id','branch_id','cashbox_id','bank_account_id','payment_method','notes','status','deleted_at','created_at'
+        }]
+        col_sql = ','.join(common)
+        conn.execute(f"INSERT INTO sales_returns ({col_sql}) SELECT {col_sql} FROM sales_returns_phase348_legacy")
+        conn.execute('DROP TABLE sales_returns_phase348_legacy')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sales_returns_user ON sales_returns(user_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sales_returns_invoice ON sales_returns(original_invoice_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sales_returns_branch ON sales_returns(branch_id)')
+        conn.execute('PRAGMA foreign_keys=ON')
+        conn.commit()
+
+    def _create_manual_return(self, data: Dict) -> int:
+        uid = self._uid()
+        lines_in = data.get('lines') or []
+        if not lines_in:
+            raise SalesReturnException('يجب إدخال بند واحد على الأقل للمرتجع')
+        self._ensure_manual_return_schema()
+        wh_id = data.get('warehouse_id') or warehouse_service.default_warehouse_id()
+        branch_id = data.get('branch_id') or branch_service.current_branch_id()
+        cashbox_id = data.get('cashbox_id')
+        bank_account_id = data.get('bank_account_id')
+        payment_method = data.get('payment_method') or 'cash'
+        prepared = []
+        total = Decimal('0')
+        for line in lines_in:
+            item_id = int(line.get('item_id') or 0)
+            if not item_id:
+                continue
+            qty = Decimal(str(line.get('quantity') or 0))
+            if qty <= 0:
+                raise SalesReturnException('كمية المرتجع يجب أن تكون أكبر من صفر')
+            factor = Decimal(str(line.get('conversion_factor') or 1))
+            if factor <= 0:
+                factor = Decimal('1')
+            base_qty = Decimal(str(line.get('base_qty', line.get('quantity_in_base', qty * factor)) or 0))
+            if base_qty <= 0:
+                base_qty = qty * factor
+            unit_price = Decimal(str(line.get('unit_price') or line.get('price') or 0))
+            unit_cost = Decimal(str(line.get('unit_cost') or line.get('cost') or unit_price or 0))
+            amount = Decimal(str(line.get('total') or (qty * unit_price)))
+            total += amount
+            prepared.append({
+                'original_invoice_line_id': None,
+                'item_id': item_id,
+                'quantity': qty,
+                'quantity_in_base': base_qty,
+                'unit_price': unit_price,
+                'unit_cost': unit_cost,
+                'total': amount,
+                'unit': line.get('unit') or '',
+                'unit_id': line.get('unit_id'),
+                'conversion_factor': factor,
+                'cost_amount': base_qty * unit_cost,
+                'variant_id': line.get('variant_id'),
+                'variant_color': line.get('variant_color') or '',
+                'variant_size': line.get('variant_size') or '',
+                'variant_sku': line.get('variant_sku') or '',
+                'barcode_scope': line.get('barcode_scope') or '',
+                'matched_barcode': line.get('matched_barcode') or line.get('barcode') or '',
+            })
+        if not prepared:
+            raise SalesReturnException('يجب إدخال بند واحد على الأقل للمرتجع')
+        requested = data.get('refund_amount')
+        refund = total if requested in (None, '') else Decimal(str(requested or 0))
+        if refund < 0 or refund > total:
+            raise SalesReturnException('مبلغ الرد النقدي يجب أن يكون بين صفر وإجمالي المرتجع')
+        credit = total - refund
+        conn = self._conn()
+        now = datetime.now().isoformat()
+        ret_no = data.get('return_no') or self.next_return_no()
+        cur = conn.execute("""
+            INSERT INTO sales_returns
+            (user_id,return_no,original_invoice_id,customer_id,date,total,refund_amount,credit_amount,
+             warehouse_id,branch_id,cashbox_id,bank_account_id,payment_method,notes,status,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?, 'active', ?)
+        """, (uid, ret_no, None, data.get('customer_id'), data.get('date') or datetime.now().strftime('%Y-%m-%d'),
+              str(total), str(refund), str(credit), wh_id, branch_id, cashbox_id, bank_account_id, payment_method,
+              data.get('notes') or '', now))
+        rid = cur.lastrowid
+        for line in prepared:
+            conn.execute("""
+                INSERT INTO sales_return_lines
+                (sales_return_id,original_invoice_line_id,item_id,quantity,unit_price,total,unit,unit_id,conversion_factor,quantity_in_base,unit_cost,cost_amount)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (rid, None, line['item_id'], str(line['quantity']), str(line['unit_price']), str(line['total']),
+                  line['unit'], line.get('unit_id'), str(line.get('conversion_factor') or 1), str(line['quantity_in_base']),
+                  str(line['unit_cost']), str(line['cost_amount'])))
+            variant_data = {k: line.get(k) for k in ('variant_id','variant_color','variant_size','variant_sku','barcode_scope','matched_barcode')}
+            self.db._record_inventory_movement(line['item_id'], 'sales_return', line['quantity_in_base'], line['unit_cost'], rid)
+            warehouse_service.record_movement(line['item_id'], wh_id, 'sales_return_in', line['quantity_in_base'], line['unit_cost'], 'sales_return', rid, 'مرتجع مبيعات يدوي إلى المستودع', **variant_data)
+            inventory_service.record_ledger_entry(
+                item_id=line['item_id'], warehouse_id=wh_id, movement_type='sales_return_in',
+                direction='in', quantity=line['quantity_in_base'], unit_cost=line['unit_cost'],
+                reference_type='sales_return', reference_id=rid, source_table='sales_returns',
+                source_id=rid, notes='دفتر مخزون مرتجع بيع يدوي'
+            )
+        if data.get('customer_id') and credit > 0:
+            self.db._update_customer_balance(data.get('customer_id'), -credit)
+        if refund > 0:
+            self.db._update_cash_balance(refund, add=False)
+            try:
+                cashbox_service.record_return_refund(rid, {'branch_id': branch_id, 'cashbox_id': cashbox_id,
+                    'bank_account_id': bank_account_id, 'payment_method': payment_method, 'amount': refund,
+                    'date': data.get('date'), 'description': f'رد مرتجع مبيعات يدوي {ret_no}'})
+            except Exception:
+                pass
+        conn.commit()
+        audit_service.log('CREATE', 'SALES_RETURN', rid, new_values=self.get(rid), details='إنشاء مرتجع مبيعات يدوي')
+        return rid
+
     def _unit_factor_for_return(self, orig: Dict, line: Dict) -> Tuple[Decimal, str, Optional[int]]:
         """Resolve the selected return unit against item units; never trust client conversion blindly."""
         item_id = orig.get('item_id')
@@ -196,6 +344,8 @@ class LocalSalesReturnGateway(SalesReturnGateway):
             return int((result or {}).get('id') or 0)
         uid = self._uid()
         invoice_id = int(data.get('original_invoice_id') or 0)
+        if not invoice_id:
+            return self._create_manual_return(data)
         inv = invoice_service.get(invoice_id)
         if not inv or inv.get('type') != 'sale':
             raise SalesReturnException('يجب اختيار فاتورة بيع صالحة')

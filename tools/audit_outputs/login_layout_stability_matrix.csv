@@ -1,0 +1,37 @@
+key,category,description,status,detail
+brand_phase,tokens,BRAND phase advanced to login layout stability hotfix,pass,358
+token_first_run_login_header_bg,tokens,BRAND includes first_run_login_header_bg,pass,first_run_login_header_bg
+token_login_stable_width,tokens,BRAND includes login_stable_width,pass,login_stable_width
+token_login_stable_height,tokens,BRAND includes login_stable_height,pass,login_stable_height
+token_login_form_max_width,tokens,BRAND includes login_form_max_width,pass,login_form_max_width
+token_brand_logo_login_header_px,tokens,BRAND includes brand_logo_login_header_px,pass,brand_logo_login_header_px
+"login_loginLayout', 'stable_centered'",login_source,"Login dialog uses stable layout marker loginLayout', 'stable_centered'",pass,"loginLayout', 'stable_centered'"
+login_login_brand_header(,login_source,Login dialog uses stable layout marker login_brand_header(,pass,login_brand_header(
+login_first_run_form_panel(),login_source,Login dialog uses stable layout marker first_run_form_panel(),pass,first_run_form_panel()
+login_setMaximumWidth(int(BRAND.get('login,login_source,Login dialog uses stable layout marker setMaximumWidth(int(BRAND.get('login_form_max_width',pass,setMaximumWidth(int(BRAND.get('login_form_max_width'
+login_QVBoxLayout(self.content_widget),login_source,Login dialog uses stable layout marker QVBoxLayout(self.content_widget),pass,QVBoxLayout(self.content_widget)
+login_QGridLayout(options_panel),login_source,Login dialog uses stable layout marker QGridLayout(options_panel),pass,QGridLayout(options_panel)
+login_loginPasswordToggle,login_source,Login dialog uses stable layout marker loginPasswordToggle,pass,loginPasswordToggle
+login__switch_account_label,login_source,Login dialog uses stable layout marker _switch_account_label,pass,_switch_account_label
+login_self.switch_btn.setToolTip(translate,login_source,Login dialog uses stable layout marker self.switch_btn.setToolTip(translate('switch_account')),pass,self.switch_btn.setToolTip(translate('switch_account'))
+login_brand_side_panel(,login_source,Login dialog uses stable layout marker brand_side_panel(,pass,brand_side_panel(
+forbid_root_layout = QHBoxLayout(self.conte,login_source,Login dialog no longer uses overlapping layout marker root_layout = QHBoxLayout(self.content_widget),pass,root_layout = QHBoxLayout(self.content_widget)
+forbid_root_layout.addWidget(self.brand_pan,login_source,"Login dialog no longer uses overlapping layout marker root_layout.addWidget(self.brand_panel, 0)",pass,"root_layout.addWidget(self.brand_panel, 0)"
+forbid_QPushButton(translate('switch_accoun,login_source,Login dialog no longer uses overlapping layout marker QPushButton(translate('switch_account')),pass,QPushButton(translate('switch_account'))
+helper_FIRST_RUN_RUNTIME_PHASE = 358,helper,First-run helper exposes stable login marker FIRST_RUN_RUNTIME_PHASE = 358,pass,FIRST_RUN_RUNTIME_PHASE = 358
+helper_login_brand_header,helper,First-run helper exposes stable login marker login_brand_header,pass,login_brand_header
+helper_firstRunLoginHeader,helper,First-run helper exposes stable login marker firstRunLoginHeader,pass,firstRunLoginHeader
+helper_firstRunLoginLogo,helper,First-run helper exposes stable login marker firstRunLoginLogo,pass,firstRunLoginLogo
+helper_firstRunLoginTitle,helper,First-run helper exposes stable login marker firstRunLoginTitle,pass,firstRunLoginTitle
+helper_firstRunLoginSubtitle,helper,First-run helper exposes stable login marker firstRunLoginSubtitle,pass,firstRunLoginSubtitle
+helper_firstRunLoginModeChip,helper,First-run helper exposes stable login marker firstRunLoginModeChip,pass,firstRunLoginModeChip
+qss_Phase358: stable centered login layo,qss_source,QSS source contains Phase358: stable centered login layout,pass,Phase358: stable centered login layout
+qss_QFrame#firstRunLoginHeader,qss_source,QSS source contains QFrame#firstRunLoginHeader,pass,QFrame#firstRunLoginHeader
+qss_QLabel#firstRunLoginLogo,qss_source,QSS source contains QLabel#firstRunLoginLogo,pass,QLabel#firstRunLoginLogo
+qss_QLabel#firstRunLoginTitle,qss_source,QSS source contains QLabel#firstRunLoginTitle,pass,QLabel#firstRunLoginTitle
+qss_QLabel#firstRunLoginSubtitle,qss_source,QSS source contains QLabel#firstRunLoginSubtitle,pass,QLabel#firstRunLoginSubtitle
+qss_QLabel#firstRunLoginModeChip,qss_source,QSS source contains QLabel#firstRunLoginModeChip,pass,QLabel#firstRunLoginModeChip
+qss_QFrame#loginOptionsPanel,qss_source,QSS source contains QFrame#loginOptionsPanel,pass,QFrame#loginOptionsPanel
+qss_QPushButton#loginPasswordToggle,qss_source,QSS source contains QPushButton#loginPasswordToggle,pass,QPushButton#loginPasswordToggle
+generate_light,qss_runtime,Generated light QSS includes stable login header selector,pass,57064
+generate_dark,qss_runtime,Generated dark QSS includes stable login header selector,pass,57690

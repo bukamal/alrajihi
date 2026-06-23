@@ -98,8 +98,7 @@ class TransactionDocumentTab(BaseDocumentTab):
             else:
                 self.load_invoice_data(self.invoice_id)
         else:
-            if not self.is_return:
-                self.lines_model.add_empty_line()
+            self.lines_model.add_empty_line()
             self._prefill_reference()
             self.set_document_title(self.workspace_title())
             self.set_dirty(False)
@@ -189,24 +188,29 @@ class TransactionDocumentTab(BaseDocumentTab):
             except Exception:
                 pass
             self.original_invoice_combo.currentIndexChanged.connect(self._on_original_invoice_changed)
-            self.search_input.setPlaceholderText(tr("transaction_select_original_then_load"))
-            self.search_input.setEnabled(False)
-            add_btn.setText(tr("transaction_load_lines"))
-            add_btn.setMaximumWidth(118)
+            # Phase348: returns use the same editable material-entry grid as sales/purchase.
+            # The original invoice selector remains available for assisted returns, but it is
+            # no longer the primary workflow and it does not disable material entry.
+            self.original_invoice_combo.setVisible(False)
+            self.search_input.setPlaceholderText(tr("transaction_search_material_barcode"))
+            self.search_input.setEnabled(True)
+            add_btn.setText(tr("add"))
+            add_btn.setMaximumWidth(72)
 
         inline_header = QFrame(self)
         inline_header.setObjectName("TransactionInlineHeaderBar")
         header = QHBoxLayout(inline_header)
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(4)
-        if self.is_return:
-            header.addWidget(self._inline_header_field(tr("transaction_original_invoice"), self.original_invoice_combo, stretch=2))
+        # Phase348: do not force returns to start with invoice selection.
+        # Assisted invoice loading is exposed through return tools, while the
+        # main header mirrors sales/purchase documents.
         header.addWidget(self._inline_header_field(tr("customers") if self.inv_type == "sale" else tr("suppliers"), self.party_combo, stretch=2))
         header.addWidget(self._inline_header_field(tr("date"), self.date_edit))
         header.addWidget(self._inline_header_field(tr("warehouses"), self.warehouse_combo, stretch=1))
         header.addWidget(self._inline_header_field(tr("currency"), self.currency_label))
         header.addWidget(self._inline_header_field(tr("transaction_reference"), self.ref_edit))
-        header.addWidget(self._inline_header_field(tr("transaction_quick_search") if not self.is_return else "", self.search_input, stretch=2))
+        header.addWidget(self._inline_header_field(tr("transaction_quick_search"), self.search_input, stretch=2))
         header.addWidget(add_btn)
         header.addSpacing(4)
         header.addWidget(QLabel(tr("transaction_preset")))
@@ -251,6 +255,10 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.grid.setModel(self.lines_model)
         self._restore_grid_layout()
         try:
+            self.grid.schedule_initial_entry_focus(start_edit=True)
+        except Exception:
+            pass
+        try:
             self.grid.horizontalHeader().sectionMoved.connect(self._save_grid_layout)
             self.grid.horizontalHeader().sectionResized.connect(self._save_grid_layout)
         except Exception:
@@ -260,11 +268,14 @@ class TransactionDocumentTab(BaseDocumentTab):
 
         self.side_panel = QFrame(self)
         self.side_panel.setObjectName("TransactionFooterPanel")
+        self.side_panel.setProperty("transaction_footer_role", "container")
         side_layout = QHBoxLayout(self.side_panel)
         side_layout.setContentsMargins(0, 0, 0, 0)
         side_layout.setSpacing(8)
         self.notes = QTextEdit()
-        self.notes.setMaximumHeight(78)
+        self.notes.setObjectName("TransactionFooterNotes")
+        self.notes.setProperty("transaction_footer_role", "notes")
+        self.notes.setMaximumHeight(82)
         self.notes.setMinimumHeight(72)
         self.notes.setPlaceholderText(tr("transaction_notes_terms_attachments"))
         self.totals_panel = TransactionTotalsPanel(self)
@@ -287,7 +298,7 @@ class TransactionDocumentTab(BaseDocumentTab):
 
         actions = [
             ("transaction_new", self._new),
-            ("transaction_add_line_insert", self._add_empty_line_from_ui if not self.is_return else self._load_returnable_lines_for_selected_invoice),
+            ("transaction_add_line_insert", self._add_empty_line_from_ui),
         ]
         if self.is_return:
             actions.extend([
@@ -300,7 +311,7 @@ class TransactionDocumentTab(BaseDocumentTab):
             ("print", self.workspace_print),
             ("transaction_pay_full" if not self.is_return else "transaction_refund_full", self._mark_paid_full),
             ("transaction_hold" if not self.is_return else "transaction_credit_settlement", self._mark_unpaid),
-            ("transaction_close", self.close),
+            ("transaction_close", self.request_workspace_close),
         ])
         self.bottom_actions = TransactionBottomActions(actions, self)
         root.addWidget(self.bottom_actions)
@@ -339,26 +350,36 @@ class TransactionDocumentTab(BaseDocumentTab):
             box.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         return box
 
+    def request_workspace_close(self) -> bool:
+        """Close the owning tab through the same lifecycle as the tab-bar X."""
+        return bool(super().request_workspace_close())
+
     def _install_shortcuts(self) -> None:
         QShortcut(QKeySequence.Save, self, activated=self.workspace_save)
         QShortcut(QKeySequence.Print, self, activated=self.workspace_print)
         QShortcut(QKeySequence("Ctrl+F"), self, activated=self._focus_search)
-        QShortcut(QKeySequence("Insert"), self, activated=self._add_empty_line_from_ui if not self.is_return else self._load_returnable_lines_for_selected_invoice)
+        QShortcut(QKeySequence("Insert"), self, activated=self._add_empty_line_from_ui)
         QShortcut(QKeySequence("Delete"), self, activated=self._remove_current_line)
 
     def _focus_search(self) -> None:
-        if self.is_return:
-            self.original_invoice_combo.setFocus()
-            return
         self.search_input.setFocus()
         self.search_input.selectAll()
 
     def _return_service(self):
         return purchase_return_service if self.inv_type == "purchase" else sales_return_service
 
+    def _cash_party_label(self) -> str:
+        """User-facing party fallback for cash/counter transactions.
+
+        Phase349: invoices and returns may be saved without a selected customer
+        or supplier.  The UI should show Cash/نقدًا instead of a missing-party
+        warning or an empty party identity.
+        """
+        return tr("payment_cash")
+
     def _load_parties(self) -> None:
         self.party_combo.clear()
-        self.party_combo.addItem(tr("transaction_no_party"), None)
+        self.party_combo.addItem(self._cash_party_label(), None)
         try:
             rows = catalog_service.suppliers(limit=200) if self.inv_type == "purchase" else catalog_service.customers(limit=200)
         except Exception:
@@ -403,7 +424,7 @@ class TransactionDocumentTab(BaseDocumentTab):
             self.original_invoice_combo.addItem(tr("transaction_choose_original_invoice"), None)
             for inv in invoices:
                 party = inv.get("supplier_name") if self.inv_type == "purchase" else inv.get("customer_name")
-                text = f"{inv.get('reference') or inv.get('id')} — {inv.get('date') or ''} — {party or tr('transaction_no_party')}"
+                text = f"{inv.get('reference') or inv.get('id')} — {inv.get('date') or ''} — {party or self._cash_party_label()}"
                 self.original_invoice_combo.addItem(text, inv.get("id"))
                 self.invoice_map[inv.get("id")] = inv
         self._return_invoices_loaded = True
@@ -729,9 +750,6 @@ class TransactionDocumentTab(BaseDocumentTab):
                 self.return_tools.set_message(tr("transaction_no_returnable_lines"))
 
     def add_item_from_search(self) -> None:
-        if self.is_return:
-            self._load_returnable_lines_for_selected_invoice()
-            return
         text = self.search_input.text().strip()
         if not text:
             return
@@ -803,11 +821,12 @@ class TransactionDocumentTab(BaseDocumentTab):
         return None
 
     def _add_empty_line_from_ui(self) -> None:
-        if self.is_return:
-            self._load_returnable_lines_for_selected_invoice()
-            return
         self.lines_model.add_empty_line()
         self.set_dirty(True)
+        try:
+            self.grid.schedule_initial_entry_focus(start_edit=True)
+        except Exception:
+            pass
 
     def _remove_current_line(self) -> None:
         row = None
@@ -825,7 +844,7 @@ class TransactionDocumentTab(BaseDocumentTab):
             self.invoice_id = None
             self.return_id = None
             self.document_state.document_id = None
-            self.lines_model.clear(keep_empty=not self.is_return)
+            self.lines_model.clear(keep_empty=True)
             self.notes.clear()
             self.ref_edit.clear()
             self.totals_panel.set_paid(0.0)
@@ -1187,7 +1206,14 @@ class TransactionDocumentTab(BaseDocumentTab):
             "payment_method": method,
             "notes": self.notes.toPlainText().strip(),
             "total": str(total),
-            "lines": self._return_lines_to_storage(self.lines_model.get_return_lines_data()),
+            "customer_id": self._selected_party_id() if self.inv_type == "sale" else None,
+            "supplier_id": self._selected_party_id() if self.inv_type == "purchase" else None,
+            "lines": self._return_lines_to_storage(
+                self.lines_model.get_return_lines_data()
+                if self._selected_original_invoice_id()
+                else self.lines_model.get_lines_data()
+            ),
+            "manual_return": not bool(self._selected_original_invoice_id()),
             "exchange_rate_to_usd": self._exchange_rate_to_usd(),
             "original_currency": self.display_currency,
         }
@@ -1200,9 +1226,8 @@ class TransactionDocumentTab(BaseDocumentTab):
 
     def _validate_before_save(self, lines: list[dict]) -> bool:
         title = self._message_title()
-        if self.is_return and self._selected_original_invoice_id() in (None, ""):
-            QMessageBox.warning(self, title, tr("transaction_select_original_before_save"))
-            return False
+        # Phase348: editable returns may be posted without selecting an original
+        # invoice; invoice selection is now an optional assistant, not a save gate.
         if not lines:
             QMessageBox.warning(self, title, tr("transaction_add_at_least_one_line"))
             return False
@@ -1218,17 +1243,15 @@ class TransactionDocumentTab(BaseDocumentTab):
                 QMessageBox.warning(self, title, "\n".join(errors[:10]))
                 return False
             return True
+        # Phase349: absence of a customer/supplier is a valid cash/counter
+        # document, not a blocking confirmation.  The party combo shows Cash and
+        # the payload keeps customer_id/supplier_id as None so balances are not
+        # posted to a named party.
         if self._selected_party_id() in (None, ""):
-            role = tr("customers") if self.inv_type == "sale" else tr("suppliers")
-            reply = QMessageBox.question(
-                self,
-                tr("sales_invoice") if not self.is_return else tr("sales_returns"),
-                tr("transaction_save_without_party", role=role),
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.No,
-            )
-            if reply != QMessageBox.Yes:
-                return False
+            try:
+                self.party_combo.setCurrentIndex(0)
+            except Exception:
+                pass
         if self.inv_type == "sale":
             insufficient = []
             for row in self.lines_model.lines:
@@ -1248,7 +1271,11 @@ class TransactionDocumentTab(BaseDocumentTab):
         return True
 
     def workspace_save(self) -> None:
-        lines = self.lines_model.get_return_lines_data() if self.is_return else self.lines_model.get_lines_data()
+        lines = (
+            self.lines_model.get_return_lines_data()
+            if self.is_return and self._selected_original_invoice_id()
+            else self.lines_model.get_lines_data()
+        )
         if not self._validate_before_save(lines):
             return
         payload = self._payload()
@@ -1283,7 +1310,11 @@ class TransactionDocumentTab(BaseDocumentTab):
             QMessageBox.warning(self, tr("transaction_save_failed"), str(exc))
 
     def _has_printable_lines(self) -> bool:
-        lines = self.lines_model.get_return_lines_data() if self.is_return else self.lines_model.get_lines_data()
+        lines = (
+            self.lines_model.get_return_lines_data()
+            if self.is_return and self._selected_original_invoice_id()
+            else self.lines_model.get_lines_data()
+        )
         return bool(lines)
 
     def _ensure_saved_for_output(self) -> bool:

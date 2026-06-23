@@ -1,0 +1,82 @@
+key,category,description,status,detail
+brand_phase,tokens,BRAND phase advanced to branded dialogs/system windows,pass,358
+light_dialog_tokens,tokens,light palette includes Phase 356 dialog tokens,pass,
+dark_dialog_tokens,tokens,dark palette includes Phase 356 dialog tokens,pass,
+dialog_identity_token_dialog_bg,token,dialog body surface,pass,dialog_bg
+dialog_identity_token_dialog_header_bg,token,dialog branded header surface,pass,dialog_header_bg
+dialog_identity_token_dialog_footer_bg,token,dialog footer/action surface,pass,dialog_footer_bg
+dialog_identity_token_dialog_button_bg,token,neutral dialog button surface,pass,dialog_button_bg
+dialog_identity_token_dialog_title_text,token,dialog title foreground,pass,dialog_title_text
+dialog_identity_token_dialog_subtitle_text,token,dialog subtitle foreground,pass,dialog_subtitle_text
+dialog_identity_token_dialog_accent_line,token,dialog accent/identity separator,pass,dialog_accent_line
+dialog_identity_token_dialog_primary_bg,token,primary dialog command surface,pass,dialog_primary_bg
+dialog_identity_token_dialog_secondary_bg,token,secondary dialog command surface,pass,dialog_secondary_bg
+dialog_identity_token_dialog_close_bg,token,safe close/cancel command surface,pass,dialog_close_bg
+dialog_identity_token_dialog_warning_bg,token,warning prompt surface,pass,dialog_warning_bg
+dialog_identity_token_dialog_danger_bg,token,danger prompt surface,pass,dialog_danger_bg
+dialog_identity_token_dialog_success_bg,token,success prompt surface,pass,dialog_success_bg
+dialog_identity_token_dialog_overlay_bg,token,modal overlay/outer shell surface,pass,dialog_overlay_bg
+dialog_identity_token_toast_success_bg,token,success toast background,pass,toast_success_bg
+dialog_identity_token_toast_info_bg,token,informational toast background,pass,toast_info_bg
+dialog_identity_token_toast_warning_bg,token,warning toast background,pass,toast_warning_bg
+dialog_identity_token_toast_error_bg,token,error toast background,pass,toast_error_bg
+dialog_identity_runtime_branded_runtime_helper,runtime,central branded dialog applicator,pass,apply_branded_dialog
+dialog_identity_runtime_dialog_button_normalizer,runtime,shared button role normalization,pass,normalize_dialog_buttons
+dialog_identity_runtime_message_box_runtime,runtime,message-box branding entry point,pass,brand_message_box
+dialog_identity_frameless_frameless_frame,frameless,frameless dialogs use branded frame object,pass,BrandDialogFrame
+dialog_identity_frameless_frameless_header,frameless,frameless dialogs use branded header object,pass,BrandDialogHeader
+dialog_identity_frameless_frameless_title,frameless,frameless dialogs expose branded title object,pass,BrandDialogTitle
+dialog_identity_modern_modern_dialog_hook,modern,legacy modern dialog helper delegates to brand layer,pass,apply_branded_dialog(dialog
+dialog_identity_customizer_column_customizer_hook,customizer,column customizer participates in dialog identity,pass,brandDialog
+dialog_identity_toast_toast_branding,toast,toast notification exposes semantic type to QSS,pass,toastType
+file_dialog_identity,file,Required branded dialog runtime file exists,pass,alrajhi_client/theme/dialog_identity.py
+file_brand,file,Required branded dialog runtime file exists,pass,alrajhi_client/theme/brand.py
+file_qss,file,Required branded dialog runtime file exists,pass,alrajhi_client/theme/qss.py
+file_dialog_branding,file,Required branded dialog runtime file exists,pass,alrajhi_client/ui/dialog_branding.py
+file_frameless_dialog,file,Required branded dialog runtime file exists,pass,alrajhi_client/views/frameless_dialog.py
+file_centered_dialog,file,Required branded dialog runtime file exists,pass,alrajhi_client/views/centered_dialog.py
+file_modern_ui,file,Required branded dialog runtime file exists,pass,alrajhi_client/views/widgets/modern_ui.py
+file_toast_notification,file,Required branded dialog runtime file exists,pass,alrajhi_client/views/widgets/toast_notification.py
+file_column_contract_customizer,file,Required branded dialog runtime file exists,pass,alrajhi_client/views/dialogs/column_contract_customizer.py
+qss_Phase356: branded dialogs and system windo,qss,QSS contains Phase356: branded dialogs and system windows,pass,Phase356: branded dialogs and system windows
+"qss_QDialog[brandDialog=""true""]",qss,"QSS contains QDialog[brandDialog=""true""]",pass,"QDialog[brandDialog=""true""]"
+qss_QFrame#BrandDialogFrame,qss,QSS contains QFrame#BrandDialogFrame,pass,QFrame#BrandDialogFrame
+qss_QFrame#BrandDialogHeader,qss,QSS contains QFrame#BrandDialogHeader,pass,QFrame#BrandDialogHeader
+"qss_QWidget[dialogSurface=""body""]",qss,"QSS contains QWidget[dialogSurface=""body""]",pass,"QWidget[dialogSurface=""body""]"
+"qss_QWidget[dialogSurface=""footer""]",qss,"QSS contains QWidget[dialogSurface=""footer""]",pass,"QWidget[dialogSurface=""footer""]"
+"qss_QPushButton[dialogActionRole=""primary""]",qss,"QSS contains QPushButton[dialogActionRole=""primary""]",pass,"QPushButton[dialogActionRole=""primary""]"
+"qss_QPushButton[dialogActionRole=""secondary""]",qss,"QSS contains QPushButton[dialogActionRole=""secondary""]",pass,"QPushButton[dialogActionRole=""secondary""]"
+"qss_QPushButton[dialogActionRole=""danger""]",qss,"QSS contains QPushButton[dialogActionRole=""danger""]",pass,"QPushButton[dialogActionRole=""danger""]"
+qss_QMessageBox QLabel,qss,QSS contains QMessageBox QLabel,pass,QMessageBox QLabel
+qss_QFrame#ToastNotification,qss,QSS contains QFrame#ToastNotification,pass,QFrame#ToastNotification
+object_branded_runtime_helper,runtime,central branded dialog applicator,pass,apply_branded_dialog
+object_dialog_button_normalizer,runtime,shared button role normalization,pass,normalize_dialog_buttons
+object_message_box_runtime,runtime,message-box branding entry point,pass,brand_message_box
+object_frameless_frame,frameless,frameless dialogs use branded frame object,pass,BrandDialogFrame
+object_frameless_header,frameless,frameless dialogs use branded header object,pass,BrandDialogHeader
+object_frameless_title,frameless,frameless dialogs expose branded title object,pass,BrandDialogTitle
+object_modern_dialog_hook,modern,legacy modern dialog helper delegates to brand layer,pass,apply_branded_dialog(dialog
+object_column_customizer_hook,customizer,column customizer participates in dialog identity,pass,brandDialog
+object_toast_branding,toast,toast notification exposes semantic type to QSS,pass,toastType
+runtime_dialog_branding_apply_branded_dialog,runtime,alrajhi_client/ui/dialog_branding.py uses apply_branded_dialog,pass,apply_branded_dialog
+runtime_dialog_branding_normalize_dialog_buttons,runtime,alrajhi_client/ui/dialog_branding.py uses normalize_dialog_buttons,pass,normalize_dialog_buttons
+runtime_dialog_branding_dialogActionRole,runtime,alrajhi_client/ui/dialog_branding.py uses dialogActionRole,pass,dialogActionRole
+runtime_dialog_branding_brand_message_box,runtime,alrajhi_client/ui/dialog_branding.py uses brand_message_box,pass,brand_message_box
+runtime_dialog_branding_branded_question,runtime,alrajhi_client/ui/dialog_branding.py uses branded_question,pass,branded_question
+runtime_frameless_dialog_BrandDialogFrame,runtime,alrajhi_client/views/frameless_dialog.py uses BrandDialogFrame,pass,BrandDialogFrame
+runtime_frameless_dialog_BrandDialogHeader,runtime,alrajhi_client/views/frameless_dialog.py uses BrandDialogHeader,pass,BrandDialogHeader
+runtime_frameless_dialog_BrandDialogTitle,runtime,alrajhi_client/views/frameless_dialog.py uses BrandDialogTitle,pass,BrandDialogTitle
+runtime_frameless_dialog_apply_branded_dialog,runtime,alrajhi_client/views/frameless_dialog.py uses apply_branded_dialog,pass,apply_branded_dialog
+runtime_frameless_dialog_dialogActionRole,runtime,alrajhi_client/views/frameless_dialog.py uses dialogActionRole,pass,dialogActionRole
+runtime_centered_dialog_branded_question,runtime,alrajhi_client/views/centered_dialog.py uses branded_question,pass,branded_question
+runtime_centered_dialog_تغييرات غير محفوظة,runtime,alrajhi_client/views/centered_dialog.py uses تغييرات غير محفوظة,pass,تغييرات غير محفوظة
+runtime_modern_ui_BrandDialogHeaderCard,runtime,alrajhi_client/views/widgets/modern_ui.py uses BrandDialogHeaderCard,pass,BrandDialogHeaderCard
+runtime_modern_ui_apply_branded_dialog(dialog,runtime,alrajhi_client/views/widgets/modern_ui.py uses apply_branded_dialog(dialog,pass,apply_branded_dialog(dialog
+runtime_modern_ui_normalize_dialog_buttons(dia,runtime,alrajhi_client/views/widgets/modern_ui.py uses normalize_dialog_buttons(dialog),pass,normalize_dialog_buttons(dialog)
+runtime_toast_notification_toastType,runtime,alrajhi_client/views/widgets/toast_notification.py uses toastType,pass,toastType
+runtime_toast_notification_toast_success_bg,runtime,alrajhi_client/views/widgets/toast_notification.py uses toast_success_bg,pass,toast_success_bg
+runtime_toast_notification_toast_min_width,runtime,alrajhi_client/views/widgets/toast_notification.py uses toast_min_width,pass,toast_min_width
+runtime_column_contract_customizer_brandDialog,runtime,alrajhi_client/views/dialogs/column_contract_customizer.py uses brandDialog,pass,brandDialog
+runtime_column_contract_customizer_dialogKind,runtime,alrajhi_client/views/dialogs/column_contract_customizer.py uses dialogKind,pass,dialogKind
+runtime_column_contract_customizer_column_customizer,runtime,alrajhi_client/views/dialogs/column_contract_customizer.py uses column_customizer,pass,column_customizer
+runtime_column_contract_customizer_apply_branded_dialog,runtime,alrajhi_client/views/dialogs/column_contract_customizer.py uses apply_branded_dialog,pass,apply_branded_dialog

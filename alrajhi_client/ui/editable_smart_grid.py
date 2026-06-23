@@ -102,6 +102,10 @@ class EditableSmartGrid(StandardTableKeyboardMixin, QTableWidget):
         super().setRowCount(rows)
         if self._auto_fit_columns:
             QTimer.singleShot(0, self.fit_columns_to_view)
+        try:
+            self.schedule_initial_entry_focus(start_edit=False)
+        except Exception:
+            pass
 
     def _schedule_save_layout(self, *args) -> None:
         if self._restoring_layout or self._layout_save_pending:

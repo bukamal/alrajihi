@@ -17,6 +17,11 @@ class CustomTableView(StandardTableKeyboardMixin, QTableView):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(Qt.RightToLeft)
+        # Phase355: every Custom/Smart table opts in to the branded table skin.
+        # This keeps legacy tables, transaction grids and contract-driven lists
+        # on the same visual identity without duplicating local QSS.
+        self.setProperty("brand_table_surface", True)
+        self.setProperty("brand_table_density", "comfortable")
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QTableView.SelectRows)
         self.setSelectionMode(QTableView.ExtendedSelection)
@@ -215,6 +220,10 @@ class CustomTableView(StandardTableKeyboardMixin, QTableView):
         super().setModel(model)
         self.restore_layout()
         self._apply_contract_display_visibility()
+        try:
+            self.schedule_initial_entry_focus(start_edit=False)
+        except Exception:
+            pass
 
     def copy_selection(self):
         selection = self.selectionModel().selectedIndexes()
