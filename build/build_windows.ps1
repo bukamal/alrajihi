@@ -3,6 +3,14 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
+# Phase 369: build only the Warehouse installer release artifact.
+# The PyInstaller staging folder remains AlrajhiAccounting to preserve runtime
+# paths and installed data compatibility; no portable ZIP/artifact is produced.
+$ReleaseArtifactName = "AlrajhiAccountingWarehouse_Release_Installer"
+$SetupOutputBase = "AlrajhiAccountingWarehouse_Release_Setup"
+$PyInstallerAppName = "AlrajhiAccounting"
+$PyInstallerDistDir = Join-Path $Root "dist\$PyInstallerAppName"
+
 $IconPath = Join-Path $Root "alrajhi_client\assets\brand\app.ico"
 if (!(Test-Path $IconPath)) {
     throw "Missing application icon: $IconPath"
@@ -36,7 +44,7 @@ pyinstaller `
   --noconfirm `
   --onedir `
   --windowed `
-  --name AlrajhiAccounting `
+  --name $PyInstallerAppName `
   --icon "$IconPath" `
   --additional-hooks-dir build/hooks `
   --paths alrajhi_client `
@@ -211,7 +219,7 @@ pyinstaller `
   @extra `
   alrajhi_client\main.py
 
-if (!(Test-Path "dist\AlrajhiAccounting\AlrajhiAccounting.exe")) {
+if (!(Test-Path (Join-Path $PyInstallerDistDir "AlrajhiAccounting.exe"))) {
     throw "PyInstaller build failed: missing EXE"
 }
 
@@ -222,7 +230,7 @@ $printTemplateCandidates = @(
     "dist\AlrajhiAccounting\_internal\alrajhi_client\printing\print_templates.py"
 )
 if (!(($printTemplateCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
-    throw "Portable build missing packaged print template files"
+    throw "Installer staging missing packaged print template files"
 }
 
 $printTemplateLoaderCandidates = @(
@@ -232,15 +240,21 @@ $printTemplateLoaderCandidates = @(
     "dist\AlrajhiAccounting\_internal\alrajhi_client\printing\_template_loader.py"
 )
 if (!(($printTemplateLoaderCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
-    throw "Portable build missing packaged print template loader"
+    throw "Installer staging missing packaged print template loader"
 }
 
 
 
 New-Item -ItemType Directory -Force -Path output | Out-Null
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $Root "output\AlrajhiAccounting_Release_Setup.exe")
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $Root "output\AlrajhiAccounting_Setup.exe")
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $Root "output\AlrajhiAccountingWarehouse_Release_Setup.exe")
 $Inno = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 if (Test-Path $Inno) {
     & $Inno build\setup.iss
+    if (!(Test-Path (Join-Path $Root "output\$SetupOutputBase.exe"))) {
+        throw "Installer build failed: missing $SetupOutputBase.exe"
+    }
 } else {
-    Write-Warning "Inno Setup not found. Portable EXE was built, installer was not built."
+    Write-Warning "Inno Setup not found. Installer staging EXE was built, installer was not built because Inno Setup is missing."
 }

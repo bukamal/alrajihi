@@ -1,13 +1,14 @@
 {
   "phase": 278,
-  "checks": 10,
+  "checks": 12,
   "categories": {
     "files": 1,
     "syntax": 1,
     "pyinstaller": 4,
     "ci": 1,
     "build": 2,
-    "release": 1
+    "release": 2,
+    "printing": 1
   },
   "issues": 0,
   "issue_groups": 0,

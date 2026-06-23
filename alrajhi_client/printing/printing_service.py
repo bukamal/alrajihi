@@ -15,8 +15,8 @@ import tempfile
 import webbrowser
 
 from PyQt5.QtWidgets import QFileDialog, QMessageBox
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QTextDocument, QImage, QPainter
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtGui import QTextDocument, QImage, QPainter, QDesktopServices
 
 # Phase 246: keep startup resilient in frozen builds where PyInstaller may
 # include ``printing.printing_service`` but miss ``printing._template_loader``.
@@ -59,8 +59,17 @@ def _candidate_template_files():
     here = os.path.dirname(__file__)
     cwd = os.getcwd()
     frozen_root = getattr(sys, "_MEIPASS", "") or ""
+    executable_dir = os.path.dirname(getattr(sys, "executable", "") or "")
+    bases = (
+        here,
+        cwd,
+        frozen_root,
+        os.path.join(frozen_root, "_internal") if frozen_root else "",
+        executable_dir,
+        os.path.join(executable_dir, "_internal") if executable_dir else "",
+    )
     seen: set[str] = set()
-    for base in (here, cwd, frozen_root):
+    for base in bases:
         if not base:
             continue
         for rel in (
@@ -229,8 +238,20 @@ class PrintingService:
             fd, path = tempfile.mkstemp(prefix="alrajhi_print_", suffix=".html")
             with os.fdopen(fd, "w", encoding="utf-8") as fh:
                 fh.write(html)
-            webbrowser.open_new_tab("file://" + os.path.abspath(path))
-            return True
+            abs_path = os.path.abspath(path)
+            # Phase 369: installed Windows builds must not depend on the current
+            # working directory or on browser module registry discovery only.
+            # QDesktopServices handles local-file URLs reliably in frozen Qt
+            # applications; webbrowser/os.startfile remain fallbacks.
+            url = QUrl.fromLocalFile(abs_path)
+            if QDesktopServices.openUrl(url):
+                return True
+            if webbrowser.open_new_tab(url.toString()):
+                return True
+            if hasattr(os, "startfile"):
+                os.startfile(abs_path)  # type: ignore[attr-defined]
+                return True
+            return False
         except Exception as exc:
             QMessageBox.warning(parent, _tr("print_browser_open_failed"), str(exc))
             return False

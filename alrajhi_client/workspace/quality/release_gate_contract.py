@@ -160,6 +160,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (366, "LOGIN_PRE352_RTL_SAFE"),
         (367, "LOGIN_PRE350_RESTORE"),
         (368, "LOGIN_PASSWORD_TOGGLE_ALIGNMENT"),
+        (369, "WAREHOUSE_INSTALLER_PRINTING_PATHS"),
     ]
 )
 
@@ -285,6 +286,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (366, "login_pre352_rtl_safe"),
         (367, "login_pre350_restore"),
         (368, "login_password_toggle_alignment"),
+        (369, "warehouse_installer_printing"),
     ]
 )
 
@@ -391,6 +393,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("login_pre352_rtl_safe", "ui", "LoginDialog restored to pre-Phase352 layout with safe RTL ordering", "tools/phase366_login_pre352_rtl_safe_guard.py", "tools/audit_outputs/login_pre352_rtl_safe_matrix.csv", phase=366),
     ReleaseGateCheck("login_pre350_restore", "ui", "LoginDialog visual design restored to original pre-Phase350 baseline", "tools/phase367_login_pre350_restore_guard.py", "tools/audit_outputs/login_pre350_restore_matrix.csv", phase=367),
     ReleaseGateCheck("login_password_toggle_alignment", "ui", "Login password visibility button is a fixed-size peer beside the password field", "tools/phase368_login_password_toggle_alignment_guard.py", "tools/audit_outputs/login_password_toggle_alignment_matrix.csv", phase=368),
+    ReleaseGateCheck("warehouse_installer_printing", "packaging", "Warehouse-only installer release and installed printing paths", "tools/phase369_warehouse_installer_printing_guard.py", "tools/audit_outputs/warehouse_installer_printing_matrix.csv", phase=369),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

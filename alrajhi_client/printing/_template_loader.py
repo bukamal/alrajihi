@@ -84,7 +84,15 @@ def _candidate_template_files() -> Iterable[str]:
     here = os.path.dirname(__file__)
     cwd = os.getcwd()
     frozen_root = getattr(sys, "_MEIPASS", "") or ""
-    bases = [here, cwd, frozen_root]
+    executable_dir = os.path.dirname(getattr(sys, "executable", "") or "")
+    bases = [
+        here,
+        cwd,
+        frozen_root,
+        os.path.join(frozen_root, "_internal") if frozen_root else "",
+        executable_dir,
+        os.path.join(executable_dir, "_internal") if executable_dir else "",
+    ]
     seen: set[str] = set()
     for base in bases:
         if not base:

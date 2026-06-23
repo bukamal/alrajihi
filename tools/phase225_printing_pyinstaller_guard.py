@@ -68,8 +68,9 @@ def main() -> int:
     build_ps1 = BUILD_PS1.read_text(encoding="utf-8", errors="replace") if BUILD_PS1.exists() else ""
     manifest = MANIFEST.read_text(encoding="utf-8", errors="replace") if MANIFEST.exists() else ""
 
+    workflow_delegates_to_build_ps1 = "build\\build_windows.ps1" in workflow or "build/build_windows.ps1" in workflow
     for token in REQUIRED_WORKFLOW_TOKENS:
-        if token not in workflow:
+        if token not in workflow and not workflow_delegates_to_build_ps1:
             errors.append(f"Workflow missing token: {token}")
     for token in REQUIRED_BUILD_TOKENS:
         if token not in build_ps1:

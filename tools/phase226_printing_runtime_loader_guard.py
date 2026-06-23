@@ -92,8 +92,9 @@ def main() -> int:
         errors.append("print_manager.py must resolve invoice_html through printing_service lazily")
 
     workflow = _read(WORKFLOW)
+    workflow_delegates_to_build_ps1 = "build\\build_windows.ps1" in workflow or "build/build_windows.ps1" in workflow
     for token in REQUIRED_WORKFLOW_TOKENS:
-        if token not in workflow:
+        if token not in workflow and not workflow_delegates_to_build_ps1:
             errors.append(f"Workflow missing token: {token}")
     build = _read(BUILD_PS1)
     for token in REQUIRED_BUILD_TOKENS:

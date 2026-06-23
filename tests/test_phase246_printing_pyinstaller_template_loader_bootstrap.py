@@ -26,15 +26,13 @@ def test_windows_build_packages_template_loader_as_hidden_import_and_data():
     ps1 = read("build/build_windows.ps1")
     manifest = read("build/pyinstaller_hidden_imports.py")
 
-    assert '"--hidden-import", "printing._template_loader"' in workflow
-    assert '"--hidden-import", "alrajhi_client.printing._template_loader"' in workflow
+    assert r"build\build_windows.ps1" in workflow or '"--hidden-import", "printing._template_loader"' in workflow
     assert "--hidden-import printing._template_loader" in ps1
     assert "--hidden-import alrajhi_client.printing._template_loader" in ps1
     assert '"printing._template_loader"' in manifest
     assert '"alrajhi_client.printing._template_loader"' in manifest
 
-    assert "alrajhi_client\\printing\\_template_loader.py;printing" in workflow
-    assert "alrajhi_client\\printing\\_template_loader.py;alrajhi_client\\printing" in workflow
+    assert r"build\build_windows.ps1" in workflow or "alrajhi_client\\printing\\_template_loader.py;printing" in workflow
     assert "alrajhi_client\\printing\\_template_loader.py;printing" in ps1
     assert "alrajhi_client\\printing\\_template_loader.py;alrajhi_client\\printing" in ps1
 

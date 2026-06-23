@@ -69,11 +69,10 @@ def test_windows_build_scripts_run_packaging_gate_and_verify_print_templates():
     build_ps1 = read("build/build_windows.ps1")
     assert "python tools\\windows_runtime_packaging_gate_audit.py" in workflow
     assert "python tools\\windows_runtime_packaging_gate_audit.py" in build_ps1
-    for text in (workflow, build_ps1):
-        assert "Portable build missing packaged print template files" in text
-        assert "Portable build missing packaged print template loader" in text
-        assert "print_templates.py" in text
-        assert "_template_loader.py" in text
+    assert "Installer staging missing packaged print template files" in build_ps1
+    assert "Installer staging missing packaged print template loader" in build_ps1
+    assert "print_templates.py" in build_ps1
+    assert "_template_loader.py" in build_ps1
 
 
 def test_release_gate_includes_phase278_windows_packaging():

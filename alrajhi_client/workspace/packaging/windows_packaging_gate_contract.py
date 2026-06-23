@@ -105,8 +105,8 @@ REQUIRED_ADD_DATA: Sequence[str] = (
 REQUIRED_POST_BUILD_TOKENS: Sequence[str] = (
     "print_templates.py",
     "_template_loader.py",
-    "Portable build missing packaged print template files",
-    "Portable build missing packaged print template loader",
+    "Installer staging missing packaged print template files",
+    "Installer staging missing packaged print template loader",
 )
 
 REQUIRED_GITIGNORE_BUILD_TRACKING: Sequence[str] = (
@@ -129,6 +129,8 @@ PACKAGING_GATE_CHECKS: Sequence[PackagingGateCheck] = (
     PackagingGateCheck("workflow_gate", "ci", "GitHub workflow runs packaging gate"),
     PackagingGateCheck("build_ps1_gate", "build", "Local Windows build runs packaging gate"),
     PackagingGateCheck("post_build_runtime_files", "build", "Post-build packaged runtime file verification"),
+    PackagingGateCheck("warehouse_installer_only", "release", "Only Warehouse installer release artifact is published"),
+    PackagingGateCheck("installer_print_source", "printing", "Installer source preserves print runtime files"),
     PackagingGateCheck("gitignore_tracking", "release", "Required build contract files are trackable"),
 )
 
@@ -270,6 +272,32 @@ def validate_windows_packaging_gate(root: Path | None = None) -> Dict[str, List[
     for token in REQUIRED_POST_BUILD_TOKENS:
         if token not in combined_build_text:
             add("post_build_runtime_files", f"missing post-build token {token}")
+
+    required_installer_tokens = (
+        "AlrajhiAccountingWarehouse_Release_Installer",
+        "AlrajhiAccountingWarehouse_Release_Setup.exe",
+        "OutputBaseFilename=AlrajhiAccountingWarehouse_Release_Setup",
+    )
+    for token in required_installer_tokens:
+        if token not in combined_build_text and token not in _read(base / "build" / "setup.iss"):
+            add("warehouse_installer_only", f"missing warehouse installer token {token}")
+    forbidden_release_tokens = (
+        "AlrajhiAccounting_Release_Installer",
+        "AlrajhiAccounting_Release_Portable",
+        "AlrajhiAccountingWarehouse_Release_Portable",
+        "AlrajhiAccounting_Release_Setup.exe",
+        "Upload Portable",
+    )
+    for token in forbidden_release_tokens:
+        if token in workflow:
+            add("warehouse_installer_only", f"workflow still publishes forbidden artifact/output {token}")
+
+    setup_text = _read(base / "build" / "setup.iss")
+    if r'Source: "..\dist\AlrajhiAccounting\*"' not in setup_text:
+        add("installer_print_source", r"setup.iss must package the verified PyInstaller dist\AlrajhiAccounting tree")
+    for token in ("print_templates.py", "_template_loader.py"):
+        if token not in build:
+            add("installer_print_source", f"build script must verify packaged printing runtime file {token}")
 
     return issues
 

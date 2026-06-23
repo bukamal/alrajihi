@@ -1,4 +1,4 @@
-#define MyAppName "Alrajhi Accounting"
+#define MyAppName "Alrajhi Accounting Warehouse"
 #define MyAppExeName "AlrajhiAccounting.exe"
 #define MyAppVersion "1.0"
 #define MyIcon "..\alrajhi_client\assets\brand\app.ico"
@@ -6,14 +6,14 @@
 [Setup]
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-DefaultDirName={autopf}\AlrajhiAccounting
+DefaultDirName={autopf}\AlrajhiAccountingWarehouse
 DefaultGroupName={#MyAppName}
 UninstallDisplayIcon={app}\{#MyAppExeName}
 SetupIconFile={#MyIcon}
 Compression=lzma2
 SolidCompression=yes
 OutputDir=..\output
-OutputBaseFilename=AlrajhiAccounting_Setup
+OutputBaseFilename=AlrajhiAccountingWarehouse_Release_Setup
 WizardStyle=modern
 ShowLanguageDialog=yes
 PrivilegesRequired=lowest

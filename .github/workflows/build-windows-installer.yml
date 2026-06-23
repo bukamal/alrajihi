@@ -18,7 +18,14 @@ jobs:
           pip install -r requirements.txt
       - name: Runtime packaging gate
         shell: pwsh
-        run: python tools/windows_runtime_packaging_gate_audit.py
+        run: python tools\windows_runtime_packaging_gate_audit.py
       - name: Build runtime package
         shell: pwsh
         run: build\build_windows.ps1
+
+      - name: Upload Warehouse Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlrajhiAccountingWarehouse_Release_Installer
+          path: output/AlrajhiAccountingWarehouse_Release_Setup.exe
+          if-no-files-found: error
