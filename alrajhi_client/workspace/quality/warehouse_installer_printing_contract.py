@@ -27,7 +27,9 @@ WAREHOUSE_REQUIRED_TOKENS = (
     "AlrajhiAccountingWarehouse_Release_Setup.exe",
     "OutputBaseFilename=AlrajhiAccountingWarehouse_Release_Setup",
     "DefaultDirName={autopf}\\AlrajhiAccountingWarehouse",
-    'Source: "..\\dist\\AlrajhiAccounting\\*"',
+    'Source: "..\\dist\\AlrajhiAccountingWarehouse\\*"',
+    '#define MyAppExeName "AlrajhiAccountingWarehouse.exe"',
+    '$PyInstallerAppName = "AlrajhiAccountingWarehouse"',
 )
 
 WORKFLOW_FORBIDDEN_TOKENS = (
@@ -43,10 +45,10 @@ PRINT_RUNTIME_REQUIRED_TOKENS = (
     "Installer staging missing packaged print template loader",
     "print_templates.py",
     "_template_loader.py",
-    "dist\\AlrajhiAccounting\\printing\\print_templates.py",
-    "dist\\AlrajhiAccounting\\_internal\\printing\\print_templates.py",
-    "dist\\AlrajhiAccounting\\alrajhi_client\\printing\\print_templates.py",
-    "dist\\AlrajhiAccounting\\_internal\\alrajhi_client\\printing\\print_templates.py",
+    '$PyInstallerDistDir "printing\\print_templates.py"',
+    '$PyInstallerDistDir "_internal\\printing\\print_templates.py"',
+    '$PyInstallerDistDir "alrajhi_client\\printing\\print_templates.py"',
+    '$PyInstallerDistDir "_internal\\alrajhi_client\\printing\\print_templates.py"',
 )
 
 LOADER_PATH_TOKENS = (

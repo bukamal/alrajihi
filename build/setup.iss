@@ -1,5 +1,5 @@
 #define MyAppName "Alrajhi Accounting Warehouse"
-#define MyAppExeName "AlrajhiAccounting.exe"
+#define MyAppExeName "AlrajhiAccountingWarehouse.exe"
 #define MyAppVersion "1.0"
 #define MyIcon "..\alrajhi_client\assets\brand\app.ico"
 
@@ -23,7 +23,7 @@ UsedUserAreasWarning=no
 Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
 
 [Files]
-Source: "..\dist\AlrajhiAccounting\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\AlrajhiAccountingWarehouse\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Tasks]
 Name: "desktopicon"; Description: "إنشاء اختصار على سطح المكتب"; Flags: unchecked

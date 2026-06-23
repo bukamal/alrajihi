@@ -3,7 +3,9 @@ required_warehouse_token_AlrajhiAccountingWarehouse_Release_I,warehouse_installe
 required_warehouse_token_AlrajhiAccountingWarehouse_Release_S,warehouse_installer,required warehouse token AlrajhiAccountingWarehouse Release S,pass,AlrajhiAccountingWarehouse_Release_Setup.exe,369
 required_warehouse_token_OutputBaseFilename=AlrajhiAccounting,warehouse_installer,required warehouse token OutputBaseFilename=AlrajhiAccounting,pass,OutputBaseFilename=AlrajhiAccountingWarehouse_Release_Setup,369
 required_warehouse_token_DefaultDirName={autopf}\AlrajhiAccou,warehouse_installer,required warehouse token DefaultDirName={autopf}\AlrajhiAccou,pass,DefaultDirName={autopf}\AlrajhiAccountingWarehouse,369
-"required_warehouse_token_Source: ""..\dist\AlrajhiAccounting\*",warehouse_installer,"required warehouse token Source: ""..\dist\AlrajhiAccounting\*",pass,"Source: ""..\dist\AlrajhiAccounting\*""",369
+"required_warehouse_token_Source: ""..\dist\AlrajhiAccountingWa",warehouse_installer,"required warehouse token Source: ""..\dist\AlrajhiAccountingWa",pass,"Source: ""..\dist\AlrajhiAccountingWarehouse\*""",369
+"required_warehouse_token_#define MyAppExeName ""AlrajhiAccount",warehouse_installer,"required warehouse token #define MyAppExeName ""AlrajhiAccount",pass,"#define MyAppExeName ""AlrajhiAccountingWarehouse.exe""",369
+"required_warehouse_token_$PyInstallerAppName = ""AlrajhiAccoun",warehouse_installer,"required warehouse token $PyInstallerAppName = ""AlrajhiAccoun",pass,"$PyInstallerAppName = ""AlrajhiAccountingWarehouse""",369
 workflow_upload_count_is_one,warehouse_installer,workflow upload count is one,pass,1,369
 workflow_uploads_warehouse_installer_only,warehouse_installer,workflow uploads warehouse installer only,pass,warehouse installer artifact,369
 forbidden_workflow_token_AlrajhiAccounting_Release_Installer,no_portable_accounting_release,forbidden workflow token AlrajhiAccounting Release Installer,pass,AlrajhiAccounting_Release_Installer,369
@@ -15,10 +17,10 @@ print_runtime_token_Installer staging missing packaged print,printing_packaging,
 print_runtime_token_Installer staging missing packaged print,printing_packaging,print runtime token Installer staging missing packaged print,pass,Installer staging missing packaged print template loader,369
 print_runtime_token_print_templates.py,printing_packaging,print runtime token print templates.py,pass,print_templates.py,369
 print_runtime_token__template_loader.py,printing_packaging,print runtime token  template loader.py,pass,_template_loader.py,369
-print_runtime_token_dist\AlrajhiAccounting\printing\print_te,printing_packaging,print runtime token dist\AlrajhiAccounting\printing\print te,pass,dist\AlrajhiAccounting\printing\print_templates.py,369
-print_runtime_token_dist\AlrajhiAccounting\_internal\printin,printing_packaging,print runtime token dist\AlrajhiAccounting\ internal\printin,pass,dist\AlrajhiAccounting\_internal\printing\print_templates.py,369
-print_runtime_token_dist\AlrajhiAccounting\alrajhi_client\pr,printing_packaging,print runtime token dist\AlrajhiAccounting\alrajhi client\pr,pass,dist\AlrajhiAccounting\alrajhi_client\printing\print_templates.py,369
-print_runtime_token_dist\AlrajhiAccounting\_internal\alrajhi,printing_packaging,print runtime token dist\AlrajhiAccounting\ internal\alrajhi,pass,dist\AlrajhiAccounting\_internal\alrajhi_client\printing\print_templates.py,369
+"print_runtime_token_$PyInstallerDistDir ""printing\print_temp",printing_packaging,"print runtime token $PyInstallerDistDir ""printing\print temp",pass,"$PyInstallerDistDir ""printing\print_templates.py""",369
+"print_runtime_token_$PyInstallerDistDir ""_internal\printing\",printing_packaging,"print runtime token $PyInstallerDistDir "" internal\printing\",pass,"$PyInstallerDistDir ""_internal\printing\print_templates.py""",369
+"print_runtime_token_$PyInstallerDistDir ""alrajhi_client\prin",printing_packaging,"print runtime token $PyInstallerDistDir ""alrajhi client\prin",pass,"$PyInstallerDistDir ""alrajhi_client\printing\print_templates.py""",369
+"print_runtime_token_$PyInstallerDistDir ""_internal\alrajhi_c",printing_packaging,"print runtime token $PyInstallerDistDir "" internal\alrajhi c",pass,"$PyInstallerDistDir ""_internal\alrajhi_client\printing\print_templates.py""",369
 printing_service_loader_path_executable_dir = os.path.dir,installed_print_paths,printing service loader path executable dir = os.path.dir,pass,"executable_dir = os.path.dirname(getattr(sys, ""executable"", """") or """")",369
 template_loader_path_executable_dir = os.path.dir,installed_print_paths,template loader path executable dir = os.path.dir,pass,"executable_dir = os.path.dirname(getattr(sys, ""executable"", """") or """")",369
 "printing_service_loader_path_os.path.join(frozen_root, ""_",installed_print_paths,"printing service loader path os.path.join(frozen root, "" ",pass,"os.path.join(frozen_root, ""_internal"") if frozen_root else """"",369

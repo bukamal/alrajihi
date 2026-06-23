@@ -1,0 +1,14 @@
+{
+  "phase": 370,
+  "checks": 33,
+  "issues": 0,
+  "categories": {
+    "pyinstaller_warehouse_identity": 8,
+    "installer_warehouse_identity": 6,
+    "artifact_warehouse_identity": 3,
+    "no_generic_accounting_release": 10,
+    "installed_printing_paths": 6
+  },
+  "ready": true,
+  "matrix": "tools/audit_outputs/warehouse_executable_identity_matrix.csv"
+}

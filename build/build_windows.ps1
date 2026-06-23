@@ -3,12 +3,13 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
-# Phase 369: build only the Warehouse installer release artifact.
-# The PyInstaller staging folder remains AlrajhiAccounting to preserve runtime
-# paths and installed data compatibility; no portable ZIP/artifact is produced.
+# Phase 370: build the Warehouse release end-to-end, including the
+# PyInstaller onedir folder and executable name.  The installer source, output
+# artifact, and installed EXE must all carry the Warehouse identity; generic
+# Accounting Release/Portable outputs are deliberately not produced.
 $ReleaseArtifactName = "AlrajhiAccountingWarehouse_Release_Installer"
 $SetupOutputBase = "AlrajhiAccountingWarehouse_Release_Setup"
-$PyInstallerAppName = "AlrajhiAccounting"
+$PyInstallerAppName = "AlrajhiAccountingWarehouse"
 $PyInstallerDistDir = Join-Path $Root "dist\$PyInstallerAppName"
 
 $IconPath = Join-Path $Root "alrajhi_client\assets\brand\app.ico"
@@ -219,25 +220,26 @@ pyinstaller `
   @extra `
   alrajhi_client\main.py
 
-if (!(Test-Path (Join-Path $PyInstallerDistDir "AlrajhiAccounting.exe"))) {
-    throw "PyInstaller build failed: missing EXE"
+$ExpectedExe = "$PyInstallerAppName.exe"
+if (!(Test-Path (Join-Path $PyInstallerDistDir $ExpectedExe))) {
+    throw "PyInstaller build failed: missing $ExpectedExe"
 }
 
 $printTemplateCandidates = @(
-    "dist\AlrajhiAccounting\printing\print_templates.py",
-    "dist\AlrajhiAccounting\_internal\printing\print_templates.py",
-    "dist\AlrajhiAccounting\alrajhi_client\printing\print_templates.py",
-    "dist\AlrajhiAccounting\_internal\alrajhi_client\printing\print_templates.py"
+    (Join-Path $PyInstallerDistDir "printing\print_templates.py"),
+    (Join-Path $PyInstallerDistDir "_internal\printing\print_templates.py"),
+    (Join-Path $PyInstallerDistDir "alrajhi_client\printing\print_templates.py"),
+    (Join-Path $PyInstallerDistDir "_internal\alrajhi_client\printing\print_templates.py")
 )
 if (!(($printTemplateCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
     throw "Installer staging missing packaged print template files"
 }
 
 $printTemplateLoaderCandidates = @(
-    "dist\AlrajhiAccounting\printing\_template_loader.py",
-    "dist\AlrajhiAccounting\_internal\printing\_template_loader.py",
-    "dist\AlrajhiAccounting\alrajhi_client\printing\_template_loader.py",
-    "dist\AlrajhiAccounting\_internal\alrajhi_client\printing\_template_loader.py"
+    (Join-Path $PyInstallerDistDir "printing\_template_loader.py"),
+    (Join-Path $PyInstallerDistDir "_internal\printing\_template_loader.py"),
+    (Join-Path $PyInstallerDistDir "alrajhi_client\printing\_template_loader.py"),
+    (Join-Path $PyInstallerDistDir "_internal\alrajhi_client\printing\_template_loader.py")
 )
 if (!(($printTemplateLoaderCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
     throw "Installer staging missing packaged print template loader"
@@ -246,9 +248,7 @@ if (!(($printTemplateLoaderCandidates | Where-Object { Test-Path $_ } | Select-O
 
 
 New-Item -ItemType Directory -Force -Path output | Out-Null
-Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $Root "output\AlrajhiAccounting_Release_Setup.exe")
-Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $Root "output\AlrajhiAccounting_Setup.exe")
-Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $Root "output\AlrajhiAccountingWarehouse_Release_Setup.exe")
+Get-ChildItem -Path (Join-Path $Root "output") -Filter "*.exe" -File -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
 $Inno = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 if (Test-Path $Inno) {
     & $Inno build\setup.iss

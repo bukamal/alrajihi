@@ -18,8 +18,9 @@ BUILD = ROOT / "build" / "build_windows.ps1"
 REQUIRED_TOKENS = [
     "AlrajhiAccountingWarehouse_Release_Installer",
     "AlrajhiAccountingWarehouse_Release_Setup.exe",
+    "AlrajhiAccountingWarehouse.exe",
     "OutputBaseFilename=AlrajhiAccountingWarehouse_Release_Setup",
-    r'Source: "..\dist\AlrajhiAccounting\*"',
+    r'Source: "..\dist\AlrajhiAccountingWarehouse\*"',
     r"UninstallDisplayIcon={app}\{#MyAppExeName}",
     r'IconFilename: "{app}\{#MyAppExeName}"',
 ]

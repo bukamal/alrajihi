@@ -1,9 +1,9 @@
 {
   "phase": 369,
-  "checks": 32,
+  "checks": 34,
   "issues": 0,
   "categories": {
-    "warehouse_installer": 7,
+    "warehouse_installer": 9,
     "no_portable_accounting_release": 5,
     "printing_packaging": 8,
     "installed_print_paths": 6,

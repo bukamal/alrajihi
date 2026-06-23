@@ -293,8 +293,12 @@ def validate_windows_packaging_gate(root: Path | None = None) -> Dict[str, List[
             add("warehouse_installer_only", f"workflow still publishes forbidden artifact/output {token}")
 
     setup_text = _read(base / "build" / "setup.iss")
-    if r'Source: "..\dist\AlrajhiAccounting\*"' not in setup_text:
-        add("installer_print_source", r"setup.iss must package the verified PyInstaller dist\AlrajhiAccounting tree")
+    if r'Source: "..\dist\AlrajhiAccountingWarehouse\*"' not in setup_text:
+        add("installer_print_source", r"setup.iss must package the verified PyInstaller dist\AlrajhiAccountingWarehouse tree")
+    if 'AlrajhiAccountingWarehouse.exe' not in setup_text:
+        add("warehouse_installer_only", "setup.iss must install/run AlrajhiAccountingWarehouse.exe")
+    if '$PyInstallerAppName = "AlrajhiAccountingWarehouse"' not in build:
+        add("warehouse_installer_only", "build_windows.ps1 must use the Warehouse PyInstaller app name")
     for token in ("print_templates.py", "_template_loader.py"):
         if token not in build:
             add("installer_print_source", f"build script must verify packaged printing runtime file {token}")
