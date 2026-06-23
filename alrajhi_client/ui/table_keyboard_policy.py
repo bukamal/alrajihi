@@ -167,10 +167,28 @@ class StandardTableKeyboardMixin:
                 columns.append(col)
         return columns
 
+    def _standard_entry_priority(self, column: int) -> int:
+        """Priority for initial entry columns; material/item beats barcode."""
+        key = self._standard_column_key(column).strip().casefold()
+        priority_keys = {name.casefold(): pos for pos, name in enumerate(self._standard_preferred_entry_keys)}
+        if key in priority_keys:
+            return priority_keys[key]
+        header_priorities = (
+            (0, ("مادة", "المادة", "الصنف", "item", "material", "artikel")),
+            (1, ("منتج", "product", "produkt")),
+            (2, ("باركود", "barcode")),
+        )
+        for priority, tokens in header_priorities:
+            if any(token in key for token in tokens):
+                return priority
+        return 999
+
     def _standard_entry_columns(self, row: int) -> list[int]:
         editable = self._standard_editable_columns(row)
         preferred = [c for c in editable if self._standard_is_preferred_entry_column(c)]
-        return preferred or editable
+        if preferred:
+            return sorted(preferred, key=lambda c: (self._standard_entry_priority(c), c))
+        return editable
 
     def _standard_first_editable_index(self) -> QModelIndex:
         model = self._standard_model()

@@ -1,0 +1,20 @@
+key,category,description,status,detail
+quick_menu_renamed,navigation,Quick menu button is renamed to fit specialized interfaces,pass,nav_special_interfaces
+quick_menu_icon,navigation,Specialized interfaces menu uses a grouped interface icon,pass,layer-group
+quick_entry_restaurant,navigation,restaurant interface is exposed from the specialized interfaces menu,pass,"_entry(""restaurant"", ""restaurant.interface_title"","
+quick_entry_cafe,navigation,cafe interface is exposed from the specialized interfaces menu,pass,"_entry(""cafe"", ""cafe.interface_title"","
+quick_entry_apparel,navigation,apparel interface is exposed from the specialized interfaces menu,pass,"_entry(""apparel"", ""apparel.interface_title"","
+quick_only_vertical_pages,navigation,"Specialized interface menu contains restaurant, cafe and apparel only",pass,vertical pages only
+no_top_restaurant_menu,navigation,Restaurant no longer appears as its own top-level menu button,pass,restaurant top menu removed
+no_top_cafe_menu,navigation,Cafe no longer appears as its own top-level menu button,pass,cafe top menu removed
+home_verticals_removed,navigation,Home menu no longer duplicates restaurant/cafe/apparel entries,pass,home simplified
+inventory_apparel_removed,navigation,Inventory menu no longer duplicates apparel entry,pass,inventory simplified
+translation_nav_special_interfaces,i18n,"nav_special_interfaces is translated in Arabic, English and German",pass,nav_special_interfaces
+translation_restaurant.interface_title,i18n,"restaurant.interface_title is translated in Arabic, English and German",pass,restaurant.interface_title
+translation_cafe.interface_title,i18n,"cafe.interface_title is translated in Arabic, English and German",pass,cafe.interface_title
+translation_apparel.interface_title,i18n,"apparel.interface_title is translated in Arabic, English and German",pass,apparel.interface_title
+entry_priority_method,editable_grid,Keyboard policy sorts preferred columns by semantic priority,pass,_standard_entry_priority
+entry_columns_sorted,editable_grid,Preferred entry columns are sorted so item/material wins over barcode,pass,sorted preferred
+preferred_order,editable_grid,Preferred entry keys keep item/material/product before barcode,pass,item before barcode
+sales_row_noneditable,editable_grid,Sales invoice row number column is not editable,pass,sales row
+purchase_row_noneditable,editable_grid,Purchase invoice row number column is not editable,pass,purchase row

@@ -538,9 +538,6 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
         (
             _entry("dashboard", "dashboard", "tachometer-alt", page_id="dashboard", shortcut="F1"),
             _entry("pos", "pos", "barcode", page_id="pos", shortcut="F2"),
-            _entry("restaurant", "restaurant.dashboard", "utensils", page_id="restaurant", shortcut="F8"),
-            _entry("cafe", "restaurant.cafe_workspace_title", "coffee", page_id="cafe", shortcut="F10"),
-            _entry("apparel", "apparel.workspace_title", "tshirt", page_id="apparel", shortcut="F11"),
             _entry("monitoring", "monitoring", "heartbeat", page_id="monitoring", separator_before=True),
         ),
     ),
@@ -553,27 +550,6 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
             _entry("sales_invoices", "sales_invoices", "file-invoice-dollar", page_id="sales_invoices", shortcut="F3"),
             _entry("returns", "sales_returns", "undo", page_id="returns"),
             _entry("vouchers_receipt", "receipt_voucher", "hand-holding-usd", page_id="vouchers", separator_before=True),
-        ),
-    ),
-    WorkspaceMenuSpec(
-        "restaurant",
-        "nav_restaurant",
-        "utensils",
-        (
-            _entry("restaurant", "restaurant.dashboard", "utensils", page_id="restaurant", shortcut="F8"),
-            _entry("restaurant_open_table", "restaurant.open_table", "door-open", page_id="restaurant"),
-            _entry("restaurant_kitchen", "restaurant.kitchen_ticket", "receipt", page_id="restaurant"),
-        ),
-    ),
-    WorkspaceMenuSpec(
-        "cafe",
-        "nav_cafe",
-        "coffee",
-        (
-            _entry("cafe", "restaurant.cafe_workspace_title", "coffee", page_id="cafe", shortcut="F10"),
-            _entry("cafe_quick_order", "restaurant.cafe_new_quick_order", "plus-circle", page_id="cafe"),
-            _entry("cafe_preparation", "restaurant.cafe_preparation", "mug-hot", page_id="cafe"),
-            _entry("cafe_shift_report", "restaurant.cafe_shift_report", "chart-line", page_id="cafe"),
         ),
     ),
     WorkspaceMenuSpec(
@@ -592,7 +568,6 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
         "boxes",
         (
             _entry("items", "items", "box", page_id="items", shortcut="F4"),
-            _entry("apparel", "apparel.workspace_title", "tshirt", page_id="apparel", shortcut="F11"),
             _entry("new_item", "new_item", "box-open", callback_key="open_quick_item", separator_before=True),
             _entry("categories", "categories", "folder", page_id="categories"),
             _entry("add_category", "add_category", "folder-plus", callback_key="open_category_document"),
@@ -661,17 +636,14 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
     ),
     WorkspaceMenuSpec(
         "quick",
-        "quick_actions",
-        "bolt",
+        "nav_special_interfaces",
+        "layer-group",
         (
-            _entry("quick_open", "workspace.quick_open", "search", callback_key="open_quick_open", shortcut="Ctrl+K"),
-            _entry("new_sales_invoice", "new_sales_invoice", "file-invoice-dollar", callback_key="open_new_sales_invoice", shortcut="Ctrl+N", separator_before=True),
-            _entry("new_purchase_invoice", "new_purchase_invoice", "file-invoice", callback_key="open_new_purchase_invoice"),
-            _entry("receipt_voucher", "receipt_voucher", "hand-holding-usd", callback_key="open_receipt_voucher"),
-            _entry("payment_voucher", "payment_voucher", "money-bill-wave", callback_key="open_payment_voucher"),
-            _entry("new_customer", "new_customer", "user-plus", callback_key="open_quick_customer", separator_before=True),
-            _entry("new_supplier", "new_supplier", "truck-loading", callback_key="open_quick_supplier"),
-            _entry("new_item", "new_item", "box-open", callback_key="open_quick_item"),
+            # Phase374: specialized vertical workspaces are grouped under one
+            # menu button instead of occupying separate top-level menu buttons.
+            _entry("restaurant", "restaurant.interface_title", "utensils", page_id="restaurant", shortcut="F8"),
+            _entry("cafe", "cafe.interface_title", "coffee", page_id="cafe", shortcut="F10"),
+            _entry("apparel", "apparel.interface_title", "tshirt", page_id="apparel", shortcut="F11"),
         ),
     ),
 )

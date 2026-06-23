@@ -106,4 +106,5 @@ warehouse_executable_identity,packaging,Warehouse executable identity end-to-end
 reused_windows_workflow,packaging,Reused full Windows workflow with Warehouse-only release output,371,tools/phase371_reused_windows_workflow_guard.py,True,tools/audit_outputs/reused_windows_workflow_matrix.csv,True,True
 workflow_delegated_branding,packaging,Branding verifier accepts delegated PyInstaller icon wiring,372,tools/phase372_workflow_delegated_branding_guard.py,True,tools/audit_outputs/workflow_delegated_branding_matrix.csv,True,True
 tab_plain_title,shell,Workspace tab captions show business titles without main/sub prefixes,373,tools/phase373_tab_plain_title_guard.py,True,tools/audit_outputs/tab_plain_title_matrix.csv,True,True
+special_interface_menu_entry_focus,shell,"Restaurant, cafe and apparel move to one specialized menu while editable grids start at material",374,tools/phase374_special_interface_menu_entry_focus_guard.py,True,tools/audit_outputs/special_interface_menu_entry_focus_matrix.csv,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

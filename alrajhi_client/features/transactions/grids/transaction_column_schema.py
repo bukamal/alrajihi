@@ -60,7 +60,7 @@ SchemaFactory = Callable[[], list[TransactionColumn]]
 
 def sales_invoice_schema() -> list[TransactionColumn]:
     return [
-        TransactionColumn("row", "#", True, True, True, 44),
+        TransactionColumn("row", "#", True, True, True, 44, editable=False),
         TransactionColumn("barcode", "transaction_column_barcode", False, True, False, 120),
         TransactionColumn("item", "transaction_column_item", True, True, True, 260, True),
         TransactionColumn("variant", "transaction_column_variant", False, True, False, 130, editable=False),
@@ -77,7 +77,7 @@ def sales_invoice_schema() -> list[TransactionColumn]:
 
 def purchase_invoice_schema() -> list[TransactionColumn]:
     return [
-        TransactionColumn("row", "#", True, True, True, 44),
+        TransactionColumn("row", "#", True, True, True, 44, editable=False),
         TransactionColumn("barcode", "transaction_column_barcode", False, True, False, 120),
         TransactionColumn("item", "transaction_column_item", True, True, True, 260, True),
         TransactionColumn("variant", "transaction_column_variant", False, True, False, 130, editable=False),

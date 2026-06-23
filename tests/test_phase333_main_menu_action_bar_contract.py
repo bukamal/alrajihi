@@ -29,12 +29,15 @@ def test_phase333_registry_owns_main_navigation_menus_without_pyqt():
     from workspace.registry import navigation_menus, PAGE_MANIFESTS
 
     menus = {menu.key: menu for menu in navigation_menus()}
-    assert {"home", "sales", "purchases", "inventory", "restaurant", "cafe", "quick"}.issubset(menus)
+    assert {"home", "sales", "purchases", "inventory", "quick"}.issubset(menus)
+    assert "restaurant" not in menus  # Phase374: restaurant moved under specialized interfaces
+    assert "cafe" not in menus  # Phase374: cafe moved under specialized interfaces
+    assert menus["quick"].label_key == "nav_special_interfaces"
     page_ids = {entry.page_id for menu in menus.values() for entry in menu.entries if entry.page_id}
     assert {"dashboard", "sales_invoices", "purchase_invoices", "restaurant", "cafe", "apparel", "items"}.issubset(page_ids)
     assert page_ids.issubset(PAGE_MANIFESTS.keys())
     callback_keys = {entry.callback_key for menu in menus.values() for entry in menu.entries if entry.callback_key}
-    assert {"open_quick_item", "open_new_sales_invoice", "open_new_purchase_invoice", "open_quick_open"}.issubset(callback_keys)
+    assert {"open_quick_item", "open_category_document", "open_inventory_transfer_document"}.issubset(callback_keys)
 
 
 def test_phase333_main_window_consumes_menu_and_action_contracts():
