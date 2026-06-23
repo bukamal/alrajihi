@@ -1,5 +1,5 @@
 key,category,description,status,detail
-brand_phase,tokens,BRAND phase advanced to branded shell runtime polish,pass,364
+brand_phase,tokens,BRAND phase advanced to branded shell runtime polish,pass,368
 light_shell_tokens,tokens,light palette includes Phase 354 shell tokens,pass,
 dark_shell_tokens,tokens,dark palette includes Phase 354 shell tokens,pass,
 shell_token_shell_tab_main_badge_bg,token,Badge surface for main workspace tabs.,pass,shell_tab_main_badge_bg
@@ -43,11 +43,11 @@ object_ActionBarButton_save,object_name,Required shell object name/role is prese
 object_ActionBarButton_print,object_name,Required shell object name/role is present in runtime code,pass,ActionBarButton_print
 object_ActionBarUtilityButton_theme,object_name,Required shell object name/role is present in runtime code,pass,ActionBarUtilityButton_theme
 object_ActionBarUserLabel,object_name,Required shell object name/role is present in runtime code,pass,ActionBarUserLabel
-runtime_tab_label_policy_BRANDED_TAB_PHASE = 354,runtime,alrajhi_client/shell/tab_label_policy.py uses BRANDED_TAB_PHASE = 354,pass,BRANDED_TAB_PHASE = 354
+runtime_tab_label_policy_BRANDED_TAB_PHASE = 373,runtime,alrajhi_client/shell/tab_label_policy.py uses BRANDED_TAB_PHASE = 373,pass,BRANDED_TAB_PHASE = 373
 runtime_tab_label_policy_compose_tab_label,runtime,alrajhi_client/shell/tab_label_policy.py uses compose_tab_label,pass,compose_tab_label
 runtime_tab_label_policy_label_for_kind,runtime,alrajhi_client/shell/tab_label_policy.py uses label_for_kind,pass,label_for_kind
-runtime_tab_label_policy_رئيسي,runtime,alrajhi_client/shell/tab_label_policy.py uses رئيسي,pass,رئيسي
-runtime_tab_label_policy_فرعي,runtime,alrajhi_client/shell/tab_label_policy.py uses فرعي,pass,فرعي
+runtime_tab_label_policy_display = clean_title,runtime,alrajhi_client/shell/tab_label_policy.py uses display = clean_title,pass,display = clean_title
+runtime_tab_label_policy_Phase373,runtime,alrajhi_client/shell/tab_label_policy.py uses Phase373,pass,Phase373
 runtime_tab_workspace_BRANDED_TABS_PHASE = 354,runtime,alrajhi_client/shell/tab_workspace.py uses BRANDED_TABS_PHASE = 354,pass,BRANDED_TABS_PHASE = 354
 runtime_tab_workspace_compose_tab_label,runtime,alrajhi_client/shell/tab_workspace.py uses compose_tab_label,pass,compose_tab_label
 runtime_tab_workspace__apply_tab_identity,runtime,alrajhi_client/shell/tab_workspace.py uses _apply_tab_identity,pass,_apply_tab_identity

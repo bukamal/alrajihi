@@ -164,6 +164,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (370, "WAREHOUSE_EXECUTABLE_IDENTITY"),
         (371, "REUSED_WINDOWS_WORKFLOW_WAREHOUSE_ONLY"),
         (372, "WORKFLOW_DELEGATED_BRANDING_HOTFIX"),
+        (373, "TAB_PLAIN_TITLE"),
     ]
 )
 
@@ -293,6 +294,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (370, "warehouse_executable_identity"),
         (371, "reused_windows_workflow"),
         (372, "workflow_delegated_branding"),
+        (373, "tab_plain_title"),
     ]
 )
 
@@ -403,6 +405,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("warehouse_executable_identity", "packaging", "Warehouse executable identity end-to-end", "tools/phase370_warehouse_executable_identity_guard.py", "tools/audit_outputs/warehouse_executable_identity_matrix.csv", phase=370),
     ReleaseGateCheck("reused_windows_workflow", "packaging", "Reused full Windows workflow with Warehouse-only release output", "tools/phase371_reused_windows_workflow_guard.py", "tools/audit_outputs/reused_windows_workflow_matrix.csv", phase=371),
     ReleaseGateCheck("workflow_delegated_branding", "packaging", "Branding verifier accepts delegated PyInstaller icon wiring", "tools/phase372_workflow_delegated_branding_guard.py", "tools/audit_outputs/workflow_delegated_branding_matrix.csv", phase=372),
+    ReleaseGateCheck("tab_plain_title", "shell", "Workspace tab captions show business titles without main/sub prefixes", "tools/phase373_tab_plain_title_guard.py", "tools/audit_outputs/tab_plain_title_matrix.csv", phase=373),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

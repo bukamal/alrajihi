@@ -30,11 +30,11 @@ def test_tab_label_policy_marks_main_and_sub_tabs():
     compose_tab_label = module.compose_tab_label
     tab_kind_for_id = module.tab_kind_for_id
 
-    assert BRANDED_TAB_PHASE == 354
+    assert BRANDED_TAB_PHASE >= 354
     assert tab_kind_for_id('sales_invoices') == 'main'
     assert tab_kind_for_id('invoice:sale:new') == 'sub'
-    assert compose_tab_label('sales_invoices', 'فواتير البيع').display_text.startswith('رئيسي ·')
-    assert compose_tab_label('invoice:sale:new', 'فاتورة بيع جديدة').display_text.startswith('فرعي ·')
+    assert compose_tab_label('sales_invoices', 'فواتير البيع').display_text == 'فواتير البيع'
+    assert compose_tab_label('invoice:sale:new', 'فاتورة بيع جديدة').display_text == 'فاتورة بيع جديدة'
 
 
 def test_shell_runtime_files_are_wired_textually():

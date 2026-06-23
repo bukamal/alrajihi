@@ -33,11 +33,11 @@ REQUIRED_SHELL_FILES = (
 
 REQUIRED_RUNTIME_MARKERS = {
     "alrajhi_client/shell/tab_label_policy.py": (
-        "BRANDED_TAB_PHASE = 354",
+        "BRANDED_TAB_PHASE = 373",
         "compose_tab_label",
         "label_for_kind",
-        "رئيسي",
-        "فرعي",
+        "display = clean_title",
+        "Phase373",
     ),
     "alrajhi_client/shell/tab_workspace.py": (
         "BRANDED_TABS_PHASE = 354",

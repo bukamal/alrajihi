@@ -1,0 +1,23 @@
+key,category,description,status,detail
+policy_file,file,Tab label policy file exists,pass,alrajhi_client/shell/tab_label_policy.py
+workspace_file,file,Tabbed workspace runtime file exists,pass,alrajhi_client/shell/tab_workspace.py
+phase_marker,policy,Tab label policy marks Phase373 plain-title behavior,pass,BRANDED_TAB_PHASE = 373 / Phase373
+no_visible_label_composition,policy,Display text no longer composes visible kind label with title,pass,no f'{label} · {title}' display composition
+plain_display_assignment,policy,Policy assigns display from clean_title only,pass,display = clean_title
+phase_runtime,runtime,Runtime policy phase is at least Phase373,pass,373
+display_sales_invoices,visible_text,Visible tab text is exactly the business title,pass,فواتير البيع
+tooltip_sales_invoices,visible_text,Tab tooltip is exactly the business title,pass,فواتير البيع
+kind_sales_invoices,metadata,Internal tab kind metadata remains available,pass,main/main
+display_invoice_sale_new,visible_text,Visible tab text is exactly the business title,pass,فاتورة بيع جديدة
+tooltip_invoice_sale_new,visible_text,Tab tooltip is exactly the business title,pass,فاتورة بيع جديدة
+kind_invoice_sale_new,metadata,Internal tab kind metadata remains available,pass,sub/sub
+display_settings_print,visible_text,Visible tab text is exactly the business title,pass,إعدادات الطباعة
+tooltip_settings_print,visible_text,Tab tooltip is exactly the business title,pass,إعدادات الطباعة
+kind_settings_print,metadata,Internal tab kind metadata remains available,pass,sub/sub
+display_materials,visible_text,Visible tab text is exactly the business title,pass,المواد
+tooltip_materials,visible_text,Tab tooltip is exactly the business title,pass,المواد
+kind_materials,metadata,Internal tab kind metadata remains available,pass,main/main
+label_metadata_main,metadata,Internal main label is non-visible English metadata,pass,main
+label_metadata_sub,metadata,Internal sub label is non-visible English metadata,pass,sub
+workspace_uses_display_text,runtime,TabbedWorkspace renders the policy display_text,pass,"setTabText(index, identity.display_text)"
+workspace_keeps_kind_metadata,runtime,TabbedWorkspace still stores kind metadata,pass,tab_kind / WhatsThis

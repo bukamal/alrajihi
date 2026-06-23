@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Branded workspace tab labeling policy for Phase 354.
+"""Workspace tab labeling policy.
 
-The dashboard is fixed and not a tab.  Every real tab gets a visible type label
-(main/sub) plus the business title so users can distinguish high-level pages
-from nested document tabs at a glance.
+The dashboard is fixed and not a tab.  Real tabs keep their internal kind
+(main/sub) for lifecycle metadata, but the visible text is now the business title
+only.  Phase373 removes the visible Arabic main/sub prefixes from tab captions.
 """
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ try:  # Keep import safe for tests outside the PyQt runtime.
 except Exception:  # pragma: no cover - fallback for static tooling
     PAGE_MANIFESTS: Mapping[str, object] = {}
 
-BRANDED_TAB_PHASE = 354
+BRANDED_TAB_PHASE = 373
 FIXED_DASHBOARD_TAB_ID = "dashboard"
 DOCUMENT_TAB_PREFIXES = (
     "invoice:",
@@ -58,16 +58,23 @@ def tab_kind_for_id(tab_id: str) -> str:
 
 
 def label_for_kind(kind: str) -> str:
-    return "رئيسي" if kind == "main" else "فرعي"
+    """Return the internal non-visible tab kind label.
+
+This value is stored in tab metadata only.  It is intentionally not rendered in
+``display_text`` so workspace tabs show clean business titles without the old
+main/sub prefixes.
+    """
+    return "main" if kind == "main" else "sub"
 
 
 def compose_tab_label(tab_id: str, title: str) -> BrandedTabLabel:
     clean_title = str(title or tab_id or "").replace("\n", " ").strip()
     kind = tab_kind_for_id(tab_id)
     label = label_for_kind(kind)
-    # Keep the visible tab compact while still showing the requested main/sub label.
-    display = f"{label} · {clean_title}" if clean_title else label
-    tooltip = f"{label} — {clean_title}" if clean_title else label
+    # Phase373: visible tab captions must be the business title only.  The kind
+    # is still available through ``kind``/``label`` metadata for lifecycle logic.
+    display = clean_title or str(tab_id or "")
+    tooltip = clean_title or str(tab_id or "")
     return BrandedTabLabel(tab_id=str(tab_id or ""), title=clean_title, kind=kind, label=label, display_text=display, tooltip=tooltip)
 
 
