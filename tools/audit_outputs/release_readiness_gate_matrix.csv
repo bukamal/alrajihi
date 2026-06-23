@@ -104,4 +104,5 @@ login_password_toggle_alignment,ui,Login password visibility button is a fixed-s
 warehouse_installer_printing,packaging,Warehouse-only installer release and installed printing paths,369,tools/phase369_warehouse_installer_printing_guard.py,True,tools/audit_outputs/warehouse_installer_printing_matrix.csv,True,True
 warehouse_executable_identity,packaging,Warehouse executable identity end-to-end,370,tools/phase370_warehouse_executable_identity_guard.py,True,tools/audit_outputs/warehouse_executable_identity_matrix.csv,True,True
 reused_windows_workflow,packaging,Reused full Windows workflow with Warehouse-only release output,371,tools/phase371_reused_windows_workflow_guard.py,True,tools/audit_outputs/reused_windows_workflow_matrix.csv,True,True
+workflow_delegated_branding,packaging,Branding verifier accepts delegated PyInstaller icon wiring,372,tools/phase372_workflow_delegated_branding_guard.py,True,tools/audit_outputs/workflow_delegated_branding_matrix.csv,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

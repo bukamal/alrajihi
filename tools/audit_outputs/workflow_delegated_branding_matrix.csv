@@ -1,0 +1,21 @@
+﻿key,category,description,status,detail,phase
+"verify_token_BUILD_SCRIPT = ROOT / ""build"" / ""build_windo",branding_verifier,"verify token BUILD SCRIPT = ROOT / ""build"" / ""build windo",pass,"BUILD_SCRIPT = ROOT / ""build"" / ""build_windows.ps1""",372
+verify_token_combined_release_wiring,branding_verifier,verify token combined release wiring,pass,combined_release_wiring,372
+verify_token_Workflow/build release branding wiring incom,branding_verifier,verify token Workflow/build release branding wiring incom,pass,Workflow/build release branding wiring incomplete,372
+verify_token_--icon,branding_verifier,verify token --icon,pass,--icon,372
+workflow_delegates_build_script,workflow_shape,workflow delegates build script,pass,.\build\build_windows.ps1,372
+workflow_verify_step_runs_before_build,workflow_shape,workflow verify step runs before build,pass,Verify project structure runs verify_branding_assets.py,372
+combined_branding_.\build\build_windows.ps1,delegated_branding_wiring,combined branding .\build\build windows.ps1,pass,.\build\build_windows.ps1,372
+combined_branding_python tools\verify_branding_assets.py,delegated_branding_wiring,combined branding python tools\verify branding assets.py,pass,python tools\verify_branding_assets.py,372
+combined_branding_--icon,delegated_branding_wiring,combined branding --icon,pass,--icon,372
+combined_branding_assets\brand\app.ico,delegated_branding_wiring,combined branding assets\brand\app.ico,pass,assets\brand\app.ico,372
+combined_branding_SetupIconFile,delegated_branding_wiring,combined branding SetupIconFile,pass,SetupIconFile,372
+combined_branding_IconFilename,delegated_branding_wiring,combined branding IconFilename,pass,IconFilename,372
+warehouse_token_AlrajhiAccountingWarehouse.exe,warehouse_only_release,warehouse token AlrajhiAccountingWarehouse.exe,pass,AlrajhiAccountingWarehouse.exe,372
+warehouse_token_dist\AlrajhiAccountingWarehouse,warehouse_only_release,warehouse token dist\AlrajhiAccountingWarehouse,pass,dist\AlrajhiAccountingWarehouse,372
+warehouse_token_AlrajhiAccountingWarehouse_Release_Setup,warehouse_only_release,warehouse token AlrajhiAccountingWarehouse Release Setup,pass,AlrajhiAccountingWarehouse_Release_Setup,372
+warehouse_token_AlrajhiAccountingWarehouse_Release_Installer,warehouse_only_release,warehouse token AlrajhiAccountingWarehouse Release Installer,pass,AlrajhiAccountingWarehouse_Release_Installer,372
+forbidden_output_AlrajhiAccounting_Release_Installer,no_generic_or_portable_release,forbidden output AlrajhiAccounting Release Installer,pass,AlrajhiAccounting_Release_Installer,372
+forbidden_output_AlrajhiAccounting_Release_Portable,no_generic_or_portable_release,forbidden output AlrajhiAccounting Release Portable,pass,AlrajhiAccounting_Release_Portable,372
+forbidden_output_AlrajhiAccountingWarehouse_Release_Portable,no_generic_or_portable_release,forbidden output AlrajhiAccountingWarehouse Release Portable,pass,AlrajhiAccountingWarehouse_Release_Portable,372
+forbidden_output_output/AlrajhiAccounting_Release_Setup.exe,no_generic_or_portable_release,forbidden output output/AlrajhiAccounting Release Setup.exe,pass,output/AlrajhiAccounting_Release_Setup.exe,372

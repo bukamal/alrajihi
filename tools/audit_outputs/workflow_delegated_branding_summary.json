@@ -1,0 +1,14 @@
+{
+  "phase": 372,
+  "checks": 20,
+  "issues": 0,
+  "categories": {
+    "branding_verifier": 4,
+    "workflow_shape": 2,
+    "delegated_branding_wiring": 6,
+    "warehouse_only_release": 4,
+    "no_generic_or_portable_release": 4
+  },
+  "ready": true,
+  "matrix": "tools/audit_outputs/workflow_delegated_branding_matrix.csv"
+}

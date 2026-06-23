@@ -8,6 +8,7 @@ ICON = ROOT / "alrajhi_client" / "assets" / "brand" / "app.ico"
 LOGO = ROOT / "alrajhi_client" / "assets" / "brand" / "logo.png"
 WORKFLOW = ROOT / ".github" / "workflows" / "build-windows-installer.yml"
 ISS = ROOT / "build" / "setup.iss"
+BUILD_SCRIPT = ROOT / "build" / "build_windows.ps1"
 
 
 def fail(msg: str) -> None:
@@ -31,15 +32,27 @@ def main() -> None:
 
     if WORKFLOW.exists():
         w = WORKFLOW.read_text(encoding="utf-8", errors="ignore")
+        build = BUILD_SCRIPT.read_text(encoding="utf-8", errors="ignore") if BUILD_SCRIPT.exists() else ""
+        setup = ISS.read_text(encoding="utf-8", errors="ignore") if ISS.exists() else ""
+        combined_release_wiring = "\n".join([w, build, setup])
+
+        # Phase 372: the GitHub workflow may delegate PyInstaller invocation to
+        # build/build_windows.ps1.  The branding check must validate the complete
+        # release wiring, not only the workflow YAML text, otherwise a valid
+        # delegated build fails before the build step with a false missing
+        # ``--icon`` error.
+        if ".\\build\\build_windows.ps1" in w and not BUILD_SCRIPT.exists():
+            fail("Workflow delegates to build\\build_windows.ps1 but the build script is missing")
+
         required = [
             "--icon",
             "assets\\brand\\app.ico",
             "SetupIconFile",
             "IconFilename",
         ]
-        missing = [x for x in required if x not in w]
+        missing = [x for x in required if x not in combined_release_wiring]
         if missing:
-            fail(f"Workflow does not wire branding completely: missing {missing}")
+            fail(f"Workflow/build release branding wiring incomplete: missing {missing}")
 
     if ISS.exists():
         s = ISS.read_text(encoding="utf-8", errors="ignore")
