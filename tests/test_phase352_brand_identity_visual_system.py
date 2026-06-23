@@ -39,7 +39,8 @@ def test_qss_contains_branded_surfaces_and_chrome():
 def test_first_run_screens_consume_brand_metrics():
     files = {
         'alrajhi_client/views/splash_screen.py': ['brandMark', 'brand_logo_large_px', 'splash_width'],
-        'alrajhi_client/views/dialogs/login_dialog.py': ['brandMark', 'brand_logo_login_px', 'login_card_width'],
+        # Phase367/368 intentionally restored LoginDialog to the pre-Phase350 card while keeping QSS/tokens.
+        'alrajhi_client/views/dialogs/login_dialog.py': ['Phase367: restored LoginDialog', 'Phase368: password visibility button'],
         'alrajhi_client/views/dialogs/activation_dialog.py': ['brandMark', 'brand_logo_login_px', 'activation_card_width'],
         'alrajhi_client/ui/design_system.py': ['brand_gradient', 'apply_visual_role', 'BRAND_BUTTON_MIN_HEIGHT'],
     }

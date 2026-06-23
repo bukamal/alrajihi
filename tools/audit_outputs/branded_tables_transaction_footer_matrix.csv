@@ -1,5 +1,5 @@
 key,category,description,status,detail
-brand_phase,tokens,BRAND phase advanced to branded tables and transaction footer polish,pass,358
+brand_phase,tokens,BRAND phase advanced to branded tables and transaction footer polish,pass,364
 light_table_tokens,tokens,light palette includes Phase 355 table/footer tokens,pass,
 dark_table_tokens,tokens,dark palette includes Phase 355 table/footer tokens,pass,
 table_identity_token_table_current_bg,token,Background for the exact active editable cell.,pass,table_current_bg

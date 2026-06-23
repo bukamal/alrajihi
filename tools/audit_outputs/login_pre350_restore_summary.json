@@ -1,0 +1,16 @@
+{
+  "phase": 367,
+  "checks": 59,
+  "issues": 0,
+  "issue_groups": 0,
+  "categories": {
+    "tokens": 1,
+    "login_source": 27,
+    "redesign_removed": 25,
+    "layout_order": 1,
+    "qss_source": 3,
+    "qss_runtime": 2
+  },
+  "ready": true,
+  "matrix": "tools/audit_outputs/login_pre350_restore_matrix.csv"
+}

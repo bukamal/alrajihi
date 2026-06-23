@@ -31,7 +31,8 @@ def test_first_run_runtime_helpers_exist_and_are_wired_textually():
 
     files = {
         'alrajhi_client/views/splash_screen.py': ['apply_first_run_surface(self.container, \'splash\')', 'firstRunStageChip', 'firstRunProgressTrack'],
-        'alrajhi_client/views/dialogs/login_dialog.py': ['brand_side_panel(', 'first_run_form_panel()', "firstRunSurface', 'login'", 'set_first_run_primary'],
+        # Phase367/368 intentionally supersede the split login runtime with the original single-card login.
+        'alrajhi_client/views/dialogs/login_dialog.py': ['Phase367: restored LoginDialog', 'Phase368: password visibility button'],
         'alrajhi_client/views/dialogs/activation_dialog.py': ['brand_side_panel(', 'activation_device_panel', "firstRunSurface', 'activation'", 'set_first_run_primary'],
     }
     for rel, markers in files.items():

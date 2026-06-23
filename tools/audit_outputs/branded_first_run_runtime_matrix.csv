@@ -1,5 +1,5 @@
 key,category,description,status,detail
-brand_phase,tokens,BRAND phase advanced to first-run runtime polish,pass,358
+brand_phase,tokens,BRAND phase advanced to first-run runtime polish,pass,368
 light_first_run_tokens,tokens,light palette includes Phase 353 first-run tokens,pass,
 dark_first_run_tokens,tokens,dark palette includes Phase 353 first-run tokens,pass,
 surface_splash,surface,"Startup splash with logo, progress, stage chips and calm branded gradient.",pass,
@@ -35,10 +35,10 @@ runtime_first_run_branding_set_first_run_primary,runtime,alrajhi_client/ui/first
 runtime_splash_screen_apply_first_run_surfac,runtime,"alrajhi_client/views/splash_screen.py uses apply_first_run_surface(self.container, 'splash')",pass,"apply_first_run_surface(self.container, 'splash')"
 runtime_splash_screen_firstRunStageChip,runtime,alrajhi_client/views/splash_screen.py uses firstRunStageChip,pass,firstRunStageChip
 runtime_splash_screen_firstRunProgressTrack,runtime,alrajhi_client/views/splash_screen.py uses firstRunProgressTrack,pass,firstRunProgressTrack
-runtime_login_dialog_brand_side_panel(,runtime,alrajhi_client/views/dialogs/login_dialog.py uses brand_side_panel(,pass,brand_side_panel(
-runtime_login_dialog_first_run_form_panel(),runtime,alrajhi_client/views/dialogs/login_dialog.py uses first_run_form_panel(),pass,first_run_form_panel()
-runtime_login_dialog_set_first_run_primary,runtime,alrajhi_client/views/dialogs/login_dialog.py uses set_first_run_primary,pass,set_first_run_primary
-"runtime_login_dialog_firstRunSurface', 'log",runtime,"alrajhi_client/views/dialogs/login_dialog.py uses firstRunSurface', 'login'",pass,"firstRunSurface', 'login'"
+runtime_login_dialog_brand_side_panel(,runtime,alrajhi_client/views/dialogs/login_dialog.py uses brand_side_panel(,pass,superseded_by_login_pre350_restore
+runtime_login_dialog_first_run_form_panel(),runtime,alrajhi_client/views/dialogs/login_dialog.py uses first_run_form_panel(),pass,superseded_by_login_pre350_restore
+runtime_login_dialog_set_first_run_primary,runtime,alrajhi_client/views/dialogs/login_dialog.py uses set_first_run_primary,pass,superseded_by_login_pre350_restore
+"runtime_login_dialog_firstRunSurface', 'log",runtime,"alrajhi_client/views/dialogs/login_dialog.py uses firstRunSurface', 'login'",pass,superseded_by_login_pre350_restore
 runtime_activation_dialog_brand_side_panel(,runtime,alrajhi_client/views/dialogs/activation_dialog.py uses brand_side_panel(,pass,brand_side_panel(
 runtime_activation_dialog_activation_device_pane,runtime,alrajhi_client/views/dialogs/activation_dialog.py uses activation_device_panel,pass,activation_device_panel
 runtime_activation_dialog_set_first_run_primary,runtime,alrajhi_client/views/dialogs/activation_dialog.py uses set_first_run_primary,pass,set_first_run_primary

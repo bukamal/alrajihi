@@ -1,0 +1,11 @@
+{
+  "phase": 361,
+  "checks": 1,
+  "issues": 0,
+  "issue_groups": 0,
+  "categories": {
+    "superseded_login_layout": 1
+  },
+  "ready": true,
+  "matrix": "tools/audit_outputs/login_vertical_expansion_matrix.csv"
+}

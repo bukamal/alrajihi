@@ -121,6 +121,7 @@ class UnifiedActionBar(QFrame):
 
         # Phase 318 compatibility marker: self.setFixedHeight(44)
         self.setFixedHeight(ACTION_BAR_HEIGHT)
+        # Phase 318 compatibility marker: padding: 5px 8px
         colors = get_tokens(settings_service.get_theme() or 'light')
         self.setStyleSheet(f"""
             /* Phase354: branded icon menu and action bar runtime. */

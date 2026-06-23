@@ -1,0 +1,16 @@
+{
+  "phase": 365,
+  "checks": 46,
+  "issues": 0,
+  "issue_groups": 0,
+  "categories": {
+    "tokens": 1,
+    "login_source": 22,
+    "superseded_layout": 16,
+    "layout_order": 1,
+    "qss_source": 4,
+    "qss_runtime": 2
+  },
+  "ready": true,
+  "matrix": "tools/audit_outputs/login_phase352_restore_matrix.csv"
+}

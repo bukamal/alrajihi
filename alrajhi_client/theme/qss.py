@@ -415,6 +415,47 @@ def build_global_qss(colors: dict) -> str:
             border: 1px solid {colors.get('first_run_card_border', colors['border'])};
             border-radius: {radius_md}px;
         }}
+        /* Phase360: RTL-first organized login screen sections. */
+        QFrame#loginCredentialsPanel {{
+            background-color: {colors.get('surface_raised', colors.get('first_run_form_bg', colors['card_bg']))};
+            border: 1px solid {colors.get('first_run_card_border', colors['border'])};
+            border-radius: {radius_md}px;
+        }}
+        QFrame#loginActionsPanel {{
+            background-color: transparent;
+            border: none;
+        }}
+        QLabel#loginFieldLabel {{
+            color: {colors['text_primary']};
+            font-size: {caption_px + 2}px;
+            font-weight: 900;
+            padding: 0 2px;
+        }}
+        QComboBox#loginUsernameField, QComboBox#loginLanguageField, QLineEdit#loginPasswordField {{
+            min-height: 42px;
+            border-radius: {radius_md}px;
+            padding-left: 12px;
+            padding-right: 12px;
+        }}
+        QPushButton#loginPasswordToggleButton {{
+            background-color: {colors.get('bg_panel', colors['card_bg'])};
+            color: {colors['primary']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QPushButton#loginPasswordToggleButton:hover {{
+            background-color: {colors['brand_soft']};
+        }}
+        QFrame#loginCard[loginLayoutPolicy="pre352_rtl_ordered_no_overlay"] {{
+            min-width: 430px;
+        }}
+        QFrame#loginCard[loginLayout="rtl_organized_split"] QFrame#firstRunFormPanel {{
+            min-width: {BRAND.get('first_run_form_width', 520)}px;
+        }}
+        QFrame#loginCard[loginLayout="rtl_organized_split"] QFrame#firstRunBrandPanel {{
+            min-width: {BRAND.get('first_run_panel_width', 330)}px;
+            max-width: {BRAND.get('first_run_panel_width', 330)}px;
+        }}
         QFrame#loginSeparator {{
             background-color: {colors.get('first_run_card_border', colors['border'])};
             border: none;
@@ -424,11 +465,21 @@ def build_global_qss(colors: dict) -> str:
             border-radius: {radius_md}px;
             padding: 0 12px;
         }}
-        QPushButton#loginPasswordToggle {{
+        QPushButton#loginPasswordVisibilityButton {{
             background-color: {colors.get('first_run_secondary_bg', colors['bg_panel'])};
             color: {colors['primary']};
             border: 1px solid {colors.get('first_run_card_border', colors['border'])};
             border-radius: {radius_md}px;
+            min-width: 42px;
+            max-width: 42px;
+            min-height: 42px;
+            max-height: 42px;
+            padding: 0px;
+            margin: 0px;
+        }}
+        QPushButton#loginPasswordVisibilityButton:checked {{
+            background-color: {colors.get('first_run_primary_soft_bg', colors.get('selection_bg', colors['primary']))};
+            border-color: {colors['primary']};
         }}
         QLabel#loginAdminWarning {{
             color: {colors['warning']};
@@ -439,6 +490,70 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['text_muted']};
             font-size: {caption_px}px;
             font-weight: 700;
+        }}
+        /* Phase361/362/363/364: expanded vertical login layout; password/options sections never overlap. */
+        QFrame#loginCard[loginOverlapPolicy="sectioned_no_overlap"] QFrame#loginCredentialsPanel {{
+            margin-bottom: {BRAND.get('login_section_gap', 14)}px;
+        }}
+        QFrame#loginCard[loginOverlapPolicy="sectioned_no_overlap"] QFrame#loginOptionsPanel {{
+            margin-top: 0px;
+        }}
+
+        QFrame#loginCard[loginSpacingPolicy="password_options_gap"] QFrame#loginCredentialsPanel {{
+            margin-bottom: {BRAND.get('login_section_gap', 30)}px;
+        }}
+        QFrame#loginCard[loginSpacingPolicy="password_options_gap"] QLineEdit#loginPasswordEdit {{
+            margin-bottom: {BRAND.get('login_password_bottom_gap', 18)}px;
+        }}
+        QFrame#loginPasswordRow {{
+            background-color: transparent;
+            border: none;
+            min-height: {BRAND.get('login_password_row_height', 68)}px;
+            max-height: {BRAND.get('login_password_row_height', 68)}px;
+            margin: 0px;
+            padding: 0px;
+        }}
+        QFrame#loginPasswordSafeSpacer {{
+            background-color: transparent;
+            border: none;
+            min-height: {BRAND.get('login_password_options_spacer_height', 46)}px;
+            max-height: {BRAND.get('login_password_options_spacer_height', 46)}px;
+            margin: 0px;
+            padding: 0px;
+        }}
+        QFrame#loginCard[loginSpacingPolicy="password_row_reserved_gap"] QFrame#loginCredentialsPanel {{
+            margin-bottom: 0px;
+        }}
+        QFrame#loginCard[loginSpacingPolicy="password_row_reserved_gap"] QFrame#loginPasswordRow {{
+            min-height: {BRAND.get('login_password_row_height', 68)}px;
+            max-height: {BRAND.get('login_password_row_height', 68)}px;
+        }}
+        QFrame#loginCard[loginSpacingPolicy="password_row_reserved_gap"] QFrame#loginPasswordSafeSpacer {{
+            min-height: {BRAND.get('login_password_options_spacer_height', 46)}px;
+            max-height: {BRAND.get('login_password_options_spacer_height', 46)}px;
+        }}
+        QFrame#loginCard[loginDensity="expanded_vertical"] QFrame#firstRunFormPanel {{
+            min-width: {BRAND.get('login_form_expanded_width', BRAND.get('first_run_form_width', 520))}px;
+            min-height: {BRAND.get('login_form_expanded_min_height', 670)}px;
+        }}
+        QFrame#loginCard[loginDensity="expanded_vertical"] QFrame#loginCredentialsPanel {{
+            min-height: {BRAND.get('login_credentials_min_height', 188)}px;
+        }}
+        QFrame#loginCard[loginDensity="expanded_vertical"] QFrame#loginOptionsPanel {{
+            min-height: {BRAND.get('login_options_min_height', 98)}px;
+        }}
+        QFrame#loginCard[loginDensity="expanded_vertical"] QComboBox#loginUsernameCombo,
+        QFrame#loginCard[loginDensity="expanded_vertical"] QComboBox#loginLanguageCombo,
+        QFrame#loginCard[loginDensity="expanded_vertical"] QLineEdit#loginPasswordEdit {{
+            min-height: {BRAND.get('login_field_height', 48)}px;
+            padding-left: 14px;
+            padding-right: 14px;
+        }}
+        QFrame#loginCard[loginDensity="expanded_vertical"] QPushButton#firstRunPrimary {{
+            min-height: {BRAND.get('login_action_button_height', BRAND.get('first_run_primary_button_height', brand_button_min))}px;
+        }}
+        QFrame#loginCard[loginDensity="expanded_vertical"] QPushButton#firstRunSecondary {{
+            min-height: {BRAND.get('login_secondary_button_height', BRAND.get('first_run_secondary_button_height', brand_button_min))}px;
         }}
         QLabel#firstRunHeroTitle {{
             color: {colors.get('first_run_panel_text', '#FFFFFF')};

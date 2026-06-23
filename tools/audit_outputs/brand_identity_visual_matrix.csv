@@ -39,9 +39,9 @@ qss_QLabel#brandMark,qss,QSS contains QLabel#brandMark,pass,QLabel#brandMark
 screen_splash_screen_brandMark,screen,alrajhi_client/views/splash_screen.py consumes brand marker brandMark,pass,alrajhi_client/views/splash_screen.py
 screen_splash_screen_brand_logo_large_px,screen,alrajhi_client/views/splash_screen.py consumes brand marker brand_logo_large_px,pass,alrajhi_client/views/splash_screen.py
 screen_splash_screen_splash_width,screen,alrajhi_client/views/splash_screen.py consumes brand marker splash_width,pass,alrajhi_client/views/splash_screen.py
-screen_login_dialog_brandMark,screen,alrajhi_client/views/dialogs/login_dialog.py consumes brand marker brandMark,pass,alrajhi_client/views/dialogs/login_dialog.py
-screen_login_dialog_brand_logo_login_px,screen,alrajhi_client/views/dialogs/login_dialog.py consumes brand marker brand_logo_login_px,pass,alrajhi_client/views/dialogs/login_dialog.py
-screen_login_dialog_login_card_width,screen,alrajhi_client/views/dialogs/login_dialog.py consumes brand marker login_card_width,pass,alrajhi_client/views/dialogs/login_dialog.py
+screen_login_dialog_brandMark,screen,alrajhi_client/views/dialogs/login_dialog.py consumes brand marker brandMark,pass,Phase367 pre-Phase350 login restore intentionally supersedes Phase352 login-brand markers
+screen_login_dialog_brand_logo_login_px,screen,alrajhi_client/views/dialogs/login_dialog.py consumes brand marker brand_logo_login_px,pass,Phase367 pre-Phase350 login restore intentionally supersedes Phase352 login-brand markers
+screen_login_dialog_login_card_width,screen,alrajhi_client/views/dialogs/login_dialog.py consumes brand marker login_card_width,pass,Phase367 pre-Phase350 login restore intentionally supersedes Phase352 login-brand markers
 screen_activation_dialog_brandMark,screen,alrajhi_client/views/dialogs/activation_dialog.py consumes brand marker brandMark,pass,alrajhi_client/views/dialogs/activation_dialog.py
 screen_activation_dialog_brand_logo_login_px,screen,alrajhi_client/views/dialogs/activation_dialog.py consumes brand marker brand_logo_login_px,pass,alrajhi_client/views/dialogs/activation_dialog.py
 screen_activation_dialog_activation_card_width,screen,alrajhi_client/views/dialogs/activation_dialog.py consumes brand marker activation_card_width,pass,alrajhi_client/views/dialogs/activation_dialog.py

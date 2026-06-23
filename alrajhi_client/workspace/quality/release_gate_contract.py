@@ -150,6 +150,16 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (355, "BRANDED_TABLES_TRANSACTION_FOOTER"),
         (356, "BRANDED_DIALOGS_SYSTEM_WINDOWS"),
         (358, "LOGIN_LAYOUT_STABILITY_HOTFIX"),
+        (359, "LOGIN_PHASE355_DESIGN_RESTORE"),
+        (360, "LOGIN_RTL_LAYOUT_REORGANIZATION"),
+        (361, "LOGIN_VERTICAL_EXPANSION"),
+        (362, "LOGIN_PASSWORD_OPTIONS_NO_OVERLAP"),
+        (363, "LOGIN_PASSWORD_OPTIONS_GAP"),
+        (364, "LOGIN_PASSWORD_VISIBILITY_RESERVED_ROW"),
+        (365, "LOGIN_PHASE352_RESTORE"),
+        (366, "LOGIN_PRE352_RTL_SAFE"),
+        (367, "LOGIN_PRE350_RESTORE"),
+        (368, "LOGIN_PASSWORD_TOGGLE_ALIGNMENT"),
     ]
 )
 
@@ -265,6 +275,16 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (355, "branded_tables_transaction_footer"),
         (356, "branded_dialogs_system_windows"),
         (358, "login_layout_stability"),
+        (359, "login_phase355_restore"),
+        (360, "login_rtl_layout"),
+        (361, "login_vertical_expansion"),
+        (362, "login_no_overlap"),
+        (363, "login_password_gap"),
+        (364, "login_password_visibility"),
+        (365, "login_phase352_restore"),
+        (366, "login_pre352_rtl_safe"),
+        (367, "login_pre350_restore"),
+        (368, "login_password_toggle_alignment"),
     ]
 )
 
@@ -360,7 +380,17 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("branded_tables_transaction_footer", "ui", "Branded tables and transaction footer runtime polish", "tools/phase355_branded_tables_transaction_footer_guard.py", "tools/audit_outputs/branded_tables_transaction_footer_matrix.csv", phase=355),
     ReleaseGateCheck("branded_dialogs_system_windows", "ui", "Branded dialogs and system-window runtime polish", "tools/phase356_branded_dialogs_system_windows_guard.py", "tools/audit_outputs/branded_dialogs_system_windows_matrix.csv", phase=356),
     ReleaseGateCheck("qss_runtime_safety_hotfix", "ui", "QSS runtime f-string safety hotfix", "tools/phase357_qss_runtime_safety_hotfix_guard.py", "tools/audit_outputs/qss_runtime_safety_matrix.csv", phase=357),
-    ReleaseGateCheck("login_layout_stability", "ui", "Stable branded login layout without overlapping controls", "tools/phase358_login_layout_stability_guard.py", "tools/audit_outputs/login_layout_stability_matrix.csv", phase=358),
+    ReleaseGateCheck("login_layout_stability", "ui", "Login layout safety contract, superseded by Phase359 restore", "tools/phase358_login_layout_stability_guard.py", "tools/audit_outputs/login_layout_stability_matrix.csv", phase=358),
+    ReleaseGateCheck("login_phase355_restore", "ui", "Restore LoginDialog design only to Phase355 split layout", "tools/phase359_login_phase355_restore_guard.py", "tools/audit_outputs/login_phase355_restore_matrix.csv", phase=359),
+    ReleaseGateCheck("login_rtl_layout", "ui", "Organized RTL-first LoginDialog layout", "tools/phase360_login_rtl_layout_guard.py", "tools/audit_outputs/login_rtl_layout_matrix.csv", phase=360),
+    ReleaseGateCheck("login_vertical_expansion", "ui", "Vertically expanded RTL LoginDialog layout", "tools/phase361_login_vertical_expansion_guard.py", "tools/audit_outputs/login_vertical_expansion_matrix.csv", phase=361),
+    ReleaseGateCheck("login_no_overlap", "ui", "Login password field and remember/language panel do not overlap", "tools/phase362_login_no_overlap_guard.py", "tools/audit_outputs/login_no_overlap_matrix.csv", phase=362),
+    ReleaseGateCheck("login_password_gap", "ui", "Login password field has extra vertical gap from remember/language panel", "tools/phase363_login_password_gap_guard.py", "tools/audit_outputs/login_password_gap_matrix.csv", phase=363),
+    ReleaseGateCheck("login_password_visibility", "ui", "Login password field has a reserved visible row before remember/language options", "tools/phase364_login_password_visibility_guard.py", "tools/audit_outputs/login_password_visibility_matrix.csv", phase=364),
+    ReleaseGateCheck("login_phase352_restore", "ui", "LoginDialog visual design restored to Phase352 single-card layout", "tools/phase365_login_phase352_restore_guard.py", "tools/audit_outputs/login_phase352_restore_matrix.csv", phase=365),
+    ReleaseGateCheck("login_pre352_rtl_safe", "ui", "LoginDialog restored to pre-Phase352 layout with safe RTL ordering", "tools/phase366_login_pre352_rtl_safe_guard.py", "tools/audit_outputs/login_pre352_rtl_safe_matrix.csv", phase=366),
+    ReleaseGateCheck("login_pre350_restore", "ui", "LoginDialog visual design restored to original pre-Phase350 baseline", "tools/phase367_login_pre350_restore_guard.py", "tools/audit_outputs/login_pre350_restore_matrix.csv", phase=367),
+    ReleaseGateCheck("login_password_toggle_alignment", "ui", "Login password visibility button is a fixed-size peer beside the password field", "tools/phase368_login_password_toggle_alignment_guard.py", "tools/audit_outputs/login_password_toggle_alignment_matrix.csv", phase=368),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

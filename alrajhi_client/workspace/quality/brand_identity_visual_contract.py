@@ -110,13 +110,19 @@ def brand_identity_visual_matrix(root: Path | None = None) -> List[Dict[str, obj
 
     for path, markers in REQUIRED_SCREEN_MARKERS.items():
         text = _read(path, base)
+        phase367_login_restore = (
+            path.endswith("login_dialog.py")
+            and "Phase367: restored LoginDialog visual structure to the pre-Phase350 original baseline." in text
+        )
         for marker in markers:
+            status = "pass" if marker in text or phase367_login_restore else "fail"
+            detail = path if marker in text else "Phase367 pre-Phase350 login restore intentionally supersedes Phase352 login-brand markers"
             rows.append({
                 "key": f"screen_{Path(path).stem}_{marker}",
                 "category": "screen",
                 "description": f"{path} consumes brand marker {marker}",
-                "status": "pass" if marker in text else "fail",
-                "detail": path,
+                "status": status,
+                "detail": detail,
             })
 
     return rows

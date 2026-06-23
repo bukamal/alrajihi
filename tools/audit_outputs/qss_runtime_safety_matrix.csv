@@ -1,12 +1,12 @@
 key,category,description,status,detail
-brand_phase,tokens,BRAND phase includes QSS runtime f-string hotfix,pass,358
-generate_light,runtime,build_global_qss executes for light theme without f-string NameError,pass,57064
+brand_phase,tokens,BRAND phase includes QSS runtime f-string hotfix,pass,368
+generate_light,runtime,build_global_qss executes for light theme without f-string NameError,pass,61488
 light_marker_QTabWidget#TabbedWorkspace::pane {,qss_output,Generated light QSS contains QTabWidget#TabbedWorkspace::pane {,pass,QTabWidget#TabbedWorkspace::pane {
 light_marker_QFrame#UnifiedActionBar {,qss_output,Generated light QSS contains QFrame#UnifiedActionBar {,pass,QFrame#UnifiedActionBar {
 "light_marker_QDialog[brandDialog=""true""], QMessageB",qss_output,"Generated light QSS contains QDialog[brandDialog=""true""], QMessageBox[brandDialog=""true""] {",pass,"QDialog[brandDialog=""true""], QMessageBox[brandDialog=""true""] {"
 "light_marker_QFrame#ToastNotification[toastType=""su",qss_output,"Generated light QSS contains QFrame#ToastNotification[toastType=""success""] {",pass,"QFrame#ToastNotification[toastType=""success""] {"
 "light_marker_QWidget[visualWorkspaceType=""document""",qss_output,"Generated light QSS contains QWidget[visualWorkspaceType=""document""], QWidget[visualWorkspaceType=""operational""]",pass,"QWidget[visualWorkspaceType=""document""], QWidget[visualWorkspaceType=""operational""]"
-generate_dark,runtime,build_global_qss executes for dark theme without f-string NameError,pass,57690
+generate_dark,runtime,build_global_qss executes for dark theme without f-string NameError,pass,62128
 dark_marker_QTabWidget#TabbedWorkspace::pane {,qss_output,Generated dark QSS contains QTabWidget#TabbedWorkspace::pane {,pass,QTabWidget#TabbedWorkspace::pane {
 dark_marker_QFrame#UnifiedActionBar {,qss_output,Generated dark QSS contains QFrame#UnifiedActionBar {,pass,QFrame#UnifiedActionBar {
 "dark_marker_QDialog[brandDialog=""true""], QMessageB",qss_output,"Generated dark QSS contains QDialog[brandDialog=""true""], QMessageBox[brandDialog=""true""] {",pass,"QDialog[brandDialog=""true""], QMessageBox[brandDialog=""true""] {"

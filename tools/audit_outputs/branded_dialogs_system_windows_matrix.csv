@@ -1,5 +1,5 @@
 key,category,description,status,detail
-brand_phase,tokens,BRAND phase advanced to branded dialogs/system windows,pass,358
+brand_phase,tokens,BRAND phase advanced to branded dialogs/system windows,pass,364
 light_dialog_tokens,tokens,light palette includes Phase 356 dialog tokens,pass,
 dark_dialog_tokens,tokens,dark palette includes Phase 356 dialog tokens,pass,
 dialog_identity_token_dialog_bg,token,dialog body surface,pass,dialog_bg

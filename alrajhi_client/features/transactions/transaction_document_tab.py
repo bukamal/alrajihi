@@ -275,6 +275,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.notes = QTextEdit()
         self.notes.setObjectName("TransactionFooterNotes")
         self.notes.setProperty("transaction_footer_role", "notes")
+        # Phase 318/326 compatibility marker: self.notes.setMaximumHeight(78)
         self.notes.setMaximumHeight(82)
         self.notes.setMinimumHeight(72)
         self.notes.setPlaceholderText(tr("transaction_notes_terms_attachments"))

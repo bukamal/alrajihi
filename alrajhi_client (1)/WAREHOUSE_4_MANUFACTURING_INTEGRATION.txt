@@ -1,0 +1,9 @@
+Warehouse-4: Manufacturing Warehouse Integration
+
+- Added raw_warehouse_id and output_warehouse_id to production_orders.
+- ProductionOrderDialog now selects raw-material and finished-goods warehouses.
+- Material availability checks use the raw-material warehouse.
+- Production consumption records warehouse OUT movements.
+- Production completion records warehouse IN movements.
+- Production reverse checks finished-goods warehouse and reverses both warehouse sides.
+- BOM remains warehouse-neutral. Warehouses are chosen at production order level.

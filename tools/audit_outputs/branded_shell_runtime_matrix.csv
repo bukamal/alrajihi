@@ -1,5 +1,5 @@
 key,category,description,status,detail
-brand_phase,tokens,BRAND phase advanced to branded shell runtime polish,pass,358
+brand_phase,tokens,BRAND phase advanced to branded shell runtime polish,pass,364
 light_shell_tokens,tokens,light palette includes Phase 354 shell tokens,pass,
 dark_shell_tokens,tokens,dark palette includes Phase 354 shell tokens,pass,
 shell_token_shell_tab_main_badge_bg,token,Badge surface for main workspace tabs.,pass,shell_tab_main_badge_bg

@@ -1,0 +1,60 @@
+﻿key,category,description,status,detail,phase
+brand_phase,tokens,Brand phase records the Phase367 pre-Phase350 login restore,pass,368,367
+required_Phase367: restored LoginDialog visual structure to,login_source,LoginDialog contains original pre-Phase350 marker: Phase367: restored LoginDialog visual structure to the pre-Phase350 original baseline.,pass,Phase367: restored LoginDialog visual structure to the pre-Phase350 original baseline.,367
+"required_self.resize(500, 620)",login_source,"LoginDialog contains original pre-Phase350 marker: self.resize(500, 620)",pass,"self.resize(500, 620)",367
+"required_self.setMinimumSize(430, 540)",login_source,"LoginDialog contains original pre-Phase350 marker: self.setMinimumSize(430, 540)",pass,"self.setMinimumSize(430, 540)",367
+required_self.main_frame.setObjectName('loginCard'),login_source,LoginDialog contains original pre-Phase350 marker: self.main_frame.setObjectName('loginCard'),pass,self.main_frame.setObjectName('loginCard'),367
+required_layout = QVBoxLayout(self.content_widget),login_source,LoginDialog contains original pre-Phase350 marker: layout = QVBoxLayout(self.content_widget),pass,layout = QVBoxLayout(self.content_widget),367
+required_layout.setSpacing(14),login_source,LoginDialog contains original pre-Phase350 marker: layout.setSpacing(14),pass,layout.setSpacing(14),367
+"required_layout.setContentsMargins(34, 24, 34, 30)",login_source,"LoginDialog contains original pre-Phase350 marker: layout.setContentsMargins(34, 24, 34, 30)",pass,"layout.setContentsMargins(34, 24, 34, 30)",367
+"required_logo.setPixmap(QPixmap(logo_png(128)).scaled(94, 9",login_source,"LoginDialog contains original pre-Phase350 marker: logo.setPixmap(QPixmap(logo_png(128)).scaled(94, 94, Qt.KeepAspectRatio, Qt.SmoothTransformation))",pass,"logo.setPixmap(QPixmap(logo_png(128)).scaled(94, 94, Qt.KeepAspectRatio, Qt.SmoothTransformation))",367
+"required_self.app_title_label.setObjectName(""heroTitle"")",login_source,"LoginDialog contains original pre-Phase350 marker: self.app_title_label.setObjectName(""heroTitle"")",pass,"self.app_title_label.setObjectName(""heroTitle"")",367
+required_self.subtitle_label.setObjectName('muted'),login_source,LoginDialog contains original pre-Phase350 marker: self.subtitle_label.setObjectName('muted'),pass,self.subtitle_label.setObjectName('muted'),367
+required_self.username_combo = QComboBox(),login_source,LoginDialog contains original pre-Phase350 marker: self.username_combo = QComboBox(),pass,self.username_combo = QComboBox(),367
+required_self.username_combo.setEditable(True),login_source,LoginDialog contains original pre-Phase350 marker: self.username_combo.setEditable(True),pass,self.username_combo.setEditable(True),367
+required_self.username_combo.setPlaceholderText(translate(',login_source,LoginDialog contains original pre-Phase350 marker: self.username_combo.setPlaceholderText(translate('username')),pass,self.username_combo.setPlaceholderText(translate('username')),367
+required_pwd_layout = QHBoxLayout(),login_source,LoginDialog contains original pre-Phase350 marker: pwd_layout = QHBoxLayout(),pass,pwd_layout = QHBoxLayout(),367
+required_self.password_edit = QLineEdit(),login_source,LoginDialog contains original pre-Phase350 marker: self.password_edit = QLineEdit(),pass,self.password_edit = QLineEdit(),367
+required_self.password_edit.setPlaceholderText(translate('p,login_source,LoginDialog contains original pre-Phase350 marker: self.password_edit.setPlaceholderText(translate('password')),pass,self.password_edit.setPlaceholderText(translate('password')),367
+"required_self.show_pwd_btn.setFixedSize(42, 42)",login_source,"LoginDialog contains original pre-Phase350 marker: self.show_pwd_btn.setFixedSize(42, 42)",pass,"self.show_pwd_btn.setFixedSize(42, 42)",367
+required_pwd_layout.addWidget(self.password_edit),login_source,LoginDialog contains original pre-Phase350 marker: pwd_layout.addWidget(self.password_edit),pass,pwd_layout.addWidget(self.password_edit),367
+required_pwd_layout.addWidget(self.show_pwd_btn),login_source,LoginDialog contains original pre-Phase350 marker: pwd_layout.addWidget(self.show_pwd_btn),pass,pwd_layout.addWidget(self.show_pwd_btn),367
+required_layout.addLayout(pwd_layout),login_source,LoginDialog contains original pre-Phase350 marker: layout.addLayout(pwd_layout),pass,layout.addLayout(pwd_layout),367
+required_options_layout = QHBoxLayout(),login_source,LoginDialog contains original pre-Phase350 marker: options_layout = QHBoxLayout(),pass,options_layout = QHBoxLayout(),367
+required_options_layout.addWidget(self.remember_check),login_source,LoginDialog contains original pre-Phase350 marker: options_layout.addWidget(self.remember_check),pass,options_layout.addWidget(self.remember_check),367
+required_options_layout.addStretch(),login_source,LoginDialog contains original pre-Phase350 marker: options_layout.addStretch(),pass,options_layout.addStretch(),367
+required_self.lang_combo.setFixedWidth(128),login_source,LoginDialog contains original pre-Phase350 marker: self.lang_combo.setFixedWidth(128),pass,self.lang_combo.setFixedWidth(128),367
+required_layout.addLayout(options_layout),login_source,LoginDialog contains original pre-Phase350 marker: layout.addLayout(options_layout),pass,layout.addLayout(options_layout),367
+"required_self.login_btn.setObjectName(""primary"")",login_source,"LoginDialog contains original pre-Phase350 marker: self.login_btn.setObjectName(""primary"")",pass,"self.login_btn.setObjectName(""primary"")",367
+required_self.switch_btn = DesignSystem.secondary_button(tr,login_source,LoginDialog contains original pre-Phase350 marker: self.switch_btn = DesignSystem.secondary_button(translate('switch_account')),pass,self.switch_btn = DesignSystem.secondary_button(translate('switch_account')),367
+forbidden_from ui.first_run_branding import,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: from ui.first_run_branding import,pass,from ui.first_run_branding import,367
+forbidden_brand_side_panel(,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: brand_side_panel(,pass,brand_side_panel(,367
+forbidden_first_run_form_panel(,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: first_run_form_panel(,pass,first_run_form_panel(,367
+forbidden_set_first_run_primary,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: set_first_run_primary,pass,set_first_run_primary,367
+forbidden_root_layout = QHBoxLayout(self.content_widget),redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: root_layout = QHBoxLayout(self.content_widget),pass,root_layout = QHBoxLayout(self.content_widget),367
+forbidden_self.brand_panel =,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: self.brand_panel =,pass,self.brand_panel =,367
+forbidden_self.form_panel =,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: self.form_panel =,pass,self.form_panel =,367
+forbidden_logo.setObjectName('brandMark'),redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: logo.setObjectName('brandMark'),pass,logo.setObjectName('brandMark'),367
+forbidden_self.main_frame.setProperty('loginLayoutPolicy',redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: self.main_frame.setProperty('loginLayoutPolicy',pass,self.main_frame.setProperty('loginLayoutPolicy',367
+forbidden_self.main_frame.setProperty('loginLayout',redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: self.main_frame.setProperty('loginLayout',pass,self.main_frame.setProperty('loginLayout',367
+forbidden_self.main_frame.setProperty('loginDensity',redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: self.main_frame.setProperty('loginDensity',pass,self.main_frame.setProperty('loginDensity',367
+forbidden_self.main_frame.setProperty('loginOverlapPolicy',redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: self.main_frame.setProperty('loginOverlapPolicy',pass,self.main_frame.setProperty('loginOverlapPolicy',367
+forbidden_self.main_frame.setProperty('loginSpacingPolicy',redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: self.main_frame.setProperty('loginSpacingPolicy',pass,self.main_frame.setProperty('loginSpacingPolicy',367
+forbidden_loginCredentialsPanel,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: loginCredentialsPanel,pass,loginCredentialsPanel,367
+forbidden_loginOptionsPanel,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: loginOptionsPanel,pass,loginOptionsPanel,367
+forbidden_loginPasswordRow,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: loginPasswordRow,pass,loginPasswordRow,367
+forbidden_loginPasswordSafeSpacer,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: loginPasswordSafeSpacer,pass,loginPasswordSafeSpacer,367
+forbidden_loginUsernameField,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: loginUsernameField,pass,loginUsernameField,367
+forbidden_loginPasswordField,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: loginPasswordField,pass,loginPasswordField,367
+forbidden_loginLanguageField,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: loginLanguageField,pass,loginLanguageField,367
+forbidden_loginPasswordToggleButton,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: loginPasswordToggleButton,pass,loginPasswordToggleButton,367
+forbidden_self.username_label =,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: self.username_label =,pass,self.username_label =,367
+forbidden_self.password_label =,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: self.password_label =,pass,self.password_label =,367
+"forbidden_def _field_label(self, text):",redesign_removed,"LoginDialog avoids post-Phase350 redesign/overlap marker: def _field_label(self, text):",pass,"def _field_label(self, text):",367
+forbidden_def _apply_directional_alignment(self):,redesign_removed,LoginDialog avoids post-Phase350 redesign/overlap marker: def _apply_directional_alignment(self):,pass,def _apply_directional_alignment(self):,367
+original_vertical_order,layout_order,Original username -> password -> options -> warning -> actions order is restored,pass,"[3076, 3265, 3312, 4679, 4717, 5660, 5976, 6204, 6526, 6715]",367
+qss_source_QFrame#loginCard,qss_source,Global QSS still provides base selector required by original login design: QFrame#loginCard,pass,QFrame#loginCard,367
+qss_source_QLabel#heroTitle,qss_source,Global QSS still provides base selector required by original login design: QLabel#heroTitle,pass,QLabel#heroTitle,367
+qss_source_QPushButton#primary,qss_source,Global QSS still provides base selector required by original login design: QPushButton#primary,pass,QPushButton#primary,367
+qss_runtime_light,qss_runtime,Generated light QSS supports original login selectors,pass,61488,367
+qss_runtime_dark,qss_runtime,Generated dark QSS supports original login selectors,pass,62128,367

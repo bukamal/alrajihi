@@ -49,7 +49,7 @@ BRAND = {
     'transaction_footer_action_font_px': 14,
     'transaction_footer_action_min_height': 46,
     # Phase352: logo-inspired identity metrics for shell chrome and first-run screens.
-    'brand_phase': 358,
+    'brand_phase': 368,
     'brand_logo_path': 'alrajhi_client/assets/brand/logo.png',
     'brand_logo_large_px': 118,
     'brand_logo_login_px': 96,
@@ -57,6 +57,10 @@ BRAND = {
     'splash_width': 660,
     'splash_height': 430,
     'login_card_width': 520,
+    'login_pre352_safe_width': 500,
+    'login_pre352_safe_height': 660,
+    'login_pre352_min_width': 430,
+    'login_pre352_min_height': 600,
     'login_stable_width': 680,
     'login_stable_height': 635,
     'login_form_max_width': 560,
@@ -87,6 +91,26 @@ BRAND = {
     'first_run_secondary_button_height': 44,
     'first_run_chip_height': 30,
     'first_run_device_panel_height': 92,
+    # Phase361/362/363/364: expanded vertical login layout and non-overlapping login sections.
+    # Phase364 reserves a dedicated password-row container and an explicit
+    # spacer widget, instead of relying on stylesheet margins that can still
+    # paint under the remember/language panel in some Qt styles.
+    'login_rtl_expanded_width': 980,
+    'login_rtl_expanded_height': 945,
+    'login_rtl_min_width': 940,
+    'login_rtl_min_height': 900,
+    'login_form_expanded_width': 580,
+    'login_form_expanded_min_height': 870,
+    'login_credentials_min_height': 356,
+    'login_password_row_height': 68,
+    'login_password_options_spacer_height': 46,
+    'login_options_min_height': 150,
+    'login_action_button_height': 54,
+    'login_secondary_button_height': 50,
+    'login_field_height': 52,
+    'login_vertical_section_spacing': 22,
+    'login_section_gap': 38,
+    'login_password_bottom_gap': 18,
     # Phase355: branded tables and transaction footer metrics.
     'brand_table_row_height': 38,
     'brand_table_header_min_height': 42,

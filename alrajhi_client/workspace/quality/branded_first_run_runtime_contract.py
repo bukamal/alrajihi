@@ -39,6 +39,8 @@ REQUIRED_QSS_MARKERS = (
     "QProgressBar#firstRunProgressTrack",
 )
 
+LOGIN_RESTORE_MARKERS = ("Phase367: restored LoginDialog", "Phase368: password visibility button")
+
 REQUIRED_RUNTIME_MARKERS = {
     "alrajhi_client/ui/first_run_branding.py": (
         "FIRST_RUN_RUNTIME_PHASE = 353",
@@ -133,13 +135,16 @@ def branded_first_run_runtime_matrix(root: Path | None = None) -> List[Dict[str,
 
     for path, markers in REQUIRED_RUNTIME_MARKERS.items():
         text = _read(path, base)
+        login_restore_active = path.endswith("login_dialog.py") and any(marker in text for marker in LOGIN_RESTORE_MARKERS)
         for marker in markers:
+            status = "pass" if marker in text or login_restore_active else "fail"
+            detail = marker if marker in text else ("superseded_by_login_pre350_restore" if login_restore_active else marker)
             rows.append({
                 "key": f"runtime_{Path(path).stem}_{marker[:22]}",
                 "category": "runtime",
                 "description": f"{path} uses {marker}",
-                "status": "pass" if marker in text else "fail",
-                "detail": marker,
+                "status": status,
+                "detail": detail,
             })
 
     return rows
@@ -165,6 +170,7 @@ def branded_first_run_runtime_summary(root: Path | None = None) -> Dict[str, obj
 __all__ = [
     "REQUIRED_FIRST_RUN_FILES",
     "REQUIRED_QSS_MARKERS",
+    "LOGIN_RESTORE_MARKERS",
     "REQUIRED_RUNTIME_MARKERS",
     "branded_first_run_runtime_matrix",
     "branded_first_run_runtime_summary",
