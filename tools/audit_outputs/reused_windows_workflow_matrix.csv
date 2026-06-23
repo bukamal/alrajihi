@@ -1,0 +1,56 @@
+﻿key,category,description,status,detail,phase
+workflow_step_name: Build Windows Installer,reused_workflow_shape,workflow step name: Build Windows Installer,pass,name: Build Windows Installer,371
+workflow_step_push:,reused_workflow_shape,workflow step push:,pass,push:,371
+workflow_step_branches:,reused_workflow_shape,workflow step branches:,pass,branches:,371
+workflow_step_- main,reused_workflow_shape,workflow step - main,pass,- main,371
+workflow_step_- master,reused_workflow_shape,workflow step - master,pass,- master,371
+workflow_step_workflow_dispatch:,reused_workflow_shape,workflow step workflow dispatch:,pass,workflow_dispatch:,371
+"workflow_step_python-version: ""3.10""",reused_workflow_shape,"workflow step python-version: ""3.10""",pass,"python-version: ""3.10""",371
+workflow_step_name: Upgrade pip,reused_workflow_shape,workflow step name: Upgrade pip,pass,name: Upgrade pip,371
+workflow_step_name: Install requirements,reused_workflow_shape,workflow step name: Install requirements,pass,name: Install requirements,371
+workflow_step_name: Verify requirements file,reused_workflow_shape,workflow step name: Verify requirements file,pass,name: Verify requirements file,371
+workflow_step_name: Validate imports,reused_workflow_shape,workflow step name: Validate imports,pass,name: Validate imports,371
+workflow_step_name: Verify project structure,reused_workflow_shape,workflow step name: Verify project structure,pass,name: Verify project structure,371
+workflow_step_name: Copy pyzbar DLLs,reused_workflow_shape,workflow step name: Copy pyzbar DLLs,pass,name: Copy pyzbar DLLs,371
+workflow_step_name: Locate Qt platforms,reused_workflow_shape,workflow step name: Locate Qt platforms,pass,name: Locate Qt platforms,371
+workflow_step_name: Release hardening guards,reused_workflow_shape,workflow step name: Release hardening guards,pass,name: Release hardening guards,371
+workflow_step_name: Build executable,reused_workflow_shape,workflow step name: Build executable,pass,name: Build executable,371
+workflow_step_name: Download Inno Setup,reused_workflow_shape,workflow step name: Download Inno Setup,pass,name: Download Inno Setup,371
+workflow_step_name: Download Arabic Language,reused_workflow_shape,workflow step name: Download Arabic Language,pass,name: Download Arabic Language,371
+workflow_step_name: Create Inno Setup Scripts,reused_workflow_shape,workflow step name: Create Inno Setup Scripts,pass,name: Create Inno Setup Scripts,371
+workflow_step_name: Build Warehouse Release Installer,reused_workflow_shape,workflow step name: Build Warehouse Release Installer,pass,name: Build Warehouse Release Installer,371
+workflow_step_name: Upload Warehouse Release Installer,reused_workflow_shape,workflow step name: Upload Warehouse Release Installer,pass,name: Upload Warehouse Release Installer,371
+workflow_warehouse_AlrajhiAccountingWarehouse.exe,warehouse_identity,workflow warehouse AlrajhiAccountingWarehouse.exe,pass,AlrajhiAccountingWarehouse.exe,371
+workflow_warehouse_dist\AlrajhiAccountingWarehouse\AlrajhiAccount,warehouse_identity,workflow warehouse dist\AlrajhiAccountingWarehouse\AlrajhiAccount,pass,dist\AlrajhiAccountingWarehouse\AlrajhiAccountingWarehouse.exe,371
+workflow_warehouse_dist\AlrajhiAccountingWarehouse\*,warehouse_identity,workflow warehouse dist\AlrajhiAccountingWarehouse\*,pass,dist\AlrajhiAccountingWarehouse\*,371
+workflow_warehouse_OutputBaseFilename=AlrajhiAccountingWarehouse_,warehouse_identity,workflow warehouse OutputBaseFilename=AlrajhiAccountingWarehouse ,pass,OutputBaseFilename=AlrajhiAccountingWarehouse_Release_Setup,371
+workflow_warehouse_output\AlrajhiAccountingWarehouse_Release_Setu,warehouse_identity,workflow warehouse output\AlrajhiAccountingWarehouse Release Setu,pass,output\AlrajhiAccountingWarehouse_Release_Setup.exe,371
+workflow_warehouse_name: AlrajhiAccountingWarehouse_Release_Insta,warehouse_identity,workflow warehouse name: AlrajhiAccountingWarehouse Release Insta,pass,name: AlrajhiAccountingWarehouse_Release_Installer,371
+workflow_warehouse_path: output/AlrajhiAccountingWarehouse_Releas,warehouse_identity,workflow warehouse path: output/AlrajhiAccountingWarehouse Releas,pass,path: output/AlrajhiAccountingWarehouse_Release_Setup.exe,371
+workflow_warehouse_phase369_warehouse_installer_printing_guard.py,warehouse_identity,workflow warehouse phase369 warehouse installer printing guard.py,pass,phase369_warehouse_installer_printing_guard.py,371
+workflow_warehouse_phase370_warehouse_executable_identity_guard.p,warehouse_identity,workflow warehouse phase370 warehouse executable identity guard.p,pass,phase370_warehouse_executable_identity_guard.py,371
+workflow_printing_dist\AlrajhiAccountingWarehouse\printing\print,printing_runtime_staging,workflow printing dist\AlrajhiAccountingWarehouse\printing\print,pass,dist\AlrajhiAccountingWarehouse\printing\print_templates.py,371
+workflow_printing_dist\AlrajhiAccountingWarehouse\_internal\prin,printing_runtime_staging,workflow printing dist\AlrajhiAccountingWarehouse\ internal\prin,pass,dist\AlrajhiAccountingWarehouse\_internal\printing\print_templates.py,371
+workflow_printing_dist\AlrajhiAccountingWarehouse\alrajhi_client,printing_runtime_staging,workflow printing dist\AlrajhiAccountingWarehouse\alrajhi client,pass,dist\AlrajhiAccountingWarehouse\alrajhi_client\printing\print_templates.py,371
+workflow_printing_dist\AlrajhiAccountingWarehouse\_internal\alra,printing_runtime_staging,workflow printing dist\AlrajhiAccountingWarehouse\ internal\alra,pass,dist\AlrajhiAccountingWarehouse\_internal\alrajhi_client\printing\print_templates.py,371
+workflow_printing_dist\AlrajhiAccountingWarehouse\printing\_temp,printing_runtime_staging,workflow printing dist\AlrajhiAccountingWarehouse\printing\ temp,pass,dist\AlrajhiAccountingWarehouse\printing\_template_loader.py,371
+workflow_printing_dist\AlrajhiAccountingWarehouse\_internal\prin,printing_runtime_staging,workflow printing dist\AlrajhiAccountingWarehouse\ internal\prin,pass,dist\AlrajhiAccountingWarehouse\_internal\printing\_template_loader.py,371
+workflow_printing_dist\AlrajhiAccountingWarehouse\alrajhi_client,printing_runtime_staging,workflow printing dist\AlrajhiAccountingWarehouse\alrajhi client,pass,dist\AlrajhiAccountingWarehouse\alrajhi_client\printing\_template_loader.py,371
+workflow_printing_dist\AlrajhiAccountingWarehouse\_internal\alra,printing_runtime_staging,workflow printing dist\AlrajhiAccountingWarehouse\ internal\alra,pass,dist\AlrajhiAccountingWarehouse\_internal\alrajhi_client\printing\_template_loader.py,371
+workflow_forbidden_AlrajhiAccounting_Release_Installer,no_generic_or_portable_release,workflow forbidden AlrajhiAccounting Release Installer,pass,AlrajhiAccounting_Release_Installer,371
+workflow_forbidden_AlrajhiAccounting_Release_Portable,no_generic_or_portable_release,workflow forbidden AlrajhiAccounting Release Portable,pass,AlrajhiAccounting_Release_Portable,371
+workflow_forbidden_AlrajhiAccountingWarehouse_Release_Portable,no_generic_or_portable_release,workflow forbidden AlrajhiAccountingWarehouse Release Portable,pass,AlrajhiAccountingWarehouse_Release_Portable,371
+workflow_forbidden_AlrajhiAccounting_Release_Setup.exe,no_generic_or_portable_release,workflow forbidden AlrajhiAccounting Release Setup.exe,pass,AlrajhiAccounting_Release_Setup.exe,371
+workflow_forbidden_Build Release Installer,no_generic_or_portable_release,workflow forbidden Build Release Installer,pass,Build Release Installer,371
+workflow_forbidden_Upload Release Portable,no_generic_or_portable_release,workflow forbidden Upload Release Portable,pass,Upload Release Portable,371
+workflow_forbidden_Upload Warehouse Release Portable,no_generic_or_portable_release,workflow forbidden Upload Warehouse Release Portable,pass,Upload Warehouse Release Portable,371
+workflow_forbidden_setup_release.iss,no_generic_or_portable_release,workflow forbidden setup release.iss,pass,setup_release.iss,371
+workflow_forbidden_dist\AlrajhiAccounting\*,no_generic_or_portable_release,workflow forbidden dist\AlrajhiAccounting\*,pass,dist\AlrajhiAccounting\*,371
+workflow_forbidden_dist\AlrajhiAccounting\AlrajhiAccounting.exe,no_generic_or_portable_release,workflow forbidden dist\AlrajhiAccounting\AlrajhiAccounting.exe,pass,dist\AlrajhiAccounting\AlrajhiAccounting.exe,371
+"workflow_forbidden_--name"", ""AlrajhiAccounting""",no_generic_or_portable_release,"workflow forbidden --name"", ""AlrajhiAccounting""",pass,"--name"", ""AlrajhiAccounting""",371
+workflow_has_exactly_one_artifact_upload,no_generic_or_portable_release,workflow has exactly one artifact upload,pass,1,371
+workflow_builds_with_central_build_script,warehouse_identity,workflow builds with central build script,pass,.\build\build_windows.ps1,371
+"central_build_$PyInstallerAppName = ""AlrajhiAccountingWareho",warehouse_identity,"central build $PyInstallerAppName = ""AlrajhiAccountingWareho",pass,"$PyInstallerAppName = ""AlrajhiAccountingWarehouse""",371
+"central_build_$SetupOutputBase = ""AlrajhiAccountingWarehouse",warehouse_identity,"central build $SetupOutputBase = ""AlrajhiAccountingWarehouse",pass,"$SetupOutputBase = ""AlrajhiAccountingWarehouse_Release_Setup""",371
+central_build_--name $PyInstallerAppName,warehouse_identity,central build --name $PyInstallerAppName,pass,--name $PyInstallerAppName,371
+"central_build_$ExpectedExe = ""$PyInstallerAppName.exe""",warehouse_identity,"central build $ExpectedExe = ""$PyInstallerAppName.exe""",pass,"$ExpectedExe = ""$PyInstallerAppName.exe""",371

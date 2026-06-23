@@ -1,0 +1,13 @@
+{
+  "phase": 371,
+  "checks": 55,
+  "issues": 0,
+  "categories": {
+    "reused_workflow_shape": 21,
+    "warehouse_identity": 14,
+    "printing_runtime_staging": 8,
+    "no_generic_or_portable_release": 12
+  },
+  "ready": true,
+  "matrix": "tools/audit_outputs/reused_windows_workflow_matrix.csv"
+}

@@ -1,29 +1,230 @@
 name: Build Windows Installer
 
 on:
+  push:
+    branches:
+      - main
+      - master
   workflow_dispatch:
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install dependencies
+          python-version: "3.10"
+
+      - name: Upgrade pip
         shell: pwsh
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          pip install -r requirements.txt
-      - name: Runtime packaging gate
-        shell: pwsh
-        run: python tools\windows_runtime_packaging_gate_audit.py
-      - name: Build runtime package
-        shell: pwsh
-        run: build\build_windows.ps1
 
-      - name: Upload Warehouse Installer
+      - name: Install requirements
+        shell: pwsh
+        run: |
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Verify requirements file
+        shell: pwsh
+        run: |
+          python tools\verify_requirements_file.py
+
+      - name: Validate imports
+        shell: pwsh
+        run: |
+          python -c "import PyQt5"
+          python -c "import cv2"
+          python -c "from pyzbar.pyzbar import decode"
+          python -c "import qrcode"
+          python -c "import barcode"
+          python -c "import qtawesome"
+          python -c "import pyqtgraph"
+
+      - name: Verify project structure
+        shell: pwsh
+        run: |
+          if (!(Test-Path "alrajhi_client\main.py")) {
+            throw "Missing alrajhi_client\main.py"
+          }
+          if (!(Test-Path "alrajhi_client\assets\brand\app.ico")) {
+            throw "Missing branded app icon"
+          }
+          if (!(Test-Path "alrajhi_client\assets\brand\logo.png")) {
+            throw "Missing branded app logo"
+          }
+          python tools\verify_branding_assets.py
+
+      - name: Copy pyzbar DLLs
+        shell: pwsh
+        run: |
+          $code = @"
+          import os
+          import shutil
+          import pyzbar
+
+          base = os.path.dirname(pyzbar.__file__)
+
+          for dll in ("libiconv.dll", "libzbar-64.dll", "libzbar-32.dll"):
+              src = os.path.join(base, dll)
+              if os.path.exists(src):
+                  shutil.copy(src, ".")
+                  print("Copied", dll)
+          "@
+
+          Set-Content -Path copy_pyzbar_dlls.py -Value $code -Encoding UTF8
+          python copy_pyzbar_dlls.py
+
+      - name: Locate Qt platforms
+        id: qtpath
+        shell: pwsh
+        run: |
+          $path = python -c "import PyQt5, os; print(os.path.join(os.path.dirname(PyQt5.__file__), 'Qt5', 'plugins', 'platforms'))"
+          echo "platforms_path=$path" >> $env:GITHUB_OUTPUT
+
+      - name: Release hardening guards
+        shell: pwsh
+        run: |
+          python tools\release_packaging_guard.py
+          python tools\release_translations_guard.py
+          python tools\release_theme_guard.py
+          python tools\release_hidden_imports_guard.py
+          python tools\unified_printing_guard.py
+          python tools\windows_runtime_packaging_gate_audit.py
+          python tools\phase369_warehouse_installer_printing_guard.py
+          python tools\phase370_warehouse_executable_identity_guard.py
+          python tools\phase371_reused_windows_workflow_guard.py
+
+      - name: Build executable
+        shell: pwsh
+        run: |
+          .\build\build_windows.ps1
+
+          if (!(Test-Path "dist\AlrajhiAccountingWarehouse\AlrajhiAccountingWarehouse.exe")) {
+            throw "PyInstaller build failed: missing dist\AlrajhiAccountingWarehouse\AlrajhiAccountingWarehouse.exe"
+          }
+
+          $packagedAssetCandidates = @(
+            "dist\AlrajhiAccountingWarehouse\assets\brand\app.ico",
+            "dist\AlrajhiAccountingWarehouse\_internal\assets\brand\app.ico"
+          )
+          if (!(($packagedAssetCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
+            throw "Warehouse build missing packaged project icon assets"
+          }
+
+          $clientAssetCandidates = @(
+            "dist\AlrajhiAccountingWarehouse\alrajhi_client\assets\brand\app.ico",
+            "dist\AlrajhiAccountingWarehouse\_internal\alrajhi_client\assets\brand\app.ico"
+          )
+          if (!(($clientAssetCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
+            throw "Warehouse build missing alrajhi_client project icon assets"
+          }
+
+          $printTemplateCandidates = @(
+            "dist\AlrajhiAccountingWarehouse\printing\print_templates.py",
+            "dist\AlrajhiAccountingWarehouse\_internal\printing\print_templates.py",
+            "dist\AlrajhiAccountingWarehouse\alrajhi_client\printing\print_templates.py",
+            "dist\AlrajhiAccountingWarehouse\_internal\alrajhi_client\printing\print_templates.py"
+          )
+          if (!(($printTemplateCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
+            throw "Warehouse build missing packaged print template files"
+          }
+
+          $printTemplateLoaderCandidates = @(
+            "dist\AlrajhiAccountingWarehouse\printing\_template_loader.py",
+            "dist\AlrajhiAccountingWarehouse\_internal\printing\_template_loader.py",
+            "dist\AlrajhiAccountingWarehouse\alrajhi_client\printing\_template_loader.py",
+            "dist\AlrajhiAccountingWarehouse\_internal\alrajhi_client\printing\_template_loader.py"
+          )
+          if (!(($printTemplateLoaderCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1))) {
+            throw "Warehouse build missing packaged print template loader"
+          }
+
+      - name: Download Inno Setup
+        shell: pwsh
+        run: |
+          curl -L -o is.exe https://jrsoftware.org/download.php/is.exe
+          .\is.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
+
+      - name: Download Arabic Language
+        shell: pwsh
+        run: |
+          curl -L -o "C:\Program Files (x86)\Inno Setup 6\Languages\Arabic.isl" https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Arabic.isl
+
+      - name: Create Inno Setup Scripts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path output | Out-Null
+          $iconPath = (Resolve-Path "alrajhi_client\assets\brand\app.ico").Path
+
+          $iss = @"
+          #define MyIcon "$iconPath"
+
+          [Setup]
+          AppName=الراجحي للمحاسبة والمستودعات
+          AppVersion=1.0
+          AppPublisher=الراجحي
+          AppPublisherURL=https://alrajhi.local
+          AppSupportURL=https://alrajhi.local
+          AppUpdatesURL=https://alrajhi.local
+          DefaultDirName={pf}\AlrajhiAccountingWarehouse
+          DefaultGroupName=الراجحي للمحاسبة والمستودعات
+          UninstallDisplayName=الراجحي للمحاسبة والمستودعات
+          UninstallDisplayIcon={app}\AlrajhiAccountingWarehouse.exe
+          SetupIconFile={#MyIcon}
+          VersionInfoCompany=الراجحي
+          VersionInfoDescription=الراجحي للمحاسبة والمستودعات - ملف التنصيب
+          VersionInfoProductName=الراجحي للمحاسبة والمستودعات
+          VersionInfoProductVersion=1.0
+          VersionInfoCopyright=Copyright (C) Al Rajhi
+          Compression=lzma2
+          SolidCompression=yes
+          OutputDir=output
+          OutputBaseFilename=AlrajhiAccountingWarehouse_Release_Setup
+          WizardStyle=modern
+          ShowLanguageDialog=yes
+          PrivilegesRequired=lowest
+          UsedUserAreasWarning=no
+
+          [Languages]
+          Name: "arabic"; MessagesFile: "compiler:Languages\Arabic.isl"
+
+          [Files]
+          Source: "dist\AlrajhiAccountingWarehouse\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Tasks]
+          Name: "desktopicon"; Description: "إنشاء اختصار على سطح المكتب"; Flags: unchecked
+
+          [Icons]
+          Name: "{group}\الراجحي للمحاسبة والمستودعات"; Filename: "{app}\AlrajhiAccountingWarehouse.exe"; IconFilename: "{app}\AlrajhiAccountingWarehouse.exe"
+          Name: "{group}\إلغاء تثبيت الراجحي للمحاسبة والمستودعات"; Filename: "{uninstallexe}"; IconFilename: "{uninstallexe}"
+          Name: "{userdesktop}\الراجحي للمحاسبة والمستودعات"; Filename: "{app}\AlrajhiAccountingWarehouse.exe"; IconFilename: "{app}\AlrajhiAccountingWarehouse.exe"; Tasks: desktopicon
+
+          [Run]
+          Filename: "{app}\AlrajhiAccountingWarehouse.exe"; Description: "تشغيل الراجحي للمحاسبة والمستودعات"; Flags: postinstall nowait skipifsilent
+          "@
+
+          $iss = $iss -replace '(?m)^          ', ''
+          Set-Content -Path setup_warehouse_release.iss -Value $iss -Encoding UTF8
+
+      - name: Build Warehouse Release Installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" setup_warehouse_release.iss
+          if (!(Test-Path "output\AlrajhiAccountingWarehouse_Release_Setup.exe")) {
+            throw "Missing output\AlrajhiAccountingWarehouse_Release_Setup.exe"
+          }
+
+      - name: Upload Warehouse Release Installer
         uses: actions/upload-artifact@v4
         with:
           name: AlrajhiAccountingWarehouse_Release_Installer

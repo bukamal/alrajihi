@@ -103,4 +103,5 @@ login_pre350_restore,ui,LoginDialog visual design restored to original pre-Phase
 login_password_toggle_alignment,ui,Login password visibility button is a fixed-size peer beside the password field,368,tools/phase368_login_password_toggle_alignment_guard.py,True,tools/audit_outputs/login_password_toggle_alignment_matrix.csv,True,True
 warehouse_installer_printing,packaging,Warehouse-only installer release and installed printing paths,369,tools/phase369_warehouse_installer_printing_guard.py,True,tools/audit_outputs/warehouse_installer_printing_matrix.csv,True,True
 warehouse_executable_identity,packaging,Warehouse executable identity end-to-end,370,tools/phase370_warehouse_executable_identity_guard.py,True,tools/audit_outputs/warehouse_executable_identity_matrix.csv,True,True
+reused_windows_workflow,packaging,Reused full Windows workflow with Warehouse-only release output,371,tools/phase371_reused_windows_workflow_guard.py,True,tools/audit_outputs/reused_windows_workflow_matrix.csv,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True
