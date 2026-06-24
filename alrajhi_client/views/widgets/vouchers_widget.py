@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
-                             QComboBox, QLabel, QHeaderView, QMessageBox, QMenu)
+                             QComboBox, QLabel, QHeaderView, QMessageBox, QMenu, QStackedWidget)
 from core.services.voucher_service import voucher_service
 from core.services.finance_operation_policy import finance_operation_policy
 from currency import currency
@@ -10,7 +10,14 @@ from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate as tr, qt_layout_direction
+from ui.components.responsive_master_detail import DetailPlaceholder, ResponsiveMasterDetail
 from workspace.lists.list_workspace_contract import bind_list_workspace
+
+
+def _tr(key: str, fallback: str) -> str:
+    value = tr(key)
+    return fallback if value == key else value
+
 
 class VouchersWidget(QWidget):
     def __init__(self, parent=None):
@@ -20,6 +27,7 @@ class VouchersWidget(QWidget):
         self.current_page = 0
         self.page_size = 50
         self.total_count = 0
+        self._inline_editor = None
 
         layout = QVBoxLayout(self)
         layout.setSpacing(12)
@@ -32,7 +40,6 @@ class VouchersWidget(QWidget):
         top_layout.addWidget(self.search_edit)
 
         self.type_filter = QComboBox()
-        
         self.type_filter.addItem(tr("all"), "all")
         self.type_filter.addItem(tr("receipt"), "receipt")
         self.type_filter.addItem(tr("payment"), "payment")
@@ -43,7 +50,14 @@ class VouchersWidget(QWidget):
 
         self.add_btn = QPushButton(tr("add_voucher"))
         self.add_btn.setObjectName("primary")
-        self.add_btn.clicked.connect(self.add_voucher)
+        self.add_menu = QMenu(self.add_btn)
+        self.add_receipt_action = self.add_menu.addAction(tr('receipt_voucher'))
+        self.add_payment_action = self.add_menu.addAction(tr('payment_voucher'))
+        self.add_expense_action = self.add_menu.addAction(_tr('expense_voucher', 'سند مصروف'))
+        self.add_receipt_action.triggered.connect(lambda: self.add_voucher('receipt'))
+        self.add_payment_action.triggered.connect(lambda: self.add_voucher('payment'))
+        self.add_expense_action.triggered.connect(lambda: self.add_voucher('expense'))
+        self.add_btn.setMenu(self.add_menu)
         top_layout.addWidget(self.add_btn)
 
         self.delete_btn = QPushButton(tr("delete_voucher"))
@@ -57,10 +71,36 @@ class VouchersWidget(QWidget):
 
         layout.addLayout(top_layout)
 
+        # Phase376: السندات تستخدم نفس هيكلية العملاء/الموردين: Master-Detail داخل نفس التبويب.
         self.table = SmartTableView(identity="vouchers.list")
         self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.doubleClicked.connect(self.edit_voucher)
-        layout.addWidget(self.table)
+
+        self.detail_panel = DetailPlaceholder(_tr('voucher_details', 'تفاصيل السند'))
+        self.detail_stack = QStackedWidget(self)
+        self.detail_stack.addWidget(self.detail_panel)
+
+        self.inline_editor_page = QWidget(self)
+        inline_layout = QVBoxLayout(self.inline_editor_page)
+        inline_layout.setContentsMargins(0, 0, 0, 0)
+        inline_layout.setSpacing(8)
+        inline_header = QHBoxLayout()
+        self.inline_title_label = QLabel('', self.inline_editor_page)
+        self.inline_title_label.setObjectName('InlineEditorTitle')
+        self.inline_back_btn = QPushButton(tr('back') if tr('back') != 'back' else 'عودة', self.inline_editor_page)
+        self.inline_back_btn.clicked.connect(self._close_inline_editor)
+        inline_header.addWidget(self.inline_title_label, 1)
+        inline_header.addWidget(self.inline_back_btn)
+        inline_layout.addLayout(inline_header)
+        self.inline_editor_host = QWidget(self.inline_editor_page)
+        self.inline_editor_host_layout = QVBoxLayout(self.inline_editor_host)
+        self.inline_editor_host_layout.setContentsMargins(0, 0, 0, 0)
+        self.inline_editor_host_layout.setSpacing(0)
+        inline_layout.addWidget(self.inline_editor_host, 1)
+        self.detail_stack.addWidget(self.inline_editor_page)
+
+        self.master_detail = ResponsiveMasterDetail(self.table, self.detail_stack, self)
+        layout.addWidget(self.master_detail, 1)
 
         pagination_layout = QHBoxLayout()
         self.prev_btn = QPushButton(tr("previous"))
@@ -78,9 +118,11 @@ class VouchersWidget(QWidget):
         self._apply_operation_state()
         self.refresh()
 
-
     def _apply_operation_state(self):
-        self.add_btn.setEnabled(finance_operation_policy.can(finance_operation_policy.OP_VOUCHER_CREATE))
+        can_create = finance_operation_policy.can(finance_operation_policy.OP_VOUCHER_CREATE)
+        self.add_btn.setEnabled(can_create)
+        for action in (self.add_receipt_action, self.add_payment_action, self.add_expense_action):
+            action.setEnabled(can_create)
         self.delete_btn.setEnabled(finance_operation_policy.can(finance_operation_policy.OP_VOUCHER_DELETE))
         self.print_btn.setEnabled(finance_operation_policy.can(finance_operation_policy.OP_VOUCHER_PRINT))
 
@@ -91,7 +133,6 @@ class VouchersWidget(QWidget):
             field.setText(text)
         elif hasattr(self, 'refresh'):
             self.refresh()
-
 
     def refresh(self):
         filter_type = self.type_filter.currentData() or "all"
@@ -120,6 +161,7 @@ class VouchersWidget(QWidget):
                 'id': v['id'],
                 'date': v['date'],
                 'type': type_text,
+                'raw_type': v.get('type') or '',
                 'party': party,
                 'amount': currency.format_base_amount(v.get('amount') or 0),
                 'account': v.get('cashbox_name') or v.get('bank_name') or '',
@@ -133,11 +175,40 @@ class VouchersWidget(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.refresh_style()
+        self._connect_selection_preview()
 
         total_pages = (self.total_count + self.page_size - 1) // self.page_size
         self.page_label.setText(tr("page_of", page=self.current_page + 1, pages=total_pages))
         self.prev_btn.setEnabled(self.current_page > 0)
         self.next_btn.setEnabled(self.current_page + 1 < total_pages)
+
+    def _connect_selection_preview(self):
+        sm = self.table.selectionModel() if self.table else None
+        if sm is None:
+            return
+        try:
+            sm.selectionChanged.disconnect(self._update_detail_preview)
+        except Exception:
+            pass
+        sm.selectionChanged.connect(self._update_detail_preview)
+        self._update_detail_preview()
+
+    def _update_detail_preview(self, *args):
+        sm = self.table.selectionModel() if self.table else None
+        if sm is None or not sm.selectedRows() or not getattr(self, 'model', None):
+            self.detail_panel.clear_summary()
+            return
+        row = self.table.current_source_row() if hasattr(self.table, 'current_source_row') else sm.selectedRows()[0].row()
+        data = self.model.get_row(row) if hasattr(self.model, 'get_row') else {}
+        title = f"{data.get('type', tr('voucher'))} #{data.get('id', '')}".strip()
+        self.detail_panel.set_summary(title, [
+            f"{tr('date')}: {data.get('date', '')}",
+            f"{tr('party')}: {data.get('party', '')}",
+            f"{tr('amount')}: {data.get('amount', '')}",
+            f"{tr('account')}: {data.get('account', '')}",
+            f"{tr('description')}: {data.get('description', '')}",
+            tr('double_click_to_open_document') if tr('double_click_to_open_document') != 'double_click_to_open_document' else 'انقر مرتين لفتح محرر السند داخل نفس التبويب',
+        ])
 
     def _selected_id(self):
         if not hasattr(self, 'model'):
@@ -200,19 +271,68 @@ class VouchersWidget(QWidget):
         from printing.printing_service import printing_service
         printing_service.voucher_print(voucher, self)
 
-    def add_voucher(self):
+    def _clear_inline_editor(self):
+        editor = getattr(self, '_inline_editor', None)
+        if editor is None:
+            return
         try:
-            finance_operation_policy.require(finance_operation_policy.OP_VOUCHER_CREATE, context='voucher:widget:add')
+            self.inline_editor_host_layout.removeWidget(editor)
+        except Exception:
+            pass
+        editor.setParent(None)
+        editor.deleteLater()
+        self._inline_editor = None
+
+    def _close_inline_editor(self, *args, force: bool = False):
+        editor = getattr(self, '_inline_editor', None)
+        if editor is not None and not force and hasattr(editor, 'can_close'):
+            if not editor.can_close():
+                return False
+        self._clear_inline_editor()
+        self.detail_stack.setCurrentWidget(self.detail_panel)
+        self._update_detail_preview()
+        return True
+
+    def _after_inline_voucher_saved(self, saved_id=None):
+        self.refresh()
+        self._close_inline_editor(force=True)
+
+    def _show_inline_voucher_editor(self, voucher_type='receipt', voucher=None):
+        # Phase376: سند قبض/سند دفع/سند مصروف open in the detail panel, like customers/suppliers.
+        # Compatibility marker only: main.open_quick_voucher was the legacy tab route.
+        if getattr(self, '_inline_editor', None) is not None:
+            if not self._close_inline_editor():
+                return None
+        try:
+            voucher_type = voucher_type or (voucher.get('type') if isinstance(voucher, dict) else 'receipt') or 'receipt'
+            if voucher_type == 'expense':
+                from features.finance.documents import ExpenseDocumentTab
+                editor = ExpenseDocumentTab(self.inline_editor_host, expense=voucher if isinstance(voucher, dict) else None)
+            else:
+                from features.vouchers import VoucherEditorTab
+                editor = VoucherEditorTab(self.inline_editor_host, voucher=voucher if isinstance(voucher, dict) else None, voucher_type=voucher_type)
+            editor.saved.connect(self._after_inline_voucher_saved)
+            try:
+                editor.titleChanged.connect(self.inline_title_label.setText)
+            except Exception:
+                pass
+            self.inline_title_label.setText(editor.windowTitle() or _tr('new_voucher', 'سند جديد'))
+            self.inline_editor_host_layout.addWidget(editor)
+            self._inline_editor = editor
+            self.detail_stack.setCurrentWidget(self.inline_editor_page)
+            return editor
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
+            return None
+
+    def add_voucher(self, voucher_type='receipt'):
+        try:
+            finance_operation_policy.require(finance_operation_policy.OP_VOUCHER_CREATE, context='voucher:widget:add', payload={'type': voucher_type})
         except PermissionError as exc:
             show_toast(tr(str(exc)) if str(exc) else tr('permission_denied'), 'error', self)
             return
-        main = self.window()
-        if hasattr(main, 'open_quick_voucher'):
-            tab = main.open_quick_voucher('receipt')
-            if tab and hasattr(tab, 'saved'):
-                tab.saved.connect(lambda *_: self.refresh())
-            return
-        show_toast(tr('cannot_open_document_tab'), 'error', self)
+        if self._show_inline_voucher_editor(voucher_type=voucher_type) is None:
+            show_toast(tr('cannot_open_document_tab'), 'error', self)
 
     def edit_voucher(self, index):
         row = self.table.current_source_row() if hasattr(self.table, 'current_source_row') else index.row()
@@ -222,13 +342,8 @@ class VouchersWidget(QWidget):
         if vid:
             voucher = voucher_service.get(vid)
             if voucher:
-                main = self.window()
-                if hasattr(main, 'open_quick_voucher'):
-                    tab = main.open_quick_voucher(voucher_type=voucher.get('type') or 'receipt', voucher=voucher)
-                    if tab and hasattr(tab, 'saved'):
-                        tab.saved.connect(lambda *_: self.refresh())
-                    return
-                show_toast(tr('cannot_open_document_tab'), 'error', self)
+                if self._show_inline_voucher_editor(voucher_type=voucher.get('type') or 'receipt', voucher=voucher) is None:
+                    show_toast(tr('cannot_open_document_tab'), 'error', self)
 
     def prev_page(self):
         if self.current_page > 0:

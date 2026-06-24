@@ -166,6 +166,9 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (372, "WORKFLOW_DELEGATED_BRANDING_HOTFIX"),
         (373, "TAB_PLAIN_TITLE"),
         (374, "SPECIAL_INTERFACE_MENU_ENTRY_FOCUS"),
+        (375, "INLINE_PARTY_VOUCHER_EDITOR"),
+        (376, "VOUCHER_MASTER_DETAIL_INLINE"),
+        (377, "INLINE_MANAGEMENT_EDITOR"),
     ]
 )
 
@@ -297,6 +300,9 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (372, "workflow_delegated_branding"),
         (373, "tab_plain_title"),
         (374, "special_interface_menu_entry_focus"),
+        (375, "inline_party_voucher_editor"),
+        (376, "voucher_master_detail_inline"),
+        (377, "inline_management_editor"),
     ]
 )
 
@@ -409,6 +415,9 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("workflow_delegated_branding", "packaging", "Branding verifier accepts delegated PyInstaller icon wiring", "tools/phase372_workflow_delegated_branding_guard.py", "tools/audit_outputs/workflow_delegated_branding_matrix.csv", phase=372),
     ReleaseGateCheck("tab_plain_title", "shell", "Workspace tab captions show business titles without main/sub prefixes", "tools/phase373_tab_plain_title_guard.py", "tools/audit_outputs/tab_plain_title_matrix.csv", phase=373),
     ReleaseGateCheck("special_interface_menu_entry_focus", "shell", "Restaurant, cafe and apparel move to one specialized menu while editable grids start at material", "tools/phase374_special_interface_menu_entry_focus_guard.py", "tools/audit_outputs/special_interface_menu_entry_focus_matrix.csv", phase=374),
+    ReleaseGateCheck("inline_party_voucher_editor", "shell", "Customer, supplier and voucher lists open Add/Edit inline instead of spawning tabs", "tools/phase375_inline_party_voucher_editor_guard.py", "tools/audit_outputs/inline_party_voucher_editor_matrix.csv", phase=375),
+    ReleaseGateCheck("voucher_master_detail_inline", "shell", "Voucher list uses the same master-detail inline editor structure as customers and suppliers", "tools/phase376_voucher_master_detail_inline_guard.py", "tools/audit_outputs/voucher_master_detail_inline_matrix.csv", phase=376),
+    ReleaseGateCheck("inline_management_editor", "shell", "Users, categories, warehouses and branches add/edit inline instead of spawning sub-tabs", "tools/phase377_inline_management_editor_guard.py", "tools/audit_outputs/inline_management_editor_matrix.csv", phase=377),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

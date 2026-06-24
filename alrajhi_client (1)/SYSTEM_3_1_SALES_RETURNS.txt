@@ -1,4 +1,0 @@
-System-3.1 Sales Returns Management
-- Sales returns linked to original sale invoices.
-- Quantity validation prevents returning more than sold.
-- Inventory, warehouse, cash/bank and customer balances are reversed safely.

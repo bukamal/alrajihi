@@ -1,0 +1,33 @@
+target,check,status,detail
+vouchers,parse,ok,alrajhi_client/views/widgets/vouchers_widget.py
+vouchers,marker:ResponsiveMasterDetail,ok,ResponsiveMasterDetail
+vouchers,marker:DetailPlaceholder,ok,DetailPlaceholder
+vouchers,marker:detail_panel,ok,detail_panel
+vouchers,marker:detail_stack,ok,detail_stack
+vouchers,marker:inline_editor_page,ok,inline_editor_page
+vouchers,marker:inline_editor_host,ok,inline_editor_host
+vouchers,marker:_connect_selection_preview,ok,_connect_selection_preview
+vouchers,marker:_update_detail_preview,ok,_update_detail_preview
+vouchers,marker:_show_inline_voucher_editor,ok,_show_inline_voucher_editor
+vouchers,"marker:self.master_detail = ResponsiveMasterDetail(self.table, self.detail_stack, self)",ok,"self.master_detail = ResponsiveMasterDetail(self.table, self.detail_stack, self)"
+vouchers,no_legacy_full_page_stack:self.stack = QStackedWidget,ok,self.stack = QStackedWidget
+vouchers,no_legacy_full_page_stack:self.list_page = QWidget,ok,self.list_page = QWidget
+vouchers,no_legacy_full_page_stack:self.stack.addWidget(self.list_page),ok,self.stack.addWidget(self.list_page)
+vouchers,no_legacy_full_page_stack:self.stack.setCurrentWidget(self.editor_page),ok,self.stack.setCurrentWidget(self.editor_page)
+vouchers,add_voucher:no_open_tab,ok,"_show_inline_voucher_editor,require,show_toast,str,tr"
+vouchers,add_voucher:no_open_quick_voucher,ok,"_show_inline_voucher_editor,require,show_toast,str,tr"
+vouchers,add_voucher:no_open_document_tab,ok,"_show_inline_voucher_editor,require,show_toast,str,tr"
+vouchers,edit_voucher:no_open_tab,ok,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr"
+vouchers,edit_voucher:no_open_quick_voucher,ok,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr"
+vouchers,edit_voucher:no_open_document_tab,ok,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr"
+vouchers,inline_type:receipt,ok,receipt
+vouchers,inline_type:payment,ok,payment
+vouchers,inline_type:expense,ok,expense
+customers,shared_structure:ResponsiveMasterDetail,ok,ResponsiveMasterDetail
+customers,shared_structure:DetailPlaceholder,ok,DetailPlaceholder
+customers,shared_structure:detail_stack,ok,detail_stack
+customers,shared_structure:inline_editor_page,ok,inline_editor_page
+suppliers,shared_structure:ResponsiveMasterDetail,ok,ResponsiveMasterDetail
+suppliers,shared_structure:DetailPlaceholder,ok,DetailPlaceholder
+suppliers,shared_structure:detail_stack,ok,detail_stack
+suppliers,shared_structure:inline_editor_page,ok,inline_editor_page

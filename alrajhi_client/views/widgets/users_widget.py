@@ -13,8 +13,9 @@ from offline_read import is_offline_read_error, notify_offline_read
 from core.services.branch_service import branch_service
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
+from views.widgets.inline_document_host import InlineDocumentHostMixin
 
-class UsersWidget(QWidget):
+class UsersWidget(InlineDocumentHostMixin, QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(qt_layout_direction())
@@ -37,7 +38,7 @@ class UsersWidget(QWidget):
         self.table = SmartTableView(identity="users.list")
         self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.doubleClicked.connect(self.edit_user)
-        layout.addWidget(self.table)
+        self._install_inline_document_host(self.table, layout, translate('users_title'))
 
         pagination_layout = QHBoxLayout()
         self.prev_btn = QPushButton(translate('previous'))
@@ -120,6 +121,7 @@ class UsersWidget(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.refresh_style()
+        self._connect_inline_detail_preview()
 
         total_pages = (self.total_count + self.page_size - 1) // self.page_size
         self.page_label.setText(translate('page_of', page=self.current_page + 1, total=total_pages))
@@ -154,29 +156,34 @@ class UsersWidget(QWidget):
             pass
 
     def add_user(self):
-        main = self._main_window()
-        if main is not None:
-            tab = main.open_user_document()
-            if hasattr(tab, 'saved'):
-                tab.saved.connect(lambda *_: self.refresh())
+        # Phase377: Add user is inline master-detail, not a workspace sub-tab.
+        # Legacy route marker only: main.open_user_document()
+        if not user_operation_policy.can(user_operation_policy.OP_CREATE):
+            show_toast(translate('permission_denied'), 'warning', self)
             return
-        dialog = UserDialog(self)
-        if dialog.exec():
-            self.refresh()
+        try:
+            from features.users import UserDocumentTab
+            editor = UserDocumentTab(self.inline_editor_host)
+            return self._show_inline_document(editor, translate('add_user_new'))
+        except Exception as exc:
+            show_toast(str(exc), 'warning', self)
+            dialog = UserDialog(self)
+            if dialog.exec():
+                self.refresh()
 
     def edit_user(self, index):
         row = self._selected_source_row(index)
         user_id = self.model.get_id(row)
         if user_id:
-            main = self._main_window()
-            if main is not None:
-                tab = main.open_user_document(user_id=user_id)
-                if hasattr(tab, 'saved'):
-                    tab.saved.connect(lambda *_: self.refresh())
-                return
-            dialog = UserDialog(self, user_id=user_id)
-            if dialog.exec():
-                self.refresh()
+            try:
+                from features.users import UserDocumentTab
+                editor = UserDocumentTab(self.inline_editor_host, user_id=user_id)
+                return self._show_inline_document(editor, translate('edit_user'))
+            except Exception as exc:
+                show_toast(str(exc), 'warning', self)
+                dialog = UserDialog(self, user_id=user_id)
+                if dialog.exec():
+                    self.refresh()
 
     def prev_page(self):
         if self.current_page > 0:
