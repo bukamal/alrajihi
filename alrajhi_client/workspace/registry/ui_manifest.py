@@ -572,7 +572,8 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
             _entry("categories", "categories", "folder", page_id="categories"),
             _entry("add_category", "add_category", "folder-plus", callback_key="open_category_document"),
             _entry("warehouses", "warehouses", "warehouse", page_id="warehouses"),
-            _entry("inventory_transfer", "inventory_transfer", "exchange-alt", callback_key="open_inventory_transfer_document"),
+            _entry("new_warehouse", "new_warehouse", "warehouse", callback_key="open_new_warehouse"),
+            _entry("inventory_transfer", "new_transfer", "exchange-alt", callback_key="open_inventory_transfer_document"),
         ),
     ),
     WorkspaceMenuSpec(
@@ -592,7 +593,12 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
         "coins",
         (
             _entry("vouchers", "vouchers", "receipt", page_id="vouchers"),
-            _entry("cashboxes", "cashboxes", "cash-register", page_id="cashboxes"),
+            _entry("vouchers_receipt", "receipt_voucher", "hand-holding-usd", callback_key="open_receipt_voucher"),
+            _entry("vouchers_payment", "payment_voucher", "money-bill-wave", callback_key="open_payment_voucher"),
+            _entry("vouchers_expense", "expense_voucher", "file-invoice-dollar", callback_key="open_expense_voucher"),
+            _entry("cashboxes", "cashboxes", "cash-register", page_id="cashboxes", separator_before=True),
+            _entry("new_cashbox", "new_cashbox", "cash-register", callback_key="open_new_cashbox"),
+            _entry("new_bank_account", "new_bank_account", "university", callback_key="open_new_bank_account"),
         ),
     ),
     WorkspaceMenuSpec(
@@ -617,7 +623,9 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
         "sliders-h",
         (
             _entry("settings", "settings", "sliders-h", page_id="settings"),
-            _entry("offline_queue", "offline_queue", "cloud-upload-alt", page_id="offline_queue"),
+            _entry("branches", "branches", "code-branch", page_id="branches"),
+            _entry("new_branch", "new_branch", "plus-square", callback_key="open_new_branch"),
+            _entry("offline_queue", "offline_queue", "cloud-upload-alt", page_id="offline_queue", separator_before=True),
             _entry("monitoring", "monitoring", "heartbeat", page_id="monitoring"),
             _entry("about", "about_app", "info-circle", callback_key="show_about", shortcut="F12", separator_before=True),
             _entry("logout", "logout", "sign-out-alt", callback_key="logout", shortcut="Ctrl+Q"),
@@ -630,7 +638,8 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
         "user-shield",
         (
             _entry("users", "users", "users-cog", page_id="users"),
-            _entry("audit_log", "audit_log", "history", page_id="audit_log"),
+            _entry("new_user", "add_user_new", "user-plus", callback_key="open_new_user"),
+            _entry("audit_log", "audit_log", "history", page_id="audit_log", separator_before=True),
         ),
         admin_only=True,
     ),

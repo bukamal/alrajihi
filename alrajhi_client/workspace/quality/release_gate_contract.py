@@ -171,6 +171,10 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (377, "INLINE_MANAGEMENT_EDITOR"),
         (378, "INLINE_RUNTIME_HOTFIX"),
         (379, "INLINE_PARTY_LAYOUT_UNIFICATION"),
+        (380, "UNIFIED_INLINE_WORKSPACE"),
+        (381, "DOCUMENT_LAYOUT_FAMILY_CONTRACT"),
+        (382, "EDITABLE_GRID_RUNTIME_POLISH"),
+        (383, "MENU_INLINE_ACTION_ROUTING"),
     ]
 )
 
@@ -307,6 +311,10 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (377, "inline_management_editor"),
         (378, "inline_runtime_hotfix"),
         (379, "inline_party_layout_unification"),
+        (380, "unified_inline_workspace"),
+        (381, "document_layout_family_contract"),
+        (382, "editable_grid_runtime_polish"),
+        (383, "menu_inline_action_routing"),
     ]
 )
 
@@ -424,6 +432,10 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("inline_management_editor", "shell", "Users, categories, warehouses and branches add/edit inline instead of spawning sub-tabs", "tools/phase377_inline_management_editor_guard.py", "tools/audit_outputs/inline_management_editor_matrix.csv", phase=377),
     ReleaseGateCheck("inline_runtime_hotfix", "shell", "Inline runtime hotfix for users, vouchers, cashboxes and menu routes", "tools/phase378_inline_runtime_hotfix_guard.py", "tools/audit_outputs/inline_runtime_hotfix_matrix.csv", phase=378),
     ReleaseGateCheck("inline_party_layout_unification", "shell", "Customer and supplier inline editors share one wide layout without duplicate title cards", "tools/phase379_inline_party_layout_unification_guard.py", "tools/audit_outputs/inline_party_layout_unification_matrix.csv", phase=379),
+    ReleaseGateCheck("unified_inline_workspace", "shell", "All inline master-detail editors share one wide layout and minimal outer chrome", "tools/phase380_unified_inline_workspace_guard.py", "tools/audit_outputs/unified_inline_workspace_matrix.csv", phase=380),
+    ReleaseGateCheck("document_layout_family_contract", "shell", "Document editors declare card, financial, or tabular layout families for inline and standalone use", "tools/phase381_document_layout_family_contract_guard.py", "tools/audit_outputs/document_layout_family_contract_matrix.csv", phase=381),
+    ReleaseGateCheck("editable_grid_runtime_polish", "ui", "Editable grids resolve barcode/material cells, jump to quantity, and focus newly inserted lines", "tools/phase382_editable_grid_runtime_polish_guard.py", "tools/audit_outputs/editable_grid_runtime_polish_matrix.csv", phase=382),
+    ReleaseGateCheck("menu_inline_action_routing", "shell", "Main menu and action-bar New route management creation into inline workspaces", "tools/phase383_menu_inline_action_routing_guard.py", "tools/audit_outputs/menu_inline_action_routing_matrix.csv", phase=383),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

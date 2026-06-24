@@ -822,12 +822,15 @@ class TransactionDocumentTab(BaseDocumentTab):
         return None
 
     def _add_empty_line_from_ui(self) -> None:
-        self.lines_model.add_empty_line()
+        row = self.lines_model.add_empty_line()
         self.set_dirty(True)
         try:
-            self.grid.schedule_initial_entry_focus(start_edit=True)
+            self.grid.schedule_initial_entry_focus(start_edit=True, row=row)
         except Exception:
-            pass
+            try:
+                self.grid.schedule_last_entry_focus(start_edit=True)
+            except Exception:
+                pass
 
     def _remove_current_line(self) -> None:
         row = None

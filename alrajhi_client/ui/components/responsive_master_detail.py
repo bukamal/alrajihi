@@ -64,16 +64,21 @@ class ResponsiveMasterDetail(QWidget):
 
     def __init__(self, master: QWidget, detail: QWidget, parent: Optional[QWidget] = None, *, master_weight: int = 3, detail_weight: int = 2) -> None:
         super().__init__(parent)
+        self.master_weight = max(1, int(master_weight or 1))
+        self.detail_weight = max(1, int(detail_weight or 1))
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.splitter = QSplitter(Qt.Horizontal, self)
         self.splitter.setObjectName('ResponsiveMasterDetailSplitter')
         self.splitter.addWidget(master)
         self.splitter.addWidget(detail)
-        self.splitter.setStretchFactor(0, max(1, master_weight))
-        self.splitter.setStretchFactor(1, max(1, detail_weight))
+        self.splitter.setStretchFactor(0, self.master_weight)
+        self.splitter.setStretchFactor(1, self.detail_weight)
         self.splitter.setChildrenCollapsible(False)
         layout.addWidget(self.splitter)
 
     def set_initial_sizes(self, total_width: int = 1200) -> None:
-        self.splitter.setSizes([int(total_width * 0.62), int(total_width * 0.38)])
+        total_weight = max(1, self.master_weight + self.detail_weight)
+        master_width = int(total_width * self.master_weight / total_weight)
+        detail_width = max(1, int(total_width) - master_width)
+        self.splitter.setSizes([master_width, detail_width])

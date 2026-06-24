@@ -12,16 +12,12 @@ CUSTOMERS = ROOT / 'alrajhi_client' / 'views' / 'widgets' / 'customers_widget.py
 SUPPLIERS = ROOT / 'alrajhi_client' / 'views' / 'widgets' / 'suppliers_widget.py'
 
 REQUIRED_MARKERS = [
-    'ResponsiveMasterDetail',
-    'DetailPlaceholder',
-    'detail_panel',
-    'detail_stack',
-    'inline_editor_page',
-    'inline_editor_host',
+    'UnifiedInlineWorkspaceMixin',
+    '_install_unified_inline_workspace',
     '_connect_selection_preview',
     '_update_detail_preview',
     '_show_inline_voucher_editor',
-    'self.master_detail = ResponsiveMasterDetail(self.table, self.detail_stack, self)',
+    '_show_unified_inline_editor',
 ]
 
 FORBIDDEN_TOP_LEVEL_STACK_MARKERS = [
@@ -84,9 +80,7 @@ def main() -> int:
         if not ok:
             issues.append(f'missing inline voucher type {voucher_type}')
 
-    # Phase379: customers/suppliers delegate the shared structure to
-    # PartyInlineEditorHostMixin instead of duplicating the QStackedWidget and
-    # ResponsiveMasterDetail boilerplate in each list file.
+    # Phase380: vouchers and party pages all delegate boilerplate to shared inline hosts.
     for name, path in [('customers', CUSTOMERS), ('suppliers', SUPPLIERS)]:
         text = path.read_text(encoding='utf-8')
         for marker in ('PartyInlineEditorHostMixin', '_install_party_inline_host'):

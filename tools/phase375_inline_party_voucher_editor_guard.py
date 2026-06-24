@@ -17,7 +17,7 @@ TARGETS = {
 REQUIRED_MARKERS = {
     'customers': ['PartyInlineEditorHostMixin', '_install_party_inline_host', '_show_inline_party_editor'],
     'suppliers': ['PartyInlineEditorHostMixin', '_install_party_inline_host', '_show_inline_party_editor'],
-    'vouchers': ['QStackedWidget', 'add_receipt_action', 'add_payment_action', 'add_expense_action', '_show_inline_voucher_editor', 'VoucherEditorTab', 'ExpenseDocumentTab'],
+    'vouchers': ['UnifiedInlineWorkspaceMixin', '_install_unified_inline_workspace', 'add_receipt_action', 'add_payment_action', 'add_expense_action', '_show_inline_voucher_editor', 'VoucherEditorTab', 'ExpenseDocumentTab'],
 }
 
 FORBIDDEN_CALLS = {

@@ -1,84 +1,41 @@
 # -*- coding: utf-8 -*-
 """Reusable inline master-detail document host for list workspaces.
 
-Phase 377: list-management workspaces such as users, categories, warehouses,
-and branches must behave like customers/suppliers/vouchers: Add/Edit opens an
-embedded editor in the detail pane, not a new workspace tab.
+Phase 380 delegates the outer shell to UnifiedInlineWorkspaceMixin so all
+management editors share one inline layout: compact list, wide editor pane,
+minimal back-only toolbar, and no duplicate outer title label.
 """
 from __future__ import annotations
 
-from typing import Callable, Optional
-
-from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QStackedWidget, QVBoxLayout, QWidget
+from typing import Optional
 
 from i18n import translate
-from ui.components.responsive_master_detail import DetailPlaceholder, ResponsiveMasterDetail
+from views.widgets.unified_inline_workspace import UnifiedInlineWorkspaceMixin
 
 
-class InlineDocumentHostMixin:
-    """Mixin that embeds BaseDocumentTab-like editors in a detail pane."""
+class InlineDocumentHostMixin(UnifiedInlineWorkspaceMixin):
+    """Mixin that embeds BaseDocumentTab-like editors in a unified detail pane."""
 
     def _install_inline_document_host(self, table, parent_layout, detail_title: str):
-        self.detail_panel = DetailPlaceholder(detail_title)
-        self.detail_stack = QStackedWidget(self)
-        self.detail_stack.addWidget(self.detail_panel)
-
-        self.inline_editor_page = QWidget(self)
-        inline_layout = QVBoxLayout(self.inline_editor_page)
-        inline_layout.setContentsMargins(0, 0, 0, 0)
-        inline_layout.setSpacing(8)
-
-        inline_header = QHBoxLayout()
-        self.inline_title_label = QLabel('', self.inline_editor_page)
-        self.inline_title_label.setObjectName('InlineEditorTitle')
-        self.inline_back_btn = QPushButton(translate('back') if translate('back') != 'back' else 'عودة', self.inline_editor_page)
-        self.inline_back_btn.clicked.connect(self._close_inline_document)
-        inline_header.addWidget(self.inline_title_label, 1)
-        inline_header.addWidget(self.inline_back_btn)
-        inline_layout.addLayout(inline_header)
-
-        self.inline_editor_host = QWidget(self.inline_editor_page)
-        self.inline_editor_host_layout = QVBoxLayout(self.inline_editor_host)
-        self.inline_editor_host_layout.setContentsMargins(0, 0, 0, 0)
-        self.inline_editor_host_layout.setSpacing(0)
-        inline_layout.addWidget(self.inline_editor_host, 1)
-        self._inline_editor = None
-        self.detail_stack.addWidget(self.inline_editor_page)
-
-        self.master_detail = ResponsiveMasterDetail(table, self.detail_stack, self)
-        parent_layout.addWidget(self.master_detail, 1)
-        return self.master_detail
+        return self._install_unified_inline_workspace(
+            table,
+            parent_layout,
+            detail_title,
+            close_callback=self._close_inline_document,
+            master_weight=2,
+            detail_weight=3,
+            total_width=1420,
+        )
 
     def _clear_inline_document(self):
-        editor = getattr(self, '_inline_editor', None)
-        if editor is None:
-            return
-        try:
-            self.inline_editor_host_layout.removeWidget(editor)
-        except Exception:
-            pass
-        try:
-            editor.setParent(None)
-            editor.deleteLater()
-        except Exception:
-            pass
-        self._inline_editor = None
+        return self._clear_unified_inline_editor()
 
     def _close_inline_document(self, *args, force: bool = False):
-        editor = getattr(self, '_inline_editor', None)
-        if editor is not None and not force and hasattr(editor, 'can_close'):
-            if not editor.can_close():
-                return False
-        self._clear_inline_document()
-        try:
-            self.detail_stack.setCurrentWidget(self.detail_panel)
-        except Exception:
-            pass
-        try:
-            self._update_inline_detail_preview()
-        except Exception:
-            pass
-        return True
+        return self._close_unified_inline_editor(
+            *args,
+            force=force,
+            preview_callback=getattr(self, '_update_inline_detail_preview', None),
+        )
 
     def _after_inline_document_saved(self, saved_id=None):
         try:
@@ -87,54 +44,16 @@ class InlineDocumentHostMixin:
             self._close_inline_document(force=True)
 
     def _wire_inline_editor_close(self, editor):
-        # Embedded editors must close only the inline detail panel, not the full
-        # workspace tab.  Many document tabs expose bottom_close_btn/close_btn.
-        for attr in ('bottom_close_btn', 'close_btn', 'cancel_btn'):
-            btn = getattr(editor, attr, None)
-            if btn is None or not hasattr(btn, 'clicked'):
-                continue
-            try:
-                btn.clicked.disconnect()
-            except Exception:
-                pass
-            try:
-                btn.clicked.connect(lambda *_: self._close_inline_document())
-            except Exception:
-                pass
+        return self._wire_unified_inline_close(editor, self._close_inline_document)
 
     def _show_inline_document(self, editor, title: Optional[str] = None):
-        if getattr(self, '_inline_editor', None) is not None:
-            if not self._close_inline_document():
-                return None
-        try:
-            editor.setProperty('inlineEditor', True)
-        except Exception:
-            pass
-        if title:
-            try:
-                self.inline_title_label.setText(title)
-            except Exception:
-                pass
-        try:
-            if hasattr(editor, 'workspace_title'):
-                self.inline_title_label.setText(editor.workspace_title())
-            elif editor.windowTitle():
-                self.inline_title_label.setText(editor.windowTitle())
-        except Exception:
-            pass
-        try:
-            editor.titleChanged.connect(lambda txt: self.inline_title_label.setText(txt))
-        except Exception:
-            pass
-        try:
-            editor.saved.connect(self._after_inline_document_saved)
-        except Exception:
-            pass
-        self._wire_inline_editor_close(editor)
-        self.inline_editor_host_layout.addWidget(editor)
-        self._inline_editor = editor
-        self.detail_stack.setCurrentWidget(self.inline_editor_page)
-        return editor
+        # `title` is kept as a compatibility parameter for older callers; the
+        # unified inline shell intentionally does not render a duplicate title.
+        return self._show_unified_inline_editor(
+            editor,
+            saved_callback=self._after_inline_document_saved,
+            close_callback=self._close_inline_document,
+        )
 
     def _selected_inline_row_data(self):
         table = getattr(self, 'table', None)

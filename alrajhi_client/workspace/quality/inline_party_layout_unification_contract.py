@@ -14,10 +14,10 @@ CHECKS = [
         'path': 'alrajhi_client/views/widgets/party_inline_editor_host.py',
         'required': (
             'class PartyInlineEditorHostMixin',
-            'ResponsiveMasterDetail(table, self.detail_stack, self, master_weight=2, detail_weight=3)',
+            '_install_unified_inline_workspace',
+            'master_weight=2',
+            'detail_weight=3',
             'inline_mode=True',
-            'UnifiedInlineEditorPage',
-            'UnifiedInlineEditorHost',
             '_show_inline_party_editor',
             '_after_inline_party_saved',
         ),

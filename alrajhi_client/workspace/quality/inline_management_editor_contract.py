@@ -52,10 +52,8 @@ REQUIRED_SHARED_MARKERS = (
 
 HELPER_PATH = 'alrajhi_client/views/widgets/inline_document_host.py'
 HELPER_REQUIRED_MARKERS = (
-    'ResponsiveMasterDetail',
-    'DetailPlaceholder',
-    'inline_editor_page',
-    'inline_editor_host',
+    'UnifiedInlineWorkspaceMixin',
+    '_install_unified_inline_workspace',
     '_wire_inline_editor_close',
     '_after_inline_document_saved',
 )

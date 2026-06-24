@@ -99,7 +99,7 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         self.bottom_print_btn.clicked.connect(self.workspace_print)
         self.save_btn = self.bottom_save_btn; self.print_btn = self.bottom_print_btn
         self.add_line_btn.clicked.connect(self._add_line_from_lookup); self.lookup_edit.returnPressed.connect(self._add_line_from_lookup)
-        self.add_empty_btn.clicked.connect(self.model.add_empty_line); self.remove_line_btn.clicked.connect(self._remove_selected_line)
+        self.add_empty_btn.clicked.connect(self._add_empty_line); self.remove_line_btn.clicked.connect(self._remove_selected_line)
         self.close_btn.clicked.connect(self._close_parent_tab); self.from_combo.currentIndexChanged.connect(self._refresh_availability)
         self.to_combo.currentIndexChanged.connect(lambda *_: self.set_dirty(True))
         self.model.dataChanged.connect(lambda *args: self._on_model_changed())
@@ -120,7 +120,7 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
     def _install_shortcuts(self) -> None:
         QShortcut(QKeySequence.Save, self, activated=self.workspace_save)
         QShortcut(QKeySequence('Ctrl+F'), self, activated=self.lookup_edit.setFocus)
-        QShortcut(QKeySequence('Insert'), self, activated=self.model.add_empty_line)
+        QShortcut(QKeySequence('Insert'), self, activated=self._add_empty_line)
         QShortcut(QKeySequence.Delete, self, activated=self._remove_selected_line)
 
     def _apply_operation_state(self) -> None:
@@ -175,6 +175,15 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
             if col.key == key:
                 return idx
         return 0
+
+    def _add_empty_line(self) -> None:
+        self.model.add_empty_line()
+        self.set_dirty(True)
+        try:
+            self.grid.schedule_last_entry_focus(start_edit=True)
+        except Exception:
+            pass
+        self._refresh_summary()
 
     def _remove_selected_line(self) -> None:
         idx = self.grid.currentIndex()

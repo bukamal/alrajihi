@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
-                             QComboBox, QLabel, QHeaderView, QMessageBox, QMenu, QStackedWidget)
+                             QComboBox, QLabel, QHeaderView, QMessageBox, QMenu)
 from core.services.voucher_service import voucher_service
 from core.services.finance_operation_policy import finance_operation_policy
 from currency import currency
@@ -10,7 +10,7 @@ from utils import show_toast
 from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget
 from i18n import translate as tr, qt_layout_direction
-from ui.components.responsive_master_detail import DetailPlaceholder, ResponsiveMasterDetail
+from views.widgets.unified_inline_workspace import UnifiedInlineWorkspaceMixin
 from workspace.lists.list_workspace_contract import bind_list_workspace
 
 
@@ -19,7 +19,7 @@ def _tr(key: str, fallback: str) -> str:
     return fallback if value == key else value
 
 
-class VouchersWidget(QWidget):
+class VouchersWidget(UnifiedInlineWorkspaceMixin, QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         bind_list_workspace(self, 'vouchers')
@@ -76,31 +76,15 @@ class VouchersWidget(QWidget):
         self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.doubleClicked.connect(self.edit_voucher)
 
-        self.detail_panel = DetailPlaceholder(_tr('voucher_details', 'تفاصيل السند'))
-        self.detail_stack = QStackedWidget(self)
-        self.detail_stack.addWidget(self.detail_panel)
-
-        self.inline_editor_page = QWidget(self)
-        inline_layout = QVBoxLayout(self.inline_editor_page)
-        inline_layout.setContentsMargins(0, 0, 0, 0)
-        inline_layout.setSpacing(8)
-        inline_header = QHBoxLayout()
-        self.inline_title_label = QLabel('', self.inline_editor_page)
-        self.inline_title_label.setObjectName('InlineEditorTitle')
-        self.inline_back_btn = QPushButton(tr('back') if tr('back') != 'back' else 'عودة', self.inline_editor_page)
-        self.inline_back_btn.clicked.connect(self._close_inline_editor)
-        inline_header.addWidget(self.inline_title_label, 1)
-        inline_header.addWidget(self.inline_back_btn)
-        inline_layout.addLayout(inline_header)
-        self.inline_editor_host = QWidget(self.inline_editor_page)
-        self.inline_editor_host_layout = QVBoxLayout(self.inline_editor_host)
-        self.inline_editor_host_layout.setContentsMargins(0, 0, 0, 0)
-        self.inline_editor_host_layout.setSpacing(0)
-        inline_layout.addWidget(self.inline_editor_host, 1)
-        self.detail_stack.addWidget(self.inline_editor_page)
-
-        self.master_detail = ResponsiveMasterDetail(self.table, self.detail_stack, self)
-        layout.addWidget(self.master_detail, 1)
+        self._install_unified_inline_workspace(
+            self.table,
+            layout,
+            _tr('voucher_details', 'تفاصيل السند'),
+            close_callback=self._close_inline_editor,
+            master_weight=2,
+            detail_weight=3,
+            total_width=1420,
+        )
 
         pagination_layout = QHBoxLayout()
         self.prev_btn = QPushButton(tr("previous"))
@@ -272,26 +256,10 @@ class VouchersWidget(QWidget):
         printing_service.voucher_print(voucher, self)
 
     def _clear_inline_editor(self):
-        editor = getattr(self, '_inline_editor', None)
-        if editor is None:
-            return
-        try:
-            self.inline_editor_host_layout.removeWidget(editor)
-        except Exception:
-            pass
-        editor.setParent(None)
-        editor.deleteLater()
-        self._inline_editor = None
+        return self._clear_unified_inline_editor()
 
     def _close_inline_editor(self, *args, force: bool = False):
-        editor = getattr(self, '_inline_editor', None)
-        if editor is not None and not force and hasattr(editor, 'can_close'):
-            if not editor.can_close():
-                return False
-        self._clear_inline_editor()
-        self.detail_stack.setCurrentWidget(self.detail_panel)
-        self._update_detail_preview()
-        return True
+        return self._close_unified_inline_editor(*args, force=force, preview_callback=self._update_detail_preview)
 
     def _after_inline_voucher_saved(self, saved_id=None):
         self.refresh()
@@ -324,17 +292,11 @@ class VouchersWidget(QWidget):
                     editor.set_document_title(editor._title())
                 except Exception:
                     pass
-            editor.saved.connect(self._after_inline_voucher_saved)
-            try:
-                editor.titleChanged.connect(self.inline_title_label.setText)
-            except Exception:
-                pass
-            title = editor.workspace_title() if hasattr(editor, 'workspace_title') else (editor.windowTitle() or _tr('new_voucher', 'سند جديد'))
-            self.inline_title_label.setText(title)
-            self.inline_editor_host_layout.addWidget(editor)
-            self._inline_editor = editor
-            self.detail_stack.setCurrentWidget(self.inline_editor_page)
-            return editor
+            return self._show_unified_inline_editor(
+                editor,
+                saved_callback=self._after_inline_voucher_saved,
+                close_callback=self._close_inline_editor,
+            )
         except Exception as exc:
             show_toast(str(exc), 'error', self)
             return None

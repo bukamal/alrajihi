@@ -1,0 +1,46 @@
+﻿key,category,target,status,detail,phase
+file_exists,source,keyboard,pass,alrajhi_client/ui/table_keyboard_policy.py,382
+requires::_standard_material_entry_keys,marker,keyboard,pass,_standard_material_entry_keys,382
+requires::_standard_barcode_entry_keys,marker,keyboard,pass,_standard_barcode_entry_keys,382
+requires::_standard_quantity_entry_keys,marker,keyboard,pass,_standard_quantity_entry_keys,382
+requires::_standard_post_commit_index,marker,keyboard,pass,_standard_post_commit_index,382
+requires::focus_last_entry_column,marker,keyboard,pass,focus_last_entry_column,382
+requires::schedule_last_entry_focus,marker,keyboard,pass,schedule_last_entry_focus,382
+requires::material/barcode -> quantity,marker,keyboard,pass,material/barcode -> quantity,382
+file_exists,source,transaction_grid,pass,alrajhi_client/features/transactions/grids/transaction_line_grid.py,382
+requires::_install_item_lookup_delegate_for_column,marker,transaction_grid,pass,_install_item_lookup_delegate_for_column,382
+requires::self._install_item_lookup_delegate_for_column(se,marker,transaction_grid,pass,"self._install_item_lookup_delegate_for_column(self.column_index(""item""))",382
+requires::self._install_item_lookup_delegate_for_column(se,marker,transaction_grid,pass,"self._install_item_lookup_delegate_for_column(self.column_index(""barcode""))",382
+requires::self.setSelectionBehavior(self.SelectItems),marker,transaction_grid,pass,self.setSelectionBehavior(self.SelectItems),382
+requires::self.setSelectionMode(self.ExtendedSelection),marker,transaction_grid,pass,self.setSelectionMode(self.ExtendedSelection),382
+file_exists,source,transaction_doc,pass,alrajhi_client/features/transactions/transaction_document_tab.py,382
+requires::row = self.lines_model.add_empty_line(),marker,transaction_doc,pass,row = self.lines_model.add_empty_line(),382
+"requires::schedule_initial_entry_focus(start_edit=True, ro",marker,transaction_doc,pass,"schedule_initial_entry_focus(start_edit=True, row=row)",382
+requires::schedule_last_entry_focus(start_edit=True),marker,transaction_doc,pass,schedule_last_entry_focus(start_edit=True),382
+"forbids::self.lines_model.add_empty_line()
+        self.s",regression,transaction_doc,pass,"self.lines_model.add_empty_line()
+        self.set_dirty(True)
+        try:
+            self.grid.schedule_initial_entry_focus(start_edit=True)",382
+file_exists,source,inventory_doc,pass,alrajhi_client/features/inventory/documents/inventory_transfer_document_tab.py,382
+requires::def _add_empty_line(self),marker,inventory_doc,pass,def _add_empty_line(self),382
+requires::schedule_last_entry_focus(start_edit=True),marker,inventory_doc,pass,schedule_last_entry_focus(start_edit=True),382
+"requires::QShortcut(QKeySequence('Insert'), self, activate",marker,inventory_doc,pass,"QShortcut(QKeySequence('Insert'), self, activated=self._add_empty_line)",382
+forbids::self.add_empty_btn.clicked.connect(self.model.ad,regression,inventory_doc,pass,self.add_empty_btn.clicked.connect(self.model.add_empty_line),382
+file_exists,source,bom_doc,pass,alrajhi_client/features/manufacturing/bom_document_tab.py,382
+requires::def _add_empty_component_line(self),marker,bom_doc,pass,def _add_empty_component_line(self),382
+requires::schedule_last_entry_focus(start_edit=True),marker,bom_doc,pass,schedule_last_entry_focus(start_edit=True),382
+"requires::QShortcut(QKeySequence('Insert'), self, activate",marker,bom_doc,pass,"QShortcut(QKeySequence('Insert'), self, activated=self._add_empty_component_line)",382
+forbids::self.add_empty_btn.clicked.connect(lambda: self.,regression,bom_doc,pass,self.add_empty_btn.clicked.connect(lambda: self.model.add_empty_line()),382
+file_exists,source,transaction_model,pass,alrajhi_client/features/transactions/grids/transaction_line_model.py,382
+requires::def add_empty_line,marker,transaction_model,pass,def add_empty_line,382
+requires::def remove_line,marker,transaction_model,pass,def remove_line,382
+requires::def set_item,marker,transaction_model,pass,def set_item,382
+file_exists,source,inventory_model,pass,alrajhi_client/features/inventory/grids/inventory_transfer_lines_model.py,382
+requires::def add_empty_line,marker,inventory_model,pass,def add_empty_line,382
+requires::def remove_row,marker,inventory_model,pass,def remove_row,382
+requires::def set_item,marker,inventory_model,pass,def set_item,382
+file_exists,source,bom_model,pass,alrajhi_client/features/manufacturing/grids/bom_components_model.py,382
+requires::def add_empty_line,marker,bom_model,pass,def add_empty_line,382
+requires::def remove_row,marker,bom_model,pass,def remove_row,382
+requires::def set_item,marker,bom_model,pass,def set_item,382

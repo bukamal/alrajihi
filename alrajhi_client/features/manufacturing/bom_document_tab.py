@@ -175,7 +175,7 @@ class BomDocumentTab(BaseDocumentTab):
         self.print_btn = self.bottom_print_btn
         self.add_component_btn.clicked.connect(self._add_component_from_search)
         self.search_edit.returnPressed.connect(self._add_component_from_search)
-        self.add_empty_btn.clicked.connect(lambda: self.model.add_empty_line())
+        self.add_empty_btn.clicked.connect(self._add_empty_component_line)
         self.remove_component_btn.clicked.connect(self._remove_selected_component)
         self.cancel_btn.clicked.connect(self._close_parent_tab)
         self.qty_spin.valueChanged.connect(self._refresh_summary)
@@ -202,7 +202,7 @@ class BomDocumentTab(BaseDocumentTab):
     def _install_shortcuts(self) -> None:
         QShortcut(QKeySequence.Save, self, activated=self.workspace_save)
         QShortcut(QKeySequence('Ctrl+F'), self, activated=self.search_edit.setFocus)
-        QShortcut(QKeySequence('Insert'), self, activated=self.model.add_empty_line)
+        QShortcut(QKeySequence('Insert'), self, activated=self._add_empty_component_line)
         QShortcut(QKeySequence.Delete, self, activated=self._remove_selected_component)
 
     def _apply_operation_state(self) -> None:
@@ -274,6 +274,15 @@ class BomDocumentTab(BaseDocumentTab):
         self.model.add_item(item, qty=1, price_key='purchase_price')
         self.search_edit.clear()
         self.set_dirty(True)
+        self._refresh_summary()
+
+    def _add_empty_component_line(self) -> None:
+        self.model.add_empty_line()
+        self.set_dirty(True)
+        try:
+            self.grid.schedule_last_entry_focus(start_edit=True)
+        except Exception:
+            pass
         self._refresh_summary()
 
     def _remove_selected_component(self) -> None:

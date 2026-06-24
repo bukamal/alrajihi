@@ -28,12 +28,11 @@ def test_vouchers_use_same_master_detail_shell_as_customer_supplier_lists():
     customers = read('alrajhi_client/views/widgets/customers_widget.py')
     suppliers = read('alrajhi_client/views/widgets/suppliers_widget.py')
     ast.parse(source)
-    for marker in ('ResponsiveMasterDetail', 'DetailPlaceholder', 'detail_stack', 'inline_editor_page', 'inline_editor_host'):
+    for marker in ('UnifiedInlineWorkspaceMixin', '_install_unified_inline_workspace', '_show_unified_inline_editor'):
         assert marker in source
     for marker in ('PartyInlineEditorHostMixin', '_install_party_inline_host'):
         assert marker in customers
         assert marker in suppliers
-    assert 'self.master_detail = ResponsiveMasterDetail(self.table, self.detail_stack, self)' in source
     assert 'self.stack = QStackedWidget' not in source
     assert 'self.list_page = QWidget' not in source
 
@@ -57,5 +56,5 @@ def test_voucher_detail_preview_exists_like_party_preview():
     assert '_connect_selection_preview' in source
     assert '_update_detail_preview' in source
     assert 'self.detail_panel.set_summary' in source
-    assert 'self.detail_stack.setCurrentWidget(self.detail_panel)' in source
-    assert 'self.detail_stack.setCurrentWidget(self.inline_editor_page)' in source
+    assert '_close_unified_inline_editor' in source
+    assert '_show_unified_inline_editor' in source

@@ -1,9 +1,9 @@
 {
   "phase": 277,
   "baseline_phase": 276,
-  "checks": 114,
+  "checks": 118,
   "categories": {
-    "shell": 17,
+    "shell": 20,
     "settings": 3,
     "security": 3,
     "sync": 2,
@@ -15,7 +15,7 @@
     "restaurant": 25,
     "materials": 12,
     "database": 1,
-    "ui": 27,
+    "ui": 28,
     "quality": 2
   },
   "issues": 0,

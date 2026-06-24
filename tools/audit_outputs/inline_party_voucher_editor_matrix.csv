@@ -12,7 +12,8 @@ suppliers,marker:_show_inline_party_editor,ok,_show_inline_party_editor
 suppliers,add_supplier:no_open_party_document,ok,"show_toast,_show_inline_party_editor,tr,tr"
 suppliers,edit_supplier:no_open_party_document,ok,"get_id,hasattr,current_source_row,row,_show_inline_party_editor,show_toast,tr,tr"
 vouchers,parse,ok,alrajhi_client/views/widgets/vouchers_widget.py
-vouchers,marker:QStackedWidget,ok,QStackedWidget
+vouchers,marker:UnifiedInlineWorkspaceMixin,ok,UnifiedInlineWorkspaceMixin
+vouchers,marker:_install_unified_inline_workspace,ok,_install_unified_inline_workspace
 vouchers,marker:add_receipt_action,ok,add_receipt_action
 vouchers,marker:add_payment_action,ok,add_payment_action
 vouchers,marker:add_expense_action,ok,add_expense_action

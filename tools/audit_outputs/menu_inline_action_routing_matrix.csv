@@ -1,0 +1,54 @@
+﻿key,category,target,status,detail,phase
+file_exists,source,main_window,pass,alrajhi_client/views/main_window.py,383
+"requires::self.action_bar.bind('new', self.new_current_workspace",marker,main_window,pass,"self.action_bar.bind('new', self.new_current_workspace)",383
+requires::def new_current_workspace(self):,marker,main_window,pass,def new_current_workspace(self):,383
+requires::ACTION_BAR_NEW_ROUTES.get,marker,main_window,pass,ACTION_BAR_NEW_ROUTES.get,383
+requires::TABULAR_DOCUMENT_NEW_TARGETS.get,marker,main_window,pass,TABULAR_DOCUMENT_NEW_TARGETS.get,383
+requires::open_expense_voucher,marker,main_window,pass,open_expense_voucher,383
+requires::open_new_warehouse,marker,main_window,pass,open_new_warehouse,383
+requires::open_new_branch,marker,main_window,pass,open_new_branch,383
+requires::open_new_cashbox,marker,main_window,pass,open_new_cashbox,383
+requires::open_new_bank_account,marker,main_window,pass,open_new_bank_account,383
+requires::open_new_user,marker,main_window,pass,open_new_user,383
+"requires::_open_page_inline_action(route.page_id, route.method_n",marker,main_window,pass,"_open_page_inline_action(route.page_id, route.method_name, *route.args)",383
+"forbids::self.action_bar.bind('new', lambda: self.open_quick_in",regression,main_window,pass,"self.action_bar.bind('new', lambda: self.open_quick_invoice('sale'))",383
+file_exists,source,manifest,pass,alrajhi_client/workspace/registry/ui_manifest.py,383
+"requires::callback_key=""open_new_warehouse""",marker,manifest,pass,"callback_key=""open_new_warehouse""",383
+"requires::callback_key=""open_inventory_transfer_document""",marker,manifest,pass,"callback_key=""open_inventory_transfer_document""",383
+"requires::callback_key=""open_receipt_voucher""",marker,manifest,pass,"callback_key=""open_receipt_voucher""",383
+"requires::callback_key=""open_payment_voucher""",marker,manifest,pass,"callback_key=""open_payment_voucher""",383
+"requires::callback_key=""open_expense_voucher""",marker,manifest,pass,"callback_key=""open_expense_voucher""",383
+"requires::callback_key=""open_new_cashbox""",marker,manifest,pass,"callback_key=""open_new_cashbox""",383
+"requires::callback_key=""open_new_bank_account""",marker,manifest,pass,"callback_key=""open_new_bank_account""",383
+"requires::callback_key=""open_new_branch""",marker,manifest,pass,"callback_key=""open_new_branch""",383
+"requires::callback_key=""open_new_user""",marker,manifest,pass,"callback_key=""open_new_user""",383
+"requires::page_id=""branches""",marker,manifest,pass,"page_id=""branches""",383
+file_exists,source,policy,pass,alrajhi_client/workspace/actions/inline_menu_action_policy.py,383
+requires::MENU_INLINE_CALLBACKS,marker,policy,pass,MENU_INLINE_CALLBACKS,383
+requires::ACTION_BAR_NEW_ROUTES,marker,policy,pass,ACTION_BAR_NEW_ROUTES,383
+requires::TABULAR_DOCUMENT_NEW_TARGETS,marker,policy,pass,TABULAR_DOCUMENT_NEW_TARGETS,383
+"requires::""open_quick_customer"": InlineCreationRoute(""customers""",marker,policy,pass,"""open_quick_customer"": InlineCreationRoute(""customers"", ""add_customer"")",383
+"requires::""open_quick_supplier"": InlineCreationRoute(""suppliers""",marker,policy,pass,"""open_quick_supplier"": InlineCreationRoute(""suppliers"", ""add_supplier"")",383
+"requires::""open_expense_voucher"": InlineCreationRoute(""vouchers""",marker,policy,pass,"""open_expense_voucher"": InlineCreationRoute(""vouchers"", ""open_voucher_inline"", (""expense"", None))",383
+"requires::""cashboxes"": InlineCreationRoute(""cashboxes"", ""add_cas",marker,policy,pass,"""cashboxes"": InlineCreationRoute(""cashboxes"", ""add_cashbox"")",383
+"requires::""users"": InlineCreationRoute(""users"", ""add_user"")",marker,policy,pass,"""users"": InlineCreationRoute(""users"", ""add_user"")",383
+menu_route::open_quick_customer,runtime_contract,open_quick_customer,pass,customers.add_customer,383
+menu_route::open_quick_supplier,runtime_contract,open_quick_supplier,pass,suppliers.add_supplier,383
+menu_route::open_category_document,runtime_contract,open_category_document,pass,categories.add_category,383
+menu_route::open_receipt_voucher,runtime_contract,open_receipt_voucher,pass,vouchers.open_voucher_inline,383
+menu_route::open_payment_voucher,runtime_contract,open_payment_voucher,pass,vouchers.open_voucher_inline,383
+menu_route::open_expense_voucher,runtime_contract,open_expense_voucher,pass,vouchers.open_voucher_inline,383
+menu_route::open_new_warehouse,runtime_contract,open_new_warehouse,pass,warehouses.open_warehouse_inline,383
+menu_route::open_inventory_transfer_document,runtime_contract,open_inventory_transfer_document,pass,warehouses.add_transfer,383
+menu_route::open_new_branch,runtime_contract,open_new_branch,pass,branches.open_branch_inline,383
+menu_route::open_new_cashbox,runtime_contract,open_new_cashbox,pass,cashboxes.open_cashbox_inline,383
+menu_route::open_new_bank_account,runtime_contract,open_new_bank_account,pass,cashboxes.open_bank_inline,383
+menu_route::open_new_user,runtime_contract,open_new_user,pass,users.open_user_inline,383
+action_bar_new::branches,runtime_contract,branches,pass,New delegates to inline workspace action,383
+action_bar_new::cashboxes,runtime_contract,cashboxes,pass,New delegates to inline workspace action,383
+action_bar_new::categories,runtime_contract,categories,pass,New delegates to inline workspace action,383
+action_bar_new::customers,runtime_contract,customers,pass,New delegates to inline workspace action,383
+action_bar_new::suppliers,runtime_contract,suppliers,pass,New delegates to inline workspace action,383
+action_bar_new::users,runtime_contract,users,pass,New delegates to inline workspace action,383
+action_bar_new::vouchers,runtime_contract,vouchers,pass,New delegates to inline workspace action,383
+action_bar_new::warehouses,runtime_contract,warehouses,pass,New delegates to inline workspace action,383

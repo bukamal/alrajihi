@@ -1,8 +1,6 @@
 ﻿key,category,target,status,detail,phase
-helper:ResponsiveMasterDetail,helper,inline_document_host,pass,ResponsiveMasterDetail,377
-helper:DetailPlaceholder,helper,inline_document_host,pass,DetailPlaceholder,377
-helper:inline_editor_page,helper,inline_document_host,pass,inline_editor_page,377
-helper:inline_editor_host,helper,inline_document_host,pass,inline_editor_host,377
+helper:UnifiedInlineWorkspaceMixin,helper,inline_document_host,pass,UnifiedInlineWorkspaceMixin,377
+helper:_install_unified_inline_workspace,helper,inline_document_host,pass,_install_unified_inline_workspace,377
 helper:_wire_inline_editor_close,helper,inline_document_host,pass,_wire_inline_editor_close,377
 helper:_after_inline_document_saved,helper,inline_document_host,pass,_after_inline_document_saved,377
 parse,source,users,pass,alrajhi_client/views/widgets/users_widget.py,377

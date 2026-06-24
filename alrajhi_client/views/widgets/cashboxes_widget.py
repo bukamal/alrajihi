@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
     QTabWidget, QMessageBox, QHeaderView, QTableView, QStackedWidget
@@ -93,7 +94,8 @@ class CashboxesWidget(QWidget):
             self.cash_tab, self._close_cashbox_inline_editor
         )
         self.cash_detail_stack.addWidget(self.cash_inline_page)
-        self.cash_master_detail = ResponsiveMasterDetail(self.cash_table, self.cash_detail_stack, self.cash_tab)
+        self.cash_master_detail = ResponsiveMasterDetail(self.cash_table, self.cash_detail_stack, self.cash_tab, master_weight=2, detail_weight=3)
+        QTimer.singleShot(0, lambda: self.cash_master_detail.set_initial_sizes(1420))
         layout.addWidget(self.cash_master_detail, 1)
 
     def _bank_ui(self):
@@ -125,7 +127,8 @@ class CashboxesWidget(QWidget):
             self.bank_tab, self._close_bank_inline_editor
         )
         self.bank_detail_stack.addWidget(self.bank_inline_page)
-        self.bank_master_detail = ResponsiveMasterDetail(self.bank_table, self.bank_detail_stack, self.bank_tab)
+        self.bank_master_detail = ResponsiveMasterDetail(self.bank_table, self.bank_detail_stack, self.bank_tab, master_weight=2, detail_weight=3)
+        QTimer.singleShot(0, lambda: self.bank_master_detail.set_initial_sizes(1420))
         layout.addWidget(self.bank_master_detail, 1)
 
     def _build_inline_page(self, parent, back_callback):
@@ -135,10 +138,12 @@ class CashboxesWidget(QWidget):
         layout.setSpacing(8)
         header = QHBoxLayout()
         title = QLabel('', page)
-        title.setObjectName('InlineEditorTitle')
+        title.setObjectName('UnifiedInlineHiddenTitle')
+        title.setVisible(False)
         back = QPushButton(tr('back') if tr('back') != 'back' else 'عودة', page)
+        back.setObjectName('UnifiedInlineBackButton')
         back.clicked.connect(back_callback)
-        header.addWidget(title, 1)
+        header.addStretch(1)
         header.addWidget(back)
         layout.addLayout(header)
         host = QWidget(page)

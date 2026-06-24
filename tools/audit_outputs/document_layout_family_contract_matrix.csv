@@ -1,0 +1,59 @@
+﻿key,category,target,status,detail,phase
+parse,source,layout_policy,pass,alrajhi_client/workspace/documents/document_layout_policy.py,381
+"required:KIND_CARD_FORM = ""card_form""",required_marker,layout_policy,pass,"KIND_CARD_FORM = ""card_form""",381
+"required:KIND_FINANCIAL_DOCUMENT = ""financial_document""",required_marker,layout_policy,pass,"KIND_FINANCIAL_DOCUMENT = ""financial_document""",381
+"required:KIND_TABULAR_DOCUMENT = ""tabular_document""",required_marker,layout_policy,pass,"KIND_TABULAR_DOCUMENT = ""tabular_document""",381
+required:CARD_FORM_TYPES,required_marker,layout_policy,pass,CARD_FORM_TYPES,381
+required:FINANCIAL_DOCUMENT_TYPES,required_marker,layout_policy,pass,FINANCIAL_DOCUMENT_TYPES,381
+required:TABULAR_DOCUMENT_TYPES,required_marker,layout_policy,pass,TABULAR_DOCUMENT_TYPES,381
+required:infer_document_layout_kind,required_marker,layout_policy,pass,infer_document_layout_kind,381
+required:apply_document_layout_policy,required_marker,layout_policy,pass,apply_document_layout_policy,381
+required:_hide_duplicate_inline_headers,required_marker,layout_policy,pass,_hide_duplicate_inline_headers,381
+required:_configure_card_form,required_marker,layout_policy,pass,_configure_card_form,381
+required:_configure_financial_document,required_marker,layout_policy,pass,_configure_financial_document,381
+required:_configure_tabular_document,required_marker,layout_policy,pass,_configure_tabular_document,381
+required:documentLayoutKind,required_marker,layout_policy,pass,documentLayoutKind,381
+required:documentInlineMode,required_marker,layout_policy,pass,documentInlineMode,381
+required:documentLayoutManaged,required_marker,layout_policy,pass,documentLayoutManaged,381
+required:HEADER_OBJECT_NAMES,required_marker,layout_policy,pass,HEADER_OBJECT_NAMES,381
+parse,source,base_document_tab,pass,alrajhi_client/workspace/documents/base_document_tab.py,381
+required:from .document_layout_policy import apply_document_layout_policy,required_marker,base_document_tab,pass,from .document_layout_policy import apply_document_layout_policy,381
+required:def apply_document_layout_profile,required_marker,base_document_tab,pass,def apply_document_layout_profile,381
+required:self.apply_document_layout_profile(),required_marker,base_document_tab,pass,self.apply_document_layout_profile(),381
+parse,source,documents_init,pass,alrajhi_client/workspace/documents/__init__.py,381
+required:KIND_CARD_FORM,required_marker,documents_init,pass,KIND_CARD_FORM,381
+required:KIND_FINANCIAL_DOCUMENT,required_marker,documents_init,pass,KIND_FINANCIAL_DOCUMENT,381
+required:KIND_TABULAR_DOCUMENT,required_marker,documents_init,pass,KIND_TABULAR_DOCUMENT,381
+required:apply_document_layout_policy,required_marker,documents_init,pass,apply_document_layout_policy,381
+required:infer_document_layout_kind,required_marker,documents_init,pass,infer_document_layout_kind,381
+parse,source,unified_inline_workspace,pass,alrajhi_client/views/widgets/unified_inline_workspace.py,381
+required:from workspace.documents.document_layout_policy import apply_document_layout_policy,required_marker,unified_inline_workspace,pass,from workspace.documents.document_layout_policy import apply_document_layout_policy,381
+"required:editor.setProperty('inlineEditor', True)",required_marker,unified_inline_workspace,pass,"editor.setProperty('inlineEditor', True)",381
+required:editor.apply_document_layout_profile(inline=True),required_marker,unified_inline_workspace,pass,editor.apply_document_layout_profile(inline=True),381
+"required:apply_document_layout_policy(editor, inline=True)",required_marker,unified_inline_workspace,pass,"apply_document_layout_policy(editor, inline=True)",381
+required:Phase381,required_marker,unified_inline_workspace,pass,Phase381,381
+forbidden:# Remove duplicate header/title rows from simple card editors when they,forbidden_marker,unified_inline_workspace,pass,# Remove duplicate header/title rows from simple card editors when they,381
+parse,source,transaction_layout,pass,alrajhi_client/features/transactions/components/transaction_document_layout.py,381
+required:TransactionDocumentLayout,required_marker,transaction_layout,pass,TransactionDocumentLayout,381
+required:TransactionDocumentSplitter,required_marker,transaction_layout,pass,TransactionDocumentSplitter,381
+required:TransactionLineGrid,required_marker,transaction_layout,pass,TransactionLineGrid,381
+"required:setStretchFactor(0, 7)",required_marker,transaction_layout,pass,"setStretchFactor(0, 7)",381
+"required:setStretchFactor(1, 2)",required_marker,transaction_layout,pass,"setStretchFactor(1, 2)",381
+card_form:customer,type_family,card_form,pass,customer,381
+card_form:supplier,type_family,card_form,pass,supplier,381
+card_form:user,type_family,card_form,pass,user,381
+card_form:category,type_family,card_form,pass,category,381
+card_form:warehouse,type_family,card_form,pass,warehouse,381
+card_form:branch,type_family,card_form,pass,branch,381
+card_form:cashbox,type_family,card_form,pass,cashbox,381
+card_form:bank_account,type_family,card_form,pass,bank_account,381
+card_form:material,type_family,card_form,pass,material,381
+financial_document:voucher,type_family,financial_document,pass,voucher,381
+financial_document:expense,type_family,financial_document,pass,expense,381
+tabular_document:sales_invoice,type_family,tabular_document,pass,sales_invoice,381
+tabular_document:purchase_invoice,type_family,tabular_document,pass,purchase_invoice,381
+tabular_document:sales_return,type_family,tabular_document,pass,sales_return,381
+tabular_document:purchase_return,type_family,tabular_document,pass,purchase_return,381
+tabular_document:warehouse_transfer,type_family,tabular_document,pass,warehouse_transfer,381
+tabular_document:bom,type_family,tabular_document,pass,bom,381
+tabular_document:production_order,type_family,tabular_document,pass,production_order,381

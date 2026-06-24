@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QWidget, QMessageBox
 from i18n import translate
 from .document_contract import descriptor_for
 from .document_permission_binder import DocumentPermissionBinder
+from .document_layout_policy import apply_document_layout_policy
 
 
 @dataclass
@@ -69,6 +70,20 @@ class BaseDocumentTab(QWidget):
             self.apply_document_permissions()
         except Exception:
             pass
+        try:
+            self.apply_document_layout_profile()
+        except Exception:
+            pass
+
+    def apply_document_layout_profile(self, *, kind: Optional[str] = None, inline: Optional[bool] = None) -> str:
+        """Apply the canonical visual document layout policy.
+
+        Phase381: all document editors declare one of three structural families
+        (card form, financial document, or tabular document). Inline hosts call
+        this with ``inline=True``; standalone tabs call it automatically on
+        showEvent.
+        """
+        return apply_document_layout_policy(self, kind=kind, inline=inline)
 
     def set_document_title(self, title: str) -> None:
         self.document_state.title = title

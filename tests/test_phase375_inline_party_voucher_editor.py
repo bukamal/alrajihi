@@ -38,7 +38,8 @@ def test_customer_supplier_add_edit_are_inline_not_workspace_tabs():
 def test_vouchers_have_inline_receipt_payment_expense_editors():
     source = read('alrajhi_client/views/widgets/vouchers_widget.py')
     ast.parse(source)
-    assert 'QStackedWidget' in source
+    assert 'UnifiedInlineWorkspaceMixin' in source
+    assert '_install_unified_inline_workspace' in source
     assert '_show_inline_voucher_editor' in source
     assert 'VoucherEditorTab' in source
     assert 'ExpenseDocumentTab' in source

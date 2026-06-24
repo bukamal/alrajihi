@@ -1,0 +1,56 @@
+﻿key,category,target,status,detail,phase
+parse,source,unified_host,pass,alrajhi_client/views/widgets/unified_inline_workspace.py,380
+required:class UnifiedInlineWorkspaceMixin,required_marker,unified_host,pass,class UnifiedInlineWorkspaceMixin,380
+required:_install_unified_inline_workspace,required_marker,unified_host,pass,_install_unified_inline_workspace,380
+required:_show_unified_inline_editor,required_marker,unified_host,pass,_show_unified_inline_editor,380
+required:_close_unified_inline_editor,required_marker,unified_host,pass,_close_unified_inline_editor,380
+required:_wire_unified_inline_close,required_marker,unified_host,pass,_wire_unified_inline_close,380
+required:_apply_unified_inline_visual_policy,required_marker,unified_host,pass,_apply_unified_inline_visual_policy,380
+required:UnifiedInlineEditorPage,required_marker,unified_host,pass,UnifiedInlineEditorPage,380
+required:UnifiedInlineEditorHost,required_marker,unified_host,pass,UnifiedInlineEditorHost,380
+required:UnifiedInlineBackButton,required_marker,unified_host,pass,UnifiedInlineBackButton,380
+required:master_weight: int = 2,required_marker,unified_host,pass,master_weight: int = 2,380
+required:detail_weight: int = 3,required_marker,unified_host,pass,detail_weight: int = 3,380
+parse,source,inline_document_host,pass,alrajhi_client/views/widgets/inline_document_host.py,380
+required:class InlineDocumentHostMixin(UnifiedInlineWorkspaceMixin),required_marker,inline_document_host,pass,class InlineDocumentHostMixin(UnifiedInlineWorkspaceMixin),380
+required:_install_unified_inline_workspace,required_marker,inline_document_host,pass,_install_unified_inline_workspace,380
+required:_show_unified_inline_editor,required_marker,inline_document_host,pass,_show_unified_inline_editor,380
+required:_wire_unified_inline_close,required_marker,inline_document_host,pass,_wire_unified_inline_close,380
+required:master_weight=2,required_marker,inline_document_host,pass,master_weight=2,380
+required:detail_weight=3,required_marker,inline_document_host,pass,detail_weight=3,380
+forbidden:InlineEditorTitle,forbidden_marker,inline_document_host,pass,InlineEditorTitle,380
+forbidden:inline_title_label,forbidden_marker,inline_document_host,pass,inline_title_label,380
+parse,source,party_inline_host,pass,alrajhi_client/views/widgets/party_inline_editor_host.py,380
+required:class PartyInlineEditorHostMixin(UnifiedInlineWorkspaceMixin),required_marker,party_inline_host,pass,class PartyInlineEditorHostMixin(UnifiedInlineWorkspaceMixin),380
+required:_install_unified_inline_workspace,required_marker,party_inline_host,pass,_install_unified_inline_workspace,380
+required:_show_unified_inline_editor,required_marker,party_inline_host,pass,_show_unified_inline_editor,380
+required:inline_mode=True,required_marker,party_inline_host,pass,inline_mode=True,380
+required:master_weight=2,required_marker,party_inline_host,pass,master_weight=2,380
+required:detail_weight=3,required_marker,party_inline_host,pass,detail_weight=3,380
+forbidden:InlineEditorTitle,forbidden_marker,party_inline_host,pass,InlineEditorTitle,380
+forbidden:inline_title_label,forbidden_marker,party_inline_host,pass,inline_title_label,380
+parse,source,vouchers,pass,alrajhi_client/views/widgets/vouchers_widget.py,380
+"required:class VouchersWidget(UnifiedInlineWorkspaceMixin, QWidget)",required_marker,vouchers,pass,"class VouchersWidget(UnifiedInlineWorkspaceMixin, QWidget)",380
+required:_install_unified_inline_workspace,required_marker,vouchers,pass,_install_unified_inline_workspace,380
+required:_show_unified_inline_editor,required_marker,vouchers,pass,_show_unified_inline_editor,380
+required:VoucherEditorTab,required_marker,vouchers,pass,VoucherEditorTab,380
+required:ExpenseDocumentTab,required_marker,vouchers,pass,ExpenseDocumentTab,380
+forbidden:InlineEditorTitle,forbidden_marker,vouchers,pass,InlineEditorTitle,380
+forbidden:inline_title_label,forbidden_marker,vouchers,pass,inline_title_label,380
+parse,source,cashboxes,pass,alrajhi_client/views/widgets/cashboxes_widget.py,380
+"required:ResponsiveMasterDetail(self.cash_table, self.cash_detail_stack, self.cash_tab, master_weight=2, detail_weight=3)",required_marker,cashboxes,pass,"ResponsiveMasterDetail(self.cash_table, self.cash_detail_stack, self.cash_tab, master_weight=2, detail_weight=3)",380
+"required:ResponsiveMasterDetail(self.bank_table, self.bank_detail_stack, self.bank_tab, master_weight=2, detail_weight=3)",required_marker,cashboxes,pass,"ResponsiveMasterDetail(self.bank_table, self.bank_detail_stack, self.bank_tab, master_weight=2, detail_weight=3)",380
+required:UnifiedInlineBackButton,required_marker,cashboxes,pass,UnifiedInlineBackButton,380
+required:UnifiedInlineHiddenTitle,required_marker,cashboxes,pass,UnifiedInlineHiddenTitle,380
+forbidden:InlineEditorTitle,forbidden_marker,cashboxes,pass,InlineEditorTitle,380
+parse,source,responsive_master_detail,pass,alrajhi_client/ui/components/responsive_master_detail.py,380
+required:self.master_weight,required_marker,responsive_master_detail,pass,self.master_weight,380
+required:self.detail_weight,required_marker,responsive_master_detail,pass,self.detail_weight,380
+required:master_width = int(total_width * self.master_weight / total_weight),required_marker,responsive_master_detail,pass,master_width = int(total_width * self.master_weight / total_weight),380
+"required:self.splitter.setSizes([master_width, detail_width])",required_marker,responsive_master_detail,pass,"self.splitter.setSizes([master_width, detail_width])",380
+add_voucher:no_open_quick_voucher,no_sub_tabs,vouchers,pass,"_show_inline_voucher_editor,require,show_toast,str,tr",380
+add_voucher:no_open_document_tab,no_sub_tabs,vouchers,pass,"_show_inline_voucher_editor,require,show_toast,str,tr",380
+add_voucher:no_open_tab,no_sub_tabs,vouchers,pass,"_show_inline_voucher_editor,require,show_toast,str,tr",380
+edit_voucher:no_open_quick_voucher,no_sub_tabs,vouchers,pass,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr",380
+edit_voucher:no_open_document_tab,no_sub_tabs,vouchers,pass,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr",380
+edit_voucher:no_open_tab,no_sub_tabs,vouchers,pass,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr",380

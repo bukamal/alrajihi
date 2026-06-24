@@ -54,4 +54,24 @@ __all__ = [
     "DocumentPermissionBinder",
     "DocumentPermissionDecision",
     "document_permission_allowed",
+    "KIND_CARD_FORM",
+    "KIND_FINANCIAL_DOCUMENT",
+    "KIND_TABULAR_DOCUMENT",
+    "apply_document_layout_policy",
+    "infer_document_layout_kind",
 ]
+
+try:  # pragma: no cover - layout policy imports Qt sizing classes
+    from .document_layout_policy import (
+        KIND_CARD_FORM,
+        KIND_FINANCIAL_DOCUMENT,
+        KIND_TABULAR_DOCUMENT,
+        apply_document_layout_policy,
+        infer_document_layout_kind,
+    )
+except Exception:
+    KIND_CARD_FORM = "card_form"  # type: ignore
+    KIND_FINANCIAL_DOCUMENT = "financial_document"  # type: ignore
+    KIND_TABULAR_DOCUMENT = "tabular_document"  # type: ignore
+    apply_document_layout_policy = None  # type: ignore
+    infer_document_layout_kind = None  # type: ignore

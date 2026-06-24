@@ -48,6 +48,7 @@ from workspace.registry import (
     effective_action_keys_for_page,
     navigation_menus,
 )
+from workspace.actions.inline_menu_action_policy import ACTION_BAR_NEW_ROUTES, TABULAR_DOCUMENT_NEW_TARGETS
 from theme.brand import BRAND, get_tokens
 from ui.runtime_visual_polish import apply_runtime_visual_polish
 
@@ -481,6 +482,12 @@ class MainWindow(QMainWindow):
             'open_new_purchase_invoice': lambda: self.open_quick_invoice('purchase'),
             'open_receipt_voucher': lambda: self.open_quick_voucher('receipt'),
             'open_payment_voucher': lambda: self.open_quick_voucher('payment'),
+            'open_expense_voucher': lambda: self.open_quick_voucher('expense'),
+            'open_new_warehouse': lambda: self.open_warehouse_document(),
+            'open_new_branch': lambda: self.open_branch_document(),
+            'open_new_cashbox': lambda: self.open_cashbox_document(),
+            'open_new_bank_account': lambda: self.open_bank_account_document(),
+            'open_new_user': lambda: self.open_user_document(),
         }
 
     def setup_menus(self):
@@ -558,7 +565,7 @@ class MainWindow(QMainWindow):
         and tab-specific actions. Tables still print through SmartTableView ->
         CustomTableView.print_table -> printing.printing_service.
         """
-        self.action_bar.bind('new', lambda: self.open_quick_invoice('sale'))
+        self.action_bar.bind('new', self.new_current_workspace)
         self.action_bar.bind('save', self.save_current_tab)
         self.action_bar.bind('refresh', self.refresh_current_view)
         self.action_bar.bind('print', self.print_current_tab)
@@ -692,6 +699,29 @@ class MainWindow(QMainWindow):
         except Exception:
             message = translate('workspace.permission_denied')
         QMessageBox.warning(self, translate('warning'), message)
+
+    def new_current_workspace(self):
+        """Run the New command in the currently active workspace context.
+
+        Phase383: the shared action-bar New command delegates to the current
+        page.  Inline-managed workspaces create records inside their own
+        master/detail surface; document workspaces open the correct document
+        family instead of always defaulting to sales.
+        """
+        pid = self._active_page_id() if hasattr(self, '_active_page_id') else None
+        route = ACTION_BAR_NEW_ROUTES.get(pid or '')
+        if route:
+            return self._open_page_inline_action(route.page_id, route.method_name, *route.args)
+        target = TABULAR_DOCUMENT_NEW_TARGETS.get(pid or '')
+        if target:
+            method_name, args = target
+            method = getattr(self, method_name, None)
+            if callable(method):
+                return method(*args)
+        if pid == 'settings':
+            return self.open_settings_section_document('company')
+        QMessageBox.information(self, translate('quick_actions'), translate('workspace.no_new_action') if translate('workspace.no_new_action') != 'workspace.no_new_action' else 'لا يوجد إجراء إضافة مباشر لهذه الواجهة')
+        return None
 
     def refresh_current_view(self):
         """Refresh current page from the shell utility button."""

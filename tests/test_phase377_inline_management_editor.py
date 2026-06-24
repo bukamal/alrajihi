@@ -32,8 +32,8 @@ def calls_in_function(source: str, fn: str):
 
 def test_management_widgets_share_inline_master_detail_host():
     helper = read('alrajhi_client/views/widgets/inline_document_host.py')
-    assert 'ResponsiveMasterDetail' in helper
-    assert 'DetailPlaceholder' in helper
+    assert 'UnifiedInlineWorkspaceMixin' in helper
+    assert '_install_unified_inline_workspace' in helper
     assert '_wire_inline_editor_close' in helper
     for target, spec in TARGETS.items():
         src = read(spec['path'])

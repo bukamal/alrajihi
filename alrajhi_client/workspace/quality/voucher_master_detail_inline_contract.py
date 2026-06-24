@@ -10,8 +10,8 @@ PHASE = 376
 CONTRACT_NAME = "voucher_master_detail_inline"
 
 REQUIRED_WIDGET_MARKERS = (
-    "ResponsiveMasterDetail",
-    "DetailPlaceholder",
+    "UnifiedInlineWorkspaceMixin",
+    "_install_unified_inline_workspace",
     "detail_stack",
     "inline_editor_page",
     "inline_editor_host",

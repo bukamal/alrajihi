@@ -37,8 +37,10 @@ class TransactionLineGrid(SmartTableView):
             self.horizontalHeader().setSectionsMovable(True)
             self.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
             self.verticalHeader().setVisible(False)
-            self.setSelectionBehavior(self.SelectRows)
-            self.setSelectionMode(self.SingleSelection)
+            # Phase382: invoice-style line entry must highlight the active cell,
+            # not the whole row. Touch grids can still override this locally.
+            self.setSelectionBehavior(self.SelectItems)
+            self.setSelectionMode(self.ExtendedSelection)
         except Exception:
             pass
 
@@ -63,31 +65,35 @@ class TransactionLineGrid(SmartTableView):
         self._item_transform = item_transform
         self.install_schema_delegates()
 
+    def _install_item_lookup_delegate_for_column(self, column_index: int) -> None:
+        if column_index < 0:
+            return
+        try:
+            column = self.columns_schema[column_index]
+        except Exception:
+            column = None
+        if not getattr(column, "editable", True):
+            return
+        try:
+            self.setItemDelegateForColumn(
+                column_index,
+                TransactionItemDelegate(
+                    self,
+                    items_provider=self._items_provider,
+                    price_key_provider=self._price_key_provider,
+                    availability_provider=self._availability_provider,
+                    item_transform=self._item_transform,
+                ),
+            )
+        except Exception:
+            pass
+
     def install_schema_delegates(self) -> None:
-        item_col = self.column_index("item")
-        if item_col >= 0:
-            # Only invoice-like editable grids should get the item lookup editor.
-            # POS, restaurant order grids, and return grids display material names
-            # as resolved business facts; they must not open a material completer
-            # from a read-only cell.
-            try:
-                item_column = self.columns_schema[item_col]
-            except Exception:
-                item_column = None
-            if getattr(item_column, "editable", True):
-                try:
-                    self.setItemDelegateForColumn(
-                        item_col,
-                        TransactionItemDelegate(
-                            self,
-                            items_provider=self._items_provider,
-                            price_key_provider=self._price_key_provider,
-                            availability_provider=self._availability_provider,
-                            item_transform=self._item_transform,
-                        ),
-                    )
-                except Exception:
-                    pass
+        # Phase382: material and barcode columns share the same resolver. A scan
+        # entered directly in the barcode cell now resolves the item/unit metadata
+        # instead of leaving only raw text in the barcode field.
+        self._install_item_lookup_delegate_for_column(self.column_index("item"))
+        self._install_item_lookup_delegate_for_column(self.column_index("barcode"))
         unit_col = self.column_index("unit")
         if unit_col >= 0:
             try:

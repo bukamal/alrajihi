@@ -1,10 +1,10 @@
 phase,category,target,key,status,detail
 379,source,shared_party_inline_host,parse,pass,alrajhi_client/views/widgets/party_inline_editor_host.py
 379,required_marker,shared_party_inline_host,required:class PartyInlineEditorHostMixin,pass,class PartyInlineEditorHostMixin
-379,required_marker,shared_party_inline_host,"required:ResponsiveMasterDetail(table, self.detail_stack, self, master_weight=2, detail_weight=3)",pass,"ResponsiveMasterDetail(table, self.detail_stack, self, master_weight=2, detail_weight=3)"
+379,required_marker,shared_party_inline_host,required:_install_unified_inline_workspace,pass,_install_unified_inline_workspace
+379,required_marker,shared_party_inline_host,required:master_weight=2,pass,master_weight=2
+379,required_marker,shared_party_inline_host,required:detail_weight=3,pass,detail_weight=3
 379,required_marker,shared_party_inline_host,required:inline_mode=True,pass,inline_mode=True
-379,required_marker,shared_party_inline_host,required:UnifiedInlineEditorPage,pass,UnifiedInlineEditorPage
-379,required_marker,shared_party_inline_host,required:UnifiedInlineEditorHost,pass,UnifiedInlineEditorHost
 379,required_marker,shared_party_inline_host,required:_show_inline_party_editor,pass,_show_inline_party_editor
 379,required_marker,shared_party_inline_host,required:_after_inline_party_saved,pass,_after_inline_party_saved
 379,forbidden_text,shared_party_inline_host,forbidden:inline_title_label,pass,inline_title_label

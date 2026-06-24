@@ -10,6 +10,9 @@ same policy to entry focus and editor text handling:
   ``material``, ``product``, ``barcode``), then by translated header text.
 * Enter opens the editor and prepares its text so default placeholders such as
   ``0`` or empty values are cleared while real values are selected.
+* Phase382 adds a runtime flow contract: item/barcode commit jumps to quantity,
+  new-line buttons focus the newly inserted material cell, and barcode cells use
+  the same resolver as material cells when the grid opts in.
 * Shift+Enter still walks backwards.  Esc is not consumed unless a native editor is already active; the application
   level Esc-to-dashboard shortcut remains in control elsewhere.
 
@@ -41,6 +44,9 @@ class StandardTableKeyboardMixin:
 
     _standard_keyboard_active: bool = False
     _standard_preferred_entry_keys = ("item", "material", "product", "barcode")
+    _standard_material_entry_keys = ("item", "material", "product")
+    _standard_barcode_entry_keys = ("barcode",)
+    _standard_quantity_entry_keys = ("qty", "quantity", "return_qty", "required_qty")
     _standard_default_editor_tokens = {"", "0", "0.0", "0.00", "0.000"}
 
     def init_standard_table_keyboard(self) -> None:
@@ -190,6 +196,63 @@ class StandardTableKeyboardMixin:
             return sorted(preferred, key=lambda c: (self._standard_entry_priority(c), c))
         return editable
 
+    def _standard_columns_matching_keys(self, row: int, keys: tuple[str, ...]) -> list[int]:
+        """Return editable visible columns in *row* matching one of ``keys``."""
+        wanted = {str(key or "").casefold() for key in keys}
+        matches: list[int] = []
+        for col in self._standard_editable_columns(row):
+            key = self._standard_column_key(col).strip().casefold()
+            if key in wanted:
+                matches.append(col)
+        return matches
+
+    def _standard_entry_index_for_row(self, row: int) -> QModelIndex:
+        model = self._standard_model()
+        if model is None or row < 0:
+            return QModelIndex()
+        try:
+            if row >= model.rowCount():
+                return QModelIndex()
+        except Exception:
+            return QModelIndex()
+        cols = self._standard_entry_columns(row)
+        if cols:
+            return model.index(row, cols[0])
+        return QModelIndex()
+
+    def _standard_last_entry_index(self) -> QModelIndex:
+        model = self._standard_model()
+        if model is None:
+            return QModelIndex()
+        try:
+            row = model.rowCount() - 1
+        except Exception:
+            row = -1
+        while row >= 0:
+            idx = self._standard_entry_index_for_row(row)
+            if idx.isValid():
+                return idx
+            row -= 1
+        return QModelIndex()
+
+    def _standard_post_commit_index(self, start: QModelIndex) -> QModelIndex:
+        """Choose the next operational cell after a barcode/material commit.
+
+        The ERP line-entry flow is material/barcode -> quantity.  Unit and price
+        can still be reached normally with Tab/arrow/mouse, but Enter commit from
+        the item resolver should not land on technical/read-mostly columns.
+        """
+        if not start.isValid():
+            return QModelIndex()
+        current_key = self._standard_column_key(start.column()).strip().casefold()
+        entry_keys = {*(key.casefold() for key in self._standard_material_entry_keys), *(key.casefold() for key in self._standard_barcode_entry_keys)}
+        if current_key not in entry_keys:
+            return QModelIndex()
+        qty_cols = self._standard_columns_matching_keys(start.row(), self._standard_quantity_entry_keys)
+        if qty_cols:
+            return self._standard_model().index(start.row(), qty_cols[0])
+        return QModelIndex()
+
     def _standard_first_editable_index(self) -> QModelIndex:
         model = self._standard_model()
         if model is None:
@@ -218,19 +281,39 @@ class StandardTableKeyboardMixin:
                 return model.index(row, cols[0])
         return QModelIndex()
 
-    def focus_entry_column(self, start_edit: bool = True) -> bool:
-        """Move focus to the first material/item entry cell in the table."""
+    def focus_entry_column(self, start_edit: bool = True, row: int | None = None) -> bool:
+        """Move focus to the material/item entry cell in the table.
+
+        ``row`` is optional: first row for document open, newly inserted row for
+        add-line actions.  Keeping this in the table policy avoids each document
+        reimplementing a slightly different focus path.
+        """
         try:
             self.setFocus(Qt.OtherFocusReason)
         except Exception:
             pass
-        return self._standard_focus_index(self._standard_first_entry_index(), start_edit=start_edit)
+        index = self._standard_entry_index_for_row(row) if row is not None else self._standard_first_entry_index()
+        return self._standard_focus_index(index, start_edit=start_edit)
 
-    def schedule_initial_entry_focus(self, delay: int = 80, start_edit: bool = True) -> None:
-        """Schedule initial grid focus after the model/layout becomes visible."""
+    def focus_last_entry_column(self, start_edit: bool = True) -> bool:
+        """Move focus to the newest line's material/item entry cell."""
+        try:
+            self.setFocus(Qt.OtherFocusReason)
+        except Exception:
+            pass
+        return self._standard_focus_index(self._standard_last_entry_index(), start_edit=start_edit)
+
+    def schedule_initial_entry_focus(self, delay: int = 80, start_edit: bool = True, row: int | None = None) -> None:
+        """Schedule grid focus after the model/layout becomes visible."""
         if not getattr(self, "_standard_keyboard_active", False):
             return
-        QTimer.singleShot(delay, lambda: self.focus_entry_column(start_edit=start_edit))
+        QTimer.singleShot(delay, lambda: self.focus_entry_column(start_edit=start_edit, row=row))
+
+    def schedule_last_entry_focus(self, delay: int = 80, start_edit: bool = True) -> None:
+        """Schedule focus on the latest inserted line."""
+        if not getattr(self, "_standard_keyboard_active", False):
+            return
+        QTimer.singleShot(delay, lambda: self.focus_last_entry_column(start_edit=start_edit))
 
     def _standard_append_empty_line_if_supported(self) -> bool:
         model = self._standard_model()
@@ -418,4 +501,10 @@ class StandardTableKeyboardMixin:
             QAbstractItemDelegate.SubmitModelCache,
             QAbstractItemDelegate.NoHint,
         ):
-            QTimer.singleShot(0, lambda: self._standard_focus_index(self._standard_next_index(current, True), start_edit=False))
+            def _focus_after_commit(idx=current):
+                target = self._standard_post_commit_index(idx)
+                if target.isValid():
+                    self._standard_focus_index(target, start_edit=True)
+                    return
+                self._standard_focus_index(self._standard_next_index(idx, True), start_edit=False)
+            QTimer.singleShot(0, _focus_after_commit)
