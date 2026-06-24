@@ -28,10 +28,9 @@ def test_customer_supplier_add_edit_are_inline_not_workspace_tabs():
     suppliers = read('alrajhi_client/views/widgets/suppliers_widget.py')
     for source, add_fn, edit_fn in ((customers, 'add_customer', 'edit_customer'), (suppliers, 'add_supplier', 'edit_supplier')):
         ast.parse(source)
-        assert 'QStackedWidget' in source
+        assert 'PartyInlineEditorHostMixin' in source
+        assert '_install_party_inline_host' in source
         assert '_show_inline_party_editor' in source
-        assert 'PartyEditorTab' in source
-        assert 'detail_stack' in source
         assert 'open_party_document' not in calls_in_function(source, add_fn)
         assert 'open_party_document' not in calls_in_function(source, edit_fn)
 

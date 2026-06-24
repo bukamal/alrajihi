@@ -30,6 +30,7 @@ def test_vouchers_use_same_master_detail_shell_as_customer_supplier_lists():
     ast.parse(source)
     for marker in ('ResponsiveMasterDetail', 'DetailPlaceholder', 'detail_stack', 'inline_editor_page', 'inline_editor_host'):
         assert marker in source
+    for marker in ('PartyInlineEditorHostMixin', '_install_party_inline_host'):
         assert marker in customers
         assert marker in suppliers
     assert 'self.master_detail = ResponsiveMasterDetail(self.table, self.detail_stack, self)' in source

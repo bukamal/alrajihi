@@ -1,0 +1,42 @@
+phase,category,target,key,status,detail
+379,source,shared_party_inline_host,parse,pass,alrajhi_client/views/widgets/party_inline_editor_host.py
+379,required_marker,shared_party_inline_host,required:class PartyInlineEditorHostMixin,pass,class PartyInlineEditorHostMixin
+379,required_marker,shared_party_inline_host,"required:ResponsiveMasterDetail(table, self.detail_stack, self, master_weight=2, detail_weight=3)",pass,"ResponsiveMasterDetail(table, self.detail_stack, self, master_weight=2, detail_weight=3)"
+379,required_marker,shared_party_inline_host,required:inline_mode=True,pass,inline_mode=True
+379,required_marker,shared_party_inline_host,required:UnifiedInlineEditorPage,pass,UnifiedInlineEditorPage
+379,required_marker,shared_party_inline_host,required:UnifiedInlineEditorHost,pass,UnifiedInlineEditorHost
+379,required_marker,shared_party_inline_host,required:_show_inline_party_editor,pass,_show_inline_party_editor
+379,required_marker,shared_party_inline_host,required:_after_inline_party_saved,pass,_after_inline_party_saved
+379,forbidden_text,shared_party_inline_host,forbidden:inline_title_label,pass,inline_title_label
+379,forbidden_text,shared_party_inline_host,forbidden:InlineEditorTitle,pass,InlineEditorTitle
+379,source,customer_inline_uses_shared_host,parse,pass,alrajhi_client/views/widgets/customers_widget.py
+379,required_marker,customer_inline_uses_shared_host,required:PartyInlineEditorHostMixin,pass,PartyInlineEditorHostMixin
+379,required_marker,customer_inline_uses_shared_host,required:_install_party_inline_host,pass,_install_party_inline_host
+379,required_marker,customer_inline_uses_shared_host,required:_show_inline_party_editor('customer',pass,_show_inline_party_editor('customer'
+379,forbidden_text,customer_inline_uses_shared_host,forbidden:inline_title_label,pass,inline_title_label
+379,forbidden_text,customer_inline_uses_shared_host,forbidden:InlineEditorTitle,pass,InlineEditorTitle
+379,forbidden_text,customer_inline_uses_shared_host,forbidden:DocumentHeaderCard,pass,DocumentHeaderCard
+379,source,supplier_inline_uses_shared_host,parse,pass,alrajhi_client/views/widgets/suppliers_widget.py
+379,required_marker,supplier_inline_uses_shared_host,required:PartyInlineEditorHostMixin,pass,PartyInlineEditorHostMixin
+379,required_marker,supplier_inline_uses_shared_host,required:_install_party_inline_host,pass,_install_party_inline_host
+379,required_marker,supplier_inline_uses_shared_host,required:_show_inline_party_editor('supplier',pass,_show_inline_party_editor('supplier'
+379,forbidden_text,supplier_inline_uses_shared_host,forbidden:inline_title_label,pass,inline_title_label
+379,forbidden_text,supplier_inline_uses_shared_host,forbidden:InlineEditorTitle,pass,InlineEditorTitle
+379,forbidden_text,supplier_inline_uses_shared_host,forbidden:DocumentHeaderCard,pass,DocumentHeaderCard
+379,source,party_editor_inline_hides_document_header,parse,pass,alrajhi_client/features/parties/party_editor_tab.py
+379,required_marker,party_editor_inline_hides_document_header,required:inline_mode: bool = False,pass,inline_mode: bool = False
+379,required_marker,party_editor_inline_hides_document_header,required:self.inline_mode = bool(inline_mode),pass,self.inline_mode = bool(inline_mode)
+379,required_marker,party_editor_inline_hides_document_header,required:if not self.inline_mode:,pass,if not self.inline_mode:
+379,required_marker,party_editor_inline_hides_document_header,required:root.addWidget(self._build_header()),pass,root.addWidget(self._build_header())
+379,no_sub_tabs,alrajhi_client/views/widgets/customers_widget.py,add_customer:no_open_party_document,pass,"_show_inline_party_editor,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/customers_widget.py,add_customer:no_open_document_tab,pass,"_show_inline_party_editor,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/customers_widget.py,add_customer:no_open_tab,pass,"_show_inline_party_editor,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/customers_widget.py,edit_customer:no_open_party_document,pass,"_show_inline_party_editor,current_source_row,get_id,hasattr,row,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/customers_widget.py,edit_customer:no_open_document_tab,pass,"_show_inline_party_editor,current_source_row,get_id,hasattr,row,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/customers_widget.py,edit_customer:no_open_tab,pass,"_show_inline_party_editor,current_source_row,get_id,hasattr,row,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/suppliers_widget.py,add_supplier:no_open_party_document,pass,"_show_inline_party_editor,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/suppliers_widget.py,add_supplier:no_open_document_tab,pass,"_show_inline_party_editor,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/suppliers_widget.py,add_supplier:no_open_tab,pass,"_show_inline_party_editor,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/suppliers_widget.py,edit_supplier:no_open_party_document,pass,"_show_inline_party_editor,current_source_row,get_id,hasattr,row,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/suppliers_widget.py,edit_supplier:no_open_document_tab,pass,"_show_inline_party_editor,current_source_row,get_id,hasattr,row,show_toast,tr"
+379,no_sub_tabs,alrajhi_client/views/widgets/suppliers_widget.py,edit_supplier:no_open_tab,pass,"_show_inline_party_editor,current_source_row,get_id,hasattr,row,show_toast,tr"

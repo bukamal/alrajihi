@@ -170,6 +170,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (376, "VOUCHER_MASTER_DETAIL_INLINE"),
         (377, "INLINE_MANAGEMENT_EDITOR"),
         (378, "INLINE_RUNTIME_HOTFIX"),
+        (379, "INLINE_PARTY_LAYOUT_UNIFICATION"),
     ]
 )
 
@@ -305,6 +306,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (376, "voucher_master_detail_inline"),
         (377, "inline_management_editor"),
         (378, "inline_runtime_hotfix"),
+        (379, "inline_party_layout_unification"),
     ]
 )
 
@@ -421,6 +423,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("voucher_master_detail_inline", "shell", "Voucher list uses the same master-detail inline editor structure as customers and suppliers", "tools/phase376_voucher_master_detail_inline_guard.py", "tools/audit_outputs/voucher_master_detail_inline_matrix.csv", phase=376),
     ReleaseGateCheck("inline_management_editor", "shell", "Users, categories, warehouses and branches add/edit inline instead of spawning sub-tabs", "tools/phase377_inline_management_editor_guard.py", "tools/audit_outputs/inline_management_editor_matrix.csv", phase=377),
     ReleaseGateCheck("inline_runtime_hotfix", "shell", "Inline runtime hotfix for users, vouchers, cashboxes and menu routes", "tools/phase378_inline_runtime_hotfix_guard.py", "tools/audit_outputs/inline_runtime_hotfix_matrix.csv", phase=378),
+    ReleaseGateCheck("inline_party_layout_unification", "shell", "Customer and supplier inline editors share one wide layout without duplicate title cards", "tools/phase379_inline_party_layout_unification_guard.py", "tools/audit_outputs/inline_party_layout_unification_matrix.csv", phase=379),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

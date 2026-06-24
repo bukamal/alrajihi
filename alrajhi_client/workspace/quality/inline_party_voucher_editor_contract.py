@@ -17,8 +17,8 @@ INLINE_LIST_WIDGETS = (
 )
 
 INLINE_EDITOR_MARKERS = {
-    "customers": ("QStackedWidget", "_show_inline_party_editor", "PartyEditorTab", "detail_stack"),
-    "suppliers": ("QStackedWidget", "_show_inline_party_editor", "PartyEditorTab", "detail_stack"),
+    "customers": ("PartyInlineEditorHostMixin", "_install_party_inline_host", "_show_inline_party_editor"),
+    "suppliers": ("PartyInlineEditorHostMixin", "_install_party_inline_host", "_show_inline_party_editor"),
     "vouchers": ("QStackedWidget", "_show_inline_voucher_editor", "VoucherEditorTab", "ExpenseDocumentTab"),
 }
 

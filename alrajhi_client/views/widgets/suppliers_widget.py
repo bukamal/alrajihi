@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
-                             QLabel, QComboBox, QHeaderView, QFormLayout, QStackedWidget)
+                             QLabel, QComboBox, QHeaderView, QFormLayout)
 from PyQt5.QtCore import Qt
 from decimal import Decimal
 from core.services.entity_service import entity_service
@@ -13,10 +13,10 @@ from core.offline_guard import is_offline_read_error, offline_read_message
 from views.widgets.modern_ui import apply_modern_widget
 from views.dialogs.add_entity_dialog import AddEntityDialog  # legacy emergency fallback; Document Shell remains primary
 from i18n import translate as tr, qt_layout_direction
-from ui.components.responsive_master_detail import DetailPlaceholder, ResponsiveMasterDetail
+from views.widgets.party_inline_editor_host import PartyInlineEditorHostMixin
 from workspace.lists.list_workspace_contract import bind_list_workspace
 
-class SuppliersWidget(QWidget):
+class SuppliersWidget(PartyInlineEditorHostMixin, QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         bind_list_workspace(self, 'suppliers')
@@ -51,30 +51,11 @@ class SuppliersWidget(QWidget):
         self.table = SmartTableView(identity="suppliers")
         self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.table.doubleClicked.connect(self.edit_supplier)
-        self.detail_panel = DetailPlaceholder(tr('supplier_details') if tr('supplier_details') != 'supplier_details' else tr('supplier'))
-        self.detail_stack = QStackedWidget(self)
-        self.detail_stack.addWidget(self.detail_panel)
-        self.inline_editor_page = QWidget(self)
-        inline_layout = QVBoxLayout(self.inline_editor_page)
-        inline_layout.setContentsMargins(0, 0, 0, 0)
-        inline_layout.setSpacing(8)
-        inline_header = QHBoxLayout()
-        self.inline_title_label = QLabel('', self.inline_editor_page)
-        self.inline_title_label.setObjectName('InlineEditorTitle')
-        self.inline_back_btn = QPushButton(tr('back') if tr('back') != 'back' else 'عودة', self.inline_editor_page)
-        self.inline_back_btn.clicked.connect(self._close_inline_editor)
-        inline_header.addWidget(self.inline_title_label, 1)
-        inline_header.addWidget(self.inline_back_btn)
-        inline_layout.addLayout(inline_header)
-        self.inline_editor_host = QWidget(self.inline_editor_page)
-        self.inline_editor_host_layout = QVBoxLayout(self.inline_editor_host)
-        self.inline_editor_host_layout.setContentsMargins(0, 0, 0, 0)
-        self.inline_editor_host_layout.setSpacing(0)
-        inline_layout.addWidget(self.inline_editor_host, 1)
-        self._inline_editor = None
-        self.detail_stack.addWidget(self.inline_editor_page)
-        self.master_detail = ResponsiveMasterDetail(self.table, self.detail_stack, self)
-        layout.addWidget(self.master_detail, 1)
+        self._install_party_inline_host(
+            self.table,
+            layout,
+            tr('supplier_details') if tr('supplier_details') != 'supplier_details' else tr('supplier'),
+        )
 
         pagination_layout = QHBoxLayout()
         self.prev_btn = QPushButton(tr("previous"))
@@ -170,69 +151,13 @@ class SuppliersWidget(QWidget):
             f"{tr('phone')}: {data.get('phone', '')}",
             f"{tr('address')}: {data.get('address', '')}",
             f"{tr('balance')}: {data.get('balance', '')}",
-            tr('double_click_to_open_document') if tr('double_click_to_open_document') != 'double_click_to_open_document' else 'انقر مرتين لفتح تبويب المستند',
+            tr('double_click_to_open_document') if tr('double_click_to_open_document') != 'double_click_to_open_document' else 'انقر مرتين للتحرير داخل نفس التبويب',
         ])
 
 
-    def _clear_inline_editor(self):
-        editor = getattr(self, '_inline_editor', None)
-        if editor is None:
-            return
-        try:
-            self.inline_editor_host_layout.removeWidget(editor)
-        except Exception:
-            pass
-        editor.setParent(None)
-        editor.deleteLater()
-        self._inline_editor = None
-
-    def _close_inline_editor(self, *args, force: bool = False):
-        editor = getattr(self, '_inline_editor', None)
-        if editor is not None and not force and hasattr(editor, 'can_close'):
-            if not editor.can_close():
-                return False
-        self._clear_inline_editor()
-        self.detail_stack.setCurrentWidget(self.detail_panel)
-        self._update_detail_preview()
-        return True
-
-    def _after_inline_party_saved(self, saved_id=None):
-        self.refresh()
-        self._close_inline_editor(force=True)
-
-    def _show_inline_party_editor(self, party_id=None):
-        # Phase375: list Add/Edit uses inline editor, not a workspace tab.
-        # Compatibility marker only: main.open_party_document('supplier') was the legacy route.
-        if getattr(self, '_inline_editor', None) is not None:
-            if not self._close_inline_editor():
-                return None
-        try:
-            from features.parties import PartyEditorTab
-            editor = PartyEditorTab(self.inline_editor_host, party_type='supplier', party_id=party_id)
-            editor.saved.connect(self._after_inline_party_saved)
-            try:
-                editor.titleChanged.connect(self.inline_title_label.setText)
-            except Exception:
-                pass
-            self.inline_title_label.setText(editor.windowTitle() or (tr('supplier_new_tab') if party_id is None else tr('supplier')))
-            self.inline_editor_host_layout.addWidget(editor)
-            self._inline_editor = editor
-            self.detail_stack.setCurrentWidget(self.inline_editor_page)
-            return editor
-        except Exception as exc:
-            show_toast(str(exc), 'error', self)
-            return None
-
-    def _main_window(self):
-        widget = self
-        while widget is not None:
-            if hasattr(widget, 'open_party_document'):
-                return widget
-            widget = widget.parent()
-        return None
 
     def add_supplier(self):
-        if self._show_inline_party_editor(None) is not None:
+        if self._show_inline_party_editor('supplier', None) is not None:
             return
         show_toast(tr('party_document_unavailable') if tr('party_document_unavailable') != 'party_document_unavailable' else 'تعذر فتح محرر المورد', 'error', self)
 
@@ -241,7 +166,7 @@ class SuppliersWidget(QWidget):
         supp_id = self.model.get_id(row)
         if not supp_id:
             return
-        if self._show_inline_party_editor(supp_id) is None:
+        if self._show_inline_party_editor('supplier', supp_id) is None:
             show_toast(tr('party_document_unavailable') if tr('party_document_unavailable') != 'party_document_unavailable' else 'تعذر فتح محرر المورد', 'error', self)
 
     def prev_page(self):

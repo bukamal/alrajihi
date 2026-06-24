@@ -84,9 +84,10 @@ class PartyEditorTab(BaseDocumentTab):
     governed by party_operation_policy.
     """
 
-    def __init__(self, parent=None, party_type: str = 'customer', party_id: Optional[int] = None) -> None:
+    def __init__(self, parent=None, party_type: str = 'customer', party_id: Optional[int] = None, inline_mode: bool = False) -> None:
         party_type = 'supplier' if party_type == 'supplier' else 'customer'
         super().__init__(party_type, document_id=party_id, parent=parent)
+        self.inline_mode = bool(inline_mode)
         self.party_type = party_type
         self.document_descriptor = self.DOCUMENT_DESCRIPTOR_BY_PARTY_TYPE[party_type]
         try:
@@ -125,10 +126,15 @@ class PartyEditorTab(BaseDocumentTab):
     def _build_ui(self) -> None:
         self.setLayoutDirection(qt_layout_direction())
         root = QVBoxLayout(self)
-        root.setContentsMargins(14, 14, 14, 14)
-        root.setSpacing(10)
+        if self.inline_mode:
+            root.setContentsMargins(0, 0, 0, 0)
+            root.setSpacing(8)
+        else:
+            root.setContentsMargins(14, 14, 14, 14)
+            root.setSpacing(10)
 
-        root.addWidget(self._build_header())
+        if not self.inline_mode:
+            root.addWidget(self._build_header())
         root.addWidget(self._build_body(), 0)
 
         context_label = QLabel(_tr('party_context_title', 'السجل المرتبط بالطرف'), self)
@@ -456,10 +462,10 @@ class PartyEditorTab(BaseDocumentTab):
 
 
 class CustomerEditorTab(PartyEditorTab):
-    def __init__(self, parent=None, customer_id: Optional[int] = None) -> None:
-        super().__init__(parent=parent, party_type='customer', party_id=customer_id)
+    def __init__(self, parent=None, customer_id: Optional[int] = None, inline_mode: bool = False) -> None:
+        super().__init__(parent=parent, party_type='customer', party_id=customer_id, inline_mode=inline_mode)
 
 
 class SupplierEditorTab(PartyEditorTab):
-    def __init__(self, parent=None, supplier_id: Optional[int] = None) -> None:
-        super().__init__(parent=parent, party_type='supplier', party_id=supplier_id)
+    def __init__(self, parent=None, supplier_id: Optional[int] = None, inline_mode: bool = False) -> None:
+        super().__init__(parent=parent, party_type='supplier', party_id=supplier_id, inline_mode=inline_mode)

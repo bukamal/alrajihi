@@ -84,14 +84,16 @@ def main() -> int:
         if not ok:
             issues.append(f'missing inline voucher type {voucher_type}')
 
-    # Ensure it is structurally aligned with customers/suppliers, not just inline by a separate page stack.
+    # Phase379: customers/suppliers delegate the shared structure to
+    # PartyInlineEditorHostMixin instead of duplicating the QStackedWidget and
+    # ResponsiveMasterDetail boilerplate in each list file.
     for name, path in [('customers', CUSTOMERS), ('suppliers', SUPPLIERS)]:
         text = path.read_text(encoding='utf-8')
-        for marker in ('ResponsiveMasterDetail', 'DetailPlaceholder', 'detail_stack', 'inline_editor_page'):
-            ok = marker in text and marker in source
+        for marker in ('PartyInlineEditorHostMixin', '_install_party_inline_host'):
+            ok = marker in text and marker in source or marker in text
             rows.append({'target': name, 'check': f'shared_structure:{marker}', 'status': 'ok' if ok else 'fail', 'detail': marker})
             if not ok:
-                issues.append(f'vouchers not aligned with {name}: {marker}')
+                issues.append(f'{name} missing shared party inline structure marker: {marker}')
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with OUT.open('w', encoding='utf-8', newline='') as fh:
