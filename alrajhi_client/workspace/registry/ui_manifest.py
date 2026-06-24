@@ -549,7 +549,7 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
             _entry("pos", "pos", "barcode", page_id="pos", shortcut="F2"),
             _entry("sales_invoices", "sales_invoices", "file-invoice-dollar", page_id="sales_invoices", shortcut="F3"),
             _entry("returns", "sales_returns", "undo", page_id="returns"),
-            _entry("vouchers_receipt", "receipt_voucher", "hand-holding-usd", page_id="vouchers", separator_before=True),
+            _entry("vouchers_receipt", "receipt_voucher", "hand-holding-usd", callback_key="open_receipt_voucher", separator_before=True),
         ),
     ),
     WorkspaceMenuSpec(
@@ -559,7 +559,7 @@ MAIN_NAVIGATION_MENUS: tuple[WorkspaceMenuSpec, ...] = (
         (
             _entry("purchase_invoices", "purchase_invoices", "file-invoice", page_id="purchase_invoices"),
             _entry("purchase_returns", "purchase_returns", "undo-alt", page_id="purchase_returns"),
-            _entry("vouchers_payment", "payment_voucher", "money-bill-wave", page_id="vouchers", separator_before=True),
+            _entry("vouchers_payment", "payment_voucher", "money-bill-wave", callback_key="open_payment_voucher", separator_before=True),
         ),
     ),
     WorkspaceMenuSpec(

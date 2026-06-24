@@ -924,6 +924,23 @@ class MainWindow(QMainWindow):
         except Exception:
             return False
 
+    def _open_page_inline_action(self, page_id: str, method_name: str, *args, **kwargs):
+        """Open a singleton list workspace and invoke its inline editor action.
+
+        Phase378 keeps menu/quick-action creation for management documents inside
+        the owning workspace instead of spawning secondary tabs.
+        """
+        try:
+            self.switch_page(page_id)
+            page = self.pages.get(page_id) if hasattr(self, 'pages') else None
+            method = getattr(page, method_name, None)
+            if callable(method):
+                return method(*args, **kwargs)
+            raise AttributeError(f'{page_id}.{method_name}')
+        except Exception as exc:
+            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+            return None
+
     def open_item_document(self, item_id=None):
         try:
             from features.items import ItemEditorTab
@@ -936,33 +953,20 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
 
     def open_category_document(self, category_id=None):
-        try:
-            from features.categories import CategoryEditorTab
-            sequence = getattr(self, '_category_tab_sequence', 0) + 1
-            self._category_tab_sequence = sequence
-            tab_id = f"category:{category_id or 'new'}:{sequence if category_id is None else category_id}"
-            widget = CategoryEditorTab(self, category_id=category_id)
-            return self._open_document_tab(tab_id, widget.windowTitle() or translate('add_category'), widget, icon_name='fa5s.folder-plus', singleton=False)
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+        # Phase378: menu/category creation opens inline inside CategoriesWidget.
+        if category_id is None:
+            return self._open_page_inline_action('categories', 'add_category')
+        return self._open_page_inline_action('categories', 'open_category_inline', category_id)
 
     def open_quick_item(self):
         self.open_item_document()
 
     def open_party_document(self, party_type='customer', party_id=None):
-        try:
-            from features.parties import PartyEditorTab
-            party_type = party_type if party_type in ('customer', 'supplier') else 'customer'
-            sequence_name = f'_{party_type}_tab_sequence'
-            sequence = getattr(self, sequence_name, 0) + 1
-            setattr(self, sequence_name, sequence)
-            tab_id = f"{party_type}:{party_id or 'new'}:{sequence if party_id is None else party_id}"
-            widget = PartyEditorTab(self, party_type=party_type, party_id=party_id)
-            icon = 'fa5s.user-friends' if party_type == 'customer' else 'fa5s.truck-loading'
-            fallback = translate('customer_new_tab') if party_type == 'customer' else translate('supplier_new_tab')
-            return self._open_document_tab(tab_id, widget.windowTitle() or fallback, widget, icon_name=icon, singleton=False)
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+        # Phase378: menu/customer/supplier creation opens inline in its owning workspace.
+        party_type = party_type if party_type in ('customer', 'supplier') else 'customer'
+        page_id = 'customers' if party_type == 'customer' else 'suppliers'
+        method_name = 'add_customer' if party_type == 'customer' and party_id is None else 'add_supplier' if party_id is None else '_show_inline_party_editor'
+        return self._open_page_inline_action(page_id, method_name, party_id) if party_id is not None else self._open_page_inline_action(page_id, method_name)
 
     def open_quick_customer(self):
         return self.open_party_document('customer')
@@ -971,20 +975,9 @@ class MainWindow(QMainWindow):
         return self.open_party_document('supplier')
 
     def open_quick_voucher(self, voucher_type='receipt', voucher=None):
-        try:
-            voucher_type = voucher_type or (voucher.get('type') if isinstance(voucher, dict) else 'receipt') or 'receipt'
-            if voucher_type == 'expense':
-                voucher_id = voucher.get('id') if isinstance(voucher, dict) else None
-                return self.open_expense_document(expense_id=voucher_id)
-            from features.vouchers import VoucherEditorTab
-            sequence = getattr(self, '_voucher_tab_sequence', 0) + 1
-            self._voucher_tab_sequence = sequence
-            voucher_id = voucher.get('id') if isinstance(voucher, dict) else None
-            tab_id = f"voucher:{voucher_id or 'new'}:{sequence if voucher_id is None else voucher_id}"
-            widget = VoucherEditorTab(self, voucher=voucher, voucher_type=voucher_type)
-            return self._open_document_tab(tab_id, widget.windowTitle() or translate('new_voucher'), widget, icon_name='fa5s.receipt', singleton=False)
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
+        # Phase378: menu vouchers open inside VouchersWidget and keep the selected type.
+        voucher_type = voucher_type or (voucher.get('type') if isinstance(voucher, dict) else 'receipt') or 'receipt'
+        return self._open_page_inline_action('vouchers', 'open_voucher_inline', voucher_type, voucher)
 
     def open_return_document(self, return_type='sale', return_id=None, return_data=None):
         try:
@@ -1089,122 +1082,33 @@ class MainWindow(QMainWindow):
 
 
     def open_branch_document(self, branch_id=None):
-        try:
-            from features.branches import BranchDocumentTab
-            sequence = getattr(self, '_branch_tab_sequence', 0) + 1
-            self._branch_tab_sequence = sequence
-            tab_id = f"branch:{branch_id or 'new'}:{sequence if branch_id is None else branch_id}"
-            widget = BranchDocumentTab(self, branch_id=branch_id)
-            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('branch_document_new'))
-            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.code-branch', singleton=False)
-            if hasattr(widget, 'saved'):
-                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('branches'))
-            return opened
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
-
-
+        # Phase378: branch add/edit opens inline inside BranchesWidget.
+        return self._open_page_inline_action('branches', 'open_branch_inline', branch_id)
     def open_warehouse_document(self, warehouse_id=None):
-        try:
-            from features.inventory import WarehouseDocumentTab
-            sequence = getattr(self, '_warehouse_tab_sequence', 0) + 1
-            self._warehouse_tab_sequence = sequence
-            tab_id = f"warehouse:{warehouse_id or 'new'}:{sequence if warehouse_id is None else warehouse_id}"
-            widget = WarehouseDocumentTab(self, warehouse_id=warehouse_id)
-            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('warehouse_document_new'))
-            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.warehouse', singleton=False)
-            if hasattr(widget, 'saved'):
-                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('warehouses'))
-            return opened
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
-
-
-
+        # Phase378: warehouse add/edit opens inline inside WarehousesWidget.
+        return self._open_page_inline_action('warehouses', 'open_warehouse_inline', warehouse_id)
     def open_cashbox_document(self, cashbox_id=None):
-        try:
-            from features.finance import CashboxDocumentTab
-            sequence = getattr(self, '_cashbox_tab_sequence', 0) + 1
-            self._cashbox_tab_sequence = sequence
-            tab_id = f"cashbox:{cashbox_id or 'new'}:{sequence if cashbox_id is None else cashbox_id}"
-            widget = CashboxDocumentTab(self, cashbox_id=cashbox_id)
-            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('cashbox_document_new'))
-            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.cash-register', singleton=False)
-            if hasattr(widget, 'saved'):
-                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('cashboxes'))
-            return opened
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
-
+        # Phase378: cashbox add/edit opens inline inside CashboxesWidget.
+        return self._open_page_inline_action('cashboxes', 'open_cashbox_inline', cashbox_id)
     def open_bank_account_document(self, bank_account_id=None):
-        try:
-            from features.finance import BankAccountDocumentTab
-            sequence = getattr(self, '_bank_account_tab_sequence', 0) + 1
-            self._bank_account_tab_sequence = sequence
-            tab_id = f"bank_account:{bank_account_id or 'new'}:{sequence if bank_account_id is None else bank_account_id}"
-            widget = BankAccountDocumentTab(self, bank_account_id=bank_account_id)
-            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('bank_account_document_new'))
-            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.university', singleton=False)
-            if hasattr(widget, 'saved'):
-                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('cashboxes'))
-            return opened
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
-
-
+        # Phase378: bank-account add/edit opens inline inside CashboxesWidget.
+        return self._open_page_inline_action('cashboxes', 'open_bank_inline', bank_account_id)
     def open_expense_document(self, expense_id=None):
-        try:
-            from features.finance import ExpenseDocumentTab
-            expense = None
-            if expense_id:
-                try:
-                    from core.services.voucher_service import voucher_service
-                    expense = voucher_service.get(int(expense_id))
-                except Exception:
-                    expense = {'id': expense_id, 'type': 'expense'}
-            sequence = getattr(self, '_expense_tab_sequence', 0) + 1
-            self._expense_tab_sequence = sequence
-            tab_id = f"expense:{expense_id or 'new'}:{sequence if expense_id is None else expense_id}"
-            widget = ExpenseDocumentTab(self, expense=expense)
-            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('expense_document_new'))
-            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.file-invoice-dollar', singleton=False)
-            if hasattr(widget, 'saved'):
-                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('vouchers'))
-            return opened
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
-
+        # Phase378: expense voucher opens inline inside VouchersWidget.
+        expense = None
+        if expense_id:
+            try:
+                from core.services.voucher_service import voucher_service
+                expense = voucher_service.get(expense_id)
+            except Exception:
+                expense = {'id': expense_id, 'type': 'expense'}
+        return self._open_page_inline_action('vouchers', 'open_voucher_inline', 'expense', expense)
     def open_inventory_transfer_document(self):
-        try:
-            from features.inventory import InventoryTransferDocumentTab
-            sequence = getattr(self, '_inventory_transfer_tab_sequence', 0) + 1
-            self._inventory_transfer_tab_sequence = sequence
-            tab_id = f"warehouse_transfer:new:{sequence}"
-            widget = InventoryTransferDocumentTab(self)
-            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('inventory_transfer_document_new'))
-            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.exchange-alt', singleton=False)
-            if hasattr(widget, 'saved'):
-                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('warehouses'))
-            return opened
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
-
-
+        # Phase378: inventory transfer stays inside WarehousesWidget.
+        return self._open_page_inline_action('warehouses', 'add_transfer')
     def open_user_document(self, user_id=None):
-        try:
-            from features.users import UserDocumentTab
-            sequence = getattr(self, '_user_tab_sequence', 0) + 1
-            self._user_tab_sequence = sequence
-            tab_id = f"user:{user_id or 'new'}:{sequence if user_id is None else user_id}"
-            widget = UserDocumentTab(self, user_id=user_id)
-            title = widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or translate('user_document_new'))
-            opened = self._open_document_tab(tab_id, title, widget, icon_name='fa5s.user-cog', singleton=False)
-            if hasattr(widget, 'saved'):
-                widget.saved.connect(lambda *_: self._refresh_page_if_loaded('users'))
-            return opened
-        except Exception as exc:
-            QMessageBox.warning(self, translate('quick_actions'), str(exc))
-
+        # Phase378: user add/edit opens inline inside UsersWidget.
+        return self._open_page_inline_action('users', 'open_user_inline', user_id)
     def open_settings_section_document(self, section='company'):
         try:
             from features.settings import SETTINGS_SECTION_TABS

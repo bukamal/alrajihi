@@ -169,6 +169,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (375, "INLINE_PARTY_VOUCHER_EDITOR"),
         (376, "VOUCHER_MASTER_DETAIL_INLINE"),
         (377, "INLINE_MANAGEMENT_EDITOR"),
+        (378, "INLINE_RUNTIME_HOTFIX"),
     ]
 )
 
@@ -303,6 +304,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (375, "inline_party_voucher_editor"),
         (376, "voucher_master_detail_inline"),
         (377, "inline_management_editor"),
+        (378, "inline_runtime_hotfix"),
     ]
 )
 
@@ -418,6 +420,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("inline_party_voucher_editor", "shell", "Customer, supplier and voucher lists open Add/Edit inline instead of spawning tabs", "tools/phase375_inline_party_voucher_editor_guard.py", "tools/audit_outputs/inline_party_voucher_editor_matrix.csv", phase=375),
     ReleaseGateCheck("voucher_master_detail_inline", "shell", "Voucher list uses the same master-detail inline editor structure as customers and suppliers", "tools/phase376_voucher_master_detail_inline_guard.py", "tools/audit_outputs/voucher_master_detail_inline_matrix.csv", phase=376),
     ReleaseGateCheck("inline_management_editor", "shell", "Users, categories, warehouses and branches add/edit inline instead of spawning sub-tabs", "tools/phase377_inline_management_editor_guard.py", "tools/audit_outputs/inline_management_editor_matrix.csv", phase=377),
+    ReleaseGateCheck("inline_runtime_hotfix", "shell", "Inline runtime hotfix for users, vouchers, cashboxes and menu routes", "tools/phase378_inline_runtime_hotfix_guard.py", "tools/audit_outputs/inline_runtime_hotfix_matrix.csv", phase=378),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

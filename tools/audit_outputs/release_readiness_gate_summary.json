@@ -1,9 +1,9 @@
 {
   "phase": 277,
   "baseline_phase": 276,
-  "checks": 112,
+  "checks": 113,
   "categories": {
-    "shell": 15,
+    "shell": 16,
     "settings": 3,
     "security": 3,
     "sync": 2,

@@ -41,7 +41,7 @@ class UserDocumentTab(BaseDocumentTab):
         self._build_ui()
         self._load_branches()
         if user_id:
-            self._load_user(int(user_id))
+            self._load_user(user_id)
         else:
             self._set_new_defaults()
         self._apply_permissions()
@@ -189,7 +189,7 @@ class UserDocumentTab(BaseDocumentTab):
     def _apply_permissions(self):
         editable = bool(self._can_edit)
         for widget in (self.username_edit, self.fullname_edit, self.role_combo, self.branch_combo, self.password_edit, self.confirm_edit):
-            widget.setEnabled(editable and widget.isVisible())
+            widget.setEnabled(editable and not widget.isHidden())
         self.bottom_save_btn.setEnabled(editable)
         if not editable:
             self.subtitle_label.setText(translate('user_read_only'))
@@ -240,13 +240,13 @@ class UserDocumentTab(BaseDocumentTab):
                 show_toast(translate('user_updated'), 'success', self)
             else:
                 saved_id = user_service.create_user(data['username'], data['password'], data['full_name'], data['role'], data['branch_id'])
-                self.document_state.document_id = int(saved_id) if str(saved_id).isdigit() else saved_id
+                self.document_state.document_id = saved_id
                 show_toast(translate('user_added'), 'success', self)
                 self.username_edit.setEnabled(False)
                 self.password_edit.hide(); self.confirm_edit.hide()
             self.set_dirty(False)
             self.saved.emit(saved_id)
-            self._load_user(int(saved_id)) if str(saved_id).isdigit() else None
+            self._load_user(saved_id)
         except Exception as exc:
             QMessageBox.critical(self, translate('error'), str(exc))
 

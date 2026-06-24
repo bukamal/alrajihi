@@ -202,6 +202,20 @@ class CategoriesWidget(InlineDocumentHostMixin, QWidget):
             return payload
         return None
 
+    def open_category_inline(self, category_id=None):
+        if category_id is None:
+            return self.add_category()
+        if not category_operation_policy.can(category_operation_policy.OP_EDIT):
+            show_toast(translate('category_operation_denied'), 'warning', self)
+            return None
+        try:
+            from features.categories import CategoryEditorTab
+            editor = CategoryEditorTab(self.inline_editor_host, category_id=category_id)
+            return self._show_inline_document(editor, translate('edit_category'))
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
+            return None
+
     def add_category(self):
         if not category_operation_policy.can(category_operation_policy.OP_CREATE):
             show_toast(translate('category_operation_denied'), 'warning', self)
@@ -213,16 +227,8 @@ class CategoriesWidget(InlineDocumentHostMixin, QWidget):
             editor = CategoryEditorTab(self.inline_editor_host)
             return self._show_inline_document(editor, translate('add_category'))
         except Exception as exc:
-            show_toast(str(exc), 'warning', self)
-            payload = self._category_payload_dialog(translate('add_category'))
-            if not payload:
-                return
-            try:
-                product_service.add_category(payload)
-                show_toast(translate('category_added'), 'success', self)
-                self.refresh()
-            except Exception as e:
-                show_toast(str(e), 'error', self)
+            show_toast(str(exc), 'error', self)
+            return None
 
     def edit_category(self, index=None):
         row = self._source_row_for_index(index)
@@ -238,20 +244,8 @@ class CategoriesWidget(InlineDocumentHostMixin, QWidget):
             editor = CategoryEditorTab(self.inline_editor_host, category_id=cat_id)
             return self._show_inline_document(editor, translate('edit_category'))
         except Exception as exc:
-            show_toast(str(exc), 'warning', self)
-            category = product_service.category_by_id(cat_id)
-            if not category:
-                show_toast(translate('category_not_found'), 'error', self)
-                return
-            payload = self._category_payload_dialog(translate('edit_category'), category)
-            if not payload:
-                return
-            try:
-                product_service.update_category(cat_id, payload)
-                show_toast(translate('category_updated'), 'success', self)
-                self.refresh()
-            except Exception as e:
-                show_toast(str(e), 'error', self)
+            show_toast(str(exc), 'error', self)
+            return None
 
     def archive_selected(self):
         cat_id = self.current_category_id()

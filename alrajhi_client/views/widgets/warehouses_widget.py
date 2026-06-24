@@ -746,6 +746,20 @@ class WarehousesWidget(InlineDocumentHostMixin, QWidget):
             return payload
         return None
 
+    def open_warehouse_inline(self, warehouse_id=None):
+        if warehouse_id is None:
+            return self.add_warehouse()
+        if not self._require_inventory_operation(inventory_operation_policy.OP_WAREHOUSE_EDIT):
+            return None
+        try:
+            from features.inventory.documents.warehouse_document_tab import WarehouseDocumentTab
+            editor = WarehouseDocumentTab(self.inline_editor_host, warehouse_id=warehouse_id)
+            self.tabs.setCurrentWidget(getattr(self, 'warehouse_page', self.tabs.currentWidget()))
+            return self._show_inline_document(editor, translate('edit_warehouse_title'))
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
+            return None
+
     def add_warehouse(self):
         if not self._require_inventory_operation(inventory_operation_policy.OP_WAREHOUSE_CREATE):
             return
@@ -757,16 +771,8 @@ class WarehousesWidget(InlineDocumentHostMixin, QWidget):
             self.tabs.setCurrentWidget(getattr(self, 'warehouse_page', self.tabs.currentWidget()))
             return self._show_inline_document(editor, translate('add_warehouse_title'))
         except Exception as exc:
-            show_toast(str(exc), 'warning', self)
-            payload = self._warehouse_dialog(translate('add_warehouse_title'))
-            if not payload:
-                return
-            try:
-                warehouse_service.add_warehouse(payload)
-                show_toast(translate('warehouse_created'), 'success', self)
-                self.refresh()
-            except Exception as e:
-                show_toast(str(e), 'error', self)
+            show_toast(str(exc), 'error', self)
+            return None
 
     def edit_warehouse(self):
         if not self._require_inventory_operation(inventory_operation_policy.OP_WAREHOUSE_EDIT):
@@ -781,20 +787,8 @@ class WarehousesWidget(InlineDocumentHostMixin, QWidget):
             self.tabs.setCurrentWidget(getattr(self, 'warehouse_page', self.tabs.currentWidget()))
             return self._show_inline_document(editor, translate('edit_warehouse_title'))
         except Exception as exc:
-            show_toast(str(exc), 'warning', self)
-            wh = warehouse_service.warehouse_by_id(wh_id)
-            if not wh:
-                show_toast(translate('warehouse_not_found'), 'error', self)
-                return
-            payload = self._warehouse_dialog(translate('edit_warehouse_title'), wh)
-            if not payload:
-                return
-            try:
-                warehouse_service.update_warehouse(wh_id, payload)
-                show_toast(translate('warehouse_updated'), 'success', self)
-                self.refresh()
-            except Exception as e:
-                show_toast(str(e), 'error', self)
+            show_toast(str(exc), 'error', self)
+            return None
 
     def archive_warehouse(self):
         if not self._require_inventory_operation(inventory_operation_policy.OP_WAREHOUSE_ARCHIVE):

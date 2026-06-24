@@ -1,0 +1,59 @@
+﻿key,category,target,status,detail,phase
+parse,source,users_document_string_ids,pass,alrajhi_client/features/users/documents/user_document_tab.py,378
+required:self._load_user(user_id),required_marker,users_document_string_ids,pass,self._load_user(user_id),378
+required:self.document_state.document_id = saved_id,required_marker,users_document_string_ids,pass,self.document_state.document_id = saved_id,378
+required:self._load_user(saved_id),required_marker,users_document_string_ids,pass,self._load_user(saved_id),378
+required:not widget.isHidden(),required_marker,users_document_string_ids,pass,not widget.isHidden(),378
+forbidden:self._load_user(int(user_id)),forbidden_text,users_document_string_ids,pass,self._load_user(int(user_id)),378
+forbidden:int(saved_id)) if str(saved_id).isdigit(),forbidden_text,users_document_string_ids,pass,int(saved_id)) if str(saved_id).isdigit(),378
+forbidden:self._load_user(int(saved_id)),forbidden_text,users_document_string_ids,pass,self._load_user(int(saved_id)),378
+parse,source,users_widget_no_modal_fallback,pass,alrajhi_client/views/widgets/users_widget.py,378
+required:open_user_inline,required_marker,users_widget_no_modal_fallback,pass,open_user_inline,378
+required:_selected_user_id,required_marker,users_widget_no_modal_fallback,pass,_selected_user_id,378
+required:UserDocumentTab,required_marker,users_widget_no_modal_fallback,pass,UserDocumentTab,378
+forbidden:dialog = UserDialog(self),forbidden_text,users_widget_no_modal_fallback,pass,dialog = UserDialog(self),378
+"forbidden:UserDialog(self, user_id=user_id)",forbidden_text,users_widget_no_modal_fallback,pass,"UserDialog(self, user_id=user_id)",378
+parse,source,vouchers_type_specific_inline,pass,alrajhi_client/views/widgets/vouchers_widget.py,378
+required:open_voucher_inline,required_marker,vouchers_type_specific_inline,pass,open_voucher_inline,378
+required:editor.header_panel.set_type(voucher_type),required_marker,vouchers_type_specific_inline,pass,editor.header_panel.set_type(voucher_type),378
+required:editor.header_panel.type_combo.setEnabled(False),required_marker,vouchers_type_specific_inline,pass,editor.header_panel.type_combo.setEnabled(False),378
+required:ExpenseDocumentTab,required_marker,vouchers_type_specific_inline,pass,ExpenseDocumentTab,378
+parse,source,cashboxes_master_detail_inline,pass,alrajhi_client/views/widgets/cashboxes_widget.py,378
+required:ResponsiveMasterDetail,required_marker,cashboxes_master_detail_inline,pass,ResponsiveMasterDetail,378
+required:DetailPlaceholder,required_marker,cashboxes_master_detail_inline,pass,DetailPlaceholder,378
+required:open_cashbox_inline,required_marker,cashboxes_master_detail_inline,pass,open_cashbox_inline,378
+required:open_bank_inline,required_marker,cashboxes_master_detail_inline,pass,open_bank_inline,378
+required:_close_cashbox_inline_editor,required_marker,cashboxes_master_detail_inline,pass,_close_cashbox_inline_editor,378
+required:_close_bank_inline_editor,required_marker,cashboxes_master_detail_inline,pass,_close_bank_inline_editor,378
+parse,source,main_menu_inline_routes,pass,alrajhi_client/views/main_window.py,378
+required:_open_page_inline_action,required_marker,main_menu_inline_routes,pass,_open_page_inline_action,378
+"required:return self._open_page_inline_action('vouchers', 'open_voucher_inline'",required_marker,main_menu_inline_routes,pass,"return self._open_page_inline_action('vouchers', 'open_voucher_inline'",378
+"required:return self._open_page_inline_action('cashboxes', 'open_cashbox_inline'",required_marker,main_menu_inline_routes,pass,"return self._open_page_inline_action('cashboxes', 'open_cashbox_inline'",378
+"required:return self._open_page_inline_action('users', 'open_user_inline'",required_marker,main_menu_inline_routes,pass,"return self._open_page_inline_action('users', 'open_user_inline'",378
+parse,source,manifest_receipt_payment_callbacks,pass,alrajhi_client/workspace/registry/ui_manifest.py,378
+"required:callback_key=""open_receipt_voucher""",required_marker,manifest_receipt_payment_callbacks,pass,"callback_key=""open_receipt_voucher""",378
+"required:callback_key=""open_payment_voucher""",required_marker,manifest_receipt_payment_callbacks,pass,"callback_key=""open_payment_voucher""",378
+"forbidden:_entry(""vouchers_receipt"", ""receipt_voucher"", ""hand-holding-usd"", page_id=""vouchers""",forbidden_text,manifest_receipt_payment_callbacks,pass,"_entry(""vouchers_receipt"", ""receipt_voucher"", ""hand-holding-usd"", page_id=""vouchers""",378
+"forbidden:_entry(""vouchers_payment"", ""payment_voucher"", ""money-bill-wave"", page_id=""vouchers""",forbidden_text,manifest_receipt_payment_callbacks,pass,"_entry(""vouchers_payment"", ""payment_voucher"", ""money-bill-wave"", page_id=""vouchers""",378
+add_cashbox:no_open_cashbox_document,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,open_cashbox_inline",378
+add_cashbox:no_open_document_tab,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,open_cashbox_inline",378
+add_cashbox:no_open_tab,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,open_cashbox_inline",378
+edit_cashbox:no_open_cashbox_document,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,_selected,information,open_cashbox_inline,tr",378
+edit_cashbox:no_open_document_tab,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,_selected,information,open_cashbox_inline,tr",378
+edit_cashbox:no_open_tab,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,_selected,information,open_cashbox_inline,tr",378
+add_bank:no_open_bank_account_document,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,open_bank_inline",378
+add_bank:no_open_document_tab,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,open_bank_inline",378
+add_bank:no_open_tab,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,open_bank_inline",378
+edit_bank:no_open_bank_account_document,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,_selected,information,open_bank_inline,tr",378
+edit_bank:no_open_document_tab,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,_selected,information,open_bank_inline,tr",378
+edit_bank:no_open_tab,no_sub_tabs,alrajhi_client/views/widgets/cashboxes_widget.py,pass,"_require_finance_operation,_selected,information,open_bank_inline,tr",378
+open_category_document:no__open_document_tab,no_sub_tabs,alrajhi_client/views/main_window.py,pass,_open_page_inline_action,378
+open_party_document:no__open_document_tab,no_sub_tabs,alrajhi_client/views/main_window.py,pass,_open_page_inline_action,378
+open_quick_voucher:no__open_document_tab,no_sub_tabs,alrajhi_client/views/main_window.py,pass,"_open_page_inline_action,get,isinstance",378
+open_quick_voucher:no_open_expense_document,no_sub_tabs,alrajhi_client/views/main_window.py,pass,"_open_page_inline_action,get,isinstance",378
+open_branch_document:no__open_document_tab,no_sub_tabs,alrajhi_client/views/main_window.py,pass,_open_page_inline_action,378
+open_warehouse_document:no__open_document_tab,no_sub_tabs,alrajhi_client/views/main_window.py,pass,_open_page_inline_action,378
+open_cashbox_document:no__open_document_tab,no_sub_tabs,alrajhi_client/views/main_window.py,pass,_open_page_inline_action,378
+open_bank_account_document:no__open_document_tab,no_sub_tabs,alrajhi_client/views/main_window.py,pass,_open_page_inline_action,378
+open_inventory_transfer_document:no__open_document_tab,no_sub_tabs,alrajhi_client/views/main_window.py,pass,_open_page_inline_action,378
+open_user_document:no__open_document_tab,no_sub_tabs,alrajhi_client/views/main_window.py,pass,_open_page_inline_action,378

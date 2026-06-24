@@ -180,6 +180,19 @@ class BranchesWidget(InlineDocumentHostMixin, QWidget):
         except Exception:
             return None
 
+    def open_branch_inline(self, branch_id=None):
+        if branch_id is None:
+            return self.add_branch()
+        if not self._require_branch_operation(branch_operation_policy.OP_EDIT):
+            return None
+        try:
+            from features.branches import BranchDocumentTab
+            editor = BranchDocumentTab(self.inline_editor_host, branch_id=branch_id)
+            return self._show_inline_document(editor, translate('edit_branch'))
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
+            return None
+
     def add_branch(self):
         if not self._require_branch_operation(branch_operation_policy.OP_CREATE):
             return
@@ -190,15 +203,8 @@ class BranchesWidget(InlineDocumentHostMixin, QWidget):
             editor = BranchDocumentTab(self.inline_editor_host)
             return self._show_inline_document(editor, translate('new_branch'))
         except Exception as exc:
-            show_toast(str(exc), 'warning', self)
-            dlg = BranchDialog(self)
-            if dlg.exec_():
-                try:
-                    branch_service.add_branch(dlg.payload())
-                    show_toast(translate('branch_created'), 'success', self)
-                    self.refresh()
-                except Exception as e:
-                    QMessageBox.warning(self, translate('error'), str(e))
+            show_toast(str(exc), 'error', self)
+            return None
 
     def edit_branch(self):
         if not self._require_branch_operation(branch_operation_policy.OP_EDIT):
@@ -212,19 +218,8 @@ class BranchesWidget(InlineDocumentHostMixin, QWidget):
             editor = BranchDocumentTab(self.inline_editor_host, branch_id=branch_id)
             return self._show_inline_document(editor, translate('edit_branch'))
         except Exception as exc:
-            show_toast(str(exc), 'warning', self)
-            data = branch_service.branch_by_id(branch_id)
-            if not data:
-                QMessageBox.warning(self, translate('error'), translate('branch_not_found'))
-                return
-            dlg = BranchDialog(self, data)
-            if dlg.exec_():
-                try:
-                    branch_service.update_branch(branch_id, dlg.payload())
-                    show_toast(translate('branch_updated'), 'success', self)
-                    self.refresh()
-                except Exception as e:
-                    QMessageBox.warning(self, translate('error'), str(e))
+            show_toast(str(exc), 'error', self)
+            return None
 
 
     def set_default_branch(self):

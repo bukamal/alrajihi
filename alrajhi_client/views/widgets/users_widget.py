@@ -155,8 +155,38 @@ class UsersWidget(InlineDocumentHostMixin, QWidget):
         except Exception:
             pass
 
+    def _selected_user_id(self, index=None):
+        if not hasattr(self, 'model'):
+            return None
+        row = self._selected_source_row(index)
+        if row is None or row < 0:
+            return None
+        try:
+            data = self.model.get_row(row) if hasattr(self.model, 'get_row') else {}
+            user_id = data.get('id') if isinstance(data, dict) else None
+            if user_id not in (None, ''):
+                return user_id
+        except Exception:
+            pass
+        try:
+            user_id = self.model.get_id(row)
+            return user_id if user_id not in (None, '') else None
+        except Exception:
+            return None
+
+    def open_user_inline(self, user_id=None):
+        if user_id is None:
+            return self.add_user()
+        try:
+            from features.users import UserDocumentTab
+            editor = UserDocumentTab(self.inline_editor_host, user_id=user_id)
+            return self._show_inline_document(editor, translate('edit_user'))
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
+            return None
+
     def add_user(self):
-        # Phase377: Add user is inline master-detail, not a workspace sub-tab.
+        # Phase377/378: Add user is inline master-detail, not a workspace sub-tab or modal dialog.
         # Legacy route marker only: main.open_user_document()
         if not user_operation_policy.can(user_operation_policy.OP_CREATE):
             show_toast(translate('permission_denied'), 'warning', self)
@@ -166,24 +196,21 @@ class UsersWidget(InlineDocumentHostMixin, QWidget):
             editor = UserDocumentTab(self.inline_editor_host)
             return self._show_inline_document(editor, translate('add_user_new'))
         except Exception as exc:
-            show_toast(str(exc), 'warning', self)
-            dialog = UserDialog(self)
-            if dialog.exec():
-                self.refresh()
+            show_toast(str(exc), 'error', self)
+            return None
 
-    def edit_user(self, index):
-        row = self._selected_source_row(index)
-        user_id = self.model.get_id(row)
-        if user_id:
-            try:
-                from features.users import UserDocumentTab
-                editor = UserDocumentTab(self.inline_editor_host, user_id=user_id)
-                return self._show_inline_document(editor, translate('edit_user'))
-            except Exception as exc:
-                show_toast(str(exc), 'warning', self)
-                dialog = UserDialog(self, user_id=user_id)
-                if dialog.exec():
-                    self.refresh()
+    def edit_user(self, index=None):
+        user_id = self._selected_user_id(index)
+        if not user_id:
+            show_toast(translate('select_user_first') if translate('select_user_first') != 'select_user_first' else 'اختر مستخدماً أولاً', 'warning', self)
+            return None
+        try:
+            from features.users import UserDocumentTab
+            editor = UserDocumentTab(self.inline_editor_host, user_id=user_id)
+            return self._show_inline_document(editor, translate('edit_user'))
+        except Exception as exc:
+            show_toast(str(exc), 'error', self)
+            return None
 
     def prev_page(self):
         if self.current_page > 0:

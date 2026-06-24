@@ -304,19 +304,33 @@ class VouchersWidget(QWidget):
             if not self._close_inline_editor():
                 return None
         try:
-            voucher_type = voucher_type or (voucher.get('type') if isinstance(voucher, dict) else 'receipt') or 'receipt'
+            voucher_type = (voucher_type or (voucher.get('type') if isinstance(voucher, dict) else 'receipt') or 'receipt').strip().lower()
+            if voucher_type not in ('receipt', 'payment', 'expense'):
+                voucher_type = 'receipt'
             if voucher_type == 'expense':
                 from features.finance.documents import ExpenseDocumentTab
                 editor = ExpenseDocumentTab(self.inline_editor_host, expense=voucher if isinstance(voucher, dict) else None)
             else:
                 from features.vouchers import VoucherEditorTab
                 editor = VoucherEditorTab(self.inline_editor_host, voucher=voucher if isinstance(voucher, dict) else None, voucher_type=voucher_type)
+                # Phase378: the chosen menu option is authoritative; receipt opens
+                # a receipt-only editor and payment opens a payment-only editor.
+                try:
+                    editor.header_panel.set_type(voucher_type)
+                    editor.header_panel.type_combo.setEnabled(False)
+                    editor.header_panel.type_combo.setToolTip(_tr('voucher_type_locked_hint', 'نوع السند محدد من خيار الإضافة'))
+                    editor._sync_type_visibility()
+                    editor.title_label.setText(editor._title())
+                    editor.set_document_title(editor._title())
+                except Exception:
+                    pass
             editor.saved.connect(self._after_inline_voucher_saved)
             try:
                 editor.titleChanged.connect(self.inline_title_label.setText)
             except Exception:
                 pass
-            self.inline_title_label.setText(editor.windowTitle() or _tr('new_voucher', 'سند جديد'))
+            title = editor.workspace_title() if hasattr(editor, 'workspace_title') else (editor.windowTitle() or _tr('new_voucher', 'سند جديد'))
+            self.inline_title_label.setText(title)
             self.inline_editor_host_layout.addWidget(editor)
             self._inline_editor = editor
             self.detail_stack.setCurrentWidget(self.inline_editor_page)
@@ -324,6 +338,9 @@ class VouchersWidget(QWidget):
         except Exception as exc:
             show_toast(str(exc), 'error', self)
             return None
+
+    def open_voucher_inline(self, voucher_type='receipt', voucher=None):
+        return self._show_inline_voucher_editor(voucher_type=voucher_type, voucher=voucher)
 
     def add_voucher(self, voucher_type='receipt'):
         try:

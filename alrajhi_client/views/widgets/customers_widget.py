@@ -238,11 +238,6 @@ class CustomersWidget(QWidget):
     def add_customer(self):
         if self._show_inline_party_editor(None) is not None:
             return
-        # AddEntityDialog is retained only as an emergency fallback when the inline editor cannot be created.
-        dialog = AddEntityDialog(self, 'sale')
-        if dialog.exec_():
-            self.refresh()
-            return
         show_toast(tr('party_document_unavailable') if tr('party_document_unavailable') != 'party_document_unavailable' else 'تعذر فتح محرر العميل', 'error', self)
 
     def edit_customer(self, index):

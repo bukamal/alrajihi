@@ -110,4 +110,5 @@ special_interface_menu_entry_focus,shell,"Restaurant, cafe and apparel move to o
 inline_party_voucher_editor,shell,"Customer, supplier and voucher lists open Add/Edit inline instead of spawning tabs",375,tools/phase375_inline_party_voucher_editor_guard.py,True,tools/audit_outputs/inline_party_voucher_editor_matrix.csv,True,True
 voucher_master_detail_inline,shell,Voucher list uses the same master-detail inline editor structure as customers and suppliers,376,tools/phase376_voucher_master_detail_inline_guard.py,True,tools/audit_outputs/voucher_master_detail_inline_matrix.csv,True,True
 inline_management_editor,shell,"Users, categories, warehouses and branches add/edit inline instead of spawning sub-tabs",377,tools/phase377_inline_management_editor_guard.py,True,tools/audit_outputs/inline_management_editor_matrix.csv,True,True
+inline_runtime_hotfix,shell,"Inline runtime hotfix for users, vouchers, cashboxes and menu routes",378,tools/phase378_inline_runtime_hotfix_guard.py,True,tools/audit_outputs/inline_runtime_hotfix_matrix.csv,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True
