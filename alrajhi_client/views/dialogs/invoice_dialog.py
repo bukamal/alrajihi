@@ -143,9 +143,7 @@ class LinesModel(QAbstractTableModel):
                 return Qt.AlignCenter
             return None
         if role == Qt.TextAlignmentRole:
-            if col in (self.COL_ROW, self.COL_QUANTITY, self.COL_PRICE, self.COL_TOTAL, self.COL_PROFIT, self.COL_DISCOUNT, self.COL_TAX):
-                return Qt.AlignCenter
-            return Qt.AlignVCenter | Qt.AlignRight
+            return Qt.AlignCenter
         if role == Qt.DisplayRole or role == Qt.EditRole:
             if col == self.COL_ROW:
                 return row + 1

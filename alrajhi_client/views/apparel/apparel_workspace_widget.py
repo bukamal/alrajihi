@@ -524,7 +524,7 @@ class ApparelWorkspaceWidget(QWidget):
                 else:
                     value = row.get(key) or "—"
                 cell = QTableWidgetItem(str(value))
-                cell.setTextAlignment(Qt.AlignCenter if c else Qt.AlignVCenter | Qt.AlignLeft)
+                cell.setTextAlignment(Qt.AlignCenter)
                 self.report_table.setItem(r, c, cell)
         self.report_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.report_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)

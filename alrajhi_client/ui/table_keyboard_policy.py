@@ -48,6 +48,7 @@ class StandardTableKeyboardMixin:
     _standard_barcode_entry_keys = ("barcode",)
     _standard_quantity_entry_keys = ("qty", "quantity", "return_qty", "required_qty")
     _standard_default_editor_tokens = {"", "0", "0.0", "0.00", "0.000"}
+    _standard_navigation_clear_placeholders = False
 
     def init_standard_table_keyboard(self) -> None:
         """Enable the shared Enter/Shift+Enter table policy on this view."""
@@ -398,32 +399,67 @@ class StandardTableKeyboardMixin:
             return widget
 
     def _standard_prepare_active_editor(self, index: QModelIndex) -> None:
-        """Select real text and clear placeholder/default values in cell editors."""
+        """Prepare the active editor without erasing data while navigating.
+
+        Phase384: Enter navigation must not clear existing/default values merely
+        because focus moved into a cell.  The editor selects its text so genuine
+        new typing naturally replaces it, while moving through cells preserves the
+        displayed content until the operator actually enters a new value.
+        """
         editor = self._standard_editor_widget()
         if editor is None:
             return
         try:
-            value = ""
-            model = self._standard_model()
-            if model is not None and index.isValid():
-                value = str(model.data(index, Qt.EditRole) or "").strip()
             if isinstance(editor, QLineEdit):
-                if value in self._standard_default_editor_tokens:
-                    editor.clear()
-                else:
-                    editor.selectAll()
+                editor.setAlignment(Qt.AlignCenter)
+                editor.selectAll()
             elif isinstance(editor, QTextEdit):
-                if value in self._standard_default_editor_tokens:
-                    editor.clear()
-                else:
-                    editor.selectAll()
+                editor.selectAll()
             elif isinstance(editor, QPlainTextEdit):
-                if value in self._standard_default_editor_tokens:
-                    editor.clear()
-                else:
-                    editor.selectAll()
+                editor.selectAll()
+            try:
+                already = bool(editor.property("standard_enter_commit_filter"))
+            except Exception:
+                already = False
+            if not already:
+                editor.installEventFilter(self)
+                try:
+                    editor.setProperty("standard_enter_commit_filter", True)
+                except Exception:
+                    pass
         except Exception:
             pass
+
+    def eventFilter(self, obj, event):  # type: ignore[override]
+        try:
+            if (
+                getattr(self, "_standard_keyboard_active", False)
+                and getattr(obj, "property", lambda _name: False)("standard_enter_commit_filter")
+                and isinstance(event, QKeyEvent)
+                and event.key() in (Qt.Key_Return, Qt.Key_Enter)
+            ):
+                if event.modifiers() & Qt.ShiftModifier:
+                    current = self._standard_index()
+                    try:
+                        self.commitData(obj)
+                        self.closeEditor(obj, QAbstractItemDelegate.EditPreviousItem)
+                    except Exception:
+                        self._standard_focus_index(self._standard_next_index(current, False), start_edit=True)
+                    return True
+                try:
+                    self.commitData(obj)
+                    self.closeEditor(obj, QAbstractItemDelegate.NoHint)
+                    return True
+                except Exception:
+                    current = self._standard_index()
+                    self._standard_focus_index(self._standard_next_index(current, True), start_edit=True)
+                    return True
+        except Exception:
+            pass
+        try:
+            return super().eventFilter(obj, event)
+        except Exception:
+            return False
 
     def _standard_focus_index(self, index: QModelIndex, start_edit: bool = False) -> bool:
         if not index.isValid():
@@ -506,5 +542,5 @@ class StandardTableKeyboardMixin:
                 if target.isValid():
                     self._standard_focus_index(target, start_edit=True)
                     return
-                self._standard_focus_index(self._standard_next_index(idx, True), start_edit=False)
+                self._standard_focus_index(self._standard_next_index(idx, True), start_edit=True)
             QTimer.singleShot(0, _focus_after_commit)

@@ -62,6 +62,15 @@ class EditableSmartGrid(StandardTableKeyboardMixin, QTableWidget):
         self._install_shortcuts()
         QTimer.singleShot(0, self.restore_layout)
 
+
+    def setItem(self, row: int, column: int, item) -> None:  # type: ignore[override]
+        try:
+            if item is not None:
+                item.setTextAlignment(Qt.AlignCenter)
+        except Exception:
+            pass
+        super().setItem(row, column, item)
+
     def set_table_identity(self, identity: str) -> None:
         if identity:
             self.setObjectName(identity)

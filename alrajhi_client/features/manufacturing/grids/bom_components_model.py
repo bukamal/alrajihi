@@ -62,8 +62,8 @@ class BomComponentsModel(QAbstractTableModel):
                 except Exception:
                     return value
             return value
-        if role == Qt.TextAlignmentRole and column.numeric:
-            return Qt.AlignRight | Qt.AlignVCenter
+        if role == Qt.TextAlignmentRole:
+            return Qt.AlignCenter
         return None
 
     def flags(self, index):  # type: ignore[override]

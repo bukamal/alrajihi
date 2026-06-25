@@ -20,6 +20,8 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QDoubleSpinBox,
     QTableView,
+    QTableWidget,
+    QStyledItemDelegate,
     QTextEdit,
     QWidget,
 )
@@ -29,6 +31,18 @@ from workspace.runtime.visual_polish_contract import workspace_visual_policy
 
 
 _TABLE_ROW_SIZES = {"compact": 30, "comfortable": 36, "touch": 46}
+
+
+class RuntimeCenterAlignDelegate(QStyledItemDelegate):
+    """Display delegate that centers table cells project-wide.
+
+    Kept local to runtime polish so it can be safely applied to legacy tables
+    without touching business models or column-specific editors.
+    """
+
+    def paint(self, painter, option, index):  # type: ignore[override]
+        option.displayAlignment = Qt.AlignCenter
+        super().paint(painter, option, index)
 
 
 def _set_if_empty_object_name(widget: QWidget, name: str) -> None:
@@ -59,7 +73,25 @@ def _apply_table_polish(table: QTableView, density: str) -> None:
     table.setAlternatingRowColors(True)
     table.setWordWrap(False)
     try:
-        table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        # Phase384: all display and editable-grid table cells are centered by
+        # default.  Column-specific delegates remain effective where installed.
+        table.setItemDelegate(RuntimeCenterAlignDelegate(table))
+    except Exception:
+        pass
+    try:
+        if isinstance(table, QTableWidget):
+            for row in range(table.rowCount()):
+                for col in range(table.columnCount()):
+                    item = table.item(row, col)
+                    if item is not None:
+                        item.setTextAlignment(Qt.AlignCenter)
+    except Exception:
+        pass
+    try:
+        if bool(table.property("standard_table_keyboard")):
+            table.setSelectionBehavior(QAbstractItemView.SelectItems)
+        else:
+            table.setSelectionBehavior(QAbstractItemView.SelectRows)
         table.setSelectionMode(QAbstractItemView.ExtendedSelection)
     except Exception:
         pass

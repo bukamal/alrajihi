@@ -112,7 +112,7 @@ class QuickActionButton(QPushButton):
                 color: white;
                 border: none;
                 border-radius: 16px;
-                padding: 10px 14px;
+                padding: 10px 10px;
                 font-size: 13px;
                 font-weight: 900;
                 text-align: center;

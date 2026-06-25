@@ -71,8 +71,8 @@ class InventoryTransferLinesModel(QAbstractTableModel):
             if isinstance(value, Decimal):
                 return format(value.normalize(), 'f') if value == value.to_integral() else format(value, 'f')
             return '' if value is None else value
-        if role == Qt.TextAlignmentRole and getattr(self.columns[index.column()], 'numeric', False):
-            return Qt.AlignVCenter | Qt.AlignRight
+        if role == Qt.TextAlignmentRole:
+            return Qt.AlignCenter
         return None
 
     def setData(self, index, value, role=Qt.EditRole):  # type: ignore[override]

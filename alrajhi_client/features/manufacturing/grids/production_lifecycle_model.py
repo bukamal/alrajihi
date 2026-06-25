@@ -51,8 +51,8 @@ class ProductionLifecycleTableModel(QAbstractTableModel):
                 except Exception:
                     return value
             return value
-        if role == Qt.TextAlignmentRole and column.key in self.NUMERIC_KEYS:
-            return Qt.AlignRight | Qt.AlignVCenter
+        if role == Qt.TextAlignmentRole:
+            return Qt.AlignCenter
         return None
 
     def flags(self, index):  # type: ignore[override]

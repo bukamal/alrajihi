@@ -70,7 +70,7 @@ class DashboardWidget(QWidget):
             QWidget#DashboardPage {{ background: {_dc('bg_window', '#F5F7FA')}; }}
             QLabel#HeroTitle {{ color: white; font-size: 25px; font-weight: 900; }}
             QLabel#HeroSubtitle {{ color: #EAF3FF; font-size: 13px; font-weight: 600; }}
-            QLabel#StatusPill {{ color: white; background: rgba(255,255,255,0.18); border-radius: 12px; padding: 7px 12px; font-weight: 800; }}
+            QLabel#StatusPill {{ color: white; background: transparent; border: 1px solid rgba(255,255,255,0.38); border-radius: 12px; padding: 7px 12px; font-weight: 800; }}
             QComboBox {{ min-height: 34px; border: 1px solid {_dc('border', '#E2E8F0')}; border-radius: 10px; padding: 4px 8px; background: {_dc('input_bg', '#FFFFFF')}; }}
         ''')
         root = QVBoxLayout(self)
@@ -234,20 +234,22 @@ class DashboardWidget(QWidget):
         ]
         for i, (text, icon, color, callback) in enumerate(actions):
             btn = QuickActionButton(text, icon, color)
+            btn.setObjectName('DashboardDailyActionButton')
             btn.setMinimumHeight(92)
             btn.setIconSize(QSize(24, 24))
             btn.setLayoutDirection(qt_layout_direction())
-            btn.setStyleSheet(btn.styleSheet() + ' QPushButton { text-align: center; padding-left: 10px; padding-right: 10px; }')
+            # Phase384: centered shortcut text without the legacy monitoring row.
+            btn.setStyleSheet(btn.styleSheet() + '''
+                QPushButton#DashboardDailyActionButton,
+                QPushButton {
+                    text-align: center;
+                    padding-left: 10px;
+                    padding-right: 10px;
+                }
+            ''')
             btn.clicked.connect(callback)
             # Phase 303: dashboard keeps RTL structure while shortcut labels are centered.
             grid.addWidget(btn, i // 3, 2 - (i % 3))
-        monitor = QuickActionButton(translate('monitoring_short'), 'eye', '#1e3a8a')
-        monitor.setMinimumHeight(78)
-        monitor.setIconSize(QSize(24, 24))
-        monitor.setLayoutDirection(qt_layout_direction())
-        monitor.setStyleSheet(monitor.styleSheet() + ' QPushButton { text-align: center; padding-left: 10px; padding-right: 10px; }')
-        monitor.clicked.connect(lambda: self._switch_page('monitoring'))
-        grid.addWidget(monitor, 3, 0, 1, 3)
         panel.layout.addLayout(grid)
         panel.layout.addStretch()
         return panel
@@ -265,7 +267,7 @@ class DashboardWidget(QWidget):
         panel.setMinimumHeight(430)
         panel.setStyleSheet(panel.styleSheet() + '''
             QFrame#DashboardCompanyPanel { background: #ffffff; border-radius: 24px; }
-            QLabel#CompanyLogoBox { background: #f8fafc; border: 1px solid #dbeafe; border-radius: 22px; padding: 10px; }
+            QLabel#CompanyLogoBox { background: transparent; border: 1px solid #dbeafe; border-radius: 22px; padding: 10px; }
             QLabel#CompanyName { color: #0f172a; font-size: 20px; font-weight: 900; border: none; }
             QLabel#CompanyLine { color: #475569; font-size: 13px; font-weight: 800; border: none; }
             QLabel#CompanyFallbackNote { color: #64748b; background: transparent; border: none; font-size: 1px; }
@@ -532,7 +534,7 @@ class DashboardWidget(QWidget):
                 border-radius: 24px;
             }}
             QLabel#SystemBrandLogoBox {{
-                background: #ffffff;
+                background: transparent;
                 border: 1px solid #dbeafe;
                 border-radius: 22px;
                 padding: 8px;

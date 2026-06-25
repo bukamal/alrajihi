@@ -54,8 +54,8 @@ class ProductionRequiredMaterialsModel(QAbstractTableModel):
                 except Exception:
                     return value
             return value
-        if role == Qt.TextAlignmentRole and column.key in self.NUMERIC_KEYS:
-            return Qt.AlignRight | Qt.AlignVCenter
+        if role == Qt.TextAlignmentRole:
+            return Qt.AlignCenter
         if role == Qt.ForegroundRole and column.key == 'status':
             try:
                 from PyQt5.QtGui import QColor
