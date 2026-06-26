@@ -34,6 +34,10 @@ class TransactionLineGrid(SmartTableView):
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(False)
         try:
+            self.init_standard_table_keyboard()
+        except Exception:
+            pass
+        try:
             self.horizontalHeader().setSectionsMovable(True)
             self.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
             self.verticalHeader().setVisible(False)

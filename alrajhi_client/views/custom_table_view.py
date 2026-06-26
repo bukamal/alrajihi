@@ -47,7 +47,10 @@ class CustomTableView(StandardTableKeyboardMixin, QTableView):
         self.copy_action.setShortcut(QKeySequence.Copy)
         self.copy_action.triggered.connect(self.copy_selection)
         self.addAction(self.copy_action)
-        self.init_standard_table_keyboard()
+        # Phase389: list/action tables must remain row-selection surfaces.
+        # The Enter navigation policy is enabled explicitly by editable grids
+        # (TransactionLineGrid / EditableSmartGrid) so invoice/return list
+        # action buttons keep receiving row selections.
 
         self.refresh_style()
 
@@ -220,10 +223,11 @@ class CustomTableView(StandardTableKeyboardMixin, QTableView):
         super().setModel(model)
         self.restore_layout()
         self._apply_contract_display_visibility()
-        try:
-            self.schedule_initial_entry_focus(start_edit=False)
-        except Exception:
-            pass
+        if getattr(self, "_standard_keyboard_active", False):
+            try:
+                self.schedule_initial_entry_focus(start_edit=False)
+            except Exception:
+                pass
 
     def copy_selection(self):
         selection = self.selectionModel().selectedIndexes()

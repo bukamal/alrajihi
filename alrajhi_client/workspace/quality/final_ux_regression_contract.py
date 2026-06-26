@@ -250,6 +250,7 @@ def _check_column_output_mapping() -> list[FinalUxCheck]:
 def _check_keyboard_policy() -> list[FinalUxCheck]:
     custom = _source("alrajhi_client/views/custom_table_view.py")
     editable = _source("alrajhi_client/ui/editable_smart_grid.py")
+    transaction_grid = _source("alrajhi_client/features/transactions/grids/transaction_line_grid.py")
     policy = _source("alrajhi_client/ui/table_keyboard_policy.py")
     checks: list[FinalUxCheck] = []
     checks.append(
@@ -258,9 +259,9 @@ def _check_keyboard_policy() -> list[FinalUxCheck]:
         else _fail("keyboard_policy_contract_exists", "keyboard", "Unified Enter/Shift+Enter/Esc table policy exists", "table_keyboard_policy.py incomplete")
     )
     checks.append(
-        _ok("keyboard_policy_wired_to_core_tables", "keyboard", "Keyboard policy is wired to CustomTableView and EditableSmartGrid")
-        if "StandardTableKeyboardMixin" in custom and "init_standard_table_keyboard" in custom and "StandardTableKeyboardMixin" in editable and "init_standard_table_keyboard" in editable
-        else _fail("keyboard_policy_wired_to_core_tables", "keyboard", "Keyboard policy is wired to CustomTableView and EditableSmartGrid", "core table classes missing mixin/init")
+        _ok("keyboard_policy_wired_to_editable_tables", "keyboard", "Keyboard policy is wired to editable grids without forcing list tables into cell selection")
+        if "StandardTableKeyboardMixin" in custom and "Phase389" in custom and "StandardTableKeyboardMixin" in editable and "init_standard_table_keyboard" in editable and "init_standard_table_keyboard" in transaction_grid
+        else _fail("keyboard_policy_wired_to_editable_tables", "keyboard", "Keyboard policy is wired to editable grids without forcing list tables into cell selection", "editable grid classes missing mixin/init or CustomTableView lacks Phase389 row-action boundary")
     )
     return checks
 

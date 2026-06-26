@@ -36,7 +36,8 @@ REQUIRED_RUNTIME_MARKERS = {
     "alrajhi_client/views/custom_table_view.py": (
         "brand_table_surface",
         "brand_table_density",
-        "init_standard_table_keyboard",
+        "StandardTableKeyboardMixin",
+        "Phase389",
     ),
     "alrajhi_client/ui/table_keyboard_policy.py": (
         "brand_entry_table",

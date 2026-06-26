@@ -1,12 +1,12 @@
 {
   "phase": 355,
-  "checks": 65,
+  "checks": 66,
   "issues": 0,
   "issue_groups": 0,
   "categories": {
     "tokens": 3,
     "token": 14,
-    "runtime": 24,
+    "runtime": 25,
     "footer": 10,
     "file": 8,
     "qss": 6

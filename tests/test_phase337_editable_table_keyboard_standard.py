@@ -24,15 +24,17 @@ def test_phase337_shared_keyboard_policy_exists_and_defines_enter_contract():
     assert "Esc is not consumed" in policy
 
 
-def test_phase337_base_table_classes_install_standard_keyboard_policy():
+def test_phase337_editable_table_classes_install_standard_keyboard_policy():
     custom = read("alrajhi_client/views/custom_table_view.py")
     editable = read("alrajhi_client/ui/editable_smart_grid.py")
+    transaction_grid = read("alrajhi_client/features/transactions/grids/transaction_line_grid.py")
     assert "from ui.table_keyboard_policy import StandardTableKeyboardMixin" in custom
     assert "class CustomTableView(StandardTableKeyboardMixin, QTableView):" in custom
-    assert "self.init_standard_table_keyboard()" in custom
+    assert "self.init_standard_table_keyboard()" not in custom
     assert "from ui.table_keyboard_policy import StandardTableKeyboardMixin" in editable
     assert "class EditableSmartGrid(StandardTableKeyboardMixin, QTableWidget):" in editable
     assert "self.init_standard_table_keyboard()" in editable
+    assert "self.init_standard_table_keyboard()" in transaction_grid
 
 
 def test_phase337_policy_is_model_view_only_and_keeps_dashboard_escape_global():

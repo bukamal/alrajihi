@@ -310,6 +310,16 @@ class SmartTableView(CustomTableView):
             pass
 
     def apply_enterprise_defaults(self) -> None:
+        # Phase389: SmartTableView is a list/action table by default.
+        # Editable line grids opt into StandardTableKeyboardMixin explicitly;
+        # list tables must select rows so edit/delete/print buttons can resolve
+        # the selected business record even after visual/runtime polish passes.
+        try:
+            if not getattr(self, "_standard_keyboard_active", False):
+                self.setSelectionBehavior(self.SelectRows)
+                self.setSelectionMode(self.ExtendedSelection)
+        except Exception:
+            pass
         header = self.horizontalHeader()
         header.setSectionsMovable(True)
         header.setSectionsClickable(True)
@@ -411,12 +421,36 @@ class SmartTableView(CustomTableView):
                 self._column_filters = {}
 
     def selected_source_rows(self):
-        selection = self.selectionModel().selectedRows() if self.selectionModel() else []
+        """Return selected source rows for row-action buttons.
+
+        Phase389 keeps management/list tables row-selecting, but this method is
+        deliberately tolerant: if an older view state or a proxy/filter leaves
+        only cell indexes selected, edit/delete/print still resolves the row.
+        """
+        sm = self.selectionModel() if self.selectionModel() else None
+        selection = sm.selectedRows() if sm else []
+        if not selection and sm:
+            try:
+                selection = sm.selectedIndexes()
+            except Exception:
+                selection = []
+        if not selection:
+            try:
+                idx = self.currentIndex()
+                selection = [idx] if idx is not None and idx.isValid() else []
+            except Exception:
+                selection = []
         rows = []
+        seen = set()
         for index in selection:
+            if not index.isValid():
+                continue
             if self.model() is self._proxy_model:
                 index = self._proxy_model.mapToSource(index)
-            rows.append(index.row())
+            row = index.row()
+            if row not in seen:
+                seen.add(row)
+                rows.append(row)
         return rows
 
     def show_column_chooser(self) -> None:

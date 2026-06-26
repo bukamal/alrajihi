@@ -26,7 +26,7 @@ def test_phase340_final_ux_regression_contract_is_pyqt_free_and_ready():
     assert "PyQt5" not in source
     assert "dashboard_minimal_action_surface" in source
     assert "barcode_profiles_multi_print_browser_html" in source
-    assert "keyboard_policy_wired_to_core_tables" in source
+    assert "keyboard_policy_wired_to_editable_tables" in source
     assert "restaurant.order_lines" in REQUIRED_TABLE_CONTRACTS
     assert "cafe.order_lines" in REQUIRED_TABLE_CONTRACTS
     assert "apparel.variant_labels" in REQUIRED_BARCODE_PROFILES

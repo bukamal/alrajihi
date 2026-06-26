@@ -23,7 +23,8 @@ def test_phase348_keyboard_policy_focuses_item_and_prepares_editor_text():
     assert "focus_entry_column" in text
     assert "_standard_preferred_entry_keys" in text
     assert "_standard_prepare_active_editor" in text
-    assert "editor.clear()" in text
+    assert "selectAll()" in text
+    assert "editor.clear()" not in text
 
 
 def test_phase348_returns_are_editable_like_transactions():

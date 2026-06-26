@@ -73,7 +73,7 @@ printing_export_column_mapping,printing,Print/export column mapping,336,tests/te
 editable_table_keyboard_standard,ui,Editable table keyboard standard,337,tests/test_phase337_editable_table_keyboard_standard.py,True,,True,True
 unified_barcode_printing_profiles,printing,Unified barcode printing profiles,338,tests/test_phase338_unified_barcode_printing_profiles.py,True,,True,True
 barcode_multi_print_ui,printing,Barcode multi-print UI for items/apparel/restaurant/cafe,339,tests/test_phase339_barcode_multi_print_ui.py,True,,True,True
-final_ux_regression_guards,quality,Final UX regression guard for shell/actions/columns/keyboard/barcode,340,tools/phase340_final_ux_regression_guard.py,True,tools/audit_outputs/final_ux_regression_matrix.csv,False,True
+final_ux_regression_guards,quality,Final UX regression guard for shell/actions/columns/keyboard/barcode,340,tools/phase340_final_ux_regression_guard.py,True,tools/audit_outputs/final_ux_regression_matrix.csv,True,True
 settings_surface_contract,settings,Unified settings surface for columns and barcode profiles,341,tools/phase341_settings_surface_guard.py,True,tools/audit_outputs/settings_surface_matrix.csv,False,True
 settings_runtime_wiring,settings,Settings surface runtime wiring and column customizer integration,342,tools/phase342_settings_runtime_wiring_guard.py,True,tools/audit_outputs/settings_runtime_wiring_matrix.csv,False,True
 runtime_application_sweep,ui,Runtime application sweep for remaining table contracts,343,tools/phase343_runtime_application_sweep_guard.py,True,tools/audit_outputs/runtime_table_contract_sweep_matrix.csv,False,True
@@ -121,4 +121,5 @@ editable_grid_unit_enter,ui,Editable grids move from material/barcode to unit be
 editable_grid_invoice_enter_route,ui,Sales and purchase invoice Enter traversal follows business column order without clearing data,386,tools/phase386_editable_grid_invoice_enter_route_guard.py,True,tools/audit_outputs/editable_grid_invoice_enter_route_matrix.csv,True,True
 invoice_return_list_actions,transactions,Sales/purchase invoice and return list Edit/Delete actions resolve source rows and enforce dependencies,387,tools/phase387_invoice_return_list_actions_guard.py,True,tools/audit_outputs/invoice_return_list_actions_matrix.csv,True,True
 editable_grid_mouse_action_boundary,ui,Editable grid Enter navigation does not steal mouse clicks from side action buttons,388,tools/phase388_editable_grid_mouse_action_boundary_guard.py,True,tools/audit_outputs/editable_grid_mouse_action_boundary_matrix.csv,True,True
+editable_grid_row_action_boundary,ui,List tables keep row selection while editable grids keep Enter cell traversal,389,tools/phase389_editable_grid_row_action_boundary_guard.py,True,tools/audit_outputs/editable_grid_row_action_boundary_matrix.csv,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

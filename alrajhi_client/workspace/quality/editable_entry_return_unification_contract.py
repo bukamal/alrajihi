@@ -41,7 +41,7 @@ def phase348_checks(root: Path | None = None) -> List[Phase348Check]:
     keyboard_text = read(keyboard) if exists(keyboard) else ""
     checks.extend([
         Phase348Check("preferred_entry_column", "keyboard", "Editable grids focus item/material column first", keyboard, "focus_entry_column" in keyboard_text and "_standard_preferred_entry_keys" in keyboard_text and "schedule_initial_entry_focus" in keyboard_text),
-        Phase348Check("editor_default_clear", "keyboard", "Enter prepares editor text and clears placeholder defaults", keyboard, "_standard_prepare_active_editor" in keyboard_text and "_standard_default_editor_tokens" in keyboard_text and "editor.clear()" in keyboard_text),
+        Phase348Check("editor_text_select_only", "keyboard", "Enter prepares editor text by selecting existing data without clearing it", keyboard, "_standard_prepare_active_editor" in keyboard_text and "selectAll()" in keyboard_text and "editor.clear()" not in keyboard_text),
         Phase348Check("entry_column_headers", "keyboard", "Legacy Arabic/English/German material headers are recognized", keyboard, "المادة" in keyboard_text and "material" in keyboard_text and "produkt" in keyboard_text),
     ])
 

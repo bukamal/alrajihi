@@ -1,5 +1,5 @@
 key,category,description,status,detail
-brand_phase,tokens,BRAND phase advanced to branded tables and transaction footer polish,pass,364
+brand_phase,tokens,BRAND phase advanced to branded tables and transaction footer polish,pass,368
 light_table_tokens,tokens,light palette includes Phase 355 table/footer tokens,pass,
 dark_table_tokens,tokens,dark palette includes Phase 355 table/footer tokens,pass,
 table_identity_token_table_current_bg,token,Background for the exact active editable cell.,pass,table_current_bg
@@ -48,7 +48,8 @@ object_bottom_actions,footer,Bottom command buttons are a unified action surface
 object_action_role,footer,Buttons carry semantic action roles for QSS.,pass,transaction_action
 runtime_custom_table_view_brand_table_surface,runtime,alrajhi_client/views/custom_table_view.py uses brand_table_surface,pass,brand_table_surface
 runtime_custom_table_view_brand_table_density,runtime,alrajhi_client/views/custom_table_view.py uses brand_table_density,pass,brand_table_density
-runtime_custom_table_view_init_standard_table_keyboard,runtime,alrajhi_client/views/custom_table_view.py uses init_standard_table_keyboard,pass,init_standard_table_keyboard
+runtime_custom_table_view_StandardTableKeyboardMixin,runtime,alrajhi_client/views/custom_table_view.py uses StandardTableKeyboardMixin,pass,StandardTableKeyboardMixin
+runtime_custom_table_view_Phase389,runtime,alrajhi_client/views/custom_table_view.py uses Phase389,pass,Phase389
 runtime_table_keyboard_policy_brand_entry_table,runtime,alrajhi_client/ui/table_keyboard_policy.py uses brand_entry_table,pass,brand_entry_table
 runtime_table_keyboard_policy_current_cell_highlight,runtime,alrajhi_client/ui/table_keyboard_policy.py uses current_cell_highlight,pass,current_cell_highlight
 runtime_table_keyboard_policy_standard_initial_entry_focus,runtime,alrajhi_client/ui/table_keyboard_policy.py uses standard_initial_entry_focus,pass,standard_initial_entry_focus

@@ -13,7 +13,7 @@ print_export_defaults_exist,columns,Printable/exportable contracts expose defaul
 custom_table_uses_contract_for_output,columns,CustomTableView routes display/print/export through column contract,True,
 column_output_separates_purposes,columns,"Column output separates visible, printable and exportable settings",True,
 keyboard_policy_contract_exists,keyboard,Unified Enter/Shift+Enter/Esc table policy exists,True,
-keyboard_policy_wired_to_core_tables,keyboard,Keyboard policy is wired to CustomTableView and EditableSmartGrid,True,
+keyboard_policy_wired_to_editable_tables,keyboard,Keyboard policy is wired to editable grids without forcing list tables into cell selection,True,
 barcode_profiles_registered,barcode,Items/apparel/restaurant/cafe barcode profiles are registered,True,
 barcode_profiles_multi_print_browser_html,barcode,Barcode profiles are multi-print and Browser-HTML only,True,
 barcode_profile_candidate_providers,barcode,Every barcode profile has a multi-print candidate provider,True,
