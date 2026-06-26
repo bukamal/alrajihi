@@ -83,7 +83,7 @@ def purchase_invoice_schema() -> list[TransactionColumn]:
         TransactionColumn("variant", "transaction_column_variant", False, True, False, 130, editable=False),
         TransactionColumn("unit", "transaction_column_unit", False, True, True, 90),
         TransactionColumn("qty", "transaction_column_qty", True, True, True, 90, numeric=True),
-        TransactionColumn("cost", "transaction_column_cost", False, True, True, 110, numeric=True),
+        TransactionColumn("cost", "transaction_column_price", False, True, True, 110, numeric=True),
         TransactionColumn("batch", "transaction_column_batch", False, True, False, 120),
         TransactionColumn("expiry", "transaction_column_expiry", False, True, False, 120),
         TransactionColumn("discount", "transaction_column_discount", False, True, False, 90, numeric=True),

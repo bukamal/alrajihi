@@ -134,7 +134,7 @@ PURCHASE_INVOICE_LINE_COLUMNS: tuple[ColumnDefinition, ...] = (
     _transaction_column("variant", "transaction_column_variant", width=130, editable=False),
     _transaction_column("unit", "transaction_column_unit", width=90),
     _transaction_column("qty", "transaction_column_qty", required=True, width=90, numeric=True),
-    _transaction_column("cost", "transaction_column_cost", width=110, numeric=True),
+    _transaction_column("cost", "transaction_column_price", width=110, numeric=True),
     _transaction_column("batch", "transaction_column_batch", width=120),
     _transaction_column("expiry", "transaction_column_expiry", width=120),
     _transaction_column("discount", "transaction_column_discount", width=90, numeric=True),

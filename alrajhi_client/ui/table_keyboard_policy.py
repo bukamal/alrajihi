@@ -8,11 +8,16 @@ same policy to entry focus and editor text handling:
   column instead of a random header/input.
 * The preferred entry column is resolved by schema key first (``item``,
   ``material``, ``product``, ``barcode``), then by translated header text.
-* Enter opens the editor and prepares its text so default placeholders such as
-  ``0`` or empty values are cleared while real values are selected.
-* Phase382 adds a runtime flow contract: item/barcode commit jumps to quantity,
-  new-line buttons focus the newly inserted material cell, and barcode cells use
-  the same resolver as material cells when the grid opts in.
+* Enter opens the editor and selects existing text for replacement only when
+  the operator starts typing; navigation itself does not clear cell values.
+* Phase382 added a runtime flow contract: material/barcode -> quantity.
+* Phase385 refines the operational sequence to item/barcode -> unit -> quantity,
+  so operators can confirm the unit before quantity while preserving the same
+  barcode/material resolver and newly inserted-line focus.
+* Phase386 replaces physical-column Enter walking in sales/purchase invoices
+  with a business route: material -> unit -> quantity -> price -> discount ->
+  tax/total -> notes.  Enter traversal selects or focuses cells only; it never
+  clears existing values merely because the operator is moving through the row.
 * Shift+Enter still walks backwards.  Esc is not consumed unless a native editor is already active; the application
   level Esc-to-dashboard shortcut remains in control elsewhere.
 
@@ -46,6 +51,7 @@ class StandardTableKeyboardMixin:
     _standard_preferred_entry_keys = ("item", "material", "product", "barcode")
     _standard_material_entry_keys = ("item", "material", "product")
     _standard_barcode_entry_keys = ("barcode",)
+    _standard_unit_entry_keys = ("unit", "uom", "unit_name")
     _standard_quantity_entry_keys = ("qty", "quantity", "return_qty", "required_qty")
     _standard_default_editor_tokens = {"", "0", "0.0", "0.00", "0.000"}
     _standard_navigation_clear_placeholders = False
@@ -236,12 +242,132 @@ class StandardTableKeyboardMixin:
             row -= 1
         return QModelIndex()
 
+    def _standard_is_traversable(self, index: QModelIndex) -> bool:
+        """Return True when Enter may stop on the cell.
+
+        Editable cells are traversable.  Read-only calculated cells such as
+        ``total`` are also traversable so operators can visually confirm the
+        result before Enter continues to notes or the next row.
+        """
+        if not index.isValid():
+            return False
+        flags = self._standard_flags(index)
+        return bool(flags & Qt.ItemIsEnabled) and bool(flags & Qt.ItemIsSelectable)
+
+    def _standard_business_route_slots(self) -> list[tuple[str, ...]]:
+        """Return the invoice-specific Enter route expressed as key aliases.
+
+        The route is deliberately semantic, not physical.  Purchase grids keep
+        the storage key ``cost`` for accounting compatibility but expose it in
+        the operator route as the visible price cell.  Batch/expiry and other
+        side columns stay reachable by mouse/Tab/column navigation, but Enter
+        follows the fast invoice-entry path requested for daily data entry.
+        """
+        model = self._standard_source_model() or self._standard_model()
+        columns = getattr(model, "columns", None)
+        if not columns:
+            return []
+        keys = []
+        for column in columns:
+            try:
+                keys.append(str(column.key or "").strip().casefold())
+            except Exception:
+                pass
+        key_set = set(keys)
+        invoice_core = {"item", "unit", "qty", "discount", "total", "notes"}
+        if not invoice_core.issubset(key_set):
+            return []
+        if "cost" in key_set and "price" not in key_set:
+            return [("item", "material", "product", "barcode"), ("unit", "uom", "unit_name"), ("qty", "quantity"), ("cost", "price"), ("discount",), ("tax",), ("total",), ("notes",)]
+        if "price" in key_set:
+            return [("item", "material", "product", "barcode"), ("unit", "uom", "unit_name"), ("qty", "quantity"), ("price",), ("discount",), ("total",), ("notes",)]
+        return []
+
+    def _standard_route_column_for_slot(self, row: int, slot: tuple[str, ...]) -> int | None:
+        wanted = {str(key or "").casefold() for key in slot}
+        model = self._standard_model()
+        if model is None or row < 0:
+            return None
+        try:
+            count = model.columnCount()
+        except Exception:
+            count = 0
+        # Preserve the semantic order inside aliases.  This is critical for the
+        # first invoice slot where both ``item`` and ``barcode`` can exist: the
+        # initial Enter path must start at the material column, not at barcode.
+        ordered_wanted = [str(key or "").casefold() for key in slot]
+        for wanted_key in ordered_wanted:
+            if wanted_key not in wanted:
+                continue
+            for col in range(count):
+                if self._standard_column_hidden(col):
+                    continue
+                key = self._standard_column_key(col).strip().casefold()
+                if key != wanted_key:
+                    continue
+                try:
+                    index = model.index(row, col)
+                except Exception:
+                    continue
+                if self._standard_is_traversable(index):
+                    return col
+        return None
+
+    def _standard_business_route_columns(self, row: int) -> list[int]:
+        route: list[int] = []
+        for slot in self._standard_business_route_slots():
+            col = self._standard_route_column_for_slot(row, slot)
+            if col is not None and col not in route:
+                route.append(col)
+        return route
+
+    def _standard_next_business_route_index(self, start: QModelIndex, forward: bool = True) -> QModelIndex:
+        """Move by the sales/purchase business route when available."""
+        model = self._standard_model()
+        if model is None or not start.isValid():
+            return QModelIndex()
+        row = start.row()
+        route = self._standard_business_route_columns(row)
+        if not route:
+            return QModelIndex()
+        current_col = start.column()
+        if current_col not in route:
+            current_key = self._standard_column_key(current_col).strip().casefold()
+            if current_key == "barcode":
+                current_col = route[0]
+            else:
+                return QModelIndex()
+        try:
+            pos = route.index(current_col)
+        except ValueError:
+            return QModelIndex()
+        if forward:
+            for col in route[pos + 1:]:
+                return model.index(row, col)
+            if self._standard_append_empty_line_if_supported():
+                try:
+                    new_row = model.rowCount() - 1
+                except Exception:
+                    new_row = -1
+                if new_row >= 0:
+                    new_route = self._standard_business_route_columns(new_row)
+                    if new_route:
+                        return model.index(new_row, new_route[0])
+            return start
+        for col in reversed(route[:pos]):
+            return model.index(row, col)
+        if row > 0:
+            prev_route = self._standard_business_route_columns(row - 1)
+            if prev_route:
+                return model.index(row - 1, prev_route[-1])
+        return start
+
     def _standard_post_commit_index(self, start: QModelIndex) -> QModelIndex:
         """Choose the next operational cell after a barcode/material commit.
 
-        The ERP line-entry flow is material/barcode -> quantity.  Unit and price
-        can still be reached normally with Tab/arrow/mouse, but Enter commit from
-        the item resolver should not land on technical/read-mostly columns.
+        Phase385 ERP line-entry flow is material/barcode -> unit -> quantity.
+        If the unit column is hidden or locked, the fallback remains quantity.
+        Price and later columns stay reachable through normal Enter traversal.
         """
         if not start.isValid():
             return QModelIndex()
@@ -249,6 +375,12 @@ class StandardTableKeyboardMixin:
         entry_keys = {*(key.casefold() for key in self._standard_material_entry_keys), *(key.casefold() for key in self._standard_barcode_entry_keys)}
         if current_key not in entry_keys:
             return QModelIndex()
+        route_target = self._standard_next_business_route_index(start, forward=True)
+        if route_target.isValid() and route_target != start:
+            return route_target
+        unit_cols = self._standard_columns_matching_keys(start.row(), self._standard_unit_entry_keys)
+        if unit_cols:
+            return self._standard_model().index(start.row(), unit_cols[0])
         qty_cols = self._standard_columns_matching_keys(start.row(), self._standard_quantity_entry_keys)
         if qty_cols:
             return self._standard_model().index(start.row(), qty_cols[0])
@@ -350,6 +482,10 @@ class StandardTableKeyboardMixin:
             row_count = 0
         if row_count <= 0:
             return QModelIndex()
+
+        route_target = self._standard_next_business_route_index(start, forward=forward)
+        if route_target.isValid() and route_target != start:
+            return route_target
 
         row = start.row()
         col = start.column()

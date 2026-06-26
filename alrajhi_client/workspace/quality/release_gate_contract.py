@@ -175,6 +175,9 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (381, "DOCUMENT_LAYOUT_FAMILY_CONTRACT"),
         (382, "EDITABLE_GRID_RUNTIME_POLISH"),
         (383, "MENU_INLINE_ACTION_ROUTING"),
+        (384, "DASHBOARD_TABLE_RUNTIME_POLISH"),
+        (385, "EDITABLE_GRID_UNIT_ENTER"),
+        (386, "EDITABLE_GRID_INVOICE_ENTER_ROUTE"),
     ]
 )
 
@@ -315,6 +318,9 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (381, "document_layout_family_contract"),
         (382, "editable_grid_runtime_polish"),
         (383, "menu_inline_action_routing"),
+        (384, "dashboard_table_runtime_polish"),
+        (385, "editable_grid_unit_enter"),
+        (386, "editable_grid_invoice_enter_route"),
     ]
 )
 
@@ -436,6 +442,9 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("document_layout_family_contract", "shell", "Document editors declare card, financial, or tabular layout families for inline and standalone use", "tools/phase381_document_layout_family_contract_guard.py", "tools/audit_outputs/document_layout_family_contract_matrix.csv", phase=381),
     ReleaseGateCheck("editable_grid_runtime_polish", "ui", "Editable grids resolve barcode/material cells, jump to quantity, and focus newly inserted lines", "tools/phase382_editable_grid_runtime_polish_guard.py", "tools/audit_outputs/editable_grid_runtime_polish_matrix.csv", phase=382),
     ReleaseGateCheck("menu_inline_action_routing", "shell", "Main menu and action-bar New route management creation into inline workspaces", "tools/phase383_menu_inline_action_routing_guard.py", "tools/audit_outputs/menu_inline_action_routing_matrix.csv", phase=383),
+    ReleaseGateCheck("dashboard_table_runtime_polish", "ui", "Dashboard labels, daily actions, and table Enter/centering polish", "tools/phase384_dashboard_table_runtime_polish_guard.py", "tools/audit_outputs/phase384_dashboard_table_runtime_polish_matrix.csv", phase=384),
+    ReleaseGateCheck("editable_grid_unit_enter", "ui", "Editable grids move from material/barcode to unit before quantity", "tools/phase385_editable_grid_unit_enter_guard.py", "tools/audit_outputs/editable_grid_unit_enter_matrix.csv", phase=385),
+    ReleaseGateCheck("editable_grid_invoice_enter_route", "ui", "Sales and purchase invoice Enter traversal follows business column order without clearing data", "tools/phase386_editable_grid_invoice_enter_route_guard.py", "tools/audit_outputs/editable_grid_invoice_enter_route_matrix.csv", phase=386),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

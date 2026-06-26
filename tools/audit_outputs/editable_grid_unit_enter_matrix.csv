@@ -1,0 +1,30 @@
+﻿key,target,status,detail,phase
+file_exists,alrajhi_client/ui/table_keyboard_policy.py,pass,keyboard,385
+Phase385 refines the operational sequence to item/barcode -> unit -> quantity,alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,385
+"_standard_unit_entry_keys = (""unit"", ""uom"", ""unit_name"")",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,385
+Phase385 ERP line-entry flow is material/barcode -> unit -> quantity.,alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,385
+"unit_cols = self._standard_columns_matching_keys(start.row(), self._standard_unit_entry_keys)",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,385
+"if unit_cols:
+            return self._standard_model().index(start.row(), unit_cols[0])",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,385
+"qty_cols = self._standard_columns_matching_keys(start.row(), self._standard_quantity_entry_keys)",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,385
+"If the unit column is hidden or locked, the fallback remains quantity.",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,385
+The ERP line-entry flow is material/barcode -> quantity.  Unit and price,alrajhi_client/ui/table_keyboard_policy.py,pass,forbidden marker absent,385
+item resolver should not land on technical/read-mostly columns,alrajhi_client/ui/table_keyboard_policy.py,pass,forbidden marker absent,385
+order::post-commit must test unit before quantity,alrajhi_client/ui/table_keyboard_policy.py,pass,post-commit must test unit before quantity,385
+file_exists,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,transaction_schema,385
+"TransactionColumn(""unit"", ""transaction_column_unit""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,385
+"TransactionColumn(""qty"", ""transaction_column_qty""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,385
+"TransactionColumn(""qty"", ""transaction_column_return_qty""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,385
+order::sales/purchase unit precedes quantity,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,sales/purchase unit precedes quantity,385
+order::return unit precedes quantity,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,return unit precedes quantity,385
+file_exists,alrajhi_client/features/inventory/grids/inventory_transfer_schema.py,pass,inventory_schema,385
+"TransactionColumn('unit', 'transaction_column_unit'",alrajhi_client/features/inventory/grids/inventory_transfer_schema.py,pass,required marker present,385
+"TransactionColumn('qty', 'transaction_column_qty'",alrajhi_client/features/inventory/grids/inventory_transfer_schema.py,pass,required marker present,385
+order::transfer unit precedes quantity,alrajhi_client/features/inventory/grids/inventory_transfer_schema.py,pass,transfer unit precedes quantity,385
+file_exists,alrajhi_client/features/manufacturing/grids/manufacturing_column_schema.py,pass,manufacturing_schema,385
+"ManufacturingColumn('unit', 'transaction_column_unit'",alrajhi_client/features/manufacturing/grids/manufacturing_column_schema.py,pass,required marker present,385
+"ManufacturingColumn('qty', 'manufacturing_column_component_qty'",alrajhi_client/features/manufacturing/grids/manufacturing_column_schema.py,pass,required marker present,385
+order::BOM unit precedes quantity,alrajhi_client/features/manufacturing/grids/manufacturing_column_schema.py,pass,BOM unit precedes quantity,385
+file_exists,alrajhi_client/features/transactions/grids/transaction_line_grid.py,pass,transaction_grid,385
+TransactionUnitDelegate,alrajhi_client/features/transactions/grids/transaction_line_grid.py,pass,required marker present,385
+"self.setItemDelegateForColumn(unit_col, TransactionUnitDelegate(self))",alrajhi_client/features/transactions/grids/transaction_line_grid.py,pass,required marker present,385

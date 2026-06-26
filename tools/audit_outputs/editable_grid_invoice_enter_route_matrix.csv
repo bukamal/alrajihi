@@ -1,0 +1,40 @@
+﻿key,target,status,detail,phase
+file_exists,alrajhi_client/ui/table_keyboard_policy.py,pass,keyboard,386
+Phase386 replaces physical-column Enter walking in sales/purchase invoices,alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"def _standard_business_route_slots(self) -> list[tuple[str, ...]]:",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"The route is deliberately semantic, not physical.",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"return [(""item"", ""material"", ""product"", ""barcode""), (""unit"", ""uom"", ""unit_name""), (""qty"", ""quant",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"return [(""item"", ""material"", ""product"", ""barcode""), (""unit"", ""uom"", ""unit_name""), (""qty"", ""quant",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"def _standard_next_business_route_index(self, start: QModelIndex, forward: bool = True) -> QMode",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"route_target = self._standard_next_business_route_index(start, forward=forward)",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"route_target = self._standard_next_business_route_index(start, forward=True)",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"ordered_wanted = [str(key or """").casefold() for key in slot]",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"initial Enter path must start at the material column, not at barcode",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+"it never
+  clears existing values merely because the operator is moving through the row",alrajhi_client/ui/table_keyboard_policy.py,pass,required marker present,386
+route must start at barcode,alrajhi_client/ui/table_keyboard_policy.py,pass,forbidden marker absent,386
+clear existing values merely because focus moved,alrajhi_client/ui/table_keyboard_policy.py,pass,forbidden marker absent,386
+order::route slots declared before route traversal,alrajhi_client/ui/table_keyboard_policy.py,pass,route slots declared before route traversal,386
+order::alias order is respected before choosing a route column,alrajhi_client/ui/table_keyboard_policy.py,pass,alias order is respected before choosing a route column,386
+order::business route is preferred before legacy unit fallback,alrajhi_client/ui/table_keyboard_policy.py,pass,business route is preferred before legacy unit fallback,386
+order::purchase and sales routes are both declared,alrajhi_client/ui/table_keyboard_policy.py,pass,purchase and sales routes are both declared,386
+file_exists,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,transaction_schema,386
+"TransactionColumn(""item"", ""transaction_column_item""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,386
+"TransactionColumn(""unit"", ""transaction_column_unit""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,386
+"TransactionColumn(""qty"", ""transaction_column_qty""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,386
+"TransactionColumn(""cost"", ""transaction_column_price"", False, True, True, 110, numeric=True)",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,386
+"TransactionColumn(""discount"", ""transaction_column_discount""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,386
+"TransactionColumn(""tax"", ""transaction_column_tax""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,386
+"TransactionColumn(""total"", ""transaction_column_total""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,386
+"TransactionColumn(""notes"", ""transaction_column_notes""",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,required marker present,386
+"TransactionColumn(""cost"", ""transaction_column_cost"", False, True, True, 110, numeric=True)",alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,forbidden marker absent,386
+order::item before unit,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,item before unit,386
+order::unit before quantity,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,unit before quantity,386
+order::quantity before purchase price/cost,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,quantity before purchase price/cost,386
+order::discount before tax,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,discount before tax,386
+order::tax before total,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,tax before total,386
+order::total before notes,alrajhi_client/features/transactions/grids/transaction_column_schema.py,pass,total before notes,386
+file_exists,alrajhi_client/workspace/tables/table_column_registry.py,pass,table_registry,386
+"_transaction_column(""cost"", ""transaction_column_price"", width=110, numeric=True)",alrajhi_client/workspace/tables/table_column_registry.py,pass,required marker present,386
+"_transaction_column(""cost"", ""transaction_column_cost"", width=110, numeric=True),
+    _transactio",alrajhi_client/workspace/tables/table_column_registry.py,pass,forbidden marker absent,386
