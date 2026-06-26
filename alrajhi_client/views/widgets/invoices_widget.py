@@ -579,20 +579,10 @@ class InvoicesWidget(QWidget):
         if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):
             QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_EDIT_INVOICES))
             return
-        row = index.row()
-        if inv_type == 'sale':
-            inv_id = self.sales_table.model().get_id(row)
-        else:
-            inv_id = self.purchases_table.model().get_id(row)
+        row = self._source_row_from_index(inv_type, index)
+        inv_id = self._invoice_id_at_source_row(inv_type, row)
         if inv_id:
-            main = self.window()
-            if hasattr(main, 'open_quick_invoice'):
-                main.open_quick_invoice(inv_type, invoice_id=inv_id)
-            else:
-                from features.invoices import InvoiceEditorTab
-                widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=inv_id)
-                widget.saved.connect(lambda *_: self.refresh_all())
-                widget.show()
+            self._open_invoice_editor(inv_type, inv_id)
 
 
     def _counter_text(self, page, visible_count, total_count):
@@ -602,8 +592,63 @@ class InvoicesWidget(QWidget):
         end = min(total_count, page * self.page_size + visible_count)
         return translate("showing_records", start=start, end=end, total=total_count)
 
+    def _table_for_invoice_type(self, inv_type):
+        return self.sales_table if inv_type == 'sale' else self.purchases_table
+
+    def _toolbar_for_invoice_type(self, inv_type):
+        return self.sales_toolbar if inv_type == 'sale' else self.purchases_toolbar
+
+    def _source_model_for_invoice_type(self, inv_type):
+        table = self._table_for_invoice_type(inv_type)
+        source = getattr(table, 'source_model', lambda: None)()
+        return source or table.model()
+
+    def _source_row_from_index(self, inv_type, index):
+        if index is None or not index.isValid():
+            return None
+        table = self._table_for_invoice_type(inv_type)
+        try:
+            proxy = getattr(table, '_proxy_model', None)
+            if proxy is not None and table.model() is proxy:
+                index = proxy.mapToSource(index)
+        except Exception:
+            pass
+        return index.row()
+
+    def _selected_invoice_source_row(self, inv_type):
+        table = self._table_for_invoice_type(inv_type)
+        try:
+            rows = table.selected_source_rows()
+            if rows:
+                return rows[0]
+        except Exception:
+            pass
+        sm = table.selectionModel()
+        rows = sm.selectedRows() if sm else []
+        if not rows:
+            return None
+        return self._source_row_from_index(inv_type, rows[0])
+
+    def _invoice_id_at_source_row(self, inv_type, row):
+        if row is None:
+            return None
+        model = self._source_model_for_invoice_type(inv_type)
+        if model is None:
+            return None
+        try:
+            return model.get_id(row)
+        except Exception:
+            try:
+                data = model.get_row(row)
+                return data.get('id') if isinstance(data, dict) else None
+            except Exception:
+                return None
+
+    def _selected_invoice_id(self, inv_type):
+        return self._invoice_id_at_source_row(inv_type, self._selected_invoice_source_row(inv_type))
+
     def _connect_table_selection(self, inv_type):
-        table = self.sales_table if inv_type == 'sale' else self.purchases_table
+        table = self._table_for_invoice_type(inv_type)
         sm = table.selectionModel()
         if sm is None:
             return
@@ -622,21 +667,20 @@ class InvoicesWidget(QWidget):
         self._update_invoice_actions('purchase')
 
     def _update_invoice_actions(self, inv_type):
-        table = self.sales_table if inv_type == 'sale' else self.purchases_table
-        toolbar = self.sales_toolbar if inv_type == 'sale' else self.purchases_toolbar
-        sm = table.selectionModel()
-        has_selection = bool(sm and sm.selectedRows())
-        toolbar.set_edit_enabled(has_selection and permission_service.can(permission_service.ACTION_EDIT_INVOICES))
-        toolbar.set_delete_enabled(has_selection and permission_service.can(permission_service.ACTION_DELETE))
+        toolbar = self._toolbar_for_invoice_type(inv_type)
+        has_valid_selection = self._selected_invoice_id(inv_type) is not None
+        toolbar.set_edit_enabled(has_valid_selection and permission_service.can(permission_service.ACTION_EDIT_INVOICES))
+        toolbar.set_delete_enabled(has_valid_selection and permission_service.can(permission_service.ACTION_DELETE))
 
-    def _selected_invoice_id(self, inv_type):
-        table = self.sales_table if inv_type == 'sale' else self.purchases_table
-        model = table.model()
-        sm = table.selectionModel()
-        if not model or not sm or not sm.selectedRows():
-            return None
-        row = sm.selectedRows()[0].row()
-        return model.get_id(row)
+    def _open_invoice_editor(self, inv_type, inv_id):
+        main = self.window()
+        if hasattr(main, 'open_quick_invoice'):
+            main.open_quick_invoice(inv_type, invoice_id=inv_id)
+            return
+        from features.invoices import InvoiceEditorTab
+        widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=inv_id)
+        widget.saved.connect(lambda *_: self.refresh_tab(inv_type, reset_page=True))
+        widget.show()
 
     def edit_selected_invoice(self, inv_type):
         if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):
@@ -646,14 +690,7 @@ class InvoicesWidget(QWidget):
         if not inv_id:
             show_toast(translate("select_invoice_first"), "warning", self)
             return
-        main = self.window()
-        if hasattr(main, 'open_quick_invoice'):
-            main.open_quick_invoice(inv_type, invoice_id=inv_id)
-        else:
-            from features.invoices import InvoiceEditorTab
-            widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=inv_id)
-            widget.saved.connect(lambda *_: self.refresh_all())
-            widget.show()
+        self._open_invoice_editor(inv_type, inv_id)
 
     def delete_selected_invoice(self, inv_type):
         if not permission_service.can(permission_service.ACTION_DELETE):
@@ -664,9 +701,12 @@ class InvoicesWidget(QWidget):
             show_toast(translate("select_invoice_delete"), "warning", self)
             return
         inv = invoice_service.get(inv_id) or {}
-        reference = inv.get('reference', inv_id)
+        reference = inv.get('reference') or inv.get('id') or inv_id
         if invoice_service.has_linked_vouchers(inv_id):
             QMessageBox.warning(self, translate("delete_invoice_blocked_title"), translate("delete_invoice_blocked_message"))
+            return
+        if invoice_service.has_linked_returns(inv_id):
+            QMessageBox.warning(self, translate("delete_invoice_blocked_title"), translate("delete_invoice_linked_returns_message"))
             return
         reply = QMessageBox.question(
             self,
@@ -679,7 +719,7 @@ class InvoicesWidget(QWidget):
         try:
             invoice_service.delete(inv_id)
             show_toast(translate("invoice_deleted"), "success", self)
-            self.refresh_all()
+            self.refresh_tab(inv_type, reset_page=True)
         except Exception as e:
             QMessageBox.critical(self, translate("delete_failed"), str(e))
 

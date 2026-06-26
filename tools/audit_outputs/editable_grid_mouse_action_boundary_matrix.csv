@@ -1,0 +1,9 @@
+check,ok,detail
+explicit enter navigation flag,True,Enter/Shift+Enter mark the intended editor-close navigation direction explicitly
+enter event sets pending before close,True,the editor eventFilter sets pending navigation only for keyboard Enter commits
+close editor helper exists,True,closeEditor delegates navigation decisions to a helper
+nohint is not auto navigation,True,NoHint focus loss from mouse clicks does not advance to another grid cell
+close editor consumes pending and skips none,True,closeEditor clears the pending flag and exits when no keyboard navigation was requested
+keyboard next previous hints preserved,True,real delegate keyboard hints still move between cells
+phase388 documented in docstring,True,keyboard policy documents the mouse-action boundary
+quality contract,True,quality contract records the Phase 388 guarantee

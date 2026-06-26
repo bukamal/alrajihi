@@ -1,0 +1,18 @@
+check,ok,detail
+invoice edit/delete toolbar signals,True,sales and purchase toolbar actions are wired
+invoice source row mapping,True,invoice double-click and selected row map through proxy
+invoice selected source row helper,True,invoice selected row uses SmartTableView source-row helper
+invoice source model helper,True,invoice id resolution reads the source model
+invoice valid selection gates buttons,True,invoice Edit/Delete buttons follow actual selected id
+invoice edit opens document,True,invoice edit opens the correct sale/purchase document
+invoice delete dependency blocks,True,invoice delete checks vouchers and returns before confirmation
+invoice delete refreshes current list,True,invoice delete refreshes only the affected list
+invoice linked returns translation,True,linked-return delete block message is translated
+return toolbar signals,True,sales and purchase return toolbar actions are wired
+return selection signal,True,return action buttons follow selection changes
+return no blind click enable,True,return buttons are not blindly enabled on click
+return source row mapping,True,return double-click and selection map through proxy
+return selected id guarded,True,return actions are safe before the first model is loaded
+return permissions,True,return edit/delete actions honor permissions
+return missing selection feedback,True,return edit/delete show feedback when no row is selected
+quality contract,True,quality contract documents Phase 387

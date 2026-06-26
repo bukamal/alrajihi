@@ -18,6 +18,9 @@ same policy to entry focus and editor text handling:
   with a business route: material -> unit -> quantity -> price -> discount ->
   tax/total -> notes.  Enter traversal selects or focuses cells only; it never
   clears existing values merely because the operator is moving through the row.
+* Phase388 prevents mouse-triggered focus loss from being interpreted as
+  Enter navigation.  Clicking side actions such as edit/delete/print must
+  close the active cell editor without moving to the next grid cell.
 * Shift+Enter still walks backwards.  Esc is not consumed unless a native editor is already active; the application
   level Esc-to-dashboard shortcut remains in control elsewhere.
 
@@ -80,6 +83,7 @@ class StandardTableKeyboardMixin:
             )
         except Exception:
             pass
+        self._standard_editor_close_navigation: str | None = None
 
     def _standard_model(self):
         try:
@@ -574,24 +578,27 @@ class StandardTableKeyboardMixin:
                 and isinstance(event, QKeyEvent)
                 and event.key() in (Qt.Key_Return, Qt.Key_Enter)
             ):
+                current = self._standard_index()
                 if event.modifiers() & Qt.ShiftModifier:
-                    current = self._standard_index()
                     try:
+                        self._standard_editor_close_navigation = "previous"
                         self.commitData(obj)
                         self.closeEditor(obj, QAbstractItemDelegate.EditPreviousItem)
                     except Exception:
+                        self._standard_editor_close_navigation = None
                         self._standard_focus_index(self._standard_next_index(current, False), start_edit=True)
                     return True
                 try:
+                    self._standard_editor_close_navigation = "next"
                     self.commitData(obj)
                     self.closeEditor(obj, QAbstractItemDelegate.NoHint)
                     return True
                 except Exception:
-                    current = self._standard_index()
+                    self._standard_editor_close_navigation = None
                     self._standard_focus_index(self._standard_next_index(current, True), start_edit=True)
                     return True
         except Exception:
-            pass
+            self._standard_editor_close_navigation = None
         try:
             return super().eventFilter(obj, event)
         except Exception:
@@ -661,22 +668,45 @@ class StandardTableKeyboardMixin:
             return
         return super().keyPressEvent(event)
 
+    def _standard_editor_close_should_navigate(self, hint) -> str | None:
+        """Return the requested Enter route direction for an editor close.
+
+        Closing an editor because the operator clicked a side action button
+        (edit/delete/print/save and similar controls) must not be treated like
+        Enter.  Qt reports that focus-loss close mostly as ``NoHint``; older
+        code interpreted every ``NoHint`` as a request to move to the next cell,
+        which stole the mouse click from the side button and reopened the grid
+        editor.  Only Enter/Shift+Enter sets ``_standard_editor_close_navigation``.
+        """
+        pending = getattr(self, "_standard_editor_close_navigation", None)
+        if pending in {"next", "previous"}:
+            return pending
+        if hint == QAbstractItemDelegate.EditPreviousItem:
+            return "previous"
+        if hint == QAbstractItemDelegate.EditNextItem:
+            return "next"
+        # NoHint/SubmitModelCache may be focus-out, mouse click, model reset, or
+        # dialog opening.  Do not auto-step unless our Enter handler explicitly
+        # requested it via the pending flag above.
+        return None
+
     def closeEditor(self, editor, hint):  # type: ignore[override]
         current = self._standard_index()
-        super().closeEditor(editor, hint)
-        if not getattr(self, "_standard_keyboard_active", False):
+        direction = self._standard_editor_close_should_navigate(hint)
+        try:
+            super().closeEditor(editor, hint)
+        finally:
+            self._standard_editor_close_navigation = None
+        if not getattr(self, "_standard_keyboard_active", False) or direction is None:
             return
-        if hint == QAbstractItemDelegate.EditPreviousItem:
+        if direction == "previous":
             QTimer.singleShot(0, lambda: self._standard_focus_index(self._standard_next_index(current, False), start_edit=True))
-        elif hint in (
-            QAbstractItemDelegate.EditNextItem,
-            QAbstractItemDelegate.SubmitModelCache,
-            QAbstractItemDelegate.NoHint,
-        ):
-            def _focus_after_commit(idx=current):
-                target = self._standard_post_commit_index(idx)
-                if target.isValid():
-                    self._standard_focus_index(target, start_edit=True)
-                    return
-                self._standard_focus_index(self._standard_next_index(idx, True), start_edit=True)
-            QTimer.singleShot(0, _focus_after_commit)
+            return
+
+        def _focus_after_commit(idx=current):
+            target = self._standard_post_commit_index(idx)
+            if target.isValid():
+                self._standard_focus_index(target, start_edit=True)
+                return
+            self._standard_focus_index(self._standard_next_index(idx, True), start_edit=True)
+        QTimer.singleShot(0, _focus_after_commit)

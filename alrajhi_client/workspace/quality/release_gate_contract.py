@@ -178,6 +178,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (384, "DASHBOARD_TABLE_RUNTIME_POLISH"),
         (385, "EDITABLE_GRID_UNIT_ENTER"),
         (386, "EDITABLE_GRID_INVOICE_ENTER_ROUTE"),
+        (387, "INVOICE_RETURN_LIST_ACTIONS"),
     ]
 )
 
@@ -321,6 +322,8 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (384, "dashboard_table_runtime_polish"),
         (385, "editable_grid_unit_enter"),
         (386, "editable_grid_invoice_enter_route"),
+        (387, "invoice_return_list_actions"),
+        (388, "editable_grid_mouse_action_boundary"),
     ]
 )
 
@@ -445,6 +448,8 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("dashboard_table_runtime_polish", "ui", "Dashboard labels, daily actions, and table Enter/centering polish", "tools/phase384_dashboard_table_runtime_polish_guard.py", "tools/audit_outputs/phase384_dashboard_table_runtime_polish_matrix.csv", phase=384),
     ReleaseGateCheck("editable_grid_unit_enter", "ui", "Editable grids move from material/barcode to unit before quantity", "tools/phase385_editable_grid_unit_enter_guard.py", "tools/audit_outputs/editable_grid_unit_enter_matrix.csv", phase=385),
     ReleaseGateCheck("editable_grid_invoice_enter_route", "ui", "Sales and purchase invoice Enter traversal follows business column order without clearing data", "tools/phase386_editable_grid_invoice_enter_route_guard.py", "tools/audit_outputs/editable_grid_invoice_enter_route_matrix.csv", phase=386),
+    ReleaseGateCheck("invoice_return_list_actions", "transactions", "Sales/purchase invoice and return list Edit/Delete actions resolve source rows and enforce dependencies", "tools/phase387_invoice_return_list_actions_guard.py", "tools/audit_outputs/invoice_return_list_actions_matrix.csv", phase=387),
+    ReleaseGateCheck("editable_grid_mouse_action_boundary", "ui", "Editable grid Enter navigation does not steal mouse clicks from side action buttons", "tools/phase388_editable_grid_mouse_action_boundary_guard.py", "tools/audit_outputs/editable_grid_mouse_action_boundary_matrix.csv", phase=388),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

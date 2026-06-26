@@ -577,6 +577,7 @@ from offline_read import is_offline_read_error, notify_offline_read
 from views.widgets.modern_ui import apply_modern_widget, apply_modern_dialog
 from i18n import translate, qt_layout_direction
 from workspace.lists.list_workspace_contract import bind_list_workspace
+from core.services.permission_service import permission_service
 
 
 class SalesReturnDialog(CenteredDialog):
@@ -1012,9 +1013,8 @@ class ReturnsWidget(QWidget):
         self.table.set_table_identity('ReturnsWidget.sales_returns')
         self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.toolbar.set_table(self.table)
-        self.table.clicked.connect(lambda *_: self.toolbar.set_delete_enabled(True))
-        self.table.clicked.connect(lambda *_: self.toolbar.set_edit_enabled(True))
         self.table.doubleClicked.connect(self.edit_return_from_index)
+        self._connect_table_selection()
         self._install_print_menu()
         layout.addWidget(self.table)
         pager = QHBoxLayout()
@@ -1081,8 +1081,7 @@ class ReturnsWidget(QWidget):
             data_keys=['reference','return_no','original_invoice','customer','return_total','refund','settlement_remaining','date','notes']
         )
         self.table.setModel(self.model)
-        self.toolbar.set_delete_enabled(False)
-        self.toolbar.set_edit_enabled(False)
+        self._connect_table_selection()
         self.table.refresh_style()
         pages = max(1, (self.total + self.page_size - 1) // self.page_size)
         self.page_label.setText(translate('page_of', page=self.page+1, pages=pages))
@@ -1161,8 +1160,26 @@ class ReturnsWidget(QWidget):
             return {}
 
     def _selected_id(self):
+        if not hasattr(self, 'model'):
+            return None
         row = self._selected_source_row()
         return self.model.get_id(row) if row is not None else None
+
+    def _connect_table_selection(self):
+        sm = self.table.selectionModel() if hasattr(self, 'table') else None
+        if sm is None:
+            return
+        try:
+            sm.selectionChanged.disconnect(self._update_return_actions)
+        except Exception:
+            pass
+        sm.selectionChanged.connect(self._update_return_actions)
+        self._update_return_actions()
+
+    def _update_return_actions(self, *_args):
+        has_valid_selection = self._selected_id() is not None
+        self.toolbar.set_edit_enabled(has_valid_selection and permission_service.can(permission_service.ACTION_EDIT_RETURNS))
+        self.toolbar.set_delete_enabled(has_valid_selection and permission_service.can(permission_service.ACTION_DELETE))
 
     def edit_return_from_index(self, index):
         row = self._source_row_from_index(index)
@@ -1171,8 +1188,12 @@ class ReturnsWidget(QWidget):
 
 
     def edit_selected(self, rid=None):
+        if not permission_service.can(permission_service.ACTION_EDIT_RETURNS):
+            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_EDIT_RETURNS))
+            return
         rid = rid or self._selected_id()
         if not rid:
+            show_toast(translate('select_return_first'), 'warning', self)
             return
         data = sales_return_service.get(rid)
         if not data:
@@ -1190,8 +1211,12 @@ class ReturnsWidget(QWidget):
             self.refresh(True)
 
     def cancel_selected(self):
+        if not permission_service.can(permission_service.ACTION_DELETE):
+            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_DELETE))
+            return
         rid = self._selected_id()
         if not rid:
+            show_toast(translate('select_return_first'), 'warning', self)
             return
         if QMessageBox.question(self, translate('confirm'), translate('confirm_cancel_sales_return')) != QMessageBox.Yes:
             return
@@ -1518,9 +1543,8 @@ class PurchaseReturnsWidget(QWidget):
         self.table.set_table_identity('PurchaseReturnsWidget.purchase_returns')
         self.table.setSelectionBehavior(SmartTableView.SelectRows)
         self.toolbar.set_table(self.table)
-        self.table.clicked.connect(lambda *_: self.toolbar.set_delete_enabled(True))
-        self.table.clicked.connect(lambda *_: self.toolbar.set_edit_enabled(True))
         self.table.doubleClicked.connect(self.edit_return_from_index)
+        self._connect_table_selection()
         self._install_print_menu()
         layout.addWidget(self.table)
         pager = QHBoxLayout()
@@ -1571,8 +1595,7 @@ class PurchaseReturnsWidget(QWidget):
             data_keys=['reference','return_no','original_invoice','supplier','return_total','refund','settlement_remaining','date','notes']
         )
         self.table.setModel(self.model)
-        self.toolbar.set_delete_enabled(False)
-        self.toolbar.set_edit_enabled(False)
+        self._connect_table_selection()
         self.table.refresh_style()
         pages = max(1, (self.total + self.page_size - 1) // self.page_size)
         self.page_label.setText(translate('page_of', page=self.page+1, pages=pages))
@@ -1651,8 +1674,26 @@ class PurchaseReturnsWidget(QWidget):
             return {}
 
     def _selected_id(self):
+        if not hasattr(self, 'model'):
+            return None
         row = self._selected_source_row()
         return self.model.get_id(row) if row is not None else None
+
+    def _connect_table_selection(self):
+        sm = self.table.selectionModel() if hasattr(self, 'table') else None
+        if sm is None:
+            return
+        try:
+            sm.selectionChanged.disconnect(self._update_return_actions)
+        except Exception:
+            pass
+        sm.selectionChanged.connect(self._update_return_actions)
+        self._update_return_actions()
+
+    def _update_return_actions(self, *_args):
+        has_valid_selection = self._selected_id() is not None
+        self.toolbar.set_edit_enabled(has_valid_selection and permission_service.can(permission_service.ACTION_EDIT_RETURNS))
+        self.toolbar.set_delete_enabled(has_valid_selection and permission_service.can(permission_service.ACTION_DELETE))
 
     def edit_return_from_index(self, index):
         row = self._source_row_from_index(index)
@@ -1661,8 +1702,12 @@ class PurchaseReturnsWidget(QWidget):
 
 
     def edit_selected(self, rid=None):
+        if not permission_service.can(permission_service.ACTION_EDIT_RETURNS):
+            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_EDIT_RETURNS))
+            return
         rid = rid or self._selected_id()
         if not rid:
+            show_toast(translate('select_return_first'), 'warning', self)
             return
         data = purchase_return_service.get(rid)
         if not data:
@@ -1680,8 +1725,12 @@ class PurchaseReturnsWidget(QWidget):
             self.refresh(True)
 
     def cancel_selected(self):
+        if not permission_service.can(permission_service.ACTION_DELETE):
+            QMessageBox.warning(self, 'الصلاحيات', permission_service.denied_message(permission_service.ACTION_DELETE))
+            return
         rid = self._selected_id()
         if not rid:
+            show_toast(translate('select_return_first'), 'warning', self)
             return
         if QMessageBox.question(self, translate('confirm'), translate('confirm_cancel_purchase_return')) != QMessageBox.Yes:
             return
