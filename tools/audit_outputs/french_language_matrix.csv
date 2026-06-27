@@ -1,0 +1,26 @@
+check,area,detail,passed
+supported_language_registry,i18n,French is present in SUPPORTED_LANGUAGES and available_languages.,True
+french_direction,i18n,French uses LTR layout direction.,True
+french_coverage_ar,i18n,French dictionary covers every Arabic source key.,True
+french_coverage_en,i18n,French dictionary covers every English migrated key.,True
+fr_key_app_title,i18n,Critical French translation exists for app_title.,True
+fr_key_language_fr,i18n,Critical French translation exists for language_fr.,True
+fr_key_dashboard,i18n,Critical French translation exists for dashboard.,True
+fr_key_sales_invoice,i18n,Critical French translation exists for sales_invoice.,True
+fr_key_purchase_invoice,i18n,Critical French translation exists for purchase_invoice.,True
+fr_key_sales_returns,i18n,Critical French translation exists for sales_returns.,True
+fr_key_purchase_returns,i18n,Critical French translation exists for purchase_returns.,True
+fr_key_items,i18n,Critical French translation exists for items.,True
+fr_key_manufacturing,i18n,Critical French translation exists for manufacturing.,True
+fr_key_reports,i18n,Critical French translation exists for reports.,True
+fr_key_settings_print_language_label,i18n,Critical French translation exists for settings_print_language_label.,True
+fr_key_print_report,i18n,Critical French translation exists for print_report.,True
+fr_key_report_opened_in_browser,i18n,Critical French translation exists for report_opened_in_browser.,True
+fr_key_transaction_column_item,i18n,Critical French translation exists for transaction_column_item.,True
+fr_key_transaction_column_unit,i18n,Critical French translation exists for transaction_column_unit.,True
+fr_key_transaction_column_price,i18n,Critical French translation exists for transaction_column_price.,True
+fr_key_settings_surface_title,i18n,Critical French translation exists for settings_surface_title.,True
+fr_key_barcode.profile.items.default.title,i18n,Critical French translation exists for barcode.profile.items.default.title.,True
+settings_document_language_choices,settings,UI/report/print language choices expose fr.,True
+emergency_print_template_fr,printing,Emergency print template fallback has French labels.,True
+no_legacy_french_fallback,i18n,French no longer falls back to Arabic.,True

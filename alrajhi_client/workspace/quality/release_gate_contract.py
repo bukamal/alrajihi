@@ -331,6 +331,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (389, "editable_grid_row_action_boundary"),
         (390, "item_delete_active_usage"),
         (391, "item_delete_bom_usage_resolver"),
+        (392, "french_language"),
     ]
 )
 
@@ -460,6 +461,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("editable_grid_row_action_boundary", "ui", "List tables keep row selection while editable grids keep Enter cell traversal", "tools/phase389_editable_grid_row_action_boundary_guard.py", "tools/audit_outputs/editable_grid_row_action_boundary_matrix.csv", phase=389),
     ReleaseGateCheck("item_delete_active_usage", "materials", "Item delete/archive guard counts only active dependencies and ignores deleted invoices/cancelled production orders", "tools/phase390_item_delete_active_usage_guard.py", "tools/audit_outputs/item_delete_active_usage_matrix.csv", phase=390),
     ReleaseGateCheck("item_delete_bom_usage_resolver", "materials", "Item delete explains active BOM blockers by recipe/product name and resolution path", "tools/phase391_item_delete_bom_usage_resolver_guard.py", "tools/audit_outputs/item_delete_bom_usage_resolver_matrix.csv", phase=391),
+    ReleaseGateCheck("french_language", "i18n", "French language covers UI, print and report translation surfaces", "tools/phase392_french_language_guard.py", "tools/audit_outputs/french_language_matrix.csv", phase=392),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

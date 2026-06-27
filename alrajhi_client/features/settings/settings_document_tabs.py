@@ -281,7 +281,7 @@ class ReportsSettingsTab(SettingsSectionDocumentTab):
     section_key = 'settings.reports'
     fields = (
         ('reports/enabled', 'enabled', 'bool'),
-        ('language/report', 'report_language', 'choice:ar|en|de'),
+        ('language/report', 'report_language', 'choice:ar|en|de|fr'),
         ('reports/default_export_format', 'default_export_format', 'choice:pdf|xlsx|csv|html'),
         ('reports/operations/allow_view', 'allow_view', 'bool'),
         ('reports/operations/allow_print', 'allow_print', 'bool'),
@@ -372,7 +372,7 @@ class ApparelSettingsTab(SettingsSectionDocumentTab):
 class PrintingSettingsTab(SettingsSectionDocumentTab):
     section_key = 'settings.printing'
     fields = (
-        ('language/print', 'settings_print_language_label', 'choice:ar|en|de'),
+        ('language/print', 'settings_print_language_label', 'choice:ar|en|de|fr'),
         ('printing/invoice_template', 'invoice_template', 'choice:a4|thermal80|thermal58'),
         ('printing/report_template', 'report_template', 'choice:a4|compact|thermal80|thermal58'),
         ('printing/voucher_template', 'settings_print_voucher_template_label', 'choice:a4|thermal80|thermal58'),
@@ -423,7 +423,7 @@ class BarcodeProfilesSettingsTab(SettingsSectionDocumentTab):
 class UISettingsTab(SettingsSectionDocumentTab):
     section_key = 'settings.ui'
     fields = (
-        ('language', 'language', 'choice:ar|en|de'),
+        ('language', 'language', 'choice:ar|en|de|fr'),
         ('theme', 'theme', 'choice:light|dark'),
         ('ui/touch_mode', 'touch_mode', 'bool'),
         ('ui/sidebar_collapsed', 'sidebar_collapsed', 'bool'),

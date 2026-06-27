@@ -11,11 +11,11 @@ vouchers,no_legacy_full_page_stack:self.list_page = QWidget,ok,self.list_page = 
 vouchers,no_legacy_full_page_stack:self.stack.addWidget(self.list_page),ok,self.stack.addWidget(self.list_page)
 vouchers,no_legacy_full_page_stack:self.stack.setCurrentWidget(self.editor_page),ok,self.stack.setCurrentWidget(self.editor_page)
 vouchers,add_voucher:no_open_quick_voucher,ok,"_show_inline_voucher_editor,require,show_toast,str,tr"
-vouchers,add_voucher:no_open_document_tab,ok,"_show_inline_voucher_editor,require,show_toast,str,tr"
 vouchers,add_voucher:no_open_tab,ok,"_show_inline_voucher_editor,require,show_toast,str,tr"
+vouchers,add_voucher:no_open_document_tab,ok,"_show_inline_voucher_editor,require,show_toast,str,tr"
 vouchers,edit_voucher:no_open_quick_voucher,ok,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr"
-vouchers,edit_voucher:no_open_document_tab,ok,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr"
 vouchers,edit_voucher:no_open_tab,ok,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr"
+vouchers,edit_voucher:no_open_document_tab,ok,"_show_inline_voucher_editor,current_source_row,get,get_id,hasattr,row,show_toast,tr"
 vouchers,inline_type:receipt,ok,receipt
 vouchers,inline_type:payment,ok,payment
 vouchers,inline_type:expense,ok,expense

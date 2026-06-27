@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 """Central lightweight i18n foundation.
 
-Arabic is the source/default language. German is the second supported UI
-language, and English is the third.  This module intentionally keeps a small
+Arabic is the source/default language. German, English and French are supported UI, printing and report languages.  This module intentionally keeps a small
 stable API so existing screens can be migrated incrementally without breaking
 legacy Arabic literals.
 """
@@ -10,7 +9,7 @@ from __future__ import annotations
 
 from typing import Dict
 
-SUPPORTED_LANGUAGES = ("ar", "de", "en")
+SUPPORTED_LANGUAGES = ("ar", "de", "en", "fr")
 DEFAULT_LANGUAGE = "ar"
 RTL_LANGUAGES = {"ar"}
 
@@ -18,6 +17,7 @@ LANGUAGE_LABELS = {
     "ar": "العربية",
     "de": "Deutsch",
     "en": "English",
+    "fr": "Français",
 }
 
 _translations: Dict[str, Dict[str, str]] = {}
@@ -30,8 +30,7 @@ def normalize_language(lang: str | None) -> str:
         "arabic": "ar", "العربية": "ar", "عربي": "ar",
         "german": "de", "deutsch": "de", "الألمانية": "de", "الالمانية": "de",
         "english": "en", "الإنجليزية": "en", "الانكليزية": "en", "الإنكليزية": "en",
-        # Legacy cleanup: French is no longer supported; fall back to Arabic.
-        "fr": "ar", "french": "ar", "français": "ar", "francais": "ar",
+        "french": "fr", "français": "fr", "francais": "fr", "الفرنسية": "fr", "فرنسي": "fr",
     }
     lang = aliases.get(lang, lang[:2])
     return lang if lang in SUPPORTED_LANGUAGES else DEFAULT_LANGUAGE
@@ -7930,3 +7929,393 @@ _translations['en'].update({
     'settings_surface_columns_saved': 'Table column settings saved',
     'settings_surface_reset_selected_columns': 'Reset selected table to defaults',
 })
+
+
+# Phase 392: French language expansion for UI, printing, and reports.
+# The historical translation file grew through many phase-level updates.  French
+# is therefore generated after the Arabic/German/English dictionaries are fully
+# assembled, then re-applied whenever load_translations() is called.
+_PHASE392_BASE_LOAD_TRANSLATIONS = load_translations
+
+_FR_KEY_OVERRIDES = {
+    'app_title': 'Comptabilité Al Rajhi',
+    'app_full_title': 'Comptabilité, entrepôts et fabrication Al Rajhi',
+    'nav_home': 'Accueil', 'nav_sales': 'Ventes', 'nav_purchases': 'Achats',
+    'nav_inventory': 'Stock', 'nav_manufacturing': 'Fabrication',
+    'nav_parties': 'Tiers', 'nav_finance': 'Finance', 'nav_admin': 'Administration',
+    'nav_users': 'Utilisateurs', 'nav_quick_actions': 'Actions rapides',
+    'nav_special_interfaces': 'Interfaces métier',
+    'pos': 'Point de vente POS', 'monitoring': 'Surveillance opérationnelle',
+    'sales': 'Ventes', 'sales_invoice': 'Facture de vente',
+    'sales_invoices': 'Factures de vente', 'purchase_invoice': "Facture d'achat",
+    'purchase_invoices': "Factures d'achat", 'sales_returns': 'Retours de vente',
+    'purchase_returns': "Retours d'achat", 'receipt_voucher': 'Bon de réception',
+    'payment_voucher': 'Bon de paiement', 'items': 'Articles',
+    'items_inventory': 'Articles et stock', 'categories': 'Catégories',
+    'warehouses': 'Entrepôts', 'customers': 'Clients', 'suppliers': 'Fournisseurs',
+    'cashboxes': 'Caisses et banques', 'vouchers': 'Bons', 'branches': 'Succursales',
+    'offline_queue': 'Demandes en attente', 'professional_printing': 'Impression professionnelle',
+    'about_app': 'À propos', 'exit': 'Quitter', 'new_sales_invoice': 'Nouvelle facture de vente',
+    'new_purchase_invoice': "Nouvelle facture d'achat", 'new_customer': 'Nouveau client',
+    'new_item': 'Nouvel article', 'customer_statement': 'Relevé client',
+    'supplier_statement': 'Relevé fournisseur', 'ledger_reconciliation': 'Rapprochement du grand livre',
+    'global_search_placeholder': 'Recherche globale : article, client, facture...',
+    'alerts': 'Alertes', 'theme': 'Thème', 'toggle_theme': 'Changer de thème',
+    'current_user': 'Utilisateur actuel', 'no_critical_alerts': 'Aucune alerte critique',
+    'open_dashboard': 'Ouvrir le tableau de bord', 'search_title': 'Recherche',
+    'search_done': 'Recherche effectuée : {text}', 'printing': 'Impression',
+    'printing_soon': "La fenêtre d'impression s'ouvrira bientôt",
+    'about_html': '<h3>Comptabilité Al Rajhi</h3><p>Version 2.0</p><p>Système intégré de comptabilité, stock et fabrication</p>',
+    'logout_confirm': 'Voulez-vous vous déconnecter ?', 'password_changed': 'Mot de passe modifié',
+    'home_breadcrumb': 'Accueil', 'settings_header_title': 'Paramètres',
+    'settings_header_subtitle': "Gérer l'apparence, la société, l'impression, les devises, le réseau et les sauvegardes depuis un seul endroit.",
+    'ready': 'Prêt', 'appearance': 'Apparence', 'company': 'Société',
+    'printing_tab': 'Impression', 'pos_tab': 'POS', 'currencies': 'Devises',
+    'exchange_rates': 'Taux de change', 'network': 'Réseau', 'backup_data': 'Sauvegarde et données',
+    'theme_label': 'Thème :', 'language_label': 'Langue :',
+    'apply_save_appearance': "Appliquer et enregistrer l'apparence",
+    'appearance_help': "Modifier l'apparence de l'application et l'enregistrer pour le prochain démarrage.",
+    'login_subtitle': 'Système de comptabilité Al Rajhi — connexion sécurisée',
+    'login_mode': "Mode d'exécution : {mode}", 'mode_remote': 'Connecté au serveur',
+    'mode_local': 'Local', 'remember_user': "Mémoriser l'utilisateur", 'language': 'Langue',
+    'language_ar': 'Arabe', 'language_de': 'Allemand', 'language_en': 'Anglais', 'language_fr': 'Français',
+    'switch_account': "🔄 Changer de compte / effacer l'utilisateur enregistré",
+    'admin_password_warning': '⚠️ Premier démarrage : changez immédiatement le mot de passe admin par défaut.',
+    'stored_user_cleared': "Nom d'utilisateur enregistré effacé", 'login_required': "Veuillez saisir le nom d'utilisateur et le mot de passe",
+    'checking_login': 'Vérification...', 'invalid_login': "Nom d'utilisateur ou mot de passe incorrect",
+    'login_failed': 'Échec de connexion : {error}', 'show_hide_password': 'Afficher/masquer le mot de passe',
+    'appearance_settings': "Paramètres d'apparence",
+    'language_settings_note': "L'arabe, l'allemand, l'anglais et le français sont pris en charge. Certaines fenêtres peuvent devoir être rouvertes.",
+    'language_saved': 'Langue et apparence enregistrées', 'light_theme': 'Clair', 'dark_theme': 'Sombre',
+    'dashboard': 'Tableau de bord', 'accounts': 'Comptes', 'users': 'Utilisateurs',
+    'audit_log': "Journal d'audit", 'settings': 'Paramètres', 'reports': 'Rapports',
+    'login': 'Connexion', 'logout': 'Déconnexion', 'username': "Nom d'utilisateur",
+    'password': 'Mot de passe', 'full_name': 'Nom complet', 'role': 'Rôle',
+    'admin': 'Administrateur', 'user': 'Utilisateur', 'viewer': 'Lecteur',
+    'add': 'Ajouter', 'edit': '✏️ Modifier', 'delete': 'Supprimer', 'save': 'Enregistrer',
+    'cancel': 'Annuler', 'search': 'Rechercher', 'company_name': 'Nom de la société',
+    'amount': 'Montant', 'type': 'Type', 'incoming': 'Entrant', 'outgoing': 'Sortant',
+    'date': 'Date', 'currency': 'Devise', 'notes': 'Notes', 'net': 'Net',
+    'total_incoming': 'Total entrant', 'total_outgoing': 'Total sortant', 'net_profit': 'Bénéfice net',
+    'confirm_delete': 'Êtes-vous sûr ?', 'yes': 'Oui', 'no': 'Non',
+    'error': 'Erreur', 'success': 'Succès', 'warning': 'Avertissement',
+    'change_password': 'Changer le mot de passe', 'old_password': 'Mot de passe actuel',
+    'new_password': 'Nouveau mot de passe', 'confirm_password': 'Confirmer le mot de passe',
+    'cumulative': 'Cumulatif', 'income_statement': 'Compte de résultat',
+    'balance_sheet': 'Bilan', 'period': 'Période', 'statement': 'Relevé',
+    'month': 'Mois', 'revenues': 'Produits', 'expenses': 'Charges',
+    'total_assets': 'Total des actifs', 'total_liabilities': 'Total des passifs',
+    'equity': 'Capitaux propres', 'no_data_for_print': 'Aucune donnée à imprimer',
+    'print_report': 'Imprimer le rapport', 'refresh_report': 'Actualiser le rapport',
+    'print_date': "Date d'impression", 'report_opened_in_browser': 'Rapport ouvert dans le navigateur pour impression',
+    'from_date': 'Du :', 'to_date': 'Au :', 'all': 'Tous', 'cash': 'Espèces', 'bank': 'Banque',
+    'none': 'Aucun', 'previous': 'Précédent', 'next': 'Suivant', 'no_records': 'Aucun enregistrement',
+    'page_of': 'Page {page} sur {pages}', 'showing_records': 'Affichage {start}-{end} sur {total} enregistrements',
+    'select_invoice_first': "Veuillez d'abord sélectionner une facture", 'select_invoice_delete': 'Veuillez sélectionner une facture à supprimer',
+    'delete_invoice_blocked_title': 'Suppression impossible',
+    'delete_invoice_blocked_message': "Impossible de supprimer une facture liée à des bons de réception/paiement. Supprimez ou annulez d'abord les bons.",
+    'delete_invoice_linked_returns_message': "Impossible de supprimer une facture liée à des retours. Supprimez ou annulez d'abord les retours.",
+    'confirm_delete_invoice_title': 'Confirmer la suppression de la facture',
+    'confirm_delete_invoice_message': "Voulez-vous supprimer/annuler la facture {reference} ?\nL'impact sur le stock et la comptabilité sera inversé selon les règles du système.",
+    'invoice_deleted': 'Facture supprimée/annulée', 'delete_failed': 'Échec de la suppression',
+    'customer_list': 'Liste des clients', 'supplier_list': 'Liste des fournisseurs',
+    'invoice_page_title': 'Factures', 'invoice_page_subtitle': 'Gérer les factures de vente et d’achat et les tableaux de recherche',
+    'sales_invoices_title': 'Factures de vente', 'sales_invoices_subtitle': 'Gérer les factures de vente indépendamment avec recherche et filtres rapides.',
+    'purchase_invoices_title': "Factures d'achat", 'purchase_invoices_subtitle': 'Gérer les factures d’achat indépendamment avec fournisseurs et entrepôts.',
+    'search_sales_invoices': 'Rechercher des factures de vente...', 'search_purchase_invoices': "Rechercher des factures d'achat...",
+    'customer_label': 'Client :', 'supplier_label': 'Fournisseur :', 'reference': 'Référence',
+    'customer': 'Client', 'supplier': 'Fournisseur', 'total': 'Total', 'paid': 'Payé', 'remaining': 'Restant',
+    'cash_customer': 'Espèces', 'new_invoice_window': 'Nouvelle facture {type}', 'edit_invoice_window': 'Modifier la facture {type}',
+    'sale_type': 'vente', 'purchase_type': 'achat', 'invoice_details': 'Détails de la facture',
+    'transaction_sales_invoice_new': 'Nouvelle facture de vente', 'transaction_purchase_invoice_new': "Nouvelle facture d'achat",
+    'transaction_sales_return_new': 'Nouveau retour de vente', 'transaction_purchase_return_new': "Nouveau retour d'achat",
+    'transaction_sales_return': 'Retour de vente', 'transaction_purchase_return': "Retour d'achat",
+    'transaction_column_barcode': 'Code-barres', 'transaction_column_item': 'Article', 'transaction_column_variant': 'Couleur/Taille',
+    'transaction_column_unit': 'Unité', 'transaction_column_qty': 'Quantité', 'transaction_column_available': 'Disponible',
+    'transaction_column_price': 'Prix', 'transaction_column_discount': 'Remise', 'transaction_column_tax': 'Taxe',
+    'transaction_column_total': 'Total', 'transaction_column_notes': 'Notes', 'transaction_column_cost': 'Coût',
+    'transaction_column_batch': 'Lot', 'transaction_column_expiry': 'Expiration', 'transaction_column_original_invoice': 'Facture d’origine',
+    'transaction_column_sold_qty': 'Vendu', 'transaction_column_purchased_qty': 'Acheté',
+    'transaction_column_previous_return': 'Retour précédent', 'transaction_column_returnable': 'Retournable',
+    'transaction_column_return_qty': 'Quantité retournée', 'transaction_column_reason': 'Motif',
+    'manufacturing': 'Fabrication', 'restaurant.dashboard': 'Tableau de bord restaurant',
+    'restaurant.kitchen_display': 'Écran cuisine', 'workspace.quick_open': 'Ouverture rapide',
+    'workspace.recent_tabs': 'Onglets récents', 'workspace.favorites': 'Favoris',
+    'category.operation.restore': 'Restaurer une catégorie', 'category.operation.archive': 'Archiver une catégorie',
+    'category.operation.edit': 'Modifier une catégorie', 'category.operation.create': 'Créer une catégorie',
+    'category.operation.use': 'Utiliser les catégories',
+    'category_operation_denied': "L'opération n'est pas autorisée pour les catégories selon les permissions ou les paramètres.",
+    'category_read_only': 'La catégorie est en lecture seule selon les permissions ou les paramètres.',
+    'settings_print_language_label': "Langue d'impression :", 'report_language': 'Langue des rapports',
+    'print_language': "Langue d'impression", 'ui_language': "Langue de l'interface",
+    'settings_print_templates_title': 'Modèles HTML unifiés',
+    'settings_print_templates_help': 'Ces paramètres alimentent un modèle HTML unique pour les factures, bons, retours, tableaux, rapports et fichiers PDF.',
+    'settings_print_template_a4': 'A4 professionnel', 'settings_print_template_thermal80': 'Thermique 80 mm',
+    'settings_print_template_thermal58': 'Thermique 58 mm', 'settings_print_invoice_template_label': 'Modèle de facture :',
+    'settings_print_report_template_label': 'Modèle rapports/tableaux :', 'settings_print_voucher_template_label': 'Modèle de bon :',
+    'settings_print_return_template_label': 'Modèle de retour :', 'settings_print_thermal_size_label': 'Taille thermique par défaut :',
+    'settings_print_identity_title': "Identité d'impression", 'settings_print_identity_help': 'En-tête, couleurs, police, logo, QR et pied de page pour chaque document imprimé ou PDF.',
+    'settings_print_show_logo': 'Afficher le logo de la société dans l’en-tête', 'settings_print_show_company_name': 'Afficher le nom de la société',
+    'settings_print_show_address': "Afficher l'adresse de la société", 'settings_print_show_phone': 'Afficher le téléphone de la société',
+    'settings_print_show_email': "Afficher l'e-mail de la société", 'settings_print_show_tax': 'Afficher le numéro fiscal',
+    'settings_print_show_commercial_register': 'Afficher le registre commercial', 'settings_print_show_website': 'Afficher le site web de la société',
+    'settings_print_show_qr': 'Afficher le QR sur les factures et les retours',
+    'settings_print_reverse_columns': "Inverser les colonnes du tableau quand l'impression RTL l'exige",
+    'settings_print_allow_emergency_fallback': 'Autoriser un modèle de secours simplifié si le modèle réel ne se charge pas',
+    'settings_print_show_template_diagnostics': 'Afficher les détails des erreurs de modèle aux administrateurs',
+    'settings_print_test_document': "Ouvrir un document d'impression de test", 'settings_print_test_party': 'Tiers de test',
+    'settings_print_test_warehouse': 'Entrepôt principal', 'settings_print_test_item_1': 'Article de test 1',
+    'settings_print_test_item_2': 'Article de test 2', 'settings_print_test_unit_1': 'Pièce', 'settings_print_test_unit_2': 'Boîte',
+    'settings_print_test_notes': 'Document de test pour le logo, les données société, la langue et la mise en page.',
+    'settings_print_accent_color_label': 'Couleur du titre et du tableau :', 'settings_print_font_label': "Police d'impression :",
+    'settings_print_font_size_label': 'Taille de police A4 :', 'settings_print_zebra_rows': 'Alternance de couleur des lignes dans les tableaux',
+    'settings_print_compact_tables': 'Tableaux compacts pour les grands volumes', 'settings_print_footer_placeholder': 'Exemple : merci pour votre confiance',
+    'settings_print_footer_label': 'Pied de page du document :', 'settings_print_actions_title': 'Enregistrer et appliquer',
+    'settings_print_actions_help': 'Après l’enregistrement, tous les chemins d’impression utilisent automatiquement le modèle HTML unifié : aperçu, impression directe, PDF.',
+    'settings_print_save': "Enregistrer les paramètres d'impression unifiés", 'settings_print_saved': "Paramètres d'impression enregistrés",
+}
+
+_FR_VALUE_OVERRIDES = {
+    'Opening': 'Ouverture', 'Details': 'Détails', 'No data': 'Aucune donnée', 'Report': 'Rapport',
+    'Permissions': 'Permissions', 'Enabled': 'Activé', 'Disabled': 'Désactivé', 'Apply': 'Appliquer',
+    'Create': 'Créer', 'Update': 'Mettre à jour', 'Archive': 'Archiver', 'Restore': 'Restaurer',
+    'Status': 'Statut', 'Source': 'Source', 'Data': 'Données', 'Number': 'Numéro', 'Party': 'Tiers',
+    'Warehouse': 'Entrepôt', 'Payment method': 'Mode de paiement', 'Original invoice': 'Facture d’origine',
+    'Item': 'Article', 'Quantity': 'Quantité', 'Unit': 'Unité', 'Price': 'Prix', 'Discount': 'Remise',
+    'Tax': 'Taxe', 'Subtotal': 'Sous-total', 'Refunded': 'Remboursé', 'Remaining': 'Restant',
+}
+
+_FR_PHRASE_REPLACEMENTS = [
+    ('Sales Invoice', 'Facture de vente'), ('Sales Invoices', 'Factures de vente'),
+    ('Purchase Invoice', "Facture d'achat"), ('Purchase Invoices', "Factures d'achat"),
+    ('Sales Returns', 'Retours de vente'), ('Purchase Returns', "Retours d'achat"),
+    ('Receipt Voucher', 'Bon de réception'), ('Payment Voucher', 'Bon de paiement'),
+    ('Cashbox', 'Caisse'), ('Cashboxes', 'Caisses'), ('Bank Account', 'Compte bancaire'),
+    ('Bank Accounts', 'Comptes bancaires'), ('Customer Statement', 'Relevé client'),
+    ('Supplier Statement', 'Relevé fournisseur'), ('Income Statement', 'Compte de résultat'),
+    ('Balance Sheet', 'Bilan'), ('Audit Log', "Journal d'audit"),
+    ('Print Report', 'Imprimer le rapport'), ('Refresh Report', 'Actualiser le rapport'),
+    ('Print Date', "Date d'impression"), ('No data to print', 'Aucune donnée à imprimer'),
+    ('New ', 'Nouveau '), ('Edit ', 'Modifier '), ('Delete ', 'Supprimer '),
+    ('Save ', 'Enregistrer '), ('Open ', 'Ouvrir '), ('Search ', 'Rechercher '),
+    ('Add ', 'Ajouter '), ('Cancel ', 'Annuler '), ('Confirm ', 'Confirmer '),
+    ('Print ', 'Imprimer '), ('Export ', 'Exporter '), ('Import ', 'Importer '),
+]
+
+_FR_WORD_REPLACEMENTS = {
+    'Home': 'Accueil', 'Sales': 'Ventes', 'Purchases': 'Achats', 'Inventory': 'Stock',
+    'Manufacturing': 'Fabrication', 'Finance': 'Finance', 'Administration': 'Administration',
+    'Users': 'Utilisateurs', 'User': 'Utilisateur', 'Settings': 'Paramètres', 'Reports': 'Rapports',
+    'Report': 'Rapport', 'Dashboard': 'Tableau de bord', 'Items': 'Articles', 'Item': 'Article',
+    'Products': 'Produits', 'Product': 'Produit', 'Categories': 'Catégories', 'Category': 'Catégorie',
+    'Customers': 'Clients', 'Customer': 'Client', 'Suppliers': 'Fournisseurs', 'Supplier': 'Fournisseur',
+    'Warehouses': 'Entrepôts', 'Warehouse': 'Entrepôt', 'Branches': 'Succursales', 'Branch': 'Succursale',
+    'Accounts': 'Comptes', 'Account': 'Compte', 'Vouchers': 'Bons', 'Voucher': 'Bon',
+    'Invoice': 'Facture', 'Invoices': 'Factures', 'Return': 'Retour', 'Returns': 'Retours',
+    'Receipt': 'Réception', 'Payment': 'Paiement', 'Cash': 'Espèces', 'Bank': 'Banque',
+    'Date': 'Date', 'Amount': 'Montant', 'Total': 'Total', 'Subtotal': 'Sous-total', 'Paid': 'Payé',
+    'Remaining': 'Restant', 'Currency': 'Devise', 'Rate': 'Taux', 'Rates': 'Taux',
+    'Name': 'Nom', 'Code': 'Code', 'Barcode': 'Code-barres', 'Quantity': 'Quantité', 'Qty': 'Qté',
+    'Unit': 'Unité', 'Price': 'Prix', 'Cost': 'Coût', 'Discount': 'Remise', 'Tax': 'Taxe',
+    'Notes': 'Notes', 'Status': 'Statut', 'Type': 'Type', 'Source': 'Source', 'Reference': 'Référence',
+    'Description': 'Description', 'Address': 'Adresse', 'Phone': 'Téléphone', 'Email': 'E-mail',
+    'Website': 'Site web', 'Company': 'Société', 'Logo': 'Logo', 'Theme': 'Thème',
+    'Language': 'Langue', 'Printing': 'Impression', 'Print': 'Imprimer', 'Export': 'Exporter',
+    'Import': 'Importer', 'Save': 'Enregistrer', 'Apply': 'Appliquer', 'Cancel': 'Annuler',
+    'Delete': 'Supprimer', 'Edit': 'Modifier', 'Add': 'Ajouter', 'Create': 'Créer', 'Update': 'Mettre à jour',
+    'Open': 'Ouvrir', 'Close': 'Fermer', 'Search': 'Rechercher', 'Filter': 'Filtrer', 'Refresh': 'Actualiser',
+    'Reset': 'Réinitialiser', 'Confirm': 'Confirmer', 'Warning': 'Avertissement', 'Error': 'Erreur',
+    'Success': 'Succès', 'Failed': 'Échec', 'Available': 'Disponible', 'Active': 'Actif', 'Inactive': 'Inactif',
+    'Enabled': 'Activé', 'Disabled': 'Désactivé', 'Yes': 'Oui', 'No': 'Non', 'All': 'Tous',
+    'None': 'Aucun', 'Previous': 'Précédent', 'Next': 'Suivant', 'Page': 'Page', 'of': 'sur',
+    'Table': 'Tableau', 'Tables': 'Tableaux', 'Column': 'Colonne', 'Columns': 'Colonnes',
+    'Display': 'Affichage', 'Visible': 'Visible', 'Print': 'Imprimer', 'Printable': 'Imprimable',
+    'Exportable': 'Exportable', 'Restaurant': 'Restaurant', 'Kitchen': 'Cuisine', 'Cafe': 'Café',
+    'Shift': 'Service', 'Cart': 'Panier', 'Receipt': 'Ticket', 'Thermal': 'Thermique',
+    'Order': 'Commande', 'Orders': 'Commandes', 'Production': 'Production', 'BOM': 'Nomenclature',
+    'Component': 'Composant', 'Components': 'Composants', 'Material': 'Matière', 'Materials': 'Matières',
+    'Finished': 'Fini', 'Raw': 'Brut', 'Balance': 'Solde', 'Profit': 'Bénéfice', 'Loss': 'Perte',
+    'Assets': 'Actifs', 'Liabilities': 'Passifs', 'Equity': 'Capitaux propres', 'Revenue': 'Produit',
+    'Revenues': 'Produits', 'Expense': 'Charge', 'Expenses': 'Charges', 'Network': 'Réseau',
+    'Backup': 'Sauvegarde', 'Data': 'Données', 'File': 'Fichier', 'Files': 'Fichiers',
+    'Format': 'Format', 'Template': 'Modèle', 'Templates': 'Modèles', 'Profile': 'Profil', 'Profiles': 'Profils',
+}
+
+_FR_KEY_TOKEN_MAP = {
+    'sales': 'ventes', 'sale': 'vente', 'purchase': 'achat', 'purchases': 'achats', 'return': 'retour', 'returns': 'retours',
+    'invoice': 'facture', 'invoices': 'factures', 'item': 'article', 'items': 'articles', 'inventory': 'stock',
+    'warehouse': 'entrepôt', 'warehouses': 'entrepôts', 'customer': 'client', 'customers': 'clients', 'supplier': 'fournisseur',
+    'suppliers': 'fournisseurs', 'category': 'catégorie', 'categories': 'catégories', 'manufacturing': 'fabrication',
+    'production': 'production', 'bom': 'nomenclature', 'line': 'ligne', 'lines': 'lignes', 'print': 'impression',
+    'printing': 'impression', 'report': 'rapport', 'reports': 'rapports', 'settings': 'paramètres', 'language': 'langue',
+    'ui': 'interface', 'dashboard': 'tableau de bord', 'user': 'utilisateur', 'users': 'utilisateurs', 'role': 'rôle',
+    'permission': 'permission', 'permissions': 'permissions', 'delete': 'supprimer', 'edit': 'modifier', 'add': 'ajouter',
+    'save': 'enregistrer', 'open': 'ouvrir', 'close': 'fermer', 'search': 'rechercher', 'barcode': 'code-barres',
+    'price': 'prix', 'cost': 'coût', 'qty': 'quantité', 'quantity': 'quantité', 'unit': 'unité', 'discount': 'remise',
+    'tax': 'taxe', 'total': 'total', 'notes': 'notes', 'date': 'date', 'amount': 'montant', 'status': 'statut',
+    'cash': 'espèces', 'bank': 'banque', 'voucher': 'bon', 'vouchers': 'bons', 'receipt': 'réception', 'payment': 'paiement',
+    'restaurant': 'restaurant', 'cafe': 'café', 'table': 'tableau', 'tables': 'tableaux', 'column': 'colonne',
+    'columns': 'colonnes', 'export': 'export', 'import': 'import', 'profile': 'profil', 'profiles': 'profils',
+}
+
+
+
+_FR_KEY_OVERRIDES.update({
+    'barcode.profile.items.default.title': "Imprimer les codes-barres d'articles",
+    'barcode.profile.items.default.help': "Choisissez les articles pour imprimer des étiquettes code-barres. Les paramètres unifiés des matières sont utilisés.",
+    'barcode.profile.apparel.variant_labels.title': "Imprimer les codes-barres des variantes de vêtements",
+    'barcode.profile.apparel.variant_labels.help': "Imprime les étiquettes code-barres des variantes avec couleur, taille et code de variante selon les paramètres vêtements.",
+    'barcode.profile.restaurant.menu_items.title': "Imprimer les codes-barres des articles du menu",
+    'barcode.profile.restaurant.menu_items.help': "Imprime les étiquettes des articles du menu via le chemin HTML navigateur unifié.",
+    'barcode.profile.restaurant.table_labels.title': "Imprimer les QR/codes-barres des tables",
+    'barcode.profile.restaurant.table_labels.help': "Imprime les étiquettes QR ou code-barres des tables avec zone/secteur quand l'option est activée.",
+    'barcode.profile.cafe.products.title': "Imprimer les codes-barres des produits café",
+    'barcode.profile.cafe.products.help': "Imprime les étiquettes des produits café via le même moteur restaurant et les paramètres café.",
+    'barcode.profile.cafe.modifier_labels.title': "Imprimer les codes-barres des suppléments café",
+    'barcode.profile.cafe.modifier_labels.help': "Imprime les étiquettes des suppléments et groupes de suppléments selon le profil café.",
+    'barcode.no_items_available_for_profile': "Aucune entrée imprimable en code-barres n'est disponible pour ce profil.",
+    'barcode.print_selected': 'Imprimer la sélection',
+    'barcode.batch_print_variants': 'Imprimer les codes-barres des variantes',
+    'barcode.select_variant_for_print': 'Sélectionnez au moins une variante pour imprimer les étiquettes code-barres.',
+    'barcode.no_variant_barcodes_to_print': "Aucune variante de vêtements avec code-barres imprimable n'est disponible.",
+    'barcode.restaurant_menu_labels': 'Codes-barres du menu',
+    'barcode.restaurant_table_labels': 'QR des tables',
+    'barcode.cafe_product_labels': 'Codes-barres des produits café',
+    'barcode.cafe_modifier_labels': 'Codes-barres des suppléments',
+    'settings_surface_tab': 'Interface, tableaux et codes-barres',
+    'settings_surface_title': 'Surface de paramètres unifiée',
+    'settings_surface_help': "Gérez les contrats de colonnes et les profils d'impression de codes-barres depuis un seul endroit.",
+    'settings_surface_note': "Cette page ne crée pas de nouveaux chemins d'impression ; elle configure les contrats centraux utilisés pour l'affichage, l'impression et l'export.",
+    'settings_surface_columns_title': 'Contrats de colonnes',
+    'settings_surface_columns_help': "Résumé des tableaux connectés aux paramètres d'affichage, d'impression et d'export.",
+    'settings_surface_reset_columns': 'Réinitialiser toutes les colonnes des tableaux',
+    'settings_surface_columns_reset_done': 'Les paramètres de colonnes ont été réinitialisés',
+    'settings_surface_barcode_profiles_title': "Profils d'impression de codes-barres",
+    'settings_surface_barcode_profiles_help': 'Configurez modèle, taille et copies par secteur : articles, vêtements, restaurant et café.',
+    'settings_surface_save_barcode_profiles': 'Enregistrer les profils de codes-barres',
+    'settings_surface_barcode_profiles_saved': 'Profils de codes-barres enregistrés',
+    'settings_surface_template_id': 'ID du modèle :',
+    'settings_surface_show_company': 'Afficher la société',
+    'settings_surface_show_logo': 'Afficher le logo',
+    'settings_surface_show_qr': 'Afficher le QR si disponible',
+    'settings_surface_show_name': "Afficher le nom de l'élément",
+    'settings_surface_show_price': 'Afficher le prix',
+    'settings_surface_show_barcode_text': 'Afficher le texte du code-barres',
+    'settings_surface_show_variant_color_size': 'Afficher couleur/taille de la variante',
+    'settings_surface_show_variant_code': 'Afficher le code de variante',
+    'settings_surface_show_section': 'Afficher la section',
+    'settings_surface_show_table_zone': 'Afficher la zone de table',
+    'settings_surface_show_modifier_group': 'Afficher le groupe de supplément',
+    'settings_surface_show_size': 'Afficher la taille',
+    'settings_surface_column_editor': "Personnaliser les colonnes d'affichage, d'impression et d'export",
+    'settings_surface_column_editor_hint': "Choisissez si chaque colonne est affichée à l'écran, incluse dans l'impression et incluse dans l'export. Les colonnes obligatoires restent visibles.",
+    'settings_surface_column_label': 'Colonne',
+    'settings_surface_visible_column': 'Affichage',
+    'settings_surface_printable_column': 'Impression',
+    'settings_surface_exportable_column': 'Export',
+    'settings_surface_save_columns': 'Enregistrer les colonnes du tableau sélectionné',
+    'settings_surface_columns_saved': 'Paramètres des colonnes du tableau enregistrés',
+    'settings_surface_reset_selected_columns': 'Réinitialiser le tableau sélectionné',
+    'settings_contracts_title': 'Contrats de paramètres unifiés',
+    'settings_contracts_profile_note': 'Enregistré sous le profil de paramètres actif : {profile}',
+    'settings_pos_help': 'Les services sont optionnels. Quand ils sont désactivés, les ventes POS sont comptabilisées directement sur la caisse par défaut.',
+    'settings_pos_default_note': 'Les services sont désactivés par défaut. Les anciennes données de service sont conservées pour les rapports et l’archivage.',
+    'dashboard_hero_title': 'Tableau de bord Al Rajhi',
+    'dashboard_hero_subtitle': 'Vue opérationnelle unifiée pour comptabilité, stock, fabrication et alertes',
+    'dashboard_daily_shortcuts': 'Raccourcis quotidiens du tableau de bord',
+    'dashboard_pos_f9': 'POS F9',
+    'item_dialog_subtitle': 'Interface unifiée : données de base, prix, stock et unités dans des sections claires.',
+    'material_subtitle': 'Écran article unifié : données principales, prix, stock, code-barres et unités.',
+    'voucher_document_subtitle': 'Document financier unifié : tiers, facture liée, cible de paiement et montant dans la devise d’affichage.',
+})
+
+_FR_VALUE_OVERRIDES.update({
+    'Alert': 'Alerte', 'Alerts bar': 'Barre des alertes', 'Archived': 'Archivé', 'Browse': 'Parcourir',
+    'Cancelled': 'Annulé', 'Card': 'Carte', 'Change cashbox': 'Changer la caisse', 'Complete': 'Terminé',
+    'Connected': 'Connecté', 'Consumed': 'Consommé', 'Consumption deleted': 'Consommation supprimée',
+    'Consumption registered': 'Consommation enregistrée', 'Credit': 'Crédit', 'Credit reduction': 'Réduction de crédit',
+    'Day': 'Jour', 'Default': 'Par défaut', 'Difference': 'Différence', 'Exit fullscreen': 'Quitter le plein écran',
+    'Fullscreen': 'Plein écran', 'General movement': 'Mouvement général', 'Generate': 'Générer', 'Hour': 'Heure',
+    'Integrated management system': 'Système de gestion intégré', 'Location': 'Emplacement', 'Matched': 'Correspondant',
+    'New': 'Nouveau', 'Output deleted': 'Sortie supprimée', 'Parties': 'Tiers', 'Prices': 'Prix',
+    'Production completed': 'Production terminée', 'Production started': 'Production démarrée',
+    'Quick action': 'Action rapide', 'Ready to scan': 'Prêt à scanner', 'Received': 'Reçu',
+    'Recent errors': 'Erreurs récentes', 'Register': 'Enregistrer', 'Reserved': 'Réservé', 'Saved': 'Enregistré',
+    'Server connection': 'Connexion serveur', 'Show archived': 'Afficher les archivés', 'Start camera': 'Démarrer la caméra',
+    'Stop': 'Arrêter', 'Sync requests': 'Demandes de synchronisation', 'Today movement': "Mouvement d'aujourd'hui",
+    'Transfer cancelled': 'Transfert annulé', 'Uncertain': 'Incertain', 'Week': 'Semaine', 'Press start camera': 'Appuyez sur démarrer la caméra',
+})
+
+_FR_WORD_REPLACEMENTS.update({
+    'Unified': 'Unifié', 'Barcode': 'Code-barres', 'Barcodes': 'Codes-barres', 'barcode': 'code-barres', 'barcodes': 'codes-barres',
+    'default': 'par défaut', 'records': 'enregistrements', 'Showing': 'Affichage', 'active': 'actif', 'profile': 'profil',
+    'help': 'aide', 'daily': 'quotidiens', 'shortcuts': 'raccourcis', 'subtitle': 'sous-titre', 'title': 'titre',
+    'Shifts': 'Services', 'shifts': 'services', 'optional': 'optionnels', 'ticket': 'ticket', 'Ticket': 'Ticket',
+    'receipt': 'ticket', 'Receipt': 'Ticket', 'modifier': 'supplément', 'Modifier': 'Supplément', 'modifiers': 'suppléments',
+    'Modifier': 'Supplément', 'QR': 'QR', 'POS': 'POS', 'path': 'chemin', 'Path': 'Chemin', 'engine': 'moteur',
+    'HTML': 'HTML', 'browser': 'navigateur', 'Browser': 'Navigateur', 'labels': 'étiquettes', 'Labels': 'Étiquettes',
+    'apparel': 'vêtements', 'Apparel': 'Vêtements', 'variant': 'variante', 'Variant': 'Variante', 'variants': 'variantes',
+    'color': 'couleur', 'Color': 'Couleur', 'size': 'taille', 'Size': 'Taille',
+})
+
+import re as _phase392_re
+
+def _phase392_replace_words(text: str) -> str:
+    result = str(text)
+    if result in _FR_VALUE_OVERRIDES:
+        return _FR_VALUE_OVERRIDES[result]
+    for src, dst in sorted(_FR_PHRASE_REPLACEMENTS, key=lambda p: len(p[0]), reverse=True):
+        result = result.replace(src, dst)
+    for src, dst in sorted(_FR_WORD_REPLACEMENTS.items(), key=lambda p: len(p[0]), reverse=True):
+        result = _phase392_re.sub(rf'\b{_phase392_re.escape(src)}\b', dst, result)
+        result = _phase392_re.sub(rf'\b{_phase392_re.escape(src.lower())}\b', dst.lower(), result)
+    return result
+
+def _phase392_key_to_french(key: str) -> str:
+    raw = str(key).replace('.', '_').replace('-', '_')
+    tokens = [t for t in raw.split('_') if t]
+    words = [_FR_KEY_TOKEN_MAP.get(t.lower(), t.replace('/', ' / ')) for t in tokens]
+    label = ' '.join(words).strip()
+    return label[:1].upper() + label[1:] if label else str(key)
+
+def _phase392_french_text(key: str, text: str) -> str:
+    key = str(key)
+    if key in _FR_KEY_OVERRIDES:
+        return _FR_KEY_OVERRIDES[key]
+    text = '' if text is None else str(text)
+    if not text or text == key:
+        return _phase392_key_to_french(key)
+    translated = _phase392_replace_words(text)
+    # For long English help/messages that still did not change, expose a French
+    # label based on the key instead of leaking an untranslated key/value.
+    if translated == text and _phase392_re.search(r'[A-Za-z]', text) and not text.startswith('<'):
+        return _phase392_key_to_french(key)
+    return translated
+
+def _phase392_apply_french_translations() -> None:
+    _translations.setdefault('ar', {}).update({
+        'language_fr': 'الفرنسية',
+        'language_settings_note': 'العربية، الألمانية، الإنجليزية، والفرنسية مدعومة. قد تتطلب بعض الشاشات إعادة فتح لتطبيق النصوص بالكامل.',
+    })
+    _translations.setdefault('de', {}).update({
+        'language_fr': 'Französisch',
+        'language_settings_note': 'Arabisch, Deutsch, Englisch und Französisch werden unterstützt. Einige Fenster müssen neu geöffnet werden.',
+    })
+    _translations.setdefault('en', {}).update({
+        'language_fr': 'French',
+        'language_settings_note': 'Arabic, German, English and French are supported. Some screens may need reopening.',
+    })
+    keys = set()
+    for lang in ('ar', 'de', 'en'):
+        keys.update(_translations.get(lang, {}).keys())
+    en = _translations.get('en', {})
+    ar = _translations.get('ar', {})
+    fr = {key: _phase392_french_text(key, en.get(key, ar.get(key, key))) for key in sorted(keys)}
+    fr.update(_FR_KEY_OVERRIDES)
+    _translations['fr'] = fr
+
+def load_translations():
+    _PHASE392_BASE_LOAD_TRANSLATIONS()
+    _phase392_apply_french_translations()
+
+_phase392_apply_french_translations()

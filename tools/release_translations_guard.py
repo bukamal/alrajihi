@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Validate the shipped Arabic/German/English translation bundle."""
+"""Validate the shipped Arabic/German/English/French translation bundle."""
 from __future__ import annotations
 
 import sys
@@ -30,11 +30,11 @@ def main() -> int:
         for key in CRITICAL_KEYS:
             if key not in data[lang] or not str(data[lang][key]).strip():
                 errors.append(f"Missing critical translation {lang}.{key}")
-    for lang in ("ar", "de", "en"):
+    for lang in ("ar", "de", "en", "fr"):
         direction = translator.language_direction(lang)
         if lang == "ar" and direction != "rtl":
             errors.append("Arabic must be RTL")
-        if lang in {"de", "en"} and direction != "ltr":
+        if lang in {"de", "en", "fr"} and direction != "ltr":
             errors.append(f"{lang} must be LTR")
     if errors:
         print("Release translations guard failed:")

@@ -183,6 +183,13 @@ def _fallback_text(key: str) -> str:
             'data': 'Data', 'number': 'Number', 'date': 'Date', 'party': 'Party', 'warehouse': 'Warehouse', 'payment': 'Payment method', 'currency': 'Currency',
             'original_invoice': 'Original invoice', 'status': 'Status', 'user': 'User', 'notes': 'Notes', 'report': 'Report', 'no_data': 'No data', 'template_error_title': 'Print template could not be loaded', 'template_error_message': 'The print document was not generated because the real template is unavailable.', 'template_error_hint': 'Check print_templates.py packaging or temporarily enable the emergency template in print settings.', 'template_error_detail': 'Error detail',
         },
+        'fr': {
+            'item': 'Article', 'quantity': 'Quantité', 'unit': 'Unité', 'price': 'Prix', 'discount': 'Remise', 'tax': 'Taxe', 'total': 'Total',
+            'no_lines': 'Aucune ligne', 'subtotal': 'Sous-total', 'paid': 'Payé', 'refunded': 'Remboursé', 'remaining': 'Restant',
+            'invoice': 'Facture', 'sales_invoice': 'Facture de vente', 'purchase_invoice': 'Facture d’achat', 'sales_return': 'Retour de vente', 'purchase_return': 'Retour d’achat',
+            'data': 'Données', 'number': 'Numéro', 'date': 'Date', 'party': 'Tiers', 'warehouse': 'Entrepôt', 'payment': 'Mode de paiement', 'currency': 'Devise',
+            'original_invoice': 'Facture d’origine', 'status': 'Statut', 'user': 'Utilisateur', 'notes': 'Notes', 'report': 'Rapport', 'no_data': 'Aucune donnée', 'template_error_title': "Le modèle d’impression n’a pas pu être chargé", 'template_error_message': "Le document d’impression n’a pas été généré car le modèle réel est indisponible.", 'template_error_hint': "Vérifiez l’intégration de print_templates.py ou activez temporairement le modèle de secours dans les paramètres d’impression.", 'template_error_detail': 'Détail de l’erreur',
+        },
     }
     return labels.get(lang, labels['ar']).get(key, labels['ar'].get(key, key))
 
