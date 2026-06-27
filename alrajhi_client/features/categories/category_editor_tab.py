@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QVBoxLayout
+from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QWidget, QVBoxLayout
 
 from core.services.product_service import product_service
 from core.services.category_operation_policy import category_operation_policy
@@ -30,6 +30,7 @@ class CategoryEditorTab(BaseDocumentTab):
             self.set_document_title(translate('add_category'))
         self.properties.set_read_only(not self._can_edit)
         self.header.save_btn.setEnabled(self._can_edit)
+        self.inline_save_btn.setEnabled(self._can_edit)
         if not self._can_edit:
             self.header.set_subtitle(translate('category_read_only'))
         self.properties.changed.connect(lambda: self.set_dirty(True))
@@ -43,8 +44,19 @@ class CategoryEditorTab(BaseDocumentTab):
         self.header = CategoryHeaderPanel(self.is_edit, self)
         self.header.saveRequested.connect(self.workspace_save)
         self.properties = CategoryPropertiesPanel(self)
+        self.inline_action_bar = QWidget(self)
+        self.inline_action_bar.setObjectName('CategoryInlineActionBar')
+        action_layout = QHBoxLayout(self.inline_action_bar)
+        action_layout.setContentsMargins(0, 8, 0, 0)
+        action_layout.addStretch(1)
+        self.inline_save_btn = QPushButton(translate('save'), self.inline_action_bar)
+        self.inline_save_btn.setObjectName('primary')
+        self.inline_save_btn.clicked.connect(self.workspace_save)
+        action_layout.addWidget(self.inline_save_btn, 0)
+        self.inline_action_bar.setVisible(False)
         root.addWidget(self.header)
         root.addWidget(self.properties)
+        root.addWidget(self.inline_action_bar)
         root.addStretch(1)
         self.setStyleSheet('''
             QFrame#DocumentHeaderCard, QFrame#FormCard { border: 1px solid palette(mid); border-radius: 14px; background: palette(base); }
@@ -52,6 +64,17 @@ class CategoryEditorTab(BaseDocumentTab):
             QLineEdit, QComboBox, QTextEdit { min-height: 34px; padding: 5px 9px; }
             QPushButton#primary { font-weight: 900; padding: 8px 16px; }
         ''')
+
+
+    def apply_document_layout_profile(self, *, kind=None, inline=None) -> str:
+        resolved_kind = super().apply_document_layout_profile(kind=kind, inline=inline)
+        inline_mode = bool(inline if inline is not None else (self.property('inlineEditor') or self.property('documentInlineMode')))
+        try:
+            self.inline_action_bar.setVisible(inline_mode)
+            self.inline_save_btn.setEnabled(self._can_edit)
+        except Exception:
+            pass
+        return resolved_kind
 
     def reload_parent_categories(self) -> None:
         self.properties.set_parent_categories(product_service.categories(include_inactive=True, include_deleted=False), self.category_id)

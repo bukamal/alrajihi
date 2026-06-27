@@ -189,6 +189,8 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (395, "TABLE_LANGUAGE_DIRECTION"),
         (396, "RESTAURANT_ITEM_CARD_SURFACE"),
         (397, "FEATURE_ACTIVATION_GATE"),
+        (398, "CATEGORY_INLINE_SAVE_BUTTON"),
+        (401, "BASIT_INSPIRED_VISUAL_SYSTEM"),
     ]
 )
 
@@ -343,6 +345,8 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (395, "table_language_direction"),
         (396, "restaurant_item_card_surface"),
         (397, "feature_activation_gate"),
+        (398, "category_inline_save"),
+        (401, "basit_visual_system"),
     ]
 )
 
@@ -478,6 +482,8 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("table_language_direction", "i18n", "Tables follow UI language direction: Arabic RTL and non-Arabic LTR", "tools/phase395_table_language_direction_guard.py", "tools/audit_outputs/table_language_direction_matrix.csv", phase=395),
     ReleaseGateCheck("restaurant_item_card_surface", "restaurant", "Restaurant POS item browser uses the same rectangular card surface as categories", "tools/phase396_restaurant_item_card_surface_guard.py", "tools/audit_outputs/restaurant_item_card_surface_matrix.csv", phase=396),
     ReleaseGateCheck("feature_activation_gate", "activation", "Manufacturing, restaurant, cafe and apparel require a unified activation key before entry", "tools/phase397_feature_activation_gate_guard.py", "tools/audit_outputs/feature_activation_gate_matrix.csv", phase=397),
+    ReleaseGateCheck("category_inline_save", "categories", "Category inline creation keeps a visible Save button outside hidden header cards", "tools/phase398_category_inline_save_guard.py", "tools/audit_outputs/category_inline_save_matrix.csv", phase=398),
+    ReleaseGateCheck("basit_visual_system", "theme", "Basit-inspired operational palette, sizing and POS/dashboard visual skin", "tools/phase401_basit_visual_system_guard.py", "tools/audit_outputs/basit_visual_system_matrix.csv", phase=401),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

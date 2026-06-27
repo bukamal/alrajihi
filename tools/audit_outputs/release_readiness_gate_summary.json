@@ -1,7 +1,7 @@
 {
   "phase": 277,
   "baseline_phase": 276,
-  "checks": 132,
+  "checks": 134,
   "categories": {
     "shell": 20,
     "settings": 3,
@@ -19,7 +19,9 @@
     "quality": 2,
     "transactions": 1,
     "i18n": 3,
-    "activation": 1
+    "activation": 1,
+    "categories": 1,
+    "theme": 1
   },
   "issues": 0,
   "issue_groups": 0,

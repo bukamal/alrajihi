@@ -1767,6 +1767,165 @@ def build_global_qss(colors: dict) -> str:
             border-radius: {radius_sm}px;
             font-weight: 800;
         }}
+
+        /* Phase401: Basit inspired operational skin. */
+        QWidget[basitInspired="true"],
+        QWidget#restaurantSimplePOSWidget {{
+            background-color: {colors.get('basit_canvas', colors['bg_window'])};
+        }}
+        QWidget#restaurantSimplePOSWidget QLineEdit#restaurantSimpleSearch {{
+            min-height: {BRAND.get('basit_toolbar_height', 46)}px;
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            background-color: #FFFFFF;
+            color: {colors['text_primary']};
+            font-weight: 800;
+        }}
+        QWidget#restaurantSimplePOSWidget QPushButton#restaurantSimpleSearchButton,
+        QWidget#restaurantSimplePOSWidget QPushButton#restaurantSimpleNewSaleButton,
+        QWidget#restaurantSimplePOSWidget QPushButton#restaurantSimpleRefreshButton,
+        QWidget#restaurantSimplePOSWidget QPushButton#restaurantSimpleFullscreenButton {{
+            min-height: {BRAND.get('basit_toolbar_height', 46)}px;
+            background-color: {colors.get('basit_blue', colors['primary'])};
+            color: #FFFFFF;
+            border: 1px solid {colors.get('basit_card_border', colors['primary'])};
+            border-radius: 4px;
+            padding: 8px 14px;
+            font-weight: 900;
+        }}
+        QWidget#restaurantSimplePOSWidget QPushButton#restaurantSimpleSearchButton:hover,
+        QWidget#restaurantSimplePOSWidget QPushButton#restaurantSimpleNewSaleButton:hover,
+        QWidget#restaurantSimplePOSWidget QPushButton#restaurantSimpleRefreshButton:hover,
+        QWidget#restaurantSimplePOSWidget QPushButton#restaurantSimpleFullscreenButton:hover {{
+            background-color: {colors.get('basit_blue_hover', colors['primary_hover'])};
+        }}
+        QFrame#restaurantSimpleSection {{
+            background-color: {colors.get('basit_table_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+        }}
+        QLabel#restaurantSimpleSectionTitle {{
+            background-color: {colors.get('basit_yellow', colors['warning'])};
+            color: {colors.get('basit_category_text', colors['text_primary'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            padding: 8px 10px;
+            font-size: {value_px}px;
+            font-weight: 950;
+        }}
+        QLabel#restaurantSimpleSectionSubtitle {{
+            color: {colors['text_secondary']};
+            font-size: {caption_px}px;
+            padding: 0 4px 4px 4px;
+        }}
+        QPushButton#restaurantSimpleCategoryButton,
+        QPushButton#restaurantSimpleItemButton,
+        QPushButton[basitCard="true"] {{
+            min-height: {BRAND.get('basit_category_card_height', 58)}px;
+            background-color: {colors.get('basit_card_bg', colors['primary'])};
+            color: {colors.get('basit_card_text', '#FFFFFF')};
+            border: 1px solid {colors.get('basit_card_border', colors['primary'])};
+            border-radius: 3px;
+            padding: 8px 10px;
+            font-size: {value_px}px;
+            font-weight: 900;
+            text-align: center;
+        }}
+        QPushButton#restaurantSimpleCategoryButton:hover,
+        QPushButton#restaurantSimpleItemButton:hover,
+        QPushButton[basitCard="true"]:hover {{
+            background-color: {colors.get('basit_blue_hover', colors['primary_hover'])};
+        }}
+        QPushButton#restaurantSimpleCategoryButton:checked {{
+            background-color: {colors.get('basit_category_bg', colors['warning'])};
+            color: {colors.get('basit_category_text', colors['text_primary'])};
+            border: 2px solid {colors.get('basit_red', colors['danger'])};
+        }}
+        QTableWidget#restaurantSimpleInvoiceTable,
+        QTableView[basitTable="true"], QTableWidget[basitTable="true"] {{
+            background-color: {colors.get('basit_table_bg', colors['bg_table'])};
+            alternate-background-color: {colors.get('basit_table_alt', colors['bg_table_alt'])};
+            gridline-color: {colors.get('basit_toolbar_border', colors['border'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            selection-background-color: {colors.get('basit_yellow_soft', colors['selection_bg'])};
+            selection-color: {colors['text_primary']};
+            font-size: {table_pt}pt;
+        }}
+        QTableWidget#restaurantSimpleInvoiceTable::item,
+        QTableView[basitTable="true"]::item, QTableWidget[basitTable="true"]::item {{
+            min-height: {BRAND.get('basit_invoice_row_height', 36)}px;
+            padding: 7px 8px;
+        }}
+        QTableWidget#restaurantSimpleInvoiceTable::item:selected,
+        QTableView[basitTable="true"]::item:selected, QTableWidget[basitTable="true"]::item:selected {{
+            background-color: {colors.get('basit_yellow_soft', colors['selection_bg'])};
+            color: {colors['text_primary']};
+            border: 1px solid {colors.get('basit_red', colors['danger'])};
+        }}
+        QTableWidget#restaurantSimpleInvoiceTable QHeaderView::section,
+        QTableView[basitTable="true"] QHeaderView::section,
+        QTableWidget[basitTable="true"] QHeaderView::section {{
+            background-color: {colors.get('basit_table_header_bg', colors['table_header_bg'])};
+            color: {colors.get('basit_table_header_text', colors['table_header_text'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            padding: 8px 10px;
+            font-weight: 950;
+        }}
+        QFrame#restaurantSimpleFooter,
+        QFrame[basitTotalFooter="true"] {{
+            background-color: {colors.get('basit_toolbar_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            min-height: {BRAND.get('basit_total_height', 58)}px;
+        }}
+        QLabel#restaurantSimpleTotal,
+        QLabel[basitTotal="true"] {{
+            background-color: {colors.get('basit_total_bg', colors['danger'])};
+            color: {colors.get('basit_total_text', '#FFFFFF')};
+            border: none;
+            border-radius: 2px;
+            padding: 10px 20px;
+            font-size: 26px;
+            font-weight: 950;
+            qproperty-alignment: AlignCenter;
+        }}
+        QPushButton#restaurantSimpleCheckoutButton {{
+            background-color: {colors.get('basit_red', colors['danger'])};
+            color: {colors.get('basit_total_text', '#FFFFFF')};
+            border: 1px solid {colors.get('basit_red_dark', colors['danger'])};
+            border-radius: 3px;
+            font-size: 16px;
+            font-weight: 950;
+        }}
+        QPushButton#restaurantSimpleCheckoutButton:hover {{
+            background-color: {colors.get('basit_red_dark', colors['danger'])};
+        }}
+        QPushButton#restaurantSimplePrintButton,
+        QPushButton#restaurantSimpleRemoveLineButton,
+        QPushButton#restaurantSimpleQtyPlusButton,
+        QPushButton#restaurantSimpleQtyMinusButton {{
+            background-color: {colors.get('basit_blue', colors['primary'])};
+            color: #FFFFFF;
+            border: 1px solid {colors.get('basit_card_border', colors['primary'])};
+            border-radius: 3px;
+            font-weight: 950;
+        }}
+        QPushButton[visualRole="dashboard_shortcut"] {{
+            min-height: {BRAND.get('basit_dashboard_card_height', 96)}px;
+            background-color: {colors.get('basit_blue', colors['primary'])};
+            color: #FFFFFF;
+            border: 1px solid {colors.get('basit_card_border', colors['primary'])};
+            border-radius: 3px;
+            font-weight: 950;
+        }}
+        QPushButton[visualRole="dashboard_shortcut"]:hover {{
+            background-color: {colors.get('basit_blue_hover', colors['primary_hover'])};
+        }}
+        QFrame[basitPanel="true"] {{
+            background-color: {colors.get('basit_table_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+        }}
     """
 
 

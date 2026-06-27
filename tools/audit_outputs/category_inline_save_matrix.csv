@@ -1,0 +1,12 @@
+check,path,needle,status
+contract_exists,alrajhi_client/workspace/quality/category_inline_save_contract.py,CATEGORY_INLINE_SAVE_CONTRACT,OK
+inline_bar_created,alrajhi_client/features/categories/category_editor_tab.py,self.inline_action_bar = QWidget(self),OK
+inline_bar_named,alrajhi_client/features/categories/category_editor_tab.py,CategoryInlineActionBar,OK
+inline_save_button_created,alrajhi_client/features/categories/category_editor_tab.py,self.inline_save_btn = QPushButton(translate('save'),OK
+inline_save_wired,alrajhi_client/features/categories/category_editor_tab.py,self.inline_save_btn.clicked.connect(self.workspace_save),OK
+inline_bar_added_after_properties,alrajhi_client/features/categories/category_editor_tab.py,"root.addWidget(self.properties)
+        root.addWidget(self.inline_action_bar)",OK
+inline_bar_hidden_by_default,alrajhi_client/features/categories/category_editor_tab.py,self.inline_action_bar.setVisible(False),OK
+layout_profile_override,alrajhi_client/features/categories/category_editor_tab.py,def apply_document_layout_profile,OK
+inline_mode_shows_bar,alrajhi_client/features/categories/category_editor_tab.py,self.inline_action_bar.setVisible(inline_mode),OK
+permission_applies,alrajhi_client/features/categories/category_editor_tab.py,self.inline_save_btn.setEnabled(self._can_edit),OK

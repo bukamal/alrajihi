@@ -120,6 +120,14 @@ BRAND = {
     'transaction_footer_summary_min_height': 74,
     'transaction_footer_button_min_width': 126,
     'transaction_footer_button_spacing': 12,
+    # Phase401: Basit-inspired operational sizing.
+    'basit_pos_card_height': 64,
+    'basit_pos_card_min_width': 150,
+    'basit_category_card_height': 58,
+    'basit_invoice_row_height': 36,
+    'basit_total_height': 58,
+    'basit_toolbar_height': 46,
+    'basit_dashboard_card_height': 96,
 }
 
 
@@ -135,6 +143,19 @@ ALRAJHI_TEAL = '#087D78'
 ALRAJHI_ACCENT = '#0AA7A7'
 ALRAJHI_GOLD = '#C99A2E'
 ALRAJHI_SAND = '#F3E8CF'
+# Phase401: Basit-inspired operational palette.  These tokens deliberately
+# mirror the visual language users recognize from Al-Basit: strong blue
+# command cards, yellow active strips, red/orange totals, and a quiet grey
+# accounting canvas.
+BASIT_BLUE = '#0076D7'
+BASIT_BLUE_HOVER = '#005EAE'
+BASIT_YELLOW = '#F2D21B'
+BASIT_YELLOW_SOFT = '#FFF3A3'
+BASIT_RED = '#D93600'
+BASIT_RED_DARK = '#B92E00'
+BASIT_GREY = '#EEF1F6'
+BASIT_GRID = '#F8FAFD'
+BASIT_GRID_ALT = '#EEF3FA'
 BRAND_GRADIENT_START = ALRAJHI_INK
 BRAND_GRADIENT_MID = ALRAJHI_NAVY
 BRAND_GRADIENT_END = ALRAJHI_TEAL
@@ -268,6 +289,28 @@ LIGHT_TOKENS = {
     'dialog_overlay_bg': '#F4F7F8',
     'dialog_header_text': '#FFFFFF',
     'dialog_panel_border': '#CFE1E6',
+    # Phase401 Basit-inspired visual system tokens.
+    'basit_blue': BASIT_BLUE,
+    'basit_blue_hover': BASIT_BLUE_HOVER,
+    'basit_yellow': BASIT_YELLOW,
+    'basit_yellow_soft': BASIT_YELLOW_SOFT,
+    'basit_red': BASIT_RED,
+    'basit_red_dark': BASIT_RED_DARK,
+    'basit_canvas': BASIT_GREY,
+    'basit_card_bg': BASIT_BLUE,
+    'basit_card_text': '#FFFFFF',
+    'basit_card_border': '#00599C',
+    'basit_category_bg': BASIT_YELLOW,
+    'basit_category_text': '#1F2937',
+    'basit_table_bg': BASIT_GRID,
+    'basit_table_alt': BASIT_GRID_ALT,
+    'basit_table_header_bg': '#C9D2E3',
+    'basit_table_header_text': '#101827',
+    'basit_table_current_bg': BASIT_YELLOW_SOFT,
+    'basit_total_bg': BASIT_RED,
+    'basit_total_text': '#FFFFFF',
+    'basit_toolbar_bg': '#DDE5F2',
+    'basit_toolbar_border': '#AAB8CC',
     'toast_success_bg': '#EAF8F0',
     'toast_info_bg': '#EAF3FF',
     'toast_warning_bg': '#FFF8E5',
@@ -409,6 +452,28 @@ DARK_TOKENS = {
     'dialog_overlay_bg': '#091524',
     'dialog_header_text': '#FFFFFF',
     'dialog_panel_border': '#27405B',
+    # Phase401 Basit-inspired dark tokens.
+    'basit_blue': '#2B8CE6',
+    'basit_blue_hover': '#4FA3FF',
+    'basit_yellow': '#F0C419',
+    'basit_yellow_soft': 'rgba(240,196,25,0.28)',
+    'basit_red': '#E64A19',
+    'basit_red_dark': '#FF7043',
+    'basit_canvas': '#0D1624',
+    'basit_card_bg': '#1268B3',
+    'basit_card_text': '#FFFFFF',
+    'basit_card_border': '#4FA3FF',
+    'basit_category_bg': '#F0C419',
+    'basit_category_text': '#111827',
+    'basit_table_bg': '#111F2E',
+    'basit_table_alt': '#0D1A28',
+    'basit_table_header_bg': '#253A55',
+    'basit_table_header_text': '#FFFFFF',
+    'basit_table_current_bg': 'rgba(240,196,25,0.24)',
+    'basit_total_bg': '#E64A19',
+    'basit_total_text': '#FFFFFF',
+    'basit_toolbar_bg': '#162940',
+    'basit_toolbar_border': '#38516C',
     'toast_success_bg': 'rgba(56,181,107,0.18)',
     'toast_info_bg': 'rgba(79,179,232,0.18)',
     'toast_warning_bg': 'rgba(240,193,90,0.18)',

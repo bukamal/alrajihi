@@ -1,0 +1,17 @@
+check,path,needle,status
+contract_exists,alrajhi_client/workspace/quality/basit_visual_system_contract.py,BASIT_VISUAL_SYSTEM_CONTRACT,OK
+palette_blue,alrajhi_client/theme/brand.py,BASIT_BLUE,OK
+palette_yellow,alrajhi_client/theme/brand.py,BASIT_YELLOW,OK
+palette_red,alrajhi_client/theme/brand.py,BASIT_RED,OK
+light_tokens,alrajhi_client/theme/brand.py,'basit_blue': BASIT_BLUE,OK
+dark_tokens,alrajhi_client/theme/brand.py,'basit_blue': '#2B8CE6',OK
+metrics,alrajhi_client/theme/brand.py,'basit_pos_card_height': 64,OK
+qss_phase,alrajhi_client/theme/qss.py,Phase401: Basit inspired operational skin,OK
+qss_cards,alrajhi_client/theme/qss.py,QPushButton#restaurantSimpleItemButton,OK
+qss_total,alrajhi_client/theme/qss.py,QLabel#restaurantSimpleTotal,OK
+qss_dashboard,alrajhi_client/theme/qss.py,"QPushButton[visualRole=""dashboard_shortcut""]",OK
+restaurant_root_property,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,"self.setProperty(""basitInspired"", True)",OK
+restaurant_card_property,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,"button.setProperty(""basitCard"", True)",OK
+restaurant_table_property,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,"self.invoice_table.setProperty(""basitTable"", True)",OK
+restaurant_total_property,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,"self.total_label.setProperty(""basitTotal"", True)",OK
+restaurant_splitter_size,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,"self.splitter.setSizes([270, 360, 720])",OK
