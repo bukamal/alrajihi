@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
     QSpinBox, QCheckBox, QTableWidget, QTableWidgetItem, QHeaderView,
     QDialog, QDialogButtonBox, QScrollArea, QFrame, QPlainTextEdit, QInputDialog
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QSettings
+from PyQt5.QtCore import Qt, pyqtSignal, QSettings, QTimer
 
 from core.services.settings_service import settings_service
 from core.services.backup_service import backup_service
@@ -31,6 +31,7 @@ class SettingsWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._current_language = normalize_language(settings_service.get_language())
+        self._language_change_in_progress = False
         set_language(self._current_language)
         self.setLayoutDirection(qt_layout_direction(self._current_language))
         self.settings = settings_service
@@ -283,19 +284,69 @@ class SettingsWidget(QWidget):
         layout.addStretch()
         return scroll
 
+    def _apply_runtime_language_change(self, lang: str, refresh_shell: bool = True):
+        """Apply UI language once without recursive settings refresh.
+
+        Phase 393: language switching can be triggered while Qt is closing combo
+        popups and refreshing menus.  Keep the operation guarded and defer shell
+        menu rebuilds so tab/menu label updates cannot re-enter the save slot.
+        """
+        lang = normalize_language(lang)
+        if getattr(self, '_language_change_in_progress', False):
+            return
+        self._language_change_in_progress = True
+        try:
+            set_language(lang)
+            self._current_language = lang
+            self.setLayoutDirection(qt_layout_direction(lang))
+            self._refresh_language_texts()
+            main_window = self.window()
+            if main_window is not None:
+                if hasattr(main_window, '_current_language'):
+                    main_window._current_language = lang
+                if hasattr(main_window, 'setLayoutDirection'):
+                    main_window.setLayoutDirection(qt_layout_direction(lang))
+                if refresh_shell:
+                    def _refresh_shell():
+                        try:
+                            if hasattr(main_window, 'setup_menus'):
+                                main_window.setup_menus()
+                            if hasattr(main_window, '_set_page_context') and hasattr(main_window, 'current_page'):
+                                main_window._set_page_context(main_window.current_page)
+                            if hasattr(main_window, 'top_bar') and hasattr(main_window.top_bar, 'apply_styles'):
+                                box = getattr(main_window.top_bar, 'search_box', None)
+                                if box is not None:
+                                    box.setPlaceholderText(translate('global_search_placeholder'))
+                                for attr, key in (
+                                    ('alert_btn', 'alerts'),
+                                    ('theme_btn', 'toggle_theme'),
+                                    ('screenshot_btn', 'export_screenshot'),
+                                ):
+                                    btn = getattr(main_window.top_bar, attr, None)
+                                    if btn is not None:
+                                        btn.setText('')
+                                        btn.setToolTip(translate(key))
+                                main_window.top_bar.apply_styles()
+                            for page in getattr(main_window, 'pages', {}).values():
+                                if page is self:
+                                    continue
+                                if hasattr(page, 'setLayoutDirection'):
+                                    page.setLayoutDirection(qt_layout_direction(lang))
+                                if hasattr(page, 'apply_theme_colors'):
+                                    page.apply_theme_colors()
+                        except Exception:
+                            pass
+                    QTimer.singleShot(0, _refresh_shell)
+        finally:
+            self._language_change_in_progress = False
+
     def save_language_settings(self):
         ui = normalize_language(self.lang_ui_combo.currentData() or self._current_language)
         pr = normalize_language(self.lang_print_combo.currentData() or ui)
         rp = normalize_language(self.lang_report_combo.currentData() or ui)
         settings_service.save_language_settings(ui, pr, rp)
-        set_language(ui)
-        self._current_language = ui
-        self.setLayoutDirection(qt_layout_direction(ui))
-        self._refresh_language_texts()
-        main_window = self.window()
-        if hasattr(main_window, 'setLayoutDirection'):
-            main_window.setLayoutDirection(qt_layout_direction(ui))
-        show_toast('تم حفظ إعدادات اللغات', 'success', self)
+        self._apply_runtime_language_change(ui, refresh_shell=True)
+        show_toast(translate('language_settings_saved'), 'success', self)
 
     def create_pos_tab(self):
         scroll, layout = self._scroll_tab()
@@ -1824,9 +1875,6 @@ class SettingsWidget(QWidget):
         settings_service.set_theme(theme)
         langs = settings_service.get_language_settings()
         settings_service.save_language_settings(lang, langs.get('print_language', lang), langs.get('report_language', lang))
-        set_language(lang)
-        self._current_language = lang
-        self.setLayoutDirection(qt_layout_direction(lang))
         settings_service.set('ui/font_size', self.ui_font_size.value())
         settings_service.set('ui/row_height', self.ui_row_height.value())
         self._set_bool_setting('ui/show_global_search', False)
@@ -1834,32 +1882,7 @@ class SettingsWidget(QWidget):
         self._set_bool_setting('ui/remember_last_tab', self.ui_remember_last_tab.isChecked())
         settings_service.clear_cache()
         ThemeManager.apply_theme(theme, persist=True)
-        self._refresh_language_texts()
-        main_window = self.window()
-        if hasattr(main_window, 'setLayoutDirection'):
-            main_window.setLayoutDirection(qt_layout_direction(lang))
-        if hasattr(main_window, 'setup_menus'):
-            main_window.setup_menus()
-        if hasattr(main_window, 'top_bar') and hasattr(main_window.top_bar, 'apply_styles'):
-            try:
-                box = getattr(main_window.top_bar, 'search_box', None)
-                if box is not None:
-                    box.setPlaceholderText(translate('global_search_placeholder'))
-                main_window.top_bar.alert_btn.setText('')
-                main_window.top_bar.alert_btn.setToolTip(translate('alerts'))
-                main_window.top_bar.theme_btn.setText('')
-                main_window.top_bar.theme_btn.setToolTip(translate('toggle_theme'))
-                if hasattr(main_window.top_bar, 'screenshot_btn'):
-                    main_window.top_bar.screenshot_btn.setText('')
-                    main_window.top_bar.screenshot_btn.setToolTip(translate('export_screenshot'))
-            except Exception:
-                pass
-            main_window.top_bar.apply_styles()
-        for page in getattr(main_window, 'pages', {}).values():
-            if hasattr(page, 'setLayoutDirection'):
-                page.setLayoutDirection(qt_layout_direction(lang))
-            if hasattr(page, 'apply_theme_colors'):
-                page.apply_theme_colors()
+        self._apply_runtime_language_change(lang, refresh_shell=True)
         show_toast(translate('language_saved'), 'success', self)
 
     def save_printing_settings(self):

@@ -7935,7 +7935,9 @@ _translations['en'].update({
 # The historical translation file grew through many phase-level updates.  French
 # is therefore generated after the Arabic/German/English dictionaries are fully
 # assembled, then re-applied whenever load_translations() is called.
-_PHASE392_BASE_LOAD_TRANSLATIONS = load_translations
+if '_PHASE392_BASE_LOAD_TRANSLATIONS' not in globals():
+    _PHASE392_BASE_LOAD_TRANSLATIONS = load_translations
+_phase392_load_in_progress = False
 
 _FR_KEY_OVERRIDES = {
     'app_title': 'Comptabilité Al Rajhi',
@@ -8314,8 +8316,31 @@ def _phase392_apply_french_translations() -> None:
     fr.update(_FR_KEY_OVERRIDES)
     _translations['fr'] = fr
 
+def _phase393_apply_language_runtime_keys() -> None:
+    _translations.setdefault('ar', {}).update({
+        'language_settings_saved': 'تم حفظ إعدادات اللغات',
+    })
+    _translations.setdefault('de', {}).update({
+        'language_settings_saved': 'Spracheinstellungen wurden gespeichert',
+    })
+    _translations.setdefault('en', {}).update({
+        'language_settings_saved': 'Language settings saved',
+    })
+    _translations.setdefault('fr', {}).update({
+        'language_settings_saved': 'Paramètres de langue enregistrés',
+    })
+
 def load_translations():
-    _PHASE392_BASE_LOAD_TRANSLATIONS()
-    _phase392_apply_french_translations()
+    global _phase392_load_in_progress
+    if _phase392_load_in_progress:
+        return
+    _phase392_load_in_progress = True
+    try:
+        _PHASE392_BASE_LOAD_TRANSLATIONS()
+        _phase392_apply_french_translations()
+        _phase393_apply_language_runtime_keys()
+    finally:
+        _phase392_load_in_progress = False
 
 _phase392_apply_french_translations()
+_phase393_apply_language_runtime_keys()

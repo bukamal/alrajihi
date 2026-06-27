@@ -1,0 +1,8 @@
+check,passed,detail
+settings_reentrant_guard,True,Settings language changes are guarded against recursive re-entry.
+settings_deferred_shell_refresh,True,Shell menu/topbar refresh is deferred outside the combo-box signal stack.
+main_window_language_state_updated,True,MainWindow language state is updated before menu rebuild.
+login_reentrant_guard,True,Login language combo changes are guarded as well.
+offline_hook_idempotent,True,Global exception hook installation is idempotent.
+offline_hook_recursion_bypass,True,RecursionError is routed to Python's original hook without wrapper recursion.
+translator_load_reentry_guard,True,French translation reload has a re-entry guard and runtime save labels.

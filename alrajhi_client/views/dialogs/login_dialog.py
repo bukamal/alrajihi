@@ -20,6 +20,7 @@ class LoginDialog(FramelessDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._current_language = normalize_language(settings_service.get_language())
+        self._language_change_in_progress = False
         set_language(self._current_language)
         self.setLayoutDirection(qt_layout_direction(self._current_language))
         self.setWindowTitle(translate('login'))
@@ -191,27 +192,33 @@ class LoginDialog(FramelessDialog):
         self.username_combo.setFocus()
 
     def _change_lang(self, index):
-        lang = normalize_language(self.lang_combo.itemData(index))
-        self._current_language = lang
-        set_language(lang)
+        if getattr(self, '_language_change_in_progress', False):
+            return
+        self._language_change_in_progress = True
         try:
-            settings_service.set_language(lang)
-        except Exception:
-            pass
-        self.setLayoutDirection(qt_layout_direction(lang))
-        self.setWindowTitle(translate('login'))
-        self.app_title_label.setText(translate('app_title'))
-        self.subtitle_label.setText(translate('login_subtitle'))
-        mode_key = 'mode_remote' if user_service.is_remote() else 'mode_local'
-        self.connection_label.setText(translate('login_mode', mode=translate(mode_key)))
-        self.username_combo.setPlaceholderText(translate('username'))
-        self.password_edit.setPlaceholderText(translate('password'))
-        self.remember_check.setText(translate('remember_user'))
-        self.language_label.setText(translate('language') + ':')
-        self.login_btn.setText(translate('login'))
-        self.show_pwd_btn.setToolTip(translate('show_hide_password'))
-        self.admin_warning.setText(translate('admin_password_warning'))
-        self.switch_btn.setText(translate('switch_account'))
+            lang = normalize_language(self.lang_combo.itemData(index))
+            self._current_language = lang
+            set_language(lang)
+            try:
+                settings_service.set_language(lang)
+            except Exception:
+                pass
+            self.setLayoutDirection(qt_layout_direction(lang))
+            self.setWindowTitle(translate('login'))
+            self.app_title_label.setText(translate('app_title'))
+            self.subtitle_label.setText(translate('login_subtitle'))
+            mode_key = 'mode_remote' if user_service.is_remote() else 'mode_local'
+            self.connection_label.setText(translate('login_mode', mode=translate(mode_key)))
+            self.username_combo.setPlaceholderText(translate('username'))
+            self.password_edit.setPlaceholderText(translate('password'))
+            self.remember_check.setText(translate('remember_user'))
+            self.language_label.setText(translate('language') + ':')
+            self.login_btn.setText(translate('login'))
+            self.show_pwd_btn.setToolTip(translate('show_hide_password'))
+            self.admin_warning.setText(translate('admin_password_warning'))
+            self.switch_btn.setText(translate('switch_account'))
+        finally:
+            self._language_change_in_progress = False
 
 
     def _set_error(self, text):

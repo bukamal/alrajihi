@@ -183,6 +183,8 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (389, "EDITABLE_GRID_ROW_ACTION_BOUNDARY"),
         (390, "ITEM_DELETE_ACTIVE_USAGE"),
         (391, "ITEM_DELETE_BOM_USAGE_RESOLVER"),
+        (392, "FRENCH_LANGUAGE"),
+        (393, "LANGUAGE_RUNTIME_SWITCH_HOTFIX"),
     ]
 )
 
@@ -332,6 +334,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (390, "item_delete_active_usage"),
         (391, "item_delete_bom_usage_resolver"),
         (392, "french_language"),
+        (393, "language_runtime_switch"),
     ]
 )
 
@@ -462,6 +465,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("item_delete_active_usage", "materials", "Item delete/archive guard counts only active dependencies and ignores deleted invoices/cancelled production orders", "tools/phase390_item_delete_active_usage_guard.py", "tools/audit_outputs/item_delete_active_usage_matrix.csv", phase=390),
     ReleaseGateCheck("item_delete_bom_usage_resolver", "materials", "Item delete explains active BOM blockers by recipe/product name and resolution path", "tools/phase391_item_delete_bom_usage_resolver_guard.py", "tools/audit_outputs/item_delete_bom_usage_resolver_matrix.csv", phase=391),
     ReleaseGateCheck("french_language", "i18n", "French language covers UI, print and report translation surfaces", "tools/phase392_french_language_guard.py", "tools/audit_outputs/french_language_matrix.csv", phase=392),
+    ReleaseGateCheck("language_runtime_switch", "i18n", "Language runtime switch cannot recurse during UI refresh", "tools/phase393_language_runtime_switch_guard.py", "tools/audit_outputs/language_runtime_switch_matrix.csv", phase=393),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 
