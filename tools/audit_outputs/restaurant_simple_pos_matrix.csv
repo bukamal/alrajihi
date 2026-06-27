@@ -1,0 +1,15 @@
+check,path,needle,status
+simple_widget_exists,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,class RestaurantSimplePOSWidget,OK
+three_section_splitter,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,restaurantSimpleThreeSectionSplitter,OK
+category_section,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,restaurantSimpleCategoryButton,OK
+item_section,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,restaurantSimpleItemButton,OK
+invoice_columns,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,item_name,OK
+no_exposed_kitchen_buttons,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,checkout_simple_pos_session,OK
+main_window_uses_simple,alrajhi_client/views/main_window.py,'restaurant': RestaurantSimplePOSWidget,OK
+manifest_uses_simple,alrajhi_client/workspace/registry/ui_manifest.py,"factory_name=""RestaurantSimplePOSWidget""",OK
+service_categories,alrajhi_client/core/services/restaurant_service.py,def list_menu_categories,OK
+service_checkout,alrajhi_client/core/services/restaurant_service.py,def checkout_simple_pos_session,OK
+gateway_update_line,alrajhi_client/gateways/local/restaurant_gateway.py,def update_order_line,OK
+gateway_served,alrajhi_client/gateways/local/restaurant_gateway.py,def mark_session_lines_served,OK
+translations_ar,alrajhi_client/i18n/translator.py,restaurant.simple_pos_title,OK
+quality_contract,alrajhi_client/workspace/quality/restaurant_simple_pos_contract.py,RESTAURANT_SIMPLE_POS_CONTRACT,OK

@@ -17,6 +17,7 @@ from auth.activation import activate_network, check_network_activation
 from theme_manager import ThemeManager
 from ui.design_system import DesignSystem
 from ui.editable_smart_grid import EditableSmartGrid
+from ui.table_direction_policy import apply_table_direction_tree
 from utils import show_toast
 from i18n.translator import translate, set_language, available_languages, normalize_language, qt_layout_direction
 import requests
@@ -299,6 +300,7 @@ class SettingsWidget(QWidget):
             set_language(lang)
             self._current_language = lang
             self.setLayoutDirection(qt_layout_direction(lang))
+            apply_table_direction_tree(self, lang)
             self._refresh_language_texts()
             main_window = self.window()
             if main_window is not None:
@@ -306,6 +308,7 @@ class SettingsWidget(QWidget):
                     main_window._current_language = lang
                 if hasattr(main_window, 'setLayoutDirection'):
                     main_window.setLayoutDirection(qt_layout_direction(lang))
+                apply_table_direction_tree(main_window, lang)
                 if refresh_shell:
                     def _refresh_shell():
                         try:
@@ -332,6 +335,7 @@ class SettingsWidget(QWidget):
                                     continue
                                 if hasattr(page, 'setLayoutDirection'):
                                     page.setLayoutDirection(qt_layout_direction(lang))
+                                apply_table_direction_tree(page, lang)
                                 if hasattr(page, 'apply_theme_colors'):
                                     page.apply_theme_colors()
                         except Exception:
@@ -2127,15 +2131,20 @@ class SettingsWidget(QWidget):
         except Exception as e: QMessageBox.warning(self, translate('error'), translate('error_with_message', error=str(e)))
 
     def activate_network_dialog(self):
-        dialog = QDialog(self); dialog.setWindowTitle(translate('settings_network_activation_title')); dialog.setLayoutDirection(Qt.RightToLeft); dialog.resize(460, 220)
-        layout = QVBoxLayout(dialog); layout.addWidget(self._note(translate('settings_network_activation_help'), 'info'))
-        key_edit = QLineEdit(); key_edit.setEchoMode(QLineEdit.Password); key_edit.setPlaceholderText(translate('settings_network_activation_key')); layout.addWidget(key_edit)
-        status_label = QLabel(); status_label.setStyleSheet(f"color: {ThemeManager.get('danger')};"); layout.addWidget(status_label)
-        button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-        button_box.accepted.connect(lambda: self._do_activate_network(key_edit.text().strip(), status_label, dialog)); button_box.rejected.connect(dialog.reject)
-        layout.addWidget(button_box); dialog.exec()
+        # Phase397: network and paid vertical modules use one activation surface.
+        from views.dialogs.module_activation_dialog import ModuleActivationDialog
+        if ModuleActivationDialog.ensure_feature(
+            self,
+            'network',
+            title=translate('feature_activation_network'),
+            reason=translate('settings_network_activation_help'),
+        ):
+            audit_service.log('ACTIVATE', 'NETWORK', None, new_values={'activated': True}, details=translate('settings_network_activation_audit'))
+            QMessageBox.information(self, translate('success'), translate('settings_network_activated'))
 
     def _do_activate_network(self, key, status_label, dialog):
+        # Kept for backward compatibility with older signal wiring; the current
+        # UI routes through ModuleActivationDialog.
         if not key: status_label.setText(translate('settings_network_activation_required')); return
         success, msg = activate_network(key)
         if success:

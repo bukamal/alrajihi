@@ -80,6 +80,21 @@ def network_license_file() -> Path:
     return user_data_dir() / "network_license.dat"
 
 
+def feature_license_file(feature: str) -> Path:
+    """Return the per-device activation file for an optional paid feature.
+
+    Network keeps its historical filename for backward compatibility.  Other
+    vertical modules use the same writable data folder and the same encrypted
+    payload format as the network license.
+    """
+    safe = ''.join(ch for ch in str(feature or '').strip().lower() if ch.isalnum() or ch in {'_', '-'})
+    if safe == 'network':
+        return network_license_file()
+    if not safe:
+        safe = 'feature'
+    return user_data_dir() / f"{safe}_license.dat"
+
+
 def runtime_resource_path(*parts: str) -> Path:
     """Read-only bundled resource path, safe for PyInstaller onefile/onedir."""
     base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2]))

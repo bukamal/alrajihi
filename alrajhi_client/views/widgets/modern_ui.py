@@ -9,6 +9,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QLabel, QFrame, QHBoxLayout, QVBoxLayout, QLayout, QTableView, QTableWidget, QPushButton, QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QTextEdit, QGroupBox, QTabWidget, QDialogButtonBox
 from theme_manager import ThemeManager
 from ui.dialog_branding import apply_branded_dialog, normalize_dialog_buttons
+from i18n.translator import qt_layout_direction
+from ui.table_direction_policy import apply_table_direction
 
 
 def _modern_widget_style() -> str:
@@ -196,15 +198,27 @@ def _make_header(title: str, subtitle: str = '') -> QFrame:
 
 
 def _walk_widgets(widget):
-    try:
-        return widget.findChildren((QTableView, QTableWidget, QPushButton, QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QTextEdit, QGroupBox, QTabWidget, QDialogButtonBox))
-    except Exception:
-        return []
+    widgets = []
+    for cls in (QTableView, QTableWidget, QPushButton, QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QTextEdit, QGroupBox, QTabWidget, QDialogButtonBox):
+        try:
+            widgets.extend(widget.findChildren(cls))
+        except Exception:
+            pass
+    seen = set()
+    ordered = []
+    for child in widgets:
+        ident = id(child)
+        if ident in seen:
+            continue
+        seen.add(ident)
+        ordered.append(child)
+    return ordered
 
 def _normalize_child_controls(widget):
     for child in _walk_widgets(widget):
         try:
             if isinstance(child, (QTableView, QTableWidget)):
+                apply_table_direction(child)
                 child.setAlternatingRowColors(True)
                 child.setShowGrid(False)
                 if hasattr(child, 'verticalHeader'):
@@ -232,7 +246,7 @@ def make_section_card(title: str = '') -> QGroupBox:
 
 def apply_modern_widget(widget, title: str = '', subtitle: str = ''):
     """Apply the unified page visual language to an existing QWidget page."""
-    widget.setLayoutDirection(Qt.RightToLeft)
+    widget.setLayoutDirection(qt_layout_direction())
     current = widget.styleSheet() or ''
     if 'ModernPageHeader' not in current:
         widget.setStyleSheet(current + '\n' + _modern_widget_style())
@@ -258,6 +272,7 @@ def apply_modern_widget(widget, title: str = '', subtitle: str = ''):
         table = getattr(widget, table_name, None)
         if table is not None:
             try:
+                apply_table_direction(table)
                 table.setAlternatingRowColors(True)
                 table.verticalHeader().setDefaultSectionSize(34)
                 table.setShowGrid(False)
@@ -279,7 +294,7 @@ def apply_modern_dialog(dialog, title: str = ''):
     hooks to ``apply_branded_dialog`` so legacy dialogs, picker windows and
     modern dialogs share one branded identity.
     """
-    dialog.setLayoutDirection(Qt.RightToLeft)
+    dialog.setLayoutDirection(qt_layout_direction())
     current = dialog.styleSheet() or ''
     if 'ModernPageHeader' not in current:
         dialog.setStyleSheet(current + '\n' + _modern_widget_style())

@@ -6,6 +6,7 @@ from ui.table_keyboard_policy import StandardTableKeyboardMixin
 from theme_manager import ThemeManager
 from views.widgets.components.table_preferences import TablePreferences
 from i18n import translate
+from ui.table_direction_policy import apply_table_direction
 import re
 
 class CenterAlignDelegate(QStyledItemDelegate):
@@ -16,7 +17,7 @@ class CenterAlignDelegate(QStyledItemDelegate):
 class CustomTableView(StandardTableKeyboardMixin, QTableView):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setLayoutDirection(Qt.RightToLeft)
+        apply_table_direction(self)
         # Phase355: every Custom/Smart table opts in to the branded table skin.
         # This keeps legacy tables, transaction grids and contract-driven lists
         # on the same visual identity without duplicating local QSS.

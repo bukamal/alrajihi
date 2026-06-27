@@ -428,7 +428,7 @@ class InvoiceDialog(CenteredDialog):
         self._paid_manually_changed = False
         invoice_type_label = translate('sale_type') if inv_type == 'sale' else translate('purchase_type')
         self.setWindowTitle(translate('edit_invoice_window', type=invoice_type_label) if invoice_id else translate('new_invoice_window', type=invoice_type_label))
-        self.setLayoutDirection(Qt.RightToLeft)
+        self.setLayoutDirection(qt_layout_direction())
         self.resize(1280, 760)
         self.setMinimumSize(1120, 680)
 

@@ -25,6 +25,7 @@ from views.widgets.audit_log_widget import AuditLogWidget
 from views.widgets.offline_queue_widget import OfflineQueueWidget
 from views.widgets.monitoring_widget import MonitoringWidget
 from views.restaurant.restaurant_dashboard import RestaurantDashboard
+from views.restaurant.restaurant_simple_pos_widget import RestaurantSimplePOSWidget
 from views.cafe import CafeWorkspaceWidget
 from views.apparel import ApparelWorkspaceWidget
 from shell import QuickOpenDialog, QuickOpenItem, TabbedWorkspace, WorkspaceEntry, WorkspaceStateStore, UnifiedActionBar, NotificationCenter, NotificationItem
@@ -33,6 +34,7 @@ from views.dialogs.change_password_dialog import ChangePasswordDialog
 from views.dialogs.login_dialog import LoginDialog
 from views.modern_topbar import ModernTopBar
 from i18n.translator import translate, set_language, normalize_language, qt_layout_direction
+from ui.table_direction_policy import apply_table_direction_tree
 from core.services.settings_service import settings_service
 from core.services.system_service import system_service
 from core.services.offline_queue_service import offline_queue_service
@@ -51,6 +53,14 @@ from workspace.registry import (
 from workspace.actions.inline_menu_action_policy import ACTION_BAR_NEW_ROUTES, TABULAR_DOCUMENT_NEW_TARGETS
 from theme.brand import BRAND, get_tokens
 from ui.runtime_visual_polish import apply_runtime_visual_polish
+
+PAID_FEATURE_PAGES = {
+    'manufacturing': 'manufacturing',
+    'restaurant': 'restaurant',
+    'cafe': 'cafe',
+    'apparel': 'apparel',
+}
+
 
 # Phase 331: page metadata is now owned by the central UI registry so
 # titles, breadcrumbs, navigation groups, shell action-bar rules and future
@@ -246,6 +256,7 @@ class MainWindow(QMainWindow):
         self._current_language = normalize_language(settings_service.get_language())
         set_language(self._current_language)
         self.setLayoutDirection(qt_layout_direction(self._current_language))
+        apply_table_direction_tree(self, self._current_language)
         self.setMinimumSize(1200, 700)
         self.resize(1400, 900)
         self.drag_pos = None
@@ -398,7 +409,7 @@ class MainWindow(QMainWindow):
             'audit_log': AuditLogWidget,
             'offline_queue': OfflineQueueWidget,
             'monitoring': MonitoringWidget,
-            'restaurant': RestaurantDashboard,
+            'restaurant': RestaurantSimplePOSWidget,
             'cafe': CafeWorkspaceWidget,
             'apparel': ApparelWorkspaceWidget,
         }
@@ -1071,6 +1082,8 @@ class MainWindow(QMainWindow):
 
 
     def open_bom_document(self, bom_id=None):
+        if not self._ensure_feature_activation('manufacturing', 'manufacturing'):
+            return None
         try:
             from features.manufacturing import BomDocumentTab
             sequence = getattr(self, '_bom_tab_sequence', 0) + 1
@@ -1083,6 +1096,8 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
 
     def open_production_order_document(self):
+        if not self._ensure_feature_activation('manufacturing', 'manufacturing'):
+            return None
         try:
             from features.manufacturing import ProductionOrderDocumentTab
             sequence = getattr(self, '_production_order_tab_sequence', 0) + 1
@@ -1095,6 +1110,8 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, translate('quick_actions'), str(exc))
 
     def open_production_order_details(self, order_id=None):
+        if not self._ensure_feature_activation('manufacturing', 'manufacturing'):
+            return None
         try:
             from features.manufacturing import ProductionOrderDetailsTab
             if order_id is None:
@@ -1466,6 +1483,42 @@ class MainWindow(QMainWindow):
             self.showMaximized()
             self.max_btn.setIcon(qta.icon('fa5s.window-restore'))
 
+    def _feature_title_for_activation(self, feature: str, page_id: str | None = None) -> str:
+        try:
+            if page_id:
+                return page_title(page_id)
+        except Exception:
+            pass
+        key_map = {
+            'manufacturing': 'feature_activation_manufacturing',
+            'restaurant': 'feature_activation_restaurant',
+            'cafe': 'feature_activation_cafe',
+            'apparel': 'feature_activation_apparel',
+            'network': 'feature_activation_network',
+        }
+        return translate(key_map.get(feature, 'module_activation_feature'))
+
+    def _ensure_feature_activation(self, feature: str, page_id: str | None = None) -> bool:
+        """Require a paid-feature key before opening protected vertical modules.
+
+        Phase397 keeps the behavior consistent with the existing network
+        activation flow: the module remains visible, but opening it prompts for
+        its activation key and blocks entry when cancelled or invalid.
+        """
+        try:
+            from views.dialogs.module_activation_dialog import ModuleActivationDialog
+            title = self._feature_title_for_activation(feature, page_id)
+            return bool(ModuleActivationDialog.ensure_feature(self, feature, title=title))
+        except Exception as exc:
+            QMessageBox.warning(self, translate('warning'), str(exc))
+            return False
+
+    def _ensure_page_feature_activation(self, pid: str) -> bool:
+        feature = PAID_FEATURE_PAGES.get(str(pid or ''))
+        if not feature:
+            return True
+        return self._ensure_feature_activation(feature, str(pid))
+
     def switch_page(self, pid):
         if pid == 'dashboard':
             return self._show_fixed_dashboard(refresh=True)
@@ -1477,6 +1530,8 @@ class MainWindow(QMainWindow):
             return self.open_settings_section_document(section)
         if pid == 'invoices':
             pid = 'sales_invoices'
+        if isinstance(pid, str) and not self._ensure_page_feature_activation(pid):
+            return
         if isinstance(pid, str) and not page_enabled(pid):
             QMessageBox.information(self, page_title(pid), translate('module_disabled'))
             return

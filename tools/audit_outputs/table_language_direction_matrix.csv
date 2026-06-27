@@ -1,0 +1,16 @@
+check,path,needle,expected,status
+policy_exists,alrajhi_client/ui/table_direction_policy.py,def apply_table_direction,present,OK
+tree_policy_exists,alrajhi_client/ui/table_direction_policy.py,def apply_table_direction_tree,present,OK
+custom_table_uses_policy,alrajhi_client/views/custom_table_view.py,apply_table_direction(self),present,OK
+custom_table_no_hardcoded_rtl,alrajhi_client/views/custom_table_view.py,self.setLayoutDirection(Qt.RightToLeft),absent,OK
+editable_grid_uses_policy,alrajhi_client/ui/editable_smart_grid.py,apply_table_direction(self),present,OK
+runtime_polish_uses_tree,alrajhi_client/ui/runtime_visual_polish.py,apply_table_direction_tree(root),present,OK
+runtime_polish_applies_table,alrajhi_client/ui/runtime_visual_polish.py,apply_table_direction(table),present,OK
+settings_switch_applies_tree,alrajhi_client/views/widgets/settings_widget.py,"apply_table_direction_tree(main_window, lang)",present,OK
+settings_pages_apply_tree,alrajhi_client/views/widgets/settings_widget.py,"apply_table_direction_tree(page, lang)",present,OK
+modern_widget_language_direction,alrajhi_client/views/widgets/modern_ui.py,widget.setLayoutDirection(qt_layout_direction()),present,OK
+modern_tables_apply_policy,alrajhi_client/views/widgets/modern_ui.py,apply_table_direction(child),present,OK
+restaurant_invoice_table_policy,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,apply_table_direction(self.invoice_table),present,OK
+legacy_invoice_dialog_not_hardcoded_rtl,alrajhi_client/views/dialogs/invoice_dialog.py,self.setLayoutDirection(qt_layout_direction()),present,OK
+modern_walk_no_tuple_findchildren,alrajhi_client/views/widgets/modern_ui.py,"for cls in (QTableView, QTableWidget",present,OK
+quality_contract,alrajhi_client/workspace/quality/table_language_direction_contract.py,TABLE_LANGUAGE_DIRECTION_CONTRACT,present,OK

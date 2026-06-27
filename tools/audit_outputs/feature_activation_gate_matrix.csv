@@ -1,0 +1,21 @@
+check,path,needle,status
+contract_exists,alrajhi_client/workspace/quality/feature_activation_gate_contract.py,FEATURE_ACTIVATION_GATE_CONTRACT,OK
+app_paths_feature_license,alrajhi_client/core/app_paths.py,def feature_license_file(feature: str),OK
+auth_generic_activate,alrajhi_client/auth/activation.py,"def activate_feature(feature: str, license_key: str)",OK
+auth_generic_check,alrajhi_client/auth/activation.py,def check_feature_activation(feature: str),OK
+network_uses_generic,alrajhi_client/auth/activation.py,"return activate_feature('network', license_key)",OK
+dialog_exists,alrajhi_client/views/dialogs/module_activation_dialog.py,class ModuleActivationDialog,OK
+dialog_uses_generic,alrajhi_client/views/dialogs/module_activation_dialog.py,"activate_feature(self.feature, key)",OK
+main_page_gate,alrajhi_client/views/main_window.py,PAID_FEATURE_PAGES,OK
+manufacturing_page_protected,alrajhi_client/views/main_window.py,'manufacturing': 'manufacturing',OK
+restaurant_page_protected,alrajhi_client/views/main_window.py,'restaurant': 'restaurant',OK
+cafe_page_protected,alrajhi_client/views/main_window.py,'cafe': 'cafe',OK
+apparel_page_protected,alrajhi_client/views/main_window.py,'apparel': 'apparel',OK
+switch_page_checks_gate,alrajhi_client/views/main_window.py,not self._ensure_page_feature_activation(pid),OK
+bom_document_protected,alrajhi_client/views/main_window.py,"open_bom_document(self, bom_id=None):
+        if not self._ensure_feature_activation('manufacturing'",OK
+production_order_protected,alrajhi_client/views/main_window.py,"open_production_order_document(self):
+        if not self._ensure_feature_activation('manufacturing'",OK
+network_settings_unified,alrajhi_client/views/widgets/settings_widget.py,ModuleActivationDialog.ensure_feature,OK
+i18n_activation_title,alrajhi_client/i18n/translator.py,module_activation_title,OK
+i18n_french_feature_label,alrajhi_client/i18n/translator.py,feature_activation_apparel,OK

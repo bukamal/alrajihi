@@ -1,0 +1,9 @@
+check,path,needle,mode,status
+contract_exists,alrajhi_client/workspace/quality/restaurant_item_card_surface_contract.py,RESTAURANT_ITEM_CARD_SURFACE_CONTRACT,present,OK
+item_surface_property,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,restaurant_same_card_surface,present,OK
+item_single_column_grid,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,"self.items_grid.addWidget(button, index, 0)",present,OK
+item_category_like_height,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,button.setMinimumHeight(58),present,OK
+item_category_like_size_policy,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,"QSizePolicy.Expanding, QSizePolicy.Fixed",present,OK
+item_row_stretch,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,"self.items_grid.setRowStretch(len(self.menu_items), 1)",present,OK
+no_responsive_item_columns,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,columns = 3 if self.width() >= 1200 else 2,absent,OK
+no_multicolumn_item_add,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,"index // columns, index % columns",absent,OK

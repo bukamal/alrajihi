@@ -205,6 +205,26 @@ class RestaurantService:
     def list_menu_items(self, search: str = "", category_id: int | None = None, limit: int = 48) -> list[dict[str, Any]]:
         return self.gateway.list_menu_items(search=search, category_id=category_id, limit=limit)
 
+    def list_menu_categories(self, search: str = "", limit: int = 120) -> list[dict[str, Any]]:
+        restaurant_operation_policy.require(restaurant_operation_policy.OP_USE)
+        return self.gateway.list_menu_categories(search=search, limit=limit)
+
+    def update_order_line(self, line_id: int, quantity: Any | None = None, unit_price: Any | None = None, notes: str | None = None) -> dict[str, Any]:
+        restaurant_operation_policy.require(restaurant_operation_policy.OP_ADD_LINE)
+        result = self.gateway.update_order_line(line_id=line_id, quantity=quantity, unit_price=unit_price, notes=notes)
+        restaurant_operation_policy.log(restaurant_operation_policy.OP_ADD_LINE, allowed=True, context="restaurant_service.update_order_line", values={"line_id": line_id})
+        return result
+
+    def mark_session_lines_served(self, session_id: int) -> dict[str, Any]:
+        restaurant_operation_policy.require(restaurant_operation_policy.OP_CHECKOUT)
+        return self.gateway.mark_session_lines_served(session_id=session_id)
+
+    def checkout_simple_pos_session(self, session_id: int, payment_method: str = "cash") -> dict[str, Any]:
+        restaurant_operation_policy.require(restaurant_operation_policy.OP_CHECKOUT)
+        result = self.gateway.checkout_simple_pos_session(session_id=session_id, payment_method=payment_method)
+        restaurant_operation_policy.log(restaurant_operation_policy.OP_CHECKOUT, allowed=True, context="restaurant_service.checkout_simple_pos_session", values={"session_id": session_id, "payment_method": payment_method})
+        return result
+
     def session_balance(self, session_id: int) -> dict[str, Any]:
         return self.gateway.session_balance(session_id=session_id)
 

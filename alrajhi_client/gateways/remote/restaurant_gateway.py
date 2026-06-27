@@ -66,6 +66,23 @@ class RemoteRestaurantGateway(RestaurantGateway):
             params["category_id"] = int(category_id)
         return self.client._request("GET", "/api/restaurant/menu_items", params) or []
 
+    def list_menu_categories(self, search: str = "", limit: int = 120) -> list[dict[str, Any]]:
+        return self.client._request("GET", "/api/restaurant/menu_categories", {"search": search or "", "limit": int(limit or 120)}) or []
+
+    def update_order_line(self, line_id: int, quantity: Any | None = None, unit_price: Any | None = None, notes: str | None = None) -> dict[str, Any]:
+        return self.client._request("POST", f"/api/restaurant/lines/{int(line_id)}", {"quantity": quantity, "unit_price": unit_price, "notes": notes}) or {}
+
+    def mark_session_lines_served(self, session_id: int) -> dict[str, Any]:
+        session = self.get_session(int(session_id))
+        for line in session.get("lines") or []:
+            if str(line.get("kitchen_status") or "new").lower() not in {"cancelled", "served"}:
+                self.update_line_status(int(line.get("id") or 0), "served")
+        return self.get_session(int(session_id))
+
+    def checkout_simple_pos_session(self, session_id: int, payment_method: str = "cash") -> dict[str, Any]:
+        self.mark_session_lines_served(int(session_id))
+        return self.checkout_session(int(session_id), paid_amount=None, payment_method=payment_method or "cash")
+
     def session_balance(self, session_id: int) -> dict[str, Any]:
         return self.client._request("GET", f"/api/restaurant/sessions/{int(session_id)}/balance") or {}
 

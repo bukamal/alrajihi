@@ -57,6 +57,22 @@ class RestaurantGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def list_menu_categories(self, search: str = "", limit: int = 120) -> list[dict[str, Any]]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def update_order_line(self, line_id: int, quantity: Any | None = None, unit_price: Any | None = None, notes: str | None = None) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def mark_session_lines_served(self, session_id: int) -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def checkout_simple_pos_session(self, session_id: int, payment_method: str = "cash") -> dict[str, Any]:
+        raise NotImplementedError
+
+    @abstractmethod
     def session_balance(self, session_id: int) -> dict[str, Any]:
         raise NotImplementedError
 

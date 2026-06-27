@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 )
 
 from i18n import translate
+from ui.table_direction_policy import apply_table_direction
 from ui.table_keyboard_policy import StandardTableKeyboardMixin
 from views.widgets.components.table_preferences import TablePreferences
 
@@ -45,6 +46,7 @@ class EditableSmartGrid(StandardTableKeyboardMixin, QTableWidget):
             self.set_table_identity(identity)
         elif not self.objectName():
             self.setObjectName("EditableSmartGrid")
+        apply_table_direction(self)
         self.setAlternatingRowColors(True)
         self.setSelectionBehavior(QTableWidget.SelectRows)
         self.setContextMenuPolicy(Qt.CustomContextMenu)

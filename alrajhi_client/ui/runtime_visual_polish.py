@@ -28,6 +28,7 @@ from PyQt5.QtWidgets import (
 
 from theme.brand import BRAND
 from workspace.runtime.visual_polish_contract import workspace_visual_policy
+from ui.table_direction_policy import apply_table_direction, apply_table_direction_tree
 
 
 _TABLE_ROW_SIZES = {"compact": 30, "comfortable": 36, "touch": 46}
@@ -69,6 +70,7 @@ def _layout_apply(widget: QWidget, margin: int, spacing: int) -> None:
 
 
 def _apply_table_polish(table: QTableView, density: str) -> None:
+    apply_table_direction(table)
     table.setProperty("visualRole", "runtime_table")
     table.setAlternatingRowColors(True)
     table.setWordWrap(False)
@@ -137,6 +139,7 @@ def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_ty
     """Apply non-invasive visual normalization to a workspace subtree."""
     if root is None:
         return
+    apply_table_direction_tree(root)
     policy = workspace_visual_policy(str(page_id or "workspace"), workspace_type)
     try:
         root.setProperty("visualPageId", policy.page_id)

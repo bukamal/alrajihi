@@ -577,6 +577,81 @@ class LocalRestaurantGateway(RestaurantGateway):
             return []
         return [dict(row) for row in rows]
 
+    def list_menu_categories(self, search: str = "", limit: int = 120) -> list[dict[str, Any]]:
+        """Return active item categories for the simple restaurant POS."""
+        self._ensure_schema()
+        conn = self._conn()
+        limit = max(1, min(int(limit or 120), 300))
+        where = ["COALESCE(c.deleted_at, '') = ''", "COALESCE(c.is_active, 1) = 1"]
+        params: list[Any] = []
+        if search:
+            where.append("LOWER(COALESCE(c.name, '')) LIKE LOWER(?)")
+            params.append(f"%{search}%")
+        sql = f"""
+            SELECT c.id, c.name, c.parent_id, c.color, c.icon,
+                   COUNT(i.id) AS item_count
+            FROM categories c
+            LEFT JOIN items i ON i.category_id = c.id AND COALESCE(i.deleted_at, '') = ''
+            WHERE {' AND '.join(where)}
+            GROUP BY c.id, c.name, c.parent_id, c.color, c.icon
+            HAVING item_count > 0
+            ORDER BY c.name COLLATE NOCASE
+            LIMIT ?
+        """
+        params.append(limit)
+        try:
+            rows = conn.execute(sql, params).fetchall()
+        except Exception:
+            return []
+        return [dict(row) for row in rows]
+
+    def update_order_line(self, line_id: int, quantity: Any | None = None, unit_price: Any | None = None, notes: str | None = None) -> dict[str, Any]:
+        """Update quantity/price/notes for a simple POS restaurant line."""
+        self._ensure_schema()
+        conn = self._conn()
+        line = self._get_order_line(int(line_id))
+        updates = []
+        params: list[Any] = []
+        if quantity is not None:
+            qty = self._decimal(quantity, "1")
+            if qty <= Decimal("0"):
+                return self.update_line_status(int(line_id), "cancelled")
+            updates.append("quantity=?")
+            params.append(str(qty))
+            updates.append("base_qty=?")
+            params.append(str(qty * self._decimal(line.get("conversion_factor") or "1", "1")))
+        if unit_price is not None:
+            price = self._decimal(unit_price, "0")
+            updates.append("unit_price=?")
+            params.append(str(price))
+        if notes is not None:
+            updates.append("notes=?")
+            params.append(str(notes or ""))
+        if not updates:
+            return self.get_order_line(int(line_id))
+        params.append(int(line_id))
+        conn.execute(f"UPDATE restaurant_order_lines SET {', '.join(updates)} WHERE id=?", params)
+        now_event = datetime.datetime.now().isoformat(timespec="seconds")
+        conn.execute("UPDATE restaurant_sessions SET modification_count=COALESCE(modification_count, 0)+1, last_activity_at=? WHERE id=?", (now_event, int(line["session_id"])))
+        conn.execute("INSERT INTO restaurant_service_events(session_id, event_type, line_id, notes, created_at) VALUES (?, 'order_line_updated', ?, ?, ?)", (int(line["session_id"]), int(line_id), str(notes or ""), now_event))
+        self._sync_session_table_state(int(line["session_id"]), conn)
+        conn.commit()
+        return self.get_order_line(int(line_id))
+
+    def mark_session_lines_served(self, session_id: int) -> dict[str, Any]:
+        """Bypass kitchen/KDS for simple POS: all billable lines become served."""
+        self._ensure_schema()
+        conn = self._conn()
+        conn.execute("UPDATE restaurant_order_lines SET kitchen_status='served' WHERE session_id=? AND COALESCE(kitchen_status, 'new') NOT IN ('cancelled','served')", (int(session_id),))
+        self._sync_session_table_state(int(session_id), conn)
+        conn.commit()
+        return self.get_session(int(session_id))
+
+    def checkout_simple_pos_session(self, session_id: int, payment_method: str = "cash") -> dict[str, Any]:
+        """Checkout a simple restaurant POS sale without kitchen tickets."""
+        self.mark_session_lines_served(int(session_id))
+        return self.checkout_session(int(session_id), paid_amount=None, payment_method=payment_method or "cash")
+
 
     def _decimal(self, value: Any, default: str = "0") -> Decimal:
         try:

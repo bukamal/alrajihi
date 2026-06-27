@@ -185,6 +185,10 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (391, "ITEM_DELETE_BOM_USAGE_RESOLVER"),
         (392, "FRENCH_LANGUAGE"),
         (393, "LANGUAGE_RUNTIME_SWITCH_HOTFIX"),
+        (394, "RESTAURANT_SIMPLE_POS"),
+        (395, "TABLE_LANGUAGE_DIRECTION"),
+        (396, "RESTAURANT_ITEM_CARD_SURFACE"),
+        (397, "FEATURE_ACTIVATION_GATE"),
     ]
 )
 
@@ -335,6 +339,10 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (391, "item_delete_bom_usage_resolver"),
         (392, "french_language"),
         (393, "language_runtime_switch"),
+        (394, "restaurant_simple_pos"),
+        (395, "table_language_direction"),
+        (396, "restaurant_item_card_surface"),
+        (397, "feature_activation_gate"),
     ]
 )
 
@@ -466,6 +474,10 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("item_delete_bom_usage_resolver", "materials", "Item delete explains active BOM blockers by recipe/product name and resolution path", "tools/phase391_item_delete_bom_usage_resolver_guard.py", "tools/audit_outputs/item_delete_bom_usage_resolver_matrix.csv", phase=391),
     ReleaseGateCheck("french_language", "i18n", "French language covers UI, print and report translation surfaces", "tools/phase392_french_language_guard.py", "tools/audit_outputs/french_language_matrix.csv", phase=392),
     ReleaseGateCheck("language_runtime_switch", "i18n", "Language runtime switch cannot recurse during UI refresh", "tools/phase393_language_runtime_switch_guard.py", "tools/audit_outputs/language_runtime_switch_matrix.csv", phase=393),
+    ReleaseGateCheck("restaurant_simple_pos", "restaurant", "Restaurant workspace is a simple POS with categories, items and invoice table", "tools/phase394_restaurant_simple_pos_guard.py", "tools/audit_outputs/restaurant_simple_pos_matrix.csv", phase=394),
+    ReleaseGateCheck("table_language_direction", "i18n", "Tables follow UI language direction: Arabic RTL and non-Arabic LTR", "tools/phase395_table_language_direction_guard.py", "tools/audit_outputs/table_language_direction_matrix.csv", phase=395),
+    ReleaseGateCheck("restaurant_item_card_surface", "restaurant", "Restaurant POS item browser uses the same rectangular card surface as categories", "tools/phase396_restaurant_item_card_surface_guard.py", "tools/audit_outputs/restaurant_item_card_surface_matrix.csv", phase=396),
+    ReleaseGateCheck("feature_activation_gate", "activation", "Manufacturing, restaurant, cafe and apparel require a unified activation key before entry", "tools/phase397_feature_activation_gate_guard.py", "tools/audit_outputs/feature_activation_gate_matrix.csv", phase=397),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

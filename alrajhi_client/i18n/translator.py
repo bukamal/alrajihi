@@ -8330,6 +8330,175 @@ def _phase393_apply_language_runtime_keys() -> None:
         'language_settings_saved': 'Paramètres de langue enregistrés',
     })
 
+
+
+def _phase394_apply_restaurant_simple_pos_keys() -> None:
+    payload = {
+        'ar': {
+            'restaurant.simple_pos_title': 'واجهة المطعم',
+            'restaurant.interface_title': 'واجهة المطعم',
+            'cafe.interface_title': 'واجهة المقهى',
+            'apparel.interface_title': 'واجهة الألبسة',
+            'nav_special_interfaces': 'واجهات النشاط',
+            'restaurant.simple_pos_subtitle': 'بيع مطعم سريع: تصنيفات، مواد، وجدول فاتورة فقط بدون مطبخ أو طاولات.',
+            'restaurant.simple_categories': 'التصنيفات',
+            'restaurant.simple_categories_help': 'اختر تصنيفًا لعرض مواده.',
+            'restaurant.simple_items': 'المواد',
+            'restaurant.simple_items_help': 'اضغط على المادة لإضافتها إلى جدول الفاتورة.',
+            'restaurant.simple_invoice': 'الفاتورة الحالية',
+            'restaurant.simple_invoice_help': 'اسم المادة، الكمية، السعر، الإجمالي، والملاحظات.',
+            'restaurant.simple_search_placeholder': 'بحث عن مادة أو باركود...',
+            'restaurant.simple_new_sale': 'بيع جديد',
+            'restaurant.simple_total': 'الإجمالي',
+            'restaurant.simple_checkout': 'دفع وإنهاء',
+            'restaurant.simple_sale_started': 'تم فتح بيع مطعم جديد #{session}',
+            'restaurant.simple_item_added': 'تمت إضافة المادة إلى الفاتورة',
+            'restaurant.simple_select_line': 'اختر سطرًا من الفاتورة أولًا',
+        },
+        'de': {
+            'restaurant.simple_pos_title': 'Restaurant-Oberfläche',
+            'restaurant.interface_title': 'Restaurant-Oberfläche',
+            'cafe.interface_title': 'Café-Oberfläche',
+            'apparel.interface_title': 'Bekleidungsoberfläche',
+            'nav_special_interfaces': 'Branchenoberflächen',
+            'restaurant.simple_pos_subtitle': 'Schneller Restaurantverkauf: Kategorien, Artikel und Rechnungstabelle ohne Küche oder Tische.',
+            'restaurant.simple_categories': 'Kategorien',
+            'restaurant.simple_categories_help': 'Wählen Sie eine Kategorie, um ihre Artikel anzuzeigen.',
+            'restaurant.simple_items': 'Artikel',
+            'restaurant.simple_items_help': 'Klicken Sie auf einen Artikel, um ihn der Rechnung hinzuzufügen.',
+            'restaurant.simple_invoice': 'Aktuelle Rechnung',
+            'restaurant.simple_invoice_help': 'Artikelname, Menge, Preis, Summe und Notizen.',
+            'restaurant.simple_search_placeholder': 'Artikel oder Barcode suchen...',
+            'restaurant.simple_new_sale': 'Neuer Verkauf',
+            'restaurant.simple_total': 'Gesamt',
+            'restaurant.simple_checkout': 'Bezahlen und abschließen',
+            'restaurant.simple_sale_started': 'Neuer Restaurantverkauf #{session} geöffnet',
+            'restaurant.simple_item_added': 'Artikel wurde der Rechnung hinzugefügt',
+            'restaurant.simple_select_line': 'Wählen Sie zuerst eine Rechnungszeile aus',
+        },
+        'en': {
+            'restaurant.simple_pos_title': 'Restaurant Interface',
+            'restaurant.interface_title': 'Restaurant interface',
+            'cafe.interface_title': 'Cafe interface',
+            'apparel.interface_title': 'Apparel interface',
+            'nav_special_interfaces': 'Industry interfaces',
+            'restaurant.simple_pos_subtitle': 'Fast restaurant selling: categories, items and invoice table only, without kitchen or tables.',
+            'restaurant.simple_categories': 'Categories',
+            'restaurant.simple_categories_help': 'Choose a category to show its items.',
+            'restaurant.simple_items': 'Items',
+            'restaurant.simple_items_help': 'Click an item to add it to the invoice table.',
+            'restaurant.simple_invoice': 'Current invoice',
+            'restaurant.simple_invoice_help': 'Item name, quantity, price, total and notes.',
+            'restaurant.simple_search_placeholder': 'Search item or barcode...',
+            'restaurant.simple_new_sale': 'New sale',
+            'restaurant.simple_total': 'Total',
+            'restaurant.simple_checkout': 'Pay and close',
+            'restaurant.simple_sale_started': 'New restaurant sale #{session} opened',
+            'restaurant.simple_item_added': 'Item added to the invoice',
+            'restaurant.simple_select_line': 'Select an invoice line first',
+        },
+        'fr': {
+            'restaurant.simple_pos_title': 'Interface restaurant',
+            'restaurant.interface_title': 'Interface restaurant',
+            'cafe.interface_title': 'Interface café',
+            'apparel.interface_title': 'Interface vêtements',
+            'nav_special_interfaces': 'Interfaces métier',
+            'restaurant.simple_pos_subtitle': 'Vente restaurant rapide : catégories, articles et tableau de facture uniquement, sans cuisine ni tables.',
+            'restaurant.simple_categories': 'Catégories',
+            'restaurant.simple_categories_help': 'Choisissez une catégorie pour afficher ses articles.',
+            'restaurant.simple_items': 'Articles',
+            'restaurant.simple_items_help': 'Cliquez sur un article pour l’ajouter à la facture.',
+            'restaurant.simple_invoice': 'Facture actuelle',
+            'restaurant.simple_invoice_help': 'Nom de l’article, quantité, prix, total et notes.',
+            'restaurant.simple_search_placeholder': 'Rechercher un article ou un code-barres...',
+            'restaurant.simple_new_sale': 'Nouvelle vente',
+            'restaurant.simple_total': 'Total',
+            'restaurant.simple_checkout': 'Payer et clôturer',
+            'restaurant.simple_sale_started': 'Nouvelle vente restaurant #{session} ouverte',
+            'restaurant.simple_item_added': 'Article ajouté à la facture',
+            'restaurant.simple_select_line': 'Sélectionnez d’abord une ligne de facture',
+        },
+    }
+    for lang, values in payload.items():
+        _translations.setdefault(lang, {}).update(values)
+
+
+
+def _phase397_apply_feature_activation_keys() -> None:
+    payload = {
+        'ar': {
+            'module_activation_title': 'تفعيل {module}',
+            'module_activation_feature': 'الوحدة',
+            'module_activation_help': 'هذه الواجهة تحتاج مفتاح تفعيل مستقل. أدخل مفتاح تفعيل {module} للمتابعة.',
+            'module_activation_key': 'مفتاح التفعيل',
+            'module_activation_show_key': 'إظهار المفتاح',
+            'module_activation_activate': 'تفعيل',
+            'module_activation_required': 'يرجى إدخال مفتاح التفعيل',
+            'module_activation_checking': 'جاري التحقق من مفتاح التفعيل...',
+            'module_activation_success': 'تم تفعيل {module} بنجاح.',
+            'module_activation_failed': 'فشل التفعيل: {message}',
+            'feature_activation_network': 'الشبكة',
+            'feature_activation_manufacturing': 'التصنيع',
+            'feature_activation_restaurant': 'واجهة المطعم',
+            'feature_activation_cafe': 'واجهة المقهى',
+            'feature_activation_apparel': 'واجهة الألبسة',
+        },
+        'de': {
+            'module_activation_title': '{module} aktivieren',
+            'module_activation_feature': 'Modul',
+            'module_activation_help': 'Diese Oberfläche benötigt einen eigenen Aktivierungsschlüssel. Geben Sie den Schlüssel für {module} ein, um fortzufahren.',
+            'module_activation_key': 'Aktivierungsschlüssel',
+            'module_activation_show_key': 'Schlüssel anzeigen',
+            'module_activation_activate': 'Aktivieren',
+            'module_activation_required': 'Bitte geben Sie den Aktivierungsschlüssel ein',
+            'module_activation_checking': 'Aktivierungsschlüssel wird geprüft...',
+            'module_activation_success': '{module} wurde erfolgreich aktiviert.',
+            'module_activation_failed': 'Aktivierung fehlgeschlagen: {message}',
+            'feature_activation_network': 'Netzwerk',
+            'feature_activation_manufacturing': 'Fertigung',
+            'feature_activation_restaurant': 'Restaurant-Oberfläche',
+            'feature_activation_cafe': 'Café-Oberfläche',
+            'feature_activation_apparel': 'Bekleidungsoberfläche',
+        },
+        'en': {
+            'module_activation_title': 'Activate {module}',
+            'module_activation_feature': 'Module',
+            'module_activation_help': 'This interface requires its own activation key. Enter the {module} activation key to continue.',
+            'module_activation_key': 'Activation key',
+            'module_activation_show_key': 'Show key',
+            'module_activation_activate': 'Activate',
+            'module_activation_required': 'Please enter the activation key',
+            'module_activation_checking': 'Checking activation key...',
+            'module_activation_success': '{module} activated successfully.',
+            'module_activation_failed': 'Activation failed: {message}',
+            'feature_activation_network': 'Network',
+            'feature_activation_manufacturing': 'Manufacturing',
+            'feature_activation_restaurant': 'Restaurant interface',
+            'feature_activation_cafe': 'Cafe interface',
+            'feature_activation_apparel': 'Apparel interface',
+        },
+        'fr': {
+            'module_activation_title': 'Activer {module}',
+            'module_activation_feature': 'Module',
+            'module_activation_help': 'Cette interface nécessite une clé d’activation dédiée. Saisissez la clé d’activation de {module} pour continuer.',
+            'module_activation_key': 'Clé d’activation',
+            'module_activation_show_key': 'Afficher la clé',
+            'module_activation_activate': 'Activer',
+            'module_activation_required': 'Veuillez saisir la clé d’activation',
+            'module_activation_checking': 'Vérification de la clé d’activation...',
+            'module_activation_success': '{module} a été activé avec succès.',
+            'module_activation_failed': 'Échec de l’activation : {message}',
+            'feature_activation_network': 'Réseau',
+            'feature_activation_manufacturing': 'Fabrication',
+            'feature_activation_restaurant': 'Interface restaurant',
+            'feature_activation_cafe': 'Interface café',
+            'feature_activation_apparel': 'Interface vêtements',
+        },
+    }
+    for lang, values in payload.items():
+        _translations.setdefault(lang, {}).update(values)
+
+
 def load_translations():
     global _phase392_load_in_progress
     if _phase392_load_in_progress:
@@ -8339,8 +8508,12 @@ def load_translations():
         _PHASE392_BASE_LOAD_TRANSLATIONS()
         _phase392_apply_french_translations()
         _phase393_apply_language_runtime_keys()
+        _phase394_apply_restaurant_simple_pos_keys()
+        _phase397_apply_feature_activation_keys()
     finally:
         _phase392_load_in_progress = False
 
 _phase392_apply_french_translations()
 _phase393_apply_language_runtime_keys()
+_phase394_apply_restaurant_simple_pos_keys()
+_phase397_apply_feature_activation_keys()

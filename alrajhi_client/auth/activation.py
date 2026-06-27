@@ -8,11 +8,38 @@ import threading
 import time
 import requests
 from typing import Tuple, Optional, Callable
-from core.app_paths import license_file, network_license_file
+from core.app_paths import license_file, network_license_file, feature_license_file
 
 SERVER_URL = 'https://license.manhal-almasriiii199119.workers.dev/activate'
 LICENSE_FILE = str(license_file())
 NETWORK_LICENSE_FILE = str(network_license_file())
+
+FEATURE_ACTIVATION_IDS = {
+    'network': 'network',
+    'manufacturing': 'manufacturing',
+    'restaurant': 'restaurant',
+    'cafe': 'cafe',
+    'apparel': 'apparel',
+}
+
+def normalize_feature_activation_id(feature: str | None) -> str:
+    value = str(feature or '').strip().lower().replace(' ', '_').replace('-', '_')
+    aliases = {
+        'manufacturing_interface': 'manufacturing',
+        'restaurant_interface': 'restaurant',
+        'café': 'cafe',
+        'coffee': 'cafe',
+        'cafe_interface': 'cafe',
+        'apparel_interface': 'apparel',
+        'clothes': 'apparel',
+        'network_feature': 'network',
+    }
+    value = aliases.get(value, value)
+    return FEATURE_ACTIVATION_IDS.get(value, value)
+
+def _feature_license_path(feature: str) -> str:
+    feature_id = normalize_feature_activation_id(feature)
+    return str(feature_license_file(feature_id))
 
 def get_device_id() -> str:
     try:
@@ -76,38 +103,57 @@ def check_activation() -> Tuple[bool, str]:
     except Exception as e:
         return False, str(e)
 
-def activate_network(license_key: str) -> Tuple[bool, str]:
+def activate_feature(feature: str, license_key: str) -> Tuple[bool, str]:
+    feature_id = normalize_feature_activation_id(feature)
     device_id = get_device_id()
     try:
-        resp = requests.post(SERVER_URL, json={'licenseCode': license_key, 'fingerprint': device_id, 'feature': 'network'}, timeout=15)
+        resp = requests.post(
+            SERVER_URL,
+            json={'licenseCode': license_key, 'fingerprint': device_id, 'feature': feature_id},
+            timeout=15,
+        )
         if resp.status_code != 200:
-            return False, resp.text or "فشل تفعيل الشبكة"
+            return False, resp.text or f"فشل تفعيل {feature_id}"
         result = resp.json()
         data = {
             'key': license_key,
             'device': device_id,
+            'feature': feature_id,
             'expiration': result.get('expirationDate'),
             'activated_at': __import__('datetime').datetime.now().isoformat()
         }
-        with open(NETWORK_LICENSE_FILE, 'w') as f:
+        with open(_feature_license_path(feature_id), 'w') as f:
             f.write(_encrypt_license(data, device_id))
         return True, ""
     except Exception as e:
         return False, str(e)
 
-def check_network_activation() -> Tuple[bool, str]:
-    if not os.path.exists(NETWORK_LICENSE_FILE):
-        return False, "ميزة الشبكة غير مفعلة"
+def check_feature_activation(feature: str) -> Tuple[bool, str]:
+    feature_id = normalize_feature_activation_id(feature)
+    path = _feature_license_path(feature_id)
+    if not os.path.exists(path):
+        return False, f"ميزة {feature_id} غير مفعلة"
     try:
-        with open(NETWORK_LICENSE_FILE, 'r') as f:
+        with open(path, 'r') as f:
             encrypted = f.read().strip()
         device_id = get_device_id()
         data = _decrypt_license(encrypted, device_id)
         if not data or data.get('device') != device_id:
-            return False, "ترخيص الشبكة غير صالح"
+            return False, f"ترخيص {feature_id} غير صالح"
+        if data.get('feature') and data.get('feature') != feature_id:
+            return False, f"ترخيص {feature_id} غير صالح"
         return True, ""
     except Exception as e:
         return False, str(e)
+
+def activate_network(license_key: str) -> Tuple[bool, str]:
+    return activate_feature('network', license_key)
+
+def check_network_activation() -> Tuple[bool, str]:
+    ok, message = check_feature_activation('network')
+    if not ok and 'network' in str(message):
+        return False, "ميزة الشبكة غير مفعلة" if 'غير مفعلة' in str(message) else "ترخيص الشبكة غير صالح"
+    return ok, message
 
 _license_checker_thread = None
 _license_checker_stop = False
