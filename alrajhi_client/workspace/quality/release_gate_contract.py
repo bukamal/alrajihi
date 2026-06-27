@@ -179,6 +179,10 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (385, "EDITABLE_GRID_UNIT_ENTER"),
         (386, "EDITABLE_GRID_INVOICE_ENTER_ROUTE"),
         (387, "INVOICE_RETURN_LIST_ACTIONS"),
+        (388, "EDITABLE_GRID_MOUSE_ACTION_BOUNDARY"),
+        (389, "EDITABLE_GRID_ROW_ACTION_BOUNDARY"),
+        (390, "ITEM_DELETE_ACTIVE_USAGE"),
+        (391, "ITEM_DELETE_BOM_USAGE_RESOLVER"),
     ]
 )
 
@@ -325,6 +329,8 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (387, "invoice_return_list_actions"),
         (388, "editable_grid_mouse_action_boundary"),
         (389, "editable_grid_row_action_boundary"),
+        (390, "item_delete_active_usage"),
+        (391, "item_delete_bom_usage_resolver"),
     ]
 )
 
@@ -452,6 +458,8 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("invoice_return_list_actions", "transactions", "Sales/purchase invoice and return list Edit/Delete actions resolve source rows and enforce dependencies", "tools/phase387_invoice_return_list_actions_guard.py", "tools/audit_outputs/invoice_return_list_actions_matrix.csv", phase=387),
     ReleaseGateCheck("editable_grid_mouse_action_boundary", "ui", "Editable grid Enter navigation does not steal mouse clicks from side action buttons", "tools/phase388_editable_grid_mouse_action_boundary_guard.py", "tools/audit_outputs/editable_grid_mouse_action_boundary_matrix.csv", phase=388),
     ReleaseGateCheck("editable_grid_row_action_boundary", "ui", "List tables keep row selection while editable grids keep Enter cell traversal", "tools/phase389_editable_grid_row_action_boundary_guard.py", "tools/audit_outputs/editable_grid_row_action_boundary_matrix.csv", phase=389),
+    ReleaseGateCheck("item_delete_active_usage", "materials", "Item delete/archive guard counts only active dependencies and ignores deleted invoices/cancelled production orders", "tools/phase390_item_delete_active_usage_guard.py", "tools/audit_outputs/item_delete_active_usage_matrix.csv", phase=390),
+    ReleaseGateCheck("item_delete_bom_usage_resolver", "materials", "Item delete explains active BOM blockers by recipe/product name and resolution path", "tools/phase391_item_delete_bom_usage_resolver_guard.py", "tools/audit_outputs/item_delete_bom_usage_resolver_matrix.csv", phase=391),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

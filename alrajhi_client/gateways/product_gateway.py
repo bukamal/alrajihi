@@ -98,6 +98,15 @@ class ItemGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def bom_usage(self, item_id: int) -> Dict[str, Any]:
+        """Return concrete BOM recipes/products that reference this material.
+
+        This is the Phase391 resolver used to explain item-delete blockers without
+        leaking raw SQL table names such as bom_line.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def is_remote(self) -> bool:
         raise NotImplementedError
 

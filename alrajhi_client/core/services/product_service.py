@@ -124,6 +124,10 @@ class ProductService:
         self.item_gateway.delete(item_id)
         audit_service.log('SOFT_DELETE', 'ITEM', item_id, old_values=old, details='أرشفة مادة')
 
+    def item_bom_usage(self, item_id: int) -> Dict[str, Any]:
+        """Return named BOM recipes/products referencing the material."""
+        return self.item_gateway.bom_usage(item_id) or {'as_product': [], 'as_component': [], 'total': 0}
+
     # ---------- Item units ----------
     def item_units(self, item_id: int) -> List[Dict]:
         return records(self.item_gateway.get_units(item_id), 'units')

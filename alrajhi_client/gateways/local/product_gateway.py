@@ -230,6 +230,15 @@ class LocalItemGateway(ItemGateway):
             return result
 
 
+    def bom_usage(self, item_id: int) -> Dict[str, Any]:
+        item_id = int(item_id or 0)
+        if not item_id:
+            return {'as_product': [], 'as_component': [], 'total': 0}
+        try:
+            return item_dao.repo.db.get_item_bom_usage(item_id)
+        except Exception:
+            return {'as_product': [], 'as_component': [], 'total': 0}
+
     def activity_summary(self, item_id: int) -> Dict[str, Any]:
         """Return material usage counts without leaking SQL above the gateway."""
         item_id = int(item_id or 0)

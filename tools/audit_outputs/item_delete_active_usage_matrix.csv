@@ -1,0 +1,7 @@
+key,category,description,path,status,detail
+invoice_lines_join_active_invoices,materials,"Material delete counts invoice lines only through active parent invoices, not raw invoice_lines rows",alrajhi_client/database/connection.py,True,Soft-deleted/cancelled invoices must not keep blocking item archive/delete
+production_orders_exclude_cancelled,manufacturing,Cancelled production orders and their consumption/output rows do not block material delete,alrajhi_client/database/connection.py,True,Production detail rows must be joined to non-cancelled orders
+inventory_movements_follow_active_parent,inventory,Inventory movements tied to deleted invoices/cancelled production orders are not counted as active blockers,alrajhi_client/database/connection.py,True,Movement blockers must follow active source documents instead of raw movement counts
+returns_count_only_active_return_documents,returns,"Return lines and return movements count only active, non-deleted return documents",alrajhi_client/database/connection.py,True,Deleted/cancelled returns should not block item archive/delete
+bom_remains_active_master_data_blocker,manufacturing,Active BOM recipe references remain blockers even when production orders are cancelled,alrajhi_client/database/connection.py,True,BOM is master data and must be removed/edited explicitly
+user_facing_error_message,ux,Delete item error uses Arabic user-facing labels instead of raw table names like invoice_line/bom_line,alrajhi_client/database/connection.py,True,The delete_item message must not leak raw database table names

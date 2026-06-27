@@ -744,8 +744,12 @@ class DatabaseConnection:
         conn = self.get_connection()
         usage = self._get_item_usage_summary(item_id, uid)
         if usage['blocking_total'] > 0:
-            details = ', '.join(f"{k}={v}" for k, v in usage.items() if k != 'blocking_total' and v)
-            raise ValueError(f"لا يمكن حذف المادة لأنها مستخدمة في عمليات سابقة ({details}).")
+            # Phase391: surface concrete BOM recipes/products in the user-facing
+            # delete blocker message. Soft-deleted/cancelled runtime documents are
+            # ignored by _get_item_usage_summary(); active BOM recipes remain
+            # master-data blockers and are named explicitly for resolution.
+            details = self._format_item_usage_details(usage)
+            raise ValueError(f"لا يمكن حذف المادة لأنها مرتبطة بعمليات نشطة: {details}")
         now = datetime.datetime.now().isoformat()
         conn.execute("UPDATE items SET deleted_at=?, name = name || ' [محذوف #' || id || ']' WHERE id=? AND user_id=? AND deleted_at IS NULL", (now, item_id, uid))
         conn.commit()
@@ -1615,21 +1619,234 @@ class DatabaseConnection:
         """, (item_id, user_id)).fetchone()
         return bool(row and row['cnt'])
 
+    def _format_bom_recipe_refs(self, refs: List[Dict], *, as_product: bool = False) -> str:
+        rows = []
+        for ref in refs or []:
+            try:
+                bom_id = int(ref.get('bom_id') or 0)
+            except Exception:
+                bom_id = 0
+            product_name = str(ref.get('product_name') or ref.get('product') or 'منتج غير معروف').strip()
+            if as_product:
+                try:
+                    component_count = int(ref.get('component_count') or 0)
+                except Exception:
+                    component_count = 0
+                extra = f"مكونات الوصفة: {component_count}" if component_count else "وصفة منتج نهائي"
+            else:
+                try:
+                    line_count = int(ref.get('line_count') or 0)
+                except Exception:
+                    line_count = 0
+                extra = f"عدد أسطر المادة: {line_count}" if line_count else "تستخدم المادة كمكوّن"
+            prefix = f"#{bom_id} " if bom_id else ""
+            rows.append(f"{prefix}{product_name} ({extra})")
+        return '؛ '.join(rows)
+
+    def _format_item_usage_details(self, usage: Dict) -> str:
+        # Phase390 compatibility label retained for guards: أسطر BOM تستخدم المادة كمكوّن
+        labels = {
+            'active_invoice_lines': 'أسطر فواتير نشطة',
+            'active_sales_return_lines': 'أسطر مرتجعات مبيعات نشطة',
+            'active_purchase_return_lines': 'أسطر مرتجعات مشتريات نشطة',
+            'active_inventory_movements': 'حركات مخزون نشطة',
+            'active_production_orders': 'أوامر إنتاج غير ملغاة',
+            'active_production_consumptions': 'استهلاكات إنتاج غير ملغاة',
+            'active_production_outputs': 'مخرجات إنتاج غير ملغاة',
+        }
+        parts = [f"{label}={usage[key]}" for key, label in labels.items() if usage.get(key)]
+        product_refs = usage.get('bom_product_refs') or []
+        component_refs = usage.get('bom_component_refs') or []
+        if product_refs:
+            parts.append(f"وصفات تصنيع يكون فيها هذا الصنف منتجًا نهائيًا: {self._format_bom_recipe_refs(product_refs, as_product=True)}")
+        elif usage.get('active_bom_products'):
+            parts.append(f"وصفات تصنيع يكون فيها هذا الصنف منتجًا نهائيًا={usage.get('active_bom_products')}")
+        if component_refs:
+            parts.append(f"وصفات تصنيع تستخدم هذه المادة كمكوّن: {self._format_bom_recipe_refs(component_refs)}")
+        elif usage.get('active_bom_lines'):
+            parts.append(f"أسطر وصفات تصنيع تستخدم هذه المادة كمكوّن={usage.get('active_bom_lines')}")
+        if product_refs or component_refs or usage.get('active_bom_products') or usage.get('active_bom_lines'):
+            parts.append("افتح التصنيع > الوصفات ثم احذف سطر المادة من الوصفة أو احذف الوصفة نفسها إذا لم تعد مطلوبة")
+        return '، '.join(parts) or 'ارتباطات غير معروفة'
+
+    def _get_item_bom_product_refs(self, item_id, user_id) -> List[Dict]:
+        conn = self.get_connection()
+        rows = conn.execute("""
+            SELECT b.id AS bom_id, b.product_id, COALESCE(i.name, '') AS product_name,
+                   COUNT(bl.id) AS component_count,
+                   COALESCE(b.quantity, '1') AS bom_quantity
+            FROM bom b
+            JOIN items i ON i.id = b.product_id
+            LEFT JOIN bom_lines bl ON bl.bom_id = b.id
+            WHERE b.product_id=? AND b.user_id=?
+            GROUP BY b.id, b.product_id, i.name, b.quantity
+            ORDER BY COALESCE(i.name, ''), b.id
+        """, (item_id, user_id)).fetchall()
+        return [dict(row) for row in rows]
+
+    def _get_item_bom_component_refs(self, item_id, user_id) -> List[Dict]:
+        conn = self.get_connection()
+        rows = conn.execute("""
+            SELECT b.id AS bom_id, b.product_id, COALESCE(p.name, '') AS product_name,
+                   COUNT(bl.id) AS line_count,
+                   COALESCE(SUM(CAST(COALESCE(NULLIF(bl.base_qty, ''), NULLIF(bl.quantity, ''), '0') AS REAL)), 0) AS component_base_qty,
+                   COALESCE(b.quantity, '1') AS bom_quantity
+            FROM bom_lines bl
+            JOIN bom b ON b.id = bl.bom_id
+            LEFT JOIN items p ON p.id = b.product_id
+            WHERE bl.item_id=? AND b.user_id=?
+            GROUP BY b.id, b.product_id, p.name, b.quantity
+            ORDER BY COALESCE(p.name, ''), b.id
+        """, (item_id, user_id)).fetchall()
+        return [dict(row) for row in rows]
+
+    def get_item_bom_usage(self, item_id: int, user_id=None) -> Dict:
+        """Return concrete active BOM recipes that block material deletion.
+
+        Phase391 resolver: the UI/service can show recipe/product names instead of
+        opaque counts such as bom_line=2. BOM is active master data until edited or
+        deleted explicitly.
+        """
+        if self.is_remote():
+            try:
+                return self._rest_client.get_item_bom_usage(item_id)
+            except Exception:
+                return {'as_product': [], 'as_component': [], 'total': 0}
+        if user_id is None:
+            from auth.session import UserSession
+            user_id = UserSession.get_current_user_id()
+        as_product = self._get_item_bom_product_refs(item_id, user_id)
+        as_component = self._get_item_bom_component_refs(item_id, user_id)
+        return {
+            'as_product': as_product,
+            'as_component': as_component,
+            'total': len(as_product) + len(as_component),
+        }
+
     def _get_item_usage_summary(self, item_id, user_id):
+        """Return active blockers for deleting/archiving an item.
+
+        Phase390 separates active references from historical soft-deleted or
+        cancelled documents. Deleting an invoice in this project is a soft delete:
+        invoice_lines remain for audit, so raw invoice_lines counts must not block
+        an item once the parent invoice is deleted/cancelled. The same applies to
+        cancelled production orders and their detail rows.
+        """
         conn = self.get_connection()
         def count(sql, params):
             row = conn.execute(sql, params).fetchone()
             return int(row[0] if row else 0)
+        active_invoice_filter = """
+            i.deleted_at IS NULL
+            AND COALESCE(LOWER(i.status), '') NOT IN ('cancelled', 'deleted', 'void')
+            AND COALESCE(UPPER(i.workflow_status), '') <> 'CANCELLED'
+        """
+        active_order_filter = "COALESCE(LOWER(po.status), '') NOT IN ('cancelled', 'deleted', 'void')"
         summary = {
-            'invoice_lines': count("SELECT COUNT(*) FROM invoice_lines WHERE item_id=?", (item_id,)),
-            'inventory_movements': count("SELECT COUNT(*) FROM inventory_movements WHERE item_id=? AND user_id=? AND movement_type <> 'opening'", (item_id, user_id)),
-            'bom_products': count("SELECT COUNT(*) FROM bom WHERE product_id=? AND user_id=?", (item_id, user_id)),
-            'bom_lines': count("SELECT COUNT(*) FROM bom_lines WHERE item_id=?", (item_id,)),
-            'production_orders': count("SELECT COUNT(*) FROM production_orders WHERE product_id=? AND user_id=?", (item_id, user_id)),
-            'production_consumptions': count("SELECT COUNT(*) FROM production_consumptions WHERE item_id=?", (item_id,)),
-            'production_outputs': count("SELECT COUNT(*) FROM production_outputs WHERE item_id=?", (item_id,)),
+            'active_invoice_lines': count(f"""
+                SELECT COUNT(*)
+                FROM invoice_lines il
+                JOIN invoices i ON i.id = il.invoice_id
+                WHERE il.item_id=? AND i.user_id=? AND {active_invoice_filter}
+            """, (item_id, user_id)),
+            'active_sales_return_lines': count("""
+                SELECT COUNT(*)
+                FROM sales_return_lines srl
+                JOIN sales_returns sr ON sr.id = srl.sales_return_id
+                WHERE srl.item_id=? AND sr.user_id=? AND sr.deleted_at IS NULL
+                  AND COALESCE(LOWER(sr.status), '') NOT IN ('cancelled', 'deleted', 'void')
+            """, (item_id, user_id)),
+            'active_purchase_return_lines': count("""
+                SELECT COUNT(*)
+                FROM purchase_return_lines prl
+                JOIN purchase_returns pr ON pr.id = prl.purchase_return_id
+                WHERE prl.item_id=? AND pr.user_id=? AND pr.deleted_at IS NULL
+                  AND COALESCE(LOWER(pr.status), '') NOT IN ('cancelled', 'deleted', 'void')
+            """, (item_id, user_id)),
+            'active_inventory_movements': count("""
+                SELECT COUNT(*)
+                FROM inventory_movements im
+                WHERE im.item_id=? AND im.user_id=? AND im.movement_type <> 'opening'
+                  AND (
+                    im.movement_type NOT IN ('purchase','sale','sales_return','purchase_return','production_consume','production_out')
+                    OR (
+                        im.movement_type IN ('purchase','sale')
+                        AND (
+                            im.reference_id IS NULL
+                            OR EXISTS (
+                                SELECT 1 FROM invoices i
+                                WHERE i.id = im.reference_id AND i.user_id = im.user_id
+                                  AND i.deleted_at IS NULL
+                                  AND COALESCE(LOWER(i.status), '') NOT IN ('cancelled', 'deleted', 'void')
+                                  AND COALESCE(UPPER(i.workflow_status), '') <> 'CANCELLED'
+                            )
+                        )
+                    )
+                    OR (
+                        im.movement_type = 'sales_return'
+                        AND (
+                            im.reference_id IS NULL
+                            OR EXISTS (
+                                SELECT 1 FROM sales_returns sr
+                                WHERE sr.id = im.reference_id AND sr.user_id = im.user_id
+                                  AND sr.deleted_at IS NULL
+                                  AND COALESCE(LOWER(sr.status), '') NOT IN ('cancelled', 'deleted', 'void')
+                            )
+                        )
+                    )
+                    OR (
+                        im.movement_type = 'purchase_return'
+                        AND (
+                            im.reference_id IS NULL
+                            OR EXISTS (
+                                SELECT 1 FROM purchase_returns pr
+                                WHERE pr.id = im.reference_id AND pr.user_id = im.user_id
+                                  AND pr.deleted_at IS NULL
+                                  AND COALESCE(LOWER(pr.status), '') NOT IN ('cancelled', 'deleted', 'void')
+                            )
+                        )
+                    )
+                    OR (
+                        im.movement_type IN ('production_consume','production_out')
+                        AND (
+                            im.reference_id IS NULL
+                            OR EXISTS (
+                                SELECT 1 FROM production_orders po
+                                WHERE po.id = im.reference_id AND po.user_id = im.user_id
+                                  AND COALESCE(LOWER(po.status), '') NOT IN ('cancelled', 'deleted', 'void')
+                            )
+                        )
+                    )
+                  )
+            """, (item_id, user_id)),
+            'active_bom_products': count("SELECT COUNT(*) FROM bom WHERE product_id=? AND user_id=?", (item_id, user_id)),
+            'active_bom_lines': count("""
+                SELECT COUNT(*)
+                FROM bom_lines bl
+                JOIN bom b ON b.id = bl.bom_id
+                WHERE bl.item_id=? AND b.user_id=?
+            """, (item_id, user_id)),
+            'bom_product_refs': self._get_item_bom_product_refs(item_id, user_id),
+            'bom_component_refs': self._get_item_bom_component_refs(item_id, user_id),
+            'active_production_orders': count(f"""
+                SELECT COUNT(*)
+                FROM production_orders po
+                WHERE po.product_id=? AND po.user_id=? AND {active_order_filter}
+            """, (item_id, user_id)),
+            'active_production_consumptions': count(f"""
+                SELECT COUNT(*)
+                FROM production_consumptions pc
+                JOIN production_orders po ON po.id = pc.order_id
+                WHERE pc.item_id=? AND po.user_id=? AND {active_order_filter}
+            """, (item_id, user_id)),
+            'active_production_outputs': count(f"""
+                SELECT COUNT(*)
+                FROM production_outputs po2
+                JOIN production_orders po ON po.id = po2.order_id
+                WHERE po2.item_id=? AND po.user_id=? AND {active_order_filter}
+            """, (item_id, user_id)),
         }
-        summary['blocking_total'] = sum(summary.values())
+        summary['blocking_total'] = sum(value for value in summary.values() if isinstance(value, int))
         return summary
 
     def _sync_opening_inventory(self, item_id, user_id, quantity, unit_cost):

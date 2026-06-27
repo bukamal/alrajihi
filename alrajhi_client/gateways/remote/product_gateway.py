@@ -97,6 +97,12 @@ class RemoteItemGateway(ItemGateway):
         except Exception:
             return {'blocking_total': 0, 'has_movements': False}
 
+    def bom_usage(self, item_id: int) -> Dict[str, Any]:
+        try:
+            return self.rest_client.get_item_bom_usage(int(item_id or 0)) or {'as_product': [], 'as_component': [], 'total': 0}
+        except Exception:
+            return {'as_product': [], 'as_component': [], 'total': 0}
+
     def is_remote(self) -> bool:
         return True
 
