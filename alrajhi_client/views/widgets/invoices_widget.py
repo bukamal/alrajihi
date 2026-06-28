@@ -570,10 +570,7 @@ class InvoicesWidget(QWidget):
         if hasattr(main, 'open_quick_invoice'):
             main.open_quick_invoice(inv_type)
         else:
-            from features.invoices import InvoiceEditorTab
-            widget = InvoiceEditorTab(self, inv_type=inv_type)
-            widget.saved.connect(lambda *_: self.refresh_all())
-            widget.show()
+            QMessageBox.warning(self, translate('invoices'), 'Unified transaction shell is required; legacy invoice dialog is disabled.')
 
     def edit_invoice(self, inv_type, index):
         if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):
@@ -677,10 +674,7 @@ class InvoicesWidget(QWidget):
         if hasattr(main, 'open_quick_invoice'):
             main.open_quick_invoice(inv_type, invoice_id=inv_id)
             return
-        from features.invoices import InvoiceEditorTab
-        widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=inv_id)
-        widget.saved.connect(lambda *_: self.refresh_tab(inv_type, reset_page=True))
-        widget.show()
+        QMessageBox.warning(self, translate('invoices'), 'Unified transaction shell is required; legacy invoice dialog is disabled.')
 
     def edit_selected_invoice(self, inv_type):
         if not permission_service.can(permission_service.ACTION_EDIT_INVOICES):

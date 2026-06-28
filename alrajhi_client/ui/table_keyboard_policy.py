@@ -564,18 +564,31 @@ class StandardTableKeyboardMixin:
         target = self._standard_append_target()
         if target is None:
             return None
-        callback = getattr(target, "add_empty_line", None)
+        ensure_callback = getattr(target, "ensure_single_trailing_empty_line", None)
+        callback = ensure_callback if callable(ensure_callback) else getattr(target, "add_empty_line", None)
         if not callable(callback):
             return None
         self._standard_enter_append_guard = True
         try:
-            self._standard_trim_extra_trailing_empty_lines(target)
+            trim_callback = getattr(target, "trim_extra_trailing_empty_lines", None)
+            if callable(trim_callback):
+                trim_callback()
+            else:
+                self._standard_trim_extra_trailing_empty_lines(target)
             before = int(target.rowCount())
             if before > 0 and self._standard_row_is_empty_for_append(target, before - 1):
                 return before - 1
-            callback()
-            self._standard_trim_extra_trailing_empty_lines(target)
+            row = callback()
+            if callable(trim_callback):
+                trim_callback()
+            else:
+                self._standard_trim_extra_trailing_empty_lines(target)
             after = int(target.rowCount())
+            try:
+                if row is not None and 0 <= int(row) < after:
+                    return int(row)
+            except Exception:
+                pass
             if after > before:
                 return after - 1
             if after > 0 and self._standard_row_is_empty_for_append(target, after - 1):

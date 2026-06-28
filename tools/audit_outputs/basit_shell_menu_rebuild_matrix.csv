@@ -1,6 +1,7 @@
 check,category,path,needle,status,detail
 phase_doc,doc,PHASE411_BASIT_SHELL_MENU_REBUILD_HOTFIX.md,Phase 411,OK,
 contract,contract,alrajhi_client/workspace/quality/basit_shell_menu_rebuild_contract.py,BASIT_SHELL_MENU_REBUILD_CONTRACT,OK,
+clean_shell_supersession,main_window,alrajhi_client/views/main_window.py,class CleanShellNavigationBar(QFrame),OK,
 styled_background,main_window,alrajhi_client/views/main_window.py,"self.setAttribute(Qt.WA_StyledBackground, True)",OK,
 vertical_margin_metric,main_window,alrajhi_client/views/main_window.py,NAV_VERTICAL_MARGIN,OK,
 layout_margin_token,main_window,alrajhi_client/views/main_window.py,"self._layout.setContentsMargins(12, NAV_VERTICAL_MARGIN, 12, NAV_VERTICAL_MARGIN)",OK,
@@ -8,11 +9,11 @@ manual_popup_helper,main_window,alrajhi_client/views/main_window.py,def _popup_m
 manual_popup_connect,main_window,alrajhi_client/views/main_window.py,"self._popup_menu_for_button(b, m)",OK,
 finish_rebuild,main_window,alrajhi_client/views/main_window.py,def finish_rebuild,OK,
 setup_menus_finish_rebuild,main_window,alrajhi_client/views/main_window.py,self.menu_bar.finish_rebuild(),OK,
-menu_indicator_inline,main_window_qss,alrajhi_client/views/main_window.py,QToolButton#MainNavToolButton::menu-indicator,OK,
-menu_button_inline,main_window_qss,alrajhi_client/views/main_window.py,QToolButton#MainNavToolButton::menu-button,OK,
-menu_arrow_inline,main_window_qss,alrajhi_client/views/main_window.py,QToolButton#MainNavToolButton::menu-arrow,OK,
-menu_button_global,global_qss,alrajhi_client/theme/qss.py,QToolButton#MainNavToolButton::menu-button,OK,
-menu_arrow_global,global_qss,alrajhi_client/theme/qss.py,QToolButton#MainNavToolButton::menu-arrow,OK,
+clean_button_inline,main_window_qss,alrajhi_client/views/main_window.py,QPushButton#MainNavButton,OK,
+clean_shell_global,global_qss,alrajhi_client/theme/qss.py,QFrame#CleanShellNavigationBar,OK,
+clean_button_global,global_qss,alrajhi_client/theme/qss.py,QPushButton#MainNavButton,OK,
 brand_margin_metric,brand,alrajhi_client/theme/brand.py,basit_shell_nav_vertical_margin,OK,
-no_direct_qtoolbutton_menu,main_window,alrajhi_client/views/main_window.py,addMenu body does not attach native QMenu subcontrol,OK,manual popup only
+no_btn.setMenu(menu),main_window,alrajhi_client/views/main_window.py,forbid btn.setMenu(menu),OK,
+no_QToolButton.Instan,main_window,alrajhi_client/views/main_window.py,forbid QToolButton.InstantPopup,OK,
+no_QToolButton#MainNa,main_window,alrajhi_client/views/main_window.py,forbid QToolButton#MainNavToolButton,OK,
 nav_height_margin_equation,metrics,alrajhi_client/theme/brand.py,NAV_BAR_HEIGHT >= NAV_BUTTON_HEIGHT + 2*NAV_VERTICAL_MARGIN,OK,"nav=70, button=64, vertical_margin=3, required=70"

@@ -33,18 +33,17 @@ def use_new_transaction_returns_for_existing() -> bool:
 
 
 
-def allow_legacy_transaction_documents() -> bool:
-    """Emergency compatibility switch for old invoice/return dialogs.
+LEGACY_TRANSACTION_DOCUMENTS_DISABLED = True
 
-    The unified TransactionDocumentTab is the official route.  Legacy dialogs
-    may be enabled only for rollback diagnostics via the settings key below or
-    the environment variable, which is useful before settings are reachable in a
-    broken client/server install.
+
+def allow_legacy_transaction_documents() -> bool:
+    """Phase414 hard stop: legacy invoice/return dialogs are never routed.
+
+    The unified TransactionDocumentTab is the only supported transaction editor.
+    Environment variables and settings are intentionally ignored here to prevent
+    old dialog/grid code from re-entering production navigation.
     """
-    env = os.environ.get("ALRAJHI_ALLOW_LEGACY_TRANSACTION_DOCUMENTS")
-    if env is not None:
-        return _env_bool(env, False)
-    return _bool_setting("features/allow_legacy_transaction_documents", False)
+    return False
 
 
 def transaction_shell_unification_enabled() -> bool:

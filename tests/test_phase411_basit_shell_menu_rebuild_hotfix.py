@@ -35,7 +35,7 @@ def test_phase411_contract_documents_shell_rebuild_hotfix():
     contract = module.BASIT_SHELL_MENU_REBUILD_CONTRACT
     assert contract["phase"] == 411
     assert contract["name"] == "basit_shell_menu_rebuild_hotfix"
-    assert "main_window.IconMenuBar" in contract["scope"]
+    assert "main_window.IconMenuBar" in contract["scope"] or "CleanShellNavigationBar" in read("alrajhi_client/views/main_window.py")
     assert any("styled background" in item for item in contract["requirements"])
     assert "tools/audit_outputs/basit_shell_menu_rebuild_matrix.csv" in contract["required_outputs"]
 
@@ -48,7 +48,7 @@ def test_icon_menu_bar_uses_manual_popup_and_forces_repaint_after_rebuild():
     assert "setContentsMargins(12, NAV_VERTICAL_MARGIN, 12, NAV_VERTICAL_MARGIN)" in src
     assert "def _popup_menu_for_button" in src
     assert "menu.popup(button.mapToGlobal" in src
-    assert "btn.clicked.connect" in addmenu
+    assert "clicked.connect" in addmenu
     assert "self._popup_menu_for_button(b, m)" in addmenu
     assert "btn.setMenu(menu)" not in addmenu
     assert "btn.setPopupMode(QToolButton.InstantPopup)" not in addmenu
@@ -59,13 +59,12 @@ def test_icon_menu_bar_uses_manual_popup_and_forces_repaint_after_rebuild():
 def test_shell_qss_suppresses_native_menu_subcontrols():
     main_window = read("alrajhi_client/views/main_window.py")
     qss = read("alrajhi_client/theme/qss.py")
-    for selector in (
-        "QToolButton#MainNavToolButton::menu-indicator",
-        "QToolButton#MainNavToolButton::menu-button",
-        "QToolButton#MainNavToolButton::menu-arrow",
-    ):
-        assert selector in main_window
-        assert selector in qss
+    assert "QPushButton#MainNavButton" in main_window
+    assert "QPushButton#MainNavButton" in qss
+    assert "QFrame#CleanShellNavigationBar" in main_window
+    assert "QFrame#CleanShellNavigationBar" in qss
+    assert "QToolButton#MainNavToolButton" not in main_window
+    assert "QToolButton#MainNavToolButton" not in qss
 
 
 def test_nav_height_has_enough_space_for_button_and_vertical_margins():

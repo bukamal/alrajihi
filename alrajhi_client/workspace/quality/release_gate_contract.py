@@ -41,10 +41,16 @@ RELEASE_BASELINE_PHASE = 276
 # PHASE410_BASIT_RELEASE_CANDIDATE_FREEZE is tracked below in REQUIRED_PHASE_DOCS.
 # PHASE411_BASIT_SHELL_MENU_REBUILD_HOTFIX is tracked below in REQUIRED_PHASE_DOCS.
 # PHASE412_EDITABLE_GRID_NAVIGATION_ENGINE is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE413_USER_PREFERENCES_PERSISTENCE is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE414_LEGACY_ELIMINATION_FOUNDATION is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE415_UNIFIED_SALES_INVOICE_GRID_RUNTIME is tracked below in REQUIRED_PHASE_DOCS.
 # tests/test_phase409_basit_final_acceptance_audit.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase410_basit_release_candidate_freeze.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase411_basit_shell_menu_rebuild_hotfix.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase412_editable_grid_navigation_engine.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase413_user_preferences_persistence.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase414_legacy_elimination_foundation.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase415_unified_sales_invoice_grid_runtime.py is generated from REQUIRED_PHASE_TESTS.
 
 REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
     f"PHASE{phase}_{suffix}.md"
@@ -210,6 +216,9 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (410, "BASIT_RELEASE_CANDIDATE_FREEZE"),
         (411, "BASIT_SHELL_MENU_REBUILD_HOTFIX"),
         (412, "EDITABLE_GRID_NAVIGATION_ENGINE"),
+        (413, "USER_PREFERENCES_PERSISTENCE"),
+        (414, "LEGACY_ELIMINATION_FOUNDATION"),
+        (415, "UNIFIED_SALES_INVOICE_GRID_RUNTIME"),
     ]
 )
 
@@ -377,6 +386,9 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (410, "basit_release_candidate_freeze"),
         (411, "basit_shell_menu_rebuild_hotfix"),
         (412, "editable_grid_navigation_engine"),
+        (413, "user_preferences_persistence"),
+        (414, "legacy_elimination_foundation"),
+        (415, "unified_sales_invoice_grid_runtime"),
     ]
 )
 
@@ -525,6 +537,9 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("basit_release_candidate_freeze", "acceptance", "Freeze the Phase401-409 Basit-inspired visual stack as RC1 after final acceptance and release gates", "tools/phase410_basit_release_candidate_freeze.py", "tools/audit_outputs/basit_release_candidate_matrix.csv", phase=410),
     ReleaseGateCheck("basit_shell_menu_rebuild_hotfix", "shell", "Main IconMenuBar rebuilds cleanly across RTL/LTR and suppresses native QToolButton menu artefacts", "tools/phase411_basit_shell_menu_rebuild_hotfix.py", "tools/audit_outputs/basit_shell_menu_rebuild_matrix.csv", phase=411),
     ReleaseGateCheck("editable_grid_navigation_engine", "ui", "Editable table Enter traversal is centralized, preserves values and creates at most one trailing row", "tools/phase412_editable_grid_navigation_engine_guard.py", "tools/audit_outputs/editable_grid_navigation_engine_matrix.csv", phase=412),
+    ReleaseGateCheck("user_preferences_persistence", "settings", "Dashboard privacy and runtime UI preferences persist per user across application restarts", "tools/phase413_user_preferences_persistence_guard.py", "tools/audit_outputs/user_preferences_persistence_matrix.csv", phase=413),
+    ReleaseGateCheck("legacy_elimination_foundation", "architecture", "Legacy shell and transaction fallback routes are removed from production navigation", "tools/phase414_legacy_elimination_foundation_guard.py", "tools/audit_outputs/legacy_elimination_foundation_matrix.csv", phase=414),
+    ReleaseGateCheck("unified_sales_invoice_grid_runtime", "ui", "Sales invoice grid uses a clean editor-entry hook and idempotent row lifecycle", "tools/phase415_unified_sales_invoice_grid_runtime_guard.py", "tools/audit_outputs/unified_sales_invoice_grid_runtime_matrix.csv", phase=415),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

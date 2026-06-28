@@ -54,7 +54,7 @@ def test_workspace_tabs_use_basit_contract():
 def test_global_qss_has_basit_shell_fallback():
     src = read("alrajhi_client/theme/qss.py")
     assert "Phase406: Basit-inspired shell chrome fallback" in src
-    assert 'QWidget#IconMenuBar[basitShellChrome="true"]' in src
+    assert 'QFrame#CleanShellNavigationBar[basitShellChrome="true"]' in src
     assert 'QFrame#UnifiedActionBar[basitShellChrome="true"]' in src
     assert 'QTabWidget#TabbedWorkspace[basitShellTabs="true"]' in src
 
@@ -62,6 +62,6 @@ def test_global_qss_has_basit_shell_fallback():
 def test_contract_file_documents_phase406():
     src = read("alrajhi_client/workspace/quality/basit_shell_chrome_contract.py")
     assert "BASIT_SHELL_CHROME_CONTRACT" in src
-    assert "IconMenuBar" in src
+    assert "CleanShellNavigationBar" in src
     assert "UnifiedActionBar" in src
     assert "TabbedWorkspace" in src

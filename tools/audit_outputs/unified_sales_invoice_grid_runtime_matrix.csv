@@ -1,0 +1,25 @@
+key,category,path,status,detail
+exists::alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,file,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,required file exists
+exists::alrajhi_client/features/transactions/grids/transaction_line_model.py,file,alrajhi_client/features/transactions/grids/transaction_line_model.py,OK,required file exists
+exists::alrajhi_client/features/transactions/grids/transaction_line_grid.py,file,alrajhi_client/features/transactions/grids/transaction_line_grid.py,OK,required file exists
+exists::alrajhi_client/ui/table_keyboard_policy.py,file,alrajhi_client/ui/table_keyboard_policy.py,OK,required file exists
+exists::alrajhi_client/features/transactions/transaction_document_tab.py,file,alrajhi_client/features/transactions/transaction_document_tab.py,OK,required file exists
+exists::alrajhi_client/workspace/quality/release_gate_contract.py,file,alrajhi_client/workspace/quality/release_gate_contract.py,OK,required file exists
+exists::PHASE415_UNIFIED_SALES_INVOICE_GRID_RUNTIME.md,file,PHASE415_UNIFIED_SALES_INVOICE_GRID_RUNTIME.md,OK,required file exists
+sales_invoice_route_declared,route,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,semantic sales invoice route is declared
+qt_free_navigation_policy,route,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,navigation policy is PyQt-free
+row_empty_predicate,row_lifecycle,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,row emptiness is centralized
+pure_trailing_gate,row_lifecycle,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,pure idempotent trailing row gate exists
+model_document_type,model,alrajhi_client/features/transactions/grids/transaction_line_model.py,OK,model carries document type
+model_owns_empty_detection,model,alrajhi_client/features/transactions/grids/transaction_line_model.py,OK,model owns blank line detection
+model_idempotent_gate,model,alrajhi_client/features/transactions/grids/transaction_line_model.py,OK,add_empty_line is idempotent
+model_loads_keep_single_tail,model,alrajhi_client/features/transactions/grids/transaction_line_model.py,OK,loads/removes normalize the tail row
+grid_overrides_edit,editor,alrajhi_client/features/transactions/grids/transaction_line_grid.py,OK,grid hooks every editor creation path
+grid_installs_enter_filter_from_edit,editor,alrajhi_client/features/transactions/grids/transaction_line_grid.py,OK,editor filter scheduled for AnyKeyPressed/double-click/programmatic edit
+grid_no_qt_physical_enter,editor,alrajhi_client/features/transactions/grids/transaction_line_grid.py,OK,grid does not use Qt physical next/previous hints
+keyboard_delegates_to_model_gate,keyboard,alrajhi_client/ui/table_keyboard_policy.py,OK,keyboard delegates append to model lifecycle gate
+keyboard_keeps_phase412_guard,keyboard,alrajhi_client/ui/table_keyboard_policy.py,OK,existing reentrancy guard remains
+tab_passes_document_type,wiring,alrajhi_client/features/transactions/transaction_document_tab.py,OK,document type is passed into model
+release_gate_phase415_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,phase 415 doc registered
+release_gate_phase415_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,phase 415 test registered
+release_gate_phase415_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,phase 415 release check registered

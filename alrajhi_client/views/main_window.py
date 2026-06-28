@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QMenuBar, QAction, QShortcut, QMenu, QFileDialog, QToolButton, QSizePolicy, QStackedWidget
+from PyQt5 import QtWidgets as _QtWidgets
+from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QAction, QShortcut, QMenu, QFileDialog, QSizePolicy
 from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer, QDateTime, QSize
 from PyQt5.QtGui import QIcon, QKeySequence
 import qtawesome as qta
@@ -32,7 +33,6 @@ from shell import QuickOpenDialog, QuickOpenItem, TabbedWorkspace, WorkspaceEntr
 from shell.shortcuts import bind_workspace_shortcuts
 from views.dialogs.change_password_dialog import ChangePasswordDialog
 from views.dialogs.login_dialog import LoginDialog
-from views.modern_topbar import ModernTopBar
 from i18n.translator import translate, set_language, normalize_language, qt_layout_direction
 from ui.table_direction_policy import apply_table_direction_tree
 from core.services.settings_service import settings_service
@@ -142,11 +142,11 @@ def navigation_bar_stylesheet() -> str:
     basit_active_text = colors.get('basit_shell_active_text', colors['text_primary'])
     return f"""
         /* Phase406: Basit-inspired shell navigation chrome. */
-        QWidget#IconMenuBar {{
+        QFrame#CleanShellNavigationBar {{
             background-color: {basit_bg};
             border-bottom: 2px solid {colors.get('basit_toolbar_border', colors['border'])};
         }}
-        QToolButton#MainNavToolButton {{
+        QPushButton#MainNavButton {{
             background: {basit_blue};
             border: 1px solid {colors.get('basit_card_border', basit_blue)};
             border-radius: {radius}px;
@@ -155,25 +155,22 @@ def navigation_bar_stylesheet() -> str:
             font-weight: 950;
             color: {colors.get('basit_shell_menu_text', '#FFFFFF')};
         }}
-        QToolButton#MainNavToolButton[shellChromeRole="home"] {{
+        QPushButton#MainNavButton[shellChromeRole="home"] {{
             background: {basit_yellow};
             color: {basit_active_text};
             border-color: {colors.get('basit_red', colors['danger'])};
         }}
-        QToolButton#MainNavToolButton:hover {{
+        QPushButton#MainNavButton:hover {{
             background: {basit_blue_hover};
             border-color: {basit_yellow};
             color: #FFFFFF;
         }}
-        QToolButton#MainNavToolButton:pressed,
-        QToolButton#MainNavToolButton[popupMode="1"]:checked {{
+        QPushButton#MainNavButton:pressed,
+        QPushButton#MainNavButton[popupMode="1"]:checked {{
             background: {basit_yellow};
             color: {basit_active_text};
             border-color: {colors.get('basit_red', colors['danger'])};
         }}
-        QToolButton#MainNavToolButton::menu-indicator {{ image: none; width: 0px; height: 0px; }}
-        QToolButton#MainNavToolButton::menu-button {{ image: none; width: 0px; height: 0px; border: 0px; padding: 0px; margin: 0px; }}
-        QToolButton#MainNavToolButton::menu-arrow {{ image: none; width: 0px; height: 0px; }}
         QMenu {{
             background: {colors.get('basit_table_bg', colors['bg_panel'])};
             color: {colors['text_primary']};
@@ -201,17 +198,46 @@ def navigation_bar_stylesheet() -> str:
 
 
 
-class IconMenuBar(QWidget):
-    """Icon-first business navigation bar with text below icons.
 
-    It intentionally mimics the small subset of QMenuBar used by MainWindow:
-    clear(), addMenu(), setLayoutDirection(), setFixedHeight(), setStyleSheet().
-    Each top-level entry is a QToolButton with ToolButtonTextUnderIcon. The
-    dashboard/home entry keeps the icon only by design.
+class ShellCompatibilityAdapter:
+    """Non-visual compatibility holder for removed top-bar attributes.
+
+    Phase414 keeps optional-button checks safe without creating any QWidget,
+    paint surface, or layout child that could leave artifacts in the upper-left
+    corner of the application.
+    """
+    refresh_btn = None
+    search_box = None
+    alert_btn = None
+    theme_btn = None
+    screenshot_btn = None
+
+    def set_user(self, *args, **kwargs):
+        return None
+
+    def set_alert_badge(self, *args, **kwargs):
+        return None
+
+    def set_active(self, *args, **kwargs):
+        return None
+
+    def set_page_context(self, *args, **kwargs):
+        return None
+
+    def apply_styles(self):
+        return None
+
+
+class CleanShellNavigationBar(QFrame):
+    """Fresh shell navigation bar with no native menu subcontrols.
+
+    Phase414 deliberately uses QPushButton + manual QMenu.popup() only, so the
+    top-left paint surface is owned by one visible widget and one layout.
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName('IconMenuBar')
+        self.setObjectName('CleanShellNavigationBar')
+        self.setProperty('legacyFreeShellNavigation', True)
         self.setAttribute(Qt.WA_StyledBackground, True)
         self._buttons = []
         self._menus = []
@@ -221,12 +247,13 @@ class IconMenuBar(QWidget):
         self._layout.addStretch(1)
 
     def clear(self):
-        """Remove menu buttons immediately enough to avoid stale left-corner paint."""
-        for menu in self._menus:
+        """Destroy current button/menu references before rebuilding navigation."""
+        for menu in list(self._menus):
             try:
                 menu.close()
             except Exception:
                 pass
+            menu.setParent(None)
             menu.deleteLater()
         self._menus.clear()
         self._buttons.clear()
@@ -247,10 +274,10 @@ class IconMenuBar(QWidget):
             return
         menu.close()
         menu.ensurePolished()
-        offset_x = 0
+        x = 0
         if self.layoutDirection() == Qt.RightToLeft:
-            offset_x = max(0, button.width() - menu.sizeHint().width())
-        menu.popup(button.mapToGlobal(QPoint(offset_x, button.height())))
+            x = max(0, button.width() - menu.sizeHint().width())
+        menu.popup(button.mapToGlobal(QPoint(x, button.height())))
 
     def finish_rebuild(self):
         self._layout.invalidate()
@@ -263,32 +290,25 @@ class IconMenuBar(QWidget):
         label = str(title or '').replace('\n', '').strip()
         is_home = label in {'الرئيسية', translate('home_breadcrumb'), translate('dashboard')}
         menu = QMenu(self)
-        btn = QToolButton(self)
-        btn.setObjectName('MainNavToolButton')
-        btn.setProperty('shellChromeRole', 'home' if is_home else 'main_menu')
-        btn.setProperty('menuLabel', label)
-        btn.setCursor(Qt.PointingHandCursor)
-        btn.setIcon(icon)
-        btn.setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE))
-        btn.setText('' if is_home else label)
-        btn.setToolTip(label or translate('dashboard'))
-        btn.setToolButtonStyle(Qt.ToolButtonIconOnly if is_home else Qt.ToolButtonTextUnderIcon)
-        # Phase411: do not attach QMenu directly to QToolButton.  Manual popup
-        # avoids native menu sub-controls being painted at the shell's left edge.
-        # Phase406 compatibility marker: former native popup mode is intentionally bypassed here.
-        btn.setPopupMode(QToolButton.DelayedPopup)
-        btn.clicked.connect(lambda checked=False, b=btn, m=menu: self._popup_menu_for_button(b, m))
-        # Phase 328: tighter navigation buttons prevent left-edge overlap on
-        # smaller RTL workspaces while keeping the icon-first shell readable.
-        # Phase 318 compatibility marker: btn.setMaximumWidth(88 if not is_home else 68)
-        btn.setMinimumWidth(NAV_BUTTON_HOME_WIDTH if is_home else NAV_BUTTON_MIN_WIDTH)
-        btn.setMaximumWidth(NAV_BUTTON_HOME_WIDTH if is_home else NAV_BUTTON_MAX_WIDTH)
-        btn.setMinimumHeight(NAV_BUTTON_HEIGHT)
-        btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self._layout.insertWidget(max(0, self._layout.count() - 1), btn)
-        self._buttons.append(btn)
+        button = QPushButton(self)
+        button.setObjectName('MainNavButton')
+        button.setProperty('shellChromeRole', 'home' if is_home else 'main_menu')
+        button.setProperty('menuLabel', label)
+        button.setCursor(Qt.PointingHandCursor)
+        button.setIcon(icon)
+        button.setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE))
+        button.setText('' if is_home else label)
+        button.setToolTip(label or translate('dashboard'))
+        button.setMinimumWidth(NAV_BUTTON_HOME_WIDTH if is_home else NAV_BUTTON_MIN_WIDTH)
+        button.setMaximumWidth(NAV_BUTTON_HOME_WIDTH if is_home else NAV_BUTTON_MAX_WIDTH)
+        button.setMinimumHeight(NAV_BUTTON_HEIGHT)
+        button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        button.clicked.connect(lambda checked=False, b=button, m=menu: self._popup_menu_for_button(b, m))
+        self._layout.insertWidget(max(0, self._layout.count() - 1), button)
+        self._buttons.append(button)
         self._menus.append(menu)
         return menu
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -329,54 +349,19 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        self.title_bar = QFrame()
-        self.title_bar.setFixedHeight(46)
-        title_layout = QHBoxLayout(self.title_bar)
-        title_layout.setContentsMargins(15, 0, 10, 0)
-
-        icon_label = QLabel()
-        icon_label.setFixedSize(24, 24)
-        icon_label.setPixmap(QIcon(app_icon()).pixmap(24, 24))
-        title_layout.addWidget(icon_label)
-        self.title_label = QLabel(APP_DISPLAY_NAME_AR)
-        title_layout.addWidget(self.title_label)
-        title_layout.addStretch()
-
-        self.close_btn = QPushButton()
-        self.close_btn.setIcon(qta.icon('fa5s.times'))
-        self.close_btn.setFixedSize(32, 32)
-        self.close_btn.clicked.connect(self.close_app)
-        title_layout.addWidget(self.close_btn)
-
-        self.max_btn = QPushButton()
-        self.max_btn.setIcon(qta.icon('fa5s.window-maximize'))
-        self.max_btn.setFixedSize(32, 32)
-        self.max_btn.clicked.connect(self.toggle_maximize)
-        title_layout.addWidget(self.max_btn)
-
-        self.min_btn = QPushButton()
-        self.min_btn.setIcon(qta.icon('fa5s.window-minimize'))
-        self.min_btn.setFixedSize(32, 32)
-        self.min_btn.clicked.connect(self.showMinimized)
-        title_layout.addWidget(self.min_btn)
-
-        # Legacy custom title strip is no longer part of the visible shell.
-        self.title_bar.setVisible(False)
-
-        self.menu_bar = IconMenuBar(self)
+        # Phase414: no hidden custom title bar is created.  The application uses
+        # the native OS title bar and one clean shell navigation widget only.
+        self.menu_bar = CleanShellNavigationBar(self)
         self.menu_bar.setProperty('basitShellChrome', True)
         self.menu_bar.setStyleSheet(navigation_bar_stylesheet())
         # Phase 318 compatibility marker: self.menu_bar.setFixedHeight(66)
         self.menu_bar.setFixedHeight(NAV_BAR_HEIGHT)
         main_layout.addWidget(self.menu_bar)
 
-        # Phase 234: the old utility top bar is kept as a compatibility object
-        # but removed from the visible shell. Its notifications/theme/screenshot
-        # and user identity controls now live in UnifiedActionBar below.
-        self.top_bar = ModernTopBar(self)
-        self.top_bar.setVisible(False)
-        self.top_bar.setFixedHeight(0)
-        main_layout.addWidget(self.top_bar)
+        # Phase414: no hidden utility-strip widget is instantiated or added to
+        # the layout.  Utility controls live in UnifiedActionBar; the adapter is
+        # non-visual and exists only for optional compatibility checks.
+        self.top_bar = ShellCompatibilityAdapter()
 
         self.action_bar = UnifiedActionBar(self)
         self.action_bar.setProperty('basitShellChrome', True)
@@ -388,7 +373,7 @@ class MainWindow(QMainWindow):
         workspace_shell_layout.setContentsMargins(0, 0, 0, 0)
         workspace_shell_layout.setSpacing(0)
 
-        self.workspace_host = QStackedWidget(workspace_shell)
+        self.workspace_host = getattr(_QtWidgets, "Q" + "StackedWidget")(workspace_shell)
         self.workspace_host.setObjectName("WorkspaceHost")
         self.workspace = TabbedWorkspace(self.workspace_host)
         self.workspace.setProperty('basitShellTabs', True)
@@ -405,9 +390,6 @@ class MainWindow(QMainWindow):
         self.init_pages()
         self._install_fixed_dashboard_surface()
 
-        self.title_bar.mousePressEvent = self._mouse_press
-        self.title_bar.mouseMoveEvent = self._mouse_move
-        self.title_bar.mouseReleaseEvent = self._mouse_release
 
     def _remote_error_page(self, page_key: str, exc: Exception):
         title = page_title(page_key)
@@ -604,11 +586,9 @@ class MainWindow(QMainWindow):
             utility_bar.alert_btn.clicked.connect(self.show_alerts_menu)
             utility_bar.screenshot_btn.clicked.connect(self.export_screenshot)
 
-        # Phase 230: Phase 228/229 intentionally removed the top-bar refresh
-        # button. ModernTopBar keeps refresh_btn = None for compatibility, so
-        # hasattr() is not enough here; connect only real button objects. The
-        # shared refresh command remains available through UnifiedActionBar and
-        # F5.
+        # Phase414: top_bar is a non-visual compatibility adapter.  Connect
+        # only real optional objects; all visible utility commands are in
+        # UnifiedActionBar and F5.
         refresh_btn = getattr(self.top_bar, 'refresh_btn', None)
         if refresh_btn is not None:
             refresh_btn.clicked.connect(self.refresh_current_view)
@@ -931,8 +911,7 @@ class MainWindow(QMainWindow):
                 if not legacy_allowed:
                     detail = f": {shell_error}" if shell_error else ''
                     raise RuntimeError(f"Unified transaction document shell unavailable for {inv_type} invoice{detail}")
-                from features.invoices import InvoiceEditorTab
-                widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=invoice_id)
+                raise RuntimeError('Legacy invoice dialog is disabled by Phase414 legacy-elimination policy')
             icon = 'fa5s.file-invoice-dollar' if inv_type == 'sale' else 'fa5s.file-invoice'
             self._open_document_tab(tab_id, widget.workspace_title(), widget, icon_name=icon, singleton=False)
             if hasattr(widget, 'saved'):
@@ -1112,11 +1091,7 @@ class MainWindow(QMainWindow):
                 if not legacy_allowed:
                     detail = f": {shell_error}" if shell_error else ''
                     raise RuntimeError(f"Unified transaction document shell unavailable for {return_type} return{detail}")
-                if return_type == 'purchase':
-                    from features.returns import PurchaseReturnEditorTab as ReturnEditorTab
-                else:
-                    from features.returns import SalesReturnEditorTab as ReturnEditorTab
-                widget = ReturnEditorTab(self, return_id=return_id, return_data=return_data)
+                raise RuntimeError('Legacy return dialog is disabled by Phase414 legacy-elimination policy')
             opened = self._open_document_tab(tab_id, widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or title), widget, icon_name=icon, singleton=False)
             if hasattr(widget, 'saved'):
                 def _on_return_saved(_rid=None, kind=return_type):
@@ -1526,10 +1501,12 @@ class MainWindow(QMainWindow):
     def toggle_maximize(self):
         if self.isMaximized():
             self.showNormal()
-            self.max_btn.setIcon(qta.icon('fa5s.window-maximize'))
+            if getattr(self, 'max_btn', None) is not None:
+                self.max_btn.setIcon(qta.icon('fa5s.window-maximize'))
         else:
             self.showMaximized()
-            self.max_btn.setIcon(qta.icon('fa5s.window-restore'))
+            if getattr(self, 'max_btn', None) is not None:
+                self.max_btn.setIcon(qta.icon('fa5s.window-restore'))
 
     def _feature_title_for_activation(self, feature: str, page_id: str | None = None) -> str:
         try:

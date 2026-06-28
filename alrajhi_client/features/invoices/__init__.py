@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
-from .invoice_editor_tab import InvoiceEditorTab
+"""Invoice feature package.
 
-__all__ = ["InvoiceEditorTab"]
+Phase414 removes legacy editor exports from package-level imports.
+Transaction documents are opened through features.transactions.documents only.
+"""
+
+__all__: list[str] = []

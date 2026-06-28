@@ -15,6 +15,7 @@ import qtawesome as qta
 
 from core.services.dashboard_service import dashboard_service
 from core.services.monitoring_service import monitoring_service
+from core.services.user_preferences_service import user_preferences_service
 from currency import currency
 from models.table_models import GenericTableModel
 from utils import show_toast
@@ -399,8 +400,10 @@ class DashboardWidget(QWidget):
         """)
 
         self.cash_labels = {}
-        self._cash_view_mode = 'today'
-        self._cash_balances_hidden = False
+        # Phase413: dashboard cash visibility/mode are persistent user preferences,
+        # not transient widget-only flags.
+        self._cash_view_mode = user_preferences_service.dashboard_cash_view_mode()
+        self._cash_balances_hidden = user_preferences_service.dashboard_cash_balances_hidden()
         self._cash_raw_values = {}
 
         header = QHBoxLayout()
@@ -410,7 +413,7 @@ class DashboardWidget(QWidget):
         self.cash_visibility_btn.setToolTip(translate('toggle_balances_visibility'))
         self.cash_visibility_btn.setFixedSize(30, 30)
         self.cash_visibility_btn.setCursor(Qt.PointingHandCursor)
-        self.cash_visibility_btn.setIcon(qta.icon('fa5s.eye', color='#334155'))
+        self.cash_visibility_btn.setIcon(qta.icon('fa5s.eye-slash' if self._cash_balances_hidden else 'fa5s.eye', color='#334155'))
         self.cash_visibility_btn.clicked.connect(self._toggle_cash_visibility)
         self.cash_visibility_btn.setStyleSheet('QPushButton { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; } QPushButton:hover { background: #e2e8f0; }')
         self.cash_mode_btn = QPushButton(translate('today_movement'))
@@ -774,10 +777,15 @@ class DashboardWidget(QWidget):
 
     def _toggle_cash_movement_mode(self):
         self._cash_view_mode = 'general' if getattr(self, '_cash_view_mode', 'today') == 'today' else 'today'
+        # Phase413: persist the dashboard cash period selector across restarts.
+        user_preferences_service.set_dashboard_cash_view_mode(self._cash_view_mode)
         self._render_cash_amounts(currency.get_display_currency())
 
     def _toggle_cash_visibility(self):
         self._cash_balances_hidden = not getattr(self, '_cash_balances_hidden', False)
+        # Phase413: persist hiding/showing cash balances immediately so the
+        # dashboard restores the same privacy state after closing and reopening.
+        user_preferences_service.set_dashboard_cash_balances_hidden(self._cash_balances_hidden)
         if hasattr(self, 'cash_visibility_btn'):
             icon_name = 'eye-slash' if self._cash_balances_hidden else 'eye'
             self.cash_visibility_btn.setIcon(qta.icon(f'fa5s.{icon_name}', color='#334155'))
@@ -925,7 +933,7 @@ class DashboardWidget(QWidget):
 
         Dashboard quick actions are document actions, not modal-dialog actions.
         Keep the old modal dialog path out of the dashboard so invoices use the
-        same TransactionDocumentTab/InvoiceEditorTab routing as the rest of the
+        same TransactionDocumentTab routing as the rest of the
         application.
         """
         try:

@@ -39,9 +39,9 @@ phase409_test,basit_stack,tests/test_phase409_*.py,test,OK,
 phase409_guard,basit_stack,tools/phase409_*.py,guard,OK,
 run_basit_final_acceptance,executable_gates,tools/phase409_basit_final_acceptance_audit.py,returncode=0,OK,"Phase409 Basit final acceptance audit OK (67 checks)
 Audit report: tools/audit_outputs/basit_final_acceptance_report.md"
-run_release_readiness,executable_gates,tools/release_readiness_gate_audit.py,returncode=0,OK,"release checks: 145
+run_release_readiness,executable_gates,tools/release_readiness_gate_audit.py,returncode=0,OK,"release checks: 148
 issue groups: 0
-matrix: /mnt/data/phase412_work/tools/audit_outputs/release_readiness_gate_matrix.csv
-summary: /mnt/data/phase412_work/tools/audit_outputs/release_readiness_gate_summary.json"
+matrix: /mnt/data/phase415_work/tools/audit_outputs/release_readiness_gate_matrix.csv
+summary: /mnt/data/phase415_work/tools/audit_outputs/release_readiness_gate_summary.json"
 run_release_packaging,executable_gates,tools/release_packaging_guard.py,returncode=0,OK,Release packaging guard passed.
 run_hidden_imports,executable_gates,tools/release_hidden_imports_guard.py,returncode=0,OK,Release hidden imports guard passed.

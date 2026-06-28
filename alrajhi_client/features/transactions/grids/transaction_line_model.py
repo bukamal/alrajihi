@@ -10,6 +10,7 @@ from ..i18n import tr
 from core.money_display_policy import policy_for
 
 from .transaction_column_schema import TransactionColumn
+from .unified_grid_navigation_policy import is_empty_transaction_line
 
 
 class TransactionLineModel(QAbstractTableModel):
@@ -26,9 +27,10 @@ class TransactionLineModel(QAbstractTableModel):
         "original_qty", "previous_qty", "returnable_qty",
     }
 
-    def __init__(self, columns: list[TransactionColumn], parent=None):
+    def __init__(self, columns: list[TransactionColumn], parent=None, document_type: str = "sales_invoice"):
         super().__init__(parent)
         self.columns = columns
+        self.document_type = str(document_type or "sales_invoice")
         self.lines: list[dict[str, Any]] = []
 
     def rowCount(self, parent=QModelIndex()):  # type: ignore[override]
@@ -137,12 +139,44 @@ class TransactionLineModel(QAbstractTableModel):
         })
         return row
 
-    def add_empty_line(self) -> int:
+    def is_empty_line(self, row_index: int) -> bool:
+        """Return True when a row is the reusable blank entry line."""
+        if not (0 <= row_index < len(self.lines)):
+            return False
+        return is_empty_transaction_line(self.lines[row_index])
+
+    def trim_extra_trailing_empty_lines(self) -> int:
+        """Keep one reusable blank tail row and emit proper model removals."""
+        removed = 0
+        while len(self.lines) > 1 and self.is_empty_line(len(self.lines) - 1) and self.is_empty_line(len(self.lines) - 2):
+            row_index = len(self.lines) - 1
+            self.beginRemoveRows(QModelIndex(), row_index, row_index)
+            self.lines.pop()
+            self.endRemoveRows()
+            removed += 1
+        return removed
+
+    def ensure_single_trailing_empty_line(self) -> int:
+        """Idempotent row lifecycle gate used by Enter and Insert.
+
+        Pressing Enter at the end of the sales invoice row must never create
+        two or more blank rows.  This method is deliberately the only public
+        append gate for transaction rows: it reuses an existing blank tail row,
+        trims duplicate blank tails, or appends exactly one new blank row.
+        """
+        self.trim_extra_trailing_empty_lines()
+        if self.lines and self.is_empty_line(len(self.lines) - 1):
+            return len(self.lines) - 1
         row_index = len(self.lines)
         self.beginInsertRows(QModelIndex(), row_index, row_index)
         self.lines.append(self._empty_line())
         self.endInsertRows()
-        return row_index
+        self.trim_extra_trailing_empty_lines()
+        return min(row_index, len(self.lines) - 1)
+
+    def add_empty_line(self) -> int:
+        """Compatibility append API; now idempotent by design."""
+        return self.ensure_single_trailing_empty_line()
 
     def clear(self, keep_empty: bool = True) -> None:
         self.beginResetModel()
@@ -422,8 +456,7 @@ class TransactionLineModel(QAbstractTableModel):
                 self._recalculate_row_data(row)
             self.lines.append(row)
         self.endResetModel()
-        if not self.lines:
-            self.add_empty_line()
+        self.ensure_single_trailing_empty_line()
 
     def load_returnable_lines(self, lines: list[dict[str, Any]] | None, original_invoice_label: str = "", return_kind: str = "sale") -> None:
         """Load invoice lines that can still be returned with unit metadata."""
@@ -491,8 +524,7 @@ class TransactionLineModel(QAbstractTableModel):
             })
             self.lines.append(row)
         self.endResetModel()
-        if not self.lines:
-            self.add_empty_line()
+        self.ensure_single_trailing_empty_line()
 
     def load_return_lines(self, lines: list[dict[str, Any]] | None, return_record: dict[str, Any] | None = None) -> None:
         """Load stored return lines for edit mode."""
@@ -542,16 +574,14 @@ class TransactionLineModel(QAbstractTableModel):
                 self._recalculate_row_data(row)
             self.lines.append(row)
         self.endResetModel()
-        if not self.lines:
-            self.add_empty_line()
+        self.ensure_single_trailing_empty_line()
 
     def remove_line(self, row: int) -> None:
         if 0 <= row < len(self.lines):
             self.beginRemoveRows(QModelIndex(), row, row)
             self.lines.pop(row)
             self.endRemoveRows()
-        if not self.lines:
-            self.add_empty_line()
+        self.ensure_single_trailing_empty_line()
 
     def unit_options_for_row(self, row: int) -> list[dict[str, Any]]:
         if not (0 <= row < len(self.lines)):

@@ -312,7 +312,7 @@ class SmartTableView(CustomTableView):
     def apply_enterprise_defaults(self) -> None:
         # Phase389: SmartTableView is a list/action table by default.
         # Editable line grids opt into StandardTableKeyboardMixin explicitly;
-        # list tables must select rows so edit/delete/print buttons can resolve
+        # list tables must use row-selection so edit/delete/print buttons can resolve
         # the selected business record even after visual/runtime polish passes.
         try:
             if not getattr(self, "_standard_keyboard_active", False):

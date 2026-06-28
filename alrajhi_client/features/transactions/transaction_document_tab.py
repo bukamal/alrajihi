@@ -72,7 +72,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.storage_currency = currency.storage_currency()
         self.display_currency = currency.get_display_currency()
         self.columns = schema_for(context.document_type)
-        self.lines_model = TransactionLineModel(self.columns, self)
+        self.lines_model = TransactionLineModel(self.columns, self, document_type=self.context.document_type)
         self.grid_preferences = TransactionGridPreferences()
         self.printing_bridge = TransactionPrintingBridge(self)
         self._loading = False

@@ -1,0 +1,32 @@
+check,category,path,status,detail
+phase_doc,doc,PHASE414_LEGACY_ELIMINATION_FOUNDATION.md,OK,phase document exists
+contract,contract,alrajhi_client/workspace/quality/legacy_elimination_contract.py,OK,contract exists
+clean_shell_class,main_window,alrajhi_client/views/main_window.py,OK,requires 'class CleanShellNavigationBar(QFrame)'
+clean_shell_instance,main_window,alrajhi_client/views/main_window.py,OK,requires 'self.menu_bar = CleanShellNavigationBar(self)'
+non_visual_topbar_adapter,main_window,alrajhi_client/views/main_window.py,OK,requires 'self.top_bar = ShellCompatibilityAdapter()'
+manual_popup,main_window,alrajhi_client/views/main_window.py,OK,requires 'menu.popup(button.mapToGlobal'
+push_button_nav,main_window,alrajhi_client/views/main_window.py,OK,requires 'button = QPushButton(self)'
+clean_object_name,main_window,alrajhi_client/views/main_window.py,OK,requires 'CleanShellNavigationBar'
+clean_button_object,main_window,alrajhi_client/views/main_window.py,OK,requires 'MainNavButton'
+finish_rebuild,main_window,alrajhi_client/views/main_window.py,OK,requires 'self.menu_bar.finish_rebuild()'
+banned_main_from_views.modern_topbar,main_window,alrajhi_client/views/main_window.py,OK,forbid 'from views.modern_topbar import'
+banned_main_ModernTopBar(,main_window,alrajhi_client/views/main_window.py,OK,forbid 'ModernTopBar('
+banned_main_class_IconMenuBar,main_window,alrajhi_client/views/main_window.py,OK,forbid 'class IconMenuBar'
+banned_main_self.menu_bar_=_IconMenu,main_window,alrajhi_client/views/main_window.py,OK,forbid 'self.menu_bar = IconMenuBar'
+banned_main_QToolButton#MainNavToolB,main_window,alrajhi_client/views/main_window.py,OK,forbid 'QToolButton#MainNavToolButton'
+banned_main_btn.setMenu(menu),main_window,alrajhi_client/views/main_window.py,OK,forbid 'btn.setMenu(menu)'
+banned_main_QToolButton.InstantPopup,main_window,alrajhi_client/views/main_window.py,OK,forbid 'QToolButton.InstantPopup'
+banned_main_main_layout.addWidget(se,main_window,alrajhi_client/views/main_window.py,OK,forbid 'main_layout.addWidget(self.top_bar)'
+banned_main_from_features.invoices_i,main_window,alrajhi_client/views/main_window.py,OK,forbid 'from features.invoices import InvoiceEditorTab'
+banned_main_from_features.returns_im,main_window,alrajhi_client/views/main_window.py,OK,forbid 'from features.returns import SalesReturnEditorTab'
+banned_main_from_features.returns_im,main_window,alrajhi_client/views/main_window.py,OK,forbid 'from features.returns import PurchaseReturnEditorTab'
+banned_main_ReturnEditorTab_=,main_window,alrajhi_client/views/main_window.py,OK,forbid 'ReturnEditorTab ='
+qss_clean_shell_selector,theme,alrajhi_client/theme/qss.py,OK,global QSS styles the clean shell selector
+qss_clean_button_selector,theme,alrajhi_client/theme/qss.py,OK,global QSS styles the clean nav button selector
+qss_no_old_main_nav_selector,theme,alrajhi_client/theme/qss.py,OK,old main nav QToolButton selector removed
+legacy_flag_constant,transactions,alrajhi_client/features/transactions/feature_flags.py,OK,legacy disable constant is present
+legacy_flag_false,transactions,alrajhi_client/features/transactions/feature_flags.py,OK,allow_legacy_transaction_documents returns False
+legacy_flag_no_env,transactions,alrajhi_client/features/transactions/feature_flags.py,OK,legacy route cannot be re-enabled by env/settings
+invoice_package_no_legacy_export,transactions,alrajhi_client/features/invoices/__init__.py,OK,invoice package exports no legacy adapter
+returns_package_no_legacy_export,transactions,alrajhi_client/features/returns/__init__.py,OK,returns package exports no legacy adapter
+invoice_dialog_imports_isolated,transactions,alrajhi_client,OK,imports=['alrajhi_client/features/invoices/invoice_editor_tab.py']

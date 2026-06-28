@@ -5,6 +5,7 @@ try:
 except Exception:
     from PyQt5.QtWidgets import QTableView as SmartTableView
 
+from PyQt5.QtCore import QTimer
 from PyQt5.QtWidgets import QHeaderView
 
 from .transaction_column_presets import DEFAULT_PRESET, visible_keys_for_preset
@@ -47,6 +48,27 @@ class TransactionLineGrid(SmartTableView):
             self.setSelectionMode(self.ExtendedSelection)
         except Exception:
             pass
+
+
+    def edit(self, index, trigger=None, event=None):  # type: ignore[override]
+        """Open editors through the unified navigation engine.
+
+        Qt can create an editor from AnyKeyPressed, double click, or programmatic
+        focus before the table-level Enter handler runs.  Phase415 schedules the
+        standard editor filter from every edit entry point so Enter inside a
+        material/unit/quantity editor always follows the sales-invoice runtime
+        route instead of Qt's physical-column next-cell behavior.
+        """
+        try:
+            result = super().edit(index) if trigger is None and event is None else super().edit(index, trigger, event)
+        except TypeError:
+            result = super().edit(index)
+        if result:
+            try:
+                QTimer.singleShot(0, lambda idx=index: self._standard_prepare_active_editor(idx))
+            except Exception:
+                pass
+        return result
 
     def set_schema(self, columns) -> None:
         self.columns_schema = columns or []

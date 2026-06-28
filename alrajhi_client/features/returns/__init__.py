@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
-from .return_editor_tabs import SalesReturnEditorTab, PurchaseReturnEditorTab
+"""Return feature package.
 
-__all__ = ["SalesReturnEditorTab", "PurchaseReturnEditorTab"]
+Phase414 removes legacy return editor exports from package-level imports.
+Return documents are opened through features.transactions.documents only.
+"""
+
+__all__: list[str] = []

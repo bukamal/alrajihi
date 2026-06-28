@@ -5,7 +5,7 @@ from __future__ import annotations
 BASIT_SHELL_CHROME_CONTRACT = {
     "phase": 406,
     "surfaces": (
-        "IconMenuBar",
+        "CleanShellNavigationBar",
         "UnifiedActionBar",
         "TabbedWorkspace",
     ),

@@ -1,10 +1,10 @@
 {
   "phase": 277,
   "baseline_phase": 276,
-  "checks": 145,
+  "checks": 148,
   "categories": {
     "shell": 22,
-    "settings": 3,
+    "settings": 4,
     "security": 3,
     "sync": 2,
     "scenario": 2,
@@ -15,7 +15,7 @@
     "restaurant": 27,
     "materials": 14,
     "database": 1,
-    "ui": 34,
+    "ui": 35,
     "quality": 2,
     "transactions": 2,
     "i18n": 3,
@@ -25,7 +25,8 @@
     "management": 1,
     "reports_settings": 1,
     "dialogs": 1,
-    "acceptance": 2
+    "acceptance": 2,
+    "architecture": 1
   },
   "issues": 0,
   "issue_groups": 0,

@@ -1555,22 +1555,19 @@ def build_global_qss(colors: dict) -> str:
         }}
 
         /* Phase354: branded icon menu and action bar runtime. */
-        QWidget#IconMenuBar {{
+        QFrame#CleanShellNavigationBar {{
             background-color: {colors.get('menu_bg', colors['bg_panel'])};
             border-bottom: 1px solid {colors.get('menu_border', colors['border'])};
         }}
-        QToolButton#MainNavToolButton {{
+        QPushButton#MainNavButton {{
             border-radius: {BRAND.get('shell_menu_button_radius', 16)}px;
             font-weight: 950;
         }}
-        QToolButton#MainNavToolButton:hover {{
+        QPushButton#MainNavButton:hover {{
             background-color: {colors.get('shell_menu_hover_bg', colors.get('brand_soft', colors['bg_table_alt']))};
             color: {colors['primary']};
             border-color: {colors['primary']};
         }}
-        QToolButton#MainNavToolButton::menu-indicator {{ image: none; width: 0px; height: 0px; }}
-        QToolButton#MainNavToolButton::menu-button {{ image: none; width: 0px; height: 0px; border: 0px; padding: 0px; margin: 0px; }}
-        QToolButton#MainNavToolButton::menu-arrow {{ image: none; width: 0px; height: 0px; }}
         QFrame#UnifiedActionBar {{
             background-color: {colors.get('action_bar_bg', colors['bg_panel'])};
             border-bottom: 1px solid {colors['border']};
@@ -2269,7 +2266,7 @@ def build_global_qss(colors: dict) -> str:
 
 
         /* Phase406: Basit-inspired shell chrome fallback. */
-        QWidget#IconMenuBar[basitShellChrome="true"],
+        QFrame#CleanShellNavigationBar[basitShellChrome="true"],
         QFrame#UnifiedActionBar[basitShellChrome="true"] {{
             background-color: {colors.get('basit_shell_bg', colors.get('basit_toolbar_bg', colors['bg_panel']))};
             border-bottom: 2px solid {colors.get('basit_toolbar_border', colors['border'])};
