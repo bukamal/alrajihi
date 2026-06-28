@@ -38,7 +38,9 @@ RELEASE_GATE_PHASE = 277
 RELEASE_BASELINE_PHASE = 276
 # PHASE286_DASHBOARD_VISIBLE_PROFESSIONAL_LAYOUT is tracked below in REQUIRED_PHASE_DOCS.
 # PHASE409_BASIT_FINAL_ACCEPTANCE_AUDIT is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE410_BASIT_RELEASE_CANDIDATE_FREEZE is tracked below in REQUIRED_PHASE_DOCS.
 # tests/test_phase409_basit_final_acceptance_audit.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase410_basit_release_candidate_freeze.py is generated from REQUIRED_PHASE_TESTS.
 
 REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
     f"PHASE{phase}_{suffix}.md"
@@ -201,6 +203,7 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (407, "BASIT_STARTUP_DIALOGS_SURFACE"),
         (408, "BASIT_PRINTING_SURFACE"),
         (409, "BASIT_FINAL_ACCEPTANCE_AUDIT"),
+        (410, "BASIT_RELEASE_CANDIDATE_FREEZE"),
     ]
 )
 
@@ -365,6 +368,7 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (407, "basit_startup_dialogs_surface"),
         (408, "basit_printing_surface"),
         (409, "basit_final_acceptance_audit"),
+        (410, "basit_release_candidate_freeze"),
     ]
 )
 
@@ -510,6 +514,7 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("basit_startup_dialogs_surface", "dialogs", "Startup, login, activation and system dialogs use the Basit-inspired entry surface", "tools/phase407_basit_startup_dialogs_surface_guard.py", "tools/audit_outputs/basit_startup_dialogs_surface_matrix.csv", phase=407),
     ReleaseGateCheck("basit_printing_surface", "printing", "Invoices, receipts, reports, manufacturing and inventory browser HTML prints use the Basit-inspired print palette", "tools/phase408_basit_printing_surface_guard.py", "tools/audit_outputs/basit_printing_surface_matrix.csv", phase=408),
     ReleaseGateCheck("basit_final_acceptance", "acceptance", "Final Basit-inspired visual acceptance gate across runtime, printing, startup and shell surfaces", "tools/phase409_basit_final_acceptance_audit.py", "tools/audit_outputs/basit_final_acceptance_matrix.csv", phase=409),
+    ReleaseGateCheck("basit_release_candidate_freeze", "acceptance", "Freeze the Phase401-409 Basit-inspired visual stack as RC1 after final acceptance and release gates", "tools/phase410_basit_release_candidate_freeze.py", "tools/audit_outputs/basit_release_candidate_matrix.csv", phase=410),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

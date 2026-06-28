@@ -1,0 +1,47 @@
+check,category,path,needle,status,detail
+phase_doc,release_candidate,PHASE410_BASIT_RELEASE_CANDIDATE_FREEZE.md,Phase 410,OK,
+contract,release_candidate,alrajhi_client/workspace/quality/basit_release_candidate_contract.py,BASIT_RELEASE_CANDIDATE_CONTRACT,OK,
+final_acceptance_contract,acceptance,alrajhi_client/workspace/quality/basit_final_acceptance_contract.py,BASIT_FINAL_ACCEPTANCE_CONTRACT,OK,
+final_acceptance_tool,acceptance,tools/phase409_basit_final_acceptance_audit.py,Phase409 Basit final acceptance audit,OK,
+release_readiness_tool,release_gate,tools/release_readiness_gate_audit.py,release_gate_summary,OK,
+windows_packaging_tool,release_gate,tools/windows_runtime_packaging_gate_audit.py,windows_runtime,OK,
+packaging_guard,release_gate,tools/release_packaging_guard.py,Release packaging guard,OK,
+hidden_imports_guard,release_gate,tools/release_hidden_imports_guard.py,hidden,OK,
+release_gate_doc,release_gate,alrajhi_client/workspace/quality/release_gate_contract.py,PHASE410_BASIT_RELEASE_CANDIDATE_FREEZE,OK,
+release_gate_test,release_gate,alrajhi_client/workspace/quality/release_gate_contract.py,basit_release_candidate_freeze,OK,
+release_gate_check,release_gate,alrajhi_client/workspace/quality/release_gate_contract.py,basit_release_candidate_freeze,OK,
+phase401_doc,basit_stack,PHASE401_*.md,doc,OK,
+phase401_test,basit_stack,tests/test_phase401_*.py,test,OK,
+phase401_guard,basit_stack,tools/phase401_*.py,guard,OK,
+phase402_doc,basit_stack,PHASE402_*.md,doc,OK,
+phase402_test,basit_stack,tests/test_phase402_*.py,test,OK,
+phase402_guard,basit_stack,tools/phase402_*.py,guard,OK,
+phase403_doc,basit_stack,PHASE403_*.md,doc,OK,
+phase403_test,basit_stack,tests/test_phase403_*.py,test,OK,
+phase403_guard,basit_stack,tools/phase403_*.py,guard,OK,
+phase404_doc,basit_stack,PHASE404_*.md,doc,OK,
+phase404_test,basit_stack,tests/test_phase404_*.py,test,OK,
+phase404_guard,basit_stack,tools/phase404_*.py,guard,OK,
+phase405_doc,basit_stack,PHASE405_*.md,doc,OK,
+phase405_test,basit_stack,tests/test_phase405_*.py,test,OK,
+phase405_guard,basit_stack,tools/phase405_*.py,guard,OK,
+phase406_doc,basit_stack,PHASE406_*.md,doc,OK,
+phase406_test,basit_stack,tests/test_phase406_*.py,test,OK,
+phase406_guard,basit_stack,tools/phase406_*.py,guard,OK,
+phase407_doc,basit_stack,PHASE407_*.md,doc,OK,
+phase407_test,basit_stack,tests/test_phase407_*.py,test,OK,
+phase407_guard,basit_stack,tools/phase407_*.py,guard,OK,
+phase408_doc,basit_stack,PHASE408_*.md,doc,OK,
+phase408_test,basit_stack,tests/test_phase408_*.py,test,OK,
+phase408_guard,basit_stack,tools/phase408_*.py,guard,OK,
+phase409_doc,basit_stack,PHASE409_*.md,doc,OK,
+phase409_test,basit_stack,tests/test_phase409_*.py,test,OK,
+phase409_guard,basit_stack,tools/phase409_*.py,guard,OK,
+run_basit_final_acceptance,executable_gates,tools/phase409_basit_final_acceptance_audit.py,returncode=0,OK,"Phase409 Basit final acceptance audit OK (67 checks)
+Audit report: tools/audit_outputs/basit_final_acceptance_report.md"
+run_release_readiness,executable_gates,tools/release_readiness_gate_audit.py,returncode=0,OK,"release checks: 143
+issue groups: 0
+matrix: /mnt/data/phase410_work/tools/audit_outputs/release_readiness_gate_matrix.csv
+summary: /mnt/data/phase410_work/tools/audit_outputs/release_readiness_gate_summary.json"
+run_release_packaging,executable_gates,tools/release_packaging_guard.py,returncode=0,OK,Release packaging guard passed.
+run_hidden_imports,executable_gates,tools/release_hidden_imports_guard.py,returncode=0,OK,Release hidden imports guard passed.

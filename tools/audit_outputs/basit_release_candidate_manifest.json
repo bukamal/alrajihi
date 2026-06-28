@@ -1,0 +1,40 @@
+{
+  "phase": 410,
+  "release_candidate": "RC1",
+  "status": "READY",
+  "checks": 42,
+  "passed": 42,
+  "failed": 0,
+  "locked_phase_range": [
+    401,
+    409
+  ],
+  "categories": {
+    "acceptance": {
+      "passed": 2,
+      "total": 2
+    },
+    "basit_stack": {
+      "passed": 27,
+      "total": 27
+    },
+    "executable_gates": {
+      "passed": 4,
+      "total": 4
+    },
+    "release_candidate": {
+      "passed": 2,
+      "total": 2
+    },
+    "release_gate": {
+      "passed": 7,
+      "total": 7
+    }
+  },
+  "tool_outputs": {
+    "basit_final_acceptance": "Phase409 Basit final acceptance audit OK (67 checks)\nAudit report: tools/audit_outputs/basit_final_acceptance_report.md",
+    "release_readiness": "release checks: 143\nissue groups: 0\nmatrix: /mnt/data/phase410_work/tools/audit_outputs/release_readiness_gate_matrix.csv\nsummary: /mnt/data/phase410_work/tools/audit_outputs/release_readiness_gate_summary.json",
+    "release_packaging": "Release packaging guard passed.",
+    "hidden_imports": "Release hidden imports guard passed."
+  }
+}

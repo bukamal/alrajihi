@@ -1,7 +1,7 @@
 {
   "phase": 277,
   "baseline_phase": 276,
-  "checks": 142,
+  "checks": 143,
   "categories": {
     "shell": 21,
     "settings": 3,
@@ -25,7 +25,7 @@
     "management": 1,
     "reports_settings": 1,
     "dialogs": 1,
-    "acceptance": 1
+    "acceptance": 2
   },
   "issues": 0,
   "issue_groups": 0,
