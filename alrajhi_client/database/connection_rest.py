@@ -62,6 +62,43 @@ class RestClient:
         self.token = token
         save_token(token)
 
+    def _request_metadata_headers(self, data=None, params=None, extra_headers=None):
+        """Build non-authoritative multi-user metadata headers for API writes.
+
+        Server-side authorization remains the source of truth.  These headers are
+        diagnostic and replay-friendly: they let the server/proxy/audit trail see
+        the branch scope and idempotency reference that the client believes it is
+        sending, without trusting those values for permission checks.
+        """
+        headers = dict(extra_headers or {})
+        payload = data if isinstance(data, dict) else {}
+        query = params if isinstance(params, dict) else {}
+
+        def first(*keys):
+            for container in (payload, query):
+                for key in keys:
+                    value = container.get(key) if isinstance(container, dict) else None
+                    if value not in (None, ''):
+                        return value
+            return None
+
+        idempotency_key = first('idempotency_key', 'client_request_id', 'offline_id')
+        if idempotency_key is not None:
+            headers.setdefault('Idempotency-Key', str(idempotency_key))
+            headers.setdefault('X-Idempotency-Key', str(idempotency_key))
+
+        branch_id = first('branch_id')
+        if branch_id is not None:
+            headers.setdefault('X-Alrajhi-Branch-Id', str(branch_id))
+        source_branch_id = first('source_branch_id')
+        if source_branch_id is not None:
+            headers.setdefault('X-Alrajhi-Source-Branch-Id', str(source_branch_id))
+        target_branch_id = first('target_branch_id')
+        if target_branch_id is not None:
+            headers.setdefault('X-Alrajhi-Target-Branch-Id', str(target_branch_id))
+
+        return headers
+
     def _headers(self, extra_headers=None):
         headers = {'Content-Type': 'application/json'}
         if self.token:
@@ -72,11 +109,12 @@ class RestClient:
 
     def _request(self, method, endpoint, data=None, params=None, retries=3, backoff=1.0, queue_on_failure=True, extra_headers=None):
         url = f"{self.server_url}{endpoint}"
+        request_headers = self._request_metadata_headers(data=data, params=params, extra_headers=extra_headers)
         last_exception = None
         for attempt in range(retries):
             started = time.perf_counter()
             try:
-                resp = requests.request(method, url, json=_json_safe(data), params=_json_safe(params), headers=self._headers(extra_headers), timeout=10)
+                resp = requests.request(method, url, json=_json_safe(data), params=_json_safe(params), headers=self._headers(request_headers), timeout=10)
                 elapsed = int((time.perf_counter() - started) * 1000)
                 _append_request_log(method, endpoint, url, status=resp.status_code, ok=resp.status_code < 400, elapsed_ms=elapsed)
                 if resp.status_code == 429:

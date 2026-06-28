@@ -1,0 +1,50 @@
+key,category,path,status,detail
+exists::PHASE419_PREFERENCES_REGISTRY_CONSOLIDATION.md,file,PHASE419_PREFERENCES_REGISTRY_CONSOLIDATION.md,OK,required Phase419 file exists
+exists::alrajhi_client/core/services/preferences_registry.py,file,alrajhi_client/core/services/preferences_registry.py,OK,required Phase419 file exists
+exists::alrajhi_client/core/services/user_preferences_service.py,file,alrajhi_client/core/services/user_preferences_service.py,OK,required Phase419 file exists
+exists::alrajhi_client/features/transactions/grids/transaction_grid_preferences.py,file,alrajhi_client/features/transactions/grids/transaction_grid_preferences.py,OK,required Phase419 file exists
+exists::alrajhi_client/features/pos/pos_preferences.py,file,alrajhi_client/features/pos/pos_preferences.py,OK,required Phase419 file exists
+exists::alrajhi_client/workspace/quality/preferences_registry_consolidation_contract.py,file,alrajhi_client/workspace/quality/preferences_registry_consolidation_contract.py,OK,required Phase419 file exists
+exists::tools/phase419_preferences_registry_consolidation_guard.py,file,tools/phase419_preferences_registry_consolidation_guard.py,OK,required Phase419 file exists
+exists::tests/test_phase419_preferences_registry_consolidation.py,file,tests/test_phase419_preferences_registry_consolidation.py,OK,required Phase419 file exists
+ast::alrajhi_client/core/services/preferences_registry.py,syntax,alrajhi_client/core/services/preferences_registry.py,OK,source parses
+ast::alrajhi_client/core/services/user_preferences_service.py,syntax,alrajhi_client/core/services/user_preferences_service.py,OK,source parses
+ast::alrajhi_client/features/transactions/grids/transaction_grid_preferences.py,syntax,alrajhi_client/features/transactions/grids/transaction_grid_preferences.py,OK,source parses
+ast::alrajhi_client/features/pos/pos_preferences.py,syntax,alrajhi_client/features/pos/pos_preferences.py,OK,source parses
+ast::alrajhi_client/workspace/quality/preferences_registry_consolidation_contract.py,syntax,alrajhi_client/workspace/quality/preferences_registry_consolidation_contract.py,OK,source parses
+ast::tools/phase419_preferences_registry_consolidation_guard.py,syntax,tools/phase419_preferences_registry_consolidation_guard.py,OK,source parses
+registry_symbol::PreferenceScope,registry,alrajhi_client/core/services/preferences_registry.py,OK,registry exposes PreferenceScope
+registry_symbol::PreferenceContext,registry,alrajhi_client/core/services/preferences_registry.py,OK,registry exposes PreferenceContext
+registry_symbol::PreferenceDefinition,registry,alrajhi_client/core/services/preferences_registry.py,OK,registry exposes PreferenceDefinition
+registry_symbol::PreferencesRegistry,registry,alrajhi_client/core/services/preferences_registry.py,OK,registry exposes PreferencesRegistry
+registry_symbol::QSettingsPreferenceBackend,registry,alrajhi_client/core/services/preferences_registry.py,OK,registry exposes QSettingsPreferenceBackend
+registry_symbol::PREFERENCE_DEFINITIONS,registry,alrajhi_client/core/services/preferences_registry.py,OK,registry exposes PREFERENCE_DEFINITIONS
+registry_symbol::transaction_grid_key,registry,alrajhi_client/core/services/preferences_registry.py,OK,registry exposes transaction_grid_key
+registry_symbol::pos_key,registry,alrajhi_client/core/services/preferences_registry.py,OK,registry exposes pos_key
+scope::system,registry,alrajhi_client/core/services/preferences_registry.py,OK,scope SYSTEM declared
+scope::company,registry,alrajhi_client/core/services/preferences_registry.py,OK,scope COMPANY declared
+scope::branch,registry,alrajhi_client/core/services/preferences_registry.py,OK,scope BRANCH declared
+scope::user,registry,alrajhi_client/core/services/preferences_registry.py,OK,scope USER declared
+scope::user_branch,registry,alrajhi_client/core/services/preferences_registry.py,OK,scope USER_BRANCH declared
+scope::workstation,registry,alrajhi_client/core/services/preferences_registry.py,OK,scope WORKSTATION declared
+scope::table_layout,registry,alrajhi_client/core/services/preferences_registry.py,OK,scope TABLE_LAYOUT declared
+scope::document_type,registry,alrajhi_client/core/services/preferences_registry.py,OK,scope DOCUMENT_TYPE declared
+scope::pos_terminal,registry,alrajhi_client/core/services/preferences_registry.py,OK,scope POS_TERMINAL declared
+definition::dashboard/cash_balances_hidden,definitions,alrajhi_client/core/services/preferences_registry.py,OK,definition for dashboard/cash_balances_hidden
+definition::dashboard/cash_view_mode,definitions,alrajhi_client/core/services/preferences_registry.py,OK,definition for dashboard/cash_view_mode
+definition::theme,definitions,alrajhi_client/core/services/preferences_registry.py,OK,definition for theme
+definition::language,definitions,alrajhi_client/core/services/preferences_registry.py,OK,definition for language
+definition::company/name,definitions,alrajhi_client/core/services/preferences_registry.py,OK,definition for company/name
+definition::transaction_grid/headerState,definitions,alrajhi_client/core/services/preferences_registry.py,OK,definition for transaction_grid/headerState
+definition::pos/visible_columns,definitions,alrajhi_client/core/services/preferences_registry.py,OK,definition for pos/visible_columns
+user_service_uses_registry,adapter,alrajhi_client/core/services/user_preferences_service.py,OK,UserPreferencesService is backed by registry
+dashboard_keys_preserved,compat,alrajhi_client/core/services/user_preferences_service.py,OK,dashboard preference keys remain stable
+transaction_prefs_registry,adapter,alrajhi_client/features/transactions/grids/transaction_grid_preferences.py,OK,transaction grid layout keys resolve through registry
+pos_prefs_registry,adapter,alrajhi_client/features/pos/pos_preferences.py,OK,POS preference keys resolve through registry
+theme_uses_user_preferences,adapter,alrajhi_client/theme_manager.py,OK,theme persistence no longer uses raw QSettings
+contract_phase,contract,alrajhi_client/workspace/quality/preferences_registry_consolidation_contract.py,OK,contract declares Phase419
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase419 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase419 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase419 release check registered
+raw_qsettings_audited,audit,tools/audit_outputs/preferences_registry_qsettings_usage.csv,OK,direct QSettings usage is enumerated
+raw_qsettings_classified,audit,tools/audit_outputs/preferences_registry_qsettings_usage.csv,OK,remaining QSettings usage is classified for migration

@@ -1,0 +1,26 @@
+key,category,path,status,detail
+exists::PHASE416_RUNTIME_ACCEPTANCE_HARNESS.md,file,PHASE416_RUNTIME_ACCEPTANCE_HARNESS.md,OK,required Phase416 file exists
+exists::alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,file,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,required Phase416 file exists
+exists::alrajhi_client/workspace/quality/runtime_acceptance_harness_contract.py,file,alrajhi_client/workspace/quality/runtime_acceptance_harness_contract.py,OK,required Phase416 file exists
+exists::tools/phase416_runtime_acceptance_harness_guard.py,file,tools/phase416_runtime_acceptance_harness_guard.py,OK,required Phase416 file exists
+exists::tools/run_phase416_runtime_acceptance.py,file,tools/run_phase416_runtime_acceptance.py,OK,required Phase416 file exists
+exists::tests/test_phase416_runtime_acceptance_harness.py,file,tests/test_phase416_runtime_acceptance_harness.py,OK,required Phase416 file exists
+pyqt_import_safe,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,PyQt imports are delayed until runtime probe functions
+scenario_matrix,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,scenario matrix is available without Qt
+widget_tree_capture,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,"widget tree captures identity, geometry and direction"
+shell_snapshot_analysis,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,shell snapshot checks clean shell and top-left candidates
+rtl_ltr_shell_probes,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,shell probes support language-specific screenshots
+qtest_grid_probe,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,sales invoice probe uses real QTest key events
+value_preservation_probe,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,grid runtime probe checks Enter does not clear values
+single_trailing_row_probe,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,grid runtime probe checks duplicate trailing rows
+all_available_probe_runner,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,manual runner can execute every available runtime probe
+contract_phase,contract,alrajhi_client/workspace/quality/runtime_acceptance_harness_contract.py,OK,contract identifies Phase416
+contract_runtime_requirements,contract,alrajhi_client/workspace/quality/runtime_acceptance_harness_contract.py,OK,contract documents runtime evidence requirements
+cli_sets_client_path,tool,tools/run_phase416_runtime_acceptance.py,OK,manual runtime CLI runs from project root
+cli_invokes_all_probes,tool,tools/run_phase416_runtime_acceptance.py,OK,manual CLI invokes runtime harness
+release_gate_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase416 doc registered in release gate
+release_gate_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase416 test registered in release gate
+release_gate_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase416 release check registered
+scenario_count,output,/mnt/data/alrajhi_phase420_work/proj/tools/audit_outputs/runtime_acceptance_scenario_matrix.csv,OK,scenario rows=12
+pyqt_status_explicit,output,/mnt/data/alrajhi_phase420_work/proj/tools/audit_outputs/runtime_acceptance_scenario_matrix.csv,OK,PyQt runtime availability is reported explicitly
+scenario_output_written,output,/mnt/data/alrajhi_phase420_work/proj/tools/audit_outputs/runtime_acceptance_scenario_matrix.csv,OK,scenario matrix output is written

@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from workspace.quality.legacy_transaction_quarantine import assert_not_quarantined_transaction_module
+
+QUARANTINED_LEGACY_TRANSACTION_MODULE = True
+assert_not_quarantined_transaction_module(__name__)
+
 from views.dialogs.invoice_dialog import InvoiceDialog
 from i18n import translate
 from workspace.documents.document_contract import descriptor_for
@@ -12,7 +17,7 @@ class InvoiceEditorTab(InvoiceDialog):
     """Legacy invoice document adapter.
 
     TransactionDocumentTab is the official shell. This adapter is retained only
-    for emergency rollback when features/allow_legacy_transaction_documents is enabled.
+    for historical reference only. Phase417 blocks runtime imports before the legacy dialog is loaded.
 
     InvoiceDialog already exposes workspace_save/print/export and dirtyChanged;
     this subclass gives the workspace a stable feature-level entry point while

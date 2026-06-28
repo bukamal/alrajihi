@@ -3,6 +3,7 @@ from __future__ import annotations
 from PyQt5.QtCore import QByteArray
 
 from auth.session import UserSession
+from core.services.preferences_registry import PreferenceContext, preference_registry
 from core.services.settings_service import settings_service
 
 
@@ -18,7 +19,7 @@ class TransactionGridPreferences:
     def __init__(self, user_key: str | None = None):
         self.user_key = user_key or self._current_scope_key()
 
-    def _current_scope_key(self) -> str:
+    def _current_context(self) -> PreferenceContext:
         user_id = UserSession.get_current_user_id() or UserSession.get_current_username() or "anonymous"
         branch_id = UserSession.get_current_branch_id() or "global"
         try:
@@ -26,10 +27,16 @@ class TransactionGridPreferences:
             profile_id = profile.get("id") or 1
         except Exception:
             profile_id = 1
-        return f"users/{user_id}/branches/{branch_id}/profiles/{profile_id}"
+        return PreferenceContext(user_id=str(user_id), branch_id=str(branch_id), profile_id=str(profile_id))
+
+    def _current_scope_key(self) -> str:
+        ctx = self._current_context()
+        return f"users/{ctx.user_id}/branches/{ctx.branch_id}/profiles/{ctx.profile_id}"
 
     def key(self, document_type: str, name: str) -> str:
-        return f"transactions/{self.user_key}/{document_type}/{name}"
+        if self.user_key and self.user_key != self._current_scope_key():
+            return f"transactions/{self.user_key}/{document_type}/{name}"
+        return preference_registry.transaction_grid_key(document_type, name, context=self._current_context())
 
     def _set(self, document_type: str, name: str, value) -> None:
         settings_service.set(self.key(document_type, name), value)

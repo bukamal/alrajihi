@@ -9,6 +9,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 from core.money_display_policy import format_money, format_quantity
 from core.services.catalog_service import catalog_service
 from features.manufacturing.grids.manufacturing_column_schema import ManufacturingColumn
+from features.transactions.grids.unified_grid_navigation_policy import is_empty_transaction_line
 
 
 class BomComponentsModel(QAbstractTableModel):
@@ -113,12 +114,38 @@ class BomComponentsModel(QAbstractTableModel):
         })
         return row
 
-    def add_empty_line(self) -> int:
+    def is_empty_line(self, row_index: int) -> bool:
+        """Return True when a row is the reusable blank BOM component line."""
+        if not (0 <= row_index < len(self.lines)):
+            return False
+        return is_empty_transaction_line(self.lines[row_index])
+
+    def trim_extra_trailing_empty_lines(self) -> int:
+        """Keep one reusable blank tail row and remove duplicate blank tails."""
+        removed = 0
+        while len(self.lines) > 1 and self.is_empty_line(len(self.lines) - 1) and self.is_empty_line(len(self.lines) - 2):
+            row_index = len(self.lines) - 1
+            self.beginRemoveRows(QModelIndex(), row_index, row_index)
+            self.lines.pop()
+            self.endRemoveRows()
+            removed += 1
+        return removed
+
+    def ensure_single_trailing_empty_line(self) -> int:
+        """Idempotent BOM append gate used by Enter and Insert."""
+        self.trim_extra_trailing_empty_lines()
+        if self.lines and self.is_empty_line(len(self.lines) - 1):
+            return len(self.lines) - 1
         row_index = len(self.lines)
         self.beginInsertRows(QModelIndex(), row_index, row_index)
         self.lines.append(self._empty_line())
         self.endInsertRows()
-        return row_index
+        self.trim_extra_trailing_empty_lines()
+        return min(row_index, len(self.lines) - 1)
+
+    def add_empty_line(self) -> int:
+        """Compatibility API; Phase418 makes it idempotent by design."""
+        return self.ensure_single_trailing_empty_line()
 
     def clear(self, keep_empty: bool = True) -> None:
         self.beginResetModel()
@@ -134,12 +161,12 @@ class BomComponentsModel(QAbstractTableModel):
         self.lines.pop(row_index)
         self.endRemoveRows()
         if not self.lines:
-            self.add_empty_line()
+            self.ensure_single_trailing_empty_line()
         return True
 
     def add_item(self, item: dict[str, Any], qty=1, price_key: str = 'purchase_price') -> int:
-        if not self.lines or self.lines[-1].get('item_id'):
-            self.add_empty_line()
+        if not self.lines or not self.is_empty_line(len(self.lines) - 1):
+            self.ensure_single_trailing_empty_line()
         row_index = len(self.lines) - 1
         self.set_item(row_index, item, price_key=price_key, qty=qty)
         return row_index
@@ -235,7 +262,7 @@ class BomComponentsModel(QAbstractTableModel):
             self.lines.append(row)
         self.endResetModel()
         if not self.lines:
-            self.add_empty_line()
+            self.ensure_single_trailing_empty_line()
 
     def payload_lines(self) -> list[dict[str, Any]]:
         result: list[dict[str, Any]] = []

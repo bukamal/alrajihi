@@ -60,11 +60,40 @@ PURCHASE_RETURN_ROUTE: tuple[str, ...] = (
     "notes",
 )
 
+INVENTORY_TRANSFER_ROUTE: tuple[str, ...] = (
+    "item",
+    "unit",
+    "qty",
+    "notes",
+)
+
+BOM_COMPONENT_ROUTE: tuple[str, ...] = (
+    "item",
+    "unit",
+    "qty",
+    "waste_percent",
+    "unit_cost",
+    "total",
+    "notes",
+)
+
+MATERIAL_UNIT_ROUTE: tuple[str, ...] = (
+    "unit_name",
+    "conversion_factor",
+    "barcode",
+    "price",
+)
+
 DOCUMENT_ENTER_ROUTES: dict[str, tuple[str, ...]] = {
     "sales_invoice": SALES_INVOICE_ROUTE,
     "purchase_invoice": PURCHASE_INVOICE_ROUTE,
     "sales_return": SALES_RETURN_ROUTE,
     "purchase_return": PURCHASE_RETURN_ROUTE,
+    "inventory_transfer": INVENTORY_TRANSFER_ROUTE,
+    "warehouse_transfer": INVENTORY_TRANSFER_ROUTE,
+    "bom": BOM_COMPONENT_ROUTE,
+    "bom_components": BOM_COMPONENT_ROUTE,
+    "material_units": MATERIAL_UNIT_ROUTE,
 }
 
 KEY_ALIASES: dict[str, tuple[str, ...]] = {
@@ -72,10 +101,14 @@ KEY_ALIASES: dict[str, tuple[str, ...]] = {
     "unit": ("unit", "uom", "unit_name"),
     "qty": ("qty", "quantity", "return_qty", "required_qty"),
     "price": ("price", "unit_price", "unit_value"),
-    "cost": ("cost", "unit_cost", "price"),
+    "cost": ("cost", "price"),
     "discount": ("discount", "discount_amount"),
     "tax": ("tax", "tax_amount"),
     "total": ("total", "line_total", "total_cost"),
+    "waste_percent": ("waste_percent", "waste", "waste_rate"),
+    "unit_cost": ("unit_cost", "base_unit_cost", "cost"),
+    "conversion_factor": ("conversion_factor", "factor"),
+    "barcode": ("barcode", "unit_barcode", "code"),
     "notes": ("notes", "description", "memo"),
     "reason": ("reason", "return_reason"),
     "restock": ("restock", "return_to_stock"),

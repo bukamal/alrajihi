@@ -1,0 +1,28 @@
+key,category,path,status,detail
+exists::PHASE418_EDITABLE_GRID_LIFECYCLE_UNIFICATION.md,file,PHASE418_EDITABLE_GRID_LIFECYCLE_UNIFICATION.md,OK,required Phase418 file exists
+exists::alrajhi_client/workspace/quality/editable_grid_lifecycle_unification_contract.py,file,alrajhi_client/workspace/quality/editable_grid_lifecycle_unification_contract.py,OK,required Phase418 file exists
+exists::tools/phase418_editable_grid_lifecycle_unification_guard.py,file,tools/phase418_editable_grid_lifecycle_unification_guard.py,OK,required Phase418 file exists
+exists::tests/test_phase418_editable_grid_lifecycle_unification.py,file,tests/test_phase418_editable_grid_lifecycle_unification.py,OK,required Phase418 file exists
+doc_phase,doc,PHASE418_EDITABLE_GRID_LIFECYCLE_UNIFICATION.md,OK,phase documentation exists
+contract_phase,contract,alrajhi_client/workspace/quality/editable_grid_lifecycle_unification_contract.py,OK,contract declares phase 418
+transaction_lifecycle_api,model,alrajhi_client/features/transactions/grids/transaction_line_model.py,OK,transaction lines expose idempotent lifecycle API
+inventory_lifecycle_api,model,alrajhi_client/features/inventory/grids/inventory_transfer_lines_model.py,OK,inventory transfer lines expose idempotent lifecycle API
+bom_lifecycle_api,model,alrajhi_client/features/manufacturing/grids/bom_components_model.py,OK,BOM component lines expose idempotent lifecycle API
+inventory_empty_qty_zero,model,alrajhi_client/features/inventory/grids/inventory_transfer_lines_model.py,OK,blank transfer row is truly empty
+inventory_add_item_reuses_tail,model,alrajhi_client/features/inventory/grids/inventory_transfer_lines_model.py,OK,lookup add reuses trailing blank row
+bom_add_item_reuses_tail,model,alrajhi_client/features/manufacturing/grids/bom_components_model.py,OK,BOM add_item reuses trailing blank row
+policy_inventory_transfer_route,policy,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,INVENTORY_TRANSFER_ROUTE is declared
+policy_bom_component_route,policy,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,BOM_COMPONENT_ROUTE is declared
+policy_material_unit_route,policy,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,MATERIAL_UNIT_ROUTE is declared
+policy_document_inventory_transfer,policy,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,inventory_transfer has a route
+policy_document_warehouse_transfer,policy,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,warehouse_transfer has a route
+policy_document_bom_components,policy,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,bom_components has a route
+policy_document_material_units,policy,alrajhi_client/features/transactions/grids/unified_grid_navigation_policy.py,OK,material_units has a route
+keyboard_bom_route,keyboard,alrajhi_client/ui/table_keyboard_policy.py,OK,keyboard policy recognizes BOM route
+keyboard_inventory_route,keyboard,alrajhi_client/ui/table_keyboard_policy.py,OK,keyboard policy recognizes transfer route
+keyboard_model_gate,keyboard,alrajhi_client/ui/table_keyboard_policy.py,OK,keyboard delegates row creation to model gate
+material_units_manual_add,materials,alrajhi_client/features/items/item_editor_tab.py,OK,material unit rows are explicit user actions
+material_units_no_auto_enter_append,materials,alrajhi_client/features/items/item_editor_tab.py,OK,material units do not auto-append on Enter/change
+release_gate_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase418 doc registered in release gate
+release_gate_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase418 test registered in release gate
+release_gate_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase418 release check registered

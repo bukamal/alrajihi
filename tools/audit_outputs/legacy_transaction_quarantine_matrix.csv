@@ -1,0 +1,28 @@
+check,category,path,status,detail
+phase_doc,doc,PHASE417_LEGACY_TRANSACTION_QUARANTINE.md,OK,phase documentation exists
+contract,contract,alrajhi_client/workspace/quality/legacy_transaction_quarantine_contract.py,OK,contract exists and declares phase 417
+quarantine_class_LegacyTransactionQuara,quarantine,alrajhi_client/workspace/quality/legacy_transaction_quarantine.py,OK,requires 'class LegacyTransactionQuarantineError'
+quarantine_QUARANTINED_TRANSACTION_MODU,quarantine,alrajhi_client/workspace/quality/legacy_transaction_quarantine.py,OK,requires 'QUARANTINED_TRANSACTION_MODULES'
+quarantine_FORENSIC_IMPORT_ENV,quarantine,alrajhi_client/workspace/quality/legacy_transaction_quarantine.py,OK,requires 'FORENSIC_IMPORT_ENV'
+quarantine_ALRAJHI_FORENSIC_ALLOW_LEGAC,quarantine,alrajhi_client/workspace/quality/legacy_transaction_quarantine.py,OK,requires 'ALRAJHI_FORENSIC_ALLOW_LEGACY_TRANSACTION_IMPORT'
+quarantine_assert_not_quarantined_trans,quarantine,alrajhi_client/workspace/quality/legacy_transaction_quarantine.py,OK,requires 'assert_not_quarantined_transaction_module'
+quarantine_scan_text_for_forbidden_lega,quarantine,alrajhi_client/workspace/quality/legacy_transaction_quarantine.py,OK,requires 'scan_text_for_forbidden_legacy_imports'
+quarantine_describe_quarantine,quarantine,alrajhi_client/workspace/quality/legacy_transaction_quarantine.py,OK,requires 'describe_quarantine'
+invoice_adapter_quarantined,transactions,alrajhi_client/features/invoices/invoice_editor_tab.py,OK,invoice legacy adapter marked quarantined
+invoice_quarantine_before_legacy_import,transactions,alrajhi_client/features/invoices/invoice_editor_tab.py,OK,invoice adapter blocks before InvoiceDialog import
+return_adapter_quarantined,transactions,alrajhi_client/features/returns/return_editor_tabs.py,OK,return legacy adapters marked quarantined
+return_quarantine_before_pyqt_import,transactions,alrajhi_client/features/returns/return_editor_tabs.py,OK,return adapter blocks before PyQt dialog import
+main_no_from_features.invoices_imp,main_window,alrajhi_client/views/main_window.py,OK,forbid 'from features.invoices import InvoiceEditorTab'
+main_no_from_features.invoices.inv,main_window,alrajhi_client/views/main_window.py,OK,forbid 'from features.invoices.invoice_editor_tab import'
+main_no_from_features.returns_impo,main_window,alrajhi_client/views/main_window.py,OK,forbid 'from features.returns import SalesReturnEditorTab'
+main_no_from_features.returns_impo,main_window,alrajhi_client/views/main_window.py,OK,forbid 'from features.returns import PurchaseReturnEditorTab'
+main_no_from_features.returns.retu,main_window,alrajhi_client/views/main_window.py,OK,forbid 'from features.returns.return_editor_tabs import'
+main_no_allow_legacy_transaction_d,main_window,alrajhi_client/views/main_window.py,OK,"forbid 'allow_legacy_transaction_documents,'"
+main_no_legacy_allowed_=_allow_leg,main_window,alrajhi_client/views/main_window.py,OK,forbid 'legacy_allowed = allow_legacy_transaction_documents'
+main_invoice_phase417_message,main_window,alrajhi_client/views/main_window.py,OK,invoice fallback reports quarantine
+main_return_phase417_message,main_window,alrajhi_client/views/main_window.py,OK,return fallback reports quarantine
+legacy_flag_still_false,transactions,alrajhi_client/features/transactions/feature_flags.py,OK,legacy flag remains hard false
+legacy_flag_mentions_quarantine,transactions,alrajhi_client/features/transactions/feature_flags.py,OK,feature flag documents quarantine
+invoice_package_empty,transactions,alrajhi_client/features/invoices/__init__.py,OK,invoice package exports no legacy adapter
+returns_package_empty,transactions,alrajhi_client/features/returns/__init__.py,OK,returns package exports no legacy adapter
+release_gate_registered,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,release gate knows phase 417

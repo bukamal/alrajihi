@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtGui import QPalette, QColor
-from PyQt5.QtCore import QSettings
+from core.services.user_preferences_service import user_preferences_service
 
 from theme.brand import get_tokens
 from theme.qss import build_global_qss
@@ -26,14 +26,14 @@ class ThemeManager:
 
     @classmethod
     def load_theme(cls):
-        theme = QSettings('Alrajhi', 'Accounting').value('theme', 'light')
+        theme = user_preferences_service.get_text('theme', 'light')
         return theme if theme in ('light', 'dark') else 'light'
 
     @classmethod
     def save_theme(cls, theme):
         if theme not in ('light', 'dark'):
             theme = 'light'
-        QSettings('Alrajhi', 'Accounting').setValue('theme', theme)
+        user_preferences_service.set_text('theme', theme)
 
     @classmethod
     def colors(cls, theme=None):

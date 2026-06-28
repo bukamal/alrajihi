@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from alrajhi_server.api.audit_utils import audit_log
 from alrajhi_server.repositories.invoice_repository import get_invoice_repository
 from alrajhi_server.services.branch_access_policy import BranchAccessError, branch_access_policy
+from alrajhi_server.services.api_request_context import current_api_request_context
 import datetime
 from decimal import Decimal
 
@@ -29,6 +30,21 @@ invoices_bp = Blueprint('invoices', __name__)
 
 def _branch_denied(exc):
     return jsonify({'error': str(exc), 'code': 'BRANCH_ACCESS_DENIED'}), 403
+
+def _apply_request_context_defaults(data):
+    """Apply non-authoritative request metadata before server policies validate it.
+
+    The authenticated user and BranchAccessPolicy remain authoritative.  This only
+    prevents remote/offline clients from losing branch scope when the payload was
+    created before the branch field was normalized.
+    """
+    if not isinstance(data, dict):
+        return current_api_request_context({})
+    ctx = current_api_request_context(data)
+    if data.get('branch_id') in (None, '') and ctx.branch_id is not None:
+        data['branch_id'] = ctx.branch_id
+    return ctx
+
 
 def _effective_payload_branch(user_id, data):
     if data is None:
@@ -655,7 +671,8 @@ def transition_invoice_workflow(invoice_id):
 @jwt_required()
 def add_invoice():
     user_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.get_json() or {}
+    _apply_request_context_defaults(data)
     db = get_invoice_repository()
     _ensure_workflow_schema(db)
     if not data.get('workflow_status'):
@@ -754,7 +771,8 @@ def add_invoice():
 def update_invoice(invoice_id):
     # تحديث محافظ على رقم الفاتورة بدل soft-delete ثم إنشاء سجل جديد.
     user_id = get_jwt_identity()
-    data = request.get_json()
+    data = request.get_json() or {}
+    _apply_request_context_defaults(data)
     db = get_invoice_repository()
     _ensure_workflow_schema(db)
     old_invoice = db.query("SELECT * FROM invoices WHERE id=? AND user_id=? AND deleted_at IS NULL", (invoice_id, user_id)).fetchone()

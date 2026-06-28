@@ -10,6 +10,7 @@ profile + POS identity.
 """
 
 from auth.session import UserSession
+from core.services.preferences_registry import PreferenceContext, preference_registry
 from core.services.settings_service import settings_service
 
 
@@ -18,7 +19,7 @@ class POSPreferences:
         self.identity = identity or "pos.lines"
         self.scope = self._scope_key()
 
-    def _scope_key(self) -> str:
+    def _context(self) -> PreferenceContext:
         user_id = UserSession.get_current_user_id() or UserSession.get_current_username() or "anonymous"
         branch_id = UserSession.get_current_branch_id() or "global"
         try:
@@ -26,10 +27,14 @@ class POSPreferences:
             profile_id = profile.get("id") or 1
         except Exception:
             profile_id = 1
-        return f"users/{user_id}/branches/{branch_id}/profiles/{profile_id}"
+        return PreferenceContext(user_id=str(user_id), branch_id=str(branch_id), profile_id=str(profile_id), identity=self.identity)
+
+    def _scope_key(self) -> str:
+        ctx = self._context()
+        return f"users/{ctx.user_id}/branches/{ctx.branch_id}/profiles/{ctx.profile_id}"
 
     def key(self, name: str) -> str:
-        return f"pos/{self.scope}/{self.identity}/{name}"
+        return preference_registry.pos_key(self.identity, name, context=self._context())
 
     def get(self, name: str, default=None):
         return settings_service.get(self.key(name), default)

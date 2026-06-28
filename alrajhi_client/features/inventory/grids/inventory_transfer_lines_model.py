@@ -8,6 +8,7 @@ from PyQt5.QtCore import QAbstractTableModel, QModelIndex, Qt
 
 from features.inventory.grids.inventory_transfer_schema import inventory_transfer_lines_schema
 from features.transactions.i18n import tr
+from features.transactions.grids.unified_grid_navigation_policy import is_empty_transaction_line
 
 
 class InventoryTransferLinesModel(QAbstractTableModel):
@@ -31,8 +32,8 @@ class InventoryTransferLinesModel(QAbstractTableModel):
     def _empty_line(self) -> dict[str, Any]:
         return {
             'item_id': None, 'barcode': '', 'item': '', 'unit': '', 'unit_id': None,
-            'unit_options': [], 'conversion_factor': Decimal('1'), 'qty': Decimal('1'),
-            'base_qty': Decimal('1'), 'available': '', 'unit_cost': Decimal('0'),
+            'unit_options': [], 'conversion_factor': Decimal('1'), 'qty': Decimal('0'),
+            'base_qty': Decimal('0'), 'available': '', 'unit_cost': Decimal('0'),
             'barcode_scope': '', 'matched_barcode': '', 'notes': '',
         }
 
@@ -96,11 +97,38 @@ class InventoryTransferLinesModel(QAbstractTableModel):
         self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
         return True
 
-    def add_empty_line(self) -> None:
-        pos = len(self.lines)
-        self.beginInsertRows(QModelIndex(), pos, pos)
+    def is_empty_line(self, row_index: int) -> bool:
+        """Return True when a row is the reusable blank transfer line."""
+        if not (0 <= row_index < len(self.lines)):
+            return False
+        return is_empty_transaction_line(self.lines[row_index])
+
+    def trim_extra_trailing_empty_lines(self) -> int:
+        """Keep one reusable blank tail row and remove duplicate blank tails."""
+        removed = 0
+        while len(self.lines) > 1 and self.is_empty_line(len(self.lines) - 1) and self.is_empty_line(len(self.lines) - 2):
+            row_index = len(self.lines) - 1
+            self.beginRemoveRows(QModelIndex(), row_index, row_index)
+            self.lines.pop()
+            self.endRemoveRows()
+            removed += 1
+        return removed
+
+    def ensure_single_trailing_empty_line(self) -> int:
+        """Idempotent transfer-line append gate used by Enter and Insert."""
+        self.trim_extra_trailing_empty_lines()
+        if self.lines and self.is_empty_line(len(self.lines) - 1):
+            return len(self.lines) - 1
+        row_index = len(self.lines)
+        self.beginInsertRows(QModelIndex(), row_index, row_index)
         self.lines.append(self._empty_line())
         self.endInsertRows()
+        self.trim_extra_trailing_empty_lines()
+        return min(row_index, len(self.lines) - 1)
+
+    def add_empty_line(self) -> int:
+        """Compatibility API; Phase418 makes it idempotent by design."""
+        return self.ensure_single_trailing_empty_line()
 
     def remove_row(self, row: int) -> None:
         if not (0 <= row < len(self.lines)):
@@ -109,7 +137,7 @@ class InventoryTransferLinesModel(QAbstractTableModel):
         self.lines.pop(row)
         self.endRemoveRows()
         if not self.lines:
-            self.add_empty_line()
+            self.ensure_single_trailing_empty_line()
 
     def _emit_row_changed(self, row: int) -> None:
         if not (0 <= row < len(self.lines)):
@@ -228,8 +256,8 @@ class InventoryTransferLinesModel(QAbstractTableModel):
         return payload
 
     def add_item_from_lookup(self, item: dict[str, Any], warehouse_available=None) -> int:
-        if not self.lines or self.lines[-1].get('item_id'):
-            self.add_empty_line()
+        if not self.lines or not self.is_empty_line(len(self.lines) - 1):
+            self.ensure_single_trailing_empty_line()
         row = len(self.lines) - 1
         self.set_item(row, item, warehouse_available=warehouse_available)
         return row

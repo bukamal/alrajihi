@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from workspace.quality.legacy_transaction_quarantine import assert_not_quarantined_transaction_module
+
+QUARANTINED_LEGACY_TRANSACTION_MODULE = True
+assert_not_quarantined_transaction_module(__name__)
+
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QMessageBox
 
@@ -28,7 +33,7 @@ class _ReturnDocumentMixin:
     """Legacy return document adapter for unit-aware return editors.
 
     TransactionDocumentTab is the official return shell. This adapter is retained only
-    for emergency rollback when features/allow_legacy_transaction_documents is enabled.
+    for historical reference only. Phase417 blocks runtime imports before the legacy return dialogs are loaded.
 
     This is the Phase 49 boundary that replaces the Phase 47 generic bridge
     adapter for returns.  The Qt controls are still reused conservatively, but

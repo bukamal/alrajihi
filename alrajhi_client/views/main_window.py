@@ -884,7 +884,6 @@ class MainWindow(QMainWindow):
             shell_error = None
             try:
                 from features.transactions.feature_flags import (
-                    allow_legacy_transaction_documents,
                     use_new_transaction_documents,
                     use_new_transaction_documents_for_existing,
                 )
@@ -904,14 +903,8 @@ class MainWindow(QMainWindow):
                 shell_error = exc
                 widget = None
             if widget is None:
-                try:
-                    legacy_allowed = allow_legacy_transaction_documents()  # type: ignore[name-defined]
-                except Exception:
-                    legacy_allowed = False
-                if not legacy_allowed:
-                    detail = f": {shell_error}" if shell_error else ''
-                    raise RuntimeError(f"Unified transaction document shell unavailable for {inv_type} invoice{detail}")
-                raise RuntimeError('Legacy invoice dialog is disabled by Phase414 legacy-elimination policy')
+                detail = f": {shell_error}" if shell_error else ''
+                raise RuntimeError(f"Unified transaction document shell unavailable for {inv_type} invoice{detail}; Legacy invoice dialog is disabled by Phase414 and quarantined by Phase417")
             icon = 'fa5s.file-invoice-dollar' if inv_type == 'sale' else 'fa5s.file-invoice'
             self._open_document_tab(tab_id, widget.workspace_title(), widget, icon_name=icon, singleton=False)
             if hasattr(widget, 'saved'):
@@ -1064,7 +1057,6 @@ class MainWindow(QMainWindow):
             shell_error = None
             try:
                 from features.transactions.feature_flags import (
-                    allow_legacy_transaction_documents,
                     use_new_transaction_returns,
                     use_new_transaction_returns_for_existing,
                 )
@@ -1084,14 +1076,8 @@ class MainWindow(QMainWindow):
                 shell_error = exc
                 widget = None
             if widget is None:
-                try:
-                    legacy_allowed = allow_legacy_transaction_documents()  # type: ignore[name-defined]
-                except Exception:
-                    legacy_allowed = False
-                if not legacy_allowed:
-                    detail = f": {shell_error}" if shell_error else ''
-                    raise RuntimeError(f"Unified transaction document shell unavailable for {return_type} return{detail}")
-                raise RuntimeError('Legacy return dialog is disabled by Phase414 legacy-elimination policy')
+                detail = f": {shell_error}" if shell_error else ''
+                raise RuntimeError(f"Unified transaction document shell unavailable for {return_type} return{detail}; Legacy return dialog is disabled by Phase414 and quarantined by Phase417")
             opened = self._open_document_tab(tab_id, widget.workspace_title() if hasattr(widget, 'workspace_title') else (widget.windowTitle() or title), widget, icon_name=icon, singleton=False)
             if hasattr(widget, 'saved'):
                 def _on_return_saved(_rid=None, kind=return_type):

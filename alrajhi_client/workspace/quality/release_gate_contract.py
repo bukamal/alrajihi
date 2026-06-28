@@ -44,6 +44,11 @@ RELEASE_BASELINE_PHASE = 276
 # PHASE413_USER_PREFERENCES_PERSISTENCE is tracked below in REQUIRED_PHASE_DOCS.
 # PHASE414_LEGACY_ELIMINATION_FOUNDATION is tracked below in REQUIRED_PHASE_DOCS.
 # PHASE415_UNIFIED_SALES_INVOICE_GRID_RUNTIME is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE416_RUNTIME_ACCEPTANCE_HARNESS is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE417_LEGACY_TRANSACTION_QUARANTINE is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE418_EDITABLE_GRID_LIFECYCLE_UNIFICATION is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE419_PREFERENCES_REGISTRY_CONSOLIDATION is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE420_API_MULTIUSER_PARITY_AUDIT_HARDENING is tracked below in REQUIRED_PHASE_DOCS.
 # tests/test_phase409_basit_final_acceptance_audit.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase410_basit_release_candidate_freeze.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase411_basit_shell_menu_rebuild_hotfix.py is generated from REQUIRED_PHASE_TESTS.
@@ -51,6 +56,11 @@ RELEASE_BASELINE_PHASE = 276
 # tests/test_phase413_user_preferences_persistence.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase414_legacy_elimination_foundation.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase415_unified_sales_invoice_grid_runtime.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase416_runtime_acceptance_harness.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase417_legacy_transaction_quarantine.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase418_editable_grid_lifecycle_unification.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase419_preferences_registry_consolidation.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase420_api_multiuser_parity.py is generated from REQUIRED_PHASE_TESTS.
 
 REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
     f"PHASE{phase}_{suffix}.md"
@@ -219,6 +229,11 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (413, "USER_PREFERENCES_PERSISTENCE"),
         (414, "LEGACY_ELIMINATION_FOUNDATION"),
         (415, "UNIFIED_SALES_INVOICE_GRID_RUNTIME"),
+        (416, "RUNTIME_ACCEPTANCE_HARNESS"),
+        (417, "LEGACY_TRANSACTION_QUARANTINE"),
+        (418, "EDITABLE_GRID_LIFECYCLE_UNIFICATION"),
+        (419, "PREFERENCES_REGISTRY_CONSOLIDATION"),
+        (420, "API_MULTIUSER_PARITY_AUDIT_HARDENING"),
     ]
 )
 
@@ -389,6 +404,11 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (413, "user_preferences_persistence"),
         (414, "legacy_elimination_foundation"),
         (415, "unified_sales_invoice_grid_runtime"),
+        (416, "runtime_acceptance_harness"),
+        (417, "legacy_transaction_quarantine"),
+        (418, "editable_grid_lifecycle_unification"),
+        (419, "preferences_registry_consolidation"),
+        (420, "api_multiuser_parity"),
     ]
 )
 
@@ -540,6 +560,11 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("user_preferences_persistence", "settings", "Dashboard privacy and runtime UI preferences persist per user across application restarts", "tools/phase413_user_preferences_persistence_guard.py", "tools/audit_outputs/user_preferences_persistence_matrix.csv", phase=413),
     ReleaseGateCheck("legacy_elimination_foundation", "architecture", "Legacy shell and transaction fallback routes are removed from production navigation", "tools/phase414_legacy_elimination_foundation_guard.py", "tools/audit_outputs/legacy_elimination_foundation_matrix.csv", phase=414),
     ReleaseGateCheck("unified_sales_invoice_grid_runtime", "ui", "Sales invoice grid uses a clean editor-entry hook and idempotent row lifecycle", "tools/phase415_unified_sales_invoice_grid_runtime_guard.py", "tools/audit_outputs/unified_sales_invoice_grid_runtime_matrix.csv", phase=415),
+    ReleaseGateCheck("runtime_acceptance_harness", "acceptance", "Qt runtime acceptance harness captures shell geometry and editable-grid key navigation evidence", "tools/phase416_runtime_acceptance_harness_guard.py", "tools/audit_outputs/runtime_acceptance_harness_matrix.csv", phase=416),
+    ReleaseGateCheck("legacy_transaction_quarantine", "architecture", "Legacy invoice and return adapters fail before loading old dialog code and cannot be used as production fallback", "tools/phase417_legacy_transaction_quarantine_guard.py", "tools/audit_outputs/legacy_transaction_quarantine_matrix.csv", phase=417),
+    ReleaseGateCheck("editable_grid_lifecycle_unification", "ui", "Editable grid row lifecycle is unified across transactions, inventory transfers and BOM components", "tools/phase418_editable_grid_lifecycle_unification_guard.py", "tools/audit_outputs/editable_grid_lifecycle_unification_matrix.csv", phase=418),
+    ReleaseGateCheck("preferences_registry_consolidation", "settings", "UI preferences resolve through a central scoped registry with QSettings usage audited", "tools/phase419_preferences_registry_consolidation_guard.py", "tools/audit_outputs/preferences_registry_consolidation_matrix.csv", phase=419),
+    ReleaseGateCheck("api_multiuser_parity", "api", "API local/remote parity, branch scope, offline replay and idempotency metadata are audited", "tools/phase420_api_multiuser_parity_guard.py", "tools/audit_outputs/api_multiuser_parity_matrix.csv", phase=420),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

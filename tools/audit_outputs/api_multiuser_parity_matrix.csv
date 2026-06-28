@@ -1,0 +1,41 @@
+key,category,path,status,detail
+exists::PHASE420_API_MULTIUSER_PARITY_AUDIT_HARDENING.md,file,PHASE420_API_MULTIUSER_PARITY_AUDIT_HARDENING.md,OK,required Phase420 file exists
+exists::alrajhi_client/workspace/quality/api_multiuser_parity_contract.py,file,alrajhi_client/workspace/quality/api_multiuser_parity_contract.py,OK,required Phase420 file exists
+exists::alrajhi_client/workspace/quality/api_multiuser_parity_audit.py,file,alrajhi_client/workspace/quality/api_multiuser_parity_audit.py,OK,required Phase420 file exists
+exists::alrajhi_client/database/connection_rest.py,file,alrajhi_client/database/connection_rest.py,OK,required Phase420 file exists
+exists::alrajhi_server/services/api_request_context.py,file,alrajhi_server/services/api_request_context.py,OK,required Phase420 file exists
+exists::alrajhi_server/repositories/http_route_sql/invoices.py,file,alrajhi_server/repositories/http_route_sql/invoices.py,OK,required Phase420 file exists
+exists::tools/phase420_api_multiuser_parity_guard.py,file,tools/phase420_api_multiuser_parity_guard.py,OK,required Phase420 file exists
+exists::tests/test_phase420_api_multiuser_parity.py,file,tests/test_phase420_api_multiuser_parity.py,OK,required Phase420 file exists
+ast::alrajhi_client/workspace/quality/api_multiuser_parity_contract.py,syntax,alrajhi_client/workspace/quality/api_multiuser_parity_contract.py,OK,source parses
+ast::alrajhi_client/workspace/quality/api_multiuser_parity_audit.py,syntax,alrajhi_client/workspace/quality/api_multiuser_parity_audit.py,OK,source parses
+ast::alrajhi_client/database/connection_rest.py,syntax,alrajhi_client/database/connection_rest.py,OK,source parses
+ast::alrajhi_server/services/api_request_context.py,syntax,alrajhi_server/services/api_request_context.py,OK,source parses
+ast::alrajhi_server/repositories/http_route_sql/invoices.py,syntax,alrajhi_server/repositories/http_route_sql/invoices.py,OK,source parses
+ast::tools/phase420_api_multiuser_parity_guard.py,syntax,tools/phase420_api_multiuser_parity_guard.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/api_multiuser_parity_contract.py,OK,Phase420 contract is declared
+contract_surfaces,contract,alrajhi_client/workspace/quality/api_multiuser_parity_contract.py,OK,mandatory API/multi-user surfaces are declared
+contract_known_backlog,contract,alrajhi_client/workspace/quality/api_multiuser_parity_contract.py,OK,follow-up risks are explicit
+gateway_parity_no_blocking_failures,gateway,alrajhi_client/gateways,OK,blocking parity failures=0
+gateway_parity_known_local_only_visible,gateway,alrajhi_client/gateways,OK,accepted local-only remote gaps=5
+gateway_parity_remote_core_present,gateway,alrajhi_client/gateways/remote,OK,critical remote gateways exist
+rest_authorization_header,hardening,phase420_static_surfaces,OK,rest_authorization_header is present
+rest_metadata_headers,hardening,phase420_static_surfaces,OK,rest_metadata_headers is present
+rest_uses_metadata_headers,hardening,phase420_static_surfaces,OK,rest_uses_metadata_headers is present
+offline_replay_headers,hardening,phase420_static_surfaces,OK,offline_replay_headers is present
+offline_descriptor_validation,hardening,phase420_static_surfaces,OK,offline_descriptor_validation is present
+offline_queue_duplicate_collapse,hardening,phase420_static_surfaces,OK,offline_queue_duplicate_collapse is present
+server_request_context_helper,hardening,phase420_static_surfaces,OK,server_request_context_helper is present
+invoice_branch_scope,hardening,phase420_static_surfaces,OK,invoice_branch_scope is present
+invoice_request_context_applied,hardening,phase420_static_surfaces,OK,invoice_request_context_applied is present
+invoice_permissions,hardening,phase420_static_surfaces,OK,invoice_permissions is present
+invoice_audit_log,hardening,phase420_static_surfaces,OK,invoice_audit_log is present
+server_branch_policy,hardening,phase420_static_surfaces,OK,server_branch_policy is present
+server_routes_present,server,alrajhi_server,OK,route count=242
+server_jwt_markers_present,server,alrajhi_server,OK,jwt markers=420
+server_permission_markers_present,server,alrajhi_server,OK,permission markers=10
+server_branch_markers_present,server,alrajhi_server,OK,branch markers=109
+server_audit_markers_present,server,alrajhi_server,OK,audit markers=35
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase420 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase420 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase420 release check registered

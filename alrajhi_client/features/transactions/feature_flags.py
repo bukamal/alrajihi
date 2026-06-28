@@ -37,11 +37,11 @@ LEGACY_TRANSACTION_DOCUMENTS_DISABLED = True
 
 
 def allow_legacy_transaction_documents() -> bool:
-    """Phase414 hard stop: legacy invoice/return dialogs are never routed.
+    """Phase414/417 hard stop: legacy invoice/return dialogs are never routed or production-imported.
 
     The unified TransactionDocumentTab is the only supported transaction editor.
     Environment variables and settings are intentionally ignored here to prevent
-    old dialog/grid code from re-entering production navigation.
+    old dialog/grid code from re-entering production navigation. Phase417 also quarantines direct imports.
     """
     return False
 
