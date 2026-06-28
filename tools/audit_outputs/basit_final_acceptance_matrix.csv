@@ -1,0 +1,68 @@
+check,category,path,needle,status
+phase409_contract,acceptance,alrajhi_client/workspace/quality/basit_final_acceptance_contract.py,BASIT_FINAL_ACCEPTANCE_CONTRACT,OK
+phase409_doc,acceptance,PHASE409_BASIT_FINAL_ACCEPTANCE_AUDIT.md,Phase409,OK
+phase409_test,acceptance,tests/test_phase409_basit_final_acceptance_audit.py,test_basit_final_acceptance,OK
+phase409_tool,acceptance,tools/phase409_basit_final_acceptance_audit.py,basit_final_acceptance_matrix.csv,OK
+phase401_contract,contracts,alrajhi_client/workspace/quality/basit_visual_system_contract.py,BASIT_VISUAL_SYSTEM_CONTRACT,OK
+phase402_contract,contracts,alrajhi_client/workspace/quality/basit_dashboard_surface_contract.py,BASIT_DASHBOARD_SURFACE_CONTRACT,OK
+phase403_contract,contracts,alrajhi_client/workspace/quality/basit_transaction_surface_contract.py,BASIT_TRANSACTION_SURFACE_CONTRACT,OK
+phase404_contract,contracts,alrajhi_client/workspace/quality/basit_management_surface_contract.py,BASIT_MANAGEMENT_SURFACE_CONTRACT,OK
+phase405_contract,contracts,alrajhi_client/workspace/quality/basit_reports_settings_surface_contract.py,BASIT_REPORTS_SETTINGS_SURFACE_CONTRACT,OK
+phase406_contract,contracts,alrajhi_client/workspace/quality/basit_shell_chrome_contract.py,BASIT_SHELL_CHROME_CONTRACT,OK
+phase407_contract,contracts,alrajhi_client/workspace/quality/basit_startup_dialogs_surface_contract.py,BASIT_STARTUP_DIALOGS_SURFACE_CONTRACT,OK
+phase408_contract,contracts,alrajhi_client/workspace/quality/basit_printing_surface_contract.py,BASIT_PRINTING_SURFACE_CONTRACT,OK
+palette_blue,theme,alrajhi_client/theme/brand.py,BASIT_BLUE = '#0076D7',OK
+palette_yellow,theme,alrajhi_client/theme/brand.py,BASIT_YELLOW = '#F2D21B',OK
+palette_red,theme,alrajhi_client/theme/brand.py,BASIT_RED = '#D93600',OK
+metrics,theme,alrajhi_client/theme/brand.py,basit_toolbar_height,OK
+qss_phase401,qss,alrajhi_client/theme/qss.py,Phase401: Basit inspired operational skin,OK
+qss_phase403,qss,alrajhi_client/theme/qss.py,Phase403: Basit-inspired invoices and returns,OK
+qss_phase404,qss,alrajhi_client/theme/qss.py,Phase404: Basit-inspired management/list workspaces,OK
+qss_phase405,qss,alrajhi_client/theme/qss.py,Phase405: Basit-inspired reports and settings surfaces,OK
+qss_phase406,qss,alrajhi_client/theme/qss.py,Phase406: Basit-inspired shell chrome fallback,OK
+qss_phase407,qss,alrajhi_client/theme/qss.py,"Phase407: Basit-inspired startup, login, activation and dialogs",OK
+restaurant_root,runtime,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,basitInspired,OK
+dashboard_root,runtime,alrajhi_client/views/widgets/dashboard_widget.py,basitInspired,OK
+transaction_root,runtime,alrajhi_client/features/transactions/transaction_document_tab.py,basitTransactionDocument,OK
+transaction_grid,runtime,alrajhi_client/features/transactions/transaction_document_tab.py,basitTransactionGrid,OK
+management_base,runtime,alrajhi_client/views/widgets/base_widget.py,basitManagementWorkspace,OK
+management_table,runtime,alrajhi_client/views/widgets/base_widget.py,basitManagementTable,OK
+reports_root,runtime,alrajhi_client/views/widgets/reports_widget.py,basitReportsSurface,OK
+settings_root,runtime,alrajhi_client/views/widgets/settings_widget.py,basitSettingsSurface,OK
+shell_menu,runtime,alrajhi_client/views/main_window.py,basitShellChrome,OK
+shell_action_bar,runtime,alrajhi_client/shell/unified_action_bar.py,basitShellChrome,OK
+shell_tabs,runtime,alrajhi_client/shell/tab_workspace.py,basitShellTabs,OK
+startup_splash,runtime,alrajhi_client/views/splash_screen.py,basitStartupSurface,OK
+print_token_bridge,printing,alrajhi_client/printing/print_templates.py,def _basit_print_tokens,OK
+print_phase_marker,printing,alrajhi_client/printing/print_templates.py,Phase408: Basit-inspired print/export surface,OK
+print_final_total,printing,alrajhi_client/printing/print_templates.py,.totals-table tr.final td,OK
+release_doc_409,release_gate,alrajhi_client/workspace/quality/release_gate_contract.py,PHASE409_BASIT_FINAL_ACCEPTANCE_AUDIT,OK
+release_test_409,release_gate,alrajhi_client/workspace/quality/release_gate_contract.py,basit_final_acceptance_audit,OK
+release_check_409,release_gate,alrajhi_client/workspace/quality/release_gate_contract.py,basit_final_acceptance,OK
+phase401_doc,phase_artifacts,PHASE401_* / tests/test_phase401_* / tools/phase401_*,doc,OK
+phase401_test,phase_artifacts,PHASE401_* / tests/test_phase401_* / tools/phase401_*,test,OK
+phase401_guard,phase_artifacts,PHASE401_* / tests/test_phase401_* / tools/phase401_*,guard,OK
+phase402_doc,phase_artifacts,PHASE402_* / tests/test_phase402_* / tools/phase402_*,doc,OK
+phase402_test,phase_artifacts,PHASE402_* / tests/test_phase402_* / tools/phase402_*,test,OK
+phase402_guard,phase_artifacts,PHASE402_* / tests/test_phase402_* / tools/phase402_*,guard,OK
+phase403_doc,phase_artifacts,PHASE403_* / tests/test_phase403_* / tools/phase403_*,doc,OK
+phase403_test,phase_artifacts,PHASE403_* / tests/test_phase403_* / tools/phase403_*,test,OK
+phase403_guard,phase_artifacts,PHASE403_* / tests/test_phase403_* / tools/phase403_*,guard,OK
+phase404_doc,phase_artifacts,PHASE404_* / tests/test_phase404_* / tools/phase404_*,doc,OK
+phase404_test,phase_artifacts,PHASE404_* / tests/test_phase404_* / tools/phase404_*,test,OK
+phase404_guard,phase_artifacts,PHASE404_* / tests/test_phase404_* / tools/phase404_*,guard,OK
+phase405_doc,phase_artifacts,PHASE405_* / tests/test_phase405_* / tools/phase405_*,doc,OK
+phase405_test,phase_artifacts,PHASE405_* / tests/test_phase405_* / tools/phase405_*,test,OK
+phase405_guard,phase_artifacts,PHASE405_* / tests/test_phase405_* / tools/phase405_*,guard,OK
+phase406_doc,phase_artifacts,PHASE406_* / tests/test_phase406_* / tools/phase406_*,doc,OK
+phase406_test,phase_artifacts,PHASE406_* / tests/test_phase406_* / tools/phase406_*,test,OK
+phase406_guard,phase_artifacts,PHASE406_* / tests/test_phase406_* / tools/phase406_*,guard,OK
+phase407_doc,phase_artifacts,PHASE407_* / tests/test_phase407_* / tools/phase407_*,doc,OK
+phase407_test,phase_artifacts,PHASE407_* / tests/test_phase407_* / tools/phase407_*,test,OK
+phase407_guard,phase_artifacts,PHASE407_* / tests/test_phase407_* / tools/phase407_*,guard,OK
+phase408_doc,phase_artifacts,PHASE408_* / tests/test_phase408_* / tools/phase408_*,doc,OK
+phase408_test,phase_artifacts,PHASE408_* / tests/test_phase408_* / tools/phase408_*,test,OK
+phase408_guard,phase_artifacts,PHASE408_* / tests/test_phase408_* / tools/phase408_*,guard,OK
+phase409_doc,phase_artifacts,PHASE409_* / tests/test_phase409_* / tools/phase409_*,doc,OK
+phase409_test,phase_artifacts,PHASE409_* / tests/test_phase409_* / tools/phase409_*,test,OK
+phase409_guard,phase_artifacts,PHASE409_* / tests/test_phase409_* / tools/phase409_*,guard,OK

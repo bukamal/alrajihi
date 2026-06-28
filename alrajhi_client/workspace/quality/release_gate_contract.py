@@ -37,6 +37,8 @@ class ReleaseGateCheck:
 RELEASE_GATE_PHASE = 277
 RELEASE_BASELINE_PHASE = 276
 # PHASE286_DASHBOARD_VISIBLE_PROFESSIONAL_LAYOUT is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE409_BASIT_FINAL_ACCEPTANCE_AUDIT is tracked below in REQUIRED_PHASE_DOCS.
+# tests/test_phase409_basit_final_acceptance_audit.py is generated from REQUIRED_PHASE_TESTS.
 
 REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
     f"PHASE{phase}_{suffix}.md"
@@ -191,6 +193,14 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (397, "FEATURE_ACTIVATION_GATE"),
         (398, "CATEGORY_INLINE_SAVE_BUTTON"),
         (401, "BASIT_INSPIRED_VISUAL_SYSTEM"),
+        (402, "BASIT_DASHBOARD_SURFACE"),
+        (403, "BASIT_TRANSACTION_SURFACE"),
+        (404, "BASIT_MANAGEMENT_SURFACE"),
+        (405, "BASIT_REPORTS_SETTINGS_SURFACE"),
+        (406, "BASIT_SHELL_CHROME"),
+        (407, "BASIT_STARTUP_DIALOGS_SURFACE"),
+        (408, "BASIT_PRINTING_SURFACE"),
+        (409, "BASIT_FINAL_ACCEPTANCE_AUDIT"),
     ]
 )
 
@@ -347,6 +357,14 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (397, "feature_activation_gate"),
         (398, "category_inline_save"),
         (401, "basit_visual_system"),
+        (402, "basit_dashboard_surface"),
+        (403, "basit_transaction_surface"),
+        (404, "basit_management_surface"),
+        (405, "basit_reports_settings_surface"),
+        (406, "basit_shell_chrome"),
+        (407, "basit_startup_dialogs_surface"),
+        (408, "basit_printing_surface"),
+        (409, "basit_final_acceptance_audit"),
     ]
 )
 
@@ -484,6 +502,14 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("feature_activation_gate", "activation", "Manufacturing, restaurant, cafe and apparel require a unified activation key before entry", "tools/phase397_feature_activation_gate_guard.py", "tools/audit_outputs/feature_activation_gate_matrix.csv", phase=397),
     ReleaseGateCheck("category_inline_save", "categories", "Category inline creation keeps a visible Save button outside hidden header cards", "tools/phase398_category_inline_save_guard.py", "tools/audit_outputs/category_inline_save_matrix.csv", phase=398),
     ReleaseGateCheck("basit_visual_system", "theme", "Basit-inspired operational palette, sizing and POS/dashboard visual skin", "tools/phase401_basit_visual_system_guard.py", "tools/audit_outputs/basit_visual_system_matrix.csv", phase=401),
+    ReleaseGateCheck("basit_dashboard_surface", "dashboard", "Dashboard shortcuts, panels and cash surfaces use the Basit-inspired visual system", "tools/phase402_basit_dashboard_surface_guard.py", "tools/audit_outputs/basit_dashboard_surface_matrix.csv", phase=402),
+    ReleaseGateCheck("basit_transaction_surface", "transactions", "Sales/purchase invoices and returns use Basit-inspired toolbar, grid and totals surfaces", "tools/phase403_basit_transaction_surface_guard.py", "tools/audit_outputs/basit_transaction_surface_matrix.csv", phase=403),
+    ReleaseGateCheck("basit_management_surface", "management", "Materials, parties, categories, vouchers and inline master-detail lists use the Basit-inspired list surface", "tools/phase404_basit_management_surface_guard.py", phase=404),
+    ReleaseGateCheck("basit_reports_settings_surface", "reports_settings", "Reports and Settings use the Basit-inspired filter, tab, card and summary surfaces", "tools/phase405_basit_reports_settings_surface_guard.py", "tools/audit_outputs/basit_reports_settings_surface_matrix.csv", phase=405),
+    ReleaseGateCheck("basit_shell_chrome", "shell", "Main menu, shared action bar and workspace tabs use the Basit-inspired shell chrome", "tools/phase406_basit_shell_chrome_guard.py", "tools/audit_outputs/basit_shell_chrome_matrix.csv", phase=406),
+    ReleaseGateCheck("basit_startup_dialogs_surface", "dialogs", "Startup, login, activation and system dialogs use the Basit-inspired entry surface", "tools/phase407_basit_startup_dialogs_surface_guard.py", "tools/audit_outputs/basit_startup_dialogs_surface_matrix.csv", phase=407),
+    ReleaseGateCheck("basit_printing_surface", "printing", "Invoices, receipts, reports, manufacturing and inventory browser HTML prints use the Basit-inspired print palette", "tools/phase408_basit_printing_surface_guard.py", "tools/audit_outputs/basit_printing_surface_matrix.csv", phase=408),
+    ReleaseGateCheck("basit_final_acceptance", "acceptance", "Final Basit-inspired visual acceptance gate across runtime, printing, startup and shell surfaces", "tools/phase409_basit_final_acceptance_audit.py", "tools/audit_outputs/basit_final_acceptance_matrix.csv", phase=409),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

@@ -193,6 +193,48 @@ def _font_family(settings: Dict[str, Any]) -> str:
     return str(family)
 
 
+def _basit_print_tokens(settings: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
+    """Return Basit-inspired print colors from the central theme tokens.
+
+    Browser/PDF templates cannot consume QSS properties directly, so the HTML
+    print layer reads the same Basit palette used by the runtime UI and maps it
+    to deterministic CSS variables.  The fallback values keep packaged builds
+    printable even if the theme package is unavailable.
+    """
+    settings = settings or {}
+    try:
+        try:
+            from theme.brand import LIGHT_TOKENS, DARK_TOKENS
+        except Exception:
+            from alrajhi_client.theme.brand import LIGHT_TOKENS, DARK_TOKENS
+        prefer_dark = str(settings.get('print_color_mode') or settings.get('appearance') or '').lower() in {'dark', 'night'}
+        colors = DARK_TOKENS if prefer_dark else LIGHT_TOKENS
+    except Exception:
+        colors = {}
+    return {
+        'blue': str(colors.get('basit_blue') or '#0076D7'),
+        'blue_hover': str(colors.get('basit_blue_hover') or '#005EAE'),
+        'yellow': str(colors.get('basit_yellow') or '#F2D21B'),
+        'yellow_soft': str(colors.get('basit_yellow_soft') or '#FFF3A3'),
+        'red': str(colors.get('basit_red') or '#D93600'),
+        'red_dark': str(colors.get('basit_red_dark') or '#B92E00'),
+        'canvas': str(colors.get('basit_canvas') or '#EEF1F6'),
+        'table_bg': str(colors.get('basit_table_bg') or '#F8FAFD'),
+        'table_alt': str(colors.get('basit_table_alt') or '#EEF3FA'),
+        'table_header_bg': str(colors.get('basit_table_header_bg') or '#C9D2E3'),
+        'table_header_text': str(colors.get('basit_table_header_text') or '#101827'),
+        'toolbar_bg': str(colors.get('basit_toolbar_bg') or '#DDE5F2'),
+        'toolbar_border': str(colors.get('basit_toolbar_border') or '#AAB8CC'),
+        'text': str(colors.get('text_primary') or '#111827'),
+        'muted': str(colors.get('text_muted') or '#64748B'),
+        'card_text': str(colors.get('basit_card_text') or '#FFFFFF'),
+        'category_text': str(colors.get('basit_category_text') or '#111827'),
+        'total_text': str(colors.get('basit_total_text') or '#FFFFFF'),
+    }
+
+
+
+
 
 
 
@@ -841,6 +883,11 @@ def base_document(title: str, body_html: str, paper: str = "a4", settings: Optio
     zebra = " zebra" if _bool_setting(settings, "zebra_rows", True) else ""
     thermal_show_logo = _bool_setting(settings, "thermal_show_logo", _bool_setting(settings, "show_logo", True))
     thermal_logo_display = "table-cell" if thermal_show_logo else "none"
+    # Phase408: Basit-inspired print/export surface.  Use the same blue/yellow/red
+    # operational palette as the runtime UI so printed invoices, receipts and
+    # reports match the screen-level visual system.
+    basit = _basit_print_tokens(settings)
+    accent = basit['blue']
 
     # Use table-based layout because Qt QTextDocument renders it more reliably than flex/grid in PDF.
     return f"""<!DOCTYPE html>
@@ -851,68 +898,69 @@ def base_document(title: str, body_html: str, paper: str = "a4", settings: Optio
 <style>
 @page {{ size: {spec['page']}; margin: {spec['margin']}; }}
 * {{ box-sizing: border-box; }}
-html, body {{ margin: 0; padding: 0; color: #111827; direction: {doc_dir}; }}
-html {{ background: #eef2f7; }}
-body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45; background: #eef2f7; }}
-.sheet {{ width: {spec['width']}; margin: 14px auto; background: #ffffff; padding: 11mm; box-shadow: 0 10px 30px rgba(15, 23, 42, .16); border-radius: 10px; }}
-.brand-table {{ width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 1px solid #dbe3ef; border-top: 5px solid {accent}; background: #ffffff; }}
+html, body {{ margin: 0; padding: 0; color: {basit['text']}; direction: {doc_dir}; }}
+html {{ background: {basit['canvas']}; }}
+body {{ font-family: {font_family}; font-size: {spec['font']}; line-height: 1.45; background: {basit['canvas']}; }}
+.sheet {{ width: {spec['width']}; margin: 14px auto; background: #ffffff; padding: 11mm; box-shadow: 0 10px 30px rgba(15, 23, 42, .16); border-radius: 6px; border: 2px solid {basit['toolbar_border']}; }}
+.brand-table {{ width: 100%; border-collapse: collapse; margin-bottom: 12px; border: 2px solid {basit['toolbar_border']}; border-top: 6px solid {basit['yellow']}; background: {basit['toolbar_bg']}; }}
 .brand-table td {{ vertical-align: middle; padding: 10px 9px; border: none; }}
-.brand-logo {{ width: 100px; text-align: center; border-{opposite_align}: 1px solid #e5e7eb !important; }}
+.brand-logo {{ width: 100px; text-align: center; border-{opposite_align}: 1px solid {basit['toolbar_border']} !important; background: #ffffff; }}
 .brand-logo img {{ max-width: 82px; max-height: 76px; object-fit: contain; }}
 .brand-main {{ text-align: {text_align}; }}
-.company-name {{ font-size: 21px; font-weight: 900; color: #0f172a; margin-bottom: 3px; letter-spacing: -.2px; }}
-.company-line {{ color: #475569; font-size: 92%; margin: 2px 0; }}
-.company-identity {{ color: #64748b; font-size: 88%; margin-top: 3px; }}
+.company-name {{ font-size: 21px; font-weight: 900; color: {basit['blue']}; margin-bottom: 3px; letter-spacing: -.2px; }}
+.company-line {{ color: {basit['text']}; font-size: 92%; margin: 2px 0; }}
+.company-identity {{ color: {basit['muted']}; font-size: 88%; margin-top: 3px; }}
 .company-identity span {{ display: inline-block; margin-{opposite_align}: 10px; white-space: nowrap; }}
-.brand-meta {{ width: 170px; text-align: center; background: #f8fafc; border-{text_align}: 1px solid #e5e7eb !important; }}
-.document-badge {{ display: inline-block; background: {accent}; color: #ffffff; padding: 7px 13px; border-radius: 999px; font-weight: 900; margin-bottom: 6px; min-width: 120px; }}
-.print-meta-label {{ color: #64748b; font-size: 86%; }}
-.print-meta-value {{ font-weight: 900; color: #111827; }}
-.muted {{ color: #64748b; font-size: 90%; }}
-.strong {{ font-weight: 800; color: #111827; }}
+.brand-meta {{ width: 170px; text-align: center; background: {basit['blue']}; border-{text_align}: 1px solid {basit['toolbar_border']} !important; color: {basit['card_text']}; }}
+.document-badge {{ display: inline-block; background: {basit['yellow']}; color: {basit['category_text']}; padding: 7px 13px; border-radius: 4px; font-weight: 900; margin-bottom: 6px; min-width: 120px; border: 1px solid {basit['red']}; }}
+.print-meta-label {{ color: {basit['card_text']}; font-size: 86%; opacity: .9; }}
+.print-meta-value {{ font-weight: 900; color: {basit['card_text']}; }}
+.muted {{ color: {basit['muted']}; font-size: 90%; }}
+.strong {{ font-weight: 800; color: {basit['text']}; }}
 .document-title {{ display: none; }}
-.meta-table {{ width: 100%; border-collapse: separate; border-spacing: 0; margin: 8px 0 12px; border: 1px solid #dbe3ef; border-radius: 8px; overflow: hidden; }}
-.meta-table td {{ border-{opposite_align}: 1px solid #dbe3ef; border-bottom: 1px solid #dbe3ef; background: #f8fafc; padding: 7px 9px; width: 33.33%; }}
+.meta-table {{ width: 100%; border-collapse: separate; border-spacing: 0; margin: 8px 0 12px; border: 2px solid {basit['toolbar_border']}; border-radius: 4px; overflow: hidden; }}
+.meta-table td {{ border-{opposite_align}: 1px solid {basit['toolbar_border']}; border-bottom: 1px solid {basit['toolbar_border']}; background: {basit['table_bg']}; padding: 7px 9px; width: 33.33%; }}
 .meta-table tr:last-child td {{ border-bottom: none; }}
 .meta-table td:last-child {{ border-{opposite_align}: none; }}
-.meta-label {{ display: block; color: #64748b; font-size: 86%; margin-bottom: 2px; }}
-.meta-value {{ display: block; font-weight: 850; color: #0f172a; }}
+.meta-label {{ display: block; color: {basit['blue']}; font-size: 86%; margin-bottom: 2px; font-weight: 800; }}
+.meta-value {{ display: block; font-weight: 850; color: {basit['text']}; }}
 .data-table {{ width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; direction: {doc_dir}; }}
-.data-table th {{ background: {accent}; color: #ffffff; border: 1px solid {accent}; padding: 7px 5px; font-weight: 850; text-align: center; white-space: normal; }}
-.data-table td {{ border: 1px solid #dbe3ef; padding: 6px 5px; text-align: center; vertical-align: middle; word-wrap: normal; overflow-wrap: normal; font-variant-numeric: tabular-nums; }}
-.zebra .data-table tbody tr:nth-child(even) td {{ background: #f8fafc; }}
+.data-table th {{ background: {basit['table_header_bg']}; color: {basit['table_header_text']}; border: 1px solid {basit['toolbar_border']}; border-bottom: 3px solid {basit['blue']}; padding: 7px 5px; font-weight: 850; text-align: center; white-space: normal; }}
+.data-table td {{ border: 1px solid {basit['toolbar_border']}; padding: 6px 5px; text-align: center; vertical-align: middle; word-wrap: normal; overflow-wrap: normal; font-variant-numeric: tabular-nums; background: {basit['table_bg']}; }}
+.zebra .data-table tbody tr:nth-child(even) td {{ background: {basit['table_alt']}; }}
+.data-table tbody tr:hover td {{ background: {basit['yellow_soft']}; }}
 .data-table thead {{ display: table-header-group; }}
 .data-table tr {{ page-break-inside: avoid; }}
 .data-table .text-cell {{ text-align: {text_align}; }}
 .empty-cell {{ color: #64748b; padding: 20px !important; }}
 .summary-table {{ width: 100%; border-collapse: separate; border-spacing: 6px; margin: 9px 0; }}
-.summary-card {{ border: 1px solid #dbe3ef; background: #f8fafc; border-radius: 10px; padding: 8px; text-align: center; }}
-.summary-label {{ color: #64748b; font-size: 88%; }}
-.summary-value {{ color: #0f172a; font-size: 115%; font-weight: 900; margin-top: 2px; }}
-.totals-table {{ width: 42%; min-width: 270px; margin-{opposite_align}: auto; margin-{text_align}: 0; margin-top: 12px; border-collapse: collapse; border: 1px solid #dbe3ef; }}
-.totals-table td {{ border-bottom: 1px solid #dbe3ef; padding: 7px 10px; }}
+.summary-card {{ border: 1px solid {basit['toolbar_border']}; background: {basit['table_bg']}; border-radius: 4px; padding: 8px; text-align: center; border-top: 4px solid {basit['yellow']}; }}
+.summary-label {{ color: {basit['blue']}; font-size: 88%; font-weight: 800; }}
+.summary-value {{ color: {basit['text']}; font-size: 115%; font-weight: 900; margin-top: 2px; }}
+.totals-table {{ width: 42%; min-width: 270px; margin-{opposite_align}: auto; margin-{text_align}: 0; margin-top: 12px; border-collapse: collapse; border: 2px solid {basit['toolbar_border']}; }}
+.totals-table td {{ border-bottom: 1px solid {basit['toolbar_border']}; padding: 7px 10px; }}
 .totals-table tr:last-child td {{ border-bottom: none; }}
-.totals-table td:first-child {{ background: #f8fafc; color: #334155; font-weight: 750; }}
+.totals-table td:first-child {{ background: {basit['table_bg']}; color: {basit['blue']}; font-weight: 750; }}
 .totals-table td:last-child {{ text-align: {opposite_align}; font-weight: 900; font-variant-numeric: tabular-nums; white-space: nowrap; }}
-.totals-table tr.final td {{ background: #eaf2ff; color: #0f172a; font-size: 111%; }}
-.totals-table tr.due td:last-child {{ color: #dc2626; }}
-.notes-box {{ margin-top: 12px; border: 1px dashed #cbd5e1; background: #fcfdff; padding: 9px; min-height: 34px; border-radius: 8px; }}
+.totals-table tr.final td {{ background: {basit['red']}; color: {basit['total_text']}; font-size: 111%; }}
+.totals-table tr.due td:last-child {{ color: {basit['red']}; }}
+.notes-box {{ margin-top: 12px; border: 1px dashed {basit['toolbar_border']}; background: {basit['table_bg']}; padding: 9px; min-height: 34px; border-radius: 4px; border-right: 5px solid {basit['yellow']}; }}
 .qr-table {{ width: 100%; margin-top: 10px; border-collapse: collapse; }}
 .qr-table td {{ text-align: center; border: none; color: #64748b; }}
 .qr-table img {{ width: 88px; height: 88px; }}
 .signatures {{ width: 100%; border-collapse: separate; border-spacing: 34px 0; margin-top: 30px; }}
 .signatures td {{ width: 50%; text-align: center; padding-top: 24px; border-top: 1px solid #475569; color: #334155; }}
-.print-footer {{ margin-top: 18px; padding-top: 8px; border-top: 1px solid #e5e7eb; text-align: center; color: #64748b; font-size: 90%; }}
+.print-footer {{ margin-top: 18px; padding-top: 8px; border-top: 3px solid {basit['yellow']}; text-align: center; color: {basit['muted']}; font-size: 90%; }}
 .compact .sheet {{ padding: 8mm; }}
 .compact .data-table th, .compact .data-table td, .compact .meta-table td, .compact .totals-table td {{ padding: 4px 3px; }}
 .thermal80, .thermal58 {{ background: #ffffff; }}
 .thermal80 .sheet, .thermal58 .sheet {{ width: {spec['width']}; margin: 0 auto; padding: 2mm; box-shadow: none; border-radius: 0; }}
-.thermal80 .brand-table, .thermal58 .brand-table {{ border: none; border-bottom: 1px dashed #94a3b8; margin-bottom: 5px; }}
+.thermal80 .brand-table, .thermal58 .brand-table {{ border: none; border-bottom: 1px dashed {basit['toolbar_border']}; margin-bottom: 5px; }}
 .thermal80 .brand-table td, .thermal58 .brand-table td {{ padding: 2px; }}
 .thermal80 .brand-logo, .thermal58 .brand-logo {{ display: {thermal_logo_display}; width: 34px; text-align: center; border: none !important; }}
 .thermal80 .brand-logo img, .thermal58 .brand-logo img {{ max-width: 30px; max-height: 30px; object-fit: contain; }}
 .thermal80 .brand-meta, .thermal58 .brand-meta {{ display: table-cell; width: auto; background: transparent; border: none !important; }}
-.thermal80 .document-badge, .thermal58 .document-badge {{ background: transparent; color: #111827; padding: 0; border-radius: 0; font-size: 11px; min-width: 0; }}
+.thermal80 .document-badge, .thermal58 .document-badge {{ background: transparent; color: {basit['text']}; padding: 0; border-radius: 0; font-size: 11px; min-width: 0; border: none; }}
 .thermal80 .print-meta-label, .thermal80 .print-meta-value, .thermal58 .print-meta-label, .thermal58 .print-meta-value {{ display: none; }}
 .thermal80 .company-name, .thermal58 .company-name {{ font-size: 11px; text-align: center; }}
 .thermal80 .company-line, .thermal80 .company-identity, .thermal58 .company-line, .thermal58 .company-identity {{ font-size: 8px; text-align: center; }}

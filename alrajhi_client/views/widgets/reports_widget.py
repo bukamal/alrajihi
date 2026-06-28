@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QComboBox,
-                             QDateEdit, QLabel, QTabWidget, QHeaderView, QMenu)
+                             QDateEdit, QLabel, QTabWidget, QHeaderView, QMenu, QFrame)
 from PyQt5.QtCore import Qt, QDate
 from i18n import translate as tr, qt_layout_direction
 from decimal import Decimal
@@ -38,9 +38,15 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         self.document_descriptor = self.DOCUMENT_DESCRIPTOR
         self.permission_binder = DocumentPermissionBinder(self.document_descriptor)
         self.setLayoutDirection(qt_layout_direction())
+        self.setProperty('basitReportsSurface', True)
         layout = QVBoxLayout(self)
 
-        period_layout = QHBoxLayout()
+        period_frame = QFrame(self)
+        period_frame.setObjectName('ReportsFilterToolbar')
+        period_frame.setProperty('basitReportToolbar', True)
+        period_layout = QHBoxLayout(period_frame)
+        period_layout.setContentsMargins(8, 6, 8, 6)
+        period_layout.setSpacing(8)
         period_layout.addWidget(QLabel(tr("period_label")))
         self.period_type = QComboBox()
         self.period_type.addItems([tr("period_month"), tr("period_year"), tr("period_custom")])
@@ -100,22 +106,26 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         period_layout.addWidget(self.item_filter)
 
         self.refresh_btn = QPushButton(tr("refresh_report"))
+        self.refresh_btn.setProperty('basitToolbarButton', True)
         self.refresh_btn.clicked.connect(self.refresh_report)
         period_layout.addWidget(self.refresh_btn)
 
         reset_btn = QPushButton(tr("reset_filters"))
+        reset_btn.setProperty('basitToolbarButton', True)
         reset_btn.clicked.connect(self.reset_report_filters)
         period_layout.addWidget(reset_btn)
 
         self.print_btn = QPushButton(tr("printing"))
         self.print_btn.setObjectName('reportPrintButton')
+        self.print_btn.setProperty('basitToolbarButton', True)
         self.print_btn.setToolTip(tr('settings_operation_reports_print'))
         self.print_btn.clicked.connect(lambda: self.print_report('print'))
         period_layout.addWidget(self.print_btn)
 
-        layout.addLayout(period_layout)
+        layout.addWidget(period_frame)
 
         self.tabs = QTabWidget()
+        self.tabs.setProperty('basitReportTabs', True)
         self.income_tab = QWidget()
         self.balance_tab = QWidget()
         self.wh_valuation_tab = QWidget()
@@ -162,6 +172,7 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
 
         self.report_summary = QLabel()
         self.report_summary.setObjectName('reportSummaryBar')
+        self.report_summary.setProperty('basitReportSummary', True)
         self.report_summary.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.report_summary)
 
@@ -385,6 +396,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
             table.setWordWrap(False)
             table.set_responsive_columns(True)
             table.setProperty('layout_profile', 'reports_compact')
+            table.setProperty('basitTable', True)
+            table.setProperty('basitReportTable', True)
             if descriptor is not None:
                 table.setProperty('report_grouped_navigation', True)
         except Exception:
@@ -482,6 +495,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                     table.setProperty('report_key', descriptor.report_key)
                     table.setProperty('report_api_resource', descriptor.api_resource)
                     table.setProperty('report_network_mode', descriptor.network_mode)
+                    table.setProperty('basitTable', True)
+                    table.setProperty('basitReportTable', True)
                 except Exception:
                     pass
 
@@ -566,6 +581,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 table.setProperty('report_key', descriptor.report_key)
                 table.setProperty('report_api_resource', descriptor.api_resource)
                 table.setProperty('report_network_mode', descriptor.network_mode)
+                table.setProperty('basitTable', True)
+                table.setProperty('basitReportTable', True)
                 table.setProperty('report_currency_policy', descriptor.currency_policy)
         except Exception:
             pass

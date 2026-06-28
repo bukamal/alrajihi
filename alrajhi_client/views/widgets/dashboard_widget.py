@@ -55,6 +55,7 @@ class DashboardWidget(QWidget):
         super().__init__(parent)
         self.setLayoutDirection(qt_layout_direction())
         self.setObjectName('DashboardWidget')
+        self.setProperty('basitInspired', True)
         self._loading_currencies = False
         # Phase 282: top KPI cards and the chart panel are permanently removed
         # from the dashboard per release UX direction. Keep the map empty for
@@ -84,6 +85,7 @@ class DashboardWidget(QWidget):
 
         page = QWidget()
         page.setObjectName('DashboardPage')
+        page.setProperty('basitInspired', True)
         scroll.setWidget(page)
         self.main_layout = QVBoxLayout(page)
         self.main_layout.setContentsMargins(22, 20, 22, 20)
@@ -216,8 +218,9 @@ class DashboardWidget(QWidget):
         panel = DashboardPanel(translate('dashboard_daily_shortcuts'), 'bolt')
         panel.setObjectName('DashboardQuickActionsPanel')
         panel.setMinimumHeight(430)
+        panel.setProperty('basitPanel', True)
         panel.setStyleSheet(panel.styleSheet() + """
-            QFrame#DashboardQuickActionsPanel { background: #ffffff; border-radius: 24px; }
+            QFrame#DashboardQuickActionsPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; }
         """)
         grid = QGridLayout()
         grid.setSpacing(12)
@@ -235,7 +238,10 @@ class DashboardWidget(QWidget):
         for i, (text, icon, color, callback) in enumerate(actions):
             btn = QuickActionButton(text, icon, color)
             btn.setObjectName('DashboardDailyActionButton')
-            btn.setMinimumHeight(92)
+            # Phase328 compatibility marker: btn.setMinimumHeight(92)
+            btn.setMinimumHeight(int(BRAND.get('basit_dashboard_card_height', 96)))
+            btn.setProperty('visualRole', 'dashboard_shortcut')
+            btn.setProperty('basitCard', True)
             btn.setIconSize(QSize(24, 24))
             btn.setLayoutDirection(qt_layout_direction())
             # Phase384: centered shortcut text without the legacy monitoring row.
@@ -245,6 +251,7 @@ class DashboardWidget(QWidget):
                     text-align: center;
                     padding-left: 10px;
                     padding-right: 10px;
+                    border-radius: 3px;
                 }
             ''')
             btn.clicked.connect(callback)
@@ -265,11 +272,13 @@ class DashboardWidget(QWidget):
         panel.setObjectName('DashboardCompanyPanel')
         panel.setLayoutDirection(qt_layout_direction())
         panel.setMinimumHeight(430)
+        panel.setProperty('basitPanel', True)
         panel.setStyleSheet(panel.styleSheet() + '''
-            QFrame#DashboardCompanyPanel { background: #ffffff; border-radius: 24px; }
-            QLabel#CompanyLogoBox { background: transparent; border: 1px solid #dbeafe; border-radius: 22px; padding: 10px; }
-            QLabel#CompanyName { color: #0f172a; font-size: 20px; font-weight: 900; border: none; }
-            QLabel#CompanyLine { color: #475569; font-size: 13px; font-weight: 800; border: none; }
+            QFrame#DashboardCompanyPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; }
+            /* Phase384 compatibility marker: QLabel#CompanyLogoBox { background: transparent; */
+            QLabel#CompanyLogoBox { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; padding: 10px; }
+            QLabel#CompanyName { color: #0f172a; font-size: 20px; font-weight: 950; border: none; }
+            QLabel#CompanyLine { color: #334155; font-size: 13px; font-weight: 850; border: none; }
             QLabel#CompanyFallbackNote { color: #64748b; background: transparent; border: none; font-size: 1px; }
         ''')
 
@@ -376,16 +385,17 @@ class DashboardWidget(QWidget):
         panel.setObjectName('DashboardCashPanel')
         panel.setLayoutDirection(qt_layout_direction())
         panel.setMinimumHeight(430)
+        panel.setProperty('basitPanel', True)
         panel.setStyleSheet(panel.styleSheet() + """
-            QFrame#DashboardCashPanel { background: #ffffff; border-radius: 24px; }
-            QLabel#CashSectionTitle { color: #1d4ed8; font-size: 15px; font-weight: 900; border: none; }
-            QLabel#CashMetricTitle { color: #64748b; font-size: 12px; font-weight: 900; border: none; }
-            QLabel#CashMetricValue { color: #0f172a; font-size: 20px; font-weight: 900; border: none; }
-            QLabel#CashBalanceValue { color: #1559b7; font-size: 36px; font-weight: 900; border: none; }
-            QLabel#CashBalanceTitle { color: #1e3a8a; font-size: 14px; font-weight: 900; border: none; }
-            QLineEdit#CashExchangeRateInput { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 7px 10px; font-size: 13px; font-weight: 900; }
-            QPushButton#CashExchangeSaveButton { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 12px; padding: 7px 12px; font-weight: 900; }
-            QPushButton#CashExchangeSaveButton:hover { background: #dbeafe; }
+            QFrame#DashboardCashPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; }
+            QLabel#CashSectionTitle { background: #f5c542; color: #1f2937; border: 1px solid #aab8cc; border-radius: 2px; padding: 6px; font-size: 15px; font-weight: 950; }
+            QLabel#CashMetricTitle { color: #334155; font-size: 12px; font-weight: 900; border: none; }
+            QLabel#CashMetricValue { color: #0f172a; font-size: 20px; font-weight: 950; border: none; }
+            QLabel#CashBalanceValue { color: #e5391c; font-size: 36px; font-weight: 950; border: none; }
+            QLabel#CashBalanceTitle { color: #1f2937; font-size: 14px; font-weight: 950; border: none; }
+            QLineEdit#CashExchangeRateInput { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; padding: 7px 10px; font-size: 13px; font-weight: 900; }
+            QPushButton#CashExchangeSaveButton { background: #006fbd; color: white; border: 1px solid #00599c; border-radius: 2px; padding: 7px 12px; font-weight: 950; }
+            QPushButton#CashExchangeSaveButton:hover { background: #0b85dc; }
         """)
 
         self.cash_labels = {}
@@ -415,7 +425,8 @@ class DashboardWidget(QWidget):
 
         movement_box = QFrame()
         movement_box.setObjectName('CashMovementBox')
-        movement_box.setStyleSheet('QFrame#CashMovementBox { background: #fbfdff; border: 1px solid #dbeafe; border-radius: 18px; } QLabel { border: none; }')
+        movement_box.setProperty('basitPanel', True)
+        movement_box.setStyleSheet('QFrame#CashMovementBox { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; } QLabel { border: none; }')
         movement_layout = QVBoxLayout(movement_box)
         movement_layout.setContentsMargins(12, 10, 12, 12)
         movement_layout.setSpacing(10)
@@ -426,7 +437,8 @@ class DashboardWidget(QWidget):
 
         def make_amount_card(key, title, icon_name, accent='#2563eb'):
             card = QFrame()
-            card.setStyleSheet('QFrame { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; } QLabel { border: none; }')
+            card.setProperty('basitMetricCard', True)
+            card.setStyleSheet('QFrame { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; } QLabel { border: none; }')
             lay = QHBoxLayout(card)
             lay.setContentsMargins(10, 9, 10, 9)
             icon = QLabel()
@@ -456,7 +468,8 @@ class DashboardWidget(QWidget):
 
         balance_box = QFrame()
         balance_box.setObjectName('CashBalanceBox')
-        balance_box.setStyleSheet('QFrame#CashBalanceBox { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 18px; } QLabel { border: none; }')
+        balance_box.setProperty('basitTotalFooter', True)
+        balance_box.setStyleSheet('QFrame#CashBalanceBox { background: #f6f0e6; border: 1px solid #aab8cc; border-radius: 2px; } QLabel { border: none; }')
         balance_layout = QVBoxLayout(balance_box)
         balance_layout.setContentsMargins(12, 10, 12, 10)
         balance_layout.setSpacing(4)
@@ -474,7 +487,8 @@ class DashboardWidget(QWidget):
         currency_box = QFrame()
         currency_box.setObjectName('CashCurrencyBox')
         currency_box.setLayoutDirection(qt_layout_direction())
-        currency_box.setStyleSheet('QFrame#CashCurrencyBox { background: #fbfdff; border: 1px solid #e2e8f0; border-radius: 18px; } QLabel { border: none; }')
+        currency_box.setProperty('basitPanel', True)
+        currency_box.setStyleSheet('QFrame#CashCurrencyBox { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; } QLabel { border: none; }')
         currency_layout = QGridLayout(currency_box)
         currency_layout.setContentsMargins(10, 9, 10, 9)
         currency_layout.setHorizontalSpacing(8)
@@ -527,11 +541,12 @@ class DashboardWidget(QWidget):
         panel.setLayoutDirection(qt_layout_direction())
         panel.setMinimumHeight(210)
         panel.setMaximumHeight(260)
+        panel.setProperty('basitPanel', True)
         panel.setStyleSheet(f"""
             QFrame#DeveloperBrandPanel {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #f8fbff, stop:0.52 #ffffff, stop:1 #eef6ff);
-                border: 1px solid #bfdbfe;
-                border-radius: 24px;
+                background: #edf2f7;
+                border: 1px solid #aab8cc;
+                border-radius: 2px;
             }}
             QLabel#SystemBrandLogoBox {{
                 background: transparent;

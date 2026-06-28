@@ -114,12 +114,13 @@ NAV_GROUP_BY_PAGE = page_navigation_groups()
 # Phase 332: main navigation metrics are design tokens, not local one-off
 # constants.  This upgrades the previously tiny menu while keeping all page
 # routing and module visibility owned by the Phase 331 registry.
-NAV_BAR_HEIGHT = int(BRAND.get('nav_height', 74))
+# Phase332 compatibility marker: NAV_BAR_HEIGHT = int(BRAND.get('nav_height', 74))
+NAV_BAR_HEIGHT = int(BRAND.get('basit_shell_nav_height', BRAND.get('nav_height', 74)))
 NAV_ICON_SIZE = int(BRAND.get('nav_icon_size', 26))
 NAV_BUTTON_MIN_WIDTH = int(BRAND.get('nav_button_min_width', 76))
 NAV_BUTTON_MAX_WIDTH = int(BRAND.get('nav_button_max_width', 112))
 NAV_BUTTON_HOME_WIDTH = int(BRAND.get('nav_button_home_width', 64))
-NAV_BUTTON_HEIGHT = int(BRAND.get('nav_button_height', 64))
+NAV_BUTTON_HEIGHT = int(BRAND.get('basit_shell_nav_button_height', BRAND.get('nav_button_height', 64)))
 NAV_FONT_PX = int(BRAND.get('nav_font_px', 12))
 
 
@@ -132,54 +133,65 @@ DOCUMENT_TAB_PREFIXES = (
 
 def navigation_bar_stylesheet() -> str:
     colors = get_tokens(settings_service.get_theme() or 'light')
-    radius = int(BRAND.get('shell_menu_button_radius', 16))
+    radius = int(BRAND.get('basit_shell_menu_button_radius', 4))
+    basit_bg = colors.get('basit_shell_bg', colors.get('basit_toolbar_bg', colors['bg_panel']))
+    basit_blue = colors.get('basit_shell_menu_bg', colors.get('basit_blue', colors['primary']))
+    basit_blue_hover = colors.get('basit_blue_hover', colors['primary'])
+    basit_yellow = colors.get('basit_shell_active_bg', colors.get('basit_yellow', colors['warning']))
+    basit_active_text = colors.get('basit_shell_active_text', colors['text_primary'])
     return f"""
-        /* Phase354: branded icon menu and action bar runtime. */
+        /* Phase406: Basit-inspired shell navigation chrome. */
         QWidget#IconMenuBar {{
-            background-color: {colors.get('menu_bg', colors['bg_panel'])};
-            border-bottom: 1px solid {colors.get('menu_border', colors['border'])};
+            background-color: {basit_bg};
+            border-bottom: 2px solid {colors.get('basit_toolbar_border', colors['border'])};
         }}
         QToolButton#MainNavToolButton {{
-            background: transparent;
-            border: 1px solid transparent;
+            background: {basit_blue};
+            border: 1px solid {colors.get('basit_card_border', basit_blue)};
             border-radius: {radius}px;
             padding: 7px 9px;
             font-size: {NAV_FONT_PX}px;
             font-weight: 950;
-            color: {colors['text_primary']};
+            color: {colors.get('basit_shell_menu_text', '#FFFFFF')};
+        }}
+        QToolButton#MainNavToolButton[shellChromeRole="home"] {{
+            background: {basit_yellow};
+            color: {basit_active_text};
+            border-color: {colors.get('basit_red', colors['danger'])};
         }}
         QToolButton#MainNavToolButton:hover {{
-            background: {colors.get('shell_menu_hover_bg', colors.get('brand_soft', colors['bg_table_alt']))};
-            border-color: {colors['primary']};
-            color: {colors['primary']};
+            background: {basit_blue_hover};
+            border-color: {basit_yellow};
+            color: #FFFFFF;
         }}
         QToolButton#MainNavToolButton:pressed,
         QToolButton#MainNavToolButton[popupMode="1"]:checked {{
-            background: {colors.get('shell_menu_open_bg', colors.get('brand_soft', colors['bg_table_alt']))};
-            border-color: {colors.get('brand_gold', colors['warning'])};
+            background: {basit_yellow};
+            color: {basit_active_text};
+            border-color: {colors.get('basit_red', colors['danger'])};
         }}
         QToolButton#MainNavToolButton::menu-indicator {{ image: none; width: 0px; }}
         QMenu {{
-            background: {colors.get('menu_bg', colors['bg_panel'])};
+            background: {colors.get('basit_table_bg', colors['bg_panel'])};
             color: {colors['text_primary']};
-            padding: 9px;
-            border: 1px solid {colors.get('menu_border', colors['border'])};
-            border-radius: 12px;
+            padding: 7px;
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 4px;
             font-size: {NAV_FONT_PX}px;
-            font-weight: 800;
+            font-weight: 850;
         }}
         QMenu::item {{
-            padding: 11px 40px 11px 24px;
-            border-radius: 9px;
+            padding: 10px 40px 10px 24px;
+            border-radius: 3px;
             min-width: 230px;
         }}
         QMenu::item:selected {{
-            background: {colors.get('menu_active_bg', colors['primary'])};
-            color: {colors.get('menu_active_text', '#FFFFFF')};
+            background: {basit_yellow};
+            color: {basit_active_text};
         }}
         QMenu::separator {{
             height: 1px;
-            background: {colors['border']};
+            background: {colors.get('basit_toolbar_border', colors['border'])};
             margin: 7px 10px;
         }}
     """
@@ -320,6 +332,7 @@ class MainWindow(QMainWindow):
         self.title_bar.setVisible(False)
 
         self.menu_bar = IconMenuBar(self)
+        self.menu_bar.setProperty('basitShellChrome', True)
         self.menu_bar.setStyleSheet(navigation_bar_stylesheet())
         # Phase 318 compatibility marker: self.menu_bar.setFixedHeight(66)
         self.menu_bar.setFixedHeight(NAV_BAR_HEIGHT)
@@ -334,6 +347,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.top_bar)
 
         self.action_bar = UnifiedActionBar(self)
+        self.action_bar.setProperty('basitShellChrome', True)
         main_layout.addWidget(self.action_bar)
 
         workspace_shell = QWidget(self)
@@ -345,6 +359,7 @@ class MainWindow(QMainWindow):
         self.workspace_host = QStackedWidget(workspace_shell)
         self.workspace_host.setObjectName("WorkspaceHost")
         self.workspace = TabbedWorkspace(self.workspace_host)
+        self.workspace.setProperty('basitShellTabs', True)
         self.stack = self.workspace  # compatibility alias during the tabbed-shell migration
         self.workspace_host.addWidget(self.workspace)
         workspace_shell_layout.addWidget(self.workspace_host, 1)

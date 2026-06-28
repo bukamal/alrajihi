@@ -37,6 +37,7 @@ class SettingsWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction(self._current_language))
         self.settings = settings_service
         self.setObjectName('settingsWidget')
+        self.setProperty('basitSettingsSurface', True)
 
         main = QVBoxLayout(self)
         main.setContentsMargins(18, 18, 18, 18)
@@ -45,6 +46,7 @@ class SettingsWidget(QWidget):
 
         self.tabs = QTabWidget()
         self.tabs.setObjectName('settingsTabs')
+        self.tabs.setProperty('basitSettingsTabs', True)
         self.tabs.setDocumentMode(True)
         self.tabs.setUsesScrollButtons(True)
         self.tabs.setElideMode(Qt.ElideRight)
@@ -139,6 +141,7 @@ class SettingsWidget(QWidget):
         for group_key, group_label_factory, child_keys in self._settings_group_registry:
             nested = QTabWidget()
             nested.setObjectName(f'settingsGroupTabs_{group_key}')
+            nested.setProperty('basitSettingsGroupTabs', True)
             nested.setDocumentMode(True)
             nested.setUsesScrollButtons(True)
             nested.setElideMode(Qt.ElideRight)
@@ -160,6 +163,7 @@ class SettingsWidget(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
         container = QWidget()
+        container.setProperty('basitSettingsScrollPage', True)
         layout = QVBoxLayout(container)
         layout.setContentsMargins(8, 12, 8, 18)
         layout.setSpacing(14)
@@ -169,6 +173,7 @@ class SettingsWidget(QWidget):
     def _card(self, title, subtitle=None):
         group = QGroupBox(title)
         group.setObjectName('settingsCard')
+        group.setProperty('basitSettingsCard', True)
         box = QVBoxLayout(group)
         box.setContentsMargins(16, 18, 16, 16)
         box.setSpacing(10)
@@ -193,6 +198,7 @@ class SettingsWidget(QWidget):
         row.addStretch()
         for btn in buttons:
             btn.setMinimumHeight(38)
+            btn.setProperty('basitToolbarButton', True)
             row.addWidget(btn)
         return row
 
@@ -200,6 +206,7 @@ class SettingsWidget(QWidget):
         lbl = QLabel(text)
         lbl.setWordWrap(True)
         lbl.setObjectName(f'note_{tone}')
+        lbl.setProperty('basitSettingsNote', True)
         return lbl
 
     def _apply_local_style(self):
@@ -218,6 +225,13 @@ class SettingsWidget(QWidget):
             QGroupBox#settingsCard::title {{ subcontrol-origin: margin; right: 14px; padding: 0 8px; color: {c['primary']}; background: {c['card_bg']}; }}
             QLabel#note_warning {{ background: {c['warning_soft']}; border: 1px solid {c['warning']}; color: {c['warning']}; border-radius: 10px; padding: 10px; }}
             QLabel#note_info {{ background: {c['info_soft']}; border: 1px solid {c['info']}; color: {c['primary']}; border-radius: 10px; padding: 10px; }}
+
+            /* Phase405: Basit settings surface overlay. */
+            QWidget#settingsWidget[basitSettingsSurface="true"] {{ background-color: {c.get('basit_canvas', c['bg_window'])}; }}
+            QTabWidget#settingsTabs[basitSettingsTabs="true"]::pane {{ border: 1px solid {c.get('basit_toolbar_border', c['border'])}; border-radius: 2px; background: {c.get('basit_table_bg', c['bg_window'])}; }}
+            QTabWidget[basitSettingsGroupTabs="true"]::pane {{ border: 1px solid {c.get('basit_toolbar_border', c['border'])}; border-radius: 2px; background: {c.get('basit_table_bg', c['bg_window'])}; }}
+            QGroupBox#settingsCard[basitSettingsCard="true"] {{ border: 1px solid {c.get('basit_toolbar_border', c['border'])}; border-radius: 2px; background: {c.get('basit_table_bg', c['card_bg'])}; color: {c['text_primary']}; font-weight: 900; }}
+            QGroupBox#settingsCard[basitSettingsCard="true"]::title {{ color: {c.get('basit_category_text', c['text_primary'])}; background: {c.get('basit_yellow', c['warning'])}; border: 1px solid {c.get('basit_toolbar_border', c['border'])}; border-radius: 2px; padding: 4px 10px; }}
         """)
 
     def create_appearance_tab(self):

@@ -102,22 +102,26 @@ class KPIStatCard(QFrame):
 
 class QuickActionButton(QPushButton):
     def __init__(self, text, icon_name, color, parent=None):
+        # Phase402: dashboard shortcuts use a Basit-inspired uniform blue card
+        # surface. The legacy color argument is kept for API compatibility.
         super().__init__(qta.icon(f'fa5s.{icon_name}', color='white'), str(text), parent)
         self.setCursor(Qt.PointingHandCursor)
         self.setIconSize(QSize(24, 24))
-        self.setMinimumHeight(58)
+        self.setMinimumHeight(96)
+        self.setProperty('visualRole', 'dashboard_shortcut')
+        self.setProperty('basitCard', True)
         self.setStyleSheet(f'''
             QPushButton {{
-                background: {color};
-                color: white;
-                border: none;
-                border-radius: 16px;
+                background: {_dc('basit_blue', _dc('primary', '#0F3D75'))};
+                color: {_dc('basit_card_text', '#FFFFFF')};
+                border: 1px solid {_dc('basit_card_border', _dc('primary', '#0F3D75'))};
+                border-radius: 3px;
                 padding: 10px 10px;
-                font-size: 13px;
-                font-weight: 900;
+                font-size: 14px;
+                font-weight: 950;
                 text-align: center;
             }}
-            QPushButton:hover {{ background: {_dc('primary_hover', '#1E5AA8')}; }}
+            QPushButton:hover {{ background: {_dc('basit_blue_hover', _dc('primary_hover', '#1E5AA8'))}; }}
         ''')
 
 
@@ -125,16 +129,21 @@ class DashboardPanel(QFrame):
     def __init__(self, title, icon_name='circle', parent=None):
         super().__init__(parent)
         self.setObjectName('DashboardPanel')
+        self.setProperty('basitPanel', True)
         self.setStyleSheet(f'''
             QFrame#DashboardPanel {{
-                background: {_dc('card_bg', '#FFFFFF')};
-                border: 1px solid {_dc('border', '#E2E8F0')};
-                border-radius: 22px;
+                background: {_dc('basit_table_bg', _dc('card_bg', '#FFFFFF'))};
+                border: 1px solid {_dc('basit_toolbar_border', _dc('border', '#E2E8F0'))};
+                border-radius: 2px;
             }}
             QLabel#PanelTitle {{
-                color: {_dc('text_primary', '#1A202C')};
+                background: {_dc('basit_yellow', '#F5C542')};
+                color: {_dc('basit_category_text', '#1F2937')};
+                border: 1px solid {_dc('basit_toolbar_border', _dc('border', '#E2E8F0'))};
+                border-radius: 2px;
+                padding: 7px 10px;
                 font-size: 17px;
-                font-weight: 900;
+                font-weight: 950;
             }}
         ''')
         self.layout = QVBoxLayout(self)

@@ -1,0 +1,19 @@
+check,path,needle,status
+contract_exists,alrajhi_client/workspace/quality/basit_reports_settings_surface_contract.py,BASIT_REPORTS_SETTINGS_SURFACE_CONTRACT,OK
+reports_imports_frame,alrajhi_client/views/widgets/reports_widget.py,"QMenu, QFrame",OK
+reports_root_property,alrajhi_client/views/widgets/reports_widget.py,basitReportsSurface,OK
+reports_toolbar_frame,alrajhi_client/views/widgets/reports_widget.py,ReportsFilterToolbar,OK
+reports_toolbar_property,alrajhi_client/views/widgets/reports_widget.py,basitReportToolbar,OK
+reports_action_buttons,alrajhi_client/views/widgets/reports_widget.py,basitToolbarButton,OK
+reports_tabs_property,alrajhi_client/views/widgets/reports_widget.py,basitReportTabs,OK
+reports_summary_property,alrajhi_client/views/widgets/reports_widget.py,basitReportSummary,OK
+reports_tables_property,alrajhi_client/views/widgets/reports_widget.py,basitReportTable,OK
+settings_root_property,alrajhi_client/views/widgets/settings_widget.py,basitSettingsSurface,OK
+settings_tabs_property,alrajhi_client/views/widgets/settings_widget.py,basitSettingsTabs,OK
+settings_group_tabs_property,alrajhi_client/views/widgets/settings_widget.py,basitSettingsGroupTabs,OK
+settings_card_property,alrajhi_client/views/widgets/settings_widget.py,basitSettingsCard,OK
+settings_action_buttons,alrajhi_client/views/widgets/settings_widget.py,basitToolbarButton,OK
+qss_phase405,alrajhi_client/theme/qss.py,Phase405: Basit-inspired reports and settings surfaces,OK
+qss_report_toolbar,alrajhi_client/theme/qss.py,QFrame#ReportsFilterToolbar[basitReportToolbar,OK
+qss_report_summary,alrajhi_client/theme/qss.py,QLabel#reportSummaryBar[basitReportSummary,OK
+qss_settings_card,alrajhi_client/theme/qss.py,QGroupBox#settingsCard[basitSettingsCard,OK

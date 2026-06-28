@@ -14,12 +14,14 @@ class FramelessDialog(QDialog):
         self.setModal(True)
         self.setLayoutDirection(Qt.RightToLeft)
         self.setProperty('brandDialog', True)
+        self.setProperty('basitDialogSurface', True)
         self.setProperty('dialogKind', 'frameless')
         self.drag_pos = None
         
         self.main_frame = QFrame(self)
         self.main_frame.setObjectName("BrandDialogFrame")
         self.main_frame.setProperty('dialogSurface', 'frame')
+        self.main_frame.setProperty('basitDialogFrame', True)
         self.main_frame.setStyleSheet(f"""
             #BrandDialogFrame {{
                 background-color: {ThemeManager.get('bg_sidebar')};

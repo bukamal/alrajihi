@@ -24,6 +24,7 @@ from auth.activation import activate_feature, check_feature_activation, normaliz
 from i18n.translator import qt_layout_direction, translate
 from core.services.settings_service import settings_service
 from theme_manager import ThemeManager
+from ui.dialog_branding import apply_branded_dialog, brand_message_box
 
 
 FEATURE_TITLE_KEYS = {
@@ -45,6 +46,8 @@ class ModuleActivationDialog(QDialog):
         self.reason = reason or ''
         self.setWindowTitle(translate('module_activation_title', module=self.feature_label))
         self.setLayoutDirection(qt_layout_direction(settings_service.get_language()))
+        self.setProperty('basitDialogSurface', True)
+        self.setProperty('dialogKind', 'module_activation')
         self.resize(500, 250)
 
         layout = QVBoxLayout(self)
@@ -57,10 +60,8 @@ class ModuleActivationDialog(QDialog):
         )
         self.help_label.setWordWrap(True)
         self.help_label.setAlignment(Qt.AlignVCenter)
-        self.help_label.setStyleSheet(
-            "QLabel { background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe; "
-            "border-radius:8px; padding:10px; }"
-        )
+        self.help_label.setObjectName('BasitDialogHelp')
+        self.help_label.setProperty('dialogLabelRole', 'subtitle')
         layout.addWidget(self.help_label)
 
         self.key_edit = QLineEdit()
@@ -83,12 +84,15 @@ class ModuleActivationDialog(QDialog):
         if isinstance(self.activate_button, QPushButton):
             self.activate_button.setText(translate('module_activation_activate'))
             self.activate_button.setObjectName('primary')
+            self.activate_button.setProperty('dialogActionRole', 'primary')
         cancel_button = self.button_box.button(QDialogButtonBox.Cancel)
         if isinstance(cancel_button, QPushButton):
             cancel_button.setText(translate('cancel'))
+            cancel_button.setProperty('dialogActionRole', 'close')
         self.button_box.accepted.connect(self._activate)
         self.button_box.rejected.connect(self.reject)
         layout.addWidget(self.button_box)
+        apply_branded_dialog(self, self.windowTitle(), role='module_activation')
 
     def _set_status(self, text: str, color_key: str = 'danger') -> None:
         self.status_label.setText(text)
@@ -107,11 +111,12 @@ class ModuleActivationDialog(QDialog):
         if self.activate_button is not None:
             self.activate_button.setEnabled(True)
         if success:
-            QMessageBox.information(
-                self,
-                translate('success'),
-                translate('module_activation_success', module=self.feature_label),
-            )
+            box = QMessageBox(self)
+            box.setIcon(QMessageBox.Information)
+            box.setWindowTitle(translate('success'))
+            box.setText(translate('module_activation_success', module=self.feature_label))
+            brand_message_box(box, 'info')
+            box.exec_()
             self.accept()
         else:
             self._set_status(translate('module_activation_failed', message=message))

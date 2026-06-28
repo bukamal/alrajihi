@@ -1600,6 +1600,110 @@ def build_global_qss(colors: dict) -> str:
 
 
 
+        /* Phase407: Basit-inspired startup, login, activation and dialogs. */
+        QFrame#startupCard[basitStartupSurface="true"] {{
+            background-color: {colors.get('basit_blue', colors['primary'])};
+            border: 3px solid {colors.get('basit_yellow', colors['warning'])};
+            border-radius: {BRAND.get('basit_startup_card_radius', radius_lg)}px;
+        }}
+        QFrame#startupCard[basitStartupSurface="true"] QLabel#brandMark {{
+            background-color: {colors.get('basit_yellow', colors['warning'])};
+            border: 2px solid {colors.get('basit_red', colors['danger'])};
+            border-radius: {radius_sm}px;
+        }}
+        QFrame#startupCard[basitStartupSurface="true"] QLabel#firstRunStageChip,
+        QFrame#startupCard[basitStartupSurface="true"] QLabel[firstRunStageChip="true"] {{
+            background-color: {colors.get('basit_table_bg', colors['bg_panel'])};
+            color: {colors.get('basit_shell_active_text', colors['text_primary'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 3px;
+            padding: 5px 10px;
+            font-weight: 900;
+        }}
+        QFrame#loginCard[basitFirstRunChrome="true"],
+        QFrame#activationCard[basitFirstRunChrome="true"] {{
+            background-color: {colors.get('basit_canvas', colors['bg_window'])};
+            border: 2px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-top: 5px solid {colors.get('basit_yellow', colors['warning'])};
+            border-radius: {BRAND.get('basit_startup_card_radius', radius_lg)}px;
+        }}
+        QFrame#loginCard[basitFirstRunChrome="true"] QLabel#heroTitle,
+        QFrame#activationCard[basitFirstRunChrome="true"] QLabel#firstRunFormTitle {{
+            color: {colors.get('basit_blue', colors['primary'])};
+            background-color: {colors.get('basit_yellow', colors['warning'])};
+            border: 1px solid {colors.get('basit_red', colors['danger'])};
+            border-radius: 3px;
+            padding: 8px 12px;
+            font-weight: 950;
+        }}
+        QFrame#loginCard[basitFirstRunChrome="true"] QLineEdit,
+        QFrame#loginCard[basitFirstRunChrome="true"] QComboBox,
+        QFrame#activationCard[basitFirstRunChrome="true"] QLineEdit,
+        QDialog[basitDialogSurface="true"] QLineEdit,
+        QDialog[basitDialogSurface="true"] QComboBox {{
+            background-color: {colors.get('basit_table_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-right: 4px solid {colors.get('basit_blue', colors['primary'])};
+            border-radius: 3px;
+            min-height: {BRAND.get('basit_dialog_button_height', input_min)}px;
+            font-weight: 800;
+        }}
+        QFrame#loginCard[basitFirstRunChrome="true"] QPushButton#primary,
+        QFrame#activationCard[basitFirstRunChrome="true"] QPushButton#firstRunPrimary,
+        QDialog[basitDialogSurface="true"] QPushButton[dialogActionRole="primary"] {{
+            background-color: {colors.get('basit_blue', colors['primary'])};
+            color: {colors.get('basit_card_text', '#FFFFFF')};
+            border: 2px solid {colors.get('basit_card_border', colors['primary'])};
+            border-bottom: 4px solid {colors.get('basit_yellow', colors['warning'])};
+            border-radius: 3px;
+            min-height: {BRAND.get('basit_dialog_button_height', 44)}px;
+            font-weight: 950;
+        }}
+        QFrame#loginCard[basitFirstRunChrome="true"] QPushButton#primary:hover,
+        QFrame#activationCard[basitFirstRunChrome="true"] QPushButton#firstRunPrimary:hover,
+        QDialog[basitDialogSurface="true"] QPushButton[dialogActionRole="primary"]:hover {{
+            background-color: {colors.get('basit_blue_hover', colors.get('primary_hover', colors['primary']))};
+            border-color: {colors.get('basit_yellow', colors['warning'])};
+        }}
+        QFrame#loginCard[basitFirstRunChrome="true"] QPushButton#secondary,
+        QFrame#activationCard[basitFirstRunChrome="true"] QPushButton#firstRunSecondary,
+        QDialog[basitDialogSurface="true"] QPushButton[dialogActionRole="secondary"],
+        QDialog[basitDialogSurface="true"] QPushButton[dialogActionRole="close"] {{
+            background-color: {colors.get('basit_table_bg', colors['bg_panel'])};
+            color: {colors.get('basit_shell_active_text', colors['text_primary'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 3px;
+            min-height: {BRAND.get('basit_dialog_button_height', 44)}px;
+            font-weight: 900;
+        }}
+        QFrame#loginCard[basitFirstRunChrome="true"] QLabel#danger,
+        QDialog[basitDialogSurface="true"] QLabel#danger {{
+            background-color: {colors.get('basit_red', colors['danger'])};
+            color: {colors.get('basit_total_text', '#FFFFFF')};
+            border-radius: 3px;
+            padding: 6px 10px;
+            font-weight: 900;
+        }}
+        QDialog[basitDialogSurface="true"] QFrame#BrandDialogFrame,
+        QMessageBox[basitDialogSurface="true"] {{
+            background-color: {colors.get('basit_canvas', colors['bg_window'])};
+            border: 2px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-top: 5px solid {colors.get('basit_yellow', colors['warning'])};
+            border-radius: {BRAND.get('basit_startup_card_radius', radius_lg)}px;
+        }}
+        QDialog[basitDialogSurface="true"] QFrame#BrandDialogHeader {{
+            min-height: {BRAND.get('basit_dialog_header_height', dialog_header_height)}px;
+            background-color: {colors.get('basit_blue', colors['primary'])};
+            color: {colors.get('basit_card_text', '#FFFFFF')};
+            border-bottom: 4px solid {colors.get('basit_yellow', colors['warning'])};
+            border-top-left-radius: {BRAND.get('basit_startup_card_radius', radius_lg)}px;
+            border-top-right-radius: {BRAND.get('basit_startup_card_radius', radius_lg)}px;
+        }}
+        QDialog[basitDialogSurface="true"] QLabel#BrandDialogTitle {{
+            color: {colors.get('basit_card_text', '#FFFFFF')};
+            font-weight: 950;
+        }}
+
         /* Phase356: branded dialogs and system windows. */
         QDialog[brandDialog="true"], QMessageBox[brandDialog="true"] {{
             background-color: {colors.get('dialog_overlay_bg', colors.get('surface_root', colors['bg_window']))};
@@ -1921,10 +2025,255 @@ def build_global_qss(colors: dict) -> str:
         QPushButton[visualRole="dashboard_shortcut"]:hover {{
             background-color: {colors.get('basit_blue_hover', colors['primary_hover'])};
         }}
+
+        /* Phase403: Basit-inspired invoices and returns. */
+        QFrame#TransactionInlineHeaderBar[basitToolbar="true"] {{
+            background-color: {colors.get('basit_toolbar_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            padding: 6px;
+            min-height: {BRAND.get('basit_toolbar_height', 46)}px;
+        }}
+        QFrame#TransactionInlineHeaderBar[basitToolbar="true"] QLineEdit,
+        QFrame#TransactionInlineHeaderBar[basitToolbar="true"] QComboBox,
+        QFrame#TransactionInlineHeaderBar[basitToolbar="true"] QDateEdit,
+        QFrame#TransactionInlineHeaderBar[basitToolbar="true"] QLabel {{
+            min-height: 28px;
+            font-weight: 800;
+        }}
+        QFrame#TransactionInlineHeaderBar[basitToolbar="true"] QLabel#TransactionInlineHeaderLabel {{
+            color: {colors.get('basit_table_header_text', colors['text_primary'])};
+            background-color: {colors.get('basit_yellow', colors['warning'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            padding: 3px 6px;
+        }}
+        QPushButton[basitToolbarButton="true"],
+        QToolButton[basitToolbarButton="true"] {{
+            min-height: {BRAND.get('basit_toolbar_height', 46)}px;
+            background-color: {colors.get('basit_blue', colors['primary'])};
+            color: #FFFFFF;
+            border: 1px solid {colors.get('basit_card_border', colors['primary'])};
+            border-radius: 3px;
+            padding: 6px 10px;
+            font-weight: 950;
+        }}
+        QPushButton[basitToolbarButton="true"]:hover,
+        QToolButton[basitToolbarButton="true"]:hover {{
+            background-color: {colors.get('basit_blue_hover', colors['primary_hover'])};
+        }}
+        QTableView[basitTransactionGrid="true"] {{
+            min-height: 430px;
+        }}
+        QFrame#TransactionHorizontalSummaryFrame[basitTransactionSummary="true"],
+        QFrame#TransactionHorizontalPaymentFrame[basitTransactionPayment="true"] {{
+            background-color: {colors.get('basit_table_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            min-height: {BRAND.get('basit_total_height', 58)}px;
+        }}
+        QLabel#TransactionSummaryValue[basitTotal="true"] {{
+            background-color: {colors.get('basit_total_bg', colors['danger'])};
+            color: {colors.get('basit_total_text', '#FFFFFF')};
+            border-radius: 2px;
+            padding: 8px 16px;
+            font-size: 22px;
+            font-weight: 950;
+        }}
+
+        /* Phase404: Basit-inspired management/list workspaces. */
+        QWidget[basitManagementWorkspace="true"] {{
+            background-color: {colors.get('basit_canvas', colors['bg_window'])};
+        }}
+        QWidget[basitListToolbar="true"],
+        QWidget[basitManagementWorkspace="true"] > QWidget[basitListToolbar="true"] {{
+            background-color: {colors.get('basit_toolbar_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            padding: 6px;
+            min-height: {BRAND.get('basit_toolbar_height', 46)}px;
+        }}
+        QWidget[basitListToolbar="true"] QLineEdit[basitListSearch="true"],
+        QWidget[basitManagementWorkspace="true"] QLineEdit[basitListSearch="true"],
+        QWidget[basitManagementWorkspace="true"] QComboBox {{
+            min-height: {BRAND.get('basit_toolbar_height', 46)}px;
+            background-color: #FFFFFF;
+            color: {colors['text_primary']};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 3px;
+            padding: 6px 10px;
+            font-weight: 850;
+        }}
+        QWidget[basitManagementWorkspace="true"] QLabel {{
+            font-weight: 800;
+        }}
+        QWidget[basitListToolbar="true"] QLabel[basitCounter="true"],
+        QWidget[basitManagementWorkspace="true"] QLabel#muted,
+        QWidget[basitManagementWorkspace="true"] QLabel#mutedLabel {{
+            background-color: {colors.get('basit_yellow', colors['warning'])};
+            color: {colors.get('basit_category_text', colors['text_primary'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            padding: 6px 10px;
+            font-weight: 950;
+        }}
+        QWidget[basitManagementWorkspace="true"] QPushButton[basitToolbarButton="true"],
+        QWidget[basitListToolbar="true"] QPushButton[basitToolbarButton="true"] {{
+            min-height: {BRAND.get('basit_toolbar_height', 46)}px;
+            background-color: {colors.get('basit_blue', colors['primary'])};
+            color: #FFFFFF;
+            border: 1px solid {colors.get('basit_card_border', colors['primary'])};
+            border-radius: 3px;
+            padding: 6px 11px;
+            font-weight: 950;
+        }}
+        QWidget[basitManagementWorkspace="true"] QPushButton[basitToolbarButton="true"]:hover,
+        QWidget[basitListToolbar="true"] QPushButton[basitToolbarButton="true"]:hover {{
+            background-color: {colors.get('basit_blue_hover', colors['primary_hover'])};
+        }}
+        QWidget[basitManagementWorkspace="true"] QPushButton#danger[basitToolbarButton="true"],
+        QWidget[basitListToolbar="true"] QPushButton#danger[basitToolbarButton="true"] {{
+            background-color: {colors.get('basit_red', colors['danger'])};
+            border-color: {colors.get('basit_red_dark', colors['danger'])};
+            color: {colors.get('basit_total_text', '#FFFFFF')};
+        }}
+        QSplitter#ResponsiveMasterDetailSplitter[basitMasterDetailSplitter="true"] {{
+            background-color: {colors.get('basit_canvas', colors['bg_window'])};
+        }}
+        QSplitter#ResponsiveMasterDetailSplitter[basitMasterDetailSplitter="true"]::handle {{
+            background-color: {colors.get('basit_toolbar_border', colors['border'])};
+            width: 4px;
+            height: 4px;
+        }}
+        QFrame#DetailPlaceholder[basitDetailPlaceholder="true"] {{
+            background-color: {colors.get('basit_table_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            padding: 12px;
+        }}
+        QFrame#DetailPlaceholder[basitDetailPlaceholder="true"] QLabel#DetailTitle {{
+            background-color: {colors.get('basit_yellow', colors['warning'])};
+            color: {colors.get('basit_category_text', colors['text_primary'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            padding: 8px 10px;
+            font-size: {value_px}px;
+            font-weight: 950;
+        }}
+        QFrame#DetailPlaceholder[basitDetailPlaceholder="true"] QLabel#DetailSubtitle,
+        QFrame#DetailPlaceholder[basitDetailPlaceholder="true"] QLabel#DetailBody {{
+            color: {colors['text_primary']};
+            font-weight: 800;
+        }}
+        QWidget#UnifiedInlineEditorPage[basitInlineEditorPage="true"],
+        QWidget#UnifiedInlineEditorHost[basitInlineEditorHost="true"] {{
+            background-color: {colors.get('basit_canvas', colors['bg_window'])};
+        }}
+        QTableView[basitManagementTable="true"],
+        QTableWidget[basitManagementTable="true"] {{
+            min-height: 420px;
+        }}
+
         QFrame[basitPanel="true"] {{
             background-color: {colors.get('basit_table_bg', colors['bg_panel'])};
             border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
             border-radius: 2px;
+        }}
+
+
+        /* Phase405: Basit-inspired reports and settings surfaces. */
+        QWidget[basitReportsSurface="true"],
+        QWidget#settingsWidget[basitSettingsSurface="true"] {{
+            background-color: {colors.get('basit_canvas', colors['bg_window'])};
+        }}
+        QFrame#ReportsFilterToolbar[basitReportToolbar="true"] {{
+            background-color: {colors.get('basit_toolbar_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            min-height: {BRAND.get('basit_toolbar_height', 46)}px;
+        }}
+        QFrame#ReportsFilterToolbar[basitReportToolbar="true"] QLabel {{
+            background-color: {colors.get('basit_yellow', colors['warning'])};
+            color: {colors.get('basit_category_text', colors['text_primary'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            padding: 5px 8px;
+            font-weight: 950;
+        }}
+        QFrame#ReportsFilterToolbar[basitReportToolbar="true"] QComboBox,
+        QFrame#ReportsFilterToolbar[basitReportToolbar="true"] QDateEdit,
+        QWidget#settingsWidget[basitSettingsSurface="true"] QLineEdit,
+        QWidget#settingsWidget[basitSettingsSurface="true"] QComboBox,
+        QWidget#settingsWidget[basitSettingsSurface="true"] QSpinBox {{
+            min-height: {BRAND.get('basit_toolbar_height', 46)}px;
+            background-color: #FFFFFF;
+            color: {colors['text_primary']};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 3px;
+            padding: 6px 10px;
+            font-weight: 850;
+        }}
+        QTabWidget[basitReportTabs="true"]::pane,
+        QTabWidget#settingsTabs[basitSettingsTabs="true"]::pane,
+        QTabWidget[basitSettingsGroupTabs="true"]::pane {{
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            background: {colors.get('basit_table_bg', colors['bg_window'])};
+        }}
+        QTabWidget[basitReportTabs="true"] QTabBar::tab,
+        QTabWidget#settingsTabs[basitSettingsTabs="true"] QTabBar::tab,
+        QTabWidget[basitSettingsGroupTabs="true"] QTabBar::tab {{
+            min-height: 34px;
+            background: {colors.get('basit_blue', colors['primary'])};
+            color: #FFFFFF;
+            border: 1px solid {colors.get('basit_card_border', colors['primary'])};
+            border-radius: 2px;
+            padding: 7px 13px;
+            margin: 1px;
+            font-weight: 900;
+        }}
+        QTabWidget[basitReportTabs="true"] QTabBar::tab:selected,
+        QTabWidget#settingsTabs[basitSettingsTabs="true"] QTabBar::tab:selected,
+        QTabWidget[basitSettingsGroupTabs="true"] QTabBar::tab:selected {{
+            background: {colors.get('basit_yellow', colors['warning'])};
+            color: {colors.get('basit_category_text', colors['text_primary'])};
+            border: 2px solid {colors.get('basit_red', colors['danger'])};
+        }}
+        QLabel#reportSummaryBar[basitReportSummary="true"] {{
+            background-color: {colors.get('basit_total_bg', colors['danger'])};
+            color: {colors.get('basit_total_text', '#FFFFFF')};
+            border: 1px solid {colors.get('basit_red_dark', colors['danger'])};
+            border-radius: 2px;
+            padding: 8px 16px;
+            min-height: {BRAND.get('basit_total_height', 58)}px;
+            font-size: 18px;
+            font-weight: 950;
+        }}
+        QGroupBox#settingsCard[basitSettingsCard="true"] {{
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            background: {colors.get('basit_table_bg', colors['card_bg'])};
+            color: {colors['text_primary']};
+            font-weight: 900;
+        }}
+        QGroupBox#settingsCard[basitSettingsCard="true"]::title {{
+            color: {colors.get('basit_category_text', colors['text_primary'])};
+            background: {colors.get('basit_yellow', colors['warning'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 2px;
+            padding: 4px 10px;
+        }}
+
+
+        /* Phase406: Basit-inspired shell chrome fallback. */
+        QWidget#IconMenuBar[basitShellChrome="true"],
+        QFrame#UnifiedActionBar[basitShellChrome="true"] {{
+            background-color: {colors.get('basit_shell_bg', colors.get('basit_toolbar_bg', colors['bg_panel']))};
+            border-bottom: 2px solid {colors.get('basit_toolbar_border', colors['border'])};
+        }}
+        QTabWidget#TabbedWorkspace[basitShellTabs="true"]::pane {{
+            background-color: {colors.get('basit_canvas', colors['bg_window'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
         }}
     """
 

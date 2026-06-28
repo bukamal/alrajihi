@@ -244,6 +244,44 @@ def make_section_card(title: str = '') -> QGroupBox:
     card.setObjectName('ModernSectionCard')
     return card
 
+
+def _apply_basit_list_surface(widget):
+    """Phase404: give management/list workspaces the Basit operational surface.
+
+    This is intentionally property-based: business widgets keep their existing
+    logic, while QSS centralizes the visual grammar.
+    """
+    try:
+        if not any(hasattr(widget, name) for name in ('table', 'cash_table', 'bank_table', 'search_edit')):
+            return
+        widget.setProperty('basitInspired', True)
+        widget.setProperty('basitManagementWorkspace', True)
+    except Exception:
+        pass
+    for name in ('search_edit', 'cash_search', 'bank_search', 'voucher_type_filter'):
+        ctrl = getattr(widget, name, None)
+        if ctrl is not None:
+            try:
+                ctrl.setProperty('basitListSearch', True)
+            except Exception:
+                pass
+    for name in ('add_btn', 'edit_btn', 'delete_btn', 'print_btn', 'export_btn', 'refresh_btn', 'prev_btn', 'next_btn', 'batch_print_btn', 'print_barcode_btn'):
+        btn = getattr(widget, name, None)
+        if btn is not None:
+            try:
+                btn.setProperty('basitToolbarButton', True)
+            except Exception:
+                pass
+    for table_name in ('table', 'cash_table', 'bank_table', 'shift_table', 'mov_table', 'bom_table', 'orders_table'):
+        table = getattr(widget, table_name, None)
+        if table is not None:
+            try:
+                table.setProperty('basitTable', True)
+                table.setProperty('basitManagementTable', True)
+            except Exception:
+                pass
+
+
 def apply_modern_widget(widget, title: str = '', subtitle: str = ''):
     """Apply the unified page visual language to an existing QWidget page."""
     widget.setLayoutDirection(qt_layout_direction())
@@ -268,6 +306,7 @@ def apply_modern_widget(widget, title: str = '', subtitle: str = ''):
         except Exception:
             pass
     _normalize_child_controls(widget)
+    _apply_basit_list_surface(widget)
     for table_name in ('table', 'cash_table', 'bank_table', 'shift_table', 'mov_table', 'bom_table', 'orders_table'):
         table = getattr(widget, table_name, None)
         if table is not None:

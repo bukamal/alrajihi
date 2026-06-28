@@ -55,6 +55,8 @@ class ActivationDialog(FramelessDialog):
 
         self.main_frame.setObjectName('activationCard')
         self.main_frame.setProperty('firstRunSurface', 'activation')
+        self.main_frame.setProperty('basitFirstRunChrome', True)
+        self.main_frame.setProperty('basitDialogSurface', 'activation')
         self.main_frame.setStyleSheet(ThemeManager.get_stylesheet())
         apply_first_run_surface(self.main_frame, 'activation')
         try:

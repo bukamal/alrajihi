@@ -116,6 +116,8 @@ class TransactionDocumentTab(BaseDocumentTab):
         return self.context.title
 
     def _build_ui(self) -> None:
+        self.setProperty("basitInspired", True)
+        self.setProperty("basitTransactionDocument", True)
         root = QVBoxLayout(self)
         root.setContentsMargins(10, 10, 10, 10)
         root.setSpacing(8)
@@ -135,19 +137,23 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.presets_combo.setMaximumWidth(112)
         self.presets_combo.currentIndexChanged.connect(self._on_preset_changed)
         self.auto_responsive_btn = QToolButton(self)
+        self.auto_responsive_btn.setProperty("basitToolbarButton", True)
         self.auto_responsive_btn.setText(tr("transaction_auto_responsive"))
         self.auto_responsive_btn.setMaximumWidth(96)
         self.auto_responsive_btn.setCheckable(True)
         self.auto_responsive_btn.setChecked(self.grid_preferences.auto_responsive(self.context.document_type, bool(self.transaction_settings.get("line_grid_auto_responsive", True))))
         self.auto_responsive_btn.toggled.connect(self._toggle_auto_responsive)
         save_btn = QPushButton(tr("transaction_save_shortcut"))
+        save_btn.setProperty("basitToolbarButton", True)
         save_btn.setMaximumWidth(96)
         self.header_save_btn = save_btn
         save_btn.clicked.connect(self.workspace_save)
         columns_btn = QPushButton(tr("transaction_columns"))
+        columns_btn.setProperty("basitToolbarButton", True)
         columns_btn.setMaximumWidth(82)
         columns_btn.clicked.connect(self._show_columns)
         reset_columns_btn = QPushButton(tr("transaction_reset_view"))
+        reset_columns_btn.setProperty("basitToolbarButton", True)
         reset_columns_btn.setMaximumWidth(96)
         reset_columns_btn.clicked.connect(self._reset_grid_layout)
 
@@ -176,6 +182,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         self._install_material_completer()
         self.search_input.returnPressed.connect(self.add_item_from_search)
         add_btn = QPushButton(tr("add"))
+        add_btn.setProperty("basitToolbarButton", True)
         add_btn.setMaximumWidth(72)
         add_btn.clicked.connect(self.add_item_from_search)
         if self.is_return:
@@ -199,6 +206,7 @@ class TransactionDocumentTab(BaseDocumentTab):
 
         inline_header = QFrame(self)
         inline_header.setObjectName("TransactionInlineHeaderBar")
+        inline_header.setProperty("basitToolbar", True)
         header = QHBoxLayout(inline_header)
         header.setContentsMargins(0, 0, 0, 0)
         header.setSpacing(4)
@@ -235,6 +243,8 @@ class TransactionDocumentTab(BaseDocumentTab):
         # purchase invoices share the same operational structure.
         self.content_splitter = QSplitter(Qt.Horizontal)
         self.grid = TransactionLineGrid(self.columns, self, identity=f"transaction_lines_{self.context.document_type}")
+        self.grid.setProperty("basitTable", True)
+        self.grid.setProperty("basitTransactionGrid", True)
         try:
             page_table = {
                 "sales_invoice": ("sales_invoices", "lines"),
@@ -269,6 +279,7 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.side_panel = QFrame(self)
         self.side_panel.setObjectName("TransactionFooterPanel")
         self.side_panel.setProperty("transaction_footer_role", "container")
+        self.side_panel.setProperty("basitTotalFooter", True)
         side_layout = QHBoxLayout(self.side_panel)
         side_layout.setContentsMargins(0, 0, 0, 0)
         side_layout.setSpacing(8)

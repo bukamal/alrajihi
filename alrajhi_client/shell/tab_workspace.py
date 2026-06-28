@@ -37,6 +37,7 @@ class TabbedWorkspace(QTabWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName("TabbedWorkspace")
+        self.setProperty('basitShellTabs', True)
         self.setTabsClosable(True)
         self.setMovable(True)
         self.setDocumentMode(True)
@@ -57,43 +58,43 @@ class TabbedWorkspace(QTabWidget):
         """
         colors = get_tokens(settings_service.get_theme() or 'light')
         radius = int(BRAND.get('radius_md', 12))
-        tab_h = int(BRAND.get('brand_tab_min_height', 38))
+        tab_h = int(BRAND.get('basit_shell_tab_height', BRAND.get('brand_tab_min_height', 38)))
         pad_x = int(BRAND.get('brand_tab_padding_x', 18))
         self.setProperty('brandedTabs', True)
         self.setStyleSheet(f"""
-            /* Phase354: branded workspace tab cards (runtime fallback). */
-            QTabWidget#TabbedWorkspace::pane {{
-                border: 1px solid {colors['border']};
+            /* Phase406: Basit-inspired workspace tab cards (runtime fallback). */
+            QTabWidget#TabbedWorkspace[basitShellTabs="true"]::pane {{
+                border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
                 border-top: none;
-                background: {colors.get('surface_root', colors['bg_window'])};
-                border-radius: {radius}px;
+                background: {colors.get('basit_canvas', colors['bg_window'])};
+                border-radius: 3px;
             }}
-            QTabWidget#TabbedWorkspace QTabBar::tab {{
+            QTabWidget#TabbedWorkspace[basitShellTabs="true"] QTabBar::tab {{
                 min-height: {tab_h}px;
                 min-width: {int(BRAND.get('shell_tab_active_min_width', 150))}px;
-                padding: 8px {pad_x}px;
-                margin-left: 4px;
-                border: 1px solid {colors['border']};
-                border-top-left-radius: {radius}px;
-                border-top-right-radius: {radius}px;
-                background: {colors.get('tab_inactive_bg', colors['bg_panel'])};
-                color: {colors.get('tab_inactive_text', colors['text_secondary'])};
+                padding: 7px {pad_x}px;
+                margin-left: 3px;
+                border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+                border-top-left-radius: 3px;
+                border-top-right-radius: 3px;
+                background: {colors.get('basit_table_bg', colors['bg_panel'])};
+                color: {colors['text_primary']};
                 font-weight: 900;
             }}
-            QTabWidget#TabbedWorkspace QTabBar::tab:selected {{
-                background: {colors.get('tab_active_bg', colors['primary'])};
-                color: {colors.get('tab_active_text', '#FFFFFF')};
-                border-color: {colors.get('tab_active_bg', colors['primary'])};
-                border-bottom: 4px solid {colors.get('shell_tab_active_underline', colors['accent'])};
+            QTabWidget#TabbedWorkspace[basitShellTabs="true"] QTabBar::tab:selected {{
+                background: {colors.get('basit_blue', colors['primary'])};
+                color: #FFFFFF;
+                border-color: {colors.get('basit_card_border', colors['primary'])};
+                border-bottom: 4px solid {colors.get('basit_yellow', colors['warning'])};
             }}
-            QTabWidget#TabbedWorkspace QTabBar::tab:hover:!selected {{
-                background: {colors.get('brand_soft', colors['bg_panel'])};
-                color: {colors['primary']};
-                border-color: {colors['primary']};
+            QTabWidget#TabbedWorkspace[basitShellTabs="true"] QTabBar::tab:hover:!selected {{
+                background: {colors.get('basit_yellow', colors['warning'])};
+                color: {colors.get('basit_shell_active_text', colors['text_primary'])};
+                border-color: {colors.get('basit_red', colors['danger'])};
             }}
-            QTabWidget#TabbedWorkspace QTabBar::close-button:hover {{
-                background: {colors.get('tab_close_hover_bg', colors['danger'])};
-                border-radius: 7px;
+            QTabWidget#TabbedWorkspace[basitShellTabs="true"] QTabBar::close-button:hover {{
+                background: {colors.get('basit_red', colors['danger'])};
+                border-radius: 3px;
             }}
         """)
 

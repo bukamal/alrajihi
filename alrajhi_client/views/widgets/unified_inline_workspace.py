@@ -42,12 +42,20 @@ class UnifiedInlineWorkspaceMixin:
         detail_weight: int = 3,
         total_width: int = 1420,
     ):
+        self.setProperty('basitInspired', True)
+        self.setProperty('basitManagementWorkspace', True)
+        try:
+            master_widget.setProperty('basitTable', True)
+            master_widget.setProperty('basitManagementTable', True)
+        except Exception:
+            pass
         self.detail_panel = DetailPlaceholder(detail_title)
         self.detail_stack = QStackedWidget(self)
         self.detail_stack.addWidget(self.detail_panel)
 
         self.inline_editor_page = QWidget(self)
         self.inline_editor_page.setObjectName('UnifiedInlineEditorPage')
+        self.inline_editor_page.setProperty('basitInlineEditorPage', True)
         inline_layout = QVBoxLayout(self.inline_editor_page)
         inline_layout.setContentsMargins(0, 0, 0, 0)
         inline_layout.setSpacing(6)
@@ -58,12 +66,14 @@ class UnifiedInlineWorkspaceMixin:
         inline_toolbar.addStretch(1)
         self.inline_back_btn = QPushButton(_back_text(), self.inline_editor_page)
         self.inline_back_btn.setObjectName('UnifiedInlineBackButton')
+        self.inline_back_btn.setProperty('basitToolbarButton', True)
         self.inline_back_btn.clicked.connect(close_callback or self._close_unified_inline_editor)
         inline_toolbar.addWidget(self.inline_back_btn)
         inline_layout.addLayout(inline_toolbar)
 
         self.inline_editor_host = QWidget(self.inline_editor_page)
         self.inline_editor_host.setObjectName('UnifiedInlineEditorHost')
+        self.inline_editor_host.setProperty('basitInlineEditorHost', True)
         self.inline_editor_host_layout = QVBoxLayout(self.inline_editor_host)
         self.inline_editor_host_layout.setContentsMargins(0, 0, 0, 0)
         self.inline_editor_host_layout.setSpacing(0)

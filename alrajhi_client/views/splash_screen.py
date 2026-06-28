@@ -24,6 +24,8 @@ class ModernSplashScreen(QSplashScreen):
         self.container.setObjectName('card')
         self.container.setGeometry(0, 0, int(BRAND.get('splash_width', 660)), int(BRAND.get('splash_height', 430)))
         self.container.setObjectName('startupCard')
+        self.container.setProperty('basitStartupSurface', True)
+        self.container.setProperty('basitDialogSurface', 'splash')
         apply_first_run_surface(self.container, 'splash')
         self.container.setStyleSheet(DesignSystem.card_style(accent=True))
         DesignSystem.apply_shadow(self.container, blur=34, y=12, alpha=95)
@@ -56,6 +58,7 @@ class ModernSplashScreen(QSplashScreen):
         for text in ("قاعدة البيانات", "الترخيص", "تسجيل الدخول", "الواجهة"):
             chip = QLabel(text)
             chip.setObjectName('firstRunStageChip')
+            chip.setProperty('firstRunStageChip', True)
             chip.setAlignment(Qt.AlignCenter)
             chip.setStyleSheet("background-color: rgba(255,255,255,0.16); color: white; border-radius: 12px; padding: 5px 10px; font-size: 11px; font-weight: 700;")
             chips.addWidget(chip)

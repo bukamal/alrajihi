@@ -1,0 +1,16 @@
+check,path,needle,status
+contract_exists,alrajhi_client/workspace/quality/basit_transaction_surface_contract.py,BASIT_TRANSACTION_SURFACE_CONTRACT,OK
+document_root_tagged,alrajhi_client/features/transactions/transaction_document_tab.py,"self.setProperty(""basitTransactionDocument"", True)",OK
+document_inspired_tagged,alrajhi_client/features/transactions/transaction_document_tab.py,"self.setProperty(""basitInspired"", True)",OK
+header_toolbar_tagged,alrajhi_client/features/transactions/transaction_document_tab.py,"inline_header.setProperty(""basitToolbar"", True)",OK
+grid_basit_table,alrajhi_client/features/transactions/transaction_document_tab.py,"self.grid.setProperty(""basitTable"", True)",OK
+grid_transaction_role,alrajhi_client/features/transactions/transaction_document_tab.py,"self.grid.setProperty(""basitTransactionGrid"", True)",OK
+footer_basit_total,alrajhi_client/features/transactions/transaction_document_tab.py,"self.side_panel.setProperty(""basitTotalFooter"", True)",OK
+toolbar_buttons,alrajhi_client/features/transactions/transaction_document_tab.py,"setProperty(""basitToolbarButton"", True)",OK
+summary_basit_panel,alrajhi_client/features/transactions/components/transaction_totals_panel.py,"self.summary_frame.setProperty(""basitTransactionSummary"", True)",OK
+payment_basit_panel,alrajhi_client/features/transactions/components/transaction_totals_panel.py,"self.payment_frame.setProperty(""basitTransactionPayment"", True)",OK
+net_total_basit,alrajhi_client/features/transactions/components/transaction_totals_panel.py,"widget.setProperty(""basitTotal"", title_key == ""transaction_net_total"")",OK
+qss_phase_marker,alrajhi_client/theme/qss.py,Phase403: Basit-inspired invoices and returns,OK
+qss_toolbar,alrajhi_client/theme/qss.py,"QFrame#TransactionInlineHeaderBar[basitToolbar=""true""]",OK
+qss_transaction_grid,alrajhi_client/theme/qss.py,"QTableView[basitTransactionGrid=""true""]",OK
+qss_net_total,alrajhi_client/theme/qss.py,"QLabel#TransactionSummaryValue[basitTotal=""true""]",OK

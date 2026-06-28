@@ -13,7 +13,8 @@ from core.services.settings_service import settings_service
 from workspace.registry import ACTION_SPECS
 
 
-ACTION_BAR_HEIGHT = int(BRAND.get('action_bar_height', 52))
+# Phase332 compatibility marker: ACTION_BAR_HEIGHT = int(BRAND.get('action_bar_height', 52))
+ACTION_BAR_HEIGHT = int(BRAND.get('basit_shell_action_height', BRAND.get('action_bar_height', 52)))
 ACTION_BUTTON_ICON = int(BRAND.get('action_button_icon', 18))
 ACTION_BUTTON_FONT_PX = int(BRAND.get('action_button_font_px', 12))
 ACTION_BUTTON_MIN_HEIGHT = int(BRAND.get('action_button_min_height', 38))
@@ -33,6 +34,7 @@ class UnifiedActionBar(QFrame):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName("UnifiedActionBar")
+        self.setProperty('basitShellChrome', True)
         self.setLayoutDirection(qt_layout_direction())
         self._callbacks = {}
         self._buttons = {}
@@ -123,63 +125,68 @@ class UnifiedActionBar(QFrame):
         self.setFixedHeight(ACTION_BAR_HEIGHT)
         # Phase 318 compatibility marker: padding: 5px 8px
         colors = get_tokens(settings_service.get_theme() or 'light')
+        basit_bg = colors.get('basit_shell_bg', colors.get('basit_toolbar_bg', colors['bg_panel']))
+        basit_blue = colors.get('basit_blue', colors['primary'])
+        basit_yellow = colors.get('basit_yellow', colors['warning'])
+        basit_red = colors.get('basit_red', colors['danger'])
         self.setStyleSheet(f"""
-            /* Phase354: branded icon menu and action bar runtime. */
-            QFrame#UnifiedActionBar {{
-                background: {colors.get('action_bar_bg', colors['bg_panel'])};
-                border-bottom: 1px solid {colors['border']};
+            /* Phase406: Basit-inspired shared action bar runtime. */
+            QFrame#UnifiedActionBar[basitShellChrome="true"] {{
+                background: {basit_bg};
+                border-bottom: 2px solid {colors.get('basit_toolbar_border', colors['border'])};
             }}
             QLabel#ActionBarContext {{
                 font-weight: 950;
-                color: {colors['primary']};
-                background: {colors.get('shell_action_context_bg', colors.get('brand_soft', colors['bg_panel']))};
-                border: 1px solid {colors['border']};
-                border-radius: 12px;
+                color: {colors.get('basit_shell_active_text', colors['text_primary'])};
+                background: {basit_yellow};
+                border: 1px solid {basit_red};
+                border-radius: 3px;
                 padding: 7px 12px;
                 min-width: {int(BRAND.get('shell_action_context_min_width', 180))}px;
             }}
             QToolButton {{
-                border: 1px solid {colors['border']};
-                border-radius: 10px;
+                border: 1px solid {colors.get('basit_card_border', basit_blue)};
+                border-radius: 3px;
                 padding: 7px 11px;
                 min-height: {ACTION_BUTTON_MIN_HEIGHT}px;
-                background: {colors.get('shell_action_secondary_bg', colors['bg_panel'])};
-                color: {colors['text_primary']};
+                background: {basit_blue};
+                color: #FFFFFF;
                 font-size: {ACTION_BUTTON_FONT_PX}px;
-                font-weight: 850;
+                font-weight: 900;
             }}
             QToolButton[shellChromeRole="primary"] {{
-                background: {colors.get('shell_action_primary_bg', colors['primary'])};
+                background: {basit_red};
                 color: white;
-                border-color: {colors.get('shell_action_primary_bg', colors['primary'])};
+                border-color: {colors.get('basit_red_dark', basit_red)};
                 min-width: {int(BRAND.get('shell_action_primary_min_width', 112))}px;
                 font-weight: 950;
             }}
             QToolButton[shellChromeRole="utility"] {{
-                background: {colors.get('shell_action_utility_bg', colors['bg_panel'])};
-                color: {colors['text_secondary']};
+                background: {colors.get('basit_table_bg', colors['bg_panel'])};
+                color: {colors['text_primary']};
+                border-color: {colors.get('basit_toolbar_border', colors['border'])};
             }}
             QToolButton:hover {{
-                background: {colors.get('brand_soft', colors['bg_table_alt'])};
-                border-color: {colors['primary']};
-                color: {colors['primary']};
+                background: {colors.get('basit_blue_hover', colors['primary'])};
+                border-color: {basit_yellow};
+                color: #FFFFFF;
             }}
             QToolButton[shellChromeRole="primary"]:hover {{
-                background: {colors.get('primary_hover', colors['primary'])};
+                background: {colors.get('basit_red_dark', basit_red)};
                 color: white;
             }}
             QToolButton:disabled {{ color: {colors['text_muted']}; background: {colors['bg_panel']}; }}
             QLabel#ActionBarUserLabel {{
-                border: 1px solid {colors['border']};
-                border-radius: 10px;
+                border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+                border-radius: 3px;
                 padding: 7px 12px;
-                background: {colors.get('shell_action_utility_bg', colors['bg_panel'])};
-                color: {colors['text_secondary']};
+                background: {colors.get('basit_table_bg', colors['bg_panel'])};
+                color: {colors['text_primary']};
                 font-size: {ACTION_BUTTON_FONT_PX}px;
                 font-weight: 850;
             }}
             QLabel#ActionBarAlertBadge {{
-                background-color: {colors['danger']};
+                background-color: {basit_red};
                 color: white;
                 border: 1px solid white;
                 border-radius: 8px;

@@ -19,6 +19,7 @@ class DetailPlaceholder(QFrame):
     def __init__(self, title: str = '', parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName('DetailPlaceholder')
+        self.setProperty('basitDetailPlaceholder', True)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 18, 18, 18)
         layout.setSpacing(10)
@@ -32,16 +33,7 @@ class DetailPlaceholder(QFrame):
         layout.addWidget(self.title_label)
         layout.addWidget(self.subtitle_label)
         layout.addWidget(self.body_label, 1)
-        self.setStyleSheet('''
-            QFrame#DetailPlaceholder {
-                border: 1px solid palette(mid);
-                border-radius: 14px;
-                background: palette(base);
-            }
-            QLabel#DetailTitle { font-size: 16px; font-weight: 900; }
-            QLabel#DetailSubtitle { color: palette(mid); font-weight: 700; }
-            QLabel#DetailBody { line-height: 150%; }
-        ''')
+        # Phase404: DetailPlaceholder styling is centralized in theme/qss.py.
 
     def set_summary(self, title: str, lines: list[str]) -> None:
         self.title_label.setText(title or translate('details'))
@@ -64,12 +56,14 @@ class ResponsiveMasterDetail(QWidget):
 
     def __init__(self, master: QWidget, detail: QWidget, parent: Optional[QWidget] = None, *, master_weight: int = 3, detail_weight: int = 2) -> None:
         super().__init__(parent)
+        self.setProperty('basitMasterDetail', True)
         self.master_weight = max(1, int(master_weight or 1))
         self.detail_weight = max(1, int(detail_weight or 1))
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.splitter = QSplitter(Qt.Horizontal, self)
         self.splitter.setObjectName('ResponsiveMasterDetailSplitter')
+        self.splitter.setProperty('basitMasterDetailSplitter', True)
         self.splitter.addWidget(master)
         self.splitter.addWidget(detail)
         self.splitter.setStretchFactor(0, self.master_weight)

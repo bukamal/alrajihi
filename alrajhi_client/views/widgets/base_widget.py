@@ -37,11 +37,14 @@ class BaseWidget(QWidget, BaseActionHandler):
         self.refresh()
 
     def _init_base_ui(self):
+        self.setProperty('basitInspired', True)
+        self.setProperty('basitManagementWorkspace', True)
         layout = QVBoxLayout(self)
         layout.setSpacing(8)
         layout.setContentsMargins(8, 8, 8, 8)
 
         self.toolbar = TableToolbar(self.entity_name, self.search_placeholder, self)
+        self.toolbar.setProperty('basitListToolbar', True)
         self.toolbar.addRequested.connect(self.add_item)
         self.toolbar.editRequested.connect(self._on_edit_shortcut)
         self.toolbar.deleteRequested.connect(self._on_delete_shortcut)
@@ -84,6 +87,8 @@ class BaseWidget(QWidget, BaseActionHandler):
             layout.addLayout(extra_layout)
 
         self.table = SmartTableView()
+        self.table.setProperty('basitTable', True)
+        self.table.setProperty('basitManagementTable', True)
         self.table.set_table_identity(f"{self.__class__.__name__}.main")
         self.toolbar.set_table(self.table)
         self.table.setSelectionBehavior(SmartTableView.SelectRows)

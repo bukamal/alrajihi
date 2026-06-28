@@ -1,0 +1,13 @@
+check,path,needle,status
+contract,alrajhi_client/workspace/quality/basit_printing_surface_contract.py,BASIT_PRINTING_SURFACE_CONTRACT,OK
+phase_doc,PHASE408_BASIT_PRINTING_SURFACE.md,PHASE408,OK
+token_bridge,alrajhi_client/printing/print_templates.py,def _basit_print_tokens,OK
+phase_marker,alrajhi_client/printing/print_templates.py,Phase408: Basit-inspired print/export surface,OK
+theme_import,alrajhi_client/printing/print_templates.py,"from theme.brand import LIGHT_TOKENS, DARK_TOKENS",OK
+blue_accent,alrajhi_client/printing/print_templates.py,accent = basit['blue'],OK
+yellow_header,alrajhi_client/printing/print_templates.py,border-top: 6px solid {basit['yellow']},OK
+yellow_badge,alrajhi_client/printing/print_templates.py,background: {basit['yellow']}; color: {basit['category_text']},OK
+table_header,alrajhi_client/printing/print_templates.py,background: {basit['table_header_bg']},OK
+red_total,alrajhi_client/printing/print_templates.py,.totals-table tr.final td {{ background: {basit['red']},OK
+thermal_kept,alrajhi_client/printing/print_templates.py,".thermal80 .sheet, .thermal58 .sheet",OK
+release_gate,alrajhi_client/workspace/quality/release_gate_contract.py,basit_printing_surface,OK

@@ -29,6 +29,8 @@ class LoginDialog(FramelessDialog):
         self.settings = QSettings("Alrajhi", "Accounting")
 
         self.main_frame.setObjectName('loginCard')
+        self.main_frame.setProperty('basitFirstRunChrome', True)
+        self.main_frame.setProperty('basitDialogSurface', 'login')
         self.main_frame.setStyleSheet(ThemeManager.get_stylesheet())
         try:
             DesignSystem.apply_shadow(self.main_frame, blur=30, y=10, alpha=70)
@@ -65,6 +67,7 @@ class LoginDialog(FramelessDialog):
         layout.addWidget(separator)
 
         self.username_combo = QComboBox()
+        self.username_combo.setObjectName('loginUsernameCombo')
         self.username_combo.setEditable(True)
         self.username_combo.setPlaceholderText(translate('username'))
         self._populate_users()
@@ -100,6 +103,7 @@ class LoginDialog(FramelessDialog):
         options_layout.addWidget(self.remember_check)
         options_layout.addStretch()
         self.lang_combo = QComboBox()
+        self.lang_combo.setObjectName('loginLanguageCombo')
         self.lang_combo.setFixedWidth(128)
         self._language_codes = []
         for code, label in available_languages():
@@ -129,12 +133,17 @@ class LoginDialog(FramelessDialog):
 
         self.login_btn = QPushButton(translate('login'))
         self.login_btn.setObjectName("primary")
+        self.login_btn.setProperty('dialogActionRole', 'primary')
+        self.login_btn.setProperty('basitPrimaryAction', True)
         self.login_btn.setMinimumHeight(45)
         self.login_btn.setShortcut("Return")
         self.login_btn.clicked.connect(self._do_login)
         layout.addWidget(self.login_btn)
 
         self.switch_btn = DesignSystem.secondary_button(translate('switch_account'))
+        self.switch_btn.setObjectName('secondary')
+        self.switch_btn.setProperty('dialogActionRole', 'secondary')
+        self.switch_btn.setProperty('basitSecondaryAction', True)
         self.switch_btn.clicked.connect(self._switch_account)
         layout.addWidget(self.switch_btn)
 

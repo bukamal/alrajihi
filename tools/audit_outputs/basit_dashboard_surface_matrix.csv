@@ -1,0 +1,13 @@
+check,path,needle,status
+contract_exists,alrajhi_client/workspace/quality/basit_dashboard_surface_contract.py,BASIT_DASHBOARD_SURFACE_CONTRACT,OK
+dashboard_root_basit,alrajhi_client/views/widgets/dashboard_widget.py,"self.setProperty('basitInspired', True)",OK
+dashboard_page_basit,alrajhi_client/views/widgets/dashboard_widget.py,"page.setProperty('basitInspired', True)",OK
+quick_panel_basit,alrajhi_client/views/widgets/dashboard_widget.py,QFrame#DashboardQuickActionsPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; },OK
+shortcut_height_token,alrajhi_client/views/widgets/dashboard_widget.py,"BRAND.get('basit_dashboard_card_height', 96)",OK
+shortcut_visual_role,alrajhi_client/views/widgets/dashboard_widget.py,"btn.setProperty('visualRole', 'dashboard_shortcut')",OK
+shortcut_basit_card,alrajhi_client/views/widgets/dashboard_widget.py,"btn.setProperty('basitCard', True)",OK
+cash_panel_basit,alrajhi_client/views/widgets/dashboard_widget.py,QFrame#DashboardCashPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; },OK
+cash_balance_basit_total,alrajhi_client/views/widgets/dashboard_widget.py,"balance_box.setProperty('basitTotalFooter', True)",OK
+brand_panel_basit,alrajhi_client/views/widgets/dashboard_widget.py,QFrame#DeveloperBrandPanel {,OK
+quick_action_class_basit,alrajhi_client/views/widgets/dashboard_legacy_components.py,"self.setProperty('visualRole', 'dashboard_shortcut')",OK
+dashboard_panel_class_basit,alrajhi_client/views/widgets/dashboard_legacy_components.py,"self.setProperty('basitPanel', True)",OK

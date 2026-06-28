@@ -110,6 +110,7 @@ def apply_branded_dialog(dialog: QDialog, title: str = "", role: str = "system")
     """Apply Al Rajhi branded dialog identity to a QDialog instance."""
     dialog.setProperty("dialogKind", role or "system")
     dialog.setProperty("brandDialog", True)
+    dialog.setProperty("basitDialogSurface", True)
     if title:
         try:
             dialog.setWindowTitle(title)
@@ -133,6 +134,7 @@ def apply_branded_dialog(dialog: QDialog, title: str = "", role: str = "system")
 def brand_message_box(box: QMessageBox, role: str = "info") -> QMessageBox:
     """Apply branded visual identity to an existing QMessageBox."""
     box.setProperty("brandDialog", True)
+    box.setProperty("basitDialogSurface", True)
     box.setProperty("dialogKind", f"message_{role or 'info'}")
     box.setObjectName("BrandMessageBox")
     try:

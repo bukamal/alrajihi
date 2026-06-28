@@ -20,6 +20,7 @@ class TableToolbar(QWidget):
 
     def __init__(self, entity_name=None, search_placeholder=None, parent=None):
         super().__init__(parent)
+        self.setProperty('basitListToolbar', True)
         entity_name = entity_name or translate('item')
         search_placeholder = search_placeholder or translate('search_placeholder')
         self._search_delay_ms = 250
@@ -32,22 +33,26 @@ class TableToolbar(QWidget):
         layout.setSpacing(8)
 
         self.add_btn = QPushButton(translate("add_entity", entity=entity_name))
+        self.add_btn.setProperty('basitToolbarButton', True)
         self.add_btn.setObjectName("primary")
         self.add_btn.clicked.connect(self.addRequested.emit)
         layout.addWidget(self.add_btn)
 
         self.edit_btn = QPushButton(translate("edit"))
+        self.edit_btn.setProperty('basitToolbarButton', True)
         self.edit_btn.setEnabled(False)
         self.edit_btn.clicked.connect(self.editRequested.emit)
         layout.addWidget(self.edit_btn)
 
         self.delete_btn = QPushButton(translate("delete"))
+        self.delete_btn.setProperty('basitToolbarButton', True)
         self.delete_btn.setObjectName("danger")
         self.delete_btn.setEnabled(False)
         self.delete_btn.clicked.connect(self.deleteRequested.emit)
         layout.addWidget(self.delete_btn)
 
         self.search_edit = QLineEdit()
+        self.search_edit.setProperty('basitListSearch', True)
         self.search_edit.setPlaceholderText(search_placeholder)
         self.search_edit.setClearButtonEnabled(True)
         self.search_edit.setMinimumWidth(220)
@@ -55,32 +60,39 @@ class TableToolbar(QWidget):
         layout.addWidget(self.search_edit, 1)
 
         self.filter_btn = QPushButton(translate("filters") if translate("filters") != "filters" else "Filters")
+        self.filter_btn.setProperty('basitToolbarButton', True)
         self.filter_btn.setToolTip(translate("advanced_filters_hint") if translate("advanced_filters_hint") != "advanced_filters_hint" else "Advanced table filters")
         self.filter_btn.clicked.connect(self._show_filters)
         layout.addWidget(self.filter_btn)
 
         self.columns_btn = QPushButton(translate("columns"))
+        self.columns_btn.setProperty('basitToolbarButton', True)
         self.columns_btn.setToolTip(translate("column_chooser_hint") if translate("column_chooser_hint") != "column_chooser_hint" else "Show, hide, reorder, and save columns")
         self.columns_btn.clicked.connect(self._show_columns_menu)
         layout.addWidget(self.columns_btn)
 
         self.fit_btn = QPushButton(translate("fit_columns") if translate("fit_columns") != "fit_columns" else "Fit")
+        self.fit_btn.setProperty('basitToolbarButton', True)
         self.fit_btn.clicked.connect(self._fit_columns)
         layout.addWidget(self.fit_btn)
 
         self.export_btn = QPushButton(translate("excel"))
+        self.export_btn.setProperty('basitToolbarButton', True)
         self.export_btn.clicked.connect(self.exportRequested.emit)
         layout.addWidget(self.export_btn)
 
         self.print_btn = QPushButton(translate("print"))
+        self.print_btn.setProperty('basitToolbarButton', True)
         self.print_btn.clicked.connect(self.printRequested.emit)
         layout.addWidget(self.print_btn)
 
         self.refresh_btn = QPushButton(translate("refresh"))
+        self.refresh_btn.setProperty('basitToolbarButton', True)
         self.refresh_btn.clicked.connect(self.refreshRequested.emit)
         layout.addWidget(self.refresh_btn)
 
         self.counter_label = QLabel(translate("records_count", count=0))
+        self.counter_label.setProperty('basitCounter', True)
         self.counter_label.setObjectName("muted")
         self.counter_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.counter_label)
