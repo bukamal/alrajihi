@@ -1568,6 +1568,9 @@ def build_global_qss(colors: dict) -> str:
             color: {colors['primary']};
             border-color: {colors['primary']};
         }}
+        QToolButton#MainNavToolButton::menu-indicator {{ image: none; width: 0px; height: 0px; }}
+        QToolButton#MainNavToolButton::menu-button {{ image: none; width: 0px; height: 0px; border: 0px; padding: 0px; margin: 0px; }}
+        QToolButton#MainNavToolButton::menu-arrow {{ image: none; width: 0px; height: 0px; }}
         QFrame#UnifiedActionBar {{
             background-color: {colors.get('action_bar_bg', colors['bg_panel'])};
             border-bottom: 1px solid {colors['border']};

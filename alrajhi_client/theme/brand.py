@@ -130,6 +130,7 @@ BRAND = {
     'basit_dashboard_card_height': 96,
     # Phase406: Basit shell chrome metrics.
     'basit_shell_nav_height': 70,
+    'basit_shell_nav_vertical_margin': 3,
     'basit_shell_action_height': 50,
     'basit_shell_tab_height': 36,
     'basit_shell_menu_button_radius': 4,

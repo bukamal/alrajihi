@@ -121,6 +121,7 @@ NAV_BUTTON_MIN_WIDTH = int(BRAND.get('nav_button_min_width', 76))
 NAV_BUTTON_MAX_WIDTH = int(BRAND.get('nav_button_max_width', 112))
 NAV_BUTTON_HOME_WIDTH = int(BRAND.get('nav_button_home_width', 64))
 NAV_BUTTON_HEIGHT = int(BRAND.get('basit_shell_nav_button_height', BRAND.get('nav_button_height', 64)))
+NAV_VERTICAL_MARGIN = int(BRAND.get('basit_shell_nav_vertical_margin', max(0, (NAV_BAR_HEIGHT - NAV_BUTTON_HEIGHT) // 2)))
 NAV_FONT_PX = int(BRAND.get('nav_font_px', 12))
 
 
@@ -170,7 +171,9 @@ def navigation_bar_stylesheet() -> str:
             color: {basit_active_text};
             border-color: {colors.get('basit_red', colors['danger'])};
         }}
-        QToolButton#MainNavToolButton::menu-indicator {{ image: none; width: 0px; }}
+        QToolButton#MainNavToolButton::menu-indicator {{ image: none; width: 0px; height: 0px; }}
+        QToolButton#MainNavToolButton::menu-button {{ image: none; width: 0px; height: 0px; border: 0px; padding: 0px; margin: 0px; }}
+        QToolButton#MainNavToolButton::menu-arrow {{ image: none; width: 0px; height: 0px; }}
         QMenu {{
             background: {colors.get('basit_table_bg', colors['bg_panel'])};
             color: {colors['text_primary']};
@@ -209,26 +212,52 @@ class IconMenuBar(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName('IconMenuBar')
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self._buttons = []
         self._menus = []
         self._layout = QHBoxLayout(self)
-        self._layout.setContentsMargins(12, 6, 12, 6)
+        self._layout.setContentsMargins(12, NAV_VERTICAL_MARGIN, 12, NAV_VERTICAL_MARGIN)
         self._layout.setSpacing(7)
         self._layout.addStretch(1)
 
     def clear(self):
-        for btn in self._buttons:
-            btn.setParent(None)
-            btn.deleteLater()
+        """Remove menu buttons immediately enough to avoid stale left-corner paint."""
         for menu in self._menus:
+            try:
+                menu.close()
+            except Exception:
+                pass
             menu.deleteLater()
-        self._buttons.clear()
         self._menus.clear()
-        # Keep the trailing stretch as the last layout item.
-        while self._layout.count() > 1:
+        self._buttons.clear()
+        while self._layout.count():
             item = self._layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            widget = item.widget()
+            if widget is not None:
+                widget.hide()
+                widget.setParent(None)
+                widget.deleteLater()
+        self._layout.addStretch(1)
+        self._layout.invalidate()
+        self.updateGeometry()
+        self.update()
+
+    def _popup_menu_for_button(self, button, menu):
+        if menu is None or menu.isEmpty():
+            return
+        menu.close()
+        menu.ensurePolished()
+        offset_x = 0
+        if self.layoutDirection() == Qt.RightToLeft:
+            offset_x = max(0, button.width() - menu.sizeHint().width())
+        menu.popup(button.mapToGlobal(QPoint(offset_x, button.height())))
+
+    def finish_rebuild(self):
+        self._layout.invalidate()
+        self.updateGeometry()
+        self.update()
+        QTimer.singleShot(0, self.update)
+        QTimer.singleShot(0, self.repaint)
 
     def addMenu(self, icon, title):
         label = str(title or '').replace('\n', '').strip()
@@ -244,8 +273,11 @@ class IconMenuBar(QWidget):
         btn.setText('' if is_home else label)
         btn.setToolTip(label or translate('dashboard'))
         btn.setToolButtonStyle(Qt.ToolButtonIconOnly if is_home else Qt.ToolButtonTextUnderIcon)
-        btn.setPopupMode(QToolButton.InstantPopup)
-        btn.setMenu(menu)
+        # Phase411: do not attach QMenu directly to QToolButton.  Manual popup
+        # avoids native menu sub-controls being painted at the shell's left edge.
+        # Phase406 compatibility marker: former native popup mode is intentionally bypassed here.
+        btn.setPopupMode(QToolButton.DelayedPopup)
+        btn.clicked.connect(lambda checked=False, b=btn, m=menu: self._popup_menu_for_button(b, m))
         # Phase 328: tighter navigation buttons prevent left-edge overlap on
         # smaller RTL workspaces while keeping the icon-first shell readable.
         # Phase 318 compatibility marker: btn.setMaximumWidth(88 if not is_home else 68)
@@ -555,6 +587,7 @@ class MainWindow(QMainWindow):
             menu = self.menu_bar.addMenu(qta.icon(f'fa5s.{menu_spec.icon}'), '\n' + translate(menu_spec.label_key))
             for entry in enabled_entries:
                 add_entry(menu, entry)
+        self.menu_bar.finish_rebuild()
 
     def setup_topbar_buttons(self):
         """Wire utility-strip actions only.
