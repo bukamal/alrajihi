@@ -101,7 +101,11 @@ class TransactionItemDelegate(QStyledItemDelegate):
         completer.setCompletionMode(QCompleter.PopupCompletion)
         editor.setCompleter(completer)
         editor._transaction_item_completer_model = completer_model  # type: ignore[attr-defined]
-        editor.textEdited.connect(lambda text: self._refresh_completer(editor, text))
+        editor._transaction_item_user_edited = False  # type: ignore[attr-defined]
+        def _on_text_edited(text: str) -> None:
+            editor._transaction_item_user_edited = True  # type: ignore[attr-defined]
+            self._refresh_completer(editor, text)
+        editor.textEdited.connect(_on_text_edited)
         self._refresh_completer(editor, "")
         return editor
 
@@ -114,6 +118,13 @@ class TransactionItemDelegate(QStyledItemDelegate):
     def setModelData(self, editor, model, index):  # type: ignore[override]
         text = str(editor.text() or "").strip()
         if not text:
+            # Phase412: Enter navigation must never wipe an existing item merely
+            # because the editor closed while empty.  Clear only when the operator
+            # actually edited the text to an empty value.
+            user_edited = bool(getattr(editor, "_transaction_item_user_edited", False))
+            previous = model.data(index, Qt.EditRole)
+            if not user_edited and previous not in (None, ""):
+                return
             model.setData(index, "", Qt.EditRole)
             return
         item = self._row_for_text(text)

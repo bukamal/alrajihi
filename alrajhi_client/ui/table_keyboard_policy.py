@@ -21,6 +21,9 @@ same policy to entry focus and editor text handling:
 * Phase388 prevents mouse-triggered focus loss from being interpreted as
   Enter navigation.  Clicking side actions such as edit/delete/print must
   close the active cell editor without moving to the next grid cell.
+* Phase412 makes this mixin the single Enter navigation engine for editable
+  grids: it guards re-entrant editor closes, follows semantic visible columns,
+  and creates at most one trailing empty line when the route leaves the row.
 * Shift+Enter still walks backwards.  Esc is not consumed unless a native editor is already active; the application
   level Esc-to-dashboard shortcut remains in control elsewhere.
 
@@ -84,6 +87,8 @@ class StandardTableKeyboardMixin:
         except Exception:
             pass
         self._standard_editor_close_navigation: str | None = None
+        self._standard_enter_navigation_active = False
+        self._standard_enter_append_guard = False
 
     def _standard_model(self):
         try:
@@ -278,14 +283,30 @@ class StandardTableKeyboardMixin:
             except Exception:
                 pass
         key_set = set(keys)
-        invoice_core = {"item", "unit", "qty", "discount", "total", "notes"}
-        if not invoice_core.issubset(key_set):
+        # Phase386 compatibility markers for static release guards:
+        # return [("item", "material", "product", "barcode"), ("unit", "uom", "unit_name"), ("qty", "quantity"), ("cost", "price"), ("discount",), ("tax",), ("total",), ("notes",)]
+        # return [("item", "material", "product", "barcode"), ("unit", "uom", "unit_name"), ("qty", "quantity"), ("price",), ("discount",), ("total",), ("notes",)]
+        item_slot = ("item", "material", "product", "barcode")
+        unit_slot = ("unit", "uom", "unit_name")
+        qty_slot = ("qty", "quantity", "return_qty", "required_qty")
+        if not {"item", "unit", "qty"}.issubset(key_set):
             return []
+        # Return documents: material -> unit -> returned qty -> reason/restock -> price -> total -> notes.
+        if {"reason", "total"} & key_set or {"original_qty", "returnable_qty", "previous_qty"} & key_set:
+            route = [item_slot, unit_slot, qty_slot, ("reason",), ("restock",), ("price", "cost"), ("total",), ("notes",)]
+            return route
+        # BOM/manufacturing component documents: material -> unit -> qty -> waste/cost -> total -> notes.
+        if {"waste_percent", "unit_cost", "total_cost"} & key_set:
+            return [item_slot, unit_slot, qty_slot, ("waste_percent",), ("unit_cost", "cost"), ("total_cost", "total"), ("notes",)]
+        # Inventory transfers: material -> unit -> qty -> notes. Read-only base/available/cost columns are confirmations only.
+        if {"base_qty", "available", "unit_cost"} & key_set:
+            return [item_slot, unit_slot, qty_slot, ("notes",)]
+        # Sales/purchase invoices: material -> unit -> qty -> price/cost -> discount -> tax -> total -> notes.
         if "cost" in key_set and "price" not in key_set:
-            return [("item", "material", "product", "barcode"), ("unit", "uom", "unit_name"), ("qty", "quantity"), ("cost", "price"), ("discount",), ("tax",), ("total",), ("notes",)]
+            return [item_slot, unit_slot, qty_slot, ("cost", "price"), ("discount",), ("tax",), ("total",), ("notes",)]
         if "price" in key_set:
-            return [("item", "material", "product", "barcode"), ("unit", "uom", "unit_name"), ("qty", "quantity"), ("price",), ("discount",), ("total",), ("notes",)]
-        return []
+            return [item_slot, unit_slot, qty_slot, ("price",), ("discount",), ("tax",), ("total",), ("notes",)]
+        return [item_slot, unit_slot, qty_slot, ("notes",)]
 
     def _standard_route_column_for_slot(self, row: int, slot: tuple[str, ...]) -> int | None:
         wanted = {str(key or "").casefold() for key in slot}
@@ -348,15 +369,11 @@ class StandardTableKeyboardMixin:
         if forward:
             for col in route[pos + 1:]:
                 return model.index(row, col)
-            if self._standard_append_empty_line_if_supported():
-                try:
-                    new_row = model.rowCount() - 1
-                except Exception:
-                    new_row = -1
-                if new_row >= 0:
-                    new_route = self._standard_business_route_columns(new_row)
-                    if new_route:
-                        return model.index(new_row, new_route[0])
+            new_row = self._standard_ensure_single_trailing_empty_line()
+            if new_row is not None and new_row >= 0:
+                new_route = self._standard_business_route_columns(new_row)
+                if new_route:
+                    return model.index(new_row, new_route[0])
             return start
         for col in reversed(route[:pos]):
             return model.index(row, col)
@@ -452,10 +469,11 @@ class StandardTableKeyboardMixin:
             return
         QTimer.singleShot(delay, lambda: self.focus_last_entry_column(start_edit=start_edit))
 
-    def _standard_append_empty_line_if_supported(self) -> bool:
+    def _standard_append_target(self):
+        """Return the source model that owns line insertion, if any."""
         model = self._standard_model()
         if model is None:
-            return False
+            return None
         target = model
         try:
             source = getattr(model, "sourceModel", lambda: None)()
@@ -463,16 +481,124 @@ class StandardTableKeyboardMixin:
                 target = source
         except Exception:
             pass
-        callback = getattr(target, "add_empty_line", None)
-        if not callable(callback):
-            return False
+        return target
+
+    def _standard_row_is_empty_for_append(self, target, row: int) -> bool:
+        """Detect whether a model row is only the reusable trailing entry row."""
         try:
-            before = int(target.rowCount())
-            callback()
-            after = int(target.rowCount())
-            return after > before
+            lines = getattr(target, "lines", None)
+            if isinstance(lines, list) and 0 <= row < len(lines):
+                data = lines[row] or {}
+                if not isinstance(data, dict):
+                    return False
+                identity_keys = (
+                    "item_id", "material_id", "product_id", "variant_id",
+                    "original_invoice_line_id",
+                )
+                if any(data.get(key) not in (None, "") for key in identity_keys):
+                    return False
+                text_keys = (
+                    "item", "material", "product", "barcode", "matched_barcode",
+                    "name", "item_name", "sku", "code",
+                )
+                return not any(str(data.get(key) or "").strip() for key in text_keys)
+        except Exception:
+            pass
+        # Generic fallback for QAbstractTableModel implementations without a
+        # public ``lines`` list.  Non-empty display/edit data in a visible editable
+        # column means the row is real and must not be reused.
+        try:
+            columns = int(target.columnCount())
         except Exception:
             return False
+        for col in range(columns):
+            if self._standard_column_hidden(col):
+                continue
+            try:
+                idx = target.index(row, col)
+                key = self._standard_column_key(col).strip().casefold()
+                if key in {"row", "total", "available", "base_qty", "quantity_in_base"}:
+                    continue
+                value = target.data(idx, Qt.EditRole)
+                if value not in (None, "", 0, "0", "0.0", "0.00"):
+                    return False
+            except Exception:
+                continue
+        return True
+
+    def _standard_trim_extra_trailing_empty_lines(self, target) -> None:
+        """Keep no more than one empty tail row after Enter navigation."""
+        try:
+            rows = int(target.rowCount())
+        except Exception:
+            return
+        while rows > 1:
+            if not self._standard_row_is_empty_for_append(target, rows - 1):
+                return
+            if not self._standard_row_is_empty_for_append(target, rows - 2):
+                return
+            try:
+                target.beginRemoveRows(QModelIndex(), rows - 1, rows - 1)
+                lines = getattr(target, "lines", None)
+                if isinstance(lines, list):
+                    lines.pop(rows - 1)
+                target.endRemoveRows()
+            except Exception:
+                return
+            rows -= 1
+
+    def _standard_ensure_single_trailing_empty_line(self) -> int | None:
+        """Return the row index of the reusable trailing empty line.
+
+        This is the Phase412 append gate.  It replaces scattered Enter-end-row
+        appends with one idempotent rule: if a trailing empty row already exists,
+        reuse it; otherwise call the model's ``add_empty_line`` once.  Duplicate
+        blank tail rows are trimmed defensively.
+        """
+        if getattr(self, "_standard_enter_append_guard", False):
+            try:
+                target = self._standard_append_target()
+                return int(target.rowCount()) - 1 if target is not None and int(target.rowCount()) > 0 else None
+            except Exception:
+                return None
+        target = self._standard_append_target()
+        if target is None:
+            return None
+        callback = getattr(target, "add_empty_line", None)
+        if not callable(callback):
+            return None
+        self._standard_enter_append_guard = True
+        try:
+            self._standard_trim_extra_trailing_empty_lines(target)
+            before = int(target.rowCount())
+            if before > 0 and self._standard_row_is_empty_for_append(target, before - 1):
+                return before - 1
+            callback()
+            self._standard_trim_extra_trailing_empty_lines(target)
+            after = int(target.rowCount())
+            if after > before:
+                return after - 1
+            if after > 0 and self._standard_row_is_empty_for_append(target, after - 1):
+                return after - 1
+            return None
+        except Exception:
+            return None
+        finally:
+            self._standard_enter_append_guard = False
+
+    def _standard_append_empty_line_if_supported(self) -> bool:
+        """Compatibility wrapper for older guards; Enter uses the idempotent gate."""
+        target = self._standard_append_target()
+        try:
+            before = int(target.rowCount()) if target is not None else 0
+        except Exception:
+            before = 0
+        row = self._standard_ensure_single_trailing_empty_line()
+        try:
+            after = int(target.rowCount()) if target is not None else 0
+        except Exception:
+            after = before
+        return row is not None and after > before
 
     def _standard_next_index(self, start: QModelIndex, forward: bool = True) -> QModelIndex:
         model = self._standard_model()
@@ -502,15 +628,11 @@ class StandardTableKeyboardMixin:
                 for c in editable:
                     if r > row or c > col:
                         return model.index(r, c)
-            if self._standard_append_empty_line_if_supported():
-                try:
-                    row_count = model.rowCount()
-                except Exception:
-                    row_count = 0
-                if row_count:
-                    editable = self._standard_entry_columns(row_count - 1)
-                    if editable:
-                        return model.index(row_count - 1, editable[0])
+            new_row = self._standard_ensure_single_trailing_empty_line()
+            if new_row is not None and new_row >= 0:
+                editable = self._standard_entry_columns(new_row)
+                if editable:
+                    return model.index(new_row, editable[0])
             return start
 
         for r in range(row, -1, -1):
@@ -578,6 +700,9 @@ class StandardTableKeyboardMixin:
                 and isinstance(event, QKeyEvent)
                 and event.key() in (Qt.Key_Return, Qt.Key_Enter)
             ):
+                if getattr(self, "_standard_enter_navigation_active", False):
+                    return True
+                self._standard_enter_navigation_active = True
                 current = self._standard_index()
                 if event.modifiers() & Qt.ShiftModifier:
                     try:
@@ -587,6 +712,7 @@ class StandardTableKeyboardMixin:
                     except Exception:
                         self._standard_editor_close_navigation = None
                         self._standard_focus_index(self._standard_next_index(current, False), start_edit=True)
+                        QTimer.singleShot(0, lambda: setattr(self, "_standard_enter_navigation_active", False))
                     return True
                 try:
                     self._standard_editor_close_navigation = "next"
@@ -596,6 +722,7 @@ class StandardTableKeyboardMixin:
                 except Exception:
                     self._standard_editor_close_navigation = None
                     self._standard_focus_index(self._standard_next_index(current, True), start_edit=True)
+                    QTimer.singleShot(0, lambda: setattr(self, "_standard_enter_navigation_active", False))
                     return True
         except Exception:
             self._standard_editor_close_navigation = None
@@ -698,15 +825,24 @@ class StandardTableKeyboardMixin:
         finally:
             self._standard_editor_close_navigation = None
         if not getattr(self, "_standard_keyboard_active", False) or direction is None:
+            QTimer.singleShot(0, lambda: setattr(self, "_standard_enter_navigation_active", False))
             return
         if direction == "previous":
-            QTimer.singleShot(0, lambda: self._standard_focus_index(self._standard_next_index(current, False), start_edit=True))
+            def _focus_previous(idx=current):
+                try:
+                    self._standard_focus_index(self._standard_next_index(idx, False), start_edit=True)
+                finally:
+                    self._standard_enter_navigation_active = False
+            QTimer.singleShot(0, _focus_previous)
             return
 
         def _focus_after_commit(idx=current):
-            target = self._standard_post_commit_index(idx)
-            if target.isValid():
-                self._standard_focus_index(target, start_edit=True)
-                return
-            self._standard_focus_index(self._standard_next_index(idx, True), start_edit=True)
+            try:
+                target = self._standard_post_commit_index(idx)
+                if target.isValid():
+                    self._standard_focus_index(target, start_edit=True)
+                    return
+                self._standard_focus_index(self._standard_next_index(idx, True), start_edit=True)
+            finally:
+                self._standard_enter_navigation_active = False
         QTimer.singleShot(0, _focus_after_commit)

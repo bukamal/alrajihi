@@ -1,0 +1,18 @@
+check,category,path,needle,status,detail
+phase_doc,doc,PHASE412_EDITABLE_GRID_NAVIGATION_ENGINE.md,Phase 412,OK,
+contract,contract,alrajhi_client/workspace/quality/editable_grid_navigation_engine_contract.py,EDITABLE_GRID_NAVIGATION_ENGINE_CONTRACT,OK,
+single_trailing_gate,keyboard,alrajhi_client/ui/table_keyboard_policy.py,def _standard_ensure_single_trailing_empty_line,OK,
+row_empty_detector,keyboard,alrajhi_client/ui/table_keyboard_policy.py,def _standard_row_is_empty_for_append,OK,
+trim_extra_tail_rows,keyboard,alrajhi_client/ui/table_keyboard_policy.py,def _standard_trim_extra_trailing_empty_lines,OK,
+append_reentrant_guard,keyboard,alrajhi_client/ui/table_keyboard_policy.py,_standard_enter_append_guard,OK,
+enter_reentrant_guard,keyboard,alrajhi_client/ui/table_keyboard_policy.py,_standard_enter_navigation_active,OK,
+returns_route,keyboard,alrajhi_client/ui/table_keyboard_policy.py,Return documents: material -> unit -> returned qty,OK,
+inventory_route,keyboard,alrajhi_client/ui/table_keyboard_policy.py,Inventory transfers: material -> unit -> qty -> notes,OK,
+bom_route,keyboard,alrajhi_client/ui/table_keyboard_policy.py,BOM/manufacturing component documents,OK,
+item_delegate_user_edited,delegate,alrajhi_client/features/transactions/grids/transaction_item_delegate.py,_transaction_item_user_edited,OK,
+item_delegate_preserve_empty_enter,delegate,alrajhi_client/features/transactions/grids/transaction_item_delegate.py,"if not user_edited and previous not in (None, """")",OK,
+combo_delegate_no_load_commit,delegate,alrajhi_client/views/dialogs/invoice_delegates.py,combo.activated.connect,OK,
+legacy_invoice_enter_defers,legacy_invoice,alrajhi_client/views/dialogs/invoice_dialog.py,Phase412: Enter traversal is owned by TransactionLineGrid,OK,
+legacy_invoice_eventfilter_no_enter_walker,legacy_invoice,alrajhi_client/views/dialogs/invoice_dialog.py,Enter branch does not call _move_to_next_invoice_cell,OK,legacy invoice Enter defers to TransactionLineGrid
+combo_delegate_no_currentindex_commit,delegate,alrajhi_client/views/dialogs/invoice_delegates.py,no currentIndexChanged commitData lambda,OK,combo commit is activation/delegate-close driven
+all_enter_append_sites_idempotent,keyboard,alrajhi_client/ui/table_keyboard_policy.py,_standard_ensure_single_trailing_empty_line() in business and generic routes,OK,both navigation exits use the idempotent trailing-line gate

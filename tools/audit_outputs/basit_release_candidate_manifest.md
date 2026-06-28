@@ -16,7 +16,7 @@ Locked visual stack: Phase401-Phase409
 ## Required tools
 
 - basit_final_acceptance: Phase409 Basit final acceptance audit OK (67 checks)
-- release_readiness: release checks: 144
+- release_readiness: release checks: 145
 - release_packaging: Release packaging guard passed.
 - hidden_imports: Release hidden imports guard passed.
 

@@ -61,7 +61,14 @@ class ItemComboDelegate(QStyledItemDelegate):
         except Exception:
             pass
         combo.setCompleter(completer)
-        combo.currentIndexChanged.connect(lambda: self.commitData.emit(combo))
+        # Phase412: currentIndexChanged also fires while the delegate is only
+        # loading editor data.  Emitting commitData from that signal can overwrite
+        # the line before the operator confirms the cell.  Commit through the
+        # normal delegate close/Enter path instead.
+        try:
+            combo.activated.connect(lambda _index=None: self.commitData.emit(combo))
+        except Exception:
+            pass
         return combo
 
     def setEditorData(self, editor, index):

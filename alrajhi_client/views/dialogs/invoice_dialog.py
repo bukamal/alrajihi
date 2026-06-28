@@ -1093,8 +1093,11 @@ class InvoiceDialog(CenteredDialog):
             key = event.key()
             modifiers = event.modifiers()
             if key in (Qt.Key_Return, Qt.Key_Enter):
-                self._move_to_next_invoice_cell()
-                return True
+                # Phase412: Enter traversal is owned by TransactionLineGrid /
+                # StandardTableKeyboardMixin.  The legacy physical-column walker
+                # skipped columns, collided with delegates, and could append more
+                # than one row at the end of the invoice line.
+                return False
             if key == Qt.Key_Insert:
                 self.add_empty_line()
                 return True
