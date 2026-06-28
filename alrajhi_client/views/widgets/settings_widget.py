@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox,
     QPushButton, QGroupBox, QLabel, QMessageBox, QTabWidget, QFileDialog,
-    QSpinBox, QCheckBox, QTableWidget, QTableWidgetItem, QHeaderView,
+    QSpinBox, QCheckBox, QTableWidgetItem, QHeaderView,
     QDialog, QDialogButtonBox, QScrollArea, QFrame, QPlainTextEdit, QInputDialog
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QSettings, QTimer
@@ -803,7 +803,7 @@ class SettingsWidget(QWidget):
         self.settings_surface_contract_combo.currentIndexChanged.connect(self.load_settings_surface_column_contract)
         columns_box.addWidget(self.settings_surface_contract_combo)
 
-        self.settings_surface_columns_table = QTableWidget(0, 4)
+        self.settings_surface_columns_table = EditableSmartGrid(0, 4, identity="settings.surface.columns")
         self.settings_surface_columns_table.setHorizontalHeaderLabels([
             translate('settings_surface_column_label'),
             translate('settings_surface_visible_column'),
@@ -815,6 +815,7 @@ class SettingsWidget(QWidget):
         self.settings_surface_columns_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
         self.settings_surface_columns_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
         self.settings_surface_columns_table.setMinimumHeight(260)
+        self.settings_surface_columns_table.setEditTriggers(EditableSmartGrid.NoEditTriggers)
         columns_box.addWidget(self.settings_surface_columns_table)
         self.load_settings_surface_column_contract()
 

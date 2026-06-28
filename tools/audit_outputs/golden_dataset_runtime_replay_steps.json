@@ -1,0 +1,128 @@
+[
+  {
+    "operation_id": "GD-000",
+    "group": "master_data",
+    "kind": "declare_entities",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-000",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-001",
+    "group": "opening_balances",
+    "kind": "opening_stock",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-001",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-002",
+    "group": "purchase_invoice",
+    "kind": "purchase_invoice",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-002",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-003",
+    "group": "sales_invoice",
+    "kind": "sales_invoice",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-003",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-004",
+    "group": "sales_return",
+    "kind": "sales_return",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-004",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-005",
+    "group": "purchase_return",
+    "kind": "purchase_return",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-005",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-006",
+    "group": "inventory_transfer",
+    "kind": "inventory_transfer",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-006",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-007",
+    "group": "manufacturing",
+    "kind": "production_order",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-007",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-008",
+    "group": "pos_sale",
+    "kind": "pos_sale",
+    "branch_id": "BR-2",
+    "idempotency_key": "GD-008",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-009",
+    "group": "restaurant_order",
+    "kind": "restaurant_order",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-009",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-010",
+    "group": "vouchers",
+    "kind": "cash_receipt",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-010",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-011",
+    "group": "vouchers",
+    "kind": "cash_payment",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-011",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-012",
+    "group": "vouchers",
+    "kind": "expense_payment",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-012",
+    "status": "OK",
+    "detail": "operation accepted"
+  },
+  {
+    "operation_id": "GD-013",
+    "group": "reports",
+    "kind": "expected_report_cutoff",
+    "branch_id": "BR-MAIN",
+    "idempotency_key": "GD-013",
+    "status": "OK",
+    "detail": "operation accepted"
+  }
+]

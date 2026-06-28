@@ -107,6 +107,16 @@ class UnifiedActionBar(QFrame):
         self.screenshot_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
         layout.addWidget(self.screenshot_btn)
 
+        self.fullscreen_btn = QToolButton(self)
+        self.fullscreen_btn.setObjectName("ActionBarUtilityButton_fullscreen")
+        self.fullscreen_btn.setProperty('shellChromeRole', 'utility')
+        self.fullscreen_btn.setCursor(Qt.PointingHandCursor)
+        self.fullscreen_btn.setIcon(qta.icon(f"fa5s.{ACTION_SPECS['fullscreen'].icon}"))
+        self.fullscreen_btn.setIconSize(QSize(ACTION_BUTTON_ICON, ACTION_BUTTON_ICON))
+        self.fullscreen_btn.setText(translate(ACTION_SPECS['fullscreen'].label_key))
+        self.fullscreen_btn.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        layout.addWidget(self.fullscreen_btn)
+
         self.user_label = QLabel(translate("user"), self)
         self.user_label.setObjectName("ActionBarUserLabel")
         self.user_label.setProperty('shellChromeRole', 'user')
@@ -118,6 +128,7 @@ class UnifiedActionBar(QFrame):
             "alert": self.alert_btn,
             "theme": self.theme_btn,
             "screenshot": self.screenshot_btn,
+            "fullscreen": self.fullscreen_btn,
             "user": self.user_label,
         }
 

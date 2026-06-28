@@ -9,6 +9,7 @@ import time
 import requests
 from typing import Tuple, Optional, Callable
 from core.app_paths import license_file, network_license_file, feature_license_file
+from auth.license_security import build_license_record, validate_license_record
 
 SERVER_URL = 'https://license.manhal-almasriiii199119.workers.dev/activate'
 LICENSE_FILE = str(license_file())
@@ -77,12 +78,7 @@ def activate(license_key: str) -> Tuple[bool, str]:
         if resp.status_code != 200:
             return False, resp.text or "فشل التفعيل"
         result = resp.json()
-        data = {
-            'key': license_key,
-            'device': device_id,
-            'expiration': result.get('expirationDate'),
-            'activated_at': __import__('datetime').datetime.now().isoformat()
-        }
+        data = build_license_record(license_key=license_key, device_id=device_id, server_result=result)
         with open(LICENSE_FILE, 'w') as f:
             f.write(_encrypt_license(data, device_id))
         return True, ""
@@ -97,8 +93,9 @@ def check_activation() -> Tuple[bool, str]:
             encrypted = f.read().strip()
         device_id = get_device_id()
         data = _decrypt_license(encrypted, device_id)
-        if not data or data.get('device') != device_id:
-            return False, "ترخيص غير صالح"
+        ok, message = validate_license_record(data, expected_device=device_id)
+        if not ok:
+            return False, message
         return True, ""
     except Exception as e:
         return False, str(e)
@@ -115,13 +112,7 @@ def activate_feature(feature: str, license_key: str) -> Tuple[bool, str]:
         if resp.status_code != 200:
             return False, resp.text or f"فشل تفعيل {feature_id}"
         result = resp.json()
-        data = {
-            'key': license_key,
-            'device': device_id,
-            'feature': feature_id,
-            'expiration': result.get('expirationDate'),
-            'activated_at': __import__('datetime').datetime.now().isoformat()
-        }
+        data = build_license_record(license_key=license_key, device_id=device_id, server_result=result, feature_id=feature_id)
         with open(_feature_license_path(feature_id), 'w') as f:
             f.write(_encrypt_license(data, device_id))
         return True, ""
@@ -138,10 +129,9 @@ def check_feature_activation(feature: str) -> Tuple[bool, str]:
             encrypted = f.read().strip()
         device_id = get_device_id()
         data = _decrypt_license(encrypted, device_id)
-        if not data or data.get('device') != device_id:
-            return False, f"ترخيص {feature_id} غير صالح"
-        if data.get('feature') and data.get('feature') != feature_id:
-            return False, f"ترخيص {feature_id} غير صالح"
+        ok, message = validate_license_record(data, expected_device=device_id, expected_feature=feature_id)
+        if not ok:
+            return False, message
         return True, ""
     except Exception as e:
         return False, str(e)

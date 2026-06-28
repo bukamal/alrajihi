@@ -1,0 +1,65 @@
+﻿key,category,path,status,detail
+exists::PHASE424_GOLDEN_DATASET_RUNTIME_REPLAY_BRIDGE.md,file,PHASE424_GOLDEN_DATASET_RUNTIME_REPLAY_BRIDGE.md,OK,required Phase424 file exists
+exists::alrajhi_client/workspace/quality/golden_dataset_runtime_replay_contract.py,file,alrajhi_client/workspace/quality/golden_dataset_runtime_replay_contract.py,OK,required Phase424 file exists
+exists::alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,file,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,required Phase424 file exists
+exists::tools/phase424_golden_dataset_runtime_replay_guard.py,file,tools/phase424_golden_dataset_runtime_replay_guard.py,OK,required Phase424 file exists
+exists::tests/test_phase424_golden_dataset_runtime_replay.py,file,tests/test_phase424_golden_dataset_runtime_replay.py,OK,required Phase424 file exists
+ast::alrajhi_client/workspace/quality/golden_dataset_runtime_replay_contract.py,syntax,alrajhi_client/workspace/quality/golden_dataset_runtime_replay_contract.py,OK,source parses
+ast::alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,syntax,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,source parses
+ast::tools/phase424_golden_dataset_runtime_replay_guard.py,syntax,tools/phase424_golden_dataset_runtime_replay_guard.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/golden_dataset_runtime_replay_contract.py,OK,Phase424 contract is declared
+contract_source_phase,contract,alrajhi_client/workspace/quality/golden_dataset_runtime_replay_contract.py,OK,Phase424 consumes Phase423 golden dataset
+contract_bridge_layers,contract,alrajhi_client/workspace/quality/golden_dataset_runtime_replay_contract.py,OK,bridge layers are declared
+contract_backlog_explicit,contract,alrajhi_client/workspace/quality/golden_dataset_runtime_replay_contract.py,OK,runtime adapter backlog is explicit
+contract_output_files,contract,alrajhi_client/workspace/quality/golden_dataset_runtime_replay_contract.py,OK,machine-readable outputs are declared
+operation_stream_count,replay,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,operation stream has canonical golden operation count
+operation_stream_idempotency,replay,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,operation stream exposes idempotency keys
+operation_stream_branch_scope,replay,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,operation stream carries branch scope
+replay_adapter,replay,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,reference in-memory adapter executes the replay bridge
+replay_step_count,replay,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,all golden operations are replayed
+replay_failure_count,replay,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,expected/actual replay comparison has no failures
+replay_gross_profit,replay,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,runtime replay gross profit matches Phase423
+replay_total_cash,replay,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,runtime replay cash total matches Phase423
+manifest_implemented_adapter,adapter,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,implemented adapter is explicit
+manifest_backlog_adapter_count,adapter,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,three runtime adapters are declared as backlog
+output::matrix,output,/mnt/data/alrajhi_phase430_work/alrajhi_phase429_shared_operational_fullscreen_mode/tools/audit_outputs/golden_dataset_runtime_replay_matrix.csv,OK,matrix output generated
+output::comparison,output,/mnt/data/alrajhi_phase430_work/alrajhi_phase429_shared_operational_fullscreen_mode/tools/audit_outputs/golden_dataset_runtime_replay_comparison.csv,OK,comparison output generated
+output::steps,output,/mnt/data/alrajhi_phase430_work/alrajhi_phase429_shared_operational_fullscreen_mode/tools/audit_outputs/golden_dataset_runtime_replay_steps.json,OK,steps output generated
+output::actual,output,/mnt/data/alrajhi_phase430_work/alrajhi_phase429_shared_operational_fullscreen_mode/tools/audit_outputs/golden_dataset_runtime_replay_actual_balances.json,OK,actual output generated
+output::manifest,output,/mnt/data/alrajhi_phase430_work/alrajhi_phase429_shared_operational_fullscreen_mode/tools/audit_outputs/golden_dataset_runtime_replay_adapter_manifest.json,OK,manifest output generated
+native::adapter_name,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,reference adapter is used for CI bridge verification
+native::step_count,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,all golden operations are replayed
+native::step_statuses,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,all replay steps are accepted or idempotently skipped
+native::idempotency_keys,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,operation ids are passed as idempotency keys
+native::branch_scope,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,branch scope is present for every replayed operation
+native::actual_currency,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,actual balance envelope preserves currency
+native::actual_operation_count,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,actual balance envelope preserves operation count
+native::compare::stock_by_item_warehouse::MAT-FINISHED@WH-MAIN,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,stock_by_item_warehouse.MAT-FINISHED@WH-MAIN matches expected golden value
+native::compare::stock_by_item_warehouse::MAT-RAW@WH-MAIN,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,stock_by_item_warehouse.MAT-RAW@WH-MAIN matches expected golden value
+native::compare::stock_by_item_warehouse::MAT-RETAIL@WH-BR2,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,stock_by_item_warehouse.MAT-RETAIL@WH-BR2 matches expected golden value
+native::compare::stock_by_item_warehouse::MAT-RETAIL@WH-MAIN,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,stock_by_item_warehouse.MAT-RETAIL@WH-MAIN matches expected golden value
+native::compare::cashbox_balances::CASH-MAIN,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,cashbox_balances.CASH-MAIN matches expected golden value
+native::compare::cashbox_balances::CASH-POS,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,cashbox_balances.CASH-POS matches expected golden value
+native::compare::cashbox_balances::CASH-REST,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,cashbox_balances.CASH-REST matches expected golden value
+native::compare::customer_receivables::CUST-001,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,customer_receivables.CUST-001 matches expected golden value
+native::compare::supplier_payables::SUP-001,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,supplier_payables.SUP-001 matches expected golden value
+native::compare::expenses::EXP-OFFICE,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,expenses.EXP-OFFICE matches expected golden value
+native::compare::totals::cogs,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.cogs matches expected golden value
+native::compare::totals::gross_profit,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.gross_profit matches expected golden value
+native::compare::totals::manufacturing_cost,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.manufacturing_cost matches expected golden value
+native::compare::totals::net_revenue,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.net_revenue matches expected golden value
+native::compare::totals::purchase_return_subtotal,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.purchase_return_subtotal matches expected golden value
+native::compare::totals::purchase_subtotal,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.purchase_subtotal matches expected golden value
+native::compare::totals::sales_return_subtotal,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.sales_return_subtotal matches expected golden value
+native::compare::totals::sales_subtotal,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.sales_subtotal matches expected golden value
+native::compare::totals::stock_movement_count,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.stock_movement_count matches expected golden value
+native::compare::totals::tax_collected,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.tax_collected matches expected golden value
+native::compare::totals::tax_paid,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.tax_paid matches expected golden value
+native::compare::totals::total_cash,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.total_cash matches expected golden value
+native::compare::totals::total_customer_receivable,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.total_customer_receivable matches expected golden value
+native::compare::totals::total_supplier_payable,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.total_supplier_payable matches expected golden value
+native::compare::totals::vat_payable,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,totals.vat_payable matches expected golden value
+native::adapter_manifest_backlog_explicit,native,alrajhi_client/workspace/quality/golden_dataset_runtime_replay.py,OK,"DAO/API/offline adapters are explicit backlog, not silent omissions"
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase424 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase424 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase424 release check registered

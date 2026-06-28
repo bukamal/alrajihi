@@ -23,6 +23,7 @@ from features.restaurant.restaurant_order_grid import RestaurantOrderGrid
 from features.restaurant.restaurant_order_model import RestaurantOrderModel
 from currency import currency
 from workspace.operational.operational_shell_contract import bind_operational_shell
+from ui.operational_item_card_grid import OperationalItemCardGrid
 
 
 def _dec(value, default="0") -> Decimal:
@@ -401,6 +402,12 @@ class RestaurantPOSWidget(QWidget):
         guest_box.addWidget(guest_label)
         guest_box.addWidget(self.guests)
         header.addLayout(guest_box)
+        self.fullscreen_btn = QPushButton("⛶  " + _("fullscreen"))
+        self.fullscreen_btn.setObjectName("restaurantOrderFullscreenButton")
+        self.fullscreen_btn.setMinimumHeight(44)
+        self.fullscreen_btn.setProperty("basitToolbarButton", True)
+        self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
+        header.addWidget(self.fullscreen_btn)
         root.addWidget(header_card)
 
         self.total_label = QLabel(_("restaurant.order_financial_summary"))
@@ -529,17 +536,20 @@ class RestaurantPOSWidget(QWidget):
         menu_toggle_layout.addWidget(self.menu_toggle_btn)
         root.addWidget(self.menu_toggle_card)
 
-        self.menu_scroll = QScrollArea()
-        self.menu_scroll.setObjectName("restaurantMenuScroll")
-        self.menu_scroll.setWidgetResizable(True)
-        self.menu_host = QWidget()
-        self.menu_host.setObjectName("restaurantMenuHost")
-        self.menu_grid = QGridLayout(self.menu_host)
-        self.menu_grid.setContentsMargins(8, 8, 8, 8)
-        self.menu_grid.setSpacing(10)
-        self.menu_scroll.setWidget(self.menu_host)
-        self.menu_scroll.setMinimumHeight(84)
-        self.menu_scroll.setMaximumHeight(130)
+        self.menu_scroll = OperationalItemCardGrid(
+            self,
+            mode="restaurant",
+            default_columns=3,
+            min_columns=2,
+            max_columns=4,
+            empty_text=_("restaurant.no_menu_items"),
+            money_formatter=_display_money,
+            icon="🍽",
+        )
+        self.menu_scroll.setObjectName("restaurantMenuOperationalItemCardGrid")
+        self.menu_scroll.itemActivated.connect(self.add_menu_item)
+        self.menu_scroll.setMinimumHeight(168)
+        self.menu_scroll.setMaximumHeight(260)
         self.menu_scroll.setVisible(False)
         root.addWidget(self.menu_scroll, 0)
 
@@ -560,6 +570,16 @@ class RestaurantPOSWidget(QWidget):
         self.close_btn.clicked.connect(self.checkout_session)
         self._set_enabled(False)
         self.reload_menu()
+
+
+    def toggle_fullscreen(self) -> None:
+        window = self.window()
+        if hasattr(window, 'toggle_operational_fullscreen'):
+            window.toggle_operational_fullscreen()
+
+    def set_operational_fullscreen_active(self, active: bool) -> None:
+        if hasattr(self, 'fullscreen_btn'):
+            self.fullscreen_btn.setText(("⛶  " + _("exit_fullscreen")) if active else ("⛶  " + _("fullscreen")))
 
     def _set_menu_panel_visible(self, visible: bool) -> None:
         visible = bool(visible)
@@ -764,29 +784,12 @@ class RestaurantPOSWidget(QWidget):
         self._render_menu_cards()
 
     def _clear_grid(self):
-        while self.menu_grid.count():
-            item = self.menu_grid.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
+        self.menu_scroll.clear()
 
     def _render_menu_cards(self):
-        self._clear_grid()
-        if not self.menu_items:
-            empty = QLabel(_("restaurant.no_menu_items"))
-            empty.setObjectName("restaurantEmptyMenuLabel")
-            empty.setAlignment(Qt.AlignCenter)
-            self.menu_grid.addWidget(empty, 0, 0, 1, 4)
-            return
-        for index, item in enumerate(self.menu_items):
-            button = QPushButton(self._menu_card_label(item))
-            button.setObjectName("restaurantMenuItemButton")
-            button.setMinimumSize(116, 54)
-            button.setMaximumHeight(62)
-            button.setCursor(Qt.PointingHandCursor)
-            button.clicked.connect(lambda _=False, payload=item: self.add_menu_item(payload))
-            columns = 6 if self.width() >= 1120 else 5 if self.width() >= 900 else 4
-            self.menu_grid.addWidget(button, index // columns, index % columns)
+        # Phase428: the operational product-card grid is shared with POS and
+        # the simple restaurant interface.  It defaults to three columns.
+        self.menu_scroll.set_items(self.menu_items)
 
     def _menu_card_label(self, item):
         name = item.get("name") or item.get("item_name") or ""

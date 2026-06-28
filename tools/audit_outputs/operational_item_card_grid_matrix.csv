@@ -1,0 +1,35 @@
+﻿key,category,path,status,detail
+exists::PHASE428_OPERATIONAL_ITEM_CARD_GRID_UNIFICATION.md,file,PHASE428_OPERATIONAL_ITEM_CARD_GRID_UNIFICATION.md,OK,required Phase428 file exists
+exists::alrajhi_client/workspace/quality/operational_item_card_grid_contract.py,file,alrajhi_client/workspace/quality/operational_item_card_grid_contract.py,OK,required Phase428 file exists
+exists::tools/phase428_operational_item_card_grid_guard.py,file,tools/phase428_operational_item_card_grid_guard.py,OK,required Phase428 file exists
+exists::tests/test_phase428_operational_item_card_grid.py,file,tests/test_phase428_operational_item_card_grid.py,OK,required Phase428 file exists
+exists::alrajhi_client/ui/operational_item_card_grid.py,file,alrajhi_client/ui/operational_item_card_grid.py,OK,required Phase428 file exists
+exists::alrajhi_client/views/widgets/pos_widget.py,file,alrajhi_client/views/widgets/pos_widget.py,OK,required Phase428 file exists
+exists::alrajhi_client/views/restaurant/restaurant_pos_widget.py,file,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,required Phase428 file exists
+exists::alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,file,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,required Phase428 file exists
+exists::alrajhi_client/theme/qss.py,file,alrajhi_client/theme/qss.py,OK,required Phase428 file exists
+ast::alrajhi_client/workspace/quality/operational_item_card_grid_contract.py,syntax,alrajhi_client/workspace/quality/operational_item_card_grid_contract.py,OK,source parses
+ast::tools/phase428_operational_item_card_grid_guard.py,syntax,tools/phase428_operational_item_card_grid_guard.py,OK,source parses
+ast::tests/test_phase428_operational_item_card_grid.py,syntax,tests/test_phase428_operational_item_card_grid.py,OK,source parses
+ast::alrajhi_client/ui/operational_item_card_grid.py,syntax,alrajhi_client/ui/operational_item_card_grid.py,OK,source parses
+ast::alrajhi_client/views/widgets/pos_widget.py,syntax,alrajhi_client/views/widgets/pos_widget.py,OK,source parses
+ast::alrajhi_client/views/restaurant/restaurant_pos_widget.py,syntax,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,source parses
+ast::alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,syntax,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,source parses
+ast::alrajhi_client/theme/qss.py,syntax,alrajhi_client/theme/qss.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/operational_item_card_grid_contract.py,OK,Phase428 contract declared
+contract_owner,contract,alrajhi_client/workspace/quality/operational_item_card_grid_contract.py,OK,shared operational item card grid owns card surface
+contract_default_columns,contract,alrajhi_client/workspace/quality/operational_item_card_grid_contract.py,OK,default material grid uses three columns
+summary_ready,contract,alrajhi_client/workspace/quality/operational_item_card_grid_contract.py,OK,Restaurant/Cafe surfaces use shared card grid while POS stays barcode/table-first
+component_exists,operational_item_card_grid,alrajhi_client/ui/operational_item_card_grid.py,OK,Phase428/430 operational item-card grid contract
+component_signal,operational_item_card_grid,alrajhi_client/ui/operational_item_card_grid.py,OK,Phase428/430 operational item-card grid contract
+component_default_three_columns,operational_item_card_grid,alrajhi_client/ui/operational_item_card_grid.py,OK,Phase428/430 operational item-card grid contract
+pos_barcode_table_first,operational_item_card_grid,alrajhi_client/views/widgets/pos_widget.py,OK,Phase428/430 operational item-card grid contract
+pos_no_material_card_surface,operational_item_card_grid,alrajhi_client/views/widgets/pos_widget.py,OK,Phase428/430 operational item-card grid contract
+restaurant_uses_component,operational_item_card_grid,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,Phase428/430 operational item-card grid contract
+restaurant_no_local_menu_buttons,operational_item_card_grid,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,Phase428/430 operational item-card grid contract
+simple_uses_component,operational_item_card_grid,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,Phase428/430 operational item-card grid contract
+simple_three_column_contract,operational_item_card_grid,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,Phase428/430 operational item-card grid contract
+qss_shared_surface,operational_item_card_grid,alrajhi_client/theme/qss.py,OK,Phase428/430 operational item-card grid contract
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase428 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase428 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase428 release check registered

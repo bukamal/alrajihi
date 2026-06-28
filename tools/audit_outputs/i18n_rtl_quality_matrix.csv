@@ -1,0 +1,684 @@
+key,category,path,status,detail
+exists::PHASE422_I18N_RTL_QUALITY_GATE.md,file,PHASE422_I18N_RTL_QUALITY_GATE.md,OK,required Phase422 file exists
+exists::alrajhi_client/workspace/quality/i18n_rtl_quality_contract.py,file,alrajhi_client/workspace/quality/i18n_rtl_quality_contract.py,OK,required Phase422 file exists
+exists::alrajhi_client/workspace/quality/i18n_rtl_quality_audit.py,file,alrajhi_client/workspace/quality/i18n_rtl_quality_audit.py,OK,required Phase422 file exists
+exists::alrajhi_client/i18n/translator.py,file,alrajhi_client/i18n/translator.py,OK,required Phase422 file exists
+exists::alrajhi_client/ui/table_direction_policy.py,file,alrajhi_client/ui/table_direction_policy.py,OK,required Phase422 file exists
+exists::alrajhi_client/views/main_window.py,file,alrajhi_client/views/main_window.py,OK,required Phase422 file exists
+exists::alrajhi_client/views/widgets/settings_widget.py,file,alrajhi_client/views/widgets/settings_widget.py,OK,required Phase422 file exists
+exists::alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,file,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,required Phase422 file exists
+exists::tools/phase422_i18n_rtl_quality_guard.py,file,tools/phase422_i18n_rtl_quality_guard.py,OK,required Phase422 file exists
+exists::tests/test_phase422_i18n_rtl_quality.py,file,tests/test_phase422_i18n_rtl_quality.py,OK,required Phase422 file exists
+ast::alrajhi_client/workspace/quality/i18n_rtl_quality_contract.py,syntax,alrajhi_client/workspace/quality/i18n_rtl_quality_contract.py,OK,source parses
+ast::alrajhi_client/workspace/quality/i18n_rtl_quality_audit.py,syntax,alrajhi_client/workspace/quality/i18n_rtl_quality_audit.py,OK,source parses
+ast::alrajhi_client/i18n/translator.py,syntax,alrajhi_client/i18n/translator.py,OK,source parses
+ast::alrajhi_client/ui/table_direction_policy.py,syntax,alrajhi_client/ui/table_direction_policy.py,OK,source parses
+ast::tools/phase422_i18n_rtl_quality_guard.py,syntax,tools/phase422_i18n_rtl_quality_guard.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/i18n_rtl_quality_contract.py,OK,Phase422 contract is declared
+contract_supported_languages,contract,alrajhi_client/workspace/quality/i18n_rtl_quality_contract.py,OK,supported language set is explicit
+contract_critical_keys,contract,alrajhi_client/workspace/quality/i18n_rtl_quality_contract.py,OK,critical UI/print/runtime keys are explicit
+contract_runtime_invariants,contract,alrajhi_client/workspace/quality/i18n_rtl_quality_contract.py,OK,runtime direction invariants are explicit
+supported_languages_exact,registry,alrajhi_client/i18n/translator.py,OK,"supported=('ar', 'de', 'en', 'fr')"
+direction::ar,direction,alrajhi_client/i18n/translator.py,OK,ar direction is rtl
+direction::de,direction,alrajhi_client/i18n/translator.py,OK,de direction is ltr
+direction::en,direction,alrajhi_client/i18n/translator.py,OK,en direction is ltr
+direction::fr,direction,alrajhi_client/i18n/translator.py,OK,fr direction is ltr
+settings_language_choices_cover_all_supported_languages,settings,alrajhi_client/features/settings/settings_document_tabs.py,OK,UI/report/print language choices include ar/en/de/fr
+settings_applies_table_direction_tree,runtime,alrajhi_client/views/widgets/settings_widget.py,OK,settings language switch propagates table direction
+main_window_applies_table_direction_tree,runtime,alrajhi_client/views/main_window.py,OK,main window applies table direction after language load
+main_menu_bar_runtime_direction,runtime,alrajhi_client/views/main_window.py,OK,top menu bar receives active language direction
+table_policy_sets_viewport_and_headers,runtime,alrajhi_client/ui/table_direction_policy.py,OK,table policy updates viewport and headers
+phase416_captures_ar_de_shell_snapshots,runtime,alrajhi_client/workspace/runtime/runtime_acceptance_harness.py,OK,runtime harness captures Arabic RTL and German LTR shell snapshots
+critical::app_title::ar,translation,alrajhi_client/i18n/translator.py,OK,app_title/ar has a non-key translation
+placeholders::app_title::ar,placeholder,alrajhi_client/i18n/translator.py,OK,app_title/ar placeholders match Arabic source
+critical::app_title::de,translation,alrajhi_client/i18n/translator.py,OK,app_title/de has a non-key translation
+placeholders::app_title::de,placeholder,alrajhi_client/i18n/translator.py,OK,app_title/de placeholders match Arabic source
+critical::app_title::en,translation,alrajhi_client/i18n/translator.py,OK,app_title/en has a non-key translation
+placeholders::app_title::en,placeholder,alrajhi_client/i18n/translator.py,OK,app_title/en placeholders match Arabic source
+critical::app_title::fr,translation,alrajhi_client/i18n/translator.py,OK,app_title/fr has a non-key translation
+placeholders::app_title::fr,placeholder,alrajhi_client/i18n/translator.py,OK,app_title/fr placeholders match Arabic source
+translate_api::app_title::ar,api,alrajhi_client/i18n/translator.py,OK,translate('app_title') returns translated text in ar
+translate_api::app_title::de,api,alrajhi_client/i18n/translator.py,OK,translate('app_title') returns translated text in de
+translate_api::app_title::en,api,alrajhi_client/i18n/translator.py,OK,translate('app_title') returns translated text in en
+translate_api::app_title::fr,api,alrajhi_client/i18n/translator.py,OK,translate('app_title') returns translated text in fr
+critical::nav_home::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_home/ar has a non-key translation
+placeholders::nav_home::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_home/ar placeholders match Arabic source
+critical::nav_home::de,translation,alrajhi_client/i18n/translator.py,OK,nav_home/de has a non-key translation
+placeholders::nav_home::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_home/de placeholders match Arabic source
+critical::nav_home::en,translation,alrajhi_client/i18n/translator.py,OK,nav_home/en has a non-key translation
+placeholders::nav_home::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_home/en placeholders match Arabic source
+critical::nav_home::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_home/fr has a non-key translation
+placeholders::nav_home::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_home/fr placeholders match Arabic source
+translate_api::nav_home::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_home') returns translated text in ar
+translate_api::nav_home::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_home') returns translated text in de
+translate_api::nav_home::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_home') returns translated text in en
+translate_api::nav_home::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_home') returns translated text in fr
+critical::nav_sales::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_sales/ar has a non-key translation
+placeholders::nav_sales::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_sales/ar placeholders match Arabic source
+critical::nav_sales::de,translation,alrajhi_client/i18n/translator.py,OK,nav_sales/de has a non-key translation
+placeholders::nav_sales::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_sales/de placeholders match Arabic source
+critical::nav_sales::en,translation,alrajhi_client/i18n/translator.py,OK,nav_sales/en has a non-key translation
+placeholders::nav_sales::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_sales/en placeholders match Arabic source
+critical::nav_sales::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_sales/fr has a non-key translation
+placeholders::nav_sales::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_sales/fr placeholders match Arabic source
+translate_api::nav_sales::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_sales') returns translated text in ar
+translate_api::nav_sales::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_sales') returns translated text in de
+translate_api::nav_sales::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_sales') returns translated text in en
+translate_api::nav_sales::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_sales') returns translated text in fr
+critical::nav_purchases::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_purchases/ar has a non-key translation
+placeholders::nav_purchases::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_purchases/ar placeholders match Arabic source
+critical::nav_purchases::de,translation,alrajhi_client/i18n/translator.py,OK,nav_purchases/de has a non-key translation
+placeholders::nav_purchases::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_purchases/de placeholders match Arabic source
+critical::nav_purchases::en,translation,alrajhi_client/i18n/translator.py,OK,nav_purchases/en has a non-key translation
+placeholders::nav_purchases::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_purchases/en placeholders match Arabic source
+critical::nav_purchases::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_purchases/fr has a non-key translation
+placeholders::nav_purchases::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_purchases/fr placeholders match Arabic source
+translate_api::nav_purchases::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_purchases') returns translated text in ar
+translate_api::nav_purchases::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_purchases') returns translated text in de
+translate_api::nav_purchases::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_purchases') returns translated text in en
+translate_api::nav_purchases::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_purchases') returns translated text in fr
+critical::nav_inventory::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_inventory/ar has a non-key translation
+placeholders::nav_inventory::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_inventory/ar placeholders match Arabic source
+critical::nav_inventory::de,translation,alrajhi_client/i18n/translator.py,OK,nav_inventory/de has a non-key translation
+placeholders::nav_inventory::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_inventory/de placeholders match Arabic source
+critical::nav_inventory::en,translation,alrajhi_client/i18n/translator.py,OK,nav_inventory/en has a non-key translation
+placeholders::nav_inventory::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_inventory/en placeholders match Arabic source
+critical::nav_inventory::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_inventory/fr has a non-key translation
+placeholders::nav_inventory::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_inventory/fr placeholders match Arabic source
+translate_api::nav_inventory::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_inventory') returns translated text in ar
+translate_api::nav_inventory::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_inventory') returns translated text in de
+translate_api::nav_inventory::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_inventory') returns translated text in en
+translate_api::nav_inventory::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_inventory') returns translated text in fr
+critical::nav_manufacturing::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_manufacturing/ar has a non-key translation
+placeholders::nav_manufacturing::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_manufacturing/ar placeholders match Arabic source
+critical::nav_manufacturing::de,translation,alrajhi_client/i18n/translator.py,OK,nav_manufacturing/de has a non-key translation
+placeholders::nav_manufacturing::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_manufacturing/de placeholders match Arabic source
+critical::nav_manufacturing::en,translation,alrajhi_client/i18n/translator.py,OK,nav_manufacturing/en has a non-key translation
+placeholders::nav_manufacturing::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_manufacturing/en placeholders match Arabic source
+critical::nav_manufacturing::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_manufacturing/fr has a non-key translation
+placeholders::nav_manufacturing::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_manufacturing/fr placeholders match Arabic source
+translate_api::nav_manufacturing::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_manufacturing') returns translated text in ar
+translate_api::nav_manufacturing::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_manufacturing') returns translated text in de
+translate_api::nav_manufacturing::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_manufacturing') returns translated text in en
+translate_api::nav_manufacturing::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_manufacturing') returns translated text in fr
+critical::nav_parties::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_parties/ar has a non-key translation
+placeholders::nav_parties::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_parties/ar placeholders match Arabic source
+critical::nav_parties::de,translation,alrajhi_client/i18n/translator.py,OK,nav_parties/de has a non-key translation
+placeholders::nav_parties::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_parties/de placeholders match Arabic source
+critical::nav_parties::en,translation,alrajhi_client/i18n/translator.py,OK,nav_parties/en has a non-key translation
+placeholders::nav_parties::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_parties/en placeholders match Arabic source
+critical::nav_parties::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_parties/fr has a non-key translation
+placeholders::nav_parties::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_parties/fr placeholders match Arabic source
+translate_api::nav_parties::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_parties') returns translated text in ar
+translate_api::nav_parties::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_parties') returns translated text in de
+translate_api::nav_parties::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_parties') returns translated text in en
+translate_api::nav_parties::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_parties') returns translated text in fr
+critical::nav_finance::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_finance/ar has a non-key translation
+placeholders::nav_finance::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_finance/ar placeholders match Arabic source
+critical::nav_finance::de,translation,alrajhi_client/i18n/translator.py,OK,nav_finance/de has a non-key translation
+placeholders::nav_finance::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_finance/de placeholders match Arabic source
+critical::nav_finance::en,translation,alrajhi_client/i18n/translator.py,OK,nav_finance/en has a non-key translation
+placeholders::nav_finance::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_finance/en placeholders match Arabic source
+critical::nav_finance::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_finance/fr has a non-key translation
+placeholders::nav_finance::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_finance/fr placeholders match Arabic source
+translate_api::nav_finance::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_finance') returns translated text in ar
+translate_api::nav_finance::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_finance') returns translated text in de
+translate_api::nav_finance::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_finance') returns translated text in en
+translate_api::nav_finance::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_finance') returns translated text in fr
+critical::nav_admin::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_admin/ar has a non-key translation
+placeholders::nav_admin::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_admin/ar placeholders match Arabic source
+critical::nav_admin::de,translation,alrajhi_client/i18n/translator.py,OK,nav_admin/de has a non-key translation
+placeholders::nav_admin::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_admin/de placeholders match Arabic source
+critical::nav_admin::en,translation,alrajhi_client/i18n/translator.py,OK,nav_admin/en has a non-key translation
+placeholders::nav_admin::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_admin/en placeholders match Arabic source
+critical::nav_admin::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_admin/fr has a non-key translation
+placeholders::nav_admin::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_admin/fr placeholders match Arabic source
+translate_api::nav_admin::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_admin') returns translated text in ar
+translate_api::nav_admin::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_admin') returns translated text in de
+translate_api::nav_admin::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_admin') returns translated text in en
+translate_api::nav_admin::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_admin') returns translated text in fr
+critical::nav_quick_actions::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_quick_actions/ar has a non-key translation
+placeholders::nav_quick_actions::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_quick_actions/ar placeholders match Arabic source
+critical::nav_quick_actions::de,translation,alrajhi_client/i18n/translator.py,OK,nav_quick_actions/de has a non-key translation
+placeholders::nav_quick_actions::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_quick_actions/de placeholders match Arabic source
+critical::nav_quick_actions::en,translation,alrajhi_client/i18n/translator.py,OK,nav_quick_actions/en has a non-key translation
+placeholders::nav_quick_actions::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_quick_actions/en placeholders match Arabic source
+critical::nav_quick_actions::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_quick_actions/fr has a non-key translation
+placeholders::nav_quick_actions::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_quick_actions/fr placeholders match Arabic source
+translate_api::nav_quick_actions::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_quick_actions') returns translated text in ar
+translate_api::nav_quick_actions::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_quick_actions') returns translated text in de
+translate_api::nav_quick_actions::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_quick_actions') returns translated text in en
+translate_api::nav_quick_actions::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_quick_actions') returns translated text in fr
+critical::nav_special_interfaces::ar,translation,alrajhi_client/i18n/translator.py,OK,nav_special_interfaces/ar has a non-key translation
+placeholders::nav_special_interfaces::ar,placeholder,alrajhi_client/i18n/translator.py,OK,nav_special_interfaces/ar placeholders match Arabic source
+critical::nav_special_interfaces::de,translation,alrajhi_client/i18n/translator.py,OK,nav_special_interfaces/de has a non-key translation
+placeholders::nav_special_interfaces::de,placeholder,alrajhi_client/i18n/translator.py,OK,nav_special_interfaces/de placeholders match Arabic source
+critical::nav_special_interfaces::en,translation,alrajhi_client/i18n/translator.py,OK,nav_special_interfaces/en has a non-key translation
+placeholders::nav_special_interfaces::en,placeholder,alrajhi_client/i18n/translator.py,OK,nav_special_interfaces/en placeholders match Arabic source
+critical::nav_special_interfaces::fr,translation,alrajhi_client/i18n/translator.py,OK,nav_special_interfaces/fr has a non-key translation
+placeholders::nav_special_interfaces::fr,placeholder,alrajhi_client/i18n/translator.py,OK,nav_special_interfaces/fr placeholders match Arabic source
+translate_api::nav_special_interfaces::ar,api,alrajhi_client/i18n/translator.py,OK,translate('nav_special_interfaces') returns translated text in ar
+translate_api::nav_special_interfaces::de,api,alrajhi_client/i18n/translator.py,OK,translate('nav_special_interfaces') returns translated text in de
+translate_api::nav_special_interfaces::en,api,alrajhi_client/i18n/translator.py,OK,translate('nav_special_interfaces') returns translated text in en
+translate_api::nav_special_interfaces::fr,api,alrajhi_client/i18n/translator.py,OK,translate('nav_special_interfaces') returns translated text in fr
+critical::settings_header_title::ar,translation,alrajhi_client/i18n/translator.py,OK,settings_header_title/ar has a non-key translation
+placeholders::settings_header_title::ar,placeholder,alrajhi_client/i18n/translator.py,OK,settings_header_title/ar placeholders match Arabic source
+critical::settings_header_title::de,translation,alrajhi_client/i18n/translator.py,OK,settings_header_title/de has a non-key translation
+placeholders::settings_header_title::de,placeholder,alrajhi_client/i18n/translator.py,OK,settings_header_title/de placeholders match Arabic source
+critical::settings_header_title::en,translation,alrajhi_client/i18n/translator.py,OK,settings_header_title/en has a non-key translation
+placeholders::settings_header_title::en,placeholder,alrajhi_client/i18n/translator.py,OK,settings_header_title/en placeholders match Arabic source
+critical::settings_header_title::fr,translation,alrajhi_client/i18n/translator.py,OK,settings_header_title/fr has a non-key translation
+placeholders::settings_header_title::fr,placeholder,alrajhi_client/i18n/translator.py,OK,settings_header_title/fr placeholders match Arabic source
+translate_api::settings_header_title::ar,api,alrajhi_client/i18n/translator.py,OK,translate('settings_header_title') returns translated text in ar
+translate_api::settings_header_title::de,api,alrajhi_client/i18n/translator.py,OK,translate('settings_header_title') returns translated text in de
+translate_api::settings_header_title::en,api,alrajhi_client/i18n/translator.py,OK,translate('settings_header_title') returns translated text in en
+translate_api::settings_header_title::fr,api,alrajhi_client/i18n/translator.py,OK,translate('settings_header_title') returns translated text in fr
+critical::sales_invoice::ar,translation,alrajhi_client/i18n/translator.py,OK,sales_invoice/ar has a non-key translation
+placeholders::sales_invoice::ar,placeholder,alrajhi_client/i18n/translator.py,OK,sales_invoice/ar placeholders match Arabic source
+critical::sales_invoice::de,translation,alrajhi_client/i18n/translator.py,OK,sales_invoice/de has a non-key translation
+placeholders::sales_invoice::de,placeholder,alrajhi_client/i18n/translator.py,OK,sales_invoice/de placeholders match Arabic source
+critical::sales_invoice::en,translation,alrajhi_client/i18n/translator.py,OK,sales_invoice/en has a non-key translation
+placeholders::sales_invoice::en,placeholder,alrajhi_client/i18n/translator.py,OK,sales_invoice/en placeholders match Arabic source
+critical::sales_invoice::fr,translation,alrajhi_client/i18n/translator.py,OK,sales_invoice/fr has a non-key translation
+placeholders::sales_invoice::fr,placeholder,alrajhi_client/i18n/translator.py,OK,sales_invoice/fr placeholders match Arabic source
+translate_api::sales_invoice::ar,api,alrajhi_client/i18n/translator.py,OK,translate('sales_invoice') returns translated text in ar
+translate_api::sales_invoice::de,api,alrajhi_client/i18n/translator.py,OK,translate('sales_invoice') returns translated text in de
+translate_api::sales_invoice::en,api,alrajhi_client/i18n/translator.py,OK,translate('sales_invoice') returns translated text in en
+translate_api::sales_invoice::fr,api,alrajhi_client/i18n/translator.py,OK,translate('sales_invoice') returns translated text in fr
+critical::purchase_invoice::ar,translation,alrajhi_client/i18n/translator.py,OK,purchase_invoice/ar has a non-key translation
+placeholders::purchase_invoice::ar,placeholder,alrajhi_client/i18n/translator.py,OK,purchase_invoice/ar placeholders match Arabic source
+critical::purchase_invoice::de,translation,alrajhi_client/i18n/translator.py,OK,purchase_invoice/de has a non-key translation
+placeholders::purchase_invoice::de,placeholder,alrajhi_client/i18n/translator.py,OK,purchase_invoice/de placeholders match Arabic source
+critical::purchase_invoice::en,translation,alrajhi_client/i18n/translator.py,OK,purchase_invoice/en has a non-key translation
+placeholders::purchase_invoice::en,placeholder,alrajhi_client/i18n/translator.py,OK,purchase_invoice/en placeholders match Arabic source
+critical::purchase_invoice::fr,translation,alrajhi_client/i18n/translator.py,OK,purchase_invoice/fr has a non-key translation
+placeholders::purchase_invoice::fr,placeholder,alrajhi_client/i18n/translator.py,OK,purchase_invoice/fr placeholders match Arabic source
+translate_api::purchase_invoice::ar,api,alrajhi_client/i18n/translator.py,OK,translate('purchase_invoice') returns translated text in ar
+translate_api::purchase_invoice::de,api,alrajhi_client/i18n/translator.py,OK,translate('purchase_invoice') returns translated text in de
+translate_api::purchase_invoice::en,api,alrajhi_client/i18n/translator.py,OK,translate('purchase_invoice') returns translated text in en
+translate_api::purchase_invoice::fr,api,alrajhi_client/i18n/translator.py,OK,translate('purchase_invoice') returns translated text in fr
+critical::sales_returns::ar,translation,alrajhi_client/i18n/translator.py,OK,sales_returns/ar has a non-key translation
+placeholders::sales_returns::ar,placeholder,alrajhi_client/i18n/translator.py,OK,sales_returns/ar placeholders match Arabic source
+critical::sales_returns::de,translation,alrajhi_client/i18n/translator.py,OK,sales_returns/de has a non-key translation
+placeholders::sales_returns::de,placeholder,alrajhi_client/i18n/translator.py,OK,sales_returns/de placeholders match Arabic source
+critical::sales_returns::en,translation,alrajhi_client/i18n/translator.py,OK,sales_returns/en has a non-key translation
+placeholders::sales_returns::en,placeholder,alrajhi_client/i18n/translator.py,OK,sales_returns/en placeholders match Arabic source
+critical::sales_returns::fr,translation,alrajhi_client/i18n/translator.py,OK,sales_returns/fr has a non-key translation
+placeholders::sales_returns::fr,placeholder,alrajhi_client/i18n/translator.py,OK,sales_returns/fr placeholders match Arabic source
+translate_api::sales_returns::ar,api,alrajhi_client/i18n/translator.py,OK,translate('sales_returns') returns translated text in ar
+translate_api::sales_returns::de,api,alrajhi_client/i18n/translator.py,OK,translate('sales_returns') returns translated text in de
+translate_api::sales_returns::en,api,alrajhi_client/i18n/translator.py,OK,translate('sales_returns') returns translated text in en
+translate_api::sales_returns::fr,api,alrajhi_client/i18n/translator.py,OK,translate('sales_returns') returns translated text in fr
+critical::purchase_returns::ar,translation,alrajhi_client/i18n/translator.py,OK,purchase_returns/ar has a non-key translation
+placeholders::purchase_returns::ar,placeholder,alrajhi_client/i18n/translator.py,OK,purchase_returns/ar placeholders match Arabic source
+critical::purchase_returns::de,translation,alrajhi_client/i18n/translator.py,OK,purchase_returns/de has a non-key translation
+placeholders::purchase_returns::de,placeholder,alrajhi_client/i18n/translator.py,OK,purchase_returns/de placeholders match Arabic source
+critical::purchase_returns::en,translation,alrajhi_client/i18n/translator.py,OK,purchase_returns/en has a non-key translation
+placeholders::purchase_returns::en,placeholder,alrajhi_client/i18n/translator.py,OK,purchase_returns/en placeholders match Arabic source
+critical::purchase_returns::fr,translation,alrajhi_client/i18n/translator.py,OK,purchase_returns/fr has a non-key translation
+placeholders::purchase_returns::fr,placeholder,alrajhi_client/i18n/translator.py,OK,purchase_returns/fr placeholders match Arabic source
+translate_api::purchase_returns::ar,api,alrajhi_client/i18n/translator.py,OK,translate('purchase_returns') returns translated text in ar
+translate_api::purchase_returns::de,api,alrajhi_client/i18n/translator.py,OK,translate('purchase_returns') returns translated text in de
+translate_api::purchase_returns::en,api,alrajhi_client/i18n/translator.py,OK,translate('purchase_returns') returns translated text in en
+translate_api::purchase_returns::fr,api,alrajhi_client/i18n/translator.py,OK,translate('purchase_returns') returns translated text in fr
+critical::transaction_sales_invoice_new::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_sales_invoice_new/ar has a non-key translation
+placeholders::transaction_sales_invoice_new::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_sales_invoice_new/ar placeholders match Arabic source
+critical::transaction_sales_invoice_new::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_sales_invoice_new/de has a non-key translation
+placeholders::transaction_sales_invoice_new::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_sales_invoice_new/de placeholders match Arabic source
+critical::transaction_sales_invoice_new::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_sales_invoice_new/en has a non-key translation
+placeholders::transaction_sales_invoice_new::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_sales_invoice_new/en placeholders match Arabic source
+critical::transaction_sales_invoice_new::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_sales_invoice_new/fr has a non-key translation
+placeholders::transaction_sales_invoice_new::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_sales_invoice_new/fr placeholders match Arabic source
+translate_api::transaction_sales_invoice_new::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_sales_invoice_new') returns translated text in ar
+translate_api::transaction_sales_invoice_new::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_sales_invoice_new') returns translated text in de
+translate_api::transaction_sales_invoice_new::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_sales_invoice_new') returns translated text in en
+translate_api::transaction_sales_invoice_new::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_sales_invoice_new') returns translated text in fr
+critical::transaction_purchase_invoice_new::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_purchase_invoice_new/ar has a non-key translation
+placeholders::transaction_purchase_invoice_new::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_purchase_invoice_new/ar placeholders match Arabic source
+critical::transaction_purchase_invoice_new::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_purchase_invoice_new/de has a non-key translation
+placeholders::transaction_purchase_invoice_new::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_purchase_invoice_new/de placeholders match Arabic source
+critical::transaction_purchase_invoice_new::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_purchase_invoice_new/en has a non-key translation
+placeholders::transaction_purchase_invoice_new::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_purchase_invoice_new/en placeholders match Arabic source
+critical::transaction_purchase_invoice_new::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_purchase_invoice_new/fr has a non-key translation
+placeholders::transaction_purchase_invoice_new::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_purchase_invoice_new/fr placeholders match Arabic source
+translate_api::transaction_purchase_invoice_new::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_purchase_invoice_new') returns translated text in ar
+translate_api::transaction_purchase_invoice_new::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_purchase_invoice_new') returns translated text in de
+translate_api::transaction_purchase_invoice_new::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_purchase_invoice_new') returns translated text in en
+translate_api::transaction_purchase_invoice_new::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_purchase_invoice_new') returns translated text in fr
+critical::transaction_sales_return_new::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_sales_return_new/ar has a non-key translation
+placeholders::transaction_sales_return_new::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_sales_return_new/ar placeholders match Arabic source
+critical::transaction_sales_return_new::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_sales_return_new/de has a non-key translation
+placeholders::transaction_sales_return_new::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_sales_return_new/de placeholders match Arabic source
+critical::transaction_sales_return_new::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_sales_return_new/en has a non-key translation
+placeholders::transaction_sales_return_new::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_sales_return_new/en placeholders match Arabic source
+critical::transaction_sales_return_new::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_sales_return_new/fr has a non-key translation
+placeholders::transaction_sales_return_new::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_sales_return_new/fr placeholders match Arabic source
+translate_api::transaction_sales_return_new::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_sales_return_new') returns translated text in ar
+translate_api::transaction_sales_return_new::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_sales_return_new') returns translated text in de
+translate_api::transaction_sales_return_new::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_sales_return_new') returns translated text in en
+translate_api::transaction_sales_return_new::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_sales_return_new') returns translated text in fr
+critical::transaction_purchase_return_new::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_purchase_return_new/ar has a non-key translation
+placeholders::transaction_purchase_return_new::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_purchase_return_new/ar placeholders match Arabic source
+critical::transaction_purchase_return_new::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_purchase_return_new/de has a non-key translation
+placeholders::transaction_purchase_return_new::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_purchase_return_new/de placeholders match Arabic source
+critical::transaction_purchase_return_new::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_purchase_return_new/en has a non-key translation
+placeholders::transaction_purchase_return_new::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_purchase_return_new/en placeholders match Arabic source
+critical::transaction_purchase_return_new::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_purchase_return_new/fr has a non-key translation
+placeholders::transaction_purchase_return_new::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_purchase_return_new/fr placeholders match Arabic source
+translate_api::transaction_purchase_return_new::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_purchase_return_new') returns translated text in ar
+translate_api::transaction_purchase_return_new::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_purchase_return_new') returns translated text in de
+translate_api::transaction_purchase_return_new::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_purchase_return_new') returns translated text in en
+translate_api::transaction_purchase_return_new::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_purchase_return_new') returns translated text in fr
+critical::transaction_column_item::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_item/ar has a non-key translation
+placeholders::transaction_column_item::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_item/ar placeholders match Arabic source
+critical::transaction_column_item::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_item/de has a non-key translation
+placeholders::transaction_column_item::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_item/de placeholders match Arabic source
+critical::transaction_column_item::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_item/en has a non-key translation
+placeholders::transaction_column_item::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_item/en placeholders match Arabic source
+critical::transaction_column_item::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_item/fr has a non-key translation
+placeholders::transaction_column_item::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_item/fr placeholders match Arabic source
+translate_api::transaction_column_item::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_item') returns translated text in ar
+translate_api::transaction_column_item::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_item') returns translated text in de
+translate_api::transaction_column_item::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_item') returns translated text in en
+translate_api::transaction_column_item::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_item') returns translated text in fr
+critical::transaction_column_unit::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_unit/ar has a non-key translation
+placeholders::transaction_column_unit::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_unit/ar placeholders match Arabic source
+critical::transaction_column_unit::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_unit/de has a non-key translation
+placeholders::transaction_column_unit::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_unit/de placeholders match Arabic source
+critical::transaction_column_unit::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_unit/en has a non-key translation
+placeholders::transaction_column_unit::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_unit/en placeholders match Arabic source
+critical::transaction_column_unit::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_unit/fr has a non-key translation
+placeholders::transaction_column_unit::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_unit/fr placeholders match Arabic source
+translate_api::transaction_column_unit::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_unit') returns translated text in ar
+translate_api::transaction_column_unit::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_unit') returns translated text in de
+translate_api::transaction_column_unit::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_unit') returns translated text in en
+translate_api::transaction_column_unit::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_unit') returns translated text in fr
+critical::transaction_column_qty::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_qty/ar has a non-key translation
+placeholders::transaction_column_qty::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_qty/ar placeholders match Arabic source
+critical::transaction_column_qty::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_qty/de has a non-key translation
+placeholders::transaction_column_qty::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_qty/de placeholders match Arabic source
+critical::transaction_column_qty::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_qty/en has a non-key translation
+placeholders::transaction_column_qty::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_qty/en placeholders match Arabic source
+critical::transaction_column_qty::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_qty/fr has a non-key translation
+placeholders::transaction_column_qty::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_qty/fr placeholders match Arabic source
+translate_api::transaction_column_qty::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_qty') returns translated text in ar
+translate_api::transaction_column_qty::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_qty') returns translated text in de
+translate_api::transaction_column_qty::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_qty') returns translated text in en
+translate_api::transaction_column_qty::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_qty') returns translated text in fr
+critical::transaction_column_price::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_price/ar has a non-key translation
+placeholders::transaction_column_price::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_price/ar placeholders match Arabic source
+critical::transaction_column_price::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_price/de has a non-key translation
+placeholders::transaction_column_price::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_price/de placeholders match Arabic source
+critical::transaction_column_price::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_price/en has a non-key translation
+placeholders::transaction_column_price::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_price/en placeholders match Arabic source
+critical::transaction_column_price::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_price/fr has a non-key translation
+placeholders::transaction_column_price::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_price/fr placeholders match Arabic source
+translate_api::transaction_column_price::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_price') returns translated text in ar
+translate_api::transaction_column_price::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_price') returns translated text in de
+translate_api::transaction_column_price::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_price') returns translated text in en
+translate_api::transaction_column_price::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_price') returns translated text in fr
+critical::transaction_column_discount::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_discount/ar has a non-key translation
+placeholders::transaction_column_discount::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_discount/ar placeholders match Arabic source
+critical::transaction_column_discount::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_discount/de has a non-key translation
+placeholders::transaction_column_discount::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_discount/de placeholders match Arabic source
+critical::transaction_column_discount::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_discount/en has a non-key translation
+placeholders::transaction_column_discount::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_discount/en placeholders match Arabic source
+critical::transaction_column_discount::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_discount/fr has a non-key translation
+placeholders::transaction_column_discount::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_discount/fr placeholders match Arabic source
+translate_api::transaction_column_discount::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_discount') returns translated text in ar
+translate_api::transaction_column_discount::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_discount') returns translated text in de
+translate_api::transaction_column_discount::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_discount') returns translated text in en
+translate_api::transaction_column_discount::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_discount') returns translated text in fr
+critical::transaction_column_tax::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_tax/ar has a non-key translation
+placeholders::transaction_column_tax::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_tax/ar placeholders match Arabic source
+critical::transaction_column_tax::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_tax/de has a non-key translation
+placeholders::transaction_column_tax::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_tax/de placeholders match Arabic source
+critical::transaction_column_tax::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_tax/en has a non-key translation
+placeholders::transaction_column_tax::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_tax/en placeholders match Arabic source
+critical::transaction_column_tax::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_tax/fr has a non-key translation
+placeholders::transaction_column_tax::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_tax/fr placeholders match Arabic source
+translate_api::transaction_column_tax::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_tax') returns translated text in ar
+translate_api::transaction_column_tax::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_tax') returns translated text in de
+translate_api::transaction_column_tax::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_tax') returns translated text in en
+translate_api::transaction_column_tax::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_tax') returns translated text in fr
+critical::transaction_column_total::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_total/ar has a non-key translation
+placeholders::transaction_column_total::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_total/ar placeholders match Arabic source
+critical::transaction_column_total::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_total/de has a non-key translation
+placeholders::transaction_column_total::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_total/de placeholders match Arabic source
+critical::transaction_column_total::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_total/en has a non-key translation
+placeholders::transaction_column_total::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_total/en placeholders match Arabic source
+critical::transaction_column_total::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_total/fr has a non-key translation
+placeholders::transaction_column_total::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_total/fr placeholders match Arabic source
+translate_api::transaction_column_total::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_total') returns translated text in ar
+translate_api::transaction_column_total::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_total') returns translated text in de
+translate_api::transaction_column_total::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_total') returns translated text in en
+translate_api::transaction_column_total::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_total') returns translated text in fr
+critical::transaction_column_notes::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_notes/ar has a non-key translation
+placeholders::transaction_column_notes::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_notes/ar placeholders match Arabic source
+critical::transaction_column_notes::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_notes/de has a non-key translation
+placeholders::transaction_column_notes::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_notes/de placeholders match Arabic source
+critical::transaction_column_notes::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_notes/en has a non-key translation
+placeholders::transaction_column_notes::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_notes/en placeholders match Arabic source
+critical::transaction_column_notes::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_notes/fr has a non-key translation
+placeholders::transaction_column_notes::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_notes/fr placeholders match Arabic source
+translate_api::transaction_column_notes::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_notes') returns translated text in ar
+translate_api::transaction_column_notes::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_notes') returns translated text in de
+translate_api::transaction_column_notes::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_notes') returns translated text in en
+translate_api::transaction_column_notes::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_notes') returns translated text in fr
+critical::transaction_column_cost::ar,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_cost/ar has a non-key translation
+placeholders::transaction_column_cost::ar,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_cost/ar placeholders match Arabic source
+critical::transaction_column_cost::de,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_cost/de has a non-key translation
+placeholders::transaction_column_cost::de,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_cost/de placeholders match Arabic source
+critical::transaction_column_cost::en,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_cost/en has a non-key translation
+placeholders::transaction_column_cost::en,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_cost/en placeholders match Arabic source
+critical::transaction_column_cost::fr,translation,alrajhi_client/i18n/translator.py,OK,transaction_column_cost/fr has a non-key translation
+placeholders::transaction_column_cost::fr,placeholder,alrajhi_client/i18n/translator.py,OK,transaction_column_cost/fr placeholders match Arabic source
+translate_api::transaction_column_cost::ar,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_cost') returns translated text in ar
+translate_api::transaction_column_cost::de,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_cost') returns translated text in de
+translate_api::transaction_column_cost::en,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_cost') returns translated text in en
+translate_api::transaction_column_cost::fr,api,alrajhi_client/i18n/translator.py,OK,translate('transaction_column_cost') returns translated text in fr
+critical::module_activation_title::ar,translation,alrajhi_client/i18n/translator.py,OK,module_activation_title/ar has a non-key translation
+placeholders::module_activation_title::ar,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_title/ar placeholders match Arabic source
+critical::module_activation_title::de,translation,alrajhi_client/i18n/translator.py,OK,module_activation_title/de has a non-key translation
+placeholders::module_activation_title::de,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_title/de placeholders match Arabic source
+critical::module_activation_title::en,translation,alrajhi_client/i18n/translator.py,OK,module_activation_title/en has a non-key translation
+placeholders::module_activation_title::en,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_title/en placeholders match Arabic source
+critical::module_activation_title::fr,translation,alrajhi_client/i18n/translator.py,OK,module_activation_title/fr has a non-key translation
+placeholders::module_activation_title::fr,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_title/fr placeholders match Arabic source
+translate_api::module_activation_title::ar,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_title') returns translated text in ar
+translate_api::module_activation_title::de,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_title') returns translated text in de
+translate_api::module_activation_title::en,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_title') returns translated text in en
+translate_api::module_activation_title::fr,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_title') returns translated text in fr
+critical::module_activation_success::ar,translation,alrajhi_client/i18n/translator.py,OK,module_activation_success/ar has a non-key translation
+placeholders::module_activation_success::ar,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_success/ar placeholders match Arabic source
+critical::module_activation_success::de,translation,alrajhi_client/i18n/translator.py,OK,module_activation_success/de has a non-key translation
+placeholders::module_activation_success::de,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_success/de placeholders match Arabic source
+critical::module_activation_success::en,translation,alrajhi_client/i18n/translator.py,OK,module_activation_success/en has a non-key translation
+placeholders::module_activation_success::en,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_success/en placeholders match Arabic source
+critical::module_activation_success::fr,translation,alrajhi_client/i18n/translator.py,OK,module_activation_success/fr has a non-key translation
+placeholders::module_activation_success::fr,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_success/fr placeholders match Arabic source
+translate_api::module_activation_success::ar,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_success') returns translated text in ar
+translate_api::module_activation_success::de,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_success') returns translated text in de
+translate_api::module_activation_success::en,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_success') returns translated text in en
+translate_api::module_activation_success::fr,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_success') returns translated text in fr
+critical::module_activation_failed::ar,translation,alrajhi_client/i18n/translator.py,OK,module_activation_failed/ar has a non-key translation
+placeholders::module_activation_failed::ar,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_failed/ar placeholders match Arabic source
+critical::module_activation_failed::de,translation,alrajhi_client/i18n/translator.py,OK,module_activation_failed/de has a non-key translation
+placeholders::module_activation_failed::de,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_failed/de placeholders match Arabic source
+critical::module_activation_failed::en,translation,alrajhi_client/i18n/translator.py,OK,module_activation_failed/en has a non-key translation
+placeholders::module_activation_failed::en,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_failed/en placeholders match Arabic source
+critical::module_activation_failed::fr,translation,alrajhi_client/i18n/translator.py,OK,module_activation_failed/fr has a non-key translation
+placeholders::module_activation_failed::fr,placeholder,alrajhi_client/i18n/translator.py,OK,module_activation_failed/fr placeholders match Arabic source
+translate_api::module_activation_failed::ar,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_failed') returns translated text in ar
+translate_api::module_activation_failed::de,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_failed') returns translated text in de
+translate_api::module_activation_failed::en,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_failed') returns translated text in en
+translate_api::module_activation_failed::fr,api,alrajhi_client/i18n/translator.py,OK,translate('module_activation_failed') returns translated text in fr
+critical::pos::ar,translation,alrajhi_client/i18n/translator.py,OK,pos/ar has a non-key translation
+placeholders::pos::ar,placeholder,alrajhi_client/i18n/translator.py,OK,pos/ar placeholders match Arabic source
+critical::pos::de,translation,alrajhi_client/i18n/translator.py,OK,pos/de has a non-key translation
+placeholders::pos::de,placeholder,alrajhi_client/i18n/translator.py,OK,pos/de placeholders match Arabic source
+critical::pos::en,translation,alrajhi_client/i18n/translator.py,OK,pos/en has a non-key translation
+placeholders::pos::en,placeholder,alrajhi_client/i18n/translator.py,OK,pos/en placeholders match Arabic source
+critical::pos::fr,translation,alrajhi_client/i18n/translator.py,OK,pos/fr has a non-key translation
+placeholders::pos::fr,placeholder,alrajhi_client/i18n/translator.py,OK,pos/fr placeholders match Arabic source
+translate_api::pos::ar,api,alrajhi_client/i18n/translator.py,OK,translate('pos') returns translated text in ar
+translate_api::pos::de,api,alrajhi_client/i18n/translator.py,OK,translate('pos') returns translated text in de
+translate_api::pos::en,api,alrajhi_client/i18n/translator.py,OK,translate('pos') returns translated text in en
+translate_api::pos::fr,api,alrajhi_client/i18n/translator.py,OK,translate('pos') returns translated text in fr
+critical::restaurant.dashboard::ar,translation,alrajhi_client/i18n/translator.py,OK,restaurant.dashboard/ar has a non-key translation
+placeholders::restaurant.dashboard::ar,placeholder,alrajhi_client/i18n/translator.py,OK,restaurant.dashboard/ar placeholders match Arabic source
+critical::restaurant.dashboard::de,translation,alrajhi_client/i18n/translator.py,OK,restaurant.dashboard/de has a non-key translation
+placeholders::restaurant.dashboard::de,placeholder,alrajhi_client/i18n/translator.py,OK,restaurant.dashboard/de placeholders match Arabic source
+critical::restaurant.dashboard::en,translation,alrajhi_client/i18n/translator.py,OK,restaurant.dashboard/en has a non-key translation
+placeholders::restaurant.dashboard::en,placeholder,alrajhi_client/i18n/translator.py,OK,restaurant.dashboard/en placeholders match Arabic source
+critical::restaurant.dashboard::fr,translation,alrajhi_client/i18n/translator.py,OK,restaurant.dashboard/fr has a non-key translation
+placeholders::restaurant.dashboard::fr,placeholder,alrajhi_client/i18n/translator.py,OK,restaurant.dashboard/fr placeholders match Arabic source
+translate_api::restaurant.dashboard::ar,api,alrajhi_client/i18n/translator.py,OK,translate('restaurant.dashboard') returns translated text in ar
+translate_api::restaurant.dashboard::de,api,alrajhi_client/i18n/translator.py,OK,translate('restaurant.dashboard') returns translated text in de
+translate_api::restaurant.dashboard::en,api,alrajhi_client/i18n/translator.py,OK,translate('restaurant.dashboard') returns translated text in en
+translate_api::restaurant.dashboard::fr,api,alrajhi_client/i18n/translator.py,OK,translate('restaurant.dashboard') returns translated text in fr
+critical::restaurant.kitchen_display::ar,translation,alrajhi_client/i18n/translator.py,OK,restaurant.kitchen_display/ar has a non-key translation
+placeholders::restaurant.kitchen_display::ar,placeholder,alrajhi_client/i18n/translator.py,OK,restaurant.kitchen_display/ar placeholders match Arabic source
+critical::restaurant.kitchen_display::de,translation,alrajhi_client/i18n/translator.py,OK,restaurant.kitchen_display/de has a non-key translation
+placeholders::restaurant.kitchen_display::de,placeholder,alrajhi_client/i18n/translator.py,OK,restaurant.kitchen_display/de placeholders match Arabic source
+critical::restaurant.kitchen_display::en,translation,alrajhi_client/i18n/translator.py,OK,restaurant.kitchen_display/en has a non-key translation
+placeholders::restaurant.kitchen_display::en,placeholder,alrajhi_client/i18n/translator.py,OK,restaurant.kitchen_display/en placeholders match Arabic source
+critical::restaurant.kitchen_display::fr,translation,alrajhi_client/i18n/translator.py,OK,restaurant.kitchen_display/fr has a non-key translation
+placeholders::restaurant.kitchen_display::fr,placeholder,alrajhi_client/i18n/translator.py,OK,restaurant.kitchen_display/fr placeholders match Arabic source
+translate_api::restaurant.kitchen_display::ar,api,alrajhi_client/i18n/translator.py,OK,translate('restaurant.kitchen_display') returns translated text in ar
+translate_api::restaurant.kitchen_display::de,api,alrajhi_client/i18n/translator.py,OK,translate('restaurant.kitchen_display') returns translated text in de
+translate_api::restaurant.kitchen_display::en,api,alrajhi_client/i18n/translator.py,OK,translate('restaurant.kitchen_display') returns translated text in en
+translate_api::restaurant.kitchen_display::fr,api,alrajhi_client/i18n/translator.py,OK,translate('restaurant.kitchen_display') returns translated text in fr
+critical::feature_activation_restaurant::ar,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_restaurant/ar has a non-key translation
+placeholders::feature_activation_restaurant::ar,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_restaurant/ar placeholders match Arabic source
+critical::feature_activation_restaurant::de,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_restaurant/de has a non-key translation
+placeholders::feature_activation_restaurant::de,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_restaurant/de placeholders match Arabic source
+critical::feature_activation_restaurant::en,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_restaurant/en has a non-key translation
+placeholders::feature_activation_restaurant::en,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_restaurant/en placeholders match Arabic source
+critical::feature_activation_restaurant::fr,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_restaurant/fr has a non-key translation
+placeholders::feature_activation_restaurant::fr,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_restaurant/fr placeholders match Arabic source
+translate_api::feature_activation_restaurant::ar,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_restaurant') returns translated text in ar
+translate_api::feature_activation_restaurant::de,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_restaurant') returns translated text in de
+translate_api::feature_activation_restaurant::en,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_restaurant') returns translated text in en
+translate_api::feature_activation_restaurant::fr,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_restaurant') returns translated text in fr
+critical::feature_activation_cafe::ar,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_cafe/ar has a non-key translation
+placeholders::feature_activation_cafe::ar,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_cafe/ar placeholders match Arabic source
+critical::feature_activation_cafe::de,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_cafe/de has a non-key translation
+placeholders::feature_activation_cafe::de,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_cafe/de placeholders match Arabic source
+critical::feature_activation_cafe::en,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_cafe/en has a non-key translation
+placeholders::feature_activation_cafe::en,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_cafe/en placeholders match Arabic source
+critical::feature_activation_cafe::fr,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_cafe/fr has a non-key translation
+placeholders::feature_activation_cafe::fr,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_cafe/fr placeholders match Arabic source
+translate_api::feature_activation_cafe::ar,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_cafe') returns translated text in ar
+translate_api::feature_activation_cafe::de,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_cafe') returns translated text in de
+translate_api::feature_activation_cafe::en,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_cafe') returns translated text in en
+translate_api::feature_activation_cafe::fr,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_cafe') returns translated text in fr
+critical::feature_activation_apparel::ar,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_apparel/ar has a non-key translation
+placeholders::feature_activation_apparel::ar,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_apparel/ar placeholders match Arabic source
+critical::feature_activation_apparel::de,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_apparel/de has a non-key translation
+placeholders::feature_activation_apparel::de,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_apparel/de placeholders match Arabic source
+critical::feature_activation_apparel::en,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_apparel/en has a non-key translation
+placeholders::feature_activation_apparel::en,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_apparel/en placeholders match Arabic source
+critical::feature_activation_apparel::fr,translation,alrajhi_client/i18n/translator.py,OK,feature_activation_apparel/fr has a non-key translation
+placeholders::feature_activation_apparel::fr,placeholder,alrajhi_client/i18n/translator.py,OK,feature_activation_apparel/fr placeholders match Arabic source
+translate_api::feature_activation_apparel::ar,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_apparel') returns translated text in ar
+translate_api::feature_activation_apparel::de,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_apparel') returns translated text in de
+translate_api::feature_activation_apparel::en,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_apparel') returns translated text in en
+translate_api::feature_activation_apparel::fr,api,alrajhi_client/i18n/translator.py,OK,translate('feature_activation_apparel') returns translated text in fr
+critical::barcode.restaurant_menu_labels::ar,translation,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_menu_labels/ar has a non-key translation
+placeholders::barcode.restaurant_menu_labels::ar,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_menu_labels/ar placeholders match Arabic source
+critical::barcode.restaurant_menu_labels::de,translation,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_menu_labels/de has a non-key translation
+placeholders::barcode.restaurant_menu_labels::de,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_menu_labels/de placeholders match Arabic source
+critical::barcode.restaurant_menu_labels::en,translation,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_menu_labels/en has a non-key translation
+placeholders::barcode.restaurant_menu_labels::en,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_menu_labels/en placeholders match Arabic source
+critical::barcode.restaurant_menu_labels::fr,translation,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_menu_labels/fr has a non-key translation
+placeholders::barcode.restaurant_menu_labels::fr,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_menu_labels/fr placeholders match Arabic source
+translate_api::barcode.restaurant_menu_labels::ar,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.restaurant_menu_labels') returns translated text in ar
+translate_api::barcode.restaurant_menu_labels::de,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.restaurant_menu_labels') returns translated text in de
+translate_api::barcode.restaurant_menu_labels::en,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.restaurant_menu_labels') returns translated text in en
+translate_api::barcode.restaurant_menu_labels::fr,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.restaurant_menu_labels') returns translated text in fr
+critical::barcode.restaurant_table_labels::ar,translation,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_table_labels/ar has a non-key translation
+placeholders::barcode.restaurant_table_labels::ar,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_table_labels/ar placeholders match Arabic source
+critical::barcode.restaurant_table_labels::de,translation,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_table_labels/de has a non-key translation
+placeholders::barcode.restaurant_table_labels::de,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_table_labels/de placeholders match Arabic source
+critical::barcode.restaurant_table_labels::en,translation,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_table_labels/en has a non-key translation
+placeholders::barcode.restaurant_table_labels::en,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_table_labels/en placeholders match Arabic source
+critical::barcode.restaurant_table_labels::fr,translation,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_table_labels/fr has a non-key translation
+placeholders::barcode.restaurant_table_labels::fr,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.restaurant_table_labels/fr placeholders match Arabic source
+translate_api::barcode.restaurant_table_labels::ar,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.restaurant_table_labels') returns translated text in ar
+translate_api::barcode.restaurant_table_labels::de,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.restaurant_table_labels') returns translated text in de
+translate_api::barcode.restaurant_table_labels::en,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.restaurant_table_labels') returns translated text in en
+translate_api::barcode.restaurant_table_labels::fr,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.restaurant_table_labels') returns translated text in fr
+critical::barcode.cafe_product_labels::ar,translation,alrajhi_client/i18n/translator.py,OK,barcode.cafe_product_labels/ar has a non-key translation
+placeholders::barcode.cafe_product_labels::ar,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.cafe_product_labels/ar placeholders match Arabic source
+critical::barcode.cafe_product_labels::de,translation,alrajhi_client/i18n/translator.py,OK,barcode.cafe_product_labels/de has a non-key translation
+placeholders::barcode.cafe_product_labels::de,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.cafe_product_labels/de placeholders match Arabic source
+critical::barcode.cafe_product_labels::en,translation,alrajhi_client/i18n/translator.py,OK,barcode.cafe_product_labels/en has a non-key translation
+placeholders::barcode.cafe_product_labels::en,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.cafe_product_labels/en placeholders match Arabic source
+critical::barcode.cafe_product_labels::fr,translation,alrajhi_client/i18n/translator.py,OK,barcode.cafe_product_labels/fr has a non-key translation
+placeholders::barcode.cafe_product_labels::fr,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.cafe_product_labels/fr placeholders match Arabic source
+translate_api::barcode.cafe_product_labels::ar,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.cafe_product_labels') returns translated text in ar
+translate_api::barcode.cafe_product_labels::de,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.cafe_product_labels') returns translated text in de
+translate_api::barcode.cafe_product_labels::en,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.cafe_product_labels') returns translated text in en
+translate_api::barcode.cafe_product_labels::fr,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.cafe_product_labels') returns translated text in fr
+critical::barcode.cafe_modifier_labels::ar,translation,alrajhi_client/i18n/translator.py,OK,barcode.cafe_modifier_labels/ar has a non-key translation
+placeholders::barcode.cafe_modifier_labels::ar,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.cafe_modifier_labels/ar placeholders match Arabic source
+critical::barcode.cafe_modifier_labels::de,translation,alrajhi_client/i18n/translator.py,OK,barcode.cafe_modifier_labels/de has a non-key translation
+placeholders::barcode.cafe_modifier_labels::de,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.cafe_modifier_labels/de placeholders match Arabic source
+critical::barcode.cafe_modifier_labels::en,translation,alrajhi_client/i18n/translator.py,OK,barcode.cafe_modifier_labels/en has a non-key translation
+placeholders::barcode.cafe_modifier_labels::en,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.cafe_modifier_labels/en placeholders match Arabic source
+critical::barcode.cafe_modifier_labels::fr,translation,alrajhi_client/i18n/translator.py,OK,barcode.cafe_modifier_labels/fr has a non-key translation
+placeholders::barcode.cafe_modifier_labels::fr,placeholder,alrajhi_client/i18n/translator.py,OK,barcode.cafe_modifier_labels/fr placeholders match Arabic source
+translate_api::barcode.cafe_modifier_labels::ar,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.cafe_modifier_labels') returns translated text in ar
+translate_api::barcode.cafe_modifier_labels::de,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.cafe_modifier_labels') returns translated text in de
+translate_api::barcode.cafe_modifier_labels::en,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.cafe_modifier_labels') returns translated text in en
+translate_api::barcode.cafe_modifier_labels::fr,api,alrajhi_client/i18n/translator.py,OK,translate('barcode.cafe_modifier_labels') returns translated text in fr
+critical::language_label::ar,translation,alrajhi_client/i18n/translator.py,OK,language_label/ar has a non-key translation
+placeholders::language_label::ar,placeholder,alrajhi_client/i18n/translator.py,OK,language_label/ar placeholders match Arabic source
+critical::language_label::de,translation,alrajhi_client/i18n/translator.py,OK,language_label/de has a non-key translation
+placeholders::language_label::de,placeholder,alrajhi_client/i18n/translator.py,OK,language_label/de placeholders match Arabic source
+critical::language_label::en,translation,alrajhi_client/i18n/translator.py,OK,language_label/en has a non-key translation
+placeholders::language_label::en,placeholder,alrajhi_client/i18n/translator.py,OK,language_label/en placeholders match Arabic source
+critical::language_label::fr,translation,alrajhi_client/i18n/translator.py,OK,language_label/fr has a non-key translation
+placeholders::language_label::fr,placeholder,alrajhi_client/i18n/translator.py,OK,language_label/fr placeholders match Arabic source
+translate_api::language_label::ar,api,alrajhi_client/i18n/translator.py,OK,translate('language_label') returns translated text in ar
+translate_api::language_label::de,api,alrajhi_client/i18n/translator.py,OK,translate('language_label') returns translated text in de
+translate_api::language_label::en,api,alrajhi_client/i18n/translator.py,OK,translate('language_label') returns translated text in en
+translate_api::language_label::fr,api,alrajhi_client/i18n/translator.py,OK,translate('language_label') returns translated text in fr
+critical::language_ar::ar,translation,alrajhi_client/i18n/translator.py,OK,language_ar/ar has a non-key translation
+placeholders::language_ar::ar,placeholder,alrajhi_client/i18n/translator.py,OK,language_ar/ar placeholders match Arabic source
+critical::language_ar::de,translation,alrajhi_client/i18n/translator.py,OK,language_ar/de has a non-key translation
+placeholders::language_ar::de,placeholder,alrajhi_client/i18n/translator.py,OK,language_ar/de placeholders match Arabic source
+critical::language_ar::en,translation,alrajhi_client/i18n/translator.py,OK,language_ar/en has a non-key translation
+placeholders::language_ar::en,placeholder,alrajhi_client/i18n/translator.py,OK,language_ar/en placeholders match Arabic source
+critical::language_ar::fr,translation,alrajhi_client/i18n/translator.py,OK,language_ar/fr has a non-key translation
+placeholders::language_ar::fr,placeholder,alrajhi_client/i18n/translator.py,OK,language_ar/fr placeholders match Arabic source
+translate_api::language_ar::ar,api,alrajhi_client/i18n/translator.py,OK,translate('language_ar') returns translated text in ar
+translate_api::language_ar::de,api,alrajhi_client/i18n/translator.py,OK,translate('language_ar') returns translated text in de
+translate_api::language_ar::en,api,alrajhi_client/i18n/translator.py,OK,translate('language_ar') returns translated text in en
+translate_api::language_ar::fr,api,alrajhi_client/i18n/translator.py,OK,translate('language_ar') returns translated text in fr
+critical::language_de::ar,translation,alrajhi_client/i18n/translator.py,OK,language_de/ar has a non-key translation
+placeholders::language_de::ar,placeholder,alrajhi_client/i18n/translator.py,OK,language_de/ar placeholders match Arabic source
+critical::language_de::de,translation,alrajhi_client/i18n/translator.py,OK,language_de/de has a non-key translation
+placeholders::language_de::de,placeholder,alrajhi_client/i18n/translator.py,OK,language_de/de placeholders match Arabic source
+critical::language_de::en,translation,alrajhi_client/i18n/translator.py,OK,language_de/en has a non-key translation
+placeholders::language_de::en,placeholder,alrajhi_client/i18n/translator.py,OK,language_de/en placeholders match Arabic source
+critical::language_de::fr,translation,alrajhi_client/i18n/translator.py,OK,language_de/fr has a non-key translation
+placeholders::language_de::fr,placeholder,alrajhi_client/i18n/translator.py,OK,language_de/fr placeholders match Arabic source
+translate_api::language_de::ar,api,alrajhi_client/i18n/translator.py,OK,translate('language_de') returns translated text in ar
+translate_api::language_de::de,api,alrajhi_client/i18n/translator.py,OK,translate('language_de') returns translated text in de
+translate_api::language_de::en,api,alrajhi_client/i18n/translator.py,OK,translate('language_de') returns translated text in en
+translate_api::language_de::fr,api,alrajhi_client/i18n/translator.py,OK,translate('language_de') returns translated text in fr
+critical::language_en::ar,translation,alrajhi_client/i18n/translator.py,OK,language_en/ar has a non-key translation
+placeholders::language_en::ar,placeholder,alrajhi_client/i18n/translator.py,OK,language_en/ar placeholders match Arabic source
+critical::language_en::de,translation,alrajhi_client/i18n/translator.py,OK,language_en/de has a non-key translation
+placeholders::language_en::de,placeholder,alrajhi_client/i18n/translator.py,OK,language_en/de placeholders match Arabic source
+critical::language_en::en,translation,alrajhi_client/i18n/translator.py,OK,language_en/en has a non-key translation
+placeholders::language_en::en,placeholder,alrajhi_client/i18n/translator.py,OK,language_en/en placeholders match Arabic source
+critical::language_en::fr,translation,alrajhi_client/i18n/translator.py,OK,language_en/fr has a non-key translation
+placeholders::language_en::fr,placeholder,alrajhi_client/i18n/translator.py,OK,language_en/fr placeholders match Arabic source
+translate_api::language_en::ar,api,alrajhi_client/i18n/translator.py,OK,translate('language_en') returns translated text in ar
+translate_api::language_en::de,api,alrajhi_client/i18n/translator.py,OK,translate('language_en') returns translated text in de
+translate_api::language_en::en,api,alrajhi_client/i18n/translator.py,OK,translate('language_en') returns translated text in en
+translate_api::language_en::fr,api,alrajhi_client/i18n/translator.py,OK,translate('language_en') returns translated text in fr
+critical::language_fr::ar,translation,alrajhi_client/i18n/translator.py,OK,language_fr/ar has a non-key translation
+placeholders::language_fr::ar,placeholder,alrajhi_client/i18n/translator.py,OK,language_fr/ar placeholders match Arabic source
+critical::language_fr::de,translation,alrajhi_client/i18n/translator.py,OK,language_fr/de has a non-key translation
+placeholders::language_fr::de,placeholder,alrajhi_client/i18n/translator.py,OK,language_fr/de placeholders match Arabic source
+critical::language_fr::en,translation,alrajhi_client/i18n/translator.py,OK,language_fr/en has a non-key translation
+placeholders::language_fr::en,placeholder,alrajhi_client/i18n/translator.py,OK,language_fr/en placeholders match Arabic source
+critical::language_fr::fr,translation,alrajhi_client/i18n/translator.py,OK,language_fr/fr has a non-key translation
+placeholders::language_fr::fr,placeholder,alrajhi_client/i18n/translator.py,OK,language_fr/fr placeholders match Arabic source
+translate_api::language_fr::ar,api,alrajhi_client/i18n/translator.py,OK,translate('language_fr') returns translated text in ar
+translate_api::language_fr::de,api,alrajhi_client/i18n/translator.py,OK,translate('language_fr') returns translated text in de
+translate_api::language_fr::en,api,alrajhi_client/i18n/translator.py,OK,translate('language_fr') returns translated text in en
+translate_api::language_fr::fr,api,alrajhi_client/i18n/translator.py,OK,translate('language_fr') returns translated text in fr
+critical::ui_language::ar,translation,alrajhi_client/i18n/translator.py,OK,ui_language/ar has a non-key translation
+placeholders::ui_language::ar,placeholder,alrajhi_client/i18n/translator.py,OK,ui_language/ar placeholders match Arabic source
+critical::ui_language::de,translation,alrajhi_client/i18n/translator.py,OK,ui_language/de has a non-key translation
+placeholders::ui_language::de,placeholder,alrajhi_client/i18n/translator.py,OK,ui_language/de placeholders match Arabic source
+critical::ui_language::en,translation,alrajhi_client/i18n/translator.py,OK,ui_language/en has a non-key translation
+placeholders::ui_language::en,placeholder,alrajhi_client/i18n/translator.py,OK,ui_language/en placeholders match Arabic source
+critical::ui_language::fr,translation,alrajhi_client/i18n/translator.py,OK,ui_language/fr has a non-key translation
+placeholders::ui_language::fr,placeholder,alrajhi_client/i18n/translator.py,OK,ui_language/fr placeholders match Arabic source
+translate_api::ui_language::ar,api,alrajhi_client/i18n/translator.py,OK,translate('ui_language') returns translated text in ar
+translate_api::ui_language::de,api,alrajhi_client/i18n/translator.py,OK,translate('ui_language') returns translated text in de
+translate_api::ui_language::en,api,alrajhi_client/i18n/translator.py,OK,translate('ui_language') returns translated text in en
+translate_api::ui_language::fr,api,alrajhi_client/i18n/translator.py,OK,translate('ui_language') returns translated text in fr
+critical::print_language::ar,translation,alrajhi_client/i18n/translator.py,OK,print_language/ar has a non-key translation
+placeholders::print_language::ar,placeholder,alrajhi_client/i18n/translator.py,OK,print_language/ar placeholders match Arabic source
+critical::print_language::de,translation,alrajhi_client/i18n/translator.py,OK,print_language/de has a non-key translation
+placeholders::print_language::de,placeholder,alrajhi_client/i18n/translator.py,OK,print_language/de placeholders match Arabic source
+critical::print_language::en,translation,alrajhi_client/i18n/translator.py,OK,print_language/en has a non-key translation
+placeholders::print_language::en,placeholder,alrajhi_client/i18n/translator.py,OK,print_language/en placeholders match Arabic source
+critical::print_language::fr,translation,alrajhi_client/i18n/translator.py,OK,print_language/fr has a non-key translation
+placeholders::print_language::fr,placeholder,alrajhi_client/i18n/translator.py,OK,print_language/fr placeholders match Arabic source
+translate_api::print_language::ar,api,alrajhi_client/i18n/translator.py,OK,translate('print_language') returns translated text in ar
+translate_api::print_language::de,api,alrajhi_client/i18n/translator.py,OK,translate('print_language') returns translated text in de
+translate_api::print_language::en,api,alrajhi_client/i18n/translator.py,OK,translate('print_language') returns translated text in en
+translate_api::print_language::fr,api,alrajhi_client/i18n/translator.py,OK,translate('print_language') returns translated text in fr
+critical::report_language::ar,translation,alrajhi_client/i18n/translator.py,OK,report_language/ar has a non-key translation
+placeholders::report_language::ar,placeholder,alrajhi_client/i18n/translator.py,OK,report_language/ar placeholders match Arabic source
+critical::report_language::de,translation,alrajhi_client/i18n/translator.py,OK,report_language/de has a non-key translation
+placeholders::report_language::de,placeholder,alrajhi_client/i18n/translator.py,OK,report_language/de placeholders match Arabic source
+critical::report_language::en,translation,alrajhi_client/i18n/translator.py,OK,report_language/en has a non-key translation
+placeholders::report_language::en,placeholder,alrajhi_client/i18n/translator.py,OK,report_language/en placeholders match Arabic source
+critical::report_language::fr,translation,alrajhi_client/i18n/translator.py,OK,report_language/fr has a non-key translation
+placeholders::report_language::fr,placeholder,alrajhi_client/i18n/translator.py,OK,report_language/fr placeholders match Arabic source
+translate_api::report_language::ar,api,alrajhi_client/i18n/translator.py,OK,translate('report_language') returns translated text in ar
+translate_api::report_language::de,api,alrajhi_client/i18n/translator.py,OK,translate('report_language') returns translated text in de
+translate_api::report_language::en,api,alrajhi_client/i18n/translator.py,OK,translate('report_language') returns translated text in en
+translate_api::report_language::fr,api,alrajhi_client/i18n/translator.py,OK,translate('report_language') returns translated text in fr
+critical::settings_print_language_label::ar,translation,alrajhi_client/i18n/translator.py,OK,settings_print_language_label/ar has a non-key translation
+placeholders::settings_print_language_label::ar,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_language_label/ar placeholders match Arabic source
+critical::settings_print_language_label::de,translation,alrajhi_client/i18n/translator.py,OK,settings_print_language_label/de has a non-key translation
+placeholders::settings_print_language_label::de,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_language_label/de placeholders match Arabic source
+critical::settings_print_language_label::en,translation,alrajhi_client/i18n/translator.py,OK,settings_print_language_label/en has a non-key translation
+placeholders::settings_print_language_label::en,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_language_label/en placeholders match Arabic source
+critical::settings_print_language_label::fr,translation,alrajhi_client/i18n/translator.py,OK,settings_print_language_label/fr has a non-key translation
+placeholders::settings_print_language_label::fr,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_language_label/fr placeholders match Arabic source
+translate_api::settings_print_language_label::ar,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_language_label') returns translated text in ar
+translate_api::settings_print_language_label::de,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_language_label') returns translated text in de
+translate_api::settings_print_language_label::en,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_language_label') returns translated text in en
+translate_api::settings_print_language_label::fr,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_language_label') returns translated text in fr
+critical::settings_print_templates_title::ar,translation,alrajhi_client/i18n/translator.py,OK,settings_print_templates_title/ar has a non-key translation
+placeholders::settings_print_templates_title::ar,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_templates_title/ar placeholders match Arabic source
+critical::settings_print_templates_title::de,translation,alrajhi_client/i18n/translator.py,OK,settings_print_templates_title/de has a non-key translation
+placeholders::settings_print_templates_title::de,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_templates_title/de placeholders match Arabic source
+critical::settings_print_templates_title::en,translation,alrajhi_client/i18n/translator.py,OK,settings_print_templates_title/en has a non-key translation
+placeholders::settings_print_templates_title::en,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_templates_title/en placeholders match Arabic source
+critical::settings_print_templates_title::fr,translation,alrajhi_client/i18n/translator.py,OK,settings_print_templates_title/fr has a non-key translation
+placeholders::settings_print_templates_title::fr,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_templates_title/fr placeholders match Arabic source
+translate_api::settings_print_templates_title::ar,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_templates_title') returns translated text in ar
+translate_api::settings_print_templates_title::de,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_templates_title') returns translated text in de
+translate_api::settings_print_templates_title::en,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_templates_title') returns translated text in en
+translate_api::settings_print_templates_title::fr,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_templates_title') returns translated text in fr
+critical::settings_print_save::ar,translation,alrajhi_client/i18n/translator.py,OK,settings_print_save/ar has a non-key translation
+placeholders::settings_print_save::ar,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_save/ar placeholders match Arabic source
+critical::settings_print_save::de,translation,alrajhi_client/i18n/translator.py,OK,settings_print_save/de has a non-key translation
+placeholders::settings_print_save::de,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_save/de placeholders match Arabic source
+critical::settings_print_save::en,translation,alrajhi_client/i18n/translator.py,OK,settings_print_save/en has a non-key translation
+placeholders::settings_print_save::en,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_save/en placeholders match Arabic source
+critical::settings_print_save::fr,translation,alrajhi_client/i18n/translator.py,OK,settings_print_save/fr has a non-key translation
+placeholders::settings_print_save::fr,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_save/fr placeholders match Arabic source
+translate_api::settings_print_save::ar,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_save') returns translated text in ar
+translate_api::settings_print_save::de,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_save') returns translated text in de
+translate_api::settings_print_save::en,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_save') returns translated text in en
+translate_api::settings_print_save::fr,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_save') returns translated text in fr
+critical::settings_print_saved::ar,translation,alrajhi_client/i18n/translator.py,OK,settings_print_saved/ar has a non-key translation
+placeholders::settings_print_saved::ar,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_saved/ar placeholders match Arabic source
+critical::settings_print_saved::de,translation,alrajhi_client/i18n/translator.py,OK,settings_print_saved/de has a non-key translation
+placeholders::settings_print_saved::de,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_saved/de placeholders match Arabic source
+critical::settings_print_saved::en,translation,alrajhi_client/i18n/translator.py,OK,settings_print_saved/en has a non-key translation
+placeholders::settings_print_saved::en,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_saved/en placeholders match Arabic source
+critical::settings_print_saved::fr,translation,alrajhi_client/i18n/translator.py,OK,settings_print_saved/fr has a non-key translation
+placeholders::settings_print_saved::fr,placeholder,alrajhi_client/i18n/translator.py,OK,settings_print_saved/fr placeholders match Arabic source
+translate_api::settings_print_saved::ar,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_saved') returns translated text in ar
+translate_api::settings_print_saved::de,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_saved') returns translated text in de
+translate_api::settings_print_saved::en,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_saved') returns translated text in en
+translate_api::settings_print_saved::fr,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_saved') returns translated text in fr
+literal_translation_key_usage_scanned,usage,alrajhi_client,OK,literal keys=1647 files=97
+critical_literal_keys_exist_in_catalog,usage,alrajhi_client/i18n/translator.py,OK,critical missing literal keys=0
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase422 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase422 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase422 release check registered

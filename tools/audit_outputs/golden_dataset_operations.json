@@ -1,0 +1,276 @@
+[
+  {
+    "operation_id": "GD-000",
+    "group": "master_data",
+    "kind": "declare_entities",
+    "branch_id": "BR-MAIN",
+    "description": "Canonical branches, parties, warehouses and items",
+    "payload": {
+      "currency": "SYP",
+      "branches": [
+        "BR-MAIN",
+        "BR-2"
+      ],
+      "warehouses": [
+        "WH-MAIN",
+        "WH-BR2",
+        "WH-KITCHEN"
+      ],
+      "items": [
+        "MAT-RAW",
+        "MAT-RETAIL",
+        "MAT-FINISHED",
+        "REST-MEAL"
+      ]
+    }
+  },
+  {
+    "operation_id": "GD-001",
+    "group": "opening_balances",
+    "kind": "opening_stock",
+    "branch_id": "BR-MAIN",
+    "description": "Opening stock and cash",
+    "payload": {
+      "stock": [
+        {
+          "item_id": "MAT-RAW",
+          "warehouse_id": "WH-MAIN",
+          "qty": "10",
+          "cost": "100"
+        },
+        {
+          "item_id": "MAT-RETAIL",
+          "warehouse_id": "WH-MAIN",
+          "qty": "5",
+          "cost": "80"
+        }
+      ],
+      "cashbox_id": "CASH-MAIN",
+      "cash_in": "1000"
+    }
+  },
+  {
+    "operation_id": "GD-002",
+    "group": "purchase_invoice",
+    "kind": "purchase_invoice",
+    "branch_id": "BR-MAIN",
+    "description": "Purchase raw and retail materials from supplier",
+    "payload": {
+      "supplier_id": "SUP-001",
+      "warehouse_id": "WH-MAIN",
+      "lines": [
+        {
+          "item_id": "MAT-RAW",
+          "qty": "4",
+          "unit_cost": "110"
+        },
+        {
+          "item_id": "MAT-RETAIL",
+          "qty": "3",
+          "unit_cost": "85"
+        }
+      ],
+      "tax": "69.50"
+    }
+  },
+  {
+    "operation_id": "GD-003",
+    "group": "sales_invoice",
+    "kind": "sales_invoice",
+    "branch_id": "BR-MAIN",
+    "description": "Credit sale to customer from main warehouse",
+    "payload": {
+      "customer_id": "CUST-001",
+      "warehouse_id": "WH-MAIN",
+      "lines": [
+        {
+          "item_id": "MAT-RETAIL",
+          "qty": "4",
+          "unit_price": "150",
+          "unit_cost": "80"
+        }
+      ],
+      "tax": "30"
+    }
+  },
+  {
+    "operation_id": "GD-004",
+    "group": "sales_return",
+    "kind": "sales_return",
+    "branch_id": "BR-MAIN",
+    "description": "Customer returns one retail item to stock",
+    "payload": {
+      "customer_id": "CUST-001",
+      "warehouse_id": "WH-MAIN",
+      "restock": true,
+      "lines": [
+        {
+          "item_id": "MAT-RETAIL",
+          "qty": "1",
+          "unit_price": "150",
+          "unit_cost": "80"
+        }
+      ],
+      "tax": "7.50"
+    }
+  },
+  {
+    "operation_id": "GD-005",
+    "group": "purchase_return",
+    "kind": "purchase_return",
+    "branch_id": "BR-MAIN",
+    "description": "Return one raw item to supplier",
+    "payload": {
+      "supplier_id": "SUP-001",
+      "warehouse_id": "WH-MAIN",
+      "lines": [
+        {
+          "item_id": "MAT-RAW",
+          "qty": "1",
+          "unit_cost": "110"
+        }
+      ],
+      "tax": "5.50"
+    }
+  },
+  {
+    "operation_id": "GD-006",
+    "group": "inventory_transfer",
+    "kind": "inventory_transfer",
+    "branch_id": "BR-MAIN",
+    "description": "Transfer retail stock from main branch to branch two",
+    "payload": {
+      "source_branch_id": "BR-MAIN",
+      "target_branch_id": "BR-2",
+      "source_warehouse_id": "WH-MAIN",
+      "target_warehouse_id": "WH-BR2",
+      "lines": [
+        {
+          "item_id": "MAT-RETAIL",
+          "qty": "2"
+        }
+      ]
+    }
+  },
+  {
+    "operation_id": "GD-007",
+    "group": "manufacturing",
+    "kind": "production_order",
+    "branch_id": "BR-MAIN",
+    "description": "Consume raw material and create finished good",
+    "payload": {
+      "source_warehouse_id": "WH-MAIN",
+      "target_warehouse_id": "WH-MAIN",
+      "components": [
+        {
+          "item_id": "MAT-RAW",
+          "qty": "2",
+          "unit_cost": "100"
+        }
+      ],
+      "outputs": [
+        {
+          "item_id": "MAT-FINISHED",
+          "qty": "1"
+        }
+      ]
+    }
+  },
+  {
+    "operation_id": "GD-008",
+    "group": "pos_sale",
+    "kind": "pos_sale",
+    "branch_id": "BR-2",
+    "description": "Cash POS sale from branch two",
+    "payload": {
+      "customer_id": "CUST-RETAIL",
+      "warehouse_id": "WH-BR2",
+      "cashbox_id": "CASH-POS",
+      "lines": [
+        {
+          "item_id": "MAT-RETAIL",
+          "qty": "1",
+          "unit_price": "175",
+          "unit_cost": "80"
+        }
+      ],
+      "tax": "8.75"
+    }
+  },
+  {
+    "operation_id": "GD-009",
+    "group": "restaurant_order",
+    "kind": "restaurant_order",
+    "branch_id": "BR-MAIN",
+    "description": "Restaurant cash order with recipe stock consumption",
+    "payload": {
+      "customer_id": "CUST-RETAIL",
+      "warehouse_id": "WH-KITCHEN",
+      "component_warehouse_id": "WH-MAIN",
+      "cashbox_id": "CASH-REST",
+      "lines": [
+        {
+          "item_id": "REST-MEAL",
+          "qty": "2",
+          "unit_price": "120",
+          "unit_cost": "40"
+        }
+      ],
+      "components": [
+        {
+          "item_id": "MAT-RAW",
+          "qty": "1",
+          "unit_cost": "40"
+        }
+      ],
+      "tax": "12"
+    }
+  },
+  {
+    "operation_id": "GD-010",
+    "group": "vouchers",
+    "kind": "cash_receipt",
+    "branch_id": "BR-MAIN",
+    "description": "Customer partial receipt",
+    "payload": {
+      "customer_id": "CUST-001",
+      "cashbox_id": "CASH-MAIN",
+      "amount": "200"
+    }
+  },
+  {
+    "operation_id": "GD-011",
+    "group": "vouchers",
+    "kind": "cash_payment",
+    "branch_id": "BR-MAIN",
+    "description": "Supplier partial payment",
+    "payload": {
+      "supplier_id": "SUP-001",
+      "cashbox_id": "CASH-MAIN",
+      "amount": "300"
+    }
+  },
+  {
+    "operation_id": "GD-012",
+    "group": "vouchers",
+    "kind": "expense_payment",
+    "branch_id": "BR-MAIN",
+    "description": "Office expense payment",
+    "payload": {
+      "cashbox_id": "CASH-MAIN",
+      "expense_account": "EXP-OFFICE",
+      "amount": "50"
+    }
+  },
+  {
+    "operation_id": "GD-013",
+    "group": "reports",
+    "kind": "expected_report_cutoff",
+    "branch_id": "BR-MAIN",
+    "description": "Report reconciliation cutoff",
+    "payload": {
+      "date": "2026-06-28",
+      "scope": "full_golden_dataset"
+    }
+  }
+]

@@ -112,16 +112,17 @@ ACTION_SPECS: Mapping[str, WorkspaceActionSpec] = {
     "alert": WorkspaceActionSpec("alert", "alerts", "bell", placement="utility"),
     "theme": WorkspaceActionSpec("theme", "toggle_theme", "adjust", placement="utility"),
     "screenshot": WorkspaceActionSpec("screenshot", "export_screenshot", "camera", placement="utility"),
+    "fullscreen": WorkspaceActionSpec("fullscreen", "fullscreen", "expand", "F11", placement="utility"),
     "user": WorkspaceActionSpec("user", "user", "user", placement="utility"),
 }
 
-UTILITY_ACTION_KEYS: tuple[str, ...] = ("alert", "theme", "screenshot", "user")
+UTILITY_ACTION_KEYS: tuple[str, ...] = ("alert", "theme", "screenshot", "fullscreen", "user")
 COMMON_LIST_ACTIONS: tuple[str, ...] = ("new", "refresh", "print", "export", "quick_open")
 DOCUMENT_ACTIONS: tuple[str, ...] = ("new", "save", "refresh", "print", "export", "quick_open")
 OPERATION_ACTIONS: tuple[str, ...] = ("refresh", "print", "export", "quick_open")
 # Dashboard must show only the allowed utility surface requested by UX: user,
 # theme, refresh and screenshot.  Alerts and generic document buttons stay out.
-DASHBOARD_ACTIONS: tuple[str, ...] = ("refresh", "theme", "screenshot", "user")
+DASHBOARD_ACTIONS: tuple[str, ...] = ("refresh", "theme", "screenshot", "fullscreen", "user")
 
 
 BARCODE_PRINT_PROFILES: Mapping[str, WorkspaceBarcodeProfileSpec] = {

@@ -1,0 +1,71 @@
+{
+  "currency": "SYP",
+  "operation_count": 14,
+  "operation_ids": [
+    "GD-000",
+    "GD-001",
+    "GD-002",
+    "GD-003",
+    "GD-004",
+    "GD-005",
+    "GD-006",
+    "GD-007",
+    "GD-008",
+    "GD-009",
+    "GD-010",
+    "GD-011",
+    "GD-012",
+    "GD-013"
+  ],
+  "scenario_groups": [
+    "master_data",
+    "opening_balances",
+    "purchase_invoice",
+    "sales_invoice",
+    "sales_return",
+    "purchase_return",
+    "inventory_transfer",
+    "manufacturing",
+    "pos_sale",
+    "restaurant_order",
+    "vouchers",
+    "reports"
+  ],
+  "stock_by_item_warehouse": {
+    "MAT-FINISHED@WH-MAIN": "1.0000",
+    "MAT-RAW@WH-MAIN": "10.0000",
+    "MAT-RETAIL@WH-BR2": "1.0000",
+    "MAT-RETAIL@WH-MAIN": "3.0000"
+  },
+  "cashbox_balances": {
+    "CASH-MAIN": "850.00",
+    "CASH-POS": "183.75",
+    "CASH-REST": "252.00"
+  },
+  "customer_receivables": {
+    "CUST-001": "272.50"
+  },
+  "supplier_payables": {
+    "SUP-001": "349.00"
+  },
+  "expenses": {
+    "EXP-OFFICE": "50.00"
+  },
+  "totals": {
+    "purchase_subtotal": "695.00",
+    "purchase_return_subtotal": "110.00",
+    "sales_subtotal": "1015.00",
+    "sales_return_subtotal": "150.00",
+    "net_revenue": "865.00",
+    "cogs": "400.00",
+    "gross_profit": "465.00",
+    "tax_collected": "43.25",
+    "tax_paid": "64.00",
+    "vat_payable": "-20.75",
+    "total_cash": "1285.75",
+    "total_customer_receivable": "272.50",
+    "total_supplier_payable": "349.00",
+    "manufacturing_cost": "200.00",
+    "stock_movement_count": "13"
+  }
+}

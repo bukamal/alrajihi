@@ -7,7 +7,7 @@ from typing import Any
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QAbstractItemView, QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel,
-    QLineEdit, QPushButton, QScrollArea, QSizePolicy, QSplitter, QTableWidget,
+    QLineEdit, QPushButton, QScrollArea, QSizePolicy, QSplitter,
     QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
@@ -18,6 +18,8 @@ from features.restaurant.restaurant_printing_bridge import restaurant_printing_b
 from i18n.translator import qt_layout_direction, translate as _
 from workspace.operational.operational_shell_contract import bind_operational_shell
 from ui.table_direction_policy import apply_table_direction
+from ui.editable_smart_grid import EditableSmartGrid
+from ui.operational_item_card_grid import OperationalItemCardGrid
 
 
 def _dec(value: Any, default: str = "0") -> Decimal:
@@ -98,10 +100,15 @@ class RestaurantSimplePOSWidget(QWidget):
         self.refresh_btn.setObjectName("restaurantSimpleRefreshButton")
         self.refresh_btn.setMinimumHeight(46)
         self.refresh_btn.setProperty("basitToolbarButton", True)
+        self.fullscreen_btn = QPushButton("⛶  " + _("fullscreen"))
+        self.fullscreen_btn.setObjectName("restaurantSimpleFullscreenButton")
+        self.fullscreen_btn.setMinimumHeight(46)
+        self.fullscreen_btn.setProperty("basitToolbarButton", True)
         header.addWidget(self.search_edit, 3)
         header.addWidget(self.search_btn)
         header.addWidget(self.new_sale_btn)
         header.addWidget(self.refresh_btn)
+        header.addWidget(self.fullscreen_btn)
         root.addWidget(header_card)
 
         self.splitter = QSplitter(Qt.Horizontal)
@@ -122,6 +129,7 @@ class RestaurantSimplePOSWidget(QWidget):
         self.search_btn.clicked.connect(self.reload_menu)
         self.search_edit.returnPressed.connect(self.reload_menu)
         self.refresh_btn.clicked.connect(self.reload)
+        self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
         self.new_sale_btn.clicked.connect(self.start_new_sale)
         self.qty_plus_btn.clicked.connect(lambda: self.adjust_selected_quantity(Decimal("1")))
         self.qty_minus_btn.clicked.connect(lambda: self.adjust_selected_quantity(Decimal("-1")))
@@ -129,6 +137,16 @@ class RestaurantSimplePOSWidget(QWidget):
         self.print_btn.clicked.connect(self.print_receipt)
         self.checkout_btn.clicked.connect(self.checkout_current_sale)
         self.invoice_table.itemChanged.connect(self._invoice_item_changed)
+
+
+    def toggle_fullscreen(self) -> None:
+        window = self.window()
+        if hasattr(window, 'toggle_operational_fullscreen'):
+            window.toggle_operational_fullscreen()
+
+    def set_operational_fullscreen_active(self, active: bool) -> None:
+        if hasattr(self, 'fullscreen_btn'):
+            self.fullscreen_btn.setText(("⛶  " + _("exit_fullscreen")) if active else ("⛶  " + _("fullscreen")))
 
     def _section_frame(self, title: str, subtitle: str = "") -> tuple[QFrame, QVBoxLayout]:
         frame = QFrame()
@@ -161,20 +179,24 @@ class RestaurantSimplePOSWidget(QWidget):
 
     def _build_items_section(self) -> QFrame:
         frame, layout = self._section_frame("②  " + _("restaurant.simple_items"), _("restaurant.simple_items_help"))
-        self.items_scroll = QScrollArea()
-        self.items_scroll.setObjectName("restaurantSimpleItemsScroll")
-        self.items_scroll.setWidgetResizable(True)
-        self.items_host = QWidget()
-        self.items_grid = QGridLayout(self.items_host)
-        self.items_grid.setContentsMargins(0, 0, 0, 0)
-        self.items_grid.setSpacing(10)
-        self.items_scroll.setWidget(self.items_host)
-        layout.addWidget(self.items_scroll, 1)
+        self.items_grid = OperationalItemCardGrid(
+            self,
+            mode="restaurant",
+            default_columns=3,
+            min_columns=2,
+            max_columns=4,
+            empty_text=_("restaurant.no_menu_items"),
+            money_formatter=_money,
+            icon="🍽",
+        )
+        self.items_grid.setObjectName("restaurantSimpleItemCardGrid")
+        self.items_grid.itemActivated.connect(self.add_item)
+        layout.addWidget(self.items_grid, 1)
         return frame
 
     def _build_invoice_section(self) -> QFrame:
         frame, layout = self._section_frame("③  " + _("restaurant.simple_invoice"), _("restaurant.simple_invoice_help"))
-        self.invoice_table = QTableWidget(0, 5)
+        self.invoice_table = EditableSmartGrid(0, 5, identity="restaurant.simple.invoice")
         apply_table_direction(self.invoice_table)
         self.invoice_table.setObjectName("restaurantSimpleInvoiceTable")
         self.invoice_table.setProperty("basitTable", True)
@@ -185,7 +207,11 @@ class RestaurantSimplePOSWidget(QWidget):
         self.invoice_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.invoice_table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.invoice_table.setAlternatingRowColors(True)
-        self.invoice_table.setEditTriggers(QAbstractItemView.DoubleClicked | QAbstractItemView.EditKeyPressed | QAbstractItemView.SelectedClicked)
+        self.invoice_table.setEditTriggers(
+            QAbstractItemView.DoubleClicked
+            | QAbstractItemView.EditKeyPressed
+            | QAbstractItemView.AnyKeyPressed
+        )
         header = self.invoice_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)
         header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -291,32 +317,9 @@ class RestaurantSimplePOSWidget(QWidget):
         self._render_items()
 
     def _render_items(self) -> None:
-        self._clear_layout(self.items_grid)
-        if not self.menu_items:
-            empty = QLabel(_("restaurant.no_menu_items"))
-            empty.setObjectName("restaurantSimpleEmptyItems")
-            empty.setAlignment(Qt.AlignCenter)
-            self.items_grid.addWidget(empty, 0, 0)
-            return
-        # Phase396: menu items intentionally mirror the category surface:
-        # one full-width rectangular card per row.  The restaurant screen is
-        # a simple POS, so product discovery should feel identical to category
-        # selection instead of using a separate multi-column tile grammar.
-        for index, item in enumerate(self.menu_items):
-            name = item.get("name") or item.get("item_name") or ""
-            price = item.get("selling_price") or item.get("unit_price") or "0"
-            unit = item.get("unit") or ""
-            text = f"{name}\n{_money(price)}" + (f"\n{unit}" if unit else "")
-            button = QPushButton(text)
-            button.setObjectName("restaurantSimpleItemButton")
-            button.setProperty("restaurant_same_card_surface", True)
-            button.setProperty("basitCard", True)
-            button.setMinimumHeight(64)
-            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-            button.setCursor(Qt.PointingHandCursor)
-            button.clicked.connect(lambda _=False, payload=item: self.add_item(payload))
-            self.items_grid.addWidget(button, index, 0)
-        self.items_grid.setRowStretch(len(self.menu_items), 1)
+        # Phase428: restaurant simple POS uses the shared operational material
+        # card grid.  Default presentation is three columns, responsive to 2/4.
+        self.items_grid.set_items(self.menu_items)
 
     def resizeEvent(self, event):  # pragma: no cover - Qt callback
         super().resizeEvent(event)

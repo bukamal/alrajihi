@@ -53,6 +53,7 @@ from workspace.registry import (
 from workspace.actions.inline_menu_action_policy import ACTION_BAR_NEW_ROUTES, TABULAR_DOCUMENT_NEW_TARGETS
 from theme.brand import BRAND, get_tokens
 from ui.runtime_visual_polish import apply_runtime_visual_polish
+from ui.operational_fullscreen_controller import OperationalFullscreenController
 
 PAID_FEATURE_PAGES = {
     'manufacturing': 'manufacturing',
@@ -332,6 +333,7 @@ class MainWindow(QMainWindow):
         ThemeManager.apply_theme(theme)
 
         self.setup_ui()
+        self.operational_fullscreen = OperationalFullscreenController(self)
         self.setup_menus()
         self.setup_topbar_buttons()
         self.setup_action_bar()
@@ -585,6 +587,8 @@ class MainWindow(QMainWindow):
             utility_bar.theme_btn.clicked.connect(self.toggle_theme)
             utility_bar.alert_btn.clicked.connect(self.show_alerts_menu)
             utility_bar.screenshot_btn.clicked.connect(self.export_screenshot)
+            if hasattr(utility_bar, 'fullscreen_btn'):
+                utility_bar.fullscreen_btn.clicked.connect(self.toggle_operational_fullscreen)
 
         # Phase414: top_bar is a non-visual compatibility adapter.  Connect
         # only real optional objects; all visible utility commands are in
@@ -610,6 +614,7 @@ class MainWindow(QMainWindow):
         self.action_bar.bind('print', self.print_current_tab)
         self.action_bar.bind('export', self.export_current_tab)
         self.action_bar.bind('quick_open', self.open_quick_open)
+        self.action_bar.bind('fullscreen', self.toggle_operational_fullscreen)
         try:
             self.workspace.currentPageChanged.connect(self._on_workspace_page_changed)
             self.workspace.currentChanged.connect(lambda _idx: self._apply_current_document_permissions())
@@ -633,6 +638,17 @@ class MainWindow(QMainWindow):
             current_id = self.workspace.current_page_id() if hasattr(self, 'workspace') else None
             if current_id:
                 self._on_workspace_page_changed(current_id)
+
+    def toggle_operational_fullscreen(self):
+        controller = getattr(self, 'operational_fullscreen', None)
+        if controller is not None:
+            controller.toggle()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        controller = getattr(self, 'operational_fullscreen', None)
+        if controller is not None:
+            controller.refresh_overlay_position()
 
     def toggle_theme(self):
         current = settings_service.get_theme() or 'light'
@@ -1339,6 +1355,9 @@ class MainWindow(QMainWindow):
         self.cafe_shortcut.activated.connect(lambda: self.switch_page('cafe'))
         self.legacy_pos_shortcut = QShortcut(QKeySequence('F9'), self)
         self.legacy_pos_shortcut.activated.connect(lambda: self.switch_page('pos'))
+        self.operational_fullscreen_shortcut = QShortcut(QKeySequence('F11'), self)
+        self.operational_fullscreen_shortcut.setContext(Qt.ApplicationShortcut)
+        self.operational_fullscreen_shortcut.activated.connect(self.toggle_operational_fullscreen)
         self.close_tab_shortcuts = bind_workspace_shortcuts(self, self.workspace)
         self.save_tab_shortcut = QShortcut(QKeySequence('Ctrl+S'), self)
         self.save_tab_shortcut.activated.connect(self.save_current_tab)
@@ -1349,6 +1368,10 @@ class MainWindow(QMainWindow):
 
 
     def _return_to_dashboard_from_escape(self):
+        controller = getattr(self, 'operational_fullscreen', None)
+        if controller is not None and controller.is_active():
+            controller.exit()
+            return
         self.switch_page('dashboard')
 
     def _audit_current_tab_action(self, page, action: str, *, permitted: bool = True, details: str = '') -> None:

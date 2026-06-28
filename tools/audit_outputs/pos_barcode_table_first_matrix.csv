@@ -1,0 +1,34 @@
+﻿key,category,path,status,detail
+exists::PHASE430_POS_BARCODE_TABLE_FIRST_LAYOUT.md,file,PHASE430_POS_BARCODE_TABLE_FIRST_LAYOUT.md,OK,required Phase430 file exists
+exists::alrajhi_client/workspace/quality/pos_barcode_table_first_contract.py,file,alrajhi_client/workspace/quality/pos_barcode_table_first_contract.py,OK,required Phase430 file exists
+exists::tools/phase430_pos_barcode_table_first_guard.py,file,tools/phase430_pos_barcode_table_first_guard.py,OK,required Phase430 file exists
+exists::tests/test_phase430_pos_barcode_table_first.py,file,tests/test_phase430_pos_barcode_table_first.py,OK,required Phase430 file exists
+exists::alrajhi_client/views/widgets/pos_widget.py,file,alrajhi_client/views/widgets/pos_widget.py,OK,required Phase430 file exists
+exists::alrajhi_client/views/restaurant/restaurant_pos_widget.py,file,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,required Phase430 file exists
+exists::alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,file,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,required Phase430 file exists
+exists::alrajhi_client/ui/operational_item_card_grid.py,file,alrajhi_client/ui/operational_item_card_grid.py,OK,required Phase430 file exists
+exists::alrajhi_client/theme/qss.py,file,alrajhi_client/theme/qss.py,OK,required Phase430 file exists
+ast::alrajhi_client/workspace/quality/pos_barcode_table_first_contract.py,syntax,alrajhi_client/workspace/quality/pos_barcode_table_first_contract.py,OK,source parses
+ast::tools/phase430_pos_barcode_table_first_guard.py,syntax,tools/phase430_pos_barcode_table_first_guard.py,OK,source parses
+ast::tests/test_phase430_pos_barcode_table_first.py,syntax,tests/test_phase430_pos_barcode_table_first.py,OK,source parses
+ast::alrajhi_client/views/widgets/pos_widget.py,syntax,alrajhi_client/views/widgets/pos_widget.py,OK,source parses
+ast::alrajhi_client/views/restaurant/restaurant_pos_widget.py,syntax,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,source parses
+ast::alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,syntax,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,source parses
+ast::alrajhi_client/ui/operational_item_card_grid.py,syntax,alrajhi_client/ui/operational_item_card_grid.py,OK,source parses
+ast::alrajhi_client/theme/qss.py,syntax,alrajhi_client/theme/qss.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/pos_barcode_table_first_contract.py,OK,Phase430 contract declared
+contract_surface,contract,alrajhi_client/workspace/quality/pos_barcode_table_first_contract.py,OK,POS is barcode/table-first
+summary_ready,contract,alrajhi_client/workspace/quality/pos_barcode_table_first_contract.py,OK,POS has no material cards while Restaurant/Cafe keep card grids
+pos_no_operational_card_import,pos_barcode_table_first,alrajhi_client/views/widgets/pos_widget.py,OK,Phase430 POS barcode/table-first layout contract
+pos_no_card_instance,pos_barcode_table_first,alrajhi_client/views/widgets/pos_widget.py,OK,Phase430 POS barcode/table-first layout contract
+pos_no_catalog_card_loading,pos_barcode_table_first,alrajhi_client/views/widgets/pos_widget.py,OK,Phase430 POS barcode/table-first layout contract
+pos_keeps_scan_row,pos_barcode_table_first,alrajhi_client/views/widgets/pos_widget.py,OK,Phase430 POS barcode/table-first layout contract
+pos_table_directly_after_scan,pos_barcode_table_first,alrajhi_client/views/widgets/pos_widget.py,OK,Phase430 POS barcode/table-first layout contract
+pos_global_filter_scan_only,pos_barcode_table_first,alrajhi_client/views/widgets/pos_widget.py,OK,Phase430 POS barcode/table-first layout contract
+restaurant_card_grid_preserved,pos_barcode_table_first,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,Phase430 POS barcode/table-first layout contract
+simple_restaurant_card_grid_preserved,pos_barcode_table_first,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,Phase430 POS barcode/table-first layout contract
+component_still_exists,pos_barcode_table_first,alrajhi_client/ui/operational_item_card_grid.py,OK,Phase430 POS barcode/table-first layout contract
+qss_no_pos_card_selector,pos_barcode_table_first,alrajhi_client/theme/qss.py,OK,Phase430 POS barcode/table-first layout contract
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase430 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase430 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase430 release check registered

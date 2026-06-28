@@ -1138,6 +1138,41 @@ def build_global_qss(colors: dict) -> str:
             padding: 20px;
         }}
 
+        /* Phase428/430: shared Restaurant/Cafe operational material card grid; POS is barcode/table-first. */
+        QWidget#operationalItemCardGrid,
+        QWidget#restaurantMenuOperationalItemCardGrid,
+        QWidget#restaurantSimpleItemCardGrid {{
+            background-color: {colors['bg_table']};
+        }}
+        QScrollArea#operationalItemCardScroll {{
+            background-color: {colors['bg_table']};
+            border: 1px solid {colors['border']};
+            border-radius: {radius_md}px;
+        }}
+        QWidget#operationalItemCardHost {{
+            background-color: {colors['bg_table']};
+        }}
+        QPushButton#operationalItemCardButton {{
+            background-color: {colors['card_bg']};
+            color: {colors['text_primary']};
+            border: 2px solid {colors['border']};
+            border-radius: {radius_lg}px;
+            padding: 8px 10px;
+            font-size: {value_px}px;
+            font-weight: 900;
+            text-align: center;
+        }}
+        QPushButton#operationalItemCardButton:hover {{
+            background-color: {colors['brand_soft']};
+            color: {colors['primary']};
+            border-color: {colors['primary']};
+        }}
+        QLabel#operationalItemCardEmpty {{
+            color: {colors['text_secondary']};
+            font-weight: 800;
+            padding: 20px;
+        }}
+
         /* Phase 309: Cafe workspace shell. */
         QFrame#restaurantCafeWorkspaceShell {{
             background-color: {colors['brand_soft']};

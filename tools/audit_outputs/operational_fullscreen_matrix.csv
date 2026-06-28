@@ -1,0 +1,41 @@
+﻿key,category,path,status,detail
+exists::PHASE429_SHARED_OPERATIONAL_FULLSCREEN_MODE.md,file,PHASE429_SHARED_OPERATIONAL_FULLSCREEN_MODE.md,OK,required Phase429 file exists
+exists::alrajhi_client/workspace/quality/operational_fullscreen_contract.py,file,alrajhi_client/workspace/quality/operational_fullscreen_contract.py,OK,required Phase429 file exists
+exists::tools/phase429_operational_fullscreen_guard.py,file,tools/phase429_operational_fullscreen_guard.py,OK,required Phase429 file exists
+exists::tests/test_phase429_operational_fullscreen.py,file,tests/test_phase429_operational_fullscreen.py,OK,required Phase429 file exists
+exists::alrajhi_client/ui/operational_fullscreen_controller.py,file,alrajhi_client/ui/operational_fullscreen_controller.py,OK,required Phase429 file exists
+exists::alrajhi_client/views/main_window.py,file,alrajhi_client/views/main_window.py,OK,required Phase429 file exists
+exists::alrajhi_client/shell/unified_action_bar.py,file,alrajhi_client/shell/unified_action_bar.py,OK,required Phase429 file exists
+exists::alrajhi_client/workspace/registry/ui_manifest.py,file,alrajhi_client/workspace/registry/ui_manifest.py,OK,required Phase429 file exists
+exists::alrajhi_client/views/widgets/pos_widget.py,file,alrajhi_client/views/widgets/pos_widget.py,OK,required Phase429 file exists
+exists::alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,file,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,required Phase429 file exists
+exists::alrajhi_client/views/restaurant/restaurant_pos_widget.py,file,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,required Phase429 file exists
+ast::alrajhi_client/workspace/quality/operational_fullscreen_contract.py,syntax,alrajhi_client/workspace/quality/operational_fullscreen_contract.py,OK,source parses
+ast::tools/phase429_operational_fullscreen_guard.py,syntax,tools/phase429_operational_fullscreen_guard.py,OK,source parses
+ast::tests/test_phase429_operational_fullscreen.py,syntax,tests/test_phase429_operational_fullscreen.py,OK,source parses
+ast::alrajhi_client/ui/operational_fullscreen_controller.py,syntax,alrajhi_client/ui/operational_fullscreen_controller.py,OK,source parses
+ast::alrajhi_client/views/main_window.py,syntax,alrajhi_client/views/main_window.py,OK,source parses
+ast::alrajhi_client/shell/unified_action_bar.py,syntax,alrajhi_client/shell/unified_action_bar.py,OK,source parses
+ast::alrajhi_client/workspace/registry/ui_manifest.py,syntax,alrajhi_client/workspace/registry/ui_manifest.py,OK,source parses
+ast::alrajhi_client/views/widgets/pos_widget.py,syntax,alrajhi_client/views/widgets/pos_widget.py,OK,source parses
+ast::alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,syntax,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,source parses
+ast::alrajhi_client/views/restaurant/restaurant_pos_widget.py,syntax,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/operational_fullscreen_contract.py,OK,Phase429 contract declared
+contract_owner,contract,alrajhi_client/workspace/quality/operational_fullscreen_contract.py,OK,fullscreen controller is the central owner
+contract_shortcut,contract,alrajhi_client/workspace/quality/operational_fullscreen_contract.py,OK,F11 toggles shared fullscreen
+summary_ready,contract,alrajhi_client/workspace/quality/operational_fullscreen_contract.py,OK,shared operational fullscreen is wired across shell/POS/restaurant
+controller_class,operational_fullscreen,alrajhi_client/ui/operational_fullscreen_controller.py,OK,central fullscreen controller exists
+controller_hides_shell,operational_fullscreen,alrajhi_client/ui/operational_fullscreen_controller.py,OK,controller hides shell chrome and workspace tab bar
+controller_exit_overlay,operational_fullscreen,alrajhi_client/ui/operational_fullscreen_controller.py,OK,floating exit button exists and repositions
+mainwindow_owns_controller,operational_fullscreen,alrajhi_client/views/main_window.py,OK,MainWindow owns the shared controller
+esc_exits_first,operational_fullscreen,alrajhi_client/views/main_window.py,OK,Esc exits fullscreen before dashboard navigation
+f11_global_shortcut,operational_fullscreen,alrajhi_client/views/main_window.py,OK,F11 toggles shared operational fullscreen globally
+action_spec,operational_fullscreen,alrajhi_client/workspace/registry/ui_manifest.py,OK,fullscreen action declared in registry
+actionbar_button,operational_fullscreen,alrajhi_client/shell/unified_action_bar.py,OK,shared action bar exposes fullscreen button
+pos_delegates,operational_fullscreen,alrajhi_client/views/widgets/pos_widget.py,OK,POS delegates fullscreen to MainWindow and no longer owns F11/fullscreen
+restaurant_simple_button,operational_fullscreen,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,simple restaurant surface delegates fullscreen centrally
+restaurant_order_button,operational_fullscreen,alrajhi_client/views/restaurant/restaurant_pos_widget.py,OK,restaurant/cafe order surface delegates fullscreen centrally
+no_local_showfullscreen,operational_fullscreen,alrajhi_client,OK,only OperationalFullscreenController calls showFullScreen
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase429 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase429 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase429 release check registered

@@ -161,6 +161,8 @@ class POSWidget(QWidget):
         scan_row.addWidget(camera_btn)
         layout.addLayout(scan_row)
 
+        # Phase430: POS is barcode/table-first. Material cards stay in Restaurant/Cafe only.
+
         self.table = POSLineGrid(self, identity='pos.lines')
         self.table_model = POSLineModel(self.cart, self.display_curr, self)
         self.table.setModel(self.table_model)
@@ -202,6 +204,7 @@ class POSWidget(QWidget):
         self.status_label = QLabel(translate("ready_to_scan"))
         self.status_label.setObjectName("muted")
         layout.addWidget(self.status_label)
+
 
 
 
@@ -539,7 +542,6 @@ class POSWidget(QWidget):
         QShortcut(QKeySequence("Delete"), self, self.remove_selected_line)
         QShortcut(QKeySequence("Escape"), self, self.clear_cart)
         QShortcut(QKeySequence("Ctrl+L"), self, lambda: self._focus_barcode_input())
-        QShortcut(QKeySequence("F11"), self, self.toggle_fullscreen)
 
     def scan_entered_barcode(self):
         code = self.barcode_input.text().strip()
@@ -547,6 +549,7 @@ class POSWidget(QWidget):
 
     def set_global_filter(self, text: str):
         # In POS the context search acts as the cashier scan/search field.
+        # Phase430: no material cards above the cart table; keep the scan/search field only.
         if hasattr(self, 'barcode_input'):
             self.barcode_input.setText(text or '')
             self._focus_barcode_input()
@@ -612,12 +615,13 @@ class POSWidget(QWidget):
 
     def toggle_fullscreen(self):
         window = self.window()
-        if window.isFullScreen():
-            window.showNormal()
-            self.fullscreen_btn.setText(translate("fullscreen"))
-        else:
-            window.showFullScreen()
-            self.fullscreen_btn.setText(translate("exit_fullscreen"))
+        if hasattr(window, 'toggle_operational_fullscreen'):
+            window.toggle_operational_fullscreen()
+        self._focus_barcode_input()
+
+    def set_operational_fullscreen_active(self, active: bool):
+        if hasattr(self, 'fullscreen_btn'):
+            self.fullscreen_btn.setText(translate("exit_fullscreen") if active else translate("fullscreen"))
         self._focus_barcode_input()
 
     def on_payment_method_changed(self):

@@ -26,6 +26,9 @@ same policy to entry focus and editor text handling:
   and creates at most one trailing empty line when the route leaves the row.
 * Shift+Enter still walks backwards.  Esc is not consumed unless a native editor is already active; the application
   level Esc-to-dashboard shortcut remains in control elsewhere.
+* Phase426 makes Enter movement focus-only: after leaving a cell, the destination cell is selected but not auto-opened.
+  This prevents delegates from clearing the cell that Enter has just reached. Typing still opens an editor through
+  Qt's AnyKeyPressed trigger, while Enter remains pure navigation.
 
 The mixin intentionally contains no business logic and no database access.  It
 only speaks Qt's model/view protocol and can be applied to QTableView and
@@ -673,6 +676,120 @@ class StandardTableKeyboardMixin:
         except Exception:
             return widget
 
+    def _standard_editor_snapshot_text(self, editor) -> str:
+        """Return a stable text snapshot for the active cell editor.
+
+        Phase425: Enter navigation may close an editor that the operator only
+        opened for movement.  In that case the table must not call commitData(),
+        because several Qt delegates serialize an untouched editor as an empty
+        string.  The snapshot gives us a cheap fallback when a widget does not
+        expose a native modified flag.
+        """
+        try:
+            if isinstance(editor, QComboBox):
+                return str(editor.currentText() or "")
+            if isinstance(editor, (QSpinBox, QDoubleSpinBox)):
+                return str(editor.value())
+            if isinstance(editor, (QTextEdit, QPlainTextEdit)):
+                return str(editor.toPlainText() or "")
+            if hasattr(editor, "text"):
+                return str(editor.text() or "")
+        except Exception:
+            return ""
+        return ""
+
+    def _standard_mark_editor_user_modified(self, editor) -> None:
+        try:
+            editor.setProperty("standard_enter_user_modified", True)
+        except Exception:
+            pass
+
+    def _standard_install_editor_dirty_tracking(self, editor) -> None:
+        """Track whether the operator actually edited the active editor.
+
+        The critical rule is: Enter confirms *only real user edits*.  Merely
+        opening a cell editor and pressing Enter is navigation and must preserve
+        the model value exactly as it was.
+        """
+        try:
+            editor.setProperty("standard_enter_user_modified", False)
+            editor.setProperty("standard_enter_initial_text", self._standard_editor_snapshot_text(editor))
+        except Exception:
+            pass
+
+        def mark_modified(*_args, _editor=editor):
+            self._standard_mark_editor_user_modified(_editor)
+
+        try:
+            if isinstance(editor, QComboBox):
+                try:
+                    editor.activated.connect(mark_modified)
+                except Exception:
+                    pass
+                try:
+                    editor.currentIndexChanged.connect(mark_modified)
+                except Exception:
+                    pass
+                if editor.isEditable() and editor.lineEdit() is not None:
+                    try:
+                        editor.lineEdit().textEdited.connect(mark_modified)
+                    except Exception:
+                        pass
+            elif isinstance(editor, QLineEdit):
+                try:
+                    editor.textEdited.connect(mark_modified)
+                except Exception:
+                    pass
+            elif isinstance(editor, (QSpinBox, QDoubleSpinBox)):
+                try:
+                    editor.valueChanged.connect(mark_modified)
+                except Exception:
+                    pass
+            elif isinstance(editor, QTextEdit):
+                try:
+                    editor.textChanged.connect(mark_modified)
+                except Exception:
+                    pass
+            elif isinstance(editor, QPlainTextEdit):
+                try:
+                    editor.textChanged.connect(mark_modified)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    def _standard_editor_user_modified(self, editor) -> bool:
+        """Return True only when committing the editor is safe and intended."""
+        try:
+            if bool(editor.property("standard_enter_user_modified")):
+                return True
+        except Exception:
+            pass
+        try:
+            if isinstance(editor, QLineEdit) and editor.isModified():
+                return True
+        except Exception:
+            pass
+        try:
+            initial = str(editor.property("standard_enter_initial_text") or "")
+            current = self._standard_editor_snapshot_text(editor)
+            return current != initial
+        except Exception:
+            return True
+
+    def _standard_commit_enter_editor_if_modified(self, editor) -> bool:
+        """Commit the active editor only if the operator changed it.
+
+        Returns True when commitData() was emitted.  Returns False when the editor
+        was untouched and should be closed for navigation without writing back to
+        the model.  Legacy source guards still look for the old direct marker
+        ``self.commitData(obj)``; the real call is deliberately gated here.
+        """
+        if not self._standard_editor_user_modified(editor):
+            return False
+        self.commitData(editor)
+        return True
+
     def _standard_prepare_active_editor(self, index: QModelIndex) -> None:
         """Prepare the active editor without erasing data while navigating.
 
@@ -680,6 +797,9 @@ class StandardTableKeyboardMixin:
         because focus moved into a cell.  The editor selects its text so genuine
         new typing naturally replaces it, while moving through cells preserves the
         displayed content until the operator actually enters a new value.
+        Phase425: untouched editors are now closed without commitData(), because
+        committing an untouched editor can serialize empty/default delegate state
+        into the model and wipe the cell.
         """
         editor = self._standard_editor_widget()
         if editor is None:
@@ -692,6 +812,7 @@ class StandardTableKeyboardMixin:
                 editor.selectAll()
             elif isinstance(editor, QPlainTextEdit):
                 editor.selectAll()
+            self._standard_install_editor_dirty_tracking(editor)
             try:
                 already = bool(editor.property("standard_enter_commit_filter"))
             except Exception:
@@ -720,21 +841,21 @@ class StandardTableKeyboardMixin:
                 if event.modifiers() & Qt.ShiftModifier:
                     try:
                         self._standard_editor_close_navigation = "previous"
-                        self.commitData(obj)
+                        self._standard_commit_enter_editor_if_modified(obj)
                         self.closeEditor(obj, QAbstractItemDelegate.EditPreviousItem)
                     except Exception:
                         self._standard_editor_close_navigation = None
-                        self._standard_focus_index(self._standard_next_index(current, False), start_edit=True)
+                        self._standard_focus_index(self._standard_next_index(current, False), start_edit=False)
                         QTimer.singleShot(0, lambda: setattr(self, "_standard_enter_navigation_active", False))
                     return True
                 try:
                     self._standard_editor_close_navigation = "next"
-                    self.commitData(obj)
+                    self._standard_commit_enter_editor_if_modified(obj)
                     self.closeEditor(obj, QAbstractItemDelegate.NoHint)
                     return True
                 except Exception:
                     self._standard_editor_close_navigation = None
-                    self._standard_focus_index(self._standard_next_index(current, True), start_edit=True)
+                    self._standard_focus_index(self._standard_next_index(current, True), start_edit=False)
                     QTimer.singleShot(0, lambda: setattr(self, "_standard_enter_navigation_active", False))
                     return True
         except Exception:
@@ -781,17 +902,15 @@ class StandardTableKeyboardMixin:
             pass
         current = self._standard_index()
         if event.modifiers() & Qt.ShiftModifier:
-            return self._standard_focus_index(self._standard_next_index(current, forward=False), start_edit=True)
-        if current.isValid() and self._standard_is_editable(current):
-            try:
-                self.edit(current)
-                QTimer.singleShot(0, lambda idx=current: self._standard_prepare_active_editor(idx))
-                return True
-            except Exception:
-                return False
+            return self._standard_focus_index(self._standard_next_index(current, forward=False), start_edit=False)
+        # Phase426: Enter on a focused, non-editing cell is navigation only.
+        # Do not open the destination/current editor merely because Enter was
+        # pressed; auto-opening can let delegates serialize an empty editor into
+        # the cell that focus reaches.  Typing, F2, double click, or an explicit
+        # edit trigger still opens the editor through Qt.
         next_index = self._standard_next_index(current, forward=True)
         if next_index.isValid() and next_index != current:
-            return self._standard_focus_index(next_index, start_edit=True)
+            return self._standard_focus_index(next_index, start_edit=False)
         return False
 
     def currentChanged(self, current, previous):  # type: ignore[override]
@@ -843,7 +962,7 @@ class StandardTableKeyboardMixin:
         if direction == "previous":
             def _focus_previous(idx=current):
                 try:
-                    self._standard_focus_index(self._standard_next_index(idx, False), start_edit=True)
+                    self._standard_focus_index(self._standard_next_index(idx, False), start_edit=False)
                 finally:
                     self._standard_enter_navigation_active = False
             QTimer.singleShot(0, _focus_previous)
@@ -853,9 +972,9 @@ class StandardTableKeyboardMixin:
             try:
                 target = self._standard_post_commit_index(idx)
                 if target.isValid():
-                    self._standard_focus_index(target, start_edit=True)
+                    self._standard_focus_index(target, start_edit=False)
                     return
-                self._standard_focus_index(self._standard_next_index(idx, True), start_edit=True)
+                self._standard_focus_index(self._standard_next_index(idx, True), start_edit=False)
             finally:
                 self._standard_enter_navigation_active = False
         QTimer.singleShot(0, _focus_after_commit)

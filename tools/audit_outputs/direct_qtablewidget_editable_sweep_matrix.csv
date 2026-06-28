@@ -1,0 +1,25 @@
+﻿key,category,path,status,detail
+exists::PHASE427_DIRECT_QTABLEWIDGET_EDITABLE_SWEEP.md,file,PHASE427_DIRECT_QTABLEWIDGET_EDITABLE_SWEEP.md,OK,required Phase427 file exists
+exists::alrajhi_client/workspace/quality/direct_qtablewidget_editable_sweep_contract.py,file,alrajhi_client/workspace/quality/direct_qtablewidget_editable_sweep_contract.py,OK,required Phase427 file exists
+exists::tools/phase427_direct_qtablewidget_editable_sweep_guard.py,file,tools/phase427_direct_qtablewidget_editable_sweep_guard.py,OK,required Phase427 file exists
+exists::tests/test_phase427_direct_qtablewidget_editable_sweep.py,file,tests/test_phase427_direct_qtablewidget_editable_sweep.py,OK,required Phase427 file exists
+exists::alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,file,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,required Phase427 file exists
+exists::alrajhi_client/views/widgets/settings_widget.py,file,alrajhi_client/views/widgets/settings_widget.py,OK,required Phase427 file exists
+ast::alrajhi_client/workspace/quality/direct_qtablewidget_editable_sweep_contract.py,syntax,alrajhi_client/workspace/quality/direct_qtablewidget_editable_sweep_contract.py,OK,source parses
+ast::tools/phase427_direct_qtablewidget_editable_sweep_guard.py,syntax,tools/phase427_direct_qtablewidget_editable_sweep_guard.py,OK,source parses
+ast::tests/test_phase427_direct_qtablewidget_editable_sweep.py,syntax,tests/test_phase427_direct_qtablewidget_editable_sweep.py,OK,source parses
+ast::alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,syntax,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,source parses
+ast::alrajhi_client/views/widgets/settings_widget.py,syntax,alrajhi_client/views/widgets/settings_widget.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/direct_qtablewidget_editable_sweep_contract.py,OK,Phase427 contract declared
+contract_owner,contract,alrajhi_client/workspace/quality/direct_qtablewidget_editable_sweep_contract.py,OK,EditableSmartGrid owns editable direct-table surfaces
+summary_ready,contract,alrajhi_client/workspace/quality/direct_qtablewidget_editable_sweep_contract.py,OK,all editable direct QTableWidget surfaces are migrated or classified read-only
+restaurant_invoice_grid_migrated,source,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,restaurant simple POS invoice table uses EditableSmartGrid
+restaurant_no_direct_qtablewidget,source,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,restaurant simple POS invoice table no longer constructs QTableWidget
+restaurant_no_selected_clicked,source,alrajhi_client/views/restaurant/restaurant_simple_pos_widget.py,OK,restaurant simple POS does not open editors through SelectedClicked
+settings_surface_migrated,source,alrajhi_client/views/widgets/settings_widget.py,OK,settings surface column table uses EditableSmartGrid
+settings_surface_readonly,source,alrajhi_client/views/widgets/settings_widget.py,OK,settings surface column table is explicitly non-editing
+direct::alrajhi_client/views/apparel/apparel_workspace_widget.py::report_table,direct_qtablewidget,alrajhi_client/views/apparel/apparel_workspace_widget.py,OK,line 159: report_table — read-only apparel report output
+direct::alrajhi_client/views/apparel/apparel_workspace_widget.py::matrix_table,direct_qtablewidget,alrajhi_client/views/apparel/apparel_workspace_widget.py,OK,line 221: matrix_table — read-only apparel color/size matrix output
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase427 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase427 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase427 release check registered

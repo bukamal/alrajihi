@@ -1,0 +1,29 @@
+﻿key,category,path,status,detail
+exists::PHASE425_EDITABLE_GRID_ENTER_PRESERVE_HOTFIX.md,file,PHASE425_EDITABLE_GRID_ENTER_PRESERVE_HOTFIX.md,OK,required Phase425 file exists
+exists::alrajhi_client/workspace/quality/editable_grid_enter_preserve_contract.py,file,alrajhi_client/workspace/quality/editable_grid_enter_preserve_contract.py,OK,required Phase425 file exists
+exists::tools/phase425_editable_grid_enter_preserve_guard.py,file,tools/phase425_editable_grid_enter_preserve_guard.py,OK,required Phase425 file exists
+exists::tests/test_phase425_editable_grid_enter_preserve.py,file,tests/test_phase425_editable_grid_enter_preserve.py,OK,required Phase425 file exists
+exists::alrajhi_client/ui/table_keyboard_policy.py,file,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase425 file exists
+ast::alrajhi_client/workspace/quality/editable_grid_enter_preserve_contract.py,syntax,alrajhi_client/workspace/quality/editable_grid_enter_preserve_contract.py,OK,source parses
+ast::tools/phase425_editable_grid_enter_preserve_guard.py,syntax,tools/phase425_editable_grid_enter_preserve_guard.py,OK,source parses
+ast::tests/test_phase425_editable_grid_enter_preserve.py,syntax,tests/test_phase425_editable_grid_enter_preserve.py,OK,source parses
+ast::alrajhi_client/ui/table_keyboard_policy.py,syntax,alrajhi_client/ui/table_keyboard_policy.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/editable_grid_enter_preserve_contract.py,OK,Phase425 contract declared
+contract_owner,contract,alrajhi_client/workspace/quality/editable_grid_enter_preserve_contract.py,OK,central keyboard engine remains owner
+summary_ready,contract,alrajhi_client/workspace/quality/editable_grid_enter_preserve_contract.py,OK,all Phase425 source markers are present
+dirty_tracking,enter_preserve,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase425 marker present
+user_modified_flag,enter_preserve,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase425 marker present
+initial_snapshot,enter_preserve,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase425 marker present
+gated_commit_helper,enter_preserve,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase425 marker present
+enter_uses_gated_commit,enter_preserve,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase425 marker present
+direct_enter_commit_removed,enter_preserve,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase425 marker present
+nohint_navigation_kept,enter_preserve,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase425 marker present
+shift_enter_navigation_kept,enter_preserve,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase425 marker present
+enter_forward_gated_once,source,alrajhi_client/ui/table_keyboard_policy.py,OK,Enter and Shift+Enter use gated commit
+untouched_editor_close_only,source,alrajhi_client/ui/table_keyboard_policy.py,OK,untouched editor path is documented
+dirty_signals_line_edit,source,alrajhi_client/ui/table_keyboard_policy.py,OK,QLineEdit user edits are tracked
+dirty_signals_combo,source,alrajhi_client/ui/table_keyboard_policy.py,OK,QComboBox user edits are tracked
+dirty_signals_spin,source,alrajhi_client/ui/table_keyboard_policy.py,OK,Spin editor user edits are tracked
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase425 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase425 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase425 release check registered

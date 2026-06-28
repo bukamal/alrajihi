@@ -1,0 +1,37 @@
+key,category,path,status,detail
+exists::PHASE421_ACTIVATION_SECURITY_HARDENING.md,file,PHASE421_ACTIVATION_SECURITY_HARDENING.md,OK,required Phase421 file exists
+exists::alrajhi_client/auth/license_security.py,file,alrajhi_client/auth/license_security.py,OK,required Phase421 file exists
+exists::alrajhi_client/auth/activation.py,file,alrajhi_client/auth/activation.py,OK,required Phase421 file exists
+exists::alrajhi_server/services/security_runtime.py,file,alrajhi_server/services/security_runtime.py,OK,required Phase421 file exists
+exists::alrajhi_server/app.py,file,alrajhi_server/app.py,OK,required Phase421 file exists
+exists::alrajhi_server/api/debug.py,file,alrajhi_server/api/debug.py,OK,required Phase421 file exists
+exists::alrajhi_client/workspace/quality/activation_security_contract.py,file,alrajhi_client/workspace/quality/activation_security_contract.py,OK,required Phase421 file exists
+exists::alrajhi_client/workspace/quality/activation_security_audit.py,file,alrajhi_client/workspace/quality/activation_security_audit.py,OK,required Phase421 file exists
+exists::tools/phase421_activation_security_guard.py,file,tools/phase421_activation_security_guard.py,OK,required Phase421 file exists
+exists::tests/test_phase421_activation_security.py,file,tests/test_phase421_activation_security.py,OK,required Phase421 file exists
+ast::alrajhi_client/auth/license_security.py,syntax,alrajhi_client/auth/license_security.py,OK,source parses
+ast::alrajhi_client/auth/activation.py,syntax,alrajhi_client/auth/activation.py,OK,source parses
+ast::alrajhi_server/services/security_runtime.py,syntax,alrajhi_server/services/security_runtime.py,OK,source parses
+ast::alrajhi_server/app.py,syntax,alrajhi_server/app.py,OK,source parses
+ast::alrajhi_server/api/debug.py,syntax,alrajhi_server/api/debug.py,OK,source parses
+ast::alrajhi_client/workspace/quality/activation_security_contract.py,syntax,alrajhi_client/workspace/quality/activation_security_contract.py,OK,source parses
+ast::alrajhi_client/workspace/quality/activation_security_audit.py,syntax,alrajhi_client/workspace/quality/activation_security_audit.py,OK,source parses
+ast::tools/phase421_activation_security_guard.py,syntax,tools/phase421_activation_security_guard.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/activation_security_contract.py,OK,Phase421 contract is declared
+contract_license_invariants,contract,alrajhi_client/workspace/quality/activation_security_contract.py,OK,license invariants are explicit
+contract_server_invariants,contract,alrajhi_client/workspace/quality/activation_security_contract.py,OK,server security invariants are explicit
+license_security_module,license,alrajhi_client/auth/license_security.py,OK,license validation module exists
+license_key_hash,license,alrajhi_client/auth/license_security.py,OK,new records store a key fingerprint
+no_new_raw_key_storage,license,alrajhi_client/auth/activation.py,OK,activation no longer writes raw license key into new records
+constant_time_device_compare,license,alrajhi_client/auth/license_security.py,OK,device binding uses constant-time comparison
+expiration_check,license,alrajhi_client/auth/license_security.py,OK,local expiration check is present
+signed_payload_support,license,alrajhi_client/auth/license_security.py,OK,signed payload verification is supported with external public key
+legacy_unsigned_production_gate,license,alrajhi_client/auth/license_security.py,OK,legacy unsigned license policy is environment-gated
+activation_uses_security_builder,license,alrajhi_client/auth/activation.py,OK,activation flow uses Phase421 security helpers
+server_security_module,server,alrajhi_server/services/security_runtime.py,OK,server diagnostic policy exists
+api_routes_guarded,server,alrajhi_server/app.py,OK,/api/routes is hidden unless diagnostics are enabled
+debug_route_guarded,server,alrajhi_server/api/debug.py,OK,debug/monitoring routes require diagnostic mode
+jwt_secret_required,server,alrajhi_server/app.py,OK,JWT secret remains mandatory in production
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase421 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase421 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase421 release check registered

@@ -26,6 +26,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback للتشغيل بدو
             return func
 
 from alrajhi_server.database.connection import get_db, init_db
+from alrajhi_server.services.security_runtime import diagnostics_enabled, diagnostic_denied_response
 import datetime
 
 app = Flask(__name__)
@@ -65,8 +66,10 @@ def health():
 
 @app.route('/api/routes', methods=['GET'])
 def api_routes():
+    if not diagnostics_enabled():
+        return diagnostic_denied_response()
     routes = sorted(str(rule.rule) for rule in app.url_map.iter_rules())
-    return jsonify({'routes': routes, 'api_version': 2})
+    return jsonify({'routes': routes, 'api_version': 2, 'diagnostic_mode': True})
 
 # استيراد blueprints
 from alrajhi_server.api.auth import auth_bp

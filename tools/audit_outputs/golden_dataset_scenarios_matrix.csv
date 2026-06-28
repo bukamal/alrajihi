@@ -1,0 +1,64 @@
+key,category,path,status,detail
+exists::PHASE423_GOLDEN_DATASET_ACCOUNTING_INVENTORY_SCENARIO_PACK.md,file,PHASE423_GOLDEN_DATASET_ACCOUNTING_INVENTORY_SCENARIO_PACK.md,OK,required Phase423 file exists
+exists::alrajhi_client/workspace/quality/golden_dataset_scenarios_contract.py,file,alrajhi_client/workspace/quality/golden_dataset_scenarios_contract.py,OK,required Phase423 file exists
+exists::alrajhi_client/workspace/quality/golden_dataset_scenarios.py,file,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required Phase423 file exists
+exists::tools/phase423_golden_dataset_scenarios_guard.py,file,tools/phase423_golden_dataset_scenarios_guard.py,OK,required Phase423 file exists
+exists::tests/test_phase423_golden_dataset_scenarios.py,file,tests/test_phase423_golden_dataset_scenarios.py,OK,required Phase423 file exists
+ast::alrajhi_client/workspace/quality/golden_dataset_scenarios_contract.py,syntax,alrajhi_client/workspace/quality/golden_dataset_scenarios_contract.py,OK,source parses
+ast::alrajhi_client/workspace/quality/golden_dataset_scenarios.py,syntax,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,source parses
+ast::tools/phase423_golden_dataset_scenarios_guard.py,syntax,tools/phase423_golden_dataset_scenarios_guard.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/golden_dataset_scenarios_contract.py,OK,Phase423 contract is declared
+contract_currency,contract,alrajhi_client/workspace/quality/golden_dataset_scenarios_contract.py,OK,golden currency is explicit
+contract_scenario_groups,contract,alrajhi_client/workspace/quality/golden_dataset_scenarios_contract.py,OK,critical scenario groups are declared
+contract_invariants,contract,alrajhi_client/workspace/quality/golden_dataset_scenarios_contract.py,OK,critical invariants are declared
+scenario_operation_count,scenario,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,canonical operations cover business day
+scenario_failure_count,scenario,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,golden arithmetic has no invariant failures
+scenario_gross_profit,scenario,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,gross profit is stable
+scenario_operation_ids_unique,scenario,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,operation ids are unique
+scenario_every_stock_op_branch_scoped,scenario,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,every operation carries branch scope
+scenario_group::master_data,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::opening_balances,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::purchase_invoice,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::sales_invoice,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::sales_return,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::purchase_return,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::inventory_transfer,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::manufacturing,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::pos_sale,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::restaurant_order,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::vouchers,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+scenario_group::reports,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,required scenario group is present
+operation_ids_unique,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,every operation has a unique idempotency/replay id
+operation_count,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,canonical operation count
+all_stock_ops_have_branch,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,stock-affecting operations declare branch scope
+section::stock_by_item_warehouse,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,stock_by_item_warehouse matches golden totals
+section::cashbox_balances,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,cashbox_balances matches golden totals
+section::customer_receivables,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,customer_receivables matches golden totals
+section::supplier_payables,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,supplier_payables matches golden totals
+section::expenses,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,expenses matches golden totals
+total::purchase_subtotal,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,purchase_subtotal matches golden total
+total::purchase_return_subtotal,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,purchase_return_subtotal matches golden total
+total::sales_subtotal,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,sales_subtotal matches golden total
+total::sales_return_subtotal,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,sales_return_subtotal matches golden total
+total::net_revenue,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,net_revenue matches golden total
+total::cogs,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,cogs matches golden total
+total::gross_profit,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,gross_profit matches golden total
+total::tax_collected,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,tax_collected matches golden total
+total::tax_paid,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,tax_paid matches golden total
+total::vat_payable,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,vat_payable matches golden total
+total::total_cash,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,total_cash matches golden total
+total::total_customer_receivable,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,total_customer_receivable matches golden total
+total::total_supplier_payable,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,total_supplier_payable matches golden total
+total::manufacturing_cost,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,manufacturing_cost matches golden total
+total::stock_movement_count,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,stock_movement_count matches golden total
+invariant::cashbox_balance_matches_all_cash_movements,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,critical business invariant
+invariant::customer_receivable_matches_sales_returns_and_receipts,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,critical business invariant
+invariant::supplier_payable_matches_purchases_returns_and_payments,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,critical business invariant
+invariant::warehouse_quantities_match_purchases_returns_sales_transfers_and_manufacturing,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,critical business invariant
+invariant::finished_goods_cost_is_derived_from_component_consumption,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,critical business invariant
+invariant::gross_profit_uses_document_cost_basis_not_current_price,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,critical business invariant
+invariant::branch_scope_is_present_for_every_stock_affecting_operation,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,critical business invariant
+invariant::every_operation_has_a_stable_operation_id_for_offline_replay_and_idempotency,invariant,alrajhi_client/workspace/quality/golden_dataset_scenarios.py,OK,critical business invariant
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase423 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase423 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase423 release check registered

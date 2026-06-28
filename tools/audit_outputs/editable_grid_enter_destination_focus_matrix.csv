@@ -1,0 +1,29 @@
+﻿key,category,path,status,detail
+exists::PHASE426_EDITABLE_GRID_ENTER_DESTINATION_FOCUS_HOTFIX.md,file,PHASE426_EDITABLE_GRID_ENTER_DESTINATION_FOCUS_HOTFIX.md,OK,required Phase426 file exists
+exists::alrajhi_client/workspace/quality/editable_grid_enter_destination_focus_contract.py,file,alrajhi_client/workspace/quality/editable_grid_enter_destination_focus_contract.py,OK,required Phase426 file exists
+exists::tools/phase426_editable_grid_enter_destination_focus_guard.py,file,tools/phase426_editable_grid_enter_destination_focus_guard.py,OK,required Phase426 file exists
+exists::tests/test_phase426_editable_grid_enter_destination_focus.py,file,tests/test_phase426_editable_grid_enter_destination_focus.py,OK,required Phase426 file exists
+exists::alrajhi_client/ui/table_keyboard_policy.py,file,alrajhi_client/ui/table_keyboard_policy.py,OK,required Phase426 file exists
+ast::alrajhi_client/workspace/quality/editable_grid_enter_destination_focus_contract.py,syntax,alrajhi_client/workspace/quality/editable_grid_enter_destination_focus_contract.py,OK,source parses
+ast::tools/phase426_editable_grid_enter_destination_focus_guard.py,syntax,tools/phase426_editable_grid_enter_destination_focus_guard.py,OK,source parses
+ast::tests/test_phase426_editable_grid_enter_destination_focus.py,syntax,tests/test_phase426_editable_grid_enter_destination_focus.py,OK,source parses
+ast::alrajhi_client/ui/table_keyboard_policy.py,syntax,alrajhi_client/ui/table_keyboard_policy.py,OK,source parses
+contract_phase,contract,alrajhi_client/workspace/quality/editable_grid_enter_destination_focus_contract.py,OK,Phase426 contract declared
+contract_owner,contract,alrajhi_client/workspace/quality/editable_grid_enter_destination_focus_contract.py,OK,central keyboard engine remains owner
+summary_ready,contract,alrajhi_client/workspace/quality/editable_grid_enter_destination_focus_contract.py,OK,all Phase426 source markers are present
+phase426_docstring,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+non_editing_enter_focus_only,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+non_editing_enter_no_edit_current,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+non_editing_enter_next_focus_only,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+shift_enter_focus_only,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+close_next_focus_only,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+close_fallback_focus_only,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+close_previous_focus_only,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+typing_still_opens_editor,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+gated_commit_preserved,enter_destination_focus,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase426 focus-only Enter marker present
+no_navigation_start_edit_true,source,alrajhi_client/ui/table_keyboard_policy.py,OK,Enter navigation destinations are not auto-edited
+any_key_pressed_kept,source,alrajhi_client/ui/table_keyboard_policy.py,OK,typing still opens editors via Qt
+commit_gate_kept,source,alrajhi_client/ui/table_keyboard_policy.py,OK,Phase425 source commit guard remains active
+release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase426 doc registered
+release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase426 test registered
+release_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase426 release check registered

@@ -8517,3 +8517,115 @@ _phase392_apply_french_translations()
 _phase393_apply_language_runtime_keys()
 _phase394_apply_restaurant_simple_pos_keys()
 _phase397_apply_feature_activation_keys()
+
+# Phase 422: critical i18n/RTL quality gate labels.
+def _phase422_apply_i18n_rtl_quality_keys() -> None:
+    payload = {
+        'ar': {
+            'ui_language': 'لغة الواجهة',
+            'print_language': 'لغة الطباعة',
+            'report_language': 'لغة التقارير',
+            'transaction_sales_invoice_new': 'فاتورة بيع جديدة',
+            'transaction_purchase_invoice_new': 'فاتورة شراء جديدة',
+            'transaction_sales_return_new': 'مرتجع بيع جديد',
+            'transaction_purchase_return_new': 'مرتجع شراء جديد',
+            'transaction_column_item': 'المادة',
+            'transaction_column_unit': 'الوحدة',
+            'transaction_column_qty': 'الكمية',
+            'transaction_column_price': 'السعر',
+            'transaction_column_discount': 'الخصم',
+            'transaction_column_tax': 'الضريبة',
+            'transaction_column_total': 'الإجمالي',
+            'transaction_column_notes': 'ملاحظات',
+            'transaction_column_cost': 'التكلفة',
+            'barcode.restaurant_menu_labels': 'باركود المنيو',
+            'barcode.restaurant_table_labels': 'QR الطاولات',
+            'barcode.cafe_product_labels': 'باركود منتجات الكافي',
+            'barcode.cafe_modifier_labels': 'باركود الإضافات',
+        },
+        'de': {
+            'ui_language': 'Oberflächensprache',
+            'print_language': 'Drucksprache',
+            'report_language': 'Berichtssprache',
+            'transaction_sales_invoice_new': 'Neue Verkaufsrechnung',
+            'transaction_purchase_invoice_new': 'Neue Einkaufsrechnung',
+            'transaction_sales_return_new': 'Neue Verkaufsretoure',
+            'transaction_purchase_return_new': 'Neue Einkaufsretoure',
+            'transaction_column_item': 'Artikel',
+            'transaction_column_unit': 'Einheit',
+            'transaction_column_qty': 'Menge',
+            'transaction_column_price': 'Preis',
+            'transaction_column_discount': 'Rabatt',
+            'transaction_column_tax': 'Steuer',
+            'transaction_column_total': 'Gesamt',
+            'transaction_column_notes': 'Notizen',
+            'transaction_column_cost': 'Kosten',
+            'barcode.restaurant_menu_labels': 'Menü-Barcodes',
+            'barcode.restaurant_table_labels': 'Tisch-QR',
+            'barcode.cafe_product_labels': 'Cafe-Produktbarcodes',
+            'barcode.cafe_modifier_labels': 'Cafe-Zusatz-Barcodes',
+        },
+        'en': {
+            'ui_language': 'UI language',
+            'print_language': 'Print language',
+            'report_language': 'Report language',
+            'transaction_sales_invoice_new': 'New sales invoice',
+            'transaction_purchase_invoice_new': 'New purchase invoice',
+            'transaction_sales_return_new': 'New sales return',
+            'transaction_purchase_return_new': 'New purchase return',
+            'transaction_column_item': 'Item',
+            'transaction_column_unit': 'Unit',
+            'transaction_column_qty': 'Qty',
+            'transaction_column_price': 'Price',
+            'transaction_column_discount': 'Discount',
+            'transaction_column_tax': 'Tax',
+            'transaction_column_total': 'Total',
+            'transaction_column_notes': 'Notes',
+            'transaction_column_cost': 'Cost',
+            'barcode.restaurant_menu_labels': 'Menu barcodes',
+            'barcode.restaurant_table_labels': 'Table QR',
+            'barcode.cafe_product_labels': 'Cafe product barcodes',
+            'barcode.cafe_modifier_labels': 'Modifier barcodes',
+        },
+        'fr': {
+            'ui_language': "Langue de l'interface",
+            'print_language': "Langue d'impression",
+            'report_language': 'Langue des rapports',
+            'transaction_sales_invoice_new': 'Nouvelle facture de vente',
+            'transaction_purchase_invoice_new': "Nouvelle facture d'achat",
+            'transaction_sales_return_new': 'Nouveau retour de vente',
+            'transaction_purchase_return_new': "Nouveau retour d'achat",
+            'transaction_column_item': 'Article',
+            'transaction_column_unit': 'Unité',
+            'transaction_column_qty': 'Quantité',
+            'transaction_column_price': 'Prix',
+            'transaction_column_discount': 'Remise',
+            'transaction_column_tax': 'Taxe',
+            'transaction_column_total': 'Total',
+            'transaction_column_notes': 'Notes',
+            'transaction_column_cost': 'Coût',
+            'barcode.restaurant_menu_labels': 'Codes-barres du menu',
+            'barcode.restaurant_table_labels': 'QR des tables',
+            'barcode.cafe_product_labels': 'Codes-barres des produits café',
+            'barcode.cafe_modifier_labels': 'Codes-barres des suppléments',
+        },
+    }
+    for lang, values in payload.items():
+        _translations.setdefault(lang, {}).update(values)
+
+if '_PHASE422_BASE_LOAD_TRANSLATIONS' not in globals():
+    _PHASE422_BASE_LOAD_TRANSLATIONS = load_translations
+_phase422_load_in_progress = False
+
+def load_translations():
+    global _phase422_load_in_progress
+    if _phase422_load_in_progress:
+        return
+    _phase422_load_in_progress = True
+    try:
+        _PHASE422_BASE_LOAD_TRANSLATIONS()
+        _phase422_apply_i18n_rtl_quality_keys()
+    finally:
+        _phase422_load_in_progress = False
+
+_phase422_apply_i18n_rtl_quality_keys()

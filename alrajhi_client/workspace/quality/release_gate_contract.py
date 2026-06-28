@@ -49,6 +49,16 @@ RELEASE_BASELINE_PHASE = 276
 # PHASE418_EDITABLE_GRID_LIFECYCLE_UNIFICATION is tracked below in REQUIRED_PHASE_DOCS.
 # PHASE419_PREFERENCES_REGISTRY_CONSOLIDATION is tracked below in REQUIRED_PHASE_DOCS.
 # PHASE420_API_MULTIUSER_PARITY_AUDIT_HARDENING is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE421_ACTIVATION_SECURITY_HARDENING is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE422_I18N_RTL_QUALITY_GATE is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE423_GOLDEN_DATASET_ACCOUNTING_INVENTORY_SCENARIO_PACK is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE424_GOLDEN_DATASET_RUNTIME_REPLAY_BRIDGE is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE425_EDITABLE_GRID_ENTER_PRESERVE_HOTFIX is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE426_EDITABLE_GRID_ENTER_DESTINATION_FOCUS_HOTFIX is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE427_DIRECT_QTABLEWIDGET_EDITABLE_SWEEP is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE428_OPERATIONAL_ITEM_CARD_GRID_UNIFICATION is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE429_SHARED_OPERATIONAL_FULLSCREEN_MODE is tracked below in REQUIRED_PHASE_DOCS.
+# PHASE430_POS_BARCODE_TABLE_FIRST_LAYOUT is tracked below in REQUIRED_PHASE_DOCS.
 # tests/test_phase409_basit_final_acceptance_audit.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase410_basit_release_candidate_freeze.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase411_basit_shell_menu_rebuild_hotfix.py is generated from REQUIRED_PHASE_TESTS.
@@ -61,6 +71,16 @@ RELEASE_BASELINE_PHASE = 276
 # tests/test_phase418_editable_grid_lifecycle_unification.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase419_preferences_registry_consolidation.py is generated from REQUIRED_PHASE_TESTS.
 # tests/test_phase420_api_multiuser_parity.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase421_activation_security.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase422_i18n_rtl_quality.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase423_golden_dataset_scenarios.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase424_golden_dataset_runtime_replay.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase425_editable_grid_enter_preserve.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase426_editable_grid_enter_destination_focus.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase427_direct_qtablewidget_editable_sweep.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase428_operational_item_card_grid.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase429_operational_fullscreen.py is generated from REQUIRED_PHASE_TESTS.
+# tests/test_phase430_pos_barcode_table_first.py is generated from REQUIRED_PHASE_TESTS.
 
 REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
     f"PHASE{phase}_{suffix}.md"
@@ -234,6 +254,16 @@ REQUIRED_PHASE_DOCS: Sequence[str] = tuple(
         (418, "EDITABLE_GRID_LIFECYCLE_UNIFICATION"),
         (419, "PREFERENCES_REGISTRY_CONSOLIDATION"),
         (420, "API_MULTIUSER_PARITY_AUDIT_HARDENING"),
+        (421, "ACTIVATION_SECURITY_HARDENING"),
+        (422, "I18N_RTL_QUALITY_GATE"),
+        (423, "GOLDEN_DATASET_ACCOUNTING_INVENTORY_SCENARIO_PACK"),
+        (424, "GOLDEN_DATASET_RUNTIME_REPLAY_BRIDGE"),
+        (425, "EDITABLE_GRID_ENTER_PRESERVE_HOTFIX"),
+        (426, "EDITABLE_GRID_ENTER_DESTINATION_FOCUS_HOTFIX"),
+        (427, "DIRECT_QTABLEWIDGET_EDITABLE_SWEEP"),
+        (428, "OPERATIONAL_ITEM_CARD_GRID_UNIFICATION"),
+        (429, "SHARED_OPERATIONAL_FULLSCREEN_MODE"),
+        (430, "POS_BARCODE_TABLE_FIRST_LAYOUT"),
     ]
 )
 
@@ -409,6 +439,16 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (418, "editable_grid_lifecycle_unification"),
         (419, "preferences_registry_consolidation"),
         (420, "api_multiuser_parity"),
+        (421, "activation_security"),
+        (422, "i18n_rtl_quality"),
+        (423, "golden_dataset_scenarios"),
+        (424, "golden_dataset_runtime_replay"),
+        (425, "editable_grid_enter_preserve"),
+        (426, "editable_grid_enter_destination_focus"),
+        (427, "direct_qtablewidget_editable_sweep"),
+        (428, "operational_item_card_grid"),
+        (429, "operational_fullscreen"),
+        (430, "pos_barcode_table_first"),
     ]
 )
 
@@ -565,6 +605,16 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("editable_grid_lifecycle_unification", "ui", "Editable grid row lifecycle is unified across transactions, inventory transfers and BOM components", "tools/phase418_editable_grid_lifecycle_unification_guard.py", "tools/audit_outputs/editable_grid_lifecycle_unification_matrix.csv", phase=418),
     ReleaseGateCheck("preferences_registry_consolidation", "settings", "UI preferences resolve through a central scoped registry with QSettings usage audited", "tools/phase419_preferences_registry_consolidation_guard.py", "tools/audit_outputs/preferences_registry_consolidation_matrix.csv", phase=419),
     ReleaseGateCheck("api_multiuser_parity", "api", "API local/remote parity, branch scope, offline replay and idempotency metadata are audited", "tools/phase420_api_multiuser_parity_guard.py", "tools/audit_outputs/api_multiuser_parity_matrix.csv", phase=420),
+    ReleaseGateCheck("activation_security", "security", "Activation records, signed license policy and production diagnostics exposure are hardened", "tools/phase421_activation_security_guard.py", "tools/audit_outputs/activation_security_matrix.csv", phase=421),
+    ReleaseGateCheck("i18n_rtl_quality", "i18n", "Language catalog coverage and RTL/LTR runtime direction wiring are audited", "tools/phase422_i18n_rtl_quality_guard.py", "tools/audit_outputs/i18n_rtl_quality_matrix.csv", phase=422),
+    ReleaseGateCheck("golden_dataset_scenarios", "accounting", "Golden accounting and inventory dataset reconciles invoices, returns, transfers, manufacturing, POS, restaurant and vouchers", "tools/phase423_golden_dataset_scenarios_guard.py", "tools/audit_outputs/golden_dataset_scenarios_matrix.csv", phase=423),
+    ReleaseGateCheck("golden_dataset_runtime_replay", "accounting", "Golden dataset operation stream replays through a runtime adapter protocol and compares actual balances with Phase423 expectations", "tools/phase424_golden_dataset_runtime_replay_guard.py", "tools/audit_outputs/golden_dataset_runtime_replay_matrix.csv", phase=424),
+    ReleaseGateCheck("editable_grid_enter_preserve", "ui", "Enter inside editable grid cells preserves untouched values and commits only real user edits", "tools/phase425_editable_grid_enter_preserve_guard.py", "tools/audit_outputs/editable_grid_enter_preserve_matrix.csv", phase=425),
+    ReleaseGateCheck("editable_grid_enter_destination_focus", "ui", "Enter navigation selects destination cells without auto-opening editors that can clear them", "tools/phase426_editable_grid_enter_destination_focus_guard.py", "tools/audit_outputs/editable_grid_enter_destination_focus_matrix.csv", phase=426),
+    ReleaseGateCheck("direct_qtablewidget_editable_sweep", "ui", "Editable direct QTableWidget surfaces are migrated to EditableSmartGrid or classified read-only", "tools/phase427_direct_qtablewidget_editable_sweep_guard.py", "tools/audit_outputs/direct_qtablewidget_editable_sweep_matrix.csv", phase=427),
+    ReleaseGateCheck("operational_item_card_grid", "ui", "Restaurant and cafe material surfaces share a three-column operational item-card grid; POS is barcode/table-first", "tools/phase428_operational_item_card_grid_guard.py", "tools/audit_outputs/operational_item_card_grid_matrix.csv", phase=428),
+    ReleaseGateCheck("operational_fullscreen", "ui", "POS, restaurant and cafe share a central operational fullscreen controller", "tools/phase429_operational_fullscreen_guard.py", "tools/audit_outputs/operational_fullscreen_matrix.csv", phase=429),
+    ReleaseGateCheck("pos_barcode_table_first", "ui", "POS keeps barcode/search and cart table only while Restaurant/Cafe keep material cards", "tools/phase430_pos_barcode_table_first_guard.py", "tools/audit_outputs/pos_barcode_table_first_matrix.csv", phase=430),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 

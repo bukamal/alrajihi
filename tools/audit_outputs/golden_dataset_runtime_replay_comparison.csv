@@ -1,0 +1,26 @@
+﻿section,key,expected,actual,status,detail
+stock_by_item_warehouse,MAT-FINISHED@WH-MAIN,1.0000,1.0000,OK,stock_by_item_warehouse.MAT-FINISHED@WH-MAIN matches expected golden value
+stock_by_item_warehouse,MAT-RAW@WH-MAIN,10.0000,10.0000,OK,stock_by_item_warehouse.MAT-RAW@WH-MAIN matches expected golden value
+stock_by_item_warehouse,MAT-RETAIL@WH-BR2,1.0000,1.0000,OK,stock_by_item_warehouse.MAT-RETAIL@WH-BR2 matches expected golden value
+stock_by_item_warehouse,MAT-RETAIL@WH-MAIN,3.0000,3.0000,OK,stock_by_item_warehouse.MAT-RETAIL@WH-MAIN matches expected golden value
+cashbox_balances,CASH-MAIN,850.00,850.00,OK,cashbox_balances.CASH-MAIN matches expected golden value
+cashbox_balances,CASH-POS,183.75,183.75,OK,cashbox_balances.CASH-POS matches expected golden value
+cashbox_balances,CASH-REST,252.00,252.00,OK,cashbox_balances.CASH-REST matches expected golden value
+customer_receivables,CUST-001,272.50,272.50,OK,customer_receivables.CUST-001 matches expected golden value
+supplier_payables,SUP-001,349.00,349.00,OK,supplier_payables.SUP-001 matches expected golden value
+expenses,EXP-OFFICE,50.00,50.00,OK,expenses.EXP-OFFICE matches expected golden value
+totals,cogs,400.00,400.00,OK,totals.cogs matches expected golden value
+totals,gross_profit,465.00,465.00,OK,totals.gross_profit matches expected golden value
+totals,manufacturing_cost,200.00,200.00,OK,totals.manufacturing_cost matches expected golden value
+totals,net_revenue,865.00,865.00,OK,totals.net_revenue matches expected golden value
+totals,purchase_return_subtotal,110.00,110.00,OK,totals.purchase_return_subtotal matches expected golden value
+totals,purchase_subtotal,695.00,695.00,OK,totals.purchase_subtotal matches expected golden value
+totals,sales_return_subtotal,150.00,150.00,OK,totals.sales_return_subtotal matches expected golden value
+totals,sales_subtotal,1015.00,1015.00,OK,totals.sales_subtotal matches expected golden value
+totals,stock_movement_count,13,13,OK,totals.stock_movement_count matches expected golden value
+totals,tax_collected,43.25,43.25,OK,totals.tax_collected matches expected golden value
+totals,tax_paid,64.00,64.00,OK,totals.tax_paid matches expected golden value
+totals,total_cash,1285.75,1285.75,OK,totals.total_cash matches expected golden value
+totals,total_customer_receivable,272.50,272.50,OK,totals.total_customer_receivable matches expected golden value
+totals,total_supplier_payable,349.00,349.00,OK,totals.total_supplier_payable matches expected golden value
+totals,vat_payable,-20.75,-20.75,OK,totals.vat_payable matches expected golden value

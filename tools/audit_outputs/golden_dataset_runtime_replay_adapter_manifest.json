@@ -1,0 +1,24 @@
+{
+  "phase": 424,
+  "source_phase": 423,
+  "implemented_adapters": [
+    "in_memory_reference"
+  ],
+  "runtime_adapter_backlog": [
+    "dao_repository_runtime",
+    "http_api_runtime",
+    "offline_replay_runtime"
+  ],
+  "backlog_intent": {
+    "dao_repository_runtime": "Replay against a disposable local database through repositories/DAOs and compare collected balances.",
+    "http_api_runtime": "Replay through server API endpoints with JWT, branch headers and idempotency keys.",
+    "offline_replay_runtime": "Replay the same operation envelopes through the offline queue and verify idempotent synchronization."
+  },
+  "required_outputs": [
+    "tools/audit_outputs/golden_dataset_runtime_replay_matrix.csv",
+    "tools/audit_outputs/golden_dataset_runtime_replay_steps.json",
+    "tools/audit_outputs/golden_dataset_runtime_replay_comparison.csv",
+    "tools/audit_outputs/golden_dataset_runtime_replay_actual_balances.json",
+    "tools/audit_outputs/golden_dataset_runtime_replay_adapter_manifest.json"
+  ]
+}
