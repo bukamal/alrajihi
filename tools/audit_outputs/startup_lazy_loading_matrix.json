@@ -1,0 +1,340 @@
+{
+  "summary": {
+    "phase": 436,
+    "checks": 66,
+    "issues": 0,
+    "ready": true
+  },
+  "rows": [
+    {
+      "key": "main_window:PAGE_FACTORY_SPECS",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:load_page_factory_class",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:_lazy_page_factory_specs",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:_lazy_page_keys_pending",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:_ensure_page_loaded",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:available_page_ids",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:_schedule_post_startup_warmup",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:_restore_workspace_session_after_first_paint",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:QTimer.singleShot(250",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:QTimer.singleShot(900",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "main_window:self._show_fixed_dashboard(refresh=False)",
+      "status": "pass",
+      "detail": "main_window.py contains lazy-startup marker"
+    },
+    {
+      "key": "factory_key:'dashboard'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'items'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'sales_invoices'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'purchase_invoices'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'pos'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'manufacturing'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'customers'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'suppliers'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'vouchers'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'returns'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'purchase_returns'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'reports'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'settings'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'users'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'categories'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'warehouses'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'branches'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'cashboxes'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'audit_log'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'offline_queue'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'monitoring'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'restaurant'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'cafe'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "factory_key:'apparel'",
+      "status": "pass",
+      "detail": "lazy page factory key exists"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.items_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.invoices_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.pos_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.manufacturing_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.customers_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.suppliers_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.vouchers_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.reports_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.settings_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.users_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.categories_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.warehouses_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.branches_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.cashboxes_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.returns_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.audit_log_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.offline_queue_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.widgets.monitoring_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.restaurant.restaurant_simple_pos_widget import",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.cafe import CafeWorkspaceWidget",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_import:from views.apparel import ApparelWorkspaceWidget",
+      "status": "pass",
+      "detail": "heavy page import is not eager at shell startup"
+    },
+    {
+      "key": "forbidden_construct:for key, factory in page_factories:",
+      "status": "pass",
+      "detail": "old eager construction path removed"
+    },
+    {
+      "key": "forbidden_construct:self.switch_page('dashboard')\n        se",
+      "status": "pass",
+      "detail": "old eager construction path removed"
+    },
+    {
+      "key": "forbidden_construct:factory_by_key = {\n            'dashboar",
+      "status": "pass",
+      "detail": "old eager construction path removed"
+    },
+    {
+      "key": "brand:phase436",
+      "status": "pass",
+      "detail": "brand phase advanced to 436"
+    },
+    {
+      "key": "doc:Phase 436",
+      "status": "pass",
+      "detail": "phase document contains required marker"
+    },
+    {
+      "key": "doc:Startup Lazy Loading Optimization",
+      "status": "pass",
+      "detail": "phase document contains required marker"
+    },
+    {
+      "key": "doc:MainWindow",
+      "status": "pass",
+      "detail": "phase document contains required marker"
+    },
+    {
+      "key": "doc:dashboard only",
+      "status": "pass",
+      "detail": "phase document contains required marker"
+    },
+    {
+      "key": "doc:lazy-loaded",
+      "status": "pass",
+      "detail": "phase document contains required marker"
+    },
+    {
+      "key": "doc:QTimer",
+      "status": "pass",
+      "detail": "phase document contains required marker"
+    }
+  ]
+}

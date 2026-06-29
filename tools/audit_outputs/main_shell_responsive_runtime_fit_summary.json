@@ -1,0 +1,7 @@
+{
+  "phase": 438,
+  "ready": true,
+  "checks": 17,
+  "issues": 0,
+  "policy": "screen_aware_maximized_main_shell"
+}

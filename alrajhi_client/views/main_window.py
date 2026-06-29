@@ -3,32 +3,16 @@ from PyQt5 import QtWidgets as _QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QAction, QShortcut, QMenu, QFileDialog, QSizePolicy
 from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer, QDateTime, QSize
 from PyQt5.QtGui import QIcon, QKeySequence
+import importlib
 import qtawesome as qta
 from auth.session import UserSession
 from theme_manager import ThemeManager
 from views.widgets.dashboard_widget import DashboardWidget
-from views.widgets.items_widget import ItemsWidget
-from views.widgets.invoices_widget import SalesInvoicesWidget, PurchaseInvoicesWidget
-from views.widgets.pos_widget import POSWidget
-from views.widgets.manufacturing_widget import ManufacturingWidget
-from views.widgets.customers_widget import CustomersWidget
-from views.widgets.suppliers_widget import SuppliersWidget
-from views.widgets.vouchers_widget import VouchersWidget
-from views.widgets.reports_widget import ReportsWidget
-from views.widgets.settings_widget import SettingsWidget
-from views.widgets.users_widget import UsersWidget
-from views.widgets.categories_widget import CategoriesWidget
-from views.widgets.warehouses_widget import WarehousesWidget
-from views.widgets.branches_widget import BranchesWidget
-from views.widgets.cashboxes_widget import CashboxesWidget
-from views.widgets.returns_widget import ReturnsWidget, PurchaseReturnsWidget
-from views.widgets.audit_log_widget import AuditLogWidget
-from views.widgets.offline_queue_widget import OfflineQueueWidget
-from views.widgets.monitoring_widget import MonitoringWidget
-from views.restaurant.restaurant_dashboard import RestaurantDashboard
-from views.restaurant.restaurant_simple_pos_widget import RestaurantSimplePOSWidget
-from views.cafe import CafeWorkspaceWidget
-from views.apparel import ApparelWorkspaceWidget
+# Phase436: non-dashboard workspaces are imported on first use.  Importing and
+# constructing every module during MainWindow.__init__ caused a long post-login
+# wait on constrained runtimes.  The central factory map below keeps page
+# metadata available while deferring heavy module imports until the user opens
+# that workspace.
 from shell import QuickOpenDialog, QuickOpenItem, TabbedWorkspace, WorkspaceEntry, WorkspaceStateStore, UnifiedActionBar, NotificationCenter, NotificationItem
 from shell.shortcuts import bind_workspace_shortcuts
 from views.dialogs.change_password_dialog import ChangePasswordDialog
@@ -54,6 +38,7 @@ from workspace.actions.inline_menu_action_policy import ACTION_BAR_NEW_ROUTES, T
 from theme.brand import BRAND, get_tokens
 from ui.runtime_visual_polish import apply_runtime_visual_polish
 from ui.operational_fullscreen_controller import OperationalFullscreenController
+from ui.main_shell_runtime_fit import apply_main_shell_runtime_fit
 
 PAID_FEATURE_PAGES = {
     'manufacturing': 'manufacturing',
@@ -61,6 +46,49 @@ PAID_FEATURE_PAGES = {
     'cafe': 'cafe',
     'apparel': 'apparel',
 }
+
+
+# Phase436: page factories are lightweight specs.  Only the dashboard is built
+# at shell startup; the rest are lazy-loaded on first navigation.
+PAGE_FACTORY_SPECS = {
+    'dashboard': ('views.widgets.dashboard_widget', 'DashboardWidget'),
+    'items': ('views.widgets.items_widget', 'ItemsWidget'),
+    'sales_invoices': ('views.widgets.invoices_widget', 'SalesInvoicesWidget'),
+    'purchase_invoices': ('views.widgets.invoices_widget', 'PurchaseInvoicesWidget'),
+    'pos': ('views.widgets.pos_widget', 'POSWidget'),
+    'manufacturing': ('views.widgets.manufacturing_widget', 'ManufacturingWidget'),
+    'customers': ('views.widgets.customers_widget', 'CustomersWidget'),
+    'suppliers': ('views.widgets.suppliers_widget', 'SuppliersWidget'),
+    'vouchers': ('views.widgets.vouchers_widget', 'VouchersWidget'),
+    'returns': ('views.widgets.returns_widget', 'ReturnsWidget'),
+    'purchase_returns': ('views.widgets.returns_widget', 'PurchaseReturnsWidget'),
+    'reports': ('views.widgets.reports_widget', 'ReportsWidget'),
+    'settings': ('views.widgets.settings_widget', 'SettingsWidget'),
+    'users': ('views.widgets.users_widget', 'UsersWidget'),
+    'categories': ('views.widgets.categories_widget', 'CategoriesWidget'),
+    'warehouses': ('views.widgets.warehouses_widget', 'WarehousesWidget'),
+    'branches': ('views.widgets.branches_widget', 'BranchesWidget'),
+    'cashboxes': ('views.widgets.cashboxes_widget', 'CashboxesWidget'),
+    'audit_log': ('views.widgets.audit_log_widget', 'AuditLogWidget'),
+    'offline_queue': ('views.widgets.offline_queue_widget', 'OfflineQueueWidget'),
+    'monitoring': ('views.widgets.monitoring_widget', 'MonitoringWidget'),
+    'restaurant': ('views.restaurant.restaurant_simple_pos_widget', 'RestaurantSimplePOSWidget'),
+    'cafe': ('views.cafe', 'CafeWorkspaceWidget'),
+    'apparel': ('views.apparel', 'ApparelWorkspaceWidget'),
+}
+
+_PAGE_FACTORY_CLASS_CACHE = {}
+
+
+def load_page_factory_class(page_key: str):
+    page_key = str(page_key or '')
+    if page_key in _PAGE_FACTORY_CLASS_CACHE:
+        return _PAGE_FACTORY_CLASS_CACHE[page_key]
+    module_name, class_name = PAGE_FACTORY_SPECS[page_key]
+    module = importlib.import_module(module_name)
+    factory = getattr(module, class_name)
+    _PAGE_FACTORY_CLASS_CACHE[page_key] = factory
+    return factory
 
 
 # Phase 331: page metadata is now owned by the central UI registry so
@@ -322,8 +350,11 @@ class MainWindow(QMainWindow):
         set_language(self._current_language)
         self.setLayoutDirection(qt_layout_direction(self._current_language))
         apply_table_direction_tree(self, self._current_language)
-        self.setMinimumSize(1200, 700)
-        self.resize(1400, 900)
+        # Phase438: screen-aware shell sizing; helper sets mainShellRuntimeFitPhase.
+        # Fixed 1200/1400 pixel
+        # assumptions leave large unused bands in remote/mobile desktop sessions
+        # and can clip the UI on smaller displays.
+        self._runtime_fit_profile = apply_main_shell_runtime_fit(self)
         self.drag_pos = None
         self.workspace_state_store = WorkspaceStateStore()
         self._dashboard_active = False
@@ -340,8 +371,22 @@ class MainWindow(QMainWindow):
         self.setup_shell_state()
         self.setup_shortcuts()
         self.setup_offline_queue()
-        self.switch_page('dashboard')
-        self.restore_workspace_session()
+        self._show_fixed_dashboard(refresh=False)
+        self._schedule_post_startup_warmup()
+
+    def _schedule_post_startup_warmup(self):
+        # Phase436: keep the first visible MainWindow paint fast.  Dashboard
+        # refresh and optional session restoration are delayed until the event
+        # loop is running, so the user sees the shell before expensive data
+        # refreshes or tab reconstruction.
+        QTimer.singleShot(250, lambda: self._refresh_page_if_loaded('dashboard'))
+        QTimer.singleShot(900, self._restore_workspace_session_after_first_paint)
+
+    def _restore_workspace_session_after_first_paint(self):
+        try:
+            self.restore_workspace_session()
+        except Exception:
+            pass
 
     def setup_ui(self):
         central = QWidget()
@@ -415,41 +460,51 @@ class MainWindow(QMainWindow):
             return self._remote_error_page(page_key, exc)
 
     def init_pages(self):
-        # Phase 331: instantiate visible workspaces from the central shell
-        # manifest.  Widget classes stay imported here to keep startup errors
-        # localized, but page ordering and coverage now come from the registry.
-        factory_by_key = {
-            'dashboard': DashboardWidget,
-            'items': ItemsWidget,
-            'sales_invoices': SalesInvoicesWidget,
-            'purchase_invoices': PurchaseInvoicesWidget,
-            'pos': POSWidget,
-            'manufacturing': ManufacturingWidget,
-            'customers': CustomersWidget,
-            'suppliers': SuppliersWidget,
-            'vouchers': VouchersWidget,
-            'returns': ReturnsWidget,
-            'purchase_returns': PurchaseReturnsWidget,
-            'reports': ReportsWidget,
-            'settings': SettingsWidget,
-            'users': UsersWidget,
-            'categories': CategoriesWidget,
-            'warehouses': WarehousesWidget,
-            'branches': BranchesWidget,
-            'cashboxes': CashboxesWidget,
-            'audit_log': AuditLogWidget,
-            'offline_queue': OfflineQueueWidget,
-            'monitoring': MonitoringWidget,
-            'restaurant': RestaurantSimplePOSWidget,
-            'cafe': CafeWorkspaceWidget,
-            'apparel': ApparelWorkspaceWidget,
+        # Phase436: construct only the dashboard during MainWindow startup.
+        # Every other workspace stays in self._lazy_page_factory_specs and is
+        # imported/constructed by _ensure_page_loaded() the first time it is
+        # opened.  This directly reduces the login-to-mainwindow blocking path.
+        self._lazy_page_factory_specs = {
+            key: PAGE_FACTORY_SPECS[key]
+            for key in page_factory_ids()
+            if key in PAGE_FACTORY_SPECS
         }
-        page_factories = [(key, factory_by_key[key]) for key in page_factory_ids() if key in factory_by_key]
-        for key, factory in page_factories:
-            page = self._create_page_safely(key, factory)
-            page.setObjectName(key)
-            page.setWindowTitle(page_title(key))
-            self.pages[key] = page
+        dashboard = self._create_page_safely('dashboard', DashboardWidget)
+        dashboard.setObjectName('dashboard')
+        dashboard.setWindowTitle(page_title('dashboard'))
+        # Phase439: dashboard participates in the project-wide identity pass.
+        apply_runtime_visual_polish(dashboard, 'dashboard')
+        self.pages['dashboard'] = dashboard
+        self._lazy_page_keys_pending = set(self._lazy_page_factory_specs) - {'dashboard'}
+
+    def available_page_ids(self):
+        return [key for key in page_factory_ids() if key in getattr(self, '_lazy_page_factory_specs', PAGE_FACTORY_SPECS)]
+
+    def _ensure_page_loaded(self, page_key: str):
+        page_key = str(page_key or '')
+        if page_key in self.pages:
+            return self.pages[page_key]
+        if page_key not in getattr(self, '_lazy_page_factory_specs', PAGE_FACTORY_SPECS):
+            return None
+        try:
+            factory = load_page_factory_class(page_key)
+            page = self._create_page_safely(page_key, factory)
+            page.setObjectName(page_key)
+            page.setWindowTitle(page_title(page_key))
+            # Phase439: every lazily-created page receives the same visual
+            # identity pass before it is shown, so tabs and content do not
+            # regress to per-widget legacy styling.
+            apply_runtime_visual_polish(page, page_key)
+            self.pages[page_key] = page
+            self._lazy_page_keys_pending.discard(page_key)
+            return page
+        except Exception as exc:
+            page = self._remote_error_page(page_key, exc)
+            page.setObjectName(page_key)
+            page.setWindowTitle(page_title(page_key))
+            self.pages[page_key] = page
+            self._lazy_page_keys_pending.discard(page_key)
+            return page
 
     def _install_fixed_dashboard_surface(self):
         """Keep Dashboard as a fixed shell surface, never as a closable tab."""
@@ -706,7 +761,7 @@ class MainWindow(QMainWindow):
         if not hasattr(self, 'action_bar'):
             return
         manifest_id = self._manifest_id_for_tab_id(tab_id or (self._active_page_id() if hasattr(self, '_active_page_id') else (self.workspace.current_page_id() if hasattr(self, 'workspace') else '')))
-        visible = should_show_action_bar(manifest_id) if manifest_id in self.pages or manifest_id in PAGE_META_KEYS else True
+        visible = should_show_action_bar(manifest_id) if manifest_id in self.available_page_ids() or manifest_id in PAGE_META_KEYS else True
         keys = effective_action_keys_for_page(manifest_id)
         if not keys:
             keys = effective_action_keys_for_page('sales_invoices')
@@ -1236,12 +1291,12 @@ class MainWindow(QMainWindow):
             favorites = enabled_favorite_pages(['dashboard', 'restaurant', 'cafe', 'apparel', 'items', 'sales_invoices', 'reports'])
             self.workspace_state_store.set_favorites(favorites)
         for pid in enabled_favorite_pages(favorites):
-            if pid in self.pages and page_enabled(pid):
+            if pid in self.available_page_ids() and page_enabled(pid):
                 items.append(QuickOpenItem(pid, f"★ {page_title(pid)}", translate('workspace.favorites'), self.workspace_icon_for_page(pid)))
         for entry in self.workspace_state_store.recent():
-            if entry.tab_id in self.pages and page_enabled(entry.tab_id):
+            if entry.tab_id in self.available_page_ids() and page_enabled(entry.tab_id):
                 items.append(QuickOpenItem(entry.tab_id, f"↺ {page_title(entry.tab_id)}", translate('workspace.recent_tabs'), entry.icon_name))
-        for pid in self.pages:
+        for pid in self.available_page_ids():
             if page_enabled(pid):
                 items.append(QuickOpenItem(pid, page_title(pid), page_breadcrumb(pid), self.workspace_icon_for_page(pid)))
         for section in ('company', 'accounting', 'transactions', 'materials', 'apparel', 'categories', 'parties', 'finance', 'inventory', 'branches', 'manufacturing', 'reports', 'pos', 'restaurant', 'cafe', 'printing', 'users', 'ui', 'security'):
@@ -1317,7 +1372,7 @@ class MainWindow(QMainWindow):
     def restore_workspace_session(self):
         try:
             for entry in self.workspace_state_store.session():
-                if entry.tab_id in self.pages and entry.tab_id != 'dashboard':
+                if entry.tab_id in self.available_page_ids() and entry.tab_id != 'dashboard':
                     self.switch_page(entry.tab_id)
             self.switch_page('dashboard')
         except Exception:
@@ -1569,20 +1624,21 @@ class MainWindow(QMainWindow):
         if isinstance(pid, str) and not page_enabled(pid):
             QMessageBox.information(self, page_title(pid), translate('module_disabled'))
             return
-        if pid in self.pages:
+        page = self._ensure_page_loaded(pid)
+        if page is not None:
             self._activate_tabbed_workspace()
-            self.workspace.open_singleton(pid, page_title(pid), self.pages[pid], self.workspace_icon_for_page(pid))
+            self.workspace.open_singleton(pid, page_title(pid), page, self.workspace_icon_for_page(pid))
             self.workspace_state_store.add_recent(self._workspace_entry_for_page(pid))
             self._set_page_context(pid)
             # Phase 318 compatibility marker: self.action_bar.setVisible(pid != 'dashboard')
             self._apply_action_bar_contract_for_tab(pid)
             self._update_global_search_context(pid)
             try:
-                apply_runtime_visual_polish(self.pages[pid], pid)
+                apply_runtime_visual_polish(page, pid)
             except Exception:
                 pass
-            if hasattr(self.pages[pid], 'refresh'):
-                self.pages[pid].refresh()
+            if hasattr(page, 'refresh'):
+                page.refresh()
 
     def closeEvent(self, event):
         self.save_workspace_session()

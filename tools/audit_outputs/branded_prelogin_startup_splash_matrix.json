@@ -1,0 +1,364 @@
+{
+  "summary": {
+    "phase": 434,
+    "checks": 45,
+    "issues": 0,
+    "issue_groups": 0,
+    "categories": {
+      "tokens": 7,
+      "splash_source": 19,
+      "legacy_splash_removed": 4,
+      "token_values": 4,
+      "qss_source": 9,
+      "qss_runtime": 2
+    },
+    "ready": true
+  },
+  "rows": [
+    {
+      "key": "brand_phase_434",
+      "category": "tokens",
+      "description": "BRAND phase records branded pre-login splash stabilization",
+      "status": "pass",
+      "detail": 437
+    },
+    {
+      "key": "splash_required_Phase434: branded pre-login startup spla",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: Phase434: branded pre-login startup splash",
+      "status": "pass",
+      "detail": "Phase434: branded pre-login startup splash"
+    },
+    {
+      "key": "splash_required_startupSurfacePolicy",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupSurfacePolicy",
+      "status": "pass",
+      "detail": "startupSurfacePolicy"
+    },
+    {
+      "key": "splash_required_phase434_prelogin_branded",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: phase434_prelogin_branded",
+      "status": "pass",
+      "detail": "phase434_prelogin_branded"
+    },
+    {
+      "key": "splash_required_legacyYellowHeader",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: legacyYellowHeader",
+      "status": "pass",
+      "detail": "legacyYellowHeader"
+    },
+    {
+      "key": "splash_required_interactiveStageButtons",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: interactiveStageButtons",
+      "status": "pass",
+      "detail": "interactiveStageButtons"
+    },
+    {
+      "key": "splash_required_brandedStartupCard",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: brandedStartupCard",
+      "status": "pass",
+      "detail": "brandedStartupCard"
+    },
+    {
+      "key": "splash_required_startupIdentityPanel",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupIdentityPanel",
+      "status": "pass",
+      "detail": "startupIdentityPanel"
+    },
+    {
+      "key": "splash_required_startupBrandMark",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupBrandMark",
+      "status": "pass",
+      "detail": "startupBrandMark"
+    },
+    {
+      "key": "splash_required_startupHeroTitle",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupHeroTitle",
+      "status": "pass",
+      "detail": "startupHeroTitle"
+    },
+    {
+      "key": "splash_required_startupHeroSubtitle",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupHeroSubtitle",
+      "status": "pass",
+      "detail": "startupHeroSubtitle"
+    },
+    {
+      "key": "splash_required_startupStageDatabase",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupStageDatabase",
+      "status": "pass",
+      "detail": "startupStageDatabase"
+    },
+    {
+      "key": "splash_required_startupStageLicense",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupStageLicense",
+      "status": "pass",
+      "detail": "startupStageLicense"
+    },
+    {
+      "key": "splash_required_startupStageLogin",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupStageLogin",
+      "status": "pass",
+      "detail": "startupStageLogin"
+    },
+    {
+      "key": "splash_required_startupStageShell",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupStageShell",
+      "status": "pass",
+      "detail": "startupStageShell"
+    },
+    {
+      "key": "splash_required_startupProgressTrack",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupProgressTrack",
+      "status": "pass",
+      "detail": "startupProgressTrack"
+    },
+    {
+      "key": "splash_required_startupStatusLabel",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupStatusLabel",
+      "status": "pass",
+      "detail": "startupStatusLabel"
+    },
+    {
+      "key": "splash_required_startupDetailLabel",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: startupDetailLabel",
+      "status": "pass",
+      "detail": "startupDetailLabel"
+    },
+    {
+      "key": "splash_required_def _detail_for_value",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: def _detail_for_value",
+      "status": "pass",
+      "detail": "def _detail_for_value"
+    },
+    {
+      "key": "splash_required_سيتم فتح شاشة تسجيل الدخول",
+      "category": "splash_source",
+      "description": "Startup splash contains Phase434 marker: سيتم فتح شاشة تسجيل الدخول",
+      "status": "pass",
+      "detail": "سيتم فتح شاشة تسجيل الدخول"
+    },
+    {
+      "key": "splash_forbidden_DesignSystem.card_style(accent=True)",
+      "category": "legacy_splash_removed",
+      "description": "Legacy splash marker is absent: DesignSystem.card_style(accent=True)",
+      "status": "pass",
+      "detail": "DesignSystem.card_style(accent=True)"
+    },
+    {
+      "key": "splash_forbidden_background-color: white; color: #083A63;",
+      "category": "legacy_splash_removed",
+      "description": "Legacy splash marker is absent: background-color: white; color: #083A63; border-radius: 12px; padding: 5px 10px",
+      "status": "pass",
+      "detail": "background-color: white; color: #083A63; border-radius: 12px; padding: 5px 10px"
+    },
+    {
+      "key": "splash_forbidden_QProgressBar::chunk { background-color: ",
+      "category": "legacy_splash_removed",
+      "description": "Legacy splash marker is absent: QProgressBar::chunk { background-color: white; border-radius: 6px; }",
+      "status": "pass",
+      "detail": "QProgressBar::chunk { background-color: white; border-radius: 6px; }"
+    },
+    {
+      "key": "splash_forbidden_for text in (\"قاعدة البيانات\", \"الترخيص\"",
+      "category": "legacy_splash_removed",
+      "description": "Legacy splash marker is absent: for text in (\"قاعدة البيانات\", \"الترخيص\", \"تسجيل الدخول\", \"الواجهة\")",
+      "status": "pass",
+      "detail": "for text in (\"قاعدة البيانات\", \"الترخيص\", \"تسجيل الدخول\", \"الواجهة\")"
+    },
+    {
+      "key": "token_startup_splash_width",
+      "category": "tokens",
+      "description": "BRAND defines Phase434 token startup_splash_width",
+      "status": "pass",
+      "detail": {
+        "key": "startup_splash_width",
+        "value": 760
+      }
+    },
+    {
+      "key": "token_startup_splash_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase434 token startup_splash_height",
+      "status": "pass",
+      "detail": {
+        "key": "startup_splash_height",
+        "value": 440
+      }
+    },
+    {
+      "key": "token_startup_splash_logo_px",
+      "category": "tokens",
+      "description": "BRAND defines Phase434 token startup_splash_logo_px",
+      "status": "pass",
+      "detail": {
+        "key": "startup_splash_logo_px",
+        "value": 86
+      }
+    },
+    {
+      "key": "token_startup_splash_progress_width",
+      "category": "tokens",
+      "description": "BRAND defines Phase434 token startup_splash_progress_width",
+      "status": "pass",
+      "detail": {
+        "key": "startup_splash_progress_width",
+        "value": 500
+      }
+    },
+    {
+      "key": "token_startup_splash_progress_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase434 token startup_splash_progress_height",
+      "status": "pass",
+      "detail": {
+        "key": "startup_splash_progress_height",
+        "value": 14
+      }
+    },
+    {
+      "key": "token_startup_splash_stage_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase434 token startup_splash_stage_height",
+      "status": "pass",
+      "detail": {
+        "key": "startup_splash_stage_height",
+        "value": 28
+      }
+    },
+    {
+      "key": "token_min_startup_splash_width",
+      "category": "token_values",
+      "description": "startup_splash_width is large enough for a horizontal branded splash",
+      "status": "pass",
+      "detail": {
+        "actual": 760,
+        "minimum": 720
+      }
+    },
+    {
+      "key": "token_min_startup_splash_height",
+      "category": "token_values",
+      "description": "startup_splash_height is large enough for a horizontal branded splash",
+      "status": "pass",
+      "detail": {
+        "actual": 440,
+        "minimum": 420
+      }
+    },
+    {
+      "key": "token_min_startup_splash_logo_px",
+      "category": "token_values",
+      "description": "startup_splash_logo_px is large enough for a horizontal branded splash",
+      "status": "pass",
+      "detail": {
+        "actual": 86,
+        "minimum": 76
+      }
+    },
+    {
+      "key": "token_min_startup_splash_progress_width",
+      "category": "token_values",
+      "description": "startup_splash_progress_width is large enough for a horizontal branded splash",
+      "status": "pass",
+      "detail": {
+        "actual": 500,
+        "minimum": 460
+      }
+    },
+    {
+      "key": "qss_Phase434: branded pre-login startup spla",
+      "category": "qss_source",
+      "description": "QSS contains branded splash marker: Phase434: branded pre-login startup splash",
+      "status": "pass",
+      "detail": "Phase434: branded pre-login startup splash"
+    },
+    {
+      "key": "qss_QFrame#brandedStartupCard[startupSurface",
+      "category": "qss_source",
+      "description": "QSS contains branded splash marker: QFrame#brandedStartupCard[startupSurfacePolicy=\"phase434_prelogin_branded\"]",
+      "status": "pass",
+      "detail": "QFrame#brandedStartupCard[startupSurfacePolicy=\"phase434_prelogin_branded\"]"
+    },
+    {
+      "key": "qss_QFrame#startupIdentityPanel[startupIdent",
+      "category": "qss_source",
+      "description": "QSS contains branded splash marker: QFrame#startupIdentityPanel[startupIdentityPanel=\"true\"]",
+      "status": "pass",
+      "detail": "QFrame#startupIdentityPanel[startupIdentityPanel=\"true\"]"
+    },
+    {
+      "key": "qss_QLabel#startupHeroTitle",
+      "category": "qss_source",
+      "description": "QSS contains branded splash marker: QLabel#startupHeroTitle",
+      "status": "pass",
+      "detail": "QLabel#startupHeroTitle"
+    },
+    {
+      "key": "qss_QLabel[startupStageChip=\"true\"]",
+      "category": "qss_source",
+      "description": "QSS contains branded splash marker: QLabel[startupStageChip=\"true\"]",
+      "status": "pass",
+      "detail": "QLabel[startupStageChip=\"true\"]"
+    },
+    {
+      "key": "qss_QLabel[startupStageChip=\"true\"][state=\"a",
+      "category": "qss_source",
+      "description": "QSS contains branded splash marker: QLabel[startupStageChip=\"true\"][state=\"active\"]",
+      "status": "pass",
+      "detail": "QLabel[startupStageChip=\"true\"][state=\"active\"]"
+    },
+    {
+      "key": "qss_QProgressBar#startupProgressTrack",
+      "category": "qss_source",
+      "description": "QSS contains branded splash marker: QProgressBar#startupProgressTrack",
+      "status": "pass",
+      "detail": "QProgressBar#startupProgressTrack"
+    },
+    {
+      "key": "qss_QLabel#startupStatusLabel",
+      "category": "qss_source",
+      "description": "QSS contains branded splash marker: QLabel#startupStatusLabel",
+      "status": "pass",
+      "detail": "QLabel#startupStatusLabel"
+    },
+    {
+      "key": "qss_QLabel#startupDetailLabel",
+      "category": "qss_source",
+      "description": "QSS contains branded splash marker: QLabel#startupDetailLabel",
+      "status": "pass",
+      "detail": "QLabel#startupDetailLabel"
+    },
+    {
+      "key": "qss_runtime_light",
+      "category": "qss_runtime",
+      "description": "Generated light QSS contains Phase434 splash rules",
+      "status": "pass",
+      "detail": 95484
+    },
+    {
+      "key": "qss_runtime_dark",
+      "category": "qss_runtime",
+      "description": "Generated dark QSS contains Phase434 splash rules",
+      "status": "pass",
+      "detail": 96221
+    }
+  ]
+}

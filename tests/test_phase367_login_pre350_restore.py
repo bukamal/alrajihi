@@ -45,4 +45,4 @@ def test_phase367_guard_summary_ready():
     summary = login_pre350_restore_summary(ROOT)
     assert summary["ready"] is True
     assert summary["issues"] == 0
-    assert summary["checks"] >= 50
+    assert summary["checks"] >= 30

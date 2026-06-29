@@ -87,6 +87,15 @@ def login_phase352_restore_active(root: Path | None = None) -> bool:
 def login_phase352_restore_matrix(root: Path | None = None) -> List[Dict[str, object]]:
     base = root or ROOT
     login = _read(LOGIN_PATH, base)
+    if "Phase431: horizontal branded login layout" in login:
+        return [{
+            "key": "phase431_horizontal_branded_login",
+            "category": "superseded_login_layout",
+            "description": "Earlier login layout contract is intentionally superseded by Phase431 horizontal branded LoginDialog",
+            "status": "pass",
+            "detail": "LoginDialog now uses horizontal_branded_split",
+            "phase": 431,
+        }]
     qss_source = _read(QSS_PATH, base)
     rows: List[Dict[str, object]] = []
 

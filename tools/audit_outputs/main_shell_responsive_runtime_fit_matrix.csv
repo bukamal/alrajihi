@@ -1,0 +1,20 @@
+area,check,status
+runtime_fit_module,PHASE = 438,pass
+runtime_fit_module,MainShellRuntimeFitProfile,pass
+runtime_fit_module,compute_main_shell_runtime_fit_profile,pass
+runtime_fit_module,apply_main_shell_runtime_fit,pass
+runtime_fit_module,show_main_window_runtime_fitted,pass
+runtime_fit_module,ALRAJHI_WINDOWED_START,pass
+runtime_fit_module,screen_aware_maximized,pass
+main_window,apply_main_shell_runtime_fit,pass
+main_window,mainShellRuntimeFitPhase,pass
+main_window,self._runtime_fit_profile = apply_main_shell_runtime_fit(self),pass
+main_entry,show_main_window_runtime_fitted,pass
+main_entry,runtime_fit_profile = show_main_window_runtime_fitted(window),pass
+main_entry,main_shell_runtime_fit,pass
+dashboard_responsive,dashboardResponsivePhase,pass
+dashboard_responsive,scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff),pass
+dashboard_responsive,dashboard_responsive_phase,pass
+legacy_window_show,"
+    window.show()
+    timeline.mark(""main_window_shown""",pass

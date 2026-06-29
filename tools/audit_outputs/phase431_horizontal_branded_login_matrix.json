@@ -1,0 +1,345 @@
+{
+  "summary": {
+    "phase": 432,
+    "checks": 45,
+    "issues": 0,
+    "issue_groups": 0,
+    "categories": {
+      "tokens": 7,
+      "login_source": 17,
+      "vertical_legacy_removed": 10,
+      "qss_source": 8,
+      "layout_order": 1,
+      "qss_runtime": 2
+    },
+    "ready": true
+  },
+  "rows": [
+    {
+      "key": "brand_phase",
+      "category": "tokens",
+      "description": "BRAND phase records horizontal login work",
+      "status": "pass",
+      "detail": 437
+    },
+    {
+      "key": "login_required_Phase431: horizontal branded login layout",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: Phase431: horizontal branded login layout",
+      "status": "pass",
+      "detail": "Phase431: horizontal branded login layout"
+    },
+    {
+      "key": "login_required_self.resize(int(BRAND.get('login_horizonta",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.resize(int(BRAND.get('login_horizontal_width', 1120)), int(BRAND.get('login_horizontal_height', 660)))",
+      "status": "pass",
+      "detail": "self.resize(int(BRAND.get('login_horizontal_width', 1120)), int(BRAND.get('login_horizontal_height', 660)))"
+    },
+    {
+      "key": "login_required_self.setMinimumSize(int(BRAND.get('login_h",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.setMinimumSize(int(BRAND.get('login_horizontal_min_width', 980)), int(BRAND.get('login_horizontal_min_height', 600)))",
+      "status": "pass",
+      "detail": "self.setMinimumSize(int(BRAND.get('login_horizontal_min_width', 980)), int(BRAND.get('login_horizontal_min_height', 600)))"
+    },
+    {
+      "key": "login_required_self.main_frame.setProperty('loginLayout',",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.main_frame.setProperty('loginLayout', 'horizontal_branded_split')",
+      "status": "pass",
+      "detail": "self.main_frame.setProperty('loginLayout', 'horizontal_branded_split')"
+    },
+    {
+      "key": "login_required_self.main_frame.setProperty('loginLayoutPo",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.main_frame.setProperty('loginLayoutPolicy', 'horizontal_brand_form_no_overlay')",
+      "status": "pass",
+      "detail": "self.main_frame.setProperty('loginLayoutPolicy', 'horizontal_brand_form_no_overlay')"
+    },
+    {
+      "key": "login_required_self.main_frame.setProperty('loginDensity'",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.main_frame.setProperty('loginDensity', 'horizontal_compact')",
+      "status": "pass",
+      "detail": "self.main_frame.setProperty('loginDensity', 'horizontal_compact')"
+    },
+    {
+      "key": "login_required_root_layout = QHBoxLayout(self.content_wid",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: root_layout = QHBoxLayout(self.content_widget)",
+      "status": "pass",
+      "detail": "root_layout = QHBoxLayout(self.content_widget)"
+    },
+    {
+      "key": "login_required_root_layout.setContentsMargins(28, 24, 28,",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: root_layout.setContentsMargins(28, 24, 28, 30)",
+      "status": "pass",
+      "detail": "root_layout.setContentsMargins(28, 24, 28, 30)"
+    },
+    {
+      "key": "login_required_self.brand_panel = brand_side_panel(",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.brand_panel = brand_side_panel(",
+      "status": "pass",
+      "detail": "self.brand_panel = brand_side_panel("
+    },
+    {
+      "key": "login_required_self.form_panel = first_run_form_panel()",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.form_panel = first_run_form_panel()",
+      "status": "pass",
+      "detail": "self.form_panel = first_run_form_panel()"
+    },
+    {
+      "key": "login_required_self.credentials_panel = QFrame()",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.credentials_panel = QFrame()",
+      "status": "pass",
+      "detail": "self.credentials_panel = QFrame()"
+    },
+    {
+      "key": "login_required_self.options_panel = QFrame()",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.options_panel = QFrame()",
+      "status": "pass",
+      "detail": "self.options_panel = QFrame()"
+    },
+    {
+      "key": "login_required_self.username_label = QLabel(translate('us",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.username_label = QLabel(translate('username'))",
+      "status": "pass",
+      "detail": "self.username_label = QLabel(translate('username'))"
+    },
+    {
+      "key": "login_required_self.password_label = QLabel(translate('pa",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self.password_label = QLabel(translate('password'))",
+      "status": "pass",
+      "detail": "self.password_label = QLabel(translate('password'))"
+    },
+    {
+      "key": "login_required_self._refresh_brand_panel_texts()",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: self._refresh_brand_panel_texts()",
+      "status": "pass",
+      "detail": "self._refresh_brand_panel_texts()"
+    },
+    {
+      "key": "login_required_set_first_run_primary(self.login_btn)",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: set_first_run_primary(self.login_btn)",
+      "status": "pass",
+      "detail": "set_first_run_primary(self.login_btn)"
+    },
+    {
+      "key": "login_required_set_first_run_secondary(self.switch_btn)",
+      "category": "login_source",
+      "description": "LoginDialog contains horizontal login marker: set_first_run_secondary(self.switch_btn)",
+      "status": "pass",
+      "detail": "set_first_run_secondary(self.switch_btn)"
+    },
+    {
+      "key": "login_forbid_self.resize(500, 620)",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: self.resize(500, 620)",
+      "status": "pass",
+      "detail": "self.resize(500, 620)"
+    },
+    {
+      "key": "login_forbid_self.setMinimumSize(430, 540)",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: self.setMinimumSize(430, 540)",
+      "status": "pass",
+      "detail": "self.setMinimumSize(430, 540)"
+    },
+    {
+      "key": "login_forbid_layout = QVBoxLayout(self.content_widget)",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: layout = QVBoxLayout(self.content_widget)",
+      "status": "pass",
+      "detail": "layout = QVBoxLayout(self.content_widget)"
+    },
+    {
+      "key": "login_forbid_layout.setContentsMargins(34, 24, 34, 30)",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: layout.setContentsMargins(34, 24, 34, 30)",
+      "status": "pass",
+      "detail": "layout.setContentsMargins(34, 24, 34, 30)"
+    },
+    {
+      "key": "login_forbid_logo.setPixmap(QPixmap(logo_png(128)).scal",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: logo.setPixmap(QPixmap(logo_png(128)).scaled(94, 94",
+      "status": "pass",
+      "detail": "logo.setPixmap(QPixmap(logo_png(128)).scaled(94, 94"
+    },
+    {
+      "key": "login_forbid_layout.addWidget(logo)",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: layout.addWidget(logo)",
+      "status": "pass",
+      "detail": "layout.addWidget(logo)"
+    },
+    {
+      "key": "login_forbid_self.app_title_label.setObjectName(\"heroTi",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: self.app_title_label.setObjectName(\"heroTitle\")",
+      "status": "pass",
+      "detail": "self.app_title_label.setObjectName(\"heroTitle\")"
+    },
+    {
+      "key": "login_forbid_self.subtitle_label.setObjectName('muted')",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: self.subtitle_label.setObjectName('muted')",
+      "status": "pass",
+      "detail": "self.subtitle_label.setObjectName('muted')"
+    },
+    {
+      "key": "login_forbid_self.login_btn.setObjectName(\"primary\")",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: self.login_btn.setObjectName(\"primary\")",
+      "status": "pass",
+      "detail": "self.login_btn.setObjectName(\"primary\")"
+    },
+    {
+      "key": "login_forbid_self.switch_btn = DesignSystem.secondary_b",
+      "category": "vertical_legacy_removed",
+      "description": "LoginDialog no longer uses narrow vertical marker: self.switch_btn = DesignSystem.secondary_button(translate('switch_account'))",
+      "status": "pass",
+      "detail": "self.switch_btn = DesignSystem.secondary_button(translate('switch_account'))"
+    },
+    {
+      "key": "token_login_horizontal_width",
+      "category": "tokens",
+      "description": "BRAND defines horizontal login token login_horizontal_width",
+      "status": "pass",
+      "detail": "login_horizontal_width"
+    },
+    {
+      "key": "token_login_horizontal_height",
+      "category": "tokens",
+      "description": "BRAND defines horizontal login token login_horizontal_height",
+      "status": "pass",
+      "detail": "login_horizontal_height"
+    },
+    {
+      "key": "token_login_horizontal_min_width",
+      "category": "tokens",
+      "description": "BRAND defines horizontal login token login_horizontal_min_width",
+      "status": "pass",
+      "detail": "login_horizontal_min_width"
+    },
+    {
+      "key": "token_login_horizontal_min_height",
+      "category": "tokens",
+      "description": "BRAND defines horizontal login token login_horizontal_min_height",
+      "status": "pass",
+      "detail": "login_horizontal_min_height"
+    },
+    {
+      "key": "token_login_horizontal_brand_width",
+      "category": "tokens",
+      "description": "BRAND defines horizontal login token login_horizontal_brand_width",
+      "status": "pass",
+      "detail": "login_horizontal_brand_width"
+    },
+    {
+      "key": "token_login_horizontal_form_width",
+      "category": "tokens",
+      "description": "BRAND defines horizontal login token login_horizontal_form_width",
+      "status": "pass",
+      "detail": "login_horizontal_form_width"
+    },
+    {
+      "key": "qss_Phase431: horizontal branded login layout",
+      "category": "qss_source",
+      "description": "QSS contains horizontal login selector/marker: Phase431: horizontal branded login layout",
+      "status": "pass",
+      "detail": "Phase431: horizontal branded login layout"
+    },
+    {
+      "key": "qss_horizontal_branded_split",
+      "category": "qss_source",
+      "description": "QSS contains horizontal login selector/marker: horizontal_branded_split",
+      "status": "pass",
+      "detail": "horizontal_branded_split"
+    },
+    {
+      "key": "qss_horizontal_brand_form_no_overlay",
+      "category": "qss_source",
+      "description": "QSS contains horizontal login selector/marker: horizontal_brand_form_no_overlay",
+      "status": "pass",
+      "detail": "horizontal_brand_form_no_overlay"
+    },
+    {
+      "key": "qss_horizontal_compact",
+      "category": "qss_source",
+      "description": "QSS contains horizontal login selector/marker: horizontal_compact",
+      "status": "pass",
+      "detail": "horizontal_compact"
+    },
+    {
+      "key": "qss_QFrame#firstRunBrandPanel",
+      "category": "qss_source",
+      "description": "QSS contains horizontal login selector/marker: QFrame#firstRunBrandPanel",
+      "status": "pass",
+      "detail": "QFrame#firstRunBrandPanel"
+    },
+    {
+      "key": "qss_QFrame#firstRunFormPanel",
+      "category": "qss_source",
+      "description": "QSS contains horizontal login selector/marker: QFrame#firstRunFormPanel",
+      "status": "pass",
+      "detail": "QFrame#firstRunFormPanel"
+    },
+    {
+      "key": "qss_QLabel#firstRunFormTitle",
+      "category": "qss_source",
+      "description": "QSS contains horizontal login selector/marker: QLabel#firstRunFormTitle",
+      "status": "pass",
+      "detail": "QLabel#firstRunFormTitle"
+    },
+    {
+      "key": "qss_QFrame#loginPasswordRow",
+      "category": "qss_source",
+      "description": "QSS contains horizontal login selector/marker: QFrame#loginPasswordRow",
+      "status": "pass",
+      "detail": "QFrame#loginPasswordRow"
+    },
+    {
+      "key": "horizontal_layout_order",
+      "category": "layout_order",
+      "description": "Login builds horizontal shell, brand panel, form, credentials, options and actions in stable order",
+      "status": "pass",
+      "detail": [
+        3108,
+        3403,
+        4070,
+        5585,
+        6312,
+        7490,
+        9389,
+        12154,
+        12731,
+        13780
+      ]
+    },
+    {
+      "key": "qss_runtime_light",
+      "category": "qss_runtime",
+      "description": "Generated light QSS supports horizontal branded login",
+      "status": "pass",
+      "detail": 95484
+    },
+    {
+      "key": "qss_runtime_dark",
+      "category": "qss_runtime",
+      "description": "Generated dark QSS supports horizontal branded login",
+      "status": "pass",
+      "detail": 96221
+    }
+  ]
+}

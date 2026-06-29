@@ -1,6 +1,6 @@
 {
-  "files_with_literal_keys": 97,
-  "literal_key_count": 1647,
+  "files_with_literal_keys": 98,
+  "literal_key_count": 1652,
   "missing_from_catalog": [
     "action_create",
     "action_login",

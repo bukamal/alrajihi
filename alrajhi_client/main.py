@@ -19,6 +19,9 @@ from views.splash_screen import ModernSplashScreen
 from views.dialogs.activation_dialog import ActivationDialog
 from views.dialogs.login_dialog import LoginDialog
 from views.main_window import MainWindow
+from ui.post_login_transition_overlay import PostLoginTransitionOverlay
+from ui.main_shell_runtime_fit import show_main_window_runtime_fitted
+from workspace.runtime.startup_timeline_profiler import StartupTimelineProfiler
 from auth.session import UserSession
 from utils import enable_auto_select_all, install_non_blocking_message_boxes
 from theme_manager import ThemeManager
@@ -253,9 +256,14 @@ def main():
     app.setFont(QFont("Tajawal", 10))
     enable_auto_select_all(app)
 
+    timeline = StartupTimelineProfiler()
+    timeline.set_context(phase="435", runtime="qt")
+
     settings = QSettings("Alrajhi", "Accounting")
 
     mode = system_service.mode()
+    timeline.set_context(mode=mode)
+    timeline.mark("runtime_mode_resolved", f"mode={mode}", category="startup")
     server_url = system_service.normalize_server_url(system_service.server_url(), system_service.get_server_port())
 
     if mode in ("client", "server"):
@@ -301,7 +309,9 @@ def main():
     ThemeManager.init_app(app)
 
     splash = ModernSplashScreen()
+    timeline.mark("prelogin_splash_created", "Branded pre-login splash created", category="startup")
     splash.set_progress(10, "جاري تهيئة قاعدة البيانات...")
+    timeline.mark("database_bootstrap_started", "Preparing database and startup services", category="startup")
     # In client mode the source of truth is the remote server. Do not create or
     # bootstrap a local SQLite database, otherwise the UI may appear to use local
     # data and background services can mutate the wrong database.
@@ -314,8 +324,11 @@ def main():
     else:
         print(f"ℹ️ وضع العميل مفعل. مصدر البيانات: {system_service.data_source_label()}")
 
+    timeline.mark("database_bootstrap_finished", "Database/bootstrap stage finished", category="startup")
     splash.set_progress(30, "التحقق من الترخيص...")
+    timeline.mark("activation_check_started", "Checking activation/license", category="startup")
     activated, _ = check_activation()
+    timeline.mark("activation_check_finished", "Activation/license check finished", category="startup")
     if not activated:
         old_splash = splash
         splash.hide()
@@ -331,11 +344,22 @@ def main():
     start_license_checker(24, on_license_invalid)
 
     splash.set_progress(60, "تسجيل الدخول...")
+    timeline.mark("login_dialog_open", "Opening LoginDialog", category="login")
     login = LoginDialog(splash)
     splash.hide()
     if login.exec() != LoginDialog.Accepted:
+        timeline.mark("login_cancelled", "LoginDialog rejected by user", category="login")
+        try:
+            timeline.export()
+        except Exception:
+            pass
         stop_license_checker()
         sys.exit(0)
+
+    timeline.mark("login_accepted", "Login accepted; starting post-login transition", category="login")
+    post_login_overlay = PostLoginTransitionOverlay()
+    post_login_overlay.update_step(15, translate('post_login_step_permissions'), translate('post_login_loading_detail'))
+    post_login_overlay.show_transition()
 
     if UserSession.force_password_change():
         from views.dialogs.change_password_dialog import ChangePasswordDialog
@@ -346,13 +370,35 @@ def main():
             # لا نسمح بفتح النظام إذا كان الخادم يفرض تغيير كلمة المرور.
             # فتح الواجهة في هذه الحالة يؤدي إلى استدعاء DAOs محلية أثناء remote mode.
             UserSession.logout()
+            try:
+                post_login_overlay.close()
+                timeline.mark("force_password_change_cancelled", "User did not complete password change", category="login")
+                timeline.export()
+            except Exception:
+                pass
             stop_license_checker()
             sys.exit(0)
 
+    post_login_overlay.update_step(35, translate('post_login_step_permissions'), "")
+    timeline.mark("post_login_user_context_ready", "User session and password policy resolved", category="post_login")
     splash.set_progress(90, "جاري تحميل الواجهة...")
+    post_login_overlay.update_step(65, translate('post_login_step_main_window'), translate('post_login_loading_detail'))
+    timeline.mark("main_window_create_started", "Constructing MainWindow", category="post_login")
     window = MainWindow()
+    timeline.mark("main_window_created", "MainWindow constructed", category="post_login")
+    post_login_overlay.update_step(90, translate('post_login_step_dashboard'), "")
     splash.finish(window)
-    window.show()
+    runtime_fit_profile = show_main_window_runtime_fitted(window)
+    timeline.set_context(main_shell_runtime_fit=runtime_fit_profile.as_dict())
+    timeline.mark("main_window_shown", "MainWindow shown", category="post_login")
+    try:
+        post_login_overlay.finish_transition()
+    except Exception:
+        pass
+    try:
+        timeline.export()
+    except Exception as e:
+        print(f"⚠️ startup timeline export failed: {e}")
 
     backup_thread = start_periodic_backup()
     if backup_thread:

@@ -1,0 +1,230 @@
+{
+  "summary": {
+    "phase": 435,
+    "checks": 44,
+    "issues": 0,
+    "ready": true
+  },
+  "rows": [
+    {
+      "key": "main:StartupTimelineProfiler()",
+      "status": "pass",
+      "detail": "main.py contains post-login transition marker"
+    },
+    {
+      "key": "main:login_accepted",
+      "status": "pass",
+      "detail": "main.py contains post-login transition marker"
+    },
+    {
+      "key": "main:PostLoginTransitionOverlay()",
+      "status": "pass",
+      "detail": "main.py contains post-login transition marker"
+    },
+    {
+      "key": "main:post_login_overlay.show_transition()",
+      "status": "pass",
+      "detail": "main.py contains post-login transition marker"
+    },
+    {
+      "key": "main:main_window_create_started",
+      "status": "pass",
+      "detail": "main.py contains post-login transition marker"
+    },
+    {
+      "key": "main:main_window_created",
+      "status": "pass",
+      "detail": "main.py contains post-login transition marker"
+    },
+    {
+      "key": "main:main_window_shown",
+      "status": "pass",
+      "detail": "main.py contains post-login transition marker"
+    },
+    {
+      "key": "main:timeline.export()",
+      "status": "pass",
+      "detail": "main.py contains post-login transition marker"
+    },
+    {
+      "key": "profiler:PHASE435_TIMELINE_MARKER",
+      "status": "pass",
+      "detail": "Qt-free profiler contains required marker"
+    },
+    {
+      "key": "profiler:phase435_login_to_mainwindow_transition_profiler",
+      "status": "pass",
+      "detail": "Qt-free profiler contains required marker"
+    },
+    {
+      "key": "profiler:StartupTimelineEvent",
+      "status": "pass",
+      "detail": "Qt-free profiler contains required marker"
+    },
+    {
+      "key": "profiler:StartupTimelineProfiler",
+      "status": "pass",
+      "detail": "Qt-free profiler contains required marker"
+    },
+    {
+      "key": "profiler:post_login_to_main_ms",
+      "status": "pass",
+      "detail": "Qt-free profiler contains required marker"
+    },
+    {
+      "key": "profiler:startup_timeline.json",
+      "status": "pass",
+      "detail": "Qt-free profiler contains required marker"
+    },
+    {
+      "key": "profiler:startup_timeline.csv",
+      "status": "pass",
+      "detail": "Qt-free profiler contains required marker"
+    },
+    {
+      "key": "overlay:PHASE435_OVERLAY_MARKER",
+      "status": "pass",
+      "detail": "overlay widget contains required marker"
+    },
+    {
+      "key": "overlay:phase435_post_login_transition_overlay",
+      "status": "pass",
+      "detail": "overlay widget contains required marker"
+    },
+    {
+      "key": "overlay:postLoginTransitionOverlay",
+      "status": "pass",
+      "detail": "overlay widget contains required marker"
+    },
+    {
+      "key": "overlay:postLoginTransitionCard",
+      "status": "pass",
+      "detail": "overlay widget contains required marker"
+    },
+    {
+      "key": "overlay:postLoginTransitionProgress",
+      "status": "pass",
+      "detail": "overlay widget contains required marker"
+    },
+    {
+      "key": "overlay:show_transition",
+      "status": "pass",
+      "detail": "overlay widget contains required marker"
+    },
+    {
+      "key": "overlay:finish_transition",
+      "status": "pass",
+      "detail": "overlay widget contains required marker"
+    },
+    {
+      "key": "i18n:post_login_loading_title",
+      "status": "pass",
+      "detail": "translation key exists for supported languages"
+    },
+    {
+      "key": "i18n:post_login_loading_detail",
+      "status": "pass",
+      "detail": "translation key exists for supported languages"
+    },
+    {
+      "key": "i18n:post_login_loading_hint",
+      "status": "pass",
+      "detail": "translation key exists for supported languages"
+    },
+    {
+      "key": "i18n:post_login_step_permissions",
+      "status": "pass",
+      "detail": "translation key exists for supported languages"
+    },
+    {
+      "key": "i18n:post_login_step_main_window",
+      "status": "pass",
+      "detail": "translation key exists for supported languages"
+    },
+    {
+      "key": "i18n:post_login_step_dashboard",
+      "status": "pass",
+      "detail": "translation key exists for supported languages"
+    },
+    {
+      "key": "i18n:post_login_step_done",
+      "status": "pass",
+      "detail": "translation key exists for supported languages"
+    },
+    {
+      "key": "i18n:post_login_loading_done",
+      "status": "pass",
+      "detail": "translation key exists for supported languages"
+    },
+    {
+      "key": "brand:post_login_overlay_width",
+      "status": "pass",
+      "detail": "brand token exists"
+    },
+    {
+      "key": "brand:post_login_overlay_height",
+      "status": "pass",
+      "detail": "brand token exists"
+    },
+    {
+      "key": "brand:post_login_overlay_min_width",
+      "status": "pass",
+      "detail": "brand token exists"
+    },
+    {
+      "key": "brand:post_login_overlay_min_height",
+      "status": "pass",
+      "detail": "brand token exists"
+    },
+    {
+      "key": "brand:post_login_overlay_logo_px",
+      "status": "pass",
+      "detail": "brand token exists"
+    },
+    {
+      "key": "brand:post_login_overlay_progress_height",
+      "status": "pass",
+      "detail": "brand token exists"
+    },
+    {
+      "key": "brand:phase",
+      "status": "pass",
+      "detail": "brand phase advanced to 435 or newer"
+    },
+    {
+      "key": "qss:postLoginTransitionOverlay",
+      "status": "pass",
+      "detail": "QSS contains overlay marker"
+    },
+    {
+      "key": "qss:postLoginTransitionCard",
+      "status": "pass",
+      "detail": "QSS contains overlay marker"
+    },
+    {
+      "key": "qss:postLoginTransitionTitle",
+      "status": "pass",
+      "detail": "QSS contains overlay marker"
+    },
+    {
+      "key": "qss:postLoginTransitionDetail",
+      "status": "pass",
+      "detail": "QSS contains overlay marker"
+    },
+    {
+      "key": "qss:postLoginTransitionStatus",
+      "status": "pass",
+      "detail": "QSS contains overlay marker"
+    },
+    {
+      "key": "qss:postLoginTransitionProgress",
+      "status": "pass",
+      "detail": "QSS contains overlay marker"
+    },
+    {
+      "key": "forbidden:window = MainWindow()\n    spla",
+      "status": "pass",
+      "detail": "old silent login-to-main path removed"
+    }
+  ]
+}

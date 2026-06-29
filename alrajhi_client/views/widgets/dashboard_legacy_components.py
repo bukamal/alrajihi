@@ -9,8 +9,10 @@ from i18n import translate
 
 try:
     from theme_manager import ThemeManager
+    from theme.brand import BRAND
 except Exception:
     ThemeManager = None
+    BRAND = {}
 
 
 def _dc(key, fallback):
@@ -102,26 +104,28 @@ class KPIStatCard(QFrame):
 
 class QuickActionButton(QPushButton):
     def __init__(self, text, icon_name, color, parent=None):
-        # Phase402: dashboard shortcuts use a Basit-inspired uniform blue card
-        # surface. The legacy color argument is kept for API compatibility.
-        super().__init__(qta.icon(f'fa5s.{icon_name}', color='white'), str(text), parent)
+        # Phase437: shortcuts now follow the product identity system rather than
+        # the old solid Basit-blue cards. The color argument is kept for API
+        # compatibility and as an icon accent fallback.
+        super().__init__(qta.icon(f'fa5s.{icon_name}', color='#FFFFFF'), str(text), parent)
         self.setCursor(Qt.PointingHandCursor)
         self.setIconSize(QSize(24, 24))
-        self.setMinimumHeight(96)
+        self.setMinimumHeight(int(BRAND.get('dashboard_shortcut_height', 100)))
         self.setProperty('visualRole', 'dashboard_shortcut')
-        self.setProperty('basitCard', True)
+        self.setProperty('dashboardVisualPhase', 437)
+        self.setProperty('basitCard', False)
         self.setStyleSheet(f'''
             QPushButton {{
-                background: {_dc('basit_blue', _dc('primary', '#0F3D75'))};
-                color: {_dc('basit_card_text', '#FFFFFF')};
-                border: 1px solid {_dc('basit_card_border', _dc('primary', '#0F3D75'))};
-                border-radius: 3px;
-                padding: 10px 10px;
+                background: {_dc('dashboard_shortcut_primary_bg', '#0A6D9A')};
+                color: #FFFFFF;
+                border: 1px solid {_dc('dashboard_panel_header_border', '#C7DAEE')};
+                border-radius: {int(BRAND.get('dashboard_shortcut_radius', 14))}px;
+                padding: 12px 12px;
                 font-size: 14px;
                 font-weight: 950;
                 text-align: center;
             }}
-            QPushButton:hover {{ background: {_dc('basit_blue_hover', _dc('primary_hover', '#1E5AA8'))}; }}
+            QPushButton:hover {{ background: {_dc('dashboard_shortcut_primary_hover', '#095D84')}; }}
         ''')
 
 
@@ -129,25 +133,26 @@ class DashboardPanel(QFrame):
     def __init__(self, title, icon_name='circle', parent=None):
         super().__init__(parent)
         self.setObjectName('DashboardPanel')
-        self.setProperty('basitPanel', True)
+        self.setProperty('basitPanel', False)
+        self.setProperty('dashboardVisualPhase', 437)
         self.setStyleSheet(f'''
             QFrame#DashboardPanel {{
-                background: {_dc('basit_table_bg', _dc('card_bg', '#FFFFFF'))};
-                border: 1px solid {_dc('basit_toolbar_border', _dc('border', '#E2E8F0'))};
-                border-radius: 2px;
+                background: {_dc('dashboard_panel_bg', _dc('card_bg', '#F8FBFF'))};
+                border: 1px solid {_dc('dashboard_panel_border', _dc('border', '#D8E5F2'))};
+                border-radius: {int(BRAND.get('dashboard_panel_radius', 18))}px;
             }}
             QLabel#PanelTitle {{
-                background: {_dc('basit_yellow', '#F5C542')};
-                color: {_dc('basit_category_text', '#1F2937')};
-                border: 1px solid {_dc('basit_toolbar_border', _dc('border', '#E2E8F0'))};
-                border-radius: 2px;
-                padding: 7px 10px;
-                font-size: 17px;
+                background: {_dc('dashboard_panel_header_bg', '#EAF4FF')};
+                color: {_dc('dashboard_panel_header_text', '#0B3D63')};
+                border: 1px solid {_dc('dashboard_panel_header_border', '#C7DAEE')};
+                border-radius: 12px;
+                padding: 8px 12px;
+                font-size: 16px;
                 font-weight: 950;
             }}
         ''')
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(18, 16, 18, 18)
+        self.layout.setContentsMargins(20, 18, 20, 20)
         self.layout.setSpacing(14)
         header = QHBoxLayout()
         icon = QLabel()

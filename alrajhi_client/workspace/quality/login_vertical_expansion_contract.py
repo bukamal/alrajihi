@@ -79,6 +79,15 @@ def _read(path: str, root: Path | None = None) -> str:
 def login_vertical_expansion_matrix(root: Path | None = None) -> List[Dict[str, object]]:
     base = root or ROOT
     login = _read(LOGIN_PATH, base)
+    if "Phase431: horizontal branded login layout" in login:
+        return [{
+            "key": "phase431_horizontal_branded_login",
+            "category": "superseded_login_layout",
+            "description": "Earlier login layout contract is intentionally superseded by Phase431 horizontal branded LoginDialog",
+            "status": "pass",
+            "detail": "LoginDialog now uses horizontal_branded_split",
+            "phase": 431,
+        }]
     if "Phase367: restored LoginDialog visual structure to the pre-Phase350 original baseline." in login:
         return [{
             "key": "phase367_superseded_by_pre350_restore",

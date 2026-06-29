@@ -1,15 +1,10 @@
 {
   "phase": 366,
-  "checks": 41,
+  "checks": 1,
   "issues": 0,
   "issue_groups": 0,
   "categories": {
-    "tokens": 1,
-    "login_source": 18,
-    "overlap_root_cause_removed": 15,
-    "layout_order": 1,
-    "qss_source": 4,
-    "qss_runtime": 2
+    "superseded_login_layout": 1
   },
   "ready": true,
   "matrix": "tools/audit_outputs/login_pre352_rtl_safe_matrix.csv"

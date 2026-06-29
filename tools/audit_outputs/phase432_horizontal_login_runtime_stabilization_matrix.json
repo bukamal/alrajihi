@@ -1,0 +1,477 @@
+{
+  "summary": {
+    "phase": 432,
+    "checks": 62,
+    "issues": 0,
+    "issue_groups": 0,
+    "categories": {
+      "tokens": 15,
+      "login_source": 21,
+      "legacy_runtime_removed": 3,
+      "token_values": 8,
+      "qss_source": 13,
+      "qss_runtime": 2
+    },
+    "ready": true
+  },
+  "rows": [
+    {
+      "key": "brand_phase_432",
+      "category": "tokens",
+      "description": "BRAND phase records runtime-stabilized horizontal login work",
+      "status": "pass",
+      "detail": 437
+    },
+    {
+      "key": "login_required_Phase432: runtime-stabilized horizontal lo",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: Phase432: runtime-stabilized horizontal login layout",
+      "status": "pass",
+      "detail": "Phase432: runtime-stabilized horizontal login layout"
+    },
+    {
+      "key": "login_required_self.resize(int(BRAND.get('login_horizonta",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.resize(int(BRAND.get('login_horizontal_width', 1120)), int(BRAND.get('login_horizontal_height', 660)))",
+      "status": "pass",
+      "detail": "self.resize(int(BRAND.get('login_horizontal_width', 1120)), int(BRAND.get('login_horizontal_height', 660)))"
+    },
+    {
+      "key": "login_required_self.setMinimumSize(int(BRAND.get('login_h",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.setMinimumSize(int(BRAND.get('login_horizontal_min_width', 980)), int(BRAND.get('login_horizontal_min_height', 600)))",
+      "status": "pass",
+      "detail": "self.setMinimumSize(int(BRAND.get('login_horizontal_min_width', 980)), int(BRAND.get('login_horizontal_min_height', 600)))"
+    },
+    {
+      "key": "login_required_self.main_frame.setProperty('loginRuntimeP",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.main_frame.setProperty('loginRuntimePolicy', 'horizontal_runtime_stabilized')",
+      "status": "pass",
+      "detail": "self.main_frame.setProperty('loginRuntimePolicy', 'horizontal_runtime_stabilized')"
+    },
+    {
+      "key": "login_required_self._stabilize_horizontal_login_chrome()",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self._stabilize_horizontal_login_chrome()",
+      "status": "pass",
+      "detail": "self._stabilize_horizontal_login_chrome()"
+    },
+    {
+      "key": "login_required_self.title_bar.setObjectName('LoginRuntime",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.title_bar.setObjectName('LoginRuntimeTitleBar')",
+      "status": "pass",
+      "detail": "self.title_bar.setObjectName('LoginRuntimeTitleBar')"
+    },
+    {
+      "key": "login_required_self.title_bar.setFixedHeight(int(BRAND.ge",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.title_bar.setFixedHeight(int(BRAND.get('login_runtime_titlebar_height', 40)))",
+      "status": "pass",
+      "detail": "self.title_bar.setFixedHeight(int(BRAND.get('login_runtime_titlebar_height', 40)))"
+    },
+    {
+      "key": "login_required_self.title_label.setObjectName('LoginRunti",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.title_label.setObjectName('LoginRuntimeTitle')",
+      "status": "pass",
+      "detail": "self.title_label.setObjectName('LoginRuntimeTitle')"
+    },
+    {
+      "key": "login_required_self.icon_label.setVisible(False)",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.icon_label.setVisible(False)",
+      "status": "pass",
+      "detail": "self.icon_label.setVisible(False)"
+    },
+    {
+      "key": "login_required_'LoginRuntimeCloseButton'",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: 'LoginRuntimeCloseButton'",
+      "status": "pass",
+      "detail": "'LoginRuntimeCloseButton'"
+    },
+    {
+      "key": "login_required_'LoginRuntimeMinButton'",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: 'LoginRuntimeMinButton'",
+      "status": "pass",
+      "detail": "'LoginRuntimeMinButton'"
+    },
+    {
+      "key": "login_required_btn.setFixedSize(30, 30)",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: btn.setFixedSize(30, 30)",
+      "status": "pass",
+      "detail": "btn.setFixedSize(30, 30)"
+    },
+    {
+      "key": "login_required_self.brand_panel.setMinimumHeight(int(BRAN",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.brand_panel.setMinimumHeight(int(BRAND.get('login_horizontal_panel_min_height', 540)))",
+      "status": "pass",
+      "detail": "self.brand_panel.setMinimumHeight(int(BRAND.get('login_horizontal_panel_min_height', 540)))"
+    },
+    {
+      "key": "login_required_self.form_panel.setMinimumHeight(int(BRAND",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.form_panel.setMinimumHeight(int(BRAND.get('login_horizontal_panel_min_height', 540)))",
+      "status": "pass",
+      "detail": "self.form_panel.setMinimumHeight(int(BRAND.get('login_horizontal_panel_min_height', 540)))"
+    },
+    {
+      "key": "login_required_self.options_panel.setMinimumHeight(int(BR",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.options_panel.setMinimumHeight(int(BRAND.get('login_options_runtime_height', 54)))",
+      "status": "pass",
+      "detail": "self.options_panel.setMinimumHeight(int(BRAND.get('login_options_runtime_height', 54)))"
+    },
+    {
+      "key": "login_required_self.admin_warning.setMinimumHeight(int(BR",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.admin_warning.setMinimumHeight(int(BRAND.get('login_warning_reserved_height', 30)))",
+      "status": "pass",
+      "detail": "self.admin_warning.setMinimumHeight(int(BRAND.get('login_warning_reserved_height', 30)))"
+    },
+    {
+      "key": "login_required_self.error_label.setObjectName('loginRunti",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.error_label.setObjectName('loginRuntimeMessage')",
+      "status": "pass",
+      "detail": "self.error_label.setObjectName('loginRuntimeMessage')"
+    },
+    {
+      "key": "login_required_self.error_label.setProperty('messageState",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.error_label.setProperty('messageState', 'empty')",
+      "status": "pass",
+      "detail": "self.error_label.setProperty('messageState', 'empty')"
+    },
+    {
+      "key": "login_required_self.error_label.setMinimumHeight(int(BRAN",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.error_label.setMinimumHeight(int(BRAND.get('login_message_reserved_height', 34)))",
+      "status": "pass",
+      "detail": "self.error_label.setMinimumHeight(int(BRAND.get('login_message_reserved_height', 34)))"
+    },
+    {
+      "key": "login_required_self.error_label.setProperty('messageState",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.error_label.setProperty('messageState', 'danger')",
+      "status": "pass",
+      "detail": "self.error_label.setProperty('messageState', 'danger')"
+    },
+    {
+      "key": "login_required_self.error_label.setProperty('messageState",
+      "category": "login_source",
+      "description": "LoginDialog contains Phase432 runtime marker: self.error_label.setProperty('messageState', 'success')",
+      "status": "pass",
+      "detail": "self.error_label.setProperty('messageState', 'success')"
+    },
+    {
+      "key": "login_forbid_self.resize(int(BRAND.get('login_horizonta",
+      "category": "legacy_runtime_removed",
+      "description": "LoginDialog no longer uses unstable runtime marker: self.resize(int(BRAND.get('login_horizontal_width', 1040)), int(BRAND.get('login_horizontal_height', 640)))",
+      "status": "pass",
+      "detail": "self.resize(int(BRAND.get('login_horizontal_width', 1040)), int(BRAND.get('login_horizontal_height', 640)))"
+    },
+    {
+      "key": "login_forbid_self.setMinimumSize(int(BRAND.get('login_h",
+      "category": "legacy_runtime_removed",
+      "description": "LoginDialog no longer uses unstable runtime marker: self.setMinimumSize(int(BRAND.get('login_horizontal_min_width', 900)), int(BRAND.get('login_horizontal_min_height', 560)))",
+      "status": "pass",
+      "detail": "self.setMinimumSize(int(BRAND.get('login_horizontal_min_width', 900)), int(BRAND.get('login_horizontal_min_height', 560)))"
+    },
+    {
+      "key": "login_forbid_self.error_label.setObjectName('danger')",
+      "category": "legacy_runtime_removed",
+      "description": "LoginDialog no longer uses unstable runtime marker: self.error_label.setObjectName('danger')",
+      "status": "pass",
+      "detail": "self.error_label.setObjectName('danger')"
+    },
+    {
+      "key": "token_login_horizontal_width",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_horizontal_width",
+      "status": "pass",
+      "detail": "login_horizontal_width"
+    },
+    {
+      "key": "token_login_horizontal_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_horizontal_height",
+      "status": "pass",
+      "detail": "login_horizontal_height"
+    },
+    {
+      "key": "token_login_horizontal_min_width",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_horizontal_min_width",
+      "status": "pass",
+      "detail": "login_horizontal_min_width"
+    },
+    {
+      "key": "token_login_horizontal_min_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_horizontal_min_height",
+      "status": "pass",
+      "detail": "login_horizontal_min_height"
+    },
+    {
+      "key": "token_login_horizontal_brand_width",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_horizontal_brand_width",
+      "status": "pass",
+      "detail": "login_horizontal_brand_width"
+    },
+    {
+      "key": "token_login_horizontal_form_width",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_horizontal_form_width",
+      "status": "pass",
+      "detail": "login_horizontal_form_width"
+    },
+    {
+      "key": "token_login_horizontal_panel_min_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_horizontal_panel_min_height",
+      "status": "pass",
+      "detail": "login_horizontal_panel_min_height"
+    },
+    {
+      "key": "token_login_runtime_titlebar_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_runtime_titlebar_height",
+      "status": "pass",
+      "detail": "login_runtime_titlebar_height"
+    },
+    {
+      "key": "token_login_options_runtime_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_options_runtime_height",
+      "status": "pass",
+      "detail": "login_options_runtime_height"
+    },
+    {
+      "key": "token_login_options_runtime_max_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_options_runtime_max_height",
+      "status": "pass",
+      "detail": "login_options_runtime_max_height"
+    },
+    {
+      "key": "token_login_warning_reserved_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_warning_reserved_height",
+      "status": "pass",
+      "detail": "login_warning_reserved_height"
+    },
+    {
+      "key": "token_login_warning_reserved_max_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_warning_reserved_max_height",
+      "status": "pass",
+      "detail": "login_warning_reserved_max_height"
+    },
+    {
+      "key": "token_login_message_reserved_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_message_reserved_height",
+      "status": "pass",
+      "detail": "login_message_reserved_height"
+    },
+    {
+      "key": "token_login_message_reserved_max_height",
+      "category": "tokens",
+      "description": "BRAND defines Phase432 token login_message_reserved_max_height",
+      "status": "pass",
+      "detail": "login_message_reserved_max_height"
+    },
+    {
+      "key": "token_min_login_horizontal_width",
+      "category": "token_values",
+      "description": "login_horizontal_width is large enough for desktop horizontal login runtime",
+      "status": "pass",
+      "detail": {
+        "actual": 1120,
+        "minimum": 1100
+      }
+    },
+    {
+      "key": "token_min_login_horizontal_height",
+      "category": "token_values",
+      "description": "login_horizontal_height is large enough for desktop horizontal login runtime",
+      "status": "pass",
+      "detail": {
+        "actual": 660,
+        "minimum": 650
+      }
+    },
+    {
+      "key": "token_min_login_horizontal_min_width",
+      "category": "token_values",
+      "description": "login_horizontal_min_width is large enough for desktop horizontal login runtime",
+      "status": "pass",
+      "detail": {
+        "actual": 980,
+        "minimum": 960
+      }
+    },
+    {
+      "key": "token_min_login_horizontal_min_height",
+      "category": "token_values",
+      "description": "login_horizontal_min_height is large enough for desktop horizontal login runtime",
+      "status": "pass",
+      "detail": {
+        "actual": 600,
+        "minimum": 590
+      }
+    },
+    {
+      "key": "token_min_login_horizontal_brand_width",
+      "category": "token_values",
+      "description": "login_horizontal_brand_width is large enough for desktop horizontal login runtime",
+      "status": "pass",
+      "detail": {
+        "actual": 390,
+        "minimum": 380
+      }
+    },
+    {
+      "key": "token_min_login_horizontal_form_width",
+      "category": "token_values",
+      "description": "login_horizontal_form_width is large enough for desktop horizontal login runtime",
+      "status": "pass",
+      "detail": {
+        "actual": 610,
+        "minimum": 600
+      }
+    },
+    {
+      "key": "token_min_login_horizontal_panel_min_height",
+      "category": "token_values",
+      "description": "login_horizontal_panel_min_height is large enough for desktop horizontal login runtime",
+      "status": "pass",
+      "detail": {
+        "actual": 540,
+        "minimum": 530
+      }
+    },
+    {
+      "key": "token_min_login_runtime_titlebar_height",
+      "category": "token_values",
+      "description": "login_runtime_titlebar_height is large enough for desktop horizontal login runtime",
+      "status": "pass",
+      "detail": {
+        "actual": 40,
+        "minimum": 36
+      }
+    },
+    {
+      "key": "qss_Phase432: runtime-stabilized horizontal lo",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: Phase432: runtime-stabilized horizontal login chrome",
+      "status": "pass",
+      "detail": "Phase432: runtime-stabilized horizontal login chrome"
+    },
+    {
+      "key": "qss_LoginRuntimeTitleBar",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: LoginRuntimeTitleBar",
+      "status": "pass",
+      "detail": "LoginRuntimeTitleBar"
+    },
+    {
+      "key": "qss_LoginRuntimeTitle",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: LoginRuntimeTitle",
+      "status": "pass",
+      "detail": "LoginRuntimeTitle"
+    },
+    {
+      "key": "qss_LoginRuntimeCloseButton",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: LoginRuntimeCloseButton",
+      "status": "pass",
+      "detail": "LoginRuntimeCloseButton"
+    },
+    {
+      "key": "qss_LoginRuntimeMinButton",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: LoginRuntimeMinButton",
+      "status": "pass",
+      "detail": "LoginRuntimeMinButton"
+    },
+    {
+      "key": "qss_loginRuntimePolicy=\"horizontal_runtime_sta",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: loginRuntimePolicy=\"horizontal_runtime_stabilized\"",
+      "status": "pass",
+      "detail": "loginRuntimePolicy=\"horizontal_runtime_stabilized\""
+    },
+    {
+      "key": "qss_QLabel#loginRuntimeMessage",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: QLabel#loginRuntimeMessage",
+      "status": "pass",
+      "detail": "QLabel#loginRuntimeMessage"
+    },
+    {
+      "key": "qss_messageState=\"danger\"",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: messageState=\"danger\"",
+      "status": "pass",
+      "detail": "messageState=\"danger\""
+    },
+    {
+      "key": "qss_messageState=\"success\"",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: messageState=\"success\"",
+      "status": "pass",
+      "detail": "messageState=\"success\""
+    },
+    {
+      "key": "qss_QFrame#loginCredentialsPanel",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: QFrame#loginCredentialsPanel",
+      "status": "pass",
+      "detail": "QFrame#loginCredentialsPanel"
+    },
+    {
+      "key": "qss_QFrame#loginOptionsPanel",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: QFrame#loginOptionsPanel",
+      "status": "pass",
+      "detail": "QFrame#loginOptionsPanel"
+    },
+    {
+      "key": "qss_QLabel#loginAdminWarning",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: QLabel#loginAdminWarning",
+      "status": "pass",
+      "detail": "QLabel#loginAdminWarning"
+    },
+    {
+      "key": "qss_background: transparent",
+      "category": "qss_source",
+      "description": "QSS contains Phase432 runtime selector/marker: background: transparent",
+      "status": "pass",
+      "detail": "background: transparent"
+    },
+    {
+      "key": "qss_runtime_light",
+      "category": "qss_runtime",
+      "description": "Generated light QSS includes Phase432 runtime stabilization",
+      "status": "pass",
+      "detail": 95484
+    },
+    {
+      "key": "qss_runtime_dark",
+      "category": "qss_runtime",
+      "description": "Generated dark QSS includes Phase432 runtime stabilization",
+      "status": "pass",
+      "detail": 96221
+    }
+  ]
+}

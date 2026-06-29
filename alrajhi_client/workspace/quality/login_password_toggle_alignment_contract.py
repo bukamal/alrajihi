@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Phase 368 contract: Login password visibility button alignment.
+"""Phase 368/431 contract: Login password visibility button alignment.
 
-The LoginDialog is intentionally kept on the restored pre-Phase350 single-card
-layout, but the password visibility button must be a separate fixed-size layout
-peer.  It must never be drawn over, or consume the geometry of, the password
-QLineEdit.
+Phase431 makes the login dialog horizontal, but keeps the Phase368 rule: the
+password visibility button is a fixed-size layout peer, never an overlay inside
+or over the QLineEdit.
 """
 from __future__ import annotations
 
@@ -22,12 +21,14 @@ PHASE368_MARKER = "Phase368: password visibility button is aligned as a separate
 
 REQUIRED_ALIGNMENT_MARKERS = (
     PHASE368_MARKER,
-    "from PyQt5.QtWidgets import QVBoxLayout, QLabel, QLineEdit, QPushButton, QHBoxLayout, QCheckBox, QComboBox, QFrame, QSizePolicy",
-    "pwd_layout = QHBoxLayout()",
+    "Phase431: horizontal branded login layout",
+    "pwd_row = QFrame()",
+    "pwd_row.setObjectName('loginPasswordRow')",
+    "pwd_layout = QHBoxLayout(pwd_row)",
     "pwd_layout.setSpacing(10)",
     "pwd_layout.setContentsMargins(0, 0, 0, 0)",
     "self.password_edit.setObjectName('loginPasswordEdit')",
-    "self.password_edit.setMinimumHeight(44)",
+    "self.password_edit.setMinimumHeight(int(BRAND.get('login_field_height', 48)))",
     "self.password_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)",
     "self.show_pwd_btn.setObjectName('loginPasswordVisibilityButton')",
     "self.show_pwd_btn.setFixedSize(42, 42)",
@@ -45,6 +46,7 @@ REQUIRED_QSS_MARKERS = (
     "max-height: 42px;",
     "padding: 0px;",
     "margin: 0px;",
+    "QFrame#loginCard[loginDensity=\"horizontal_compact\"] QFrame#loginPasswordRow",
 )
 
 FORBIDDEN_OVERLAY_MARKERS = (
@@ -55,9 +57,7 @@ FORBIDDEN_OVERLAY_MARKERS = (
     "QLineEdit#loginPasswordEdit { padding-left: 42px",
     "position: absolute",
     "loginPasswordSafeSpacer",
-    "loginPasswordRow",
-    "loginCredentialsPanel",
-    "loginOptionsPanel",
+    "loginPasswordToggleButton",
 )
 
 ORDER_TOKENS = (
@@ -67,8 +67,8 @@ ORDER_TOKENS = (
     "self.show_pwd_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)",
     "pwd_layout.addWidget(self.password_edit, 1)",
     "pwd_layout.addWidget(self.show_pwd_btn, 0, Qt.AlignVCenter)",
-    "layout.addLayout(pwd_layout)",
-    "options_layout = QHBoxLayout()",
+    "credentials_layout.addWidget(pwd_row)",
+    "self.options_panel = QFrame()",
 )
 
 
@@ -85,10 +85,10 @@ def login_password_toggle_alignment_matrix(root: Path | None = None) -> List[Dic
     rows.append({
         "key": "brand_phase",
         "category": "tokens",
-        "description": "Brand phase records the Phase368 login password toggle alignment hotfix",
-        "status": "pass" if int(BRAND.get("brand_phase", 0)) >= 368 else "fail",
+        "description": "Brand phase records the Phase431 horizontal login with Phase368 peer toggle rule",
+        "status": "pass" if int(BRAND.get("brand_phase", 0)) >= 431 else "fail",
         "detail": BRAND.get("brand_phase"),
-        "phase": 368,
+        "phase": 431,
     })
 
     for marker in REQUIRED_ALIGNMENT_MARKERS:
@@ -98,7 +98,7 @@ def login_password_toggle_alignment_matrix(root: Path | None = None) -> List[Dic
             "description": f"LoginDialog contains password toggle alignment marker: {marker}",
             "status": "pass" if marker in login else "fail",
             "detail": marker,
-            "phase": 368,
+            "phase": 431,
         })
 
     for marker in REQUIRED_QSS_MARKERS:
@@ -108,7 +108,7 @@ def login_password_toggle_alignment_matrix(root: Path | None = None) -> List[Dic
             "description": f"QSS fixes password toggle geometry: {marker}",
             "status": "pass" if marker in qss_source else "fail",
             "detail": marker,
-            "phase": 368,
+            "phase": 431,
         })
 
     for marker in FORBIDDEN_OVERLAY_MARKERS:
@@ -118,7 +118,7 @@ def login_password_toggle_alignment_matrix(root: Path | None = None) -> List[Dic
             "description": f"Login password toggle avoids overlay/absolute geometry marker: {marker}",
             "status": "pass" if marker not in login else "fail",
             "detail": marker,
-            "phase": 368,
+            "phase": 431,
         })
 
     positions = [login.find(token) for token in ORDER_TOKENS]
@@ -128,20 +128,20 @@ def login_password_toggle_alignment_matrix(root: Path | None = None) -> List[Dic
         "description": "Password field and visibility button are configured before insertion as fixed/expanding peers",
         "status": "pass" if all(pos >= 0 for pos in positions) and positions == sorted(positions) else "fail",
         "detail": positions,
-        "phase": 368,
+        "phase": 431,
     })
 
     for theme in ("light", "dark"):
         try:
             qss = build_global_qss(get_tokens(theme))
-            ok = all(marker in qss for marker in ("QLineEdit#loginPasswordEdit", "QPushButton#loginPasswordVisibilityButton", "max-width: 42px;"))
+            ok = all(marker in qss for marker in ("QLineEdit#loginPasswordEdit", "QPushButton#loginPasswordVisibilityButton", "max-width: 42px;", "loginPasswordRow"))
             rows.append({
                 "key": f"qss_runtime_{theme}",
                 "category": "qss_runtime",
                 "description": f"Generated {theme} QSS contains safe password toggle selectors",
                 "status": "pass" if ok else "fail",
                 "detail": len(qss),
-                "phase": 368,
+                "phase": 431,
             })
         except Exception as exc:
             rows.append({
@@ -150,7 +150,7 @@ def login_password_toggle_alignment_matrix(root: Path | None = None) -> List[Dic
                 "description": f"Generated {theme} QSS is safe after password toggle alignment",
                 "status": "fail",
                 "detail": f"{exc.__class__.__name__}: {exc}",
-                "phase": 368,
+                "phase": 431,
             })
 
     return rows
@@ -164,7 +164,7 @@ def login_password_toggle_alignment_summary(root: Path | None = None) -> Dict[st
         category = str(row.get("category", "unknown"))
         categories[category] = categories.get(category, 0) + 1
     return {
-        "phase": 368,
+        "phase": 431,
         "checks": len(rows),
         "issues": len(issues),
         "issue_groups": len({row.get("category") for row in issues}),

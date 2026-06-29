@@ -1,14 +1,14 @@
 {
-  "phase": 367,
-  "checks": 59,
+  "phase": 431,
+  "checks": 34,
   "issues": 0,
   "issue_groups": 0,
   "categories": {
     "tokens": 1,
-    "login_source": 27,
-    "redesign_removed": 25,
+    "login_source": 16,
+    "vertical_legacy_removed": 8,
     "layout_order": 1,
-    "qss_source": 3,
+    "qss_source": 6,
     "qss_runtime": 2
   },
   "ready": true,

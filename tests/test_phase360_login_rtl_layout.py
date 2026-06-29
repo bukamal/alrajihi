@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 """Phase 360 login compatibility test.
 
-Phase367 intentionally restores the LoginDialog visual design to the original
-pre-Phase350 baseline. Earlier experimental login layout contracts are treated
-as superseded when the Phase367 marker is present.
+Phase431 intentionally replaces the narrow vertical LoginDialog with a horizontal branded split surface. Earlier login layout contracts are treated as superseded by the Phase431 marker.
 """
 from pathlib import Path
 import sys
@@ -22,12 +20,11 @@ def test_login_contract_is_clean_or_superseded_by_phase367():
     assert summary["issues"] == 0
 
 
-def test_phase367_pre350_original_login_restore_marker():
+def test_phase431_horizontal_branded_login_marker():
     source = (ROOT / "alrajhi_client" / "views" / "dialogs" / "login_dialog.py").read_text(encoding="utf-8")
-    assert "Phase367: restored LoginDialog visual structure to the pre-Phase350 original baseline." in source
-    assert "layout = QVBoxLayout(self.content_widget)" in source
-    assert "pwd_layout = QHBoxLayout()" in source
-    assert "options_layout = QHBoxLayout()" in source
-    assert "brand_side_panel(" not in source
-    assert "loginPasswordSafeSpacer" not in source
-    assert "logo.setObjectName('brandMark')" not in source
+    assert "Phase431: horizontal branded login layout" in source
+    assert "root_layout = QHBoxLayout(self.content_widget)" in source
+    assert "brand_side_panel(" in source
+    assert "self.form_panel = first_run_form_panel()" in source
+    assert "self.main_frame.setProperty('loginLayout', 'horizontal_branded_split')" in source
+    assert "layout = QVBoxLayout(self.content_widget)" not in source

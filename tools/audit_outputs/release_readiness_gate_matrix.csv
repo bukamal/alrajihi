@@ -161,4 +161,8 @@ direct_qtablewidget_editable_sweep,ui,Editable direct QTableWidget surfaces are 
 operational_item_card_grid,ui,Restaurant and cafe material surfaces share a three-column operational item-card grid; POS is barcode/table-first,428,tools/phase428_operational_item_card_grid_guard.py,True,tools/audit_outputs/operational_item_card_grid_matrix.csv,True,True
 operational_fullscreen,ui,"POS, restaurant and cafe share a central operational fullscreen controller",429,tools/phase429_operational_fullscreen_guard.py,True,tools/audit_outputs/operational_fullscreen_matrix.csv,True,True
 pos_barcode_table_first,ui,POS keeps barcode/search and cart table only while Restaurant/Cafe keep material cards,430,tools/phase430_pos_barcode_table_first_guard.py,True,tools/audit_outputs/pos_barcode_table_first_matrix.csv,True,True
+horizontal_branded_login,dialogs,Login screen uses a horizontal branded identity/form layout,431,tools/phase431_horizontal_branded_login_guard.py,True,,True,True
+horizontal_login_runtime_stabilization,dialogs,"Horizontal login runtime dimensions, titlebar and non-overlap are stabilized",432,tools/phase432_horizontal_login_runtime_stabilization_guard.py,True,,True,True
+login_password_row_visibility,dialogs,Login password input row remains visible before language options,433,tools/phase433_login_password_row_visibility_guard.py,True,,True,True
+branded_prelogin_startup_splash,dialogs,Pre-login startup splash uses branded staged loading without legacy yellow header,434,tools/phase434_branded_prelogin_startup_splash_guard.py,True,tools/audit_outputs/branded_prelogin_startup_splash_matrix.json,True,True
 print_settings,printing,Print settings contract,236,tools/phase236_print_settings_contract_audit.py,True,,True,True

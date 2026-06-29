@@ -1,0 +1,31 @@
+area,check,status
+dashboard_widget,dashboardVisualPhase,pass
+dashboard_widget,identity_aligned,pass
+dashboard_widget,dashboardPanelRole,pass
+dashboard_widget,dashboardActionTier,pass
+dashboard_widget,dashboard_shortcut_primary_bg,pass
+dashboard_widget,dashboard_shortcut_secondary_bg,pass
+dashboard_widget,dashboard_shortcut_finance_bg,pass
+dashboard_widget,CompanyLogoBox { background: #ffffff; border: 1px solid #D8E5F2; border-radius: 16px,pass
+dashboard_widget,CashBalanceBox { background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 16px,pass
+dashboard_widget,DeveloperBrandPanel,pass
+dashboard_components,Phase437: shortcuts now follow the product identity system,pass
+dashboard_components,dashboardVisualPhase,pass
+dashboard_components,dashboard_panel_radius,pass
+dashboard_components,dashboard_panel_header_bg,pass
+dashboard_components,basitCard,pass
+brand_tokens,dashboard_visual_phase,pass
+brand_tokens,dashboard_panel_radius,pass
+brand_tokens,dashboard_panel_min_height,pass
+brand_tokens,dashboard_panel_bg,pass
+brand_tokens,dashboard_panel_header_bg,pass
+brand_tokens,dashboard_shortcut_height,pass
+brand_tokens,dashboard_shortcut_radius,pass
+brand_tokens,dashboard_shortcut_primary_bg,pass
+brand_tokens,dashboard_shortcut_secondary_bg,pass
+brand_tokens,dashboard_shortcut_finance_bg,pass
+brand_tokens,dashboard_cash_balance_bg,pass
+legacy_dashboard_visuals,QFrame#DashboardQuickActionsPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; },pass
+legacy_dashboard_visuals,QFrame#DashboardCompanyPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; },pass
+legacy_dashboard_visuals,QFrame#DashboardCashPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; },pass
+legacy_dashboard_visuals,QLabel#CashSectionTitle { background: #f5c542; color: #1f2937; border: 1px solid #aab8cc; border-radius: 2px;,pass

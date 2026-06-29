@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Phase 367 contract: restore LoginDialog visual design to the pre-Phase350 baseline.
+"""Phase 367 compatibility contract, superseded by Phase431 horizontal login.
 
-This contract intentionally rejects the Phase352+ login redesign experiments for
-LoginDialog only.  The original screen is a single centered card with a direct
-QVBoxLayout, one password QHBoxLayout, and one remember/language QHBoxLayout.
-The root cause of the later overlap was nested branded panels, fixed-height
-sections, and QSS-only margins competing with Qt's geometry calculation.  The
-safe restore removes those layout constructs from the login dialog.
+Phase431 intentionally replaces the old narrow vertical LoginDialog with a
+horizontal branded split surface. This module remains for older tests/guards and
+now validates that the legacy vertical restore is no longer the active target.
 """
 from __future__ import annotations
 
@@ -20,83 +17,57 @@ ROOT = Path(__file__).resolve().parents[3]
 LOGIN_PATH = "alrajhi_client/views/dialogs/login_dialog.py"
 QSS_PATH = "alrajhi_client/theme/qss.py"
 
-PHASE367_MARKER = "Phase367: restored LoginDialog visual structure to the pre-Phase350 original baseline."
+PHASE367_MARKER = "Phase431: horizontal branded login layout"
 
 REQUIRED_PRE350_MARKERS = (
     PHASE367_MARKER,
-    "self.resize(500, 620)",
-    "self.setMinimumSize(430, 540)",
+    "self.resize(int(BRAND.get('login_horizontal_width', 1040)), int(BRAND.get('login_horizontal_height', 640)))",
+    "self.setMinimumSize(int(BRAND.get('login_horizontal_min_width', 900)), int(BRAND.get('login_horizontal_min_height', 560)))",
     "self.main_frame.setObjectName('loginCard')",
-    "layout = QVBoxLayout(self.content_widget)",
-    "layout.setSpacing(14)",
-    "layout.setContentsMargins(34, 24, 34, 30)",
-    "logo.setPixmap(QPixmap(logo_png(128)).scaled(94, 94, Qt.KeepAspectRatio, Qt.SmoothTransformation))",
-    "self.app_title_label.setObjectName(\"heroTitle\")",
-    "self.subtitle_label.setObjectName('muted')",
-    "self.username_combo = QComboBox()",
-    "self.username_combo.setEditable(True)",
-    "self.username_combo.setPlaceholderText(translate('username'))",
-    "pwd_layout = QHBoxLayout()",
-    "self.password_edit = QLineEdit()",
-    "self.password_edit.setPlaceholderText(translate('password'))",
-    "self.show_pwd_btn.setFixedSize(42, 42)",
-    "pwd_layout.addWidget(self.password_edit)",
-    "pwd_layout.addWidget(self.show_pwd_btn)",
-    "layout.addLayout(pwd_layout)",
-    "options_layout = QHBoxLayout()",
-    "options_layout.addWidget(self.remember_check)",
-    "options_layout.addStretch()",
-    "self.lang_combo.setFixedWidth(128)",
-    "layout.addLayout(options_layout)",
-    "self.login_btn.setObjectName(\"primary\")",
-    "self.switch_btn = DesignSystem.secondary_button(translate('switch_account'))",
+    "self.main_frame.setProperty('loginLayout', 'horizontal_branded_split')",
+    "self.main_frame.setProperty('loginLayoutPolicy', 'horizontal_brand_form_no_overlay')",
+    "root_layout = QHBoxLayout(self.content_widget)",
+    "self.brand_panel = brand_side_panel(",
+    "self.form_panel = first_run_form_panel()",
+    "self.credentials_panel = QFrame()",
+    "self.options_panel = QFrame()",
+    "pwd_layout = QHBoxLayout(pwd_row)",
+    "pwd_layout.addWidget(self.password_edit, 1)",
+    "pwd_layout.addWidget(self.show_pwd_btn, 0, Qt.AlignVCenter)",
+    "set_first_run_primary(self.login_btn)",
+    "set_first_run_secondary(self.switch_btn)",
 )
 
 FORBIDDEN_REDESIGN_MARKERS = (
-    "from ui.first_run_branding import",
-    "brand_side_panel(",
-    "first_run_form_panel(",
-    "set_first_run_primary",
-    "root_layout = QHBoxLayout(self.content_widget)",
-    "self.brand_panel =",
-    "self.form_panel =",
-    "logo.setObjectName('brandMark')",
-    "self.main_frame.setProperty('loginLayoutPolicy'",
-    "self.main_frame.setProperty('loginLayout'",
-    "self.main_frame.setProperty('loginDensity'",
-    "self.main_frame.setProperty('loginOverlapPolicy'",
-    "self.main_frame.setProperty('loginSpacingPolicy'",
-    "loginCredentialsPanel",
-    "loginOptionsPanel",
-    "loginPasswordRow",
-    "loginPasswordSafeSpacer",
-    "loginUsernameField",
-    "loginPasswordField",
-    "loginLanguageField",
-    "loginPasswordToggleButton",
-    "self.username_label =",
-    "self.password_label =",
-    "def _field_label(self, text):",
-    "def _apply_directional_alignment(self):",
+    "layout = QVBoxLayout(self.content_widget)",
+    "self.resize(500, 620)",
+    "self.setMinimumSize(430, 540)",
+    "self.app_title_label.setObjectName(\"heroTitle\")",
+    "self.subtitle_label.setObjectName('muted')",
+    "layout.addLayout(pwd_layout)",
+    "layout.addLayout(options_layout)",
+    "self.login_btn.setObjectName(\"primary\")",
 )
 
 ORDER_TOKENS = (
+    "root_layout = QHBoxLayout(self.content_widget)",
+    "self.brand_panel = brand_side_panel(",
+    "self.form_panel = first_run_form_panel()",
+    "self.credentials_panel = QFrame()",
     "self.username_combo = QComboBox()",
-    "layout.addWidget(self.username_combo)",
-    "pwd_layout = QHBoxLayout()",
-    "layout.addLayout(pwd_layout)",
-    "options_layout = QHBoxLayout()",
-    "layout.addLayout(options_layout)",
-    "layout.addWidget(self.admin_warning)",
-    "layout.addWidget(self.error_label)",
-    "layout.addWidget(self.login_btn)",
-    "layout.addWidget(self.switch_btn)",
+    "self.password_edit = QLineEdit()",
+    "self.options_panel = QFrame()",
+    "self.login_btn = QPushButton(translate('login'))",
+    "self.switch_btn = QPushButton(translate('switch_account'))",
 )
 
 QSS_RUNTIME_MARKERS = (
     "QFrame#loginCard",
-    "QLabel#heroTitle",
-    "QPushButton#primary",
+    "horizontal_branded_split",
+    "QFrame#firstRunBrandPanel",
+    "QFrame#firstRunFormPanel",
+    "QLabel#firstRunFormTitle",
+    "QPushButton#firstRunPrimary",
 )
 
 
@@ -113,50 +84,50 @@ def login_pre350_restore_matrix(root: Path | None = None) -> List[Dict[str, obje
     rows.append({
         "key": "brand_phase",
         "category": "tokens",
-        "description": "Brand phase records the Phase367 pre-Phase350 login restore",
-        "status": "pass" if int(BRAND.get("brand_phase", 0)) >= 367 else "fail",
+        "description": "Brand phase records the Phase431 horizontal branded login supersession",
+        "status": "pass" if int(BRAND.get("brand_phase", 0)) >= 431 else "fail",
         "detail": BRAND.get("brand_phase"),
-        "phase": 367,
+        "phase": 431,
     })
 
     for marker in REQUIRED_PRE350_MARKERS:
         rows.append({
             "key": f"required_{marker[:50]}",
             "category": "login_source",
-            "description": f"LoginDialog contains original pre-Phase350 marker: {marker}",
+            "description": f"LoginDialog contains Phase431 horizontal marker: {marker}",
             "status": "pass" if marker in login else "fail",
             "detail": marker,
-            "phase": 367,
+            "phase": 431,
         })
 
     for marker in FORBIDDEN_REDESIGN_MARKERS:
         rows.append({
             "key": f"forbidden_{marker[:50]}",
-            "category": "redesign_removed",
-            "description": f"LoginDialog avoids post-Phase350 redesign/overlap marker: {marker}",
+            "category": "vertical_legacy_removed",
+            "description": f"LoginDialog no longer uses narrow vertical marker: {marker}",
             "status": "pass" if marker not in login else "fail",
             "detail": marker,
-            "phase": 367,
+            "phase": 431,
         })
 
     positions = [login.find(token) for token in ORDER_TOKENS]
     rows.append({
-        "key": "original_vertical_order",
+        "key": "horizontal_order",
         "category": "layout_order",
-        "description": "Original username -> password -> options -> warning -> actions order is restored",
+        "description": "Horizontal login builds shell, brand panel, form panel, credentials, options and actions in stable order",
         "status": "pass" if all(pos >= 0 for pos in positions) and positions == sorted(positions) else "fail",
         "detail": positions,
-        "phase": 367,
+        "phase": 431,
     })
 
     for marker in QSS_RUNTIME_MARKERS:
         rows.append({
             "key": f"qss_source_{marker[:32]}",
             "category": "qss_source",
-            "description": f"Global QSS still provides base selector required by original login design: {marker}",
+            "description": f"Global QSS supports Phase431 horizontal login selector: {marker}",
             "status": "pass" if marker in qss_source else "fail",
             "detail": marker,
-            "phase": 367,
+            "phase": 431,
         })
 
     for theme in ("light", "dark"):
@@ -166,10 +137,10 @@ def login_pre350_restore_matrix(root: Path | None = None) -> List[Dict[str, obje
             rows.append({
                 "key": f"qss_runtime_{theme}",
                 "category": "qss_runtime",
-                "description": f"Generated {theme} QSS supports original login selectors",
+                "description": f"Generated {theme} QSS supports Phase431 horizontal login",
                 "status": "pass" if ok else "fail",
                 "detail": len(qss),
-                "phase": 367,
+                "phase": 431,
             })
         except Exception as exc:
             rows.append({
@@ -178,7 +149,7 @@ def login_pre350_restore_matrix(root: Path | None = None) -> List[Dict[str, obje
                 "description": f"Generated {theme} QSS is safe for LoginDialog",
                 "status": "fail",
                 "detail": f"{exc.__class__.__name__}: {exc}",
-                "phase": 367,
+                "phase": 431,
             })
 
     return rows
@@ -192,7 +163,7 @@ def login_pre350_restore_summary(root: Path | None = None) -> Dict[str, object]:
         cat = str(row.get("category", "unknown"))
         categories[cat] = categories.get(cat, 0) + 1
     return {
-        "phase": 367,
+        "phase": 431,
         "checks": len(rows),
         "issues": len(issues),
         "issue_groups": len({row.get("category") for row in issues}),

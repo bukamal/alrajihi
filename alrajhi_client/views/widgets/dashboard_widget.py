@@ -57,6 +57,9 @@ class DashboardWidget(QWidget):
         self.setLayoutDirection(qt_layout_direction())
         self.setObjectName('DashboardWidget')
         self.setProperty('basitInspired', True)
+        self.setProperty('dashboardVisualPhase', 437)
+        self.setProperty('dashboardResponsivePhase', 438)
+        self.setProperty('dashboardSurface', 'identity_aligned')
         self._loading_currencies = False
         # Phase 282: top KPI cards and the chart panel are permanently removed
         # from the dashboard per release UX direction. Keep the map empty for
@@ -69,7 +72,13 @@ class DashboardWidget(QWidget):
     def _build_ui(self):
         self.setStyleSheet(f'''
             QWidget#DashboardWidget {{ background: {_dc('bg_window', '#F5F7FA')}; }}
-            QWidget#DashboardPage {{ background: {_dc('bg_window', '#F5F7FA')}; }}
+            QWidget#DashboardPage {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {_dc('bg_window', '#F5F7FA')},
+                    stop:0.55 #F8FBFF,
+                    stop:1 #EEF8FA);
+            }}
+            QWidget#DashboardPage[dashboardSurface="identity_aligned"] {{ background: #F5F7FA; }}
             QLabel#HeroTitle {{ color: white; font-size: 25px; font-weight: 900; }}
             QLabel#HeroSubtitle {{ color: #EAF3FF; font-size: 13px; font-weight: 600; }}
             QLabel#StatusPill {{ color: white; background: transparent; border: 1px solid rgba(255,255,255,0.38); border-radius: 12px; padding: 7px 12px; font-weight: 800; }}
@@ -82,20 +91,129 @@ class DashboardWidget(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
+        # Phase438: avoid horizontal scroll/clip artefacts when the shell is
+        # maximized on VNC, HiDPI, or narrow remote desktop sessions.
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setProperty('dashboardResponsivePhase', 438)
         root.addWidget(scroll)
 
         page = QWidget()
         page.setObjectName('DashboardPage')
         page.setProperty('basitInspired', True)
+        page.setProperty('dashboardSurface', 'identity_aligned')
+        page.setProperty('dashboardVisualPhase', 437)
+        page.setProperty('dashboardResponsivePhase', 438)
         scroll.setWidget(page)
         self.main_layout = QVBoxLayout(page)
-        self.main_layout.setContentsMargins(22, 20, 22, 20)
-        self.main_layout.setSpacing(18)
+        self.main_layout.setContentsMargins(18, 18, 18, 18)
+        self.main_layout.setSpacing(16)
 
         # Phase 282: do not build the top KPI/card strip or chart panel.
         # Legacy audit token only, not invoked: _build_kpi_grid()
         self._build_middle_grid()
         self._build_bottom_grid()
+
+    def _dashboard_available_width(self) -> int:
+        """Return the live dashboard viewport width for responsive placement.
+
+        Phase439 uses the actual scroll viewport when present instead of the
+        nominal MainWindow size.  This is critical on VNC/Termux/HiDPI sessions
+        where the top-level window may be large while the visible workspace is
+        materially narrower.
+        """
+        try:
+            scroll = self.findChild(QScrollArea)
+            if scroll is not None and scroll.viewport() is not None:
+                return max(0, int(scroll.viewport().width()))
+        except Exception:
+            pass
+        try:
+            return max(0, int(self.width()))
+        except Exception:
+            return 0
+
+    def _dashboard_responsive_column_count(self) -> int:
+        width = self._dashboard_available_width()
+        if width and width < int(BRAND.get('dashboard_one_column_breakpoint', 920)):
+            return 1
+        if width and width < int(BRAND.get('dashboard_two_column_breakpoint', 1280)):
+            return 2
+        return 3
+
+    def _clear_layout_items(self, layout) -> None:
+        while layout is not None and layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget() if item is not None else None
+            if widget is not None:
+                try:
+                    widget.setParent(None)
+                except Exception:
+                    pass
+
+    def _layout_quick_actions(self, columns: int = 3) -> None:
+        grid = getattr(self, 'quick_actions_grid', None)
+        buttons = list(getattr(self, 'quick_action_buttons', []) or [])
+        if grid is None or not buttons:
+            return
+        columns = max(1, min(3, int(columns or 3)))
+        self._clear_layout_items(grid)
+        for i, btn in enumerate(buttons):
+            row = i // columns
+            visual_col = columns - 1 - (i % columns) if qt_layout_direction() == Qt.RightToLeft else i % columns
+            grid.addWidget(btn, row, visual_col)
+        for c in range(3):
+            grid.setColumnStretch(c, 1 if c < columns else 0)
+
+    def _apply_dashboard_responsive_layout(self, force: bool = False) -> None:
+        grid = getattr(self, 'dashboard_responsive_grid', None)
+        panels = [getattr(self, name, None) for name in ('quick_panel', 'company_panel', 'project_panel')]
+        if grid is None or any(p is None for p in panels):
+            return
+        columns = self._dashboard_responsive_column_count()
+        if not force and getattr(self, '_dashboard_responsive_columns', None) == columns:
+            return
+        self._dashboard_responsive_columns = columns
+        self._clear_layout_items(grid)
+        for panel in panels:
+            try:
+                panel.setMinimumWidth(0)
+                panel.setMaximumWidth(16777215)
+                panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                panel.setProperty('dashboardResponsiveColumns', columns)
+            except Exception:
+                pass
+        self._layout_quick_actions(2 if columns == 1 else 3)
+        if columns == 1:
+            for row, panel in enumerate(panels):
+                grid.addWidget(panel, row, 0)
+            min_height = int(BRAND.get('dashboard_panel_min_height_compact', 300))
+        elif columns == 2:
+            grid.addWidget(self.quick_panel, 0, 0)
+            grid.addWidget(self.company_panel, 0, 1)
+            grid.addWidget(self.project_panel, 1, 0, 1, 2)
+            min_height = int(BRAND.get('dashboard_panel_min_height_medium', 360))
+        else:
+            grid.addWidget(self.quick_panel, 0, 0)
+            grid.addWidget(self.company_panel, 0, 1)
+            grid.addWidget(self.project_panel, 0, 2)
+            min_height = int(BRAND.get('dashboard_panel_min_height_wide', BRAND.get('dashboard_panel_min_height', 430)))
+        for panel in panels:
+            try:
+                panel.setMinimumHeight(min_height)
+            except Exception:
+                pass
+        try:
+            for c in range(3):
+                grid.setColumnStretch(c, 1 if c < columns else 0)
+            self.dashboard_responsive_host.setProperty('dashboardResponsiveColumns', columns)
+            self.dashboard_responsive_host.style().unpolish(self.dashboard_responsive_host)
+            self.dashboard_responsive_host.style().polish(self.dashboard_responsive_host)
+        except Exception:
+            pass
+
+    def resizeEvent(self, event):  # type: ignore[override]
+        super().resizeEvent(event)
+        self._apply_dashboard_responsive_layout(force=False)
 
     def _build_hero(self):
         hero = QFrame()
@@ -187,26 +305,33 @@ class DashboardWidget(QWidget):
         self.main_layout.addWidget(self.trend_panel)
 
     def _build_middle_grid(self):
-        # Phase 301: professional dashboard composition based on the approved
-        # visual proposal. Keep the three operational cards only, but make the
-        # cashbox, company identity, and daily shortcuts visually balanced.
-        row = QHBoxLayout()
-        row.setDirection(QBoxLayout.RightToLeft)
-        row.setContentsMargins(0, 0, 0, 0)
-        row.setSpacing(18)
+        # Phase439: the dashboard landing surface is a real responsive grid.
+        # The previous fixed three-column QHBoxLayout clipped the shortcuts
+        # column on VNC/Termux/HiDPI and small Windows screens.
+        self.dashboard_responsive_host = QWidget()
+        self.dashboard_responsive_host.setObjectName('DashboardResponsiveGridHost')
+        self.dashboard_responsive_host.setProperty('dashboardResponsivePhase', 439)
+        self.dashboard_responsive_host.setProperty('projectVisualIdentityPhase', '439')
+        self.dashboard_responsive_host.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        self.dashboard_responsive_grid = QGridLayout(self.dashboard_responsive_host)
+        self.dashboard_responsive_grid.setContentsMargins(0, 0, 0, 0)
+        self.dashboard_responsive_grid.setHorizontalSpacing(int(BRAND.get('dashboard_responsive_grid_spacing', 14)))
+        self.dashboard_responsive_grid.setVerticalSpacing(int(BRAND.get('dashboard_responsive_grid_spacing', 14)))
+
         self.quick_panel = self._create_quick_actions_panel()
         self.company_panel = self._create_company_info_panel()
         self.project_panel = self._create_project_panel()
-        # Phase 328: dashboard cards fill the landing page instead of leaving
-        # large dead bands under the cards on common laptop/desktop heights.
         for panel in (self.quick_panel, self.company_panel, self.project_panel):
             panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-            panel.setMinimumHeight(500)
-            panel.setMaximumHeight(16777215)
-        row.addWidget(self.quick_panel, 5)
-        row.addWidget(self.company_panel, 4)
-        row.addWidget(self.project_panel, 5)
-        self.main_layout.addLayout(row, 1)
+            panel.setMinimumWidth(0)
+            panel.setMaximumWidth(16777215)
+            panel.setProperty('dashboardResponsivePhase', 439)
+            panel.setProperty('projectVisualIdentityPhase', '439')
+
+        self.main_layout.addWidget(self.dashboard_responsive_host, 1)
+        self._dashboard_responsive_columns = None
+        self._apply_dashboard_responsive_layout(force=True)
 
     def _build_bottom_grid(self):
         # Phase 286: keep the developer/system identity card as a compact,
@@ -218,46 +343,69 @@ class DashboardWidget(QWidget):
     def _create_quick_actions_panel(self):
         panel = DashboardPanel(translate('dashboard_daily_shortcuts'), 'bolt')
         panel.setObjectName('DashboardQuickActionsPanel')
-        panel.setMinimumHeight(430)
-        panel.setProperty('basitPanel', True)
-        panel.setStyleSheet(panel.styleSheet() + """
-            QFrame#DashboardQuickActionsPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; }
-        """)
+        panel.setMinimumHeight(int(BRAND.get('dashboard_panel_min_height_medium', 360)))
+        panel.setProperty('basitPanel', False)
+        panel.setProperty('dashboardPanelRole', 'daily_shortcuts')
         grid = QGridLayout()
         grid.setSpacing(12)
+        self.quick_actions_grid = grid
+        self.quick_action_buttons = []
         actions = [
-            (translate('dashboard_pos_f9'), 'desktop', '#059669', lambda: self._switch_page('pos')),
-            (translate('sales_invoice'), 'file-invoice-dollar', '#2563eb', lambda: self._open_invoice('sale')),
-            (translate('purchase_invoice'), 'shopping-cart', '#f59e0b', lambda: self._open_invoice('purchase')),
-            (translate('new_customer'), 'user-plus', '#8b5cf6', self._open_add_customer),
-            (translate('new_supplier'), 'truck-loading', '#0891b2', self._open_add_supplier),
-            (translate('new_item'), 'box', '#0ea5e9', self._open_add_item),
-            (translate('receipt_voucher'), 'hand-holding-usd', '#16a34a', lambda: self._open_voucher('receipt')),
-            (translate('payment_voucher'), 'money-bill-wave', '#ef4444', lambda: self._open_voucher('payment')),
-            (translate('expense'), 'file-invoice', '#f97316', lambda: self._open_voucher('expense')),
+            (translate('dashboard_pos_f9'), 'desktop', '#059669', 'primary', lambda: self._switch_page('pos')),
+            (translate('sales_invoice'), 'file-invoice-dollar', '#2563eb', 'primary', lambda: self._open_invoice('sale')),
+            (translate('purchase_invoice'), 'shopping-cart', '#f59e0b', 'secondary', lambda: self._open_invoice('purchase')),
+            (translate('new_customer'), 'user-plus', '#8b5cf6', 'secondary', self._open_add_customer),
+            (translate('new_supplier'), 'truck-loading', '#0891b2', 'secondary', self._open_add_supplier),
+            (translate('new_item'), 'box', '#0ea5e9', 'secondary', self._open_add_item),
+            (translate('receipt_voucher'), 'hand-holding-usd', '#16a34a', 'finance', lambda: self._open_voucher('receipt')),
+            (translate('payment_voucher'), 'money-bill-wave', '#ef4444', 'finance', lambda: self._open_voucher('payment')),
+            (translate('expense'), 'file-invoice', '#f97316', 'finance', lambda: self._open_voucher('expense')),
         ]
-        for i, (text, icon, color, callback) in enumerate(actions):
+        for i, (text, icon, color, tier, callback) in enumerate(actions):
             btn = QuickActionButton(text, icon, color)
             btn.setObjectName('DashboardDailyActionButton')
             # Phase328 compatibility marker: btn.setMinimumHeight(92)
-            btn.setMinimumHeight(int(BRAND.get('basit_dashboard_card_height', 96)))
+            btn.setMinimumHeight(int(BRAND.get('dashboard_shortcut_height', BRAND.get('basit_dashboard_card_height', 96))))
             btn.setProperty('visualRole', 'dashboard_shortcut')
-            btn.setProperty('basitCard', True)
+            btn.setProperty('dashboardActionTier', tier)
+            btn.setProperty('basitCard', False)
+            btn.setProperty('dashboardVisualPhase', 437)
             btn.setIconSize(QSize(24, 24))
             btn.setLayoutDirection(qt_layout_direction())
-            # Phase384: centered shortcut text without the legacy monitoring row.
-            btn.setStyleSheet(btn.styleSheet() + '''
-                QPushButton#DashboardDailyActionButton,
-                QPushButton {
-                    text-align: center;
+            # Phase437: centered shortcut cards use product identity tones.
+            if tier == 'primary':
+                bg = _dc('dashboard_shortcut_primary_bg', '#0A6D9A')
+                hover = _dc('dashboard_shortcut_primary_hover', '#095D84')
+                fg = '#FFFFFF'
+                border = _dc('dashboard_shortcut_primary_hover', '#095D84')
+            elif tier == 'finance':
+                bg = _dc('dashboard_shortcut_finance_bg', '#F3E8CF')
+                hover = _dc('dashboard_shortcut_finance_hover', '#E8D6AC')
+                fg = _dc('dashboard_shortcut_finance_text', '#654B12')
+                border = '#E2C889'
+                btn.setIcon(qta.icon(f'fa5s.{icon}', color=fg))
+            else:
+                bg = _dc('dashboard_shortcut_secondary_bg', '#EAF4FF')
+                hover = _dc('dashboard_shortcut_secondary_hover', '#DDEEFF')
+                fg = _dc('dashboard_shortcut_secondary_text', '#0B3D63')
+                border = _dc('dashboard_panel_header_border', '#C7DAEE')
+                btn.setIcon(qta.icon(f'fa5s.{icon}', color=fg))
+            btn.setStyleSheet(f'''
+                QPushButton#DashboardDailyActionButton {{
+                    background: {bg};
+                    color: {fg};
+                    border: 1px solid {border};
+                    border-radius: {int(BRAND.get('dashboard_shortcut_radius', 14))}px;
                     padding-left: 10px;
                     padding-right: 10px;
-                    border-radius: 3px;
-                }
+                    text-align: center;
+                    font-weight: 950;
+                }}
+                QPushButton#DashboardDailyActionButton:hover {{ background: {hover}; }}
             ''')
             btn.clicked.connect(callback)
-            # Phase 303: dashboard keeps RTL structure while shortcut labels are centered.
-            grid.addWidget(btn, i // 3, 2 - (i % 3))
+            self.quick_action_buttons.append(btn)
+        self._layout_quick_actions(3)
         panel.layout.addLayout(grid)
         panel.layout.addStretch()
         return panel
@@ -272,14 +420,14 @@ class DashboardWidget(QWidget):
         panel = DashboardPanel(translate('company_current_info'), 'building')
         panel.setObjectName('DashboardCompanyPanel')
         panel.setLayoutDirection(qt_layout_direction())
-        panel.setMinimumHeight(430)
-        panel.setProperty('basitPanel', True)
+        panel.setMinimumHeight(int(BRAND.get('dashboard_panel_min_height_medium', 360)))
+        panel.setProperty('basitPanel', False)
+        panel.setProperty('dashboardPanelRole', 'company_identity')
         panel.setStyleSheet(panel.styleSheet() + '''
-            QFrame#DashboardCompanyPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; }
-            /* Phase384 compatibility marker: QLabel#CompanyLogoBox { background: transparent; */
-            QLabel#CompanyLogoBox { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; padding: 10px; }
-            QLabel#CompanyName { color: #0f172a; font-size: 20px; font-weight: 950; border: none; }
-            QLabel#CompanyLine { color: #334155; font-size: 13px; font-weight: 850; border: none; }
+            /* Phase437 identity-aligned company card; old Basit hard border removed. */
+            QLabel#CompanyLogoBox { background: #ffffff; border: 1px solid #D8E5F2; border-radius: 16px; padding: 12px; }
+            QLabel#CompanyName { color: #071A2E; font-size: 21px; font-weight: 950; border: none; }
+            QLabel#CompanyLine { color: #38556F; font-size: 13px; font-weight: 850; border: none; }
             QLabel#CompanyFallbackNote { color: #64748b; background: transparent; border: none; font-size: 1px; }
         ''')
 
@@ -385,18 +533,18 @@ class DashboardWidget(QWidget):
         panel = DashboardPanel(translate('cashbox'), 'wallet')
         panel.setObjectName('DashboardCashPanel')
         panel.setLayoutDirection(qt_layout_direction())
-        panel.setMinimumHeight(430)
-        panel.setProperty('basitPanel', True)
+        panel.setMinimumHeight(int(BRAND.get('dashboard_panel_min_height_medium', 360)))
+        panel.setProperty('basitPanel', False)
+        panel.setProperty('dashboardPanelRole', 'cashbox')
         panel.setStyleSheet(panel.styleSheet() + """
-            QFrame#DashboardCashPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; }
-            QLabel#CashSectionTitle { background: #f5c542; color: #1f2937; border: 1px solid #aab8cc; border-radius: 2px; padding: 6px; font-size: 15px; font-weight: 950; }
-            QLabel#CashMetricTitle { color: #334155; font-size: 12px; font-weight: 900; border: none; }
-            QLabel#CashMetricValue { color: #0f172a; font-size: 20px; font-weight: 950; border: none; }
-            QLabel#CashBalanceValue { color: #e5391c; font-size: 36px; font-weight: 950; border: none; }
-            QLabel#CashBalanceTitle { color: #1f2937; font-size: 14px; font-weight: 950; border: none; }
-            QLineEdit#CashExchangeRateInput { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; padding: 7px 10px; font-size: 13px; font-weight: 900; }
-            QPushButton#CashExchangeSaveButton { background: #006fbd; color: white; border: 1px solid #00599c; border-radius: 2px; padding: 7px 12px; font-weight: 950; }
-            QPushButton#CashExchangeSaveButton:hover { background: #0b85dc; }
+            QLabel#CashSectionTitle { background: #EAF4FF; color: #0B3D63; border: 1px solid #C7DAEE; border-radius: 12px; padding: 7px 10px; font-size: 15px; font-weight: 950; }
+            QLabel#CashMetricTitle { color: #38556F; font-size: 12px; font-weight: 900; border: none; }
+            QLabel#CashMetricValue { color: #071A2E; font-size: 20px; font-weight: 950; border: none; }
+            QLabel#CashBalanceValue { color: #C2410C; font-size: 32px; font-weight: 950; border: none; }
+            QLabel#CashBalanceTitle { color: #071A2E; font-size: 14px; font-weight: 950; border: none; }
+            QLineEdit#CashExchangeRateInput { background: #ffffff; border: 1px solid #D8E5F2; border-radius: 10px; padding: 7px 10px; font-size: 13px; font-weight: 900; }
+            QPushButton#CashExchangeSaveButton { background: #0A6D9A; color: white; border: 1px solid #095D84; border-radius: 10px; padding: 7px 12px; font-weight: 950; }
+            QPushButton#CashExchangeSaveButton:hover { background: #095D84; }
         """)
 
         self.cash_labels = {}
@@ -415,12 +563,12 @@ class DashboardWidget(QWidget):
         self.cash_visibility_btn.setCursor(Qt.PointingHandCursor)
         self.cash_visibility_btn.setIcon(qta.icon('fa5s.eye-slash' if self._cash_balances_hidden else 'fa5s.eye', color='#334155'))
         self.cash_visibility_btn.clicked.connect(self._toggle_cash_visibility)
-        self.cash_visibility_btn.setStyleSheet('QPushButton { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 15px; } QPushButton:hover { background: #e2e8f0; }')
+        self.cash_visibility_btn.setStyleSheet('QPushButton { background: #F8FBFF; border: 1px solid #D8E5F2; border-radius: 15px; } QPushButton:hover { background: #EAF4FF; }')
         self.cash_mode_btn = QPushButton(translate('today_movement'))
         self.cash_mode_btn.setCursor(Qt.PointingHandCursor)
         self.cash_mode_btn.setMinimumHeight(30)
         self.cash_mode_btn.clicked.connect(self._toggle_cash_movement_mode)
-        self.cash_mode_btn.setStyleSheet('QPushButton { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 15px; color: #1d4ed8; font-weight: 900; padding: 4px 14px; } QPushButton:hover { background: #dbeafe; }')
+        self.cash_mode_btn.setStyleSheet('QPushButton { background: #EAF4FF; border: 1px solid #C7DAEE; border-radius: 15px; color: #0B3D63; font-weight: 900; padding: 4px 14px; } QPushButton:hover { background: #DDEEFF; }')
         header.addWidget(self.cash_visibility_btn)
         header.addStretch()
         header.addWidget(self.cash_mode_btn)
@@ -428,8 +576,9 @@ class DashboardWidget(QWidget):
 
         movement_box = QFrame()
         movement_box.setObjectName('CashMovementBox')
-        movement_box.setProperty('basitPanel', True)
-        movement_box.setStyleSheet('QFrame#CashMovementBox { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; } QLabel { border: none; }')
+        movement_box.setProperty('basitPanel', False)
+        movement_box.setProperty('dashboardVisualPhase', 437)
+        movement_box.setStyleSheet('QFrame#CashMovementBox { background: #FFFFFF; border: 1px solid #D8E5F2; border-radius: 16px; } QLabel { border: none; }')
         movement_layout = QVBoxLayout(movement_box)
         movement_layout.setContentsMargins(12, 10, 12, 12)
         movement_layout.setSpacing(10)
@@ -440,8 +589,9 @@ class DashboardWidget(QWidget):
 
         def make_amount_card(key, title, icon_name, accent='#2563eb'):
             card = QFrame()
-            card.setProperty('basitMetricCard', True)
-            card.setStyleSheet('QFrame { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; } QLabel { border: none; }')
+            card.setProperty('basitMetricCard', False)
+            card.setProperty('dashboardVisualPhase', 437)
+            card.setStyleSheet('QFrame { background: #F8FBFF; border: 1px solid #D8E5F2; border-radius: 14px; } QLabel { border: none; }')
             lay = QHBoxLayout(card)
             lay.setContentsMargins(10, 9, 10, 9)
             icon = QLabel()
@@ -472,7 +622,7 @@ class DashboardWidget(QWidget):
         balance_box = QFrame()
         balance_box.setObjectName('CashBalanceBox')
         balance_box.setProperty('basitTotalFooter', True)
-        balance_box.setStyleSheet('QFrame#CashBalanceBox { background: #f6f0e6; border: 1px solid #aab8cc; border-radius: 2px; } QLabel { border: none; }')
+        balance_box.setStyleSheet('QFrame#CashBalanceBox { background: #FFF7ED; border: 1px solid #FED7AA; border-radius: 16px; } QLabel { border: none; }')
         balance_layout = QVBoxLayout(balance_box)
         balance_layout.setContentsMargins(12, 10, 12, 10)
         balance_layout.setSpacing(4)
@@ -490,8 +640,9 @@ class DashboardWidget(QWidget):
         currency_box = QFrame()
         currency_box.setObjectName('CashCurrencyBox')
         currency_box.setLayoutDirection(qt_layout_direction())
-        currency_box.setProperty('basitPanel', True)
-        currency_box.setStyleSheet('QFrame#CashCurrencyBox { background: #ffffff; border: 1px solid #aab8cc; border-radius: 2px; } QLabel { border: none; }')
+        currency_box.setProperty('basitPanel', False)
+        currency_box.setProperty('dashboardVisualPhase', 437)
+        currency_box.setStyleSheet('QFrame#CashCurrencyBox { background: #FFFFFF; border: 1px solid #D8E5F2; border-radius: 16px; } QLabel { border: none; }')
         currency_layout = QGridLayout(currency_box)
         currency_layout.setContentsMargins(10, 9, 10, 9)
         currency_layout.setHorizontalSpacing(8)
@@ -544,33 +695,35 @@ class DashboardWidget(QWidget):
         panel.setLayoutDirection(qt_layout_direction())
         panel.setMinimumHeight(210)
         panel.setMaximumHeight(260)
-        panel.setProperty('basitPanel', True)
+        panel.setProperty('basitPanel', False)
+        panel.setProperty('dashboardVisualPhase', 437)
+        panel.setProperty('projectVisualIdentityPhase', '439')
         panel.setStyleSheet(f"""
             QFrame#DeveloperBrandPanel {{
-                background: #edf2f7;
-                border: 1px solid #aab8cc;
-                border-radius: 2px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #F8FBFF, stop:1 #EEF8FA);
+                border: 1px solid #D8E5F2;
+                border-radius: 18px;
             }}
             QLabel#SystemBrandLogoBox {{
-                background: transparent;
-                border: 1px solid #dbeafe;
+                background: #FFFFFF;
+                border: 1px solid #D8E5F2;
                 border-radius: 22px;
                 padding: 8px;
             }}
             QLabel#SystemBrandTitle {{
-                color: #1559b7;
+                color: #0B3D63;
                 font-size: 32px;
                 font-weight: 900;
                 border: none;
             }}
             QLabel#SystemBrandSubtitle {{
-                color: #334155;
+                color: #38556F;
                 font-size: 14px;
                 font-weight: 900;
                 border: none;
             }}
             QLabel#SystemBrandDivider {{
-                color: #93c5fd;
+                color: #0AA7A7;
                 font-size: 18px;
                 font-weight: 900;
                 border: none;

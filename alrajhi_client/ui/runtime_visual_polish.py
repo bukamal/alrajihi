@@ -14,6 +14,10 @@ from PyQt5.QtWidgets import (
     QFrame,
     QGroupBox,
     QHeaderView,
+    QLabel,
+    QScrollArea,
+    QSplitter,
+    QStackedWidget,
     QLineEdit,
     QPlainTextEdit,
     QSizePolicy,
@@ -21,6 +25,7 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QTableView,
     QTableWidget,
+    QTabWidget,
     QStyledItemDelegate,
     QTextEdit,
     QWidget,
@@ -144,6 +149,10 @@ def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_ty
     try:
         root.setProperty("visualPageId", policy.page_id)
         root.setProperty("visualWorkspaceType", policy.workspace_type)
+        root.setProperty("projectVisualIdentityPhase", str(BRAND.get("project_visual_identity_phase", 440)))
+        root.setProperty("visualIdentitySweepPhase", str(BRAND.get("legacy_visual_style_sweep_phase", 440)))
+        root.setProperty("visualStyleSource", BRAND.get("workspace_style_source", "centralized_runtime_visual_identity"))
+        root.setProperty("visualRole", "workspace_surface")
         _set_if_empty_object_name(root, policy.object_name)
         _layout_apply(root, policy.margin, policy.spacing)
     except Exception:
@@ -153,15 +162,36 @@ def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_ty
     for child in children:
         try:
             child.setProperty("visualWorkspaceType", policy.workspace_type)
+            child.setProperty("projectVisualIdentityPhase", str(BRAND.get("project_visual_identity_phase", 440)))
+            child.setProperty("visualIdentitySweepPhase", str(BRAND.get("legacy_visual_style_sweep_phase", 440)))
+            child.setProperty("visualStyleSource", BRAND.get("workspace_style_source", "centralized_runtime_visual_identity"))
             _layout_apply(child, policy.margin, policy.spacing)
             if isinstance(child, QTableView):
                 _apply_table_polish(child, policy.table_density)
+            elif isinstance(child, QTabWidget):
+                child.setProperty("visualRole", "workspace_tabs")
+                child.setDocumentMode(True)
             elif isinstance(child, (QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox)):
                 _apply_input_polish(child)
             elif isinstance(child, QAbstractButton):
-                _apply_button_polish(child, policy.button_role)
+                _apply_button_polish(child, "workspace_action")
+            elif isinstance(child, QScrollArea):
+                child.setProperty("visualRole", "workspace_scroll")
+                try:
+                    child.setWidgetResizable(True)
+                except Exception:
+                    pass
+            elif isinstance(child, QStackedWidget):
+                child.setProperty("visualRole", "workspace_stack")
+            elif isinstance(child, QSplitter):
+                child.setProperty("visualRole", "workspace_splitter")
+            elif isinstance(child, QLabel):
+                name = (child.objectName() or "").lower()
+                text = (child.text() or "").strip()
+                if "title" in name or "header" in name or len(text) <= 28 and text.endswith((':', '：')):
+                    child.setProperty("visualRole", "section_header")
             elif isinstance(child, (QFrame, QGroupBox)):
-                child.setProperty("visualRole", policy.card_role)
+                child.setProperty("visualRole", "workspace_card")
         except Exception:
             continue
 

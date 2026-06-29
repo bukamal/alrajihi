@@ -449,6 +449,10 @@ REQUIRED_PHASE_TESTS: Sequence[str] = tuple(
         (428, "operational_item_card_grid"),
         (429, "operational_fullscreen"),
         (430, "pos_barcode_table_first"),
+        (431, "horizontal_branded_login_layout"),
+        (432, "horizontal_login_runtime_stabilization"),
+        (433, "login_password_row_visibility_fix"),
+        (434, "branded_prelogin_startup_splash"),
     ]
 )
 
@@ -615,6 +619,10 @@ RELEASE_GATE_CHECKS: Sequence[ReleaseGateCheck] = (
     ReleaseGateCheck("operational_item_card_grid", "ui", "Restaurant and cafe material surfaces share a three-column operational item-card grid; POS is barcode/table-first", "tools/phase428_operational_item_card_grid_guard.py", "tools/audit_outputs/operational_item_card_grid_matrix.csv", phase=428),
     ReleaseGateCheck("operational_fullscreen", "ui", "POS, restaurant and cafe share a central operational fullscreen controller", "tools/phase429_operational_fullscreen_guard.py", "tools/audit_outputs/operational_fullscreen_matrix.csv", phase=429),
     ReleaseGateCheck("pos_barcode_table_first", "ui", "POS keeps barcode/search and cart table only while Restaurant/Cafe keep material cards", "tools/phase430_pos_barcode_table_first_guard.py", "tools/audit_outputs/pos_barcode_table_first_matrix.csv", phase=430),
+    ReleaseGateCheck("horizontal_branded_login", "dialogs", "Login screen uses a horizontal branded identity/form layout", "tools/phase431_horizontal_branded_login_guard.py", phase=431),
+    ReleaseGateCheck("horizontal_login_runtime_stabilization", "dialogs", "Horizontal login runtime dimensions, titlebar and non-overlap are stabilized", "tools/phase432_horizontal_login_runtime_stabilization_guard.py", phase=432),
+    ReleaseGateCheck("login_password_row_visibility", "dialogs", "Login password input row remains visible before language options", "tools/phase433_login_password_row_visibility_guard.py", phase=433),
+    ReleaseGateCheck("branded_prelogin_startup_splash", "dialogs", "Pre-login startup splash uses branded staged loading without legacy yellow header", "tools/phase434_branded_prelogin_startup_splash_guard.py", "tools/audit_outputs/branded_prelogin_startup_splash_matrix.json", phase=434),
     ReleaseGateCheck("print_settings", "printing", "Print settings contract", "tools/phase236_print_settings_contract_audit.py", phase=236),
 )
 
