@@ -21,6 +21,9 @@ class SettingsSectionForm(QFrame):
     def __init__(self, fields: Iterable[FieldSpec], parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName('FormCard')
+        self.setProperty('settingsVisualPhase', 451)
+        self.setProperty('visualWorkspaceType', 'settings')
+        self.setProperty('visualRole', 'settings_card')
         self._widgets: Dict[str, QWidget] = {}
         form = QFormLayout(self)
         form.setLabelAlignment(Qt.AlignRight)
@@ -33,10 +36,14 @@ class SettingsSectionForm(QFrame):
         current = settings_service.get(key, '')
         if field_type == 'bool':
             w = QCheckBox()
+            w.setProperty('settingsVisualPhase', 451)
+            w.setProperty('visualRole', 'settings_input')
             w.setChecked(str(current).lower() in ('1', 'true', 'yes', 'on'))
             return w
         if field_type.startswith('choice:'):
             w = QComboBox()
+            w.setProperty('settingsVisualPhase', 451)
+            w.setProperty('visualRole', 'settings_input')
             for option in field_type.split(':', 1)[1].split('|'):
                 w.addItem(option, option)
             idx = w.findData(str(current))
@@ -45,6 +52,8 @@ class SettingsSectionForm(QFrame):
             return w
         if field_type == 'int':
             w = QSpinBox()
+            w.setProperty('settingsVisualPhase', 451)
+            w.setProperty('visualRole', 'settings_input')
             w.setRange(0, 999999)
             try:
                 w.setValue(int(current or 0))
@@ -53,10 +62,14 @@ class SettingsSectionForm(QFrame):
             return w
         if field_type == 'text':
             w = QTextEdit()
+            w.setProperty('settingsVisualPhase', 451)
+            w.setProperty('visualRole', 'settings_input')
             w.setMaximumHeight(100)
             w.setPlainText(str(current or ''))
             return w
         w = QLineEdit()
+        w.setProperty('settingsVisualPhase', 451)
+        w.setProperty('visualRole', 'settings_input')
         w.setText(str(current or ''))
         return w
 
@@ -112,21 +125,33 @@ class SettingsSectionDocumentTab(BaseDocumentTab):
 
     def _build_ui(self) -> None:
         self.setLayoutDirection(qt_layout_direction())
+        self.setProperty('settingsVisualPhase', 451)
+        self.setProperty('visualWorkspaceType', 'settings')
+        self.setProperty('visualRole', 'settings_document_surface')
+        self.setProperty('visualStyleSource', 'settings_workspace_visual_consolidation')
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 14, 14, 14)
         root.setSpacing(12)
         header = QFrame(self)
         header.setObjectName('DocumentHeaderCard')
+        header.setProperty('settingsVisualPhase', 451)
+        header.setProperty('visualRole', 'settings_header')
         h = QVBoxLayout(header)
         h.setContentsMargins(16, 12, 16, 12)
         title = QLabel(self.workspace_title())
         title.setObjectName('DocumentTitle')
+        title.setProperty('settingsVisualPhase', 451)
+        title.setProperty('visualRole', 'settings_title')
         h.addWidget(title)
         hint = QLabel(translate('settings_document_hint'))
+        hint.setProperty('settingsVisualPhase', 451)
+        hint.setProperty('visualRole', 'settings_help')
         hint.setWordWrap(True)
         h.addWidget(hint)
         save_btn = QPushButton(translate('save'))
         save_btn.setObjectName('primary')
+        save_btn.setProperty('settingsVisualPhase', 451)
+        save_btn.setProperty('visualRole', 'settings_primary_action')
         save_btn.clicked.connect(self.workspace_save)
         h.addWidget(save_btn, 0, Qt.AlignRight)
         root.addWidget(header)
@@ -134,12 +159,8 @@ class SettingsSectionDocumentTab(BaseDocumentTab):
         self.form.connect_changed(lambda: self.set_dirty(True))
         root.addWidget(self.form)
         root.addStretch(1)
-        self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QFrame#FormCard { border: 1px solid palette(mid); border-radius: 14px; background: palette(base); }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLineEdit, QComboBox, QTextEdit, QSpinBox { min-height: 34px; padding: 5px 9px; }
-            QPushButton#primary { font-weight: 900; padding: 8px 16px; }
-        ''')
+        self.setProperty('documentLocalStylesSuppressed', True)
+        self.setProperty('settingsLocalStylesSuppressed', True)
 
     def workspace_save(self) -> None:
         try:

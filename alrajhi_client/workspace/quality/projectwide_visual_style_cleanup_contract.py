@@ -31,12 +31,12 @@ MIGRATED_FILES = {
 }
 
 REQUIRED_MARKERS = [
-    ('project_visual_identity_phase', ("project_visual_identity_phase': 442", "project_visual_identity_phase': 445")),
-    ('legacy_visual_style_sweep_phase', ("legacy_visual_style_sweep_phase': 442", "legacy_visual_style_sweep_phase': 445")),
-    ('semantic_visual_state_phase', ("semantic_visual_state_phase': 442", "semantic_visual_state_phase': 445")),
-    ('phase442_widget_selector', ('QWidget[projectVisualIdentityPhase="442"]', 'QWidget[projectVisualIdentityPhase="445"]')),
-    ('phase442_sweep_selector', ('QWidget[visualIdentitySweepPhase="442"]', 'QWidget[visualIdentitySweepPhase="445"]')),
-    ('phase442_tab_selector', ('QTabWidget[projectVisualIdentityPhase="442"]::pane', 'QTabWidget[projectVisualIdentityPhase="445"]::pane')),
+    ('project_visual_identity_phase', ("project_visual_identity_phase': 442", "project_visual_identity_phase': 445", "project_visual_identity_phase': 446", "project_visual_identity_phase': 447", "project_visual_identity_phase': 450", "project_visual_identity_phase': 451")),
+    ('legacy_visual_style_sweep_phase', ("legacy_visual_style_sweep_phase': 442", "legacy_visual_style_sweep_phase': 445", "legacy_visual_style_sweep_phase': 446", "legacy_visual_style_sweep_phase': 447", "legacy_visual_style_sweep_phase': 450", "legacy_visual_style_sweep_phase': 451")),
+    ('semantic_visual_state_phase', ("semantic_visual_state_phase': 442", "semantic_visual_state_phase': 445", "semantic_visual_state_phase': 446", "semantic_visual_state_phase': 447", "semantic_visual_state_phase': 450", "semantic_visual_state_phase': 451", "semantic_visual_state_phase': 451", "semantic_visual_state_phase': 451")),
+    ('phase442_widget_selector', ('QWidget[projectVisualIdentityPhase="442"]', 'QWidget[projectVisualIdentityPhase="445"]', 'QWidget[projectVisualIdentityPhase="446"]', 'QWidget[projectVisualIdentityPhase="447"]', 'QWidget[projectVisualIdentityPhase="450"]')),
+    ('phase442_sweep_selector', ('QWidget[visualIdentitySweepPhase="442"]', 'QWidget[visualIdentitySweepPhase="445"]', 'QWidget[visualIdentitySweepPhase="446"]', 'QWidget[visualIdentitySweepPhase="447"]', 'QWidget[visualIdentitySweepPhase="450"]')),
+    ('phase442_tab_selector', ('QTabWidget[projectVisualIdentityPhase="442"]::pane', 'QTabWidget[projectVisualIdentityPhase="445"]::pane', 'QTabWidget[projectVisualIdentityPhase="446"]::pane', 'QTabWidget[projectVisualIdentityPhase="447"]::pane', 'QTabWidget[projectVisualIdentityPhase="450"]::pane')),
     ('semantic_error_card', ('QLabel[visualRole="semantic_error_card"]',)),
     ('table_column_header', ('QLabel[visualRole="table_column_header"]',)),
     ('camera_preview', ('QLabel[visualRole="camera_preview"]',)),

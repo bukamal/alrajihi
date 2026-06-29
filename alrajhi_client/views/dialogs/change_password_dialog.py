@@ -7,6 +7,8 @@ from auth.session import UserSession
 from i18n import translate, qt_layout_direction
 from theme_manager import ThemeManager
 from views.widgets.modern_ui import apply_modern_dialog
+from ui.dialog_branding import apply_modal_visual_template
+from ui.visual_state import set_visual_state
 
 
 class ChangePasswordDialog(FramelessDialog):
@@ -22,7 +24,8 @@ class ChangePasswordDialog(FramelessDialog):
 
         title = QLabel(translate('change_password'))
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {ThemeManager.get('primary')};")
+        title.setProperty('visualRole', 'modal_title')
+        title.setProperty('modalLocalStylesSuppressed', True)
         layout.addWidget(title)
 
         form = QFormLayout()
@@ -46,13 +49,14 @@ class ChangePasswordDialog(FramelessDialog):
 
         self.strength_label = QLabel(translate('password_strength_empty'))
         self.strength_label.setAlignment(Qt.AlignCenter)
-        self.strength_label.setStyleSheet(f"color: {ThemeManager.get('text_muted')};")
+        set_visual_state(self.strength_label, 'muted', size='caption', role='modal_status')
         layout.addWidget(self.strength_label)
 
         hint = QLabel(translate('password_hint'))
         hint.setWordWrap(True)
         hint.setAlignment(Qt.AlignCenter)
-        hint.setStyleSheet(f"color: {ThemeManager.get('text_muted')}; font-size: 12px;")
+        hint.setProperty('visualRole', 'modal_help')
+        hint.setProperty('modalLocalStylesSuppressed', True)
         layout.addWidget(hint)
 
         btns = QHBoxLayout()
@@ -67,6 +71,7 @@ class ChangePasswordDialog(FramelessDialog):
         btns.addWidget(save_btn)
         btns.addWidget(cancel_btn)
         layout.addLayout(btns)
+        apply_modal_visual_template(self, role='change_password')
         self.fade_in()
 
     def _toggle_passwords(self, checked):
@@ -100,7 +105,7 @@ class ChangePasswordDialog(FramelessDialog):
         }
         label, color = labels.get(score, labels[0])
         self.strength_label.setText(translate('password_strength_value', value=label))
-        self.strength_label.setStyleSheet(f"color: {ThemeManager.get(color)};")
+        set_visual_state(self.strength_label, color, weight='strong', size='caption', role='modal_status')
 
     def save(self):
         old = self.old_edit.text()

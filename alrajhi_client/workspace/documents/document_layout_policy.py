@@ -21,7 +21,11 @@ from __future__ import annotations
 from typing import Optional
 
 from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import QFrame, QSizePolicy, QSplitter, QTabWidget, QWidget
+from PyQt5.QtWidgets import (
+    QAbstractItemView, QComboBox, QDateEdit, QDoubleSpinBox, QFrame, QGroupBox,
+    QLabel, QLineEdit, QPushButton, QSizePolicy, QSplitter, QSpinBox, QTabWidget,
+    QTextEdit, QWidget,
+)
 
 try:
     from .document_contract import CURRENCY_NONE
@@ -208,12 +212,105 @@ def _configure_tabular_document(widget: QWidget, *, inline: bool) -> None:
             pass
 
 
+
+def _set_visual_role(widget: QWidget, role: str) -> None:
+    try:
+        if not widget.property("visualRole"):
+            widget.setProperty("visualRole", role)
+    except Exception:
+        pass
+
+
+def _apply_document_visual_template(widget: QWidget, *, kind: str) -> None:
+    """Apply Phase450 document-editor visual identity roles.
+
+    This is deliberately styling-only metadata.  It does not alter persistence,
+    Enter navigation, financial calculations, printing, permissions, or data
+    loading.  Central QSS consumes these roles so document editors stop relying
+    on feature-local hard-coded styles.
+    """
+    try:
+        widget.setProperty("documentVisualTemplatePhase", 450)
+        widget.setProperty("projectVisualIdentityPhase", 450)
+        widget.setProperty("visualWorkspaceType", "document")
+        widget.setProperty("visualRole", "document_editor_surface")
+    except Exception:
+        pass
+
+    header_names = {
+        "DocumentHeaderCard", "ExpenseDocumentHeaderCard", "TransactionHeaderCard",
+        "DocumentTitleCard", "TransactionInlineHeaderBar",
+    }
+    panel_names = {
+        "DocumentPanel", "ExpenseDocumentPanel", "DocumentSection", "ExpenseDocumentSection",
+        "FormCard", "DocumentPanelCard", "MaterialBasicCard", "MaterialPricingCard",
+        "MaterialBarcodeCard", "MaterialUnitsCard",
+    }
+    summary_names = {
+        "SummaryPanel", "ExpenseSummaryPanel", "TransactionFooterPanel",
+        "BomSummaryPanel", "ProductionSummaryPanel", "MetricCard",
+    }
+    action_names = {
+        "BottomActionBar", "ExpenseBottomActionBar", "TransactionBottomActionBar",
+        "MaterialEditorActionBar", "CategoryInlineActionBar",
+    }
+
+    for child in widget.findChildren(QWidget):
+        try:
+            name = child.objectName() or ""
+            child.setProperty("documentVisualTemplatePhase", 450)
+            if name in header_names:
+                _set_visual_role(child, "document_header")
+            elif name in panel_names:
+                _set_visual_role(child, "document_card")
+            elif name in summary_names:
+                _set_visual_role(child, "document_summary")
+            elif name in action_names:
+                _set_visual_role(child, "document_action_bar")
+            elif name in {"TransactionInlineHeaderField"}:
+                _set_visual_role(child, "document_header_field")
+        except Exception:
+            pass
+
+    for title_name in ("DocumentTitle", "PanelTitle", "SectionTitle"):
+        for label in widget.findChildren(QLabel, title_name):
+            _set_visual_role(label, "document_section_title" if title_name != "DocumentTitle" else "document_title")
+    for label in widget.findChildren(QLabel, "DocumentSubtitle"):
+        _set_visual_role(label, "document_subtitle")
+    for label in widget.findChildren(QLabel, "MetricTitle"):
+        _set_visual_role(label, "document_metric_title")
+    for label in widget.findChildren(QLabel, "MetricValue"):
+        _set_visual_role(label, "document_metric_value")
+
+    for table in widget.findChildren(QAbstractItemView):
+        _set_visual_role(table, "document_table")
+
+    for splitter in widget.findChildren(QSplitter):
+        _set_visual_role(splitter, "document_splitter")
+
+    input_classes = (QLineEdit, QComboBox, QDateEdit, QDoubleSpinBox, QSpinBox, QTextEdit)
+    for klass in input_classes:
+        for field in widget.findChildren(klass):
+            _set_visual_role(field, "document_input")
+
+    for button in widget.findChildren(QPushButton):
+        try:
+            if button.objectName() == "primary" or button in (getattr(widget, "bottom_save_btn", None), getattr(widget, "header_save_btn", None), getattr(widget, "save_btn", None)):
+                button.setProperty("visualRole", "document_primary_action")
+            elif "delete" in (button.objectName() or "").lower() or "حذف" in button.text():
+                button.setProperty("visualRole", "document_danger_action")
+            else:
+                _set_visual_role(button, "document_action")
+        except Exception:
+            pass
+
 def apply_document_layout_policy(widget: QWidget, *, kind: Optional[str] = None, inline: Optional[bool] = None) -> str:
     """Apply the canonical document layout policy and return the resolved kind."""
     resolved_kind = infer_document_layout_kind(widget, kind)
     inline_mode = bool(inline if inline is not None else (widget.property("inlineEditor") or widget.property("documentInlineMode")))
 
     _set_common_properties(widget, kind=resolved_kind, inline=inline_mode)
+    _apply_document_visual_template(widget, kind=resolved_kind)
     _set_layout_margins(widget, inline=inline_mode, kind=resolved_kind)
     if inline_mode:
         _hide_duplicate_inline_headers(widget)
@@ -237,4 +334,5 @@ __all__ = [
     "TABULAR_DOCUMENT_TYPES",
     "infer_document_layout_kind",
     "apply_document_layout_policy",
+    "_apply_document_visual_template",
 ]

@@ -30,6 +30,8 @@ class POSPaymentShell(QWidget):
         super().__init__(parent or host)
         self.host = host
         self.setObjectName("posPaymentShell")
+        self.setProperty("visualRole", "operational_payment_shell")
+        self.setProperty("operationalSurfacePhase", 448)
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -39,6 +41,7 @@ class POSPaymentShell(QWidget):
 
         header = QLabel(translate("pos_payment_shell_title"))
         header.setObjectName("sectionTitle")
+        header.setProperty("visualRole", "operational_section_title")
         root.addWidget(header)
 
         totals = QHBoxLayout()
@@ -51,16 +54,19 @@ class POSPaymentShell(QWidget):
 
         payment_card = QWidget(self)
         payment_card.setObjectName("posPaymentCard")
+        payment_card.setProperty("visualRole", "operational_panel")
         payment_layout = QHBoxLayout(payment_card)
         payment_layout.setContentsMargins(10, 8, 10, 8)
         payment_layout.setSpacing(8)
         payment_layout.addWidget(QLabel(translate("payment_method")))
         self.payment_combo = QComboBox(payment_card)
+        self.payment_combo.setProperty("visualRole", "operational_select")
         self.payment_combo.addItem(translate("payment_cash"), "cash")
         self.payment_combo.addItem(translate("payment_card"), "card")
         self.payment_combo.addItem(translate("payment_credit"), "credit")
         payment_layout.addWidget(self.payment_combo, 1)
         self.paid_spin = QDoubleSpinBox(payment_card)
+        self.paid_spin.setProperty("visualRole", "operational_spin")
         self.paid_spin.setRange(0, 999999999)
         self.paid_spin.setDecimals(2)
         self.paid_spin.setPrefix(translate("paid_prefix"))
@@ -91,17 +97,21 @@ class POSPaymentShell(QWidget):
     def _metric_label(self, text: str, role: str) -> QLabel:
         label = QLabel(text)
         label.setObjectName(f"posMetric_{role}")
+        label.setProperty("visualRole", "operational_metric_value")
+        label.setProperty("metricRole", role)
         label.setStyleSheet(f"font-size: 22px; font-weight: bold; color: {ThemeManager.get('primary')};")
         return label
 
     def _metric_card(self, title: str, value_label: QLabel) -> QWidget:
         card = QWidget(self)
         card.setObjectName("posMetricCard")
+        card.setProperty("visualRole", "operational_panel")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(10, 8, 10, 8)
         layout.setSpacing(4)
         title_label = QLabel(title)
         title_label.setObjectName("muted")
+        title_label.setProperty("visualRole", "operational_muted")
         layout.addWidget(title_label)
         layout.addWidget(value_label)
         return card
@@ -110,8 +120,12 @@ class POSPaymentShell(QWidget):
         button = QPushButton(translate(key), self)
         if primary:
             button.setObjectName("primary")
+            button.setProperty("visualRole", "operational_primary")
         elif danger:
             button.setObjectName("danger")
+            button.setProperty("visualRole", "operational_danger")
+        else:
+            button.setProperty("visualRole", "operational_secondary")
         return button
 
     def apply_density(self, density: str) -> None:

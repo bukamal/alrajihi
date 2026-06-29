@@ -244,24 +244,7 @@ class ExpenseDocumentTab(BaseDocumentTab):
         return bar
 
     def _apply_shell_styles(self) -> None:
-        self.setStyleSheet('''
-            QFrame#ExpenseDocumentHeaderCard, QFrame#ExpenseDocumentPanel, QFrame#ExpenseSummaryPanel, QFrame#ExpenseBottomActionBar {
-                border: 1px solid rgba(120, 120, 120, 0.22);
-                border-radius: 10px;
-                background: rgba(255, 255, 255, 0.03);
-            }
-            QFrame#ExpenseDocumentSection, QFrame#MetricCard {
-                border: 1px solid rgba(120, 120, 120, 0.16);
-                border-radius: 8px;
-                background: rgba(255, 255, 255, 0.025);
-            }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLabel#DocumentSubtitle { color: palette(mid); }
-            QLabel#SectionTitle { font-weight: 800; }
-            QLabel#MetricTitle { color: palette(mid); font-size: 11px; }
-            QLabel#MetricValue { font-size: 15px; font-weight: 900; }
-            QPushButton#primary { font-weight: 900; padding: 8px 16px; }
-        ''')
+        self.setProperty('documentLocalStylesSuppressed', True)
 
     def _connect_signals(self) -> None:
         self.identity_panel.date_edit.dateChanged.connect(lambda *_: self._on_changed())

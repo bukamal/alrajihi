@@ -193,24 +193,7 @@ class VoucherEditorTab(BaseDocumentTab):
         return bar
 
     def _apply_shell_styles(self) -> None:
-        self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QFrame#DocumentPanel, QFrame#SummaryPanel, QFrame#BottomActionBar {
-                border: 1px solid rgba(120, 120, 120, 0.22);
-                border-radius: 10px;
-                background: rgba(255, 255, 255, 0.03);
-            }
-            QFrame#DocumentSection, QFrame#MetricCard {
-                border: 1px solid rgba(120, 120, 120, 0.16);
-                border-radius: 8px;
-                background: rgba(255, 255, 255, 0.025);
-            }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLabel#DocumentSubtitle { color: palette(mid); }
-            QLabel#SectionTitle { font-weight: 800; }
-            QLabel#MetricTitle { color: palette(mid); font-size: 11px; }
-            QLabel#MetricValue { font-size: 15px; font-weight: 900; }
-            QPushButton#primary { font-weight: 900; padding: 8px 16px; }
-        ''')
+        self.setProperty('documentLocalStylesSuppressed', True)
 
     def _connect_signals(self) -> None:
         self.header_panel.changed.connect(self._on_changed)

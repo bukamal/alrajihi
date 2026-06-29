@@ -2,7 +2,7 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QFormLayout, QLineEdit, QComboBox,
     QPushButton, QGroupBox, QLabel, QMessageBox, QTabWidget, QFileDialog,
-    QSpinBox, QCheckBox, QTableWidgetItem, QHeaderView,
+    QSpinBox, QCheckBox, QTableView, QTableWidget, QTableWidgetItem, QHeaderView,
     QDialog, QDialogButtonBox, QScrollArea, QFrame, QPlainTextEdit, QInputDialog
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QSettings, QTimer
@@ -38,6 +38,10 @@ class SettingsWidget(QWidget):
         self.settings = settings_service
         self.setObjectName('settingsWidget')
         self.setProperty('basitSettingsSurface', True)
+        self.setProperty('settingsVisualPhase', 451)
+        self.setProperty('visualWorkspaceType', 'settings')
+        self.setProperty('visualRole', 'settings_workspace')
+        self.setProperty('visualStyleSource', 'settings_workspace_visual_consolidation')
 
         main = QVBoxLayout(self)
         main.setContentsMargins(18, 18, 18, 18)
@@ -47,6 +51,8 @@ class SettingsWidget(QWidget):
         self.tabs = QTabWidget()
         self.tabs.setObjectName('settingsTabs')
         self.tabs.setProperty('basitSettingsTabs', True)
+        self.tabs.setProperty('settingsVisualPhase', 451)
+        self.tabs.setProperty('visualRole', 'settings_group_tabs')
         self.tabs.setDocumentMode(True)
         self.tabs.setUsesScrollButtons(True)
         self.tabs.setElideMode(Qt.ElideRight)
@@ -61,8 +67,10 @@ class SettingsWidget(QWidget):
         main.addWidget(self.tabs, 1)
 
         self._apply_local_style()
-        # Phase118: modern styling without page header cards.
-        apply_modern_widget(self)
+        # Phase451: settings styling is driven by central theme/qss.py; avoid
+        # per-page Modern/Basit stylesheet overlays that can override settings roles.
+        self._apply_settings_visual_template()
+        apply_table_direction_tree(self)
         self.load_rates_table()
 
 
@@ -142,6 +150,8 @@ class SettingsWidget(QWidget):
             nested = QTabWidget()
             nested.setObjectName(f'settingsGroupTabs_{group_key}')
             nested.setProperty('basitSettingsGroupTabs', True)
+            nested.setProperty('settingsVisualPhase', 451)
+            nested.setProperty('visualRole', 'settings_leaf_tabs')
             nested.setDocumentMode(True)
             nested.setUsesScrollButtons(True)
             nested.setElideMode(Qt.ElideRight)
@@ -162,8 +172,12 @@ class SettingsWidget(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setProperty('settingsVisualPhase', 451)
+        scroll.setProperty('visualRole', 'settings_scroll')
         container = QWidget()
         container.setProperty('basitSettingsScrollPage', True)
+        container.setProperty('settingsVisualPhase', 451)
+        container.setProperty('visualRole', 'settings_scroll_page')
         layout = QVBoxLayout(container)
         layout.setContentsMargins(8, 12, 8, 18)
         layout.setSpacing(14)
@@ -174,12 +188,16 @@ class SettingsWidget(QWidget):
         group = QGroupBox(title)
         group.setObjectName('settingsCard')
         group.setProperty('basitSettingsCard', True)
+        group.setProperty('settingsVisualPhase', 451)
+        group.setProperty('visualRole', 'settings_card')
         box = QVBoxLayout(group)
         box.setContentsMargins(16, 18, 16, 16)
         box.setSpacing(10)
         if subtitle:
             desc = QLabel(subtitle)
             desc.setObjectName('settingsHelp')
+            desc.setProperty('settingsVisualPhase', 451)
+            desc.setProperty('visualRole', 'settings_help')
             desc.setWordWrap(True)
             box.addWidget(desc)
         return group, box
@@ -199,40 +217,74 @@ class SettingsWidget(QWidget):
         for btn in buttons:
             btn.setMinimumHeight(38)
             btn.setProperty('basitToolbarButton', True)
+            btn.setProperty('settingsVisualPhase', 451)
+            btn.setProperty('visualRole', self._settings_button_role(btn))
             row.addWidget(btn)
         return row
+
+    def _settings_button_role(self, btn):
+        name = (btn.objectName() or '').lower()
+        text = (btn.text() or '').lower()
+        if name == 'primary' or 'حفظ' in text or 'تطبيق' in text or 'save' in text or 'apply' in text:
+            return 'settings_primary_action'
+        if name == 'danger' or 'حذف' in text or 'delete' in text or 'مسح' in text:
+            return 'settings_danger_action'
+        return 'settings_action'
 
     def _note(self, text, tone='info'):
         lbl = QLabel(text)
         lbl.setWordWrap(True)
         lbl.setObjectName(f'note_{tone}')
         lbl.setProperty('basitSettingsNote', True)
+        lbl.setProperty('settingsVisualPhase', 451)
+        lbl.setProperty('visualRole', 'settings_note')
+        lbl.setProperty('settingsNoteTone', tone)
         return lbl
 
     def _apply_local_style(self):
-        c = ThemeManager.colors()
-        self.setStyleSheet(self.styleSheet() + f"""
-            QFrame#settingsHeader {{ background-color: {c['brand_soft']}; border: 1px solid {c['border']}; border-radius: 16px; }}
-            QLabel#settingsTitle {{ font-size: 24px; font-weight: 900; color: {c['primary']}; }}
-            QLabel#settingsSubtitle, QLabel#settingsHelp {{ color: {c['text_secondary']}; font-size: 12px; }}
-            QTabWidget#settingsTabs::pane {{ border: 1px solid {c['border']}; border-radius: 14px; background: {c['bg_window']}; }}
-            QTabWidget#settingsTabs QWidget {{ background: {c['bg_window']}; color: {c['text_primary']}; }}
-            QTabBar::tab {{ min-height: 34px; padding: 8px 14px; margin: 2px; border-radius: 10px; background: {c['bg_panel']}; color: {c['text_secondary']}; border: 1px solid {c['border']}; font-weight: 700; }}
-            QTabBar::tab:selected {{ background: {c['primary']}; color: white; font-weight: 900; }}
-            QTableWidget, QTableView {{ background: {c['bg_table']}; alternate-background-color: {c['bg_table_alt']}; color: {c['text_primary']}; border: 1px solid {c['border']}; border-radius: 12px; selection-background-color: {c['selection_bg']}; selection-color: {c['selection_text']}; }}
-            QHeaderView::section {{ background: {c['header_bg']}; color: {c['header_text']}; padding: 8px; border: none; font-weight: 800; }}
-            QGroupBox#settingsCard {{ border: 1px solid {c['border']}; border-radius: 14px; margin-top: 12px; padding-top: 12px; background: {c['card_bg']}; color: {c['text_primary']}; font-weight: bold; }}
-            QGroupBox#settingsCard::title {{ subcontrol-origin: margin; right: 14px; padding: 0 8px; color: {c['primary']}; background: {c['card_bg']}; }}
-            QLabel#note_warning {{ background: {c['warning_soft']}; border: 1px solid {c['warning']}; color: {c['warning']}; border-radius: 10px; padding: 10px; }}
-            QLabel#note_info {{ background: {c['info_soft']}; border: 1px solid {c['info']}; color: {c['primary']}; border-radius: 10px; padding: 10px; }}
+        """Phase451: settings visuals are centralized in theme/qss.py.
 
-            /* Phase405: Basit settings surface overlay. */
-            QWidget#settingsWidget[basitSettingsSurface="true"] {{ background-color: {c.get('basit_canvas', c['bg_window'])}; }}
-            QTabWidget#settingsTabs[basitSettingsTabs="true"]::pane {{ border: 1px solid {c.get('basit_toolbar_border', c['border'])}; border-radius: 2px; background: {c.get('basit_table_bg', c['bg_window'])}; }}
-            QTabWidget[basitSettingsGroupTabs="true"]::pane {{ border: 1px solid {c.get('basit_toolbar_border', c['border'])}; border-radius: 2px; background: {c.get('basit_table_bg', c['bg_window'])}; }}
-            QGroupBox#settingsCard[basitSettingsCard="true"] {{ border: 1px solid {c.get('basit_toolbar_border', c['border'])}; border-radius: 2px; background: {c.get('basit_table_bg', c['card_bg'])}; color: {c['text_primary']}; font-weight: 900; }}
-            QGroupBox#settingsCard[basitSettingsCard="true"]::title {{ color: {c.get('basit_category_text', c['text_primary'])}; background: {c.get('basit_yellow', c['warning'])}; border: 1px solid {c.get('basit_toolbar_border', c['border'])}; border-radius: 2px; padding: 4px 10px; }}
-        """)
+        Older Basit/local QSS made settings tabs and cards look detached from
+        the rest of the visual identity. Keep this method as a compatibility
+        hook, but apply only safe dynamic properties instead of appending local
+        stylesheet blocks.
+        """
+        self.setProperty('settingsLocalStylesSuppressed', True)
+        self._apply_settings_visual_template()
+
+    def _apply_settings_visual_template(self):
+        self.setProperty('settingsVisualPhase', 451)
+        self.setProperty('visualWorkspaceType', 'settings')
+        self.setProperty('visualRole', 'settings_workspace')
+        self.setProperty('visualStyleSource', 'settings_workspace_visual_consolidation')
+        for child in self.findChildren(QWidget):
+            try:
+                child.setProperty('settingsVisualPhase', 451)
+                if isinstance(child, QTabWidget):
+                    if child is self.tabs or child.objectName() == 'settingsTabs':
+                        child.setProperty('visualRole', 'settings_group_tabs')
+                    elif str(child.objectName()).startswith('settingsGroupTabs_'):
+                        child.setProperty('visualRole', 'settings_leaf_tabs')
+                elif isinstance(child, QGroupBox):
+                    if child.objectName() == 'settingsCard' or child.property('basitSettingsCard'):
+                        child.setProperty('visualRole', 'settings_card')
+                elif isinstance(child, (QLineEdit, QComboBox, QSpinBox, QCheckBox, QPlainTextEdit)):
+                    child.setProperty('visualRole', 'settings_input')
+                elif isinstance(child, QPushButton):
+                    child.setProperty('visualRole', self._settings_button_role(child))
+                elif isinstance(child, (QTableView, QTableWidget, EditableSmartGrid)):
+                    child.setProperty('visualRole', 'settings_table')
+                elif isinstance(child, QLabel):
+                    if str(child.objectName()).startswith('note_') or child.property('basitSettingsNote'):
+                        child.setProperty('visualRole', 'settings_note')
+                    elif child.objectName() == 'settingsHelp':
+                        child.setProperty('visualRole', 'settings_help')
+                elif isinstance(child, QScrollArea):
+                    child.setProperty('visualRole', 'settings_scroll')
+                elif isinstance(child, QFrame) and child.property('basitSettingsScrollPage'):
+                    child.setProperty('visualRole', 'settings_scroll_page')
+            except Exception:
+                continue
 
     def create_appearance_tab(self):
         scroll, layout = self._scroll_tab()

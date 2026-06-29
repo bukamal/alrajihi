@@ -58,12 +58,7 @@ class CategoryEditorTab(BaseDocumentTab):
         root.addWidget(self.properties)
         root.addWidget(self.inline_action_bar)
         root.addStretch(1)
-        self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QFrame#FormCard { border: 1px solid palette(mid); border-radius: 14px; background: palette(base); }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLineEdit, QComboBox, QTextEdit { min-height: 34px; padding: 5px 9px; }
-            QPushButton#primary { font-weight: 900; padding: 8px 16px; }
-        ''')
+        self.setProperty('documentLocalStylesSuppressed', True)
 
 
     def apply_document_layout_profile(self, *, kind=None, inline=None) -> str:

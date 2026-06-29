@@ -1,6 +1,6 @@
 {
   "ready": true,
-  "checks": 96,
+  "checks": 75,
   "issues": 0,
   "details": [],
   "migrated_files": {
@@ -22,22 +22,22 @@
     "alrajhi_client/views/main_window.py": {
       "issues": [],
       "semantic_calls": 1,
-      "visual_role_markers": 1
+      "visual_role_markers": 4
     }
   },
   "legacy_visual_style_summary": {
     "ready": true,
-    "checks": 88,
+    "checks": 67,
     "issues": 0,
     "details": [],
-    "total_local_styles": 81,
+    "total_local_styles": 60,
     "counts": {
-      "legacy_local_style": 41,
-      "tokenized_local_style": 29,
+      "legacy_local_style": 29,
+      "tokenized_local_style": 20,
       "branded_startup_allowed": 5,
       "mixed_legacy_style": 6
     },
-    "csv": "/mnt/data/phase445_work/alrajhi_phase444_lazy_page_runtime_packaging_hardening/tools/audit_outputs/legacy_visual_style_sweep.csv",
-    "summary_json": "/mnt/data/phase445_work/alrajhi_phase444_lazy_page_runtime_packaging_hardening/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
+    "csv": "/mnt/data/alrajhi_phase452_work/alrajhi_phase451_settings_workspace_visual_consolidation/tools/audit_outputs/legacy_visual_style_sweep.csv",
+    "summary_json": "/mnt/data/alrajhi_phase452_work/alrajhi_phase451_settings_workspace_visual_consolidation/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
   }
 }

@@ -183,17 +183,7 @@ class BomDocumentTab(BaseDocumentTab):
         self.model.rowsInserted.connect(lambda *args: self._on_model_changed())
         self.model.rowsRemoved.connect(lambda *args: self._on_model_changed())
 
-        self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QFrame#FormCard, QFrame#BomSummaryPanel {
-                border: 1px solid palette(mid); border-radius: 14px; background: palette(base);
-            }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLabel#PanelTitle { font-size: 14px; font-weight: 900; }
-            QLabel#SummaryValue { font-weight: 800; }
-            QLineEdit, QComboBox, QDoubleSpinBox { min-height: 34px; padding: 5px 9px; }
-            QPushButton#primary { font-weight: 900; padding: 8px 16px; }
-            QTableView { gridline-color: palette(midlight); alternate-background-color: palette(alternate-base); }
-        ''')
+        self.setProperty('documentLocalStylesSuppressed', True)
 
     def _connect_dirty_signals(self) -> None:
         self.product_combo.currentIndexChanged.connect(lambda *_: self.set_dirty(True))

@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import (
 from auth.activation import activate_feature, check_feature_activation, normalize_feature_activation_id
 from i18n.translator import qt_layout_direction, translate
 from core.services.settings_service import settings_service
-from theme_manager import ThemeManager
+from ui.visual_state import set_visual_state
 from ui.dialog_branding import apply_branded_dialog, brand_message_box
 
 
@@ -76,7 +76,7 @@ class ModuleActivationDialog(QDialog):
 
         self.status_label = QLabel('')
         self.status_label.setWordWrap(True)
-        self.status_label.setStyleSheet(f"color: {ThemeManager.get('danger')};")
+        set_visual_state(self.status_label, 'danger', size='caption', role='modal_status')
         layout.addWidget(self.status_label)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -96,7 +96,7 @@ class ModuleActivationDialog(QDialog):
 
     def _set_status(self, text: str, color_key: str = 'danger') -> None:
         self.status_label.setText(text)
-        self.status_label.setStyleSheet(f"color: {ThemeManager.get(color_key)};")
+        set_visual_state(self.status_label, color_key, weight='strong', size='caption', role='modal_status')
 
     def _activate(self) -> None:
         key = self.key_edit.text().strip()

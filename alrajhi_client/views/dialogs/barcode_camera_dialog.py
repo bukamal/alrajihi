@@ -9,6 +9,7 @@ from utils import show_toast
 from i18n import translate, qt_layout_direction
 from core.services.settings_service import settings_service
 from ui.visual_state import set_visual_state
+from ui.dialog_branding import apply_modal_visual_template
 
 
 class BarcodeCameraDialog(CenteredDialog):
@@ -61,6 +62,7 @@ class BarcodeCameraDialog(CenteredDialog):
         self.start_btn.clicked.connect(self.start_camera)
         self.stop_btn.clicked.connect(self.stop_camera)
         self.close_btn.clicked.connect(self.reject)
+        apply_modal_visual_template(self, role='barcode_camera')
 
         if not barcode_scanner_service.is_available():
             self.status_label.setText(

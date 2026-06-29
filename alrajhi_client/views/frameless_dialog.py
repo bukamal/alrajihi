@@ -22,13 +22,7 @@ class FramelessDialog(QDialog):
         self.main_frame.setObjectName("BrandDialogFrame")
         self.main_frame.setProperty('dialogSurface', 'frame')
         self.main_frame.setProperty('basitDialogFrame', True)
-        self.main_frame.setStyleSheet(f"""
-            #BrandDialogFrame {{
-                background-color: {ThemeManager.get('bg_sidebar')};
-                border-radius: 16px;
-                border: 1px solid {ThemeManager.get('border')};
-            }}
-        """)
+        self.main_frame.setProperty('modalLocalStylesSuppressed', True)
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.addWidget(self.main_frame)
@@ -37,11 +31,7 @@ class FramelessDialog(QDialog):
         self.title_bar.setObjectName('BrandDialogHeader')
         self.title_bar.setProperty('dialogSurface', 'header')
         self.title_bar.setFixedHeight(58)
-        self.title_bar.setStyleSheet(f"""
-            background-color: {ThemeManager.get('bg_panel')};
-            border-top-left-radius: 16px;
-            border-top-right-radius: 16px;
-        """)
+        self.title_bar.setProperty('modalLocalStylesSuppressed', True)
         title_layout = QHBoxLayout(self.title_bar)
         title_layout.setContentsMargins(15, 0, 10, 0)
         
@@ -51,7 +41,7 @@ class FramelessDialog(QDialog):
         
         self.title_label = QLabel(translate('phase233_ui_001'))
         self.title_label.setObjectName('BrandDialogTitle')
-        self.title_label.setStyleSheet(f"font-weight: bold; font-size: 14px; color: {ThemeManager.get('text_primary')};")
+        self.title_label.setProperty('modalLocalStylesSuppressed', True)
         title_layout.addWidget(self.title_label)
         title_layout.addStretch()
         

@@ -8,7 +8,7 @@ match the invoice/material visual language without a risky rewrite.
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QLabel, QFrame, QHBoxLayout, QVBoxLayout, QLayout, QTableView, QTableWidget, QPushButton, QLineEdit, QComboBox, QDateEdit, QSpinBox, QDoubleSpinBox, QTextEdit, QGroupBox, QTabWidget, QDialogButtonBox
 from theme_manager import ThemeManager
-from ui.dialog_branding import apply_branded_dialog, normalize_dialog_buttons
+from ui.dialog_branding import apply_branded_dialog, apply_modal_visual_template, normalize_dialog_buttons
 from i18n.translator import qt_layout_direction
 from ui.table_direction_policy import apply_table_direction
 
@@ -355,6 +355,7 @@ def apply_modern_dialog(dialog, title: str = ''):
         except Exception:
             pass
     _normalize_child_controls(dialog)
+    apply_modal_visual_template(dialog, role='modern')
     normalize_dialog_buttons(dialog)
     apply_branded_dialog(dialog, title, role='modern')
 

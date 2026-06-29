@@ -39,11 +39,15 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         self.permission_binder = DocumentPermissionBinder(self.document_descriptor)
         self.setLayoutDirection(qt_layout_direction())
         self.setProperty('basitReportsSurface', True)
+        self.setProperty('reportsVisualPhase', 449)
+        self.setProperty('visualRole', 'reports_workspace')
         layout = QVBoxLayout(self)
 
         period_frame = QFrame(self)
         period_frame.setObjectName('ReportsFilterToolbar')
         period_frame.setProperty('basitReportToolbar', True)
+        period_frame.setProperty('reportsVisualPhase', 449)
+        period_frame.setProperty('visualRole', 'reports_filter_ribbon')
         period_layout = QHBoxLayout(period_frame)
         period_layout.setContentsMargins(8, 6, 8, 6)
         period_layout.setSpacing(8)
@@ -107,25 +111,31 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
 
         self.refresh_btn = QPushButton(tr("refresh_report"))
         self.refresh_btn.setProperty('basitToolbarButton', True)
+        self.refresh_btn.setProperty('visualRole', 'reports_primary_action')
         self.refresh_btn.clicked.connect(self.refresh_report)
         period_layout.addWidget(self.refresh_btn)
 
         reset_btn = QPushButton(tr("reset_filters"))
         reset_btn.setProperty('basitToolbarButton', True)
+        reset_btn.setProperty('visualRole', 'reports_secondary_action')
         reset_btn.clicked.connect(self.reset_report_filters)
         period_layout.addWidget(reset_btn)
 
         self.print_btn = QPushButton(tr("printing"))
         self.print_btn.setObjectName('reportPrintButton')
         self.print_btn.setProperty('basitToolbarButton', True)
+        self.print_btn.setProperty('visualRole', 'reports_primary_action')
         self.print_btn.setToolTip(tr('settings_operation_reports_print'))
         self.print_btn.clicked.connect(lambda: self.print_report('print'))
         period_layout.addWidget(self.print_btn)
+        self._apply_report_filter_roles(reset_btn)
 
         layout.addWidget(period_frame)
 
         self.tabs = QTabWidget()
         self.tabs.setProperty('basitReportTabs', True)
+        self.tabs.setProperty('reportsVisualPhase', 449)
+        self.tabs.setProperty('visualRole', 'reports_group_tabs')
         self.income_tab = QWidget()
         self.balance_tab = QWidget()
         self.wh_valuation_tab = QWidget()
@@ -173,6 +183,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         self.report_summary = QLabel()
         self.report_summary.setObjectName('reportSummaryBar')
         self.report_summary.setProperty('basitReportSummary', True)
+        self.report_summary.setProperty('reportsVisualPhase', 449)
+        self.report_summary.setProperty('visualRole', 'reports_summary_bar')
         self.report_summary.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.report_summary)
 
@@ -182,6 +194,28 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         apply_modern_widget(self, tr('reports_page_title'), tr('reports_page_subtitle'))
         self._apply_report_operation_state()
         self.refresh_report()
+
+    def _apply_report_filter_roles(self, reset_btn=None):
+        """Attach Phase449 report-ribbon roles without changing filter logic."""
+        filter_widgets = (
+            'period_type', 'year_combo', 'month_combo', 'start_date', 'end_date',
+            'warehouse_filter', 'cashbox_filter', 'bank_filter', 'customer_filter',
+            'supplier_filter', 'item_filter',
+        )
+        for name in filter_widgets:
+            widget = getattr(self, name, None)
+            if widget is not None:
+                try:
+                    widget.setProperty('reportsVisualPhase', 449)
+                    widget.setProperty('visualRole', 'reports_filter_input')
+                except Exception:
+                    pass
+        for button in (self.refresh_btn, reset_btn, self.print_btn):
+            if button is not None:
+                try:
+                    button.setProperty('reportsVisualPhase', 449)
+                except Exception:
+                    pass
 
     def _load_warehouses(self):
         self.warehouse_filter.clear()
@@ -337,6 +371,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
         for group_key, items in groups:
             group_tabs = QTabWidget()
             group_tabs.setObjectName(group_key)
+            group_tabs.setProperty('reportsVisualPhase', 449)
+            group_tabs.setProperty('visualRole', 'reports_inner_tabs')
             group_tabs.setUsesScrollButtons(True)
             group_tabs.setElideMode(Qt.ElideRight)
             group_tabs.currentChanged.connect(lambda _idx, _tabs=group_tabs: self.refresh_report())
@@ -398,6 +434,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
             table.setProperty('layout_profile', 'reports_compact')
             table.setProperty('basitTable', True)
             table.setProperty('basitReportTable', True)
+            table.setProperty('reportsVisualPhase', 449)
+            table.setProperty('visualRole', 'reports_table')
             if descriptor is not None:
                 table.setProperty('report_grouped_navigation', True)
         except Exception:
@@ -497,6 +535,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                     table.setProperty('report_network_mode', descriptor.network_mode)
                     table.setProperty('basitTable', True)
                     table.setProperty('basitReportTable', True)
+                    table.setProperty('reportsVisualPhase', 449)
+                    table.setProperty('visualRole', 'reports_table')
                 except Exception:
                     pass
 
@@ -583,6 +623,8 @@ class ReportsWidget(ReportsPhase36Mixin, QWidget):
                 table.setProperty('report_network_mode', descriptor.network_mode)
                 table.setProperty('basitTable', True)
                 table.setProperty('basitReportTable', True)
+                table.setProperty('reportsVisualPhase', 449)
+                table.setProperty('visualRole', 'reports_table')
                 table.setProperty('report_currency_policy', descriptor.currency_policy)
         except Exception:
             pass

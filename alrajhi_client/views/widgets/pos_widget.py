@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import QKeySequence, QFont
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
     QMessageBox, QComboBox, QDoubleSpinBox, QShortcut, QInputDialog, QMenu
@@ -39,6 +39,9 @@ class POSWidget(QWidget):
         super().__init__(parent)
         self.setLayoutDirection(qt_layout_direction(settings_service.get_language()))
         bind_operational_shell(self, 'pos')
+        self.setObjectName('posWidget')
+        self.setProperty('operationalSurfacePhase', 448)
+        self.setProperty('visualWorkspaceType', 'operational')
         self._pos_settings = settings_service.get_pos_settings()
         self._pos_preferences = POSPreferences()
         self.cart = pos_service.new_cart(self._selected_warehouse_id() if hasattr(self, 'warehouse_combo') else None, self._selected_cashbox_id() if hasattr(self, 'cashbox_combo') else None)
@@ -79,10 +82,12 @@ class POSWidget(QWidget):
         title_row = QHBoxLayout()
         title_row.addStretch()
         self.columns_btn = QPushButton(translate("pos_columns_btn"))
+        self.columns_btn.setProperty("visualRole", "operational_secondary")
         self._build_columns_menu()
         title_row.addWidget(self.columns_btn)
 
         self.preset_combo = QComboBox()
+        self.preset_combo.setProperty("visualRole", "operational_select")
         for preset in preset_names():
             self.preset_combo.addItem(preset_title(preset), preset)
         preset_idx = self.preset_combo.findData(self._preset)
@@ -93,6 +98,7 @@ class POSWidget(QWidget):
         title_row.addWidget(self.preset_combo)
 
         self.density_combo = QComboBox()
+        self.density_combo.setProperty("visualRole", "operational_select")
         self.density_combo.addItem(translate('pos_density_compact'), 'compact')
         self.density_combo.addItem(translate('pos_density_comfortable'), 'comfortable')
         self.density_combo.addItem(translate('pos_density_touch'), 'touch')
@@ -104,6 +110,7 @@ class POSWidget(QWidget):
         title_row.addWidget(self.density_combo)
 
         self.fullscreen_btn = QPushButton(translate("fullscreen"))
+        self.fullscreen_btn.setProperty("visualRole", "operational_secondary")
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
         title_row.addWidget(self.fullscreen_btn)
         layout.addLayout(title_row)
@@ -118,22 +125,27 @@ class POSWidget(QWidget):
         operation_row.setSpacing(10)
         operation_row.addWidget(QLabel(translate("issue_warehouse")))
         self.warehouse_combo = QComboBox()
+        self.warehouse_combo.setProperty("visualRole", "operational_select")
         self.warehouse_combo.setMinimumWidth(180)
         self._load_warehouses()
         self.warehouse_combo.currentIndexChanged.connect(self.on_warehouse_changed)
         operation_row.addWidget(self.warehouse_combo, 1)
         operation_row.addWidget(QLabel(translate("cashbox")))
         self.cashbox_combo = QComboBox()
+        self.cashbox_combo.setProperty("visualRole", "operational_select")
         self.cashbox_combo.setMinimumWidth(180)
         self._load_cashboxes()
         self.cashbox_combo.currentIndexChanged.connect(self.on_cashbox_changed)
         operation_row.addWidget(self.cashbox_combo, 1)
         self.shift_label = QLabel(translate("no_open_shift"))
         self.shift_label.setObjectName("muted")
+        self.shift_label.setProperty("visualRole", "operational_muted")
         operation_row.addWidget(self.shift_label, 1)
         self.open_shift_btn = QPushButton(translate("open_shift"))
+        self.open_shift_btn.setProperty("visualRole", "operational_primary")
         self.open_shift_btn.clicked.connect(self.open_shift)
         self.close_shift_btn = QPushButton(translate("close_shift"))
+        self.close_shift_btn.setProperty("visualRole", "operational_danger")
         self.close_shift_btn.clicked.connect(self.close_shift)
         operation_row.addWidget(self.open_shift_btn)
         operation_row.addWidget(self.close_shift_btn)
@@ -143,27 +155,31 @@ class POSWidget(QWidget):
 
         scan_row = QHBoxLayout()
         self.barcode_input = QLineEdit()
+        self.barcode_input.setProperty("visualRole", "operational_scan_input")
         self.barcode_input.setPlaceholderText(translate("pos_barcode_placeholder"))
         self.barcode_input.setMinimumHeight(60)
-        self.barcode_input.setStyleSheet("font-size: 24px; font-weight: bold; padding: 8px;")
+        self.barcode_input.setFont(QFont(self.barcode_input.font().family(), 24, QFont.Bold))
         self.barcode_input.returnPressed.connect(self.scan_entered_barcode)
         scan_row.addWidget(self.barcode_input, 1)
 
         self.qty_spin = QDoubleSpinBox()
+        self.qty_spin.setProperty("visualRole", "operational_spin")
         self.qty_spin.setRange(0.001, 999999)
         self.qty_spin.setDecimals(int(self._pos_settings.get('quantity_decimals', 3) or 3))
         self.qty_spin.setValue(1)
         self.qty_spin.setPrefix(translate("qty_prefix"))
         scan_row.addWidget(self.qty_spin)
 
-        camera_btn = QPushButton(translate("camera_scan"))
-        camera_btn.clicked.connect(self.scan_with_camera)
-        scan_row.addWidget(camera_btn)
+        self.camera_btn = QPushButton(translate("camera_scan"))
+        self.camera_btn.setProperty("visualRole", "operational_secondary")
+        self.camera_btn.clicked.connect(self.scan_with_camera)
+        scan_row.addWidget(self.camera_btn)
         layout.addLayout(scan_row)
 
         # Phase430: POS is barcode/table-first. Material cards stay in Restaurant/Cafe only.
 
         self.table = POSLineGrid(self, identity='pos.lines')
+        self.table.setProperty('visualRole', 'operational_table')
         self.table_model = POSLineModel(self.cart, self.display_curr, self)
         self.table.setModel(self.table_model)
         self.table.apply_visible_keys(self._visible_pos_columns)
@@ -171,6 +187,7 @@ class POSWidget(QWidget):
         layout.addWidget(self.table, 1)
 
         self.payment_shell = POSPaymentShell(self, self)
+        self.payment_shell.setProperty("visualRole", "operational_payment_shell")
         layout.addWidget(self.payment_shell)
 
         # Backward-compatible aliases used by the existing POS workflow.
@@ -203,6 +220,7 @@ class POSWidget(QWidget):
 
         self.status_label = QLabel(translate("ready_to_scan"))
         self.status_label.setObjectName("muted")
+        self.status_label.setProperty("visualRole", "operational_muted")
         layout.addWidget(self.status_label)
 
 
@@ -450,7 +468,7 @@ class POSWidget(QWidget):
             input_h, row_h, font_px, button_h = 68, 54, 26, 56
         if hasattr(self, 'barcode_input'):
             self.barcode_input.setMinimumHeight(input_h)
-            self.barcode_input.setStyleSheet(f"font-size: {font_px}px; font-weight: bold; padding: 8px;")
+            self.barcode_input.setFont(QFont(self.barcode_input.font().family(), font_px, QFont.Bold))
         if hasattr(self, 'qty_spin'):
             self.qty_spin.setMinimumHeight(input_h)
         if hasattr(self, 'table'):

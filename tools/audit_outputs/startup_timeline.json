@@ -2,13 +2,13 @@
   "summary": {
     "marker": "phase435_login_to_mainwindow_transition_profiler",
     "events": 13,
-    "total_elapsed_ms": 28354,
-    "post_login_to_main_ms": 3407,
+    "total_elapsed_ms": 40879,
+    "post_login_to_main_ms": 3536,
     "context": {
       "phase": "435",
       "runtime": "qt",
       "mode": "local",
-      "main_shell_runtime_fit": "{'phase': 438, 'screen_width': 1080, 'screen_height': 2207, 'minimum_width': 860, 'minimum_height': 700, 'initial_width': 1037, 'initial_height': 900, 'start_maximized': True, 'policy': 'screen_aware_maximized'}"
+      "main_shell_runtime_fit": "{'phase': 438, 'screen_width': 1080, 'screen_height': 1241, 'minimum_width': 860, 'minimum_height': 700, 'initial_width': 1037, 'initial_height': 900, 'start_maximized': True, 'policy': 'screen_aware_maximized'}"
     }
   },
   "events": [
@@ -21,85 +21,85 @@
     },
     {
       "name": "runtime_mode_resolved",
-      "elapsed_ms": 6,
-      "delta_ms": 6,
+      "elapsed_ms": 1,
+      "delta_ms": 1,
       "category": "startup",
       "detail": "mode=local"
     },
     {
       "name": "prelogin_splash_created",
-      "elapsed_ms": 3412,
-      "delta_ms": 3406,
+      "elapsed_ms": 629,
+      "delta_ms": 627,
       "category": "startup",
       "detail": "Branded pre-login splash created"
     },
     {
       "name": "database_bootstrap_started",
-      "elapsed_ms": 3494,
-      "delta_ms": 82,
+      "elapsed_ms": 644,
+      "delta_ms": 15,
       "category": "startup",
       "detail": "Preparing database and startup services"
     },
     {
       "name": "database_bootstrap_finished",
-      "elapsed_ms": 4332,
-      "delta_ms": 838,
+      "elapsed_ms": 1284,
+      "delta_ms": 640,
       "category": "startup",
       "detail": "Database/bootstrap stage finished"
     },
     {
       "name": "activation_check_started",
-      "elapsed_ms": 4395,
-      "delta_ms": 62,
+      "elapsed_ms": 1302,
+      "delta_ms": 17,
       "category": "startup",
       "detail": "Checking activation/license"
     },
     {
       "name": "activation_check_finished",
-      "elapsed_ms": 4552,
-      "delta_ms": 156,
+      "elapsed_ms": 1341,
+      "delta_ms": 39,
       "category": "startup",
       "detail": "Activation/license check finished"
     },
     {
       "name": "login_dialog_open",
-      "elapsed_ms": 4607,
-      "delta_ms": 55,
+      "elapsed_ms": 1357,
+      "delta_ms": 16,
       "category": "login",
       "detail": "Opening LoginDialog"
     },
     {
       "name": "login_accepted",
-      "elapsed_ms": 17247,
-      "delta_ms": 12639,
+      "elapsed_ms": 29088,
+      "delta_ms": 27731,
       "category": "login",
       "detail": "Login accepted; starting post-login transition"
     },
     {
       "name": "post_login_user_context_ready",
-      "elapsed_ms": 17385,
-      "delta_ms": 137,
+      "elapsed_ms": 29298,
+      "delta_ms": 209,
       "category": "post_login",
       "detail": "User session and password policy resolved"
     },
     {
       "name": "main_window_create_started",
-      "elapsed_ms": 17390,
-      "delta_ms": 5,
+      "elapsed_ms": 29304,
+      "delta_ms": 6,
       "category": "post_login",
       "detail": "Constructing MainWindow"
     },
     {
       "name": "main_window_created",
-      "elapsed_ms": 18893,
-      "delta_ms": 1502,
+      "elapsed_ms": 30885,
+      "delta_ms": 1581,
       "category": "post_login",
       "detail": "MainWindow constructed"
     },
     {
       "name": "main_window_shown",
-      "elapsed_ms": 20654,
-      "delta_ms": 1761,
+      "elapsed_ms": 32624,
+      "delta_ms": 1738,
       "category": "post_login",
       "detail": "MainWindow shown"
     }

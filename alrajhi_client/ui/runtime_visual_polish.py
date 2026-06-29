@@ -10,9 +10,11 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import (
     QAbstractButton,
     QAbstractItemView,
+    QCheckBox,
     QComboBox,
     QFrame,
     QGroupBox,
+    QDateEdit,
     QHeaderView,
     QLabel,
     QScrollArea,
@@ -141,6 +143,117 @@ def _apply_button_polish(button: QAbstractButton, role: str) -> None:
         pass
 
 
+def _list_action_role(button: QAbstractButton) -> str:
+    name = (button.objectName() or "").lower()
+    text = (button.text() or "").lower()
+    if name in {"primary", "add", "new"} or "اضاف" in text or "جديد" in text or "add" in text or "new" in text:
+        return "list_primary_action"
+    if name == "danger" or "حذف" in text or "delete" in text:
+        return "list_danger_action"
+    if "filter" in text or "فلتر" in text or "بحث" in text:
+        return "list_filter_action"
+    return "list_action"
+
+
+def _apply_list_workspace_template(root: QWidget, policy) -> None:
+    """Phase447: normalize list/grid screens without touching their models."""
+    if policy.workspace_type != "list" and not getattr(root, "list_workspace_descriptor", None):
+        return
+    try:
+        root.setProperty("listWorkspaceVisualTemplatePhase", 447)
+        root.setProperty("visualRole", "list_workspace_surface")
+        root.setProperty("visualStyleSource", "unified_list_workspace_template")
+    except Exception:
+        pass
+    for child in list(root.findChildren(QWidget)) if hasattr(root, "findChildren") else []:
+        try:
+            child.setProperty("listWorkspaceVisualTemplatePhase", 447)
+            cname = child.__class__.__name__
+            if bool(child.property("basitListToolbar")) or cname == "TableToolbar":
+                child.setProperty("visualRole", "list_filter_bar")
+                child.setProperty("visualStyleSource", "unified_list_workspace_template")
+            elif isinstance(child, (QLineEdit, QComboBox, QDateEdit)):
+                if not child.property("visualRole") or str(child.property("visualRole")).startswith("workspace"):
+                    child.setProperty("visualRole", "list_filter_input")
+                _apply_input_polish(child)
+            elif isinstance(child, QAbstractButton):
+                child.setProperty("visualRole", _list_action_role(child))
+                _apply_button_polish(child, str(child.property("visualRole") or "list_action"))
+            elif isinstance(child, QTableView):
+                if child.property("visualRole") in (None, "", "runtime_table", "workspace_card"):
+                    child.setProperty("visualRole", "list_table")
+                child.setProperty("listWorkspaceVisualTemplatePhase", 447)
+            elif isinstance(child, QLabel) and (bool(child.property("basitCounter")) or (child.objectName() or "").lower() in {"muted", "mutedlabel"}):
+                child.setProperty("visualRole", "list_counter")
+            elif isinstance(child, (QFrame, QGroupBox)) and (child.property("visualRole") in (None, "", "workspace_card", "card")):
+                child.setProperty("visualRole", "list_card")
+        except Exception:
+            continue
+
+
+
+def _settings_action_role(button: QAbstractButton) -> str:
+    name = (button.objectName() or "").lower()
+    text = (button.text() or "").lower()
+    if name == "primary" or "حفظ" in text or "تطبيق" in text or "save" in text or "apply" in text:
+        return "settings_primary_action"
+    if name == "danger" or "حذف" in text or "delete" in text or "مسح" in text:
+        return "settings_danger_action"
+    return "settings_action"
+
+
+def _apply_settings_workspace_template(root: QWidget, policy) -> None:
+    """Phase451: normalize the settings workspace without touching values/save handlers."""
+    page_id = str(getattr(policy, "page_id", "") or "")
+    is_settings = page_id == "settings" or root.objectName() == "settingsWidget" or bool(root.property("basitSettingsSurface"))
+    if not is_settings and getattr(policy, "workspace_type", "") != "settings":
+        return
+    try:
+        root.setProperty("settingsVisualPhase", 451)
+        root.setProperty("visualWorkspaceType", "settings")
+        root.setProperty("visualRole", "settings_workspace")
+        root.setProperty("visualStyleSource", "settings_workspace_visual_consolidation")
+    except Exception:
+        pass
+    for child in list(root.findChildren(QWidget)) if hasattr(root, "findChildren") else []:
+        try:
+            child.setProperty("settingsVisualPhase", 451)
+            child.setProperty("visualWorkspaceType", "settings")
+            if isinstance(child, QTabWidget):
+                if child.objectName() == "settingsTabs":
+                    child.setProperty("visualRole", "settings_group_tabs")
+                elif str(child.objectName()).startswith("settingsGroupTabs_") or bool(child.property("basitSettingsGroupTabs")):
+                    child.setProperty("visualRole", "settings_leaf_tabs")
+                else:
+                    child.setProperty("visualRole", "settings_leaf_tabs")
+                child.setDocumentMode(True)
+            elif isinstance(child, (QFrame, QGroupBox)):
+                if child.objectName() == "settingsCard" or child.property("basitSettingsCard"):
+                    child.setProperty("visualRole", "settings_card")
+                elif child.objectName() in {"DocumentHeaderCard", "settingsHeader"}:
+                    child.setProperty("visualRole", "settings_header")
+            elif isinstance(child, QLabel):
+                if str(child.objectName()).startswith("note_") or child.property("basitSettingsNote"):
+                    child.setProperty("visualRole", "settings_note")
+                elif child.objectName() in {"settingsHelp", "DocumentHint"}:
+                    child.setProperty("visualRole", "settings_help")
+                elif child.objectName() in {"DocumentTitle", "settingsTitle"}:
+                    child.setProperty("visualRole", "settings_title")
+            elif isinstance(child, (QLineEdit, QTextEdit, QPlainTextEdit, QComboBox, QSpinBox, QDoubleSpinBox, QCheckBox)):
+                child.setProperty("visualRole", "settings_input")
+                _apply_input_polish(child)
+            elif isinstance(child, QAbstractButton):
+                role = _settings_action_role(child)
+                child.setProperty("visualRole", role)
+                _apply_button_polish(child, role)
+            elif isinstance(child, QTableView):
+                child.setProperty("visualRole", "settings_table")
+                _apply_table_polish(child, policy.table_density)
+            elif isinstance(child, QScrollArea):
+                child.setProperty("visualRole", "settings_scroll")
+        except Exception:
+            continue
+
 def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_type: str | None = None) -> None:
     """Apply non-invasive visual normalization to a workspace subtree."""
     if root is None:
@@ -150,8 +263,8 @@ def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_ty
     try:
         root.setProperty("visualPageId", policy.page_id)
         root.setProperty("visualWorkspaceType", policy.workspace_type)
-        root.setProperty("projectVisualIdentityPhase", str(BRAND.get("project_visual_identity_phase", 440)))
-        root.setProperty("visualIdentitySweepPhase", str(BRAND.get("legacy_visual_style_sweep_phase", 440)))
+        root.setProperty("projectVisualIdentityPhase", str(BRAND.get("project_visual_identity_phase", 447)))
+        root.setProperty("visualIdentitySweepPhase", str(BRAND.get("legacy_visual_style_sweep_phase", 447)))
         root.setProperty("visualStyleSource", BRAND.get("workspace_style_source", "centralized_runtime_visual_identity"))
         root.setProperty("visualRole", "workspace_surface")
         _set_if_empty_object_name(root, policy.object_name)
@@ -163,8 +276,8 @@ def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_ty
     for child in children:
         try:
             child.setProperty("visualWorkspaceType", policy.workspace_type)
-            child.setProperty("projectVisualIdentityPhase", str(BRAND.get("project_visual_identity_phase", 440)))
-            child.setProperty("visualIdentitySweepPhase", str(BRAND.get("legacy_visual_style_sweep_phase", 440)))
+            child.setProperty("projectVisualIdentityPhase", str(BRAND.get("project_visual_identity_phase", 447)))
+            child.setProperty("visualIdentitySweepPhase", str(BRAND.get("legacy_visual_style_sweep_phase", 447)))
             child.setProperty("visualStyleSource", BRAND.get("workspace_style_source", "centralized_runtime_visual_identity"))
             _layout_apply(child, policy.margin, policy.spacing)
             if isinstance(child, QTableView):
@@ -200,6 +313,20 @@ def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_ty
                     child.setProperty("visualRole", "workspace_card")
         except Exception:
             continue
+
+    # Phase447: apply the unified list visual template after generic roles so
+    # list-specific controls can override older Basit/list-toolbar styling.
+    try:
+        _apply_list_workspace_template(root, policy)
+    except Exception:
+        pass
+
+    # Phase451: apply settings-specific chrome after generic roles and list rules
+    # so old Basit/Modern settings styling cannot dominate cards, tabs, notes or inputs.
+    try:
+        _apply_settings_workspace_template(root, policy)
+    except Exception:
+        pass
 
     # Dynamic-property QSS selectors need a repolish after the pass.
     try:

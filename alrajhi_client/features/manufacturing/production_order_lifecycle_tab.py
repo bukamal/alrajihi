@@ -198,16 +198,7 @@ class ProductionOrderDetailsTab(BaseDocumentTab):
         self.complete_btn.clicked.connect(self.complete_production)
         self.reverse_btn.clicked.connect(self.reverse_production)
 
-        self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QFrame#ProductionLifecycleSummaryPanel {
-                border: 1px solid palette(mid); border-radius: 14px; background: palette(base);
-            }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLabel#PanelTitle { font-size: 14px; font-weight: 900; }
-            QLabel#SummaryValue { font-weight: 800; }
-            QPushButton#danger { font-weight: 900; }
-            QTableView { gridline-color: palette(midlight); alternate-background-color: palette(alternate-base); }
-        ''')
+        self.setProperty('documentLocalStylesSuppressed', True)
 
     def _install_shortcuts(self) -> None:
         QShortcut(QKeySequence.Refresh, self, activated=self.refresh_all)

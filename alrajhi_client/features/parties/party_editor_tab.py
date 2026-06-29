@@ -258,20 +258,7 @@ class PartyEditorTab(BaseDocumentTab):
         return bar
 
     def _apply_shell_styles(self) -> None:
-        self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QFrame#DocumentPanel, QFrame#SummaryPanel, QFrame#BottomActionBar, QGroupBox#FormCard, QFrame#MetricCard {
-                border: 1px solid palette(mid);
-                border-radius: 14px;
-                background: palette(base);
-            }
-            QFrame#BottomActionBar { background: palette(window); }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLabel#DocumentSubtitle { color: palette(mid); }
-            QLabel#SectionTitle { font-weight: 900; }
-            QLabel#MetricTitle { color: palette(mid); font-size: 11px; }
-            QLabel#MetricValue { font-size: 15px; font-weight: 900; }
-            QPushButton#primary { font-weight: 900; padding: 8px 16px; }
-        ''')
+        self.setProperty('documentLocalStylesSuppressed', True)
 
     def _apply_operation_policy(self) -> None:
         operation = party_operation_policy.OP_CUSTOMER_EDIT if self.party_type == 'customer' else party_operation_policy.OP_SUPPLIER_EDIT

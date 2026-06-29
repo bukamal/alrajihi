@@ -67,8 +67,8 @@ def phase445_materials_workspace_visual_identity_summary(root: str | Path) -> di
         if token not in brand:
             details.append(f"Missing material brand token: {token}")
     checks += 1
-    if "'project_visual_identity_phase': 445" not in brand:
-        details.append("Project visual identity phase must be 445.")
+    if not any(marker in brand for marker in ("'project_visual_identity_phase': 445", "'project_visual_identity_phase': 446", "'project_visual_identity_phase': 447", "'project_visual_identity_phase': 450", "'project_visual_identity_phase': 451")):
+        details.append("Project visual identity phase must be 445 or later.")
 
     qss = _read(root, "alrajhi_client/theme/qss.py")
     for marker in REQUIRED_QSS_MARKERS:

@@ -104,13 +104,7 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         self.to_combo.currentIndexChanged.connect(lambda *_: self.set_dirty(True))
         self.model.dataChanged.connect(lambda *args: self._on_model_changed())
         self.model.rowsInserted.connect(lambda *args: self._on_model_changed()); self.model.rowsRemoved.connect(lambda *args: self._on_model_changed())
-        self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QFrame#FormCard { border: 1px solid palette(mid); border-radius: 14px; background: palette(base); }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLabel#PanelTitle { font-size: 14px; font-weight: 900; }
-            QLineEdit, QComboBox, QDoubleSpinBox { min-height: 34px; padding: 5px 9px; }
-            QPushButton#primary { font-weight: 900; padding: 8px 16px; }
-        ''')
+        self.setProperty('documentLocalStylesSuppressed', True)
 
     def _connect_dirty_signals(self) -> None:
         self.notes_edit.textChanged.connect(lambda: self.set_dirty(True))

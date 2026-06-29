@@ -224,67 +224,77 @@ DOCUMENT_TAB_PREFIXES = (
 
 def navigation_bar_stylesheet() -> str:
     colors = get_tokens(settings_service.get_theme() or 'light')
-    radius = int(BRAND.get('basit_shell_menu_button_radius', 4))
-    basit_bg = colors.get('basit_shell_bg', colors.get('basit_toolbar_bg', colors['bg_panel']))
-    basit_blue = colors.get('basit_shell_menu_bg', colors.get('basit_blue', colors['primary']))
-    basit_blue_hover = colors.get('basit_blue_hover', colors['primary'])
-    basit_yellow = colors.get('basit_shell_active_bg', colors.get('basit_yellow', colors['warning']))
-    basit_active_text = colors.get('basit_shell_active_text', colors['text_primary'])
+    radius = int(BRAND.get('shell_menu_button_radius', BRAND.get('radius_md', 12)))
+    nav_bg = colors.get('shell_navigation_bg', BRAND.get('shell_navigation_bg', colors.get('menu_bg', colors['bg_panel'])))
+    nav_border = colors.get('shell_navigation_border', BRAND.get('shell_navigation_border', colors['border']))
+    button_bg = colors.get('shell_navigation_button_bg', BRAND.get('shell_navigation_button_bg', colors['bg_panel']))
+    button_text = colors.get('shell_navigation_button_text', BRAND.get('shell_navigation_button_text', colors['text_primary']))
+    button_border = colors.get('shell_navigation_button_border', BRAND.get('shell_navigation_button_border', colors['border']))
+    hover_bg = colors.get('shell_navigation_button_hover_bg', BRAND.get('shell_navigation_button_hover_bg', colors.get('brand_soft', colors['bg_table_alt'])))
+    hover_text = colors.get('shell_navigation_button_hover_text', BRAND.get('shell_navigation_button_hover_text', colors['primary']))
+    home_bg = colors.get('shell_navigation_home_bg', BRAND.get('shell_navigation_home_bg', colors.get('brand_sand', colors.get('warning_soft', colors['bg_panel']))))
+    home_border = colors.get('shell_navigation_home_border', BRAND.get('shell_navigation_home_border', colors.get('brand_gold', colors['warning'])))
+    accent = colors.get('shell_navigation_active_indicator', BRAND.get('shell_navigation_active_indicator', colors.get('accent', colors['primary'])))
     return f"""
-        /* Phase406: Basit-inspired shell navigation chrome. */
-        QFrame#CleanShellNavigationBar {{
-            background-color: {basit_bg};
-            border-bottom: 2px solid {colors.get('basit_toolbar_border', colors['border'])};
+        /* Phase446: calm, centralized shell navigation chrome. */
+        QFrame#CleanShellNavigationBar[visualRole="shell_navigation"] {{
+            background-color: {nav_bg};
+            border-bottom: 1px solid {nav_border};
         }}
         QPushButton#MainNavButton {{
-            background: {basit_blue};
-            border: 1px solid {colors.get('basit_card_border', basit_blue)};
+            background: {button_bg};
+            border: 1px solid {button_border};
+            border-bottom: 3px solid transparent;
             border-radius: {radius}px;
-            padding: 7px 9px;
+            padding: 6px 8px;
             font-size: {NAV_FONT_PX}px;
-            font-weight: 950;
-            color: {colors.get('basit_shell_menu_text', '#FFFFFF')};
+            font-weight: 850;
+            color: {button_text};
         }}
         QPushButton#MainNavButton[shellChromeRole="home"] {{
-            background: {basit_yellow};
-            color: {basit_active_text};
-            border-color: {colors.get('basit_red', colors['danger'])};
+            background: {home_bg};
+            color: {colors.get('brand_navy', colors['text_primary'])};
+            border-color: {home_border};
+            border-bottom-color: {accent};
         }}
         QPushButton#MainNavButton:hover {{
-            background: {basit_blue_hover};
-            border-color: {basit_yellow};
-            color: #FFFFFF;
+            background: {hover_bg};
+            border-color: {accent};
+            border-bottom-color: {accent};
+            color: {hover_text};
         }}
         QPushButton#MainNavButton:pressed,
         QPushButton#MainNavButton[popupMode="1"]:checked {{
-            background: {basit_yellow};
-            color: {basit_active_text};
-            border-color: {colors.get('basit_red', colors['danger'])};
+            background: {hover_bg};
+            color: {hover_text};
+            border-color: {accent};
+            border-bottom-color: {accent};
         }}
         QMenu {{
-            background: {colors.get('basit_table_bg', colors['bg_panel'])};
+            background: {colors.get('surface_raised', colors['bg_panel'])};
             color: {colors['text_primary']};
-            padding: 7px;
-            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
-            border-radius: 4px;
+            padding: 8px;
+            border: 1px solid {button_border};
+            border-radius: {radius}px;
             font-size: {NAV_FONT_PX}px;
-            font-weight: 850;
+            font-weight: 800;
         }}
         QMenu::item {{
             padding: 10px 40px 10px 24px;
-            border-radius: 3px;
+            border-radius: {max(6, radius - 4)}px;
             min-width: 230px;
         }}
         QMenu::item:selected {{
-            background: {basit_yellow};
-            color: {basit_active_text};
+            background: {hover_bg};
+            color: {hover_text};
         }}
         QMenu::separator {{
             height: 1px;
-            background: {colors.get('basit_toolbar_border', colors['border'])};
+            background: {button_border};
             margin: 7px 10px;
         }}
     """
+
 
 
 
@@ -328,12 +338,15 @@ class CleanShellNavigationBar(QFrame):
         super().__init__(parent)
         self.setObjectName('CleanShellNavigationBar')
         self.setProperty('legacyFreeShellNavigation', True)
+        self.setProperty('projectVisualIdentityPhase', 446)
+        self.setProperty('visualIdentitySweepPhase', 446)
+        self.setProperty('visualRole', 'shell_navigation')
         self.setAttribute(Qt.WA_StyledBackground, True)
         self._buttons = []
         self._menus = []
         self._layout = QHBoxLayout(self)
-        self._layout.setContentsMargins(12, NAV_VERTICAL_MARGIN, 12, NAV_VERTICAL_MARGIN)
-        self._layout.setSpacing(7)
+        self._layout.setContentsMargins(10, NAV_VERTICAL_MARGIN, 10, NAV_VERTICAL_MARGIN)
+        self._layout.setSpacing(6)
         self._layout.addStretch(1)
 
     def clear(self):
@@ -382,6 +395,8 @@ class CleanShellNavigationBar(QFrame):
         menu = QMenu(self)
         button = QPushButton(self)
         button.setObjectName('MainNavButton')
+        button.setProperty('projectVisualIdentityPhase', 446)
+        button.setProperty('visualRole', 'shell_nav_button')
         button.setProperty('shellChromeRole', 'home' if is_home else 'main_menu')
         button.setProperty('menuLabel', label)
         button.setCursor(Qt.PointingHandCursor)

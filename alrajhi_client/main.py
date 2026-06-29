@@ -21,6 +21,9 @@ from views.dialogs.login_dialog import LoginDialog
 from views.main_window import MainWindow
 from ui.post_login_transition_overlay import PostLoginTransitionOverlay
 from ui.main_shell_runtime_fit import show_main_window_runtime_fitted
+from ui.modal_visual_event_filter import install_modal_visual_event_filter
+from ui.dialog_branding import apply_modal_visual_template
+from ui.visual_state import set_visual_state
 from workspace.runtime.startup_timeline_profiler import StartupTimelineProfiler
 from auth.session import UserSession
 from utils import enable_auto_select_all, install_non_blocking_message_boxes
@@ -143,10 +146,9 @@ def open_network_settings():
 
     note = QLabel(translate('network_settings_connection_note'))
     note.setWordWrap(True)
-    note.setStyleSheet(
-        "QLabel { background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; "
-        "border-radius:8px; padding:10px; }"
-    )
+    note.setProperty('visualRole', 'modal_help')
+    note.setProperty('modalTone', 'warning')
+    note.setProperty('modalLocalStylesSuppressed', True)
     layout.addWidget(note)
 
     form = QFormLayout()
@@ -187,10 +189,10 @@ def open_network_settings():
         ok, message, info = system_service.server_diagnostics(url, timeout=4, require_routes=True)
         if ok:
             status.setText(f"✅ {message}\n{url}")
-            status.setStyleSheet("color:#15803d;")
+            set_visual_state(status, 'success', weight='strong', size='caption', role='modal_status')
         else:
             status.setText(translate('server_test_failed_used_address', message=message, url=url))
-            status.setStyleSheet("color:#b91c1c;")
+            set_visual_state(status, 'danger', weight='strong', size='caption', role='modal_status')
 
     test_btn = QPushButton(translate('phase233_allui_011'))
     test_btn.clicked.connect(test_current_server)
@@ -213,6 +215,7 @@ def open_network_settings():
     button_box.accepted.connect(save_and_accept)
     button_box.rejected.connect(dialog.reject)
     layout.addWidget(button_box)
+    apply_modal_visual_template(dialog, role='network_settings')
     return dialog.exec() == QDialog.Accepted
 
 def main():
@@ -307,6 +310,7 @@ def main():
         os.environ['ALRAJHI_MODE'] = 'local'
 
     ThemeManager.init_app(app)
+    install_modal_visual_event_filter(app)
 
     splash = ModernSplashScreen()
     timeline.mark("prelogin_splash_created", "Branded pre-login splash created", category="startup")

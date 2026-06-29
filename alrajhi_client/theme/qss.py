@@ -254,8 +254,8 @@ def build_global_qss(colors: dict) -> str:
             border: 0;
         }}
         /* Phase439/440: project-wide visual identity enforcement for all workspaces/tabs. */
-        QWidget[projectVisualIdentityPhase="439"], QWidget[projectVisualIdentityPhase="440"], QWidget[projectVisualIdentityPhase="441"], QWidget[projectVisualIdentityPhase="442"], QWidget[projectVisualIdentityPhase="445"],
-        QWidget[visualIdentitySweepPhase="440"], QWidget[visualIdentitySweepPhase="441"], QWidget[visualIdentitySweepPhase="442"], QWidget[visualIdentitySweepPhase="445"] {{
+        QWidget[projectVisualIdentityPhase="439"], QWidget[projectVisualIdentityPhase="440"], QWidget[projectVisualIdentityPhase="441"], QWidget[projectVisualIdentityPhase="442"], QWidget[projectVisualIdentityPhase="445"], QWidget[projectVisualIdentityPhase="447"], QWidget[projectVisualIdentityPhase="450"],
+        QWidget[visualIdentitySweepPhase="440"], QWidget[visualIdentitySweepPhase="441"], QWidget[visualIdentitySweepPhase="442"], QWidget[visualIdentitySweepPhase="445"], QWidget[visualIdentitySweepPhase="447"], QWidget[visualIdentitySweepPhase="450"], QWidget[visualIdentitySweepPhase="450"] {{
             background-color: {colors.get('workspace_surface_bg', colors.get('surface_root', colors['bg_window']))};
             color: {colors['text_primary']};
         }}
@@ -448,7 +448,10 @@ def build_global_qss(colors: dict) -> str:
         QTabWidget[projectVisualIdentityPhase="440"]::pane,
         QTabWidget[projectVisualIdentityPhase="441"]::pane,
         QTabWidget[projectVisualIdentityPhase="442"]::pane,
-        QTabWidget[projectVisualIdentityPhase="445"]::pane {{
+        QTabWidget[projectVisualIdentityPhase="445"]::pane,
+        QTabWidget[projectVisualIdentityPhase="447"]::pane,
+        QTabWidget[projectVisualIdentityPhase="450"]::pane,
+        QTabWidget[projectVisualIdentityPhase="450"]::pane {{
             border: 1px solid {colors.get('workspace_card_border', colors['border'])};
             background-color: {colors.get('workspace_content_bg', colors['bg_window'])};
             border-radius: {BRAND.get('workspace_tab_radius', radius_md)}px;
@@ -457,7 +460,10 @@ def build_global_qss(colors: dict) -> str:
         QTabWidget[projectVisualIdentityPhase="440"] QTabBar::tab,
         QTabWidget[projectVisualIdentityPhase="441"] QTabBar::tab,
         QTabWidget[projectVisualIdentityPhase="442"] QTabBar::tab,
-        QTabWidget[projectVisualIdentityPhase="445"] QTabBar::tab {{
+        QTabWidget[projectVisualIdentityPhase="445"] QTabBar::tab,
+        QTabWidget[projectVisualIdentityPhase="447"] QTabBar::tab,
+        QTabWidget[projectVisualIdentityPhase="450"] QTabBar::tab,
+        QTabWidget[projectVisualIdentityPhase="450"] QTabBar::tab {{
             min-height: {BRAND.get('workspace_tab_min_height', tab_min_height)}px;
             border-radius: {BRAND.get('workspace_tab_radius', radius_md)}px;
             margin: 3px;
@@ -2002,6 +2008,35 @@ def build_global_qss(colors: dict) -> str:
 
 
 
+
+        /* Phase446: project-wide shell header and action bar consolidation. */
+        QFrame#CleanShellNavigationBar[projectVisualIdentityPhase="446"] {{
+            background-color: {colors.get('shell_navigation_bg', colors.get('menu_bg', colors['bg_panel']))};
+            border-bottom: 1px solid {colors.get('shell_navigation_border', colors['border'])};
+        }}
+        QPushButton#MainNavButton[projectVisualIdentityPhase="446"] {{
+            background-color: {colors.get('shell_navigation_button_bg', colors['bg_panel'])};
+            color: {colors.get('shell_navigation_button_text', colors['text_primary'])};
+            border: 1px solid {colors.get('shell_navigation_button_border', colors['border'])};
+            border-bottom: 3px solid transparent;
+            border-radius: {radius_md}px;
+            font-weight: 850;
+        }}
+        QPushButton#MainNavButton[projectVisualIdentityPhase="446"]:hover {{
+            background-color: {colors.get('shell_navigation_button_hover_bg', colors.get('brand_soft', colors['bg_table_alt']))};
+            color: {colors.get('shell_navigation_button_hover_text', colors['primary'])};
+            border-color: {colors.get('shell_navigation_active_indicator', colors.get('accent', colors['primary']))};
+            border-bottom-color: {colors.get('shell_navigation_active_indicator', colors.get('accent', colors['primary']))};
+        }}
+        QFrame#UnifiedActionBar[projectVisualIdentityPhase="446"] {{
+            background-color: {colors.get('shell_action_bar_bg', colors.get('action_bar_bg', colors['bg_panel']))};
+            border-bottom: 1px solid {colors.get('shell_action_bar_border', colors['border'])};
+        }}
+        QFrame#UnifiedActionBar[projectVisualIdentityPhase="446"] QToolButton {{
+            border-radius: {radius_md}px;
+            font-weight: 800;
+        }}
+
         /* Phase407: Basit-inspired startup, login, activation and dialogs. */
         QFrame#startupCard[basitStartupSurface="true"] {{
             background-color: {colors.get('basit_blue', colors['primary'])};
@@ -2812,6 +2847,874 @@ def build_global_qss(colors: dict) -> str:
             background-color: {colors.get('basit_canvas', colors['bg_window'])};
             border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
         }}
+
+        /* Phase447: unified list workspace visual template.
+           This block is intentionally placed after the older Basit list rules so
+           every lazy-loaded list surface can override legacy toolbar/table skin
+           without changing business logic. */
+        QWidget[listWorkspaceVisualTemplatePhase="447"],
+        QWidget[visualRole="list_workspace_surface"] {{
+            background-color: {BRAND.get('list_workspace_surface_bg', colors.get('workspace_content_bg', colors['bg_window']))};
+            color: {colors['text_primary']};
+        }}
+        QWidget[visualRole="list_filter_bar"],
+        QWidget[listWorkspaceVisualTemplatePhase="447"][visualRole="list_filter_bar"],
+        QWidget[basitListToolbar="true"][listWorkspaceVisualTemplatePhase="447"] {{
+            background-color: {BRAND.get('list_workspace_filter_bg', colors.get('workspace_card_bg', colors['bg_panel']))};
+            border: 1px solid {BRAND.get('list_workspace_filter_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {BRAND.get('list_workspace_filter_radius', radius_lg)}px;
+            padding: 8px;
+            min-height: 46px;
+        }}
+        QWidget[listWorkspaceVisualTemplatePhase="447"] QLineEdit,
+        QWidget[listWorkspaceVisualTemplatePhase="447"] QComboBox,
+        QWidget[listWorkspaceVisualTemplatePhase="447"] QDateEdit,
+        QLineEdit[visualRole="list_search_input"],
+        QLineEdit[visualRole="list_filter_input"],
+        QComboBox[visualRole="list_filter_input"],
+        QDateEdit[visualRole="list_filter_input"] {{
+            min-height: 36px;
+            background-color: {BRAND.get('list_workspace_input_bg', colors.get('input_bg', colors['bg_panel']))};
+            color: {colors['text_primary']};
+            border: 1px solid {BRAND.get('list_workspace_input_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {radius_md}px;
+            padding: 5px 10px;
+            font-weight: 750;
+        }}
+        QWidget[listWorkspaceVisualTemplatePhase="447"] QPushButton,
+        QPushButton[visualRole="list_action"],
+        QPushButton[visualRole="list_filter_action"] {{
+            min-height: 38px;
+            background-color: {BRAND.get('list_workspace_action_bg', colors.get('shell_action_utility_bg_phase446', colors['bg_panel']))};
+            color: {BRAND.get('list_workspace_action_text', colors['text_primary'])};
+            border: 1px solid {BRAND.get('list_workspace_filter_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {radius_md}px;
+            padding: 7px 12px;
+            font-weight: 850;
+        }}
+        QWidget[listWorkspaceVisualTemplatePhase="447"] QPushButton:hover,
+        QPushButton[visualRole="list_action"]:hover,
+        QPushButton[visualRole="list_filter_action"]:hover {{
+            background-color: {colors.get('brand_soft', '#EAF4FF')};
+            border-color: {colors.get('shell_navigation_active_indicator', colors['primary'])};
+        }}
+        QPushButton[visualRole="list_primary_action"],
+        QWidget[listWorkspaceVisualTemplatePhase="447"] QPushButton#primary {{
+            min-height: 40px;
+            background-color: {BRAND.get('list_workspace_primary_bg', colors['primary'])};
+            color: #FFFFFF;
+            border: 1px solid {BRAND.get('list_workspace_primary_bg', colors['primary'])};
+            border-radius: {radius_md}px;
+            padding: 7px 14px;
+            font-weight: 900;
+        }}
+        QPushButton[visualRole="list_primary_action"]:hover,
+        QWidget[listWorkspaceVisualTemplatePhase="447"] QPushButton#primary:hover {{
+            background-color: {BRAND.get('list_workspace_primary_hover', colors.get('primary_hover', colors['primary']))};
+        }}
+        QPushButton[visualRole="list_danger_action"],
+        QWidget[listWorkspaceVisualTemplatePhase="447"] QPushButton#danger {{
+            min-height: 38px;
+            background-color: {BRAND.get('list_workspace_danger_bg', colors.get('danger_soft', '#FEE2E2'))};
+            color: {BRAND.get('list_workspace_danger_text', colors['danger'])};
+            border: 1px solid {colors.get('danger', BRAND.get('list_workspace_danger_text', '#B42318'))};
+            border-radius: {radius_md}px;
+            padding: 7px 12px;
+            font-weight: 900;
+        }}
+        QLabel[visualRole="list_counter"],
+        QWidget[listWorkspaceVisualTemplatePhase="447"] QLabel[basitCounter="true"] {{
+            background-color: {BRAND.get('list_workspace_counter_bg', colors.get('workspace_section_header_bg', colors['brand_soft']))};
+            color: {BRAND.get('list_workspace_counter_text', colors.get('workspace_section_header_text', colors['primary']))};
+            border: 1px solid {BRAND.get('list_workspace_filter_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {radius_md}px;
+            padding: 7px 12px;
+            font-weight: 900;
+        }}
+        QFrame[visualRole="list_card"],
+        QGroupBox[visualRole="list_card"] {{
+            background-color: {BRAND.get('list_workspace_detail_bg', colors.get('workspace_card_bg', colors['bg_panel']))};
+            border: 1px solid {BRAND.get('list_workspace_detail_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+        }}
+        QTableView[visualRole="list_table"],
+        QTableWidget[visualRole="list_table"] {{
+            background-color: {colors.get('bg_table', colors.get('workspace_card_bg', '#FFFFFF'))};
+            alternate-background-color: {colors.get('bg_table_alt', '#F6FAFE')};
+            border: 1px solid {BRAND.get('list_workspace_filter_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {radius_md}px;
+            gridline-color: {colors.get('workspace_card_border', colors['border'])};
+        }}
+        QTableView[visualRole="list_table"] QHeaderView::section,
+        QTableWidget[visualRole="list_table"] QHeaderView::section {{
+            background-color: {BRAND.get('list_workspace_table_header_bg', BRAND.get('materials_table_header_bg', colors.get('header_bg', colors['primary'])))};
+            color: {BRAND.get('list_workspace_table_header_text', BRAND.get('materials_table_header_text', '#FFFFFF'))};
+            font-weight: 900;
+            padding: 8px;
+            border: none;
+            border-left: 1px solid {BRAND.get('list_workspace_filter_border', colors.get('workspace_card_border', colors['border']))};
+        }}
+
+
+
+        /* Phase448: Operational POS/Restaurant surface migration.  These
+           selectors intentionally come after the older Basit selectors so the
+           shared operational identity wins without changing business logic. */
+        QWidget[operationalSurfacePhase="448"] {{
+            background-color: {BRAND.get('operational_surface_bg', colors.get('bg_window'))};
+            color: {colors['text_primary']};
+        }}
+        QFrame[visualRole="operational_header"],
+        QFrame[visualRole="operational_panel"],
+        QFrame[visualRole="operational_footer"],
+        QWidget[visualRole="operational_payment_shell"] {{
+            background-color: {BRAND.get('operational_panel_bg', colors.get('bg_panel'))};
+            border: 1px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            border-radius: {BRAND.get('operational_card_radius', radius_lg)}px;
+        }}
+        QLabel[visualRole="operational_section_title"],
+        QLabel#restaurantSimpleSectionTitle {{
+            background-color: {BRAND.get('operational_panel_header_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('operational_panel_header_text', colors.get('primary'))};
+            border: 1px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            border-radius: {BRAND.get('operational_section_radius', radius_md)}px;
+            padding: 8px 12px;
+            font-size: {value_px}px;
+            font-weight: 950;
+        }}
+        QLabel[visualRole="operational_muted"],
+        QWidget[operationalSurfacePhase="448"] QLabel#muted,
+        QWidget[operationalSurfacePhase="448"] QLabel#restaurantSimpleSubtitle,
+        QWidget[operationalSurfacePhase="448"] QLabel#restaurantSessionMeta {{
+            color: {colors.get('text_secondary')};
+            background: transparent;
+            font-weight: 800;
+        }}
+        QLineEdit[visualRole="operational_scan_input"] {{
+            min-height: {BRAND.get('operational_scan_input_min_height', 58)}px;
+            background-color: {colors.get('input_bg', '#FFFFFF')};
+            border: 2px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            border-radius: {BRAND.get('operational_section_radius', radius_md)}px;
+            padding: 8px 14px;
+            font-size: 24px;
+            font-weight: 950;
+            color: {colors['text_primary']};
+        }}
+        QLineEdit[visualRole="operational_input"],
+        QComboBox[visualRole="operational_select"],
+        QDoubleSpinBox[visualRole="operational_spin"],
+        QSpinBox[visualRole="operational_spin"] {{
+            min-height: 40px;
+            background-color: {colors.get('input_bg', '#FFFFFF')};
+            border: 1px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 6px 10px;
+            font-weight: 850;
+        }}
+        QPushButton[visualRole="operational_primary"],
+        QToolButton[visualRole="operational_primary"] {{
+            min-height: {BRAND.get('operational_action_min_height', 42)}px;
+            background-color: {BRAND.get('operational_primary_bg', colors.get('primary'))};
+            color: #FFFFFF;
+            border: 1px solid {BRAND.get('operational_primary_bg', colors.get('primary'))};
+            border-radius: {radius_md}px;
+            padding: 8px 14px;
+            font-weight: 950;
+        }}
+        QPushButton[visualRole="operational_primary"]:hover,
+        QToolButton[visualRole="operational_primary"]:hover {{
+            background-color: {BRAND.get('operational_primary_hover', colors.get('primary_hover'))};
+        }}
+        QPushButton[visualRole="operational_secondary"],
+        QToolButton[visualRole="operational_secondary"] {{
+            min-height: {BRAND.get('operational_action_min_height', 42)}px;
+            background-color: {BRAND.get('operational_secondary_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('operational_secondary_text', colors.get('primary'))};
+            border: 1px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 8px 13px;
+            font-weight: 900;
+        }}
+        QPushButton[visualRole="operational_danger"],
+        QToolButton[visualRole="operational_danger"] {{
+            min-height: {BRAND.get('operational_action_min_height', 42)}px;
+            background-color: {BRAND.get('operational_danger_bg', colors.get('danger_soft'))};
+            color: {BRAND.get('operational_danger_text', colors.get('danger'))};
+            border: 1px solid {BRAND.get('operational_danger_text', colors.get('danger'))};
+            border-radius: {radius_md}px;
+            padding: 8px 13px;
+            font-weight: 900;
+        }}
+        QFrame[visualRole="operational_actions"] QPushButton,
+        QWidget[operationalSurfacePhase="448"] QPushButton[basitToolbarButton="true"] {{
+            border-radius: {radius_md}px;
+        }}
+        QTableView[visualRole="operational_table"],
+        QTableWidget[visualRole="operational_table"],
+        QWidget[operationalSurfacePhase="448"] QTableView[basitTable="true"],
+        QWidget[operationalSurfacePhase="448"] QTableWidget[basitTable="true"] {{
+            background-color: {colors.get('bg_table', '#FFFFFF')};
+            alternate-background-color: {colors.get('bg_table_alt', '#F8FAFC')};
+            border: 1px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            gridline-color: {colors.get('border')};
+            selection-background-color: {colors.get('selection_bg')};
+            selection-color: {colors.get('selection_text')};
+        }}
+        QTableView[visualRole="operational_table"] QHeaderView::section,
+        QTableWidget[visualRole="operational_table"] QHeaderView::section,
+        QWidget[operationalSurfacePhase="448"] QTableView[basitTable="true"] QHeaderView::section,
+        QWidget[operationalSurfacePhase="448"] QTableWidget[basitTable="true"] QHeaderView::section {{
+            background-color: {BRAND.get('operational_panel_header_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('operational_panel_header_text', colors.get('primary'))};
+            border: none;
+            border-left: 1px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            padding: 8px;
+            font-weight: 950;
+        }}
+        QLabel[visualRole="operational_total"],
+        QWidget[operationalSurfacePhase="448"] QLabel#restaurantSimpleTotal,
+        QWidget[operationalSurfacePhase="448"] QLabel[basitTotal="true"] {{
+            background-color: {BRAND.get('operational_total_bg', colors.get('danger'))};
+            color: {BRAND.get('operational_total_text', '#FFFFFF')};
+            border-radius: {BRAND.get('operational_section_radius', radius_md)}px;
+            padding: 10px 18px;
+            font-size: 24px;
+            font-weight: 950;
+            qproperty-alignment: AlignCenter;
+        }}
+        QWidget[operationalSurfacePhase="448"] QPushButton#operationalItemCardButton,
+        QWidget[operationalSurfacePhase="448"] QPushButton#restaurantSimpleCategoryButton,
+        QWidget[operationalSurfacePhase="448"] QPushButton[basitCard="true"] {{
+            background-color: {colors.get('card_bg', '#FFFFFF')};
+            color: {colors.get('text_primary')};
+            border: 1px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            border-radius: {BRAND.get('operational_section_radius', radius_md)}px;
+            padding: 8px 10px;
+            font-weight: 900;
+        }}
+        QWidget[operationalSurfacePhase="448"] QPushButton#restaurantSimpleCategoryButton:checked {{
+            background-color: {BRAND.get('operational_primary_bg', colors.get('primary'))};
+            color: #FFFFFF;
+            border: 1px solid {BRAND.get('operational_primary_bg', colors.get('primary'))};
+        }}
+        QWidget[operationalSurfacePhase="448"] QFrame#restaurantActionGroups,
+        QWidget[operationalSurfacePhase="448"] QFrame#restaurantOrderSummaryCard,
+        QWidget[operationalSurfacePhase="448"] QFrame#restaurantMenuToggleCard {{
+            background-color: {BRAND.get('operational_panel_bg', colors.get('bg_panel'))};
+            border: 1px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            border-radius: {BRAND.get('operational_card_radius', radius_lg)}px;
+        }}
+
+
+
+        /* Phase449: reports workspace visual refactor.  The reports screen uses
+           a filter ribbon + grouped report tabs + accounting tables.  These
+           selectors come after older Basit/list/operational rules so report
+           chrome no longer looks like a stacked toolbar of legacy buttons. */
+        QWidget[reportsVisualPhase="449"],
+        QWidget[visualRole="reports_workspace"] {{
+            background-color: {BRAND.get('list_workspace_surface_bg', colors.get('bg_window'))};
+            color: {colors['text_primary']};
+        }}
+        QFrame[visualRole="reports_filter_ribbon"] {{
+            background-color: {BRAND.get('reports_filter_ribbon_bg', '#FFFFFF')};
+            border: 1px solid {BRAND.get('reports_filter_ribbon_border', colors.get('border'))};
+            border-radius: {BRAND.get('list_workspace_filter_radius', radius_lg)}px;
+            padding: 4px;
+        }}
+        QWidget[reportsVisualPhase="449"] QComboBox[visualRole="reports_filter_input"],
+        QWidget[reportsVisualPhase="449"] QDateEdit[visualRole="reports_filter_input"] {{
+            min-height: 34px;
+            background-color: {BRAND.get('reports_filter_input_bg', '#F8FBFF')};
+            border: 1px solid {BRAND.get('reports_filter_input_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 5px 9px;
+            font-weight: 800;
+        }}
+        QWidget[reportsVisualPhase="449"] QPushButton[visualRole="reports_primary_action"] {{
+            min-height: 36px;
+            background-color: {BRAND.get('reports_primary_bg', colors.get('primary'))};
+            color: #FFFFFF;
+            border: 1px solid {BRAND.get('reports_primary_bg', colors.get('primary'))};
+            border-radius: {radius_md}px;
+            padding: 7px 13px;
+            font-weight: 950;
+        }}
+        QWidget[reportsVisualPhase="449"] QPushButton[visualRole="reports_primary_action"]:hover {{
+            background-color: {BRAND.get('reports_primary_hover', colors.get('primary_hover'))};
+        }}
+        QWidget[reportsVisualPhase="449"] QPushButton[visualRole="reports_secondary_action"] {{
+            min-height: 36px;
+            background-color: {BRAND.get('list_workspace_action_bg', '#F8FBFC')};
+            color: {BRAND.get('list_workspace_action_text', colors.get('text_primary'))};
+            border: 1px solid {BRAND.get('reports_filter_input_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 7px 13px;
+            font-weight: 900;
+        }}
+        QTabWidget[visualRole="reports_group_tabs"]::pane,
+        QTabWidget[visualRole="reports_inner_tabs"]::pane {{
+            border: 1px solid {BRAND.get('reports_filter_ribbon_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            background-color: {colors.get('bg_table', '#FFFFFF')};
+            top: -1px;
+        }}
+        QTabWidget[visualRole="reports_group_tabs"] QTabBar::tab {{
+            min-height: 36px;
+            background-color: {BRAND.get('reports_group_tab_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('list_workspace_counter_text', colors.get('primary'))};
+            border: 1px solid {BRAND.get('reports_filter_ribbon_border', colors.get('border'))};
+            border-bottom: none;
+            border-top-left-radius: {radius_md}px;
+            border-top-right-radius: {radius_md}px;
+            padding: 8px 14px;
+            font-weight: 950;
+        }}
+        QTabWidget[visualRole="reports_group_tabs"] QTabBar::tab:selected {{
+            background-color: {BRAND.get('reports_group_tab_active_bg', colors.get('primary'))};
+            color: #FFFFFF;
+        }}
+        QTabWidget[visualRole="reports_inner_tabs"] QTabBar::tab {{
+            min-height: 32px;
+            background-color: {BRAND.get('reports_inner_tab_bg', '#F8FBFC')};
+            color: {colors.get('text_secondary')};
+            border: 1px solid {BRAND.get('reports_filter_ribbon_border', colors.get('border'))};
+            border-bottom: none;
+            padding: 6px 11px;
+            font-weight: 850;
+        }}
+        QTabWidget[visualRole="reports_inner_tabs"] QTabBar::tab:selected {{
+            background-color: {BRAND.get('reports_inner_tab_active_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('reports_table_header_text', colors.get('primary'))};
+        }}
+        QTableView[visualRole="reports_table"],
+        QTableWidget[visualRole="reports_table"] {{
+            background-color: {colors.get('bg_table', '#FFFFFF')};
+            alternate-background-color: {colors.get('bg_table_alt', '#F8FAFC')};
+            border: 1px solid {BRAND.get('reports_filter_ribbon_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            gridline-color: {colors.get('border')};
+            selection-background-color: {colors.get('selection_bg')};
+            selection-color: {colors.get('selection_text')};
+        }}
+        QTableView[visualRole="reports_table"] QHeaderView::section,
+        QTableWidget[visualRole="reports_table"] QHeaderView::section {{
+            background-color: {BRAND.get('reports_table_header_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('reports_table_header_text', colors.get('primary'))};
+            border: none;
+            border-left: 1px solid {BRAND.get('reports_filter_ribbon_border', colors.get('border'))};
+            padding: 8px;
+            font-weight: 950;
+        }}
+        QLabel[visualRole="reports_summary_bar"] {{
+            background-color: {BRAND.get('reports_summary_bg', colors.get('warning_soft'))};
+            color: {BRAND.get('reports_summary_text', colors.get('warning'))};
+            border: 1px solid {BRAND.get('reports_filter_ribbon_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 8px 12px;
+            font-weight: 950;
+        }}
+
+
+        /* Phase450: unified document editor visual template.  This covers
+           invoice/return editors, voucher/expense editors, warehouse transfer,
+           manufacturing documents, parties, categories and other BaseDocumentTab
+           surfaces through document_layout_policy metadata. */
+        QWidget[documentVisualTemplatePhase="450"],
+        QWidget[visualRole="document_editor_surface"] {{
+            background-color: {BRAND.get('document_editor_surface_bg', colors.get('workspace_content_bg', colors['bg_window']))};
+            color: {colors['text_primary']};
+        }}
+        QFrame[visualRole="document_header"],
+        QWidget[visualRole="document_header"] {{
+            background-color: {BRAND.get('document_editor_header_bg', colors.get('workspace_card_bg', colors['bg_panel']))};
+            border: 1px solid {BRAND.get('document_editor_header_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+            padding: 6px;
+        }}
+        QFrame[visualRole="document_card"],
+        QGroupBox[visualRole="document_card"],
+        QWidget[visualRole="document_card"] {{
+            background-color: {BRAND.get('document_editor_card_bg', colors.get('workspace_card_bg', colors['bg_panel']))};
+            border: 1px solid {BRAND.get('document_editor_card_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+        }}
+        QFrame[visualRole="document_summary"],
+        QWidget[visualRole="document_summary"] {{
+            background-color: {BRAND.get('document_editor_summary_bg', colors.get('warning_soft', colors.get('workspace_card_bg', colors['bg_panel'])))};
+            border: 1px solid {BRAND.get('document_editor_summary_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+        }}
+        QFrame[visualRole="document_action_bar"],
+        QWidget[visualRole="document_action_bar"] {{
+            background-color: {BRAND.get('document_editor_action_bar_bg', colors.get('shell_action_bar_bg', colors['bg_panel']))};
+            border: 1px solid {BRAND.get('document_editor_card_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+        }}
+        QWidget[visualRole="document_header_field"] {{
+            background-color: {colors.get('workspace_card_bg', '#FFFFFF')};
+            border: 1px solid {BRAND.get('document_editor_input_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+        }}
+        QLabel[visualRole="document_title"] {{
+            background: transparent;
+            color: {colors.get('workspace_section_header_text', colors.get('primary'))};
+            font-size: {title_px}px;
+            font-weight: 950;
+        }}
+        QLabel[visualRole="document_subtitle"] {{
+            background: transparent;
+            color: {colors.get('text_secondary')};
+            font-weight: 800;
+        }}
+        QLabel[visualRole="document_section_title"] {{
+            background-color: {colors.get('workspace_section_header_bg', colors.get('brand_soft'))};
+            color: {colors.get('workspace_section_header_text', colors.get('primary'))};
+            border: 1px solid {BRAND.get('document_editor_card_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {radius_md}px;
+            padding: 7px 11px;
+            font-weight: 950;
+        }}
+        QLabel[visualRole="document_metric_title"] {{
+            background: transparent;
+            color: {BRAND.get('document_editor_metric_title', colors.get('text_secondary'))};
+            font-size: {caption_px}px;
+            font-weight: 850;
+        }}
+        QLabel[visualRole="document_metric_value"] {{
+            background: transparent;
+            color: {BRAND.get('document_editor_metric_value', colors.get('primary'))};
+            font-size: {value_px}px;
+            font-weight: 950;
+        }}
+        QWidget[documentVisualTemplatePhase="450"] QLineEdit,
+        QWidget[documentVisualTemplatePhase="450"] QComboBox,
+        QWidget[documentVisualTemplatePhase="450"] QDateEdit,
+        QWidget[documentVisualTemplatePhase="450"] QTextEdit,
+        QWidget[documentVisualTemplatePhase="450"] QSpinBox,
+        QWidget[documentVisualTemplatePhase="450"] QDoubleSpinBox,
+        QLineEdit[visualRole="document_input"],
+        QComboBox[visualRole="document_input"],
+        QDateEdit[visualRole="document_input"],
+        QTextEdit[visualRole="document_input"],
+        QSpinBox[visualRole="document_input"],
+        QDoubleSpinBox[visualRole="document_input"] {{
+            min-height: 36px;
+            background-color: {BRAND.get('document_editor_input_bg', colors.get('input_bg', '#FFFFFF'))};
+            color: {colors['text_primary']};
+            border: 1px solid {BRAND.get('document_editor_input_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 5px 9px;
+            font-weight: 800;
+        }}
+        QWidget[documentVisualTemplatePhase="450"] QLineEdit:focus,
+        QWidget[documentVisualTemplatePhase="450"] QComboBox:focus,
+        QWidget[documentVisualTemplatePhase="450"] QDateEdit:focus,
+        QWidget[documentVisualTemplatePhase="450"] QTextEdit:focus,
+        QWidget[documentVisualTemplatePhase="450"] QSpinBox:focus,
+        QWidget[documentVisualTemplatePhase="450"] QDoubleSpinBox:focus {{
+            border: 1px solid {colors.get('border_focus', colors.get('primary'))};
+        }}
+        QTableView[visualRole="document_table"],
+        QTableWidget[visualRole="document_table"],
+        QWidget[documentVisualTemplatePhase="450"] QTableView,
+        QWidget[documentVisualTemplatePhase="450"] QTableWidget {{
+            background-color: {colors.get('bg_table', '#FFFFFF')};
+            alternate-background-color: {colors.get('bg_table_alt', '#F8FAFC')};
+            border: 1px solid {BRAND.get('document_editor_card_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            gridline-color: {colors.get('border')};
+            selection-background-color: {colors.get('selection_bg')};
+            selection-color: {colors.get('selection_text')};
+        }}
+        QTableView[visualRole="document_table"] QHeaderView::section,
+        QTableWidget[visualRole="document_table"] QHeaderView::section,
+        QWidget[documentVisualTemplatePhase="450"] QTableView QHeaderView::section,
+        QWidget[documentVisualTemplatePhase="450"] QTableWidget QHeaderView::section {{
+            background-color: {BRAND.get('document_editor_table_header_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('document_editor_table_header_text', colors.get('primary'))};
+            border: none;
+            border-left: 1px solid {BRAND.get('document_editor_card_border', colors.get('border'))};
+            padding: 8px;
+            font-weight: 950;
+        }}
+        QPushButton[visualRole="document_primary_action"],
+        QWidget[documentVisualTemplatePhase="450"] QPushButton#primary {{
+            min-height: 40px;
+            background-color: {BRAND.get('document_editor_primary_bg', colors.get('primary'))};
+            color: #FFFFFF;
+            border: 1px solid {BRAND.get('document_editor_primary_bg', colors.get('primary'))};
+            border-radius: {radius_md}px;
+            padding: 7px 15px;
+            font-weight: 950;
+        }}
+        QPushButton[visualRole="document_primary_action"]:hover,
+        QWidget[documentVisualTemplatePhase="450"] QPushButton#primary:hover {{
+            background-color: {BRAND.get('document_editor_primary_hover', colors.get('primary_hover'))};
+        }}
+        QPushButton[visualRole="document_action"],
+        QWidget[documentVisualTemplatePhase="450"] QPushButton {{
+            min-height: 38px;
+            background-color: {BRAND.get('document_editor_secondary_bg', '#FFFFFF')};
+            color: {BRAND.get('document_editor_secondary_text', colors.get('text_primary'))};
+            border: 1px solid {BRAND.get('document_editor_card_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 7px 13px;
+            font-weight: 900;
+        }}
+        QPushButton[visualRole="document_action"]:hover,
+        QWidget[documentVisualTemplatePhase="450"] QPushButton:hover {{
+            background-color: {colors.get('brand_soft', '#EAF4FF')};
+            border-color: {colors.get('shell_navigation_active_indicator', colors.get('primary'))};
+        }}
+        QPushButton[visualRole="document_danger_action"] {{
+            min-height: 38px;
+            background-color: {BRAND.get('document_editor_danger_bg', colors.get('danger_soft'))};
+            color: {BRAND.get('document_editor_danger_text', colors.get('danger'))};
+            border: 1px solid {BRAND.get('document_editor_danger_text', colors.get('danger'))};
+            border-radius: {radius_md}px;
+            padding: 7px 13px;
+            font-weight: 900;
+        }}
+        QSplitter[visualRole="document_splitter"]::handle {{
+            background-color: {BRAND.get('document_editor_card_border', colors.get('border'))};
+            border-radius: 3px;
+        }}
+
+        /* Phase451: settings workspace visual consolidation.  Settings uses a
+           two-level navigation model plus many form cards; these selectors
+           deliberately come after Basit/Modern/page-local rules so the
+           centralized settings identity wins without changing SettingsService
+           persistence or individual save handlers. */
+        QWidget[settingsVisualPhase="451"],
+        QWidget[visualRole="settings_workspace"],
+        QWidget[visualRole="settings_document_surface"] {{
+            background-color: {BRAND.get('settings_workspace_surface_bg', colors.get('workspace_content_bg', colors['bg_window']))};
+            color: {colors['text_primary']};
+        }}
+        QScrollArea[visualRole="settings_scroll"] {{
+            border: none;
+            background: transparent;
+        }}
+        QWidget[visualRole="settings_scroll_page"] {{
+            background-color: {BRAND.get('settings_workspace_surface_bg', colors.get('workspace_content_bg', colors['bg_window']))};
+        }}
+        QTabWidget[visualRole="settings_group_tabs"]::pane,
+        QTabWidget[visualRole="settings_leaf_tabs"]::pane {{
+            border: 1px solid {BRAND.get('settings_workspace_panel_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+            background-color: {BRAND.get('settings_workspace_panel_bg', colors.get('workspace_card_bg', colors['bg_panel']))};
+            top: -1px;
+        }}
+        QTabWidget[visualRole="settings_group_tabs"] QTabBar::tab {{
+            min-height: 38px;
+            background-color: {BRAND.get('settings_workspace_group_tab_bg', colors.get('brand_soft'))};
+            color: {colors.get('workspace_section_header_text', colors.get('primary'))};
+            border: 1px solid {BRAND.get('settings_workspace_panel_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 8px 16px;
+            margin: 3px;
+            font-weight: 900;
+        }}
+        QTabWidget[visualRole="settings_group_tabs"] QTabBar::tab:selected {{
+            background-color: {BRAND.get('settings_workspace_group_tab_active_bg', colors.get('primary'))};
+            color: {BRAND.get('settings_workspace_group_tab_active_text', '#FFFFFF')};
+            border-color: {BRAND.get('settings_workspace_group_tab_active_bg', colors.get('primary'))};
+        }}
+        QTabWidget[visualRole="settings_leaf_tabs"] QTabBar::tab {{
+            min-height: 34px;
+            background-color: {BRAND.get('settings_workspace_leaf_tab_bg', colors.get('bg_panel'))};
+            color: {colors.get('text_secondary')};
+            border: 1px solid {BRAND.get('settings_workspace_panel_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 7px 13px;
+            margin: 2px;
+            font-weight: 850;
+        }}
+        QTabWidget[visualRole="settings_leaf_tabs"] QTabBar::tab:selected {{
+            background-color: {BRAND.get('settings_workspace_leaf_tab_active_bg', colors.get('brand_soft'))};
+            color: {colors.get('workspace_section_header_text', colors.get('primary'))};
+            border-color: {colors.get('shell_navigation_active_indicator', colors.get('primary'))};
+        }}
+        QGroupBox[visualRole="settings_card"],
+        QFrame[visualRole="settings_card"],
+        QFrame[visualRole="settings_header"] {{
+            background-color: {BRAND.get('settings_workspace_card_bg', colors.get('workspace_card_bg', colors['bg_panel']))};
+            border: 1px solid {BRAND.get('settings_workspace_card_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+        }}
+        QGroupBox[visualRole="settings_card"] {{
+            margin-top: 14px;
+            padding-top: 14px;
+            font-weight: 950;
+        }}
+        QGroupBox[visualRole="settings_card"]::title {{
+            subcontrol-origin: margin;
+            right: 14px;
+            padding: 4px 10px;
+            color: {BRAND.get('settings_workspace_card_title_text', colors.get('primary'))};
+            background-color: {BRAND.get('settings_workspace_card_title_bg', colors.get('brand_soft'))};
+            border: 1px solid {BRAND.get('settings_workspace_card_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+        }}
+        QLabel[visualRole="settings_title"] {{
+            background: transparent;
+            color: {colors.get('workspace_section_header_text', colors.get('primary'))};
+            font-size: {title_px}px;
+            font-weight: 950;
+        }}
+        QLabel[visualRole="settings_help"] {{
+            background: transparent;
+            color: {colors.get('text_secondary')};
+            font-weight: 800;
+        }}
+        QLineEdit[visualRole="settings_input"],
+        QComboBox[visualRole="settings_input"],
+        QSpinBox[visualRole="settings_input"],
+        QDoubleSpinBox[visualRole="settings_input"],
+        QDateEdit[visualRole="settings_input"],
+        QTextEdit[visualRole="settings_input"],
+        QPlainTextEdit[visualRole="settings_input"] {{
+            min-height: 36px;
+            background-color: {BRAND.get('settings_workspace_input_bg', colors.get('input_bg', '#FFFFFF'))};
+            color: {colors['text_primary']};
+            border: 1px solid {BRAND.get('settings_workspace_input_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 6px 10px;
+            font-weight: 800;
+        }}
+        QCheckBox[visualRole="settings_input"] {{
+            background: transparent;
+            color: {colors['text_primary']};
+            font-weight: 850;
+            min-height: 30px;
+        }}
+        QPushButton[visualRole="settings_primary_action"] {{
+            min-height: 40px;
+            background-color: {BRAND.get('settings_workspace_primary_bg', colors.get('primary'))};
+            color: #FFFFFF;
+            border: 1px solid {BRAND.get('settings_workspace_primary_bg', colors.get('primary'))};
+            border-radius: {radius_md}px;
+            padding: 8px 16px;
+            font-weight: 950;
+        }}
+        QPushButton[visualRole="settings_primary_action"]:hover {{
+            background-color: {BRAND.get('settings_workspace_primary_hover', colors.get('primary_hover'))};
+        }}
+        QPushButton[visualRole="settings_action"] {{
+            min-height: 38px;
+            background-color: {BRAND.get('settings_workspace_secondary_bg', '#FFFFFF')};
+            color: {BRAND.get('settings_workspace_secondary_text', colors.get('text_primary'))};
+            border: 1px solid {BRAND.get('settings_workspace_card_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 7px 13px;
+            font-weight: 900;
+        }}
+        QPushButton[visualRole="settings_action"]:hover {{
+            background-color: {colors.get('brand_soft', '#EAF4FF')};
+            border-color: {colors.get('shell_navigation_active_indicator', colors.get('primary'))};
+        }}
+        QPushButton[visualRole="settings_danger_action"] {{
+            min-height: 38px;
+            background-color: {BRAND.get('settings_workspace_note_danger_bg', colors.get('danger_soft'))};
+            color: {BRAND.get('settings_workspace_note_danger_text', colors.get('danger'))};
+            border: 1px solid {BRAND.get('settings_workspace_note_danger_border', colors.get('danger'))};
+            border-radius: {radius_md}px;
+            padding: 7px 13px;
+            font-weight: 900;
+        }}
+        QLabel[visualRole="settings_note"] {{
+            border-radius: {radius_md}px;
+            padding: 10px 12px;
+            font-weight: 850;
+        }}
+        QLabel[visualRole="settings_note"][settingsNoteTone="info"] {{
+            background-color: {BRAND.get('settings_workspace_note_info_bg', colors.get('info_soft'))};
+            border: 1px solid {BRAND.get('settings_workspace_note_info_border', colors.get('border'))};
+            color: {BRAND.get('settings_workspace_note_info_text', colors.get('primary'))};
+        }}
+        QLabel[visualRole="settings_note"][settingsNoteTone="warning"] {{
+            background-color: {BRAND.get('settings_workspace_note_warning_bg', colors.get('warning_soft'))};
+            border: 1px solid {BRAND.get('settings_workspace_note_warning_border', colors.get('warning'))};
+            color: {BRAND.get('settings_workspace_note_warning_text', colors.get('warning'))};
+        }}
+        QLabel[visualRole="settings_note"][settingsNoteTone="danger"],
+        QLabel[visualRole="settings_note"][settingsNoteTone="error"] {{
+            background-color: {BRAND.get('settings_workspace_note_danger_bg', colors.get('danger_soft'))};
+            border: 1px solid {BRAND.get('settings_workspace_note_danger_border', colors.get('danger'))};
+            color: {BRAND.get('settings_workspace_note_danger_text', colors.get('danger'))};
+        }}
+        QTableView[visualRole="settings_table"],
+        QTableWidget[visualRole="settings_table"],
+        EditableSmartGrid[visualRole="settings_table"] {{
+            background-color: {colors.get('bg_table', '#FFFFFF')};
+            alternate-background-color: {colors.get('bg_table_alt', '#F8FAFC')};
+            border: 1px solid {BRAND.get('settings_workspace_card_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            gridline-color: {colors.get('border')};
+            selection-background-color: {colors.get('selection_bg')};
+            selection-color: {colors.get('selection_text')};
+        }}
+        QTableView[visualRole="settings_table"] QHeaderView::section,
+        QTableWidget[visualRole="settings_table"] QHeaderView::section {{
+            background-color: {BRAND.get('settings_workspace_table_header_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('settings_workspace_table_header_text', colors.get('primary'))};
+            border: none;
+            border-left: 1px solid {BRAND.get('settings_workspace_card_border', colors.get('border'))};
+            padding: 8px;
+            font-weight: 950;
+        }}
+
+
+        /* Phase452: dialogs and modal windows visual unification. */
+        QDialog[modalVisualPhase="452"],
+        QMessageBox[modalVisualPhase="452"] {{
+            background-color: {BRAND.get('modal_surface_bg', colors.get('surface_root', colors['bg_window']))};
+            color: {colors['text_primary']};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+        }}
+        QDialog[modalVisualPhase="452"] QFrame#BrandDialogFrame,
+        QDialog[modalVisualPhase="452"] QFrame[visualRole="modal_shell"],
+        QMessageBox[modalVisualPhase="452"] {{
+            background-color: {BRAND.get('modal_shell_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {BRAND.get('modal_shell_border', colors.get('border'))};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+        }}
+        QDialog[modalVisualPhase="452"] QFrame#BrandDialogHeader,
+        QDialog[modalVisualPhase="452"] QFrame[visualRole="modal_header"] {{
+            min-height: {BRAND.get('brand_dialog_header_height', dialog_header_height)}px;
+            background-color: {BRAND.get('modal_header_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('modal_header_text', colors.get('primary'))};
+            border-bottom: 3px solid {BRAND.get('modal_header_accent', colors.get('accent'))};
+            border-top-left-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+            border-top-right-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+        }}
+        QDialog[modalVisualPhase="452"] QWidget[visualRole="modal_body"],
+        QDialog[modalVisualPhase="452"] QWidget[dialogSurface="body"] {{
+            background-color: {BRAND.get('modal_body_bg', colors.get('bg_panel', '#FFFFFF'))};
+            color: {colors['text_primary']};
+        }}
+        QDialog[modalVisualPhase="452"] QWidget[visualRole="modal_footer"],
+        QDialog[modalVisualPhase="452"] QDialogButtonBox[visualRole="modal_button_box"],
+        QDialog[modalVisualPhase="452"] QDialogButtonBox[dialogSurface="footer"] {{
+            background-color: {BRAND.get('modal_footer_bg', colors.get('bg_window'))};
+            border-top: 1px solid {BRAND.get('modal_shell_border', colors.get('border'))};
+            padding: 10px;
+        }}
+        QDialog[modalVisualPhase="452"] QLabel#BrandDialogTitle,
+        QDialog[modalVisualPhase="452"] QLabel[visualRole="modal_title"],
+        QMessageBox[modalVisualPhase="452"] QLabel[visualRole="modal_title"] {{
+            background: transparent;
+            color: {BRAND.get('modal_header_text', colors.get('primary'))};
+            font-size: {title_px}px;
+            font-weight: 950;
+        }}
+        QDialog[modalVisualPhase="452"] QLabel[visualRole="modal_help"],
+        QDialog[modalVisualPhase="452"] QLabel[visualRole="modal_status"],
+        QMessageBox[modalVisualPhase="452"] QLabel {{
+            background: transparent;
+            color: {BRAND.get('modal_status_text', colors.get('text_secondary'))};
+            font-weight: 820;
+        }}
+        QDialog[modalVisualPhase="452"] QLabel[modalTone="warning"],
+        QMessageBox[modalVisualPhase="452"][modalTone="warning"] {{
+            background-color: {BRAND.get('modal_warning_bg', colors.get('warning_soft'))};
+            border: 1px solid {BRAND.get('modal_warning_border', colors.get('warning'))};
+            border-radius: {radius_md}px;
+            color: {BRAND.get('settings_workspace_note_warning_text', colors.get('warning'))};
+            padding: 9px 11px;
+        }}
+        QDialog[modalVisualPhase="452"] QLabel[modalTone="danger"],
+        QMessageBox[modalVisualPhase="452"][modalTone="danger"],
+        QMessageBox[modalVisualPhase="452"][dialogKind="message_error"] {{
+            background-color: {BRAND.get('modal_danger_bg', colors.get('danger_soft'))};
+            border: 1px solid {BRAND.get('modal_danger_text', colors.get('danger'))};
+            border-radius: {radius_md}px;
+            color: {BRAND.get('modal_danger_text', colors.get('danger'))};
+            padding: 9px 11px;
+        }}
+        QDialog[modalVisualPhase="452"] QLineEdit[visualRole="modal_input"],
+        QDialog[modalVisualPhase="452"] QComboBox[visualRole="modal_input"],
+        QDialog[modalVisualPhase="452"] QSpinBox[visualRole="modal_input"],
+        QDialog[modalVisualPhase="452"] QDoubleSpinBox[visualRole="modal_input"],
+        QDialog[modalVisualPhase="452"] QDateEdit[visualRole="modal_input"],
+        QDialog[modalVisualPhase="452"] QTextEdit[visualRole="modal_input"],
+        QDialog[modalVisualPhase="452"] QPlainTextEdit[visualRole="modal_input"] {{
+            min-height: 38px;
+            background-color: {BRAND.get('modal_input_bg', colors.get('input_bg', '#FFFFFF'))};
+            color: {colors['text_primary']};
+            border: 1px solid {BRAND.get('modal_input_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 7px 10px;
+            font-weight: 820;
+        }}
+        QDialog[modalVisualPhase="452"] QTableView[visualRole="modal_table"],
+        QDialog[modalVisualPhase="452"] QTableWidget[visualRole="modal_table"] {{
+            background-color: {colors.get('bg_table', '#FFFFFF')};
+            alternate-background-color: {colors.get('bg_table_alt', '#F8FAFC')};
+            border: 1px solid {BRAND.get('modal_shell_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            gridline-color: {colors.get('border')};
+            selection-background-color: {colors.get('selection_bg')};
+            selection-color: {colors.get('selection_text')};
+        }}
+        QDialog[modalVisualPhase="452"] QTableView[visualRole="modal_table"] QHeaderView::section,
+        QDialog[modalVisualPhase="452"] QTableWidget[visualRole="modal_table"] QHeaderView::section {{
+            background-color: {BRAND.get('modal_table_header_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('modal_table_header_text', colors.get('primary'))};
+            border: none;
+            border-left: 1px solid {BRAND.get('modal_shell_border', colors.get('border'))};
+            padding: 8px;
+            font-weight: 950;
+        }}
+        QDialog[modalVisualPhase="452"] QTabWidget[visualRole="modal_tabs"]::pane {{
+            border: 1px solid {BRAND.get('modal_shell_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            background-color: {BRAND.get('modal_body_bg', colors.get('bg_panel'))};
+        }}
+        QDialog[modalVisualPhase="452"] QPushButton[visualRole="modal_primary_action"],
+        QMessageBox[modalVisualPhase="452"] QPushButton[visualRole="modal_primary_action"] {{
+            min-height: {BRAND.get('dialog_action_min_height', 42)}px;
+            min-width: {BRAND.get('dialog_primary_min_width', 126)}px;
+            background-color: {BRAND.get('modal_primary_bg', colors.get('primary'))};
+            color: #FFFFFF;
+            border: 1px solid {BRAND.get('modal_primary_bg', colors.get('primary'))};
+            border-radius: {radius_md}px;
+            padding: 8px 16px;
+            font-weight: 950;
+        }}
+        QDialog[modalVisualPhase="452"] QPushButton[visualRole="modal_primary_action"]:hover,
+        QMessageBox[modalVisualPhase="452"] QPushButton[visualRole="modal_primary_action"]:hover {{
+            background-color: {BRAND.get('modal_primary_hover', colors.get('primary_hover'))};
+        }}
+        QDialog[modalVisualPhase="452"] QPushButton[visualRole="modal_secondary_action"],
+        QDialog[modalVisualPhase="452"] QPushButton[visualRole="modal_close_action"],
+        QMessageBox[modalVisualPhase="452"] QPushButton[visualRole="modal_secondary_action"],
+        QMessageBox[modalVisualPhase="452"] QPushButton[visualRole="modal_close_action"] {{
+            min-height: {BRAND.get('dialog_action_min_height', 42)}px;
+            min-width: {BRAND.get('dialog_action_min_width', 104)}px;
+            background-color: {BRAND.get('modal_secondary_bg', '#FFFFFF')};
+            color: {BRAND.get('modal_secondary_text', colors.get('text_primary'))};
+            border: 1px solid {BRAND.get('modal_shell_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 8px 14px;
+            font-weight: 900;
+        }}
+        QDialog[modalVisualPhase="452"] QPushButton[visualRole="modal_danger_action"],
+        QMessageBox[modalVisualPhase="452"] QPushButton[visualRole="modal_danger_action"] {{
+            min-height: {BRAND.get('dialog_action_min_height', 42)}px;
+            min-width: {BRAND.get('dialog_action_min_width', 104)}px;
+            background-color: {BRAND.get('modal_danger_bg', colors.get('danger_soft'))};
+            color: {BRAND.get('modal_danger_text', colors.get('danger'))};
+            border: 1px solid {BRAND.get('modal_danger_text', colors.get('danger'))};
+            border-radius: {radius_md}px;
+            padding: 8px 14px;
+            font-weight: 900;
+        }}
+
+
+
     """
 
 

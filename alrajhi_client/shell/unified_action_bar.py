@@ -18,7 +18,7 @@ ACTION_BAR_HEIGHT = int(BRAND.get('basit_shell_action_height', BRAND.get('action
 ACTION_BUTTON_ICON = int(BRAND.get('action_button_icon', 18))
 ACTION_BUTTON_FONT_PX = int(BRAND.get('action_button_font_px', 12))
 ACTION_BUTTON_MIN_HEIGHT = int(BRAND.get('action_button_min_height', 38))
-BRANDED_ACTION_BAR_PHASE = 354
+BRANDED_ACTION_BAR_PHASE = 446
 # Phase354 contract markers: ActionBarButton_save ; ActionBarButton_print
 
 
@@ -35,6 +35,9 @@ class UnifiedActionBar(QFrame):
         super().__init__(parent)
         self.setObjectName("UnifiedActionBar")
         self.setProperty('basitShellChrome', True)
+        self.setProperty('projectVisualIdentityPhase', 446)
+        self.setProperty('visualIdentitySweepPhase', 446)
+        self.setProperty('visualRole', 'shell_action_bar')
         self.setLayoutDirection(qt_layout_direction())
         self._callbacks = {}
         self._buttons = {}
@@ -58,6 +61,8 @@ class UnifiedActionBar(QFrame):
             button.setObjectName(f"ActionBarButton_{key}")
             button.setProperty('shellChromeRole', 'primary' if key in {'save', 'print'} else 'secondary')
             button.setProperty('actionKey', key)
+            button.setProperty('projectVisualIdentityPhase', 446)
+            button.setProperty('visualRole', 'shell_action_button')
             button.setCursor(Qt.PointingHandCursor)
             button.setIcon(qta.icon(f"fa5s.{spec.icon}"))
             button.setIconSize(QSize(ACTION_BUTTON_ICON, ACTION_BUTTON_ICON))
@@ -73,6 +78,8 @@ class UnifiedActionBar(QFrame):
         self.alert_btn = QToolButton(self)
         self.alert_btn.setObjectName("ActionBarUtilityButton_alert")
         self.alert_btn.setProperty('shellChromeRole', 'utility')
+        self.alert_btn.setProperty('projectVisualIdentityPhase', 446)
+        self.alert_btn.setProperty('visualRole', 'shell_action_utility')
         self.alert_btn.setCursor(Qt.PointingHandCursor)
         self.alert_btn.setIcon(qta.icon(f"fa5s.{ACTION_SPECS['alert'].icon}"))
         self.alert_btn.setIconSize(QSize(ACTION_BUTTON_ICON, ACTION_BUTTON_ICON))
@@ -90,6 +97,8 @@ class UnifiedActionBar(QFrame):
         self.theme_btn = QToolButton(self)
         self.theme_btn.setObjectName("ActionBarUtilityButton_theme")
         self.theme_btn.setProperty('shellChromeRole', 'utility')
+        self.theme_btn.setProperty('projectVisualIdentityPhase', 446)
+        self.theme_btn.setProperty('visualRole', 'shell_action_utility')
         self.theme_btn.setCursor(Qt.PointingHandCursor)
         self.theme_btn.setIcon(qta.icon(f"fa5s.{ACTION_SPECS['theme'].icon}"))
         self.theme_btn.setIconSize(QSize(ACTION_BUTTON_ICON, ACTION_BUTTON_ICON))
@@ -100,6 +109,8 @@ class UnifiedActionBar(QFrame):
         self.screenshot_btn = QToolButton(self)
         self.screenshot_btn.setObjectName("ActionBarUtilityButton_screenshot")
         self.screenshot_btn.setProperty('shellChromeRole', 'utility')
+        self.screenshot_btn.setProperty('projectVisualIdentityPhase', 446)
+        self.screenshot_btn.setProperty('visualRole', 'shell_action_utility')
         self.screenshot_btn.setCursor(Qt.PointingHandCursor)
         self.screenshot_btn.setIcon(qta.icon(f"fa5s.{ACTION_SPECS['screenshot'].icon}"))
         self.screenshot_btn.setIconSize(QSize(ACTION_BUTTON_ICON, ACTION_BUTTON_ICON))
@@ -110,6 +121,8 @@ class UnifiedActionBar(QFrame):
         self.fullscreen_btn = QToolButton(self)
         self.fullscreen_btn.setObjectName("ActionBarUtilityButton_fullscreen")
         self.fullscreen_btn.setProperty('shellChromeRole', 'utility')
+        self.fullscreen_btn.setProperty('projectVisualIdentityPhase', 446)
+        self.fullscreen_btn.setProperty('visualRole', 'shell_action_utility')
         self.fullscreen_btn.setCursor(Qt.PointingHandCursor)
         self.fullscreen_btn.setIcon(qta.icon(f"fa5s.{ACTION_SPECS['fullscreen'].icon}"))
         self.fullscreen_btn.setIconSize(QSize(ACTION_BUTTON_ICON, ACTION_BUTTON_ICON))
@@ -120,6 +133,8 @@ class UnifiedActionBar(QFrame):
         self.user_label = QLabel(translate("user"), self)
         self.user_label.setObjectName("ActionBarUserLabel")
         self.user_label.setProperty('shellChromeRole', 'user')
+        self.user_label.setProperty('projectVisualIdentityPhase', 446)
+        self.user_label.setProperty('visualRole', 'shell_action_user')
         self.user_label.setMinimumHeight(ACTION_BUTTON_MIN_HEIGHT)
         self.user_label.setToolTip(translate("current_user"))
         layout.addWidget(self.user_label)
@@ -136,68 +151,77 @@ class UnifiedActionBar(QFrame):
         self.setFixedHeight(ACTION_BAR_HEIGHT)
         # Phase 318 compatibility marker: padding: 5px 8px
         colors = get_tokens(settings_service.get_theme() or 'light')
-        basit_bg = colors.get('basit_shell_bg', colors.get('basit_toolbar_bg', colors['bg_panel']))
-        basit_blue = colors.get('basit_blue', colors['primary'])
-        basit_yellow = colors.get('basit_yellow', colors['warning'])
-        basit_red = colors.get('basit_red', colors['danger'])
+        bar_bg = colors.get('shell_action_bar_bg', BRAND.get('shell_action_bar_bg', colors.get('action_bar_bg', colors['bg_panel'])))
+        bar_border = colors.get('shell_action_bar_border', BRAND.get('shell_action_bar_border', colors['border']))
+        context_bg = colors.get('shell_action_context_bg_phase446', BRAND.get('shell_action_context_bg_phase446', colors.get('shell_action_context_bg', colors['bg_panel'])))
+        context_text = colors.get('shell_action_context_text_phase446', BRAND.get('shell_action_context_text_phase446', colors.get('primary', colors['text_primary'])))
+        primary_bg = colors.get('shell_action_primary_bg_phase446', BRAND.get('shell_action_primary_bg_phase446', colors.get('primary', colors['primary'])))
+        secondary_bg = colors.get('shell_action_secondary_bg_phase446', BRAND.get('shell_action_secondary_bg_phase446', colors.get('bg_panel', '#FFFFFF')))
+        secondary_text = colors.get('shell_action_secondary_text_phase446', BRAND.get('shell_action_secondary_text_phase446', colors.get('text_secondary', colors['text_primary'])))
+        utility_bg = colors.get('shell_action_utility_bg_phase446', BRAND.get('shell_action_utility_bg_phase446', colors.get('bg_table_alt', colors['bg_panel'])))
+        border = colors.get('shell_navigation_button_border', BRAND.get('shell_navigation_button_border', colors['border']))
+        radius = int(BRAND.get('radius_md', 12))
+        compact_min_width = int(BRAND.get('shell_action_compact_min_width', 92))
         self.setStyleSheet(f"""
-            /* Phase406: Basit-inspired shared action bar runtime. */
-            QFrame#UnifiedActionBar[basitShellChrome="true"] {{
-                background: {basit_bg};
-                border-bottom: 2px solid {colors.get('basit_toolbar_border', colors['border'])};
+            /* Phase446: global action bar is secondary shell chrome, not a competing main menu. */
+            QFrame#UnifiedActionBar[visualRole="shell_action_bar"] {{
+                background: {bar_bg};
+                border-bottom: 1px solid {bar_border};
             }}
             QLabel#ActionBarContext {{
-                font-weight: 950;
-                color: {colors.get('basit_shell_active_text', colors['text_primary'])};
-                background: {basit_yellow};
-                border: 1px solid {basit_red};
-                border-radius: 3px;
-                padding: 7px 12px;
+                font-weight: 850;
+                color: {context_text};
+                background: {context_bg};
+                border: 1px solid {border};
+                border-radius: {radius}px;
+                padding: 6px 11px;
                 min-width: {int(BRAND.get('shell_action_context_min_width', 180))}px;
             }}
             QToolButton {{
-                border: 1px solid {colors.get('basit_card_border', basit_blue)};
-                border-radius: 3px;
-                padding: 7px 11px;
+                border: 1px solid {border};
+                border-radius: {radius}px;
+                padding: 6px 10px;
                 min-height: {ACTION_BUTTON_MIN_HEIGHT}px;
-                background: {basit_blue};
-                color: #FFFFFF;
+                min-width: {compact_min_width}px;
+                background: {secondary_bg};
+                color: {secondary_text};
                 font-size: {ACTION_BUTTON_FONT_PX}px;
-                font-weight: 900;
+                font-weight: 800;
             }}
             QToolButton[shellChromeRole="primary"] {{
-                background: {basit_red};
+                background: {primary_bg};
                 color: white;
-                border-color: {colors.get('basit_red_dark', basit_red)};
+                border-color: {primary_bg};
                 min-width: {int(BRAND.get('shell_action_primary_min_width', 112))}px;
-                font-weight: 950;
+                font-weight: 900;
             }}
             QToolButton[shellChromeRole="utility"] {{
-                background: {colors.get('basit_table_bg', colors['bg_panel'])};
-                color: {colors['text_primary']};
-                border-color: {colors.get('basit_toolbar_border', colors['border'])};
+                background: {utility_bg};
+                color: {colors['text_secondary']};
+                border-color: {border};
             }}
             QToolButton:hover {{
-                background: {colors.get('basit_blue_hover', colors['primary'])};
-                border-color: {basit_yellow};
-                color: #FFFFFF;
+                background: {colors.get('shell_navigation_button_hover_bg', colors.get('brand_soft', colors['bg_table_alt']))};
+                border-color: {colors.get('accent', colors['primary'])};
+                color: {colors.get('primary', colors['text_primary'])};
             }}
             QToolButton[shellChromeRole="primary"]:hover {{
-                background: {colors.get('basit_red_dark', basit_red)};
+                background: {colors.get('primary_hover', primary_bg)};
                 color: white;
+                border-color: {colors.get('primary_hover', primary_bg)};
             }}
             QToolButton:disabled {{ color: {colors['text_muted']}; background: {colors['bg_panel']}; }}
             QLabel#ActionBarUserLabel {{
-                border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
-                border-radius: 3px;
-                padding: 7px 12px;
-                background: {colors.get('basit_table_bg', colors['bg_panel'])};
-                color: {colors['text_primary']};
+                border: 1px solid {border};
+                border-radius: {radius}px;
+                padding: 6px 11px;
+                background: {utility_bg};
+                color: {colors['text_secondary']};
                 font-size: {ACTION_BUTTON_FONT_PX}px;
-                font-weight: 850;
+                font-weight: 800;
             }}
             QLabel#ActionBarAlertBadge {{
-                background-color: {basit_red};
+                background-color: {colors.get('danger', '#D64545')};
                 color: white;
                 border: 1px solid white;
                 border-radius: 8px;
@@ -206,6 +230,7 @@ class UnifiedActionBar(QFrame):
                 font-weight: 900;
             }}
         """)
+
 
 
     def apply_action_contract(self, action_keys, *, show_context: bool = True) -> None:

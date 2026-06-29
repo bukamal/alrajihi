@@ -191,18 +191,7 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         self.qty_spin.valueChanged.connect(self._refresh_required_materials)
         self.raw_warehouse_combo.currentIndexChanged.connect(self._refresh_required_materials)
 
-        self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QFrame#FormCard, QFrame#ProductionSummaryPanel {
-                border: 1px solid palette(mid); border-radius: 14px; background: palette(base);
-            }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLabel#PanelTitle { font-size: 14px; font-weight: 900; }
-            QLabel#SummaryValue { font-weight: 800; }
-            QLabel#MutedLabel { color: palette(mid); }
-            QLineEdit, QComboBox, QDoubleSpinBox, QTextEdit { min-height: 34px; padding: 5px 9px; }
-            QPushButton#primary { font-weight: 900; padding: 8px 16px; }
-            QTableView { gridline-color: palette(midlight); alternate-background-color: palette(alternate-base); }
-        ''')
+        self.setProperty('documentLocalStylesSuppressed', True)
 
     def _install_shortcuts(self) -> None:
         QShortcut(QKeySequence.Save, self, activated=self.workspace_save)
