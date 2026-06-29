@@ -58,6 +58,7 @@ REQUIRED_DIALOG_BRANDING_MARKERS = [
     '"modal_danger_action"',
     'apply_modal_visual_template(dialog, role or "system")',
     'apply_modal_visual_template(box, role or "info")',
+    'qt_layout_direction',
 ]
 
 REQUIRED_EVENT_FILTER_MARKERS = [
@@ -152,6 +153,12 @@ def phase452_dialogs_modal_windows_visual_unification_summary(root: str | Path) 
         checks += 1
         if marker not in branding:
             details.append(f"dialog branding lost existing behavior marker: {marker}")
+    checks += 1
+    if "setLayoutDirection(Qt.RightToLeft)" in branding:
+        details.append("dialog branding must preserve current RTL/LTR language direction, not hard-code Qt.RightToLeft")
+    checks += 1
+    if branding.find("isinstance(root, QMessageBox)") > branding.find("isinstance(root, QDialog):"):
+        details.append("QMessageBox branch must be evaluated before generic QDialog branch")
 
     event_filter = _read(root, "alrajhi_client/ui/modal_visual_event_filter.py")
     for marker in REQUIRED_EVENT_FILTER_MARKERS:

@@ -49,3 +49,10 @@ def test_known_dialogs_keep_logic_and_gain_modal_roles():
     camera = (ROOT / "alrajhi_client/views/dialogs/barcode_camera_dialog.py").read_text(encoding="utf-8")
     assert "barcode_scanner_service.open_camera" in camera
     assert "apply_modal_visual_template(self, role='barcode_camera')" in camera
+
+def test_modal_template_preserves_language_direction_and_message_box_size_path():
+    text = (ROOT / "alrajhi_client/ui/dialog_branding.py").read_text(encoding="utf-8")
+    assert "qt_layout_direction" in text
+    assert "setLayoutDirection(Qt.RightToLeft)" not in text
+    assert text.find("isinstance(root, QMessageBox)") < text.find("isinstance(root, QDialog):")
+

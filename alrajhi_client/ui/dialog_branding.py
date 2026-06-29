@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QAbstractButton,
     QCheckBox,
@@ -34,7 +33,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from i18n import translate
+from i18n import qt_layout_direction, translate
 from theme.brand import BRAND
 from theme_manager import ThemeManager
 
@@ -142,12 +141,12 @@ def apply_modal_visual_template(root: QWidget, role: str = "system") -> QWidget:
         root.setProperty("visualStyleSource", "dialogs_modal_windows_visual_unification")
         if not root.property("dialogKind"):
             root.setProperty("dialogKind", role or "system")
-        if isinstance(root, QDialog):
-            root.setLayoutDirection(Qt.RightToLeft)
-            root.setMinimumWidth(max(root.minimumWidth(), BRAND.get("dialog_min_width", 560)))
-        elif isinstance(root, QMessageBox):
-            root.setLayoutDirection(Qt.RightToLeft)
+        if isinstance(root, QMessageBox):
+            root.setLayoutDirection(qt_layout_direction())
             root.setMinimumWidth(max(root.minimumWidth(), BRAND.get("message_box_min_width", 460)))
+        elif isinstance(root, QDialog):
+            root.setLayoutDirection(qt_layout_direction())
+            root.setMinimumWidth(max(root.minimumWidth(), BRAND.get("dialog_min_width", 560)))
     except Exception:
         pass
 
@@ -249,7 +248,7 @@ def apply_branded_dialog(dialog: QDialog, title: str = "", role: str = "system")
         except Exception:
             pass
     try:
-        dialog.setLayoutDirection(Qt.RightToLeft)
+        dialog.setLayoutDirection(qt_layout_direction())
         dialog.setMinimumWidth(max(dialog.minimumWidth(), BRAND.get("dialog_min_width", 560)))
         dialog.setMinimumHeight(max(dialog.minimumHeight(), BRAND.get("dialog_min_height", 360)))
     except Exception:
@@ -271,7 +270,7 @@ def brand_message_box(box: QMessageBox, role: str = "info") -> QMessageBox:
     box.setObjectName("BrandMessageBox")
     try:
         box.setMinimumWidth(BRAND.get("message_box_min_width", 460))
-        box.setLayoutDirection(Qt.RightToLeft)
+        box.setLayoutDirection(qt_layout_direction())
     except Exception:
         pass
     apply_modal_visual_template(box, role or "info")
