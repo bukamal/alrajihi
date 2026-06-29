@@ -406,6 +406,30 @@ BRAND = {
     'basit_dialog_header_height': 54,
     'basit_dialog_button_height': 44,
     'basit_startup_card_radius': 8,
+
+    # Phase453: Windows runtime visual acceptance corrections.
+    'windows_runtime_visual_acceptance_phase': 453,
+    'windows_runtime_force_fusion': True,
+    'windows_runtime_qt_style': 'Fusion',
+    'runtime_control_height': 36,
+    'runtime_touch_control_height': 48,
+    'runtime_table_header_bg': '#DDEEFF',
+    'runtime_table_header_text': '#0B3D63',
+    'runtime_table_gridline': '#E2ECF3',
+    'runtime_current_cell_bg': '#FFF3D6',
+    'runtime_current_cell_border': '#D6A13B',
+    'login_runtime_visual_phase': 453,
+    'login_runtime_left_panel_bg': '#FFFFFF',
+    'login_runtime_titlebar_bg': '#F4F9FB',
+    'login_runtime_warning_bg': '#FFF7ED',
+    'shell_density_visual_phase': 453,
+    'shell_action_more_candidate': True,
+    'pos_runtime_acceptance_phase': 453,
+    'pos_runtime_scan_height': 64,
+    'pos_runtime_action_height': 52,
+    'document_runtime_acceptance_phase': 453,
+    'material_editor_runtime_acceptance_phase': 453,
+
 }
 
 

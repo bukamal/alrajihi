@@ -41,6 +41,8 @@ class POSWidget(QWidget):
         bind_operational_shell(self, 'pos')
         self.setObjectName('posWidget')
         self.setProperty('operationalSurfacePhase', 448)
+        self.setProperty('windowsRuntimeVisualAcceptancePhase', 453)
+        self.setProperty('runtimeVisualAcceptanceType', 'operational')
         self.setProperty('visualWorkspaceType', 'operational')
         self._pos_settings = settings_service.get_pos_settings()
         self._pos_preferences = POSPreferences()
@@ -621,13 +623,13 @@ class POSWidget(QWidget):
             change = paid_display - total_display
             if change > 0:
                 self.change_label.setText(translate("change_due_customer", amount=currency.format_amount(change)))
-                self.change_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {ThemeManager.get('success')};")
+                self.change_label.setProperty('metricTone', 'success')
             elif change < 0:
                 self.change_label.setText(translate("remaining_amount", amount=currency.format_amount(abs(change))))
-                self.change_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {ThemeManager.get('danger')};")
+                self.change_label.setProperty('metricTone', 'danger')
             else:
                 self.change_label.setText(translate("change_zero"))
-                self.change_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {ThemeManager.get('success')};")
+                self.change_label.setProperty('metricTone', 'success')
         except Exception:
             pass
 

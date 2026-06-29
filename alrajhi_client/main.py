@@ -22,6 +22,7 @@ from views.main_window import MainWindow
 from ui.post_login_transition_overlay import PostLoginTransitionOverlay
 from ui.main_shell_runtime_fit import show_main_window_runtime_fitted
 from ui.modal_visual_event_filter import install_modal_visual_event_filter
+from ui.windows_runtime_visual_acceptance import install_windows_runtime_visual_acceptance
 from ui.dialog_branding import apply_modal_visual_template
 from ui.visual_state import set_visual_state
 from workspace.runtime.startup_timeline_profiler import StartupTimelineProfiler
@@ -253,6 +254,7 @@ def main():
         return
 
     app = QApplication(sys.argv)
+    install_windows_runtime_visual_acceptance(app)
     install_offline_exception_hook(app)
     app.setWindowIcon(QIcon(app_icon()))
     install_non_blocking_message_boxes(app)

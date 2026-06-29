@@ -1,12 +1,12 @@
 {
   "ready": true,
-  "checks": 67,
+  "checks": 60,
   "issues": 0,
   "details": [],
-  "total_local_styles": 60,
+  "total_local_styles": 53,
   "counts": {
-    "legacy_local_style": 29,
-    "tokenized_local_style": 20,
+    "legacy_local_style": 27,
+    "tokenized_local_style": 15,
     "branded_startup_allowed": 5,
     "mixed_legacy_style": 6
   }

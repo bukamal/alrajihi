@@ -1,6 +1,6 @@
 {
   "ready": true,
-  "checks": 75,
+  "checks": 68,
   "issues": 0,
   "details": [],
   "migrated_files": {
@@ -27,17 +27,17 @@
   },
   "legacy_visual_style_summary": {
     "ready": true,
-    "checks": 67,
+    "checks": 60,
     "issues": 0,
     "details": [],
-    "total_local_styles": 60,
+    "total_local_styles": 53,
     "counts": {
-      "legacy_local_style": 29,
-      "tokenized_local_style": 20,
+      "legacy_local_style": 27,
+      "tokenized_local_style": 15,
       "branded_startup_allowed": 5,
       "mixed_legacy_style": 6
     },
-    "csv": "/mnt/data/alrajhi_phase452_work/alrajhi_phase451_settings_workspace_visual_consolidation/tools/audit_outputs/legacy_visual_style_sweep.csv",
-    "summary_json": "/mnt/data/alrajhi_phase452_work/alrajhi_phase451_settings_workspace_visual_consolidation/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
+    "csv": "/mnt/data/phase453_work/alrajhi_phase452_dialogs_modal_windows_visual_unification/tools/audit_outputs/legacy_visual_style_sweep.csv",
+    "summary_json": "/mnt/data/phase453_work/alrajhi_phase452_dialogs_modal_windows_visual_unification/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
   }
 }

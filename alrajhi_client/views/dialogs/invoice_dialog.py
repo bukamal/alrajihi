@@ -22,6 +22,7 @@ from features.transactions import TransactionDocumentLayout, TransactionLineGrid
 import qtawesome as qta
 from theme_manager import ThemeManager
 from i18n import translate, qt_layout_direction
+from workspace.documents.document_layout_policy import apply_document_layout_policy
 
 from views.dialogs.invoice_document_components import (
     InvoiceActionsComponent,
@@ -594,58 +595,17 @@ class InvoiceDialog(CenteredDialog):
         return c['primary'] if self.inv_type == 'sale' else c.get('primary_2', c['primary'])
 
     def _apply_modern_invoice_style(self):
-        c = ThemeManager.colors()
-        accent = self._invoice_accent()
-        self.setStyleSheet(f"""
-            QDialog {{ background: {c['bg_window']}; color: {c['text_primary']}; }}
-            QLabel#DialogTitle {{ color: {c['primary']}; font-size: 21px; font-weight: 900; }}
-            QLabel#DialogSubtitle {{ color: {c['text_secondary']}; font-size: 12px; }}
-            QFrame#HeaderCard, QFrame#TotalsCard, QFrame#ActionCard, QFrame#RightPanel, QFrame#BottomActionBar {{
-                background: {c['card_bg']}; border: 1px solid {c['border']}; border-radius: 14px;
-            }}
-            QTableView#TransactionLineGrid, QTableView#InvoiceLinesTable {{
-                font-size: 13px;
-                border-radius: 14px;
-            }}
-            QSplitter#TransactionDocumentSplitter::handle {{
-                background: {c['border']}; border-radius: 4px; margin: 8px 2px;
-            }}
-            QFrame#TransactionBottomActionBar {{
-                background: {c['card_bg']}; border: 1px solid {c['border']}; border-radius: 14px;
-            }}
-            QLabel#SectionTitle {{ color: {c['text_primary']}; font-size: 14px; font-weight: 800; }}
-            QLabel#muted {{ color: {c['text_secondary']}; font-size: 11px; }}
-            QLabel#InvoiceGridStatus {{
-                color: {c['text_secondary']}; font-size: 11px; font-weight: 700;
-                padding: 4px 8px; border-radius: 8px; background: {c['card_bg']};
-            }}
-            QLineEdit, QComboBox, QDateEdit, QDoubleSpinBox, QTextEdit {{
-                min-height: 34px; border: 1px solid {c['border']}; border-radius: 9px; padding: 5px 9px;
-                background: {c['input_bg']}; color: {c['text_primary']}; font-size: 13px;
-                selection-background-color: {c['selection_bg']}; selection-color: {c['selection_text']};
-            }}
-            QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QDoubleSpinBox:focus, QTextEdit:focus {{
-                border: 1px solid {c['border_focus']}; background: {c['input_bg']};
-            }}
-            QTableView, QTableWidget {{
-                background: {c['bg_table']}; color: {c['text_primary']}; alternate-background-color: {c['bg_table_alt']};
-                gridline-color: {c['border']}; border: 1px solid {c['border']}; border-radius: 12px;
-                selection-background-color: {c['selection_bg']}; selection-color: {c['selection_text']}; outline: 0;
-            }}
-            QTableView::item, QTableWidget::item {{ padding: 6px; border-bottom: 1px solid {c['border']}; }}
-            QTableView::item:hover, QTableWidget::item:hover {{ background: {c['brand_soft']}; }}
-            QHeaderView::section {{
-                background: {c['header_bg']}; color: {c['header_text']}; font-weight: 800; padding: 8px;
-                border: none; border-left: 1px solid {c['border']};
-            }}
-            QPushButton {{
-                min-height: 34px; border-radius: 9px; padding: 6px 12px; border: 1px solid {c['border']};
-                background: {c['bg_panel']}; color: {c['text_primary']}; font-weight: 700;
-            }}
-            QPushButton:hover {{ background: {c['brand_soft']}; border-color: {c['primary']}; }}
-            QPushButton#primary {{ background: {accent}; color: white; border: 1px solid {accent}; }}
-            QPushButton#danger {{ background: {c['danger_soft']}; color: {c['danger']}; border: 1px solid {c['danger']}; }}
-        """)
+        """Phase453: stop local invoice QSS from defeating the central runtime template."""
+        try:
+            self.setProperty('documentVisualTemplatePhase', 450)
+            self.setProperty('windowsRuntimeVisualAcceptancePhase', 453)
+            self.setProperty('documentLocalStylesSuppressed', True)
+            self.setStyleSheet('')
+            apply_document_layout_policy(self, kind='tabular_document', inline=bool(getattr(self, 'embedded', False)))
+            self.style().unpolish(self)
+            self.style().polish(self)
+        except Exception:
+            pass
 
 
     def _make_field_block(self, label_text, widget, stretch=1):
@@ -929,7 +889,7 @@ class InvoiceDialog(CenteredDialog):
 
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
-        separator.setStyleSheet("background-color: #e2e8f0;")
+        separator.setProperty('visualRole', 'document_separator')
         right_layout.addWidget(separator)
 
         self.total_before_label = QLabel(translate('total_before_discount', amount='0'))

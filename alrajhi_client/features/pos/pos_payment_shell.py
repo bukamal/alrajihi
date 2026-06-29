@@ -20,7 +20,6 @@ from PyQt5.QtWidgets import (
 )
 
 from i18n import translate
-from theme_manager import ThemeManager
 
 
 class POSPaymentShell(QWidget):
@@ -32,6 +31,7 @@ class POSPaymentShell(QWidget):
         self.setObjectName("posPaymentShell")
         self.setProperty("visualRole", "operational_payment_shell")
         self.setProperty("operationalSurfacePhase", 448)
+        self.setProperty("windowsRuntimeVisualAcceptancePhase", 453)
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -99,7 +99,7 @@ class POSPaymentShell(QWidget):
         label.setObjectName(f"posMetric_{role}")
         label.setProperty("visualRole", "operational_metric_value")
         label.setProperty("metricRole", role)
-        label.setStyleSheet(f"font-size: 22px; font-weight: bold; color: {ThemeManager.get('primary')};")
+        label.setProperty("metricRuntimeStyle", "centralized")
         return label
 
     def _metric_card(self, title: str, value_label: QLabel) -> QWidget:
@@ -152,5 +152,5 @@ class POSPaymentShell(QWidget):
 
         self.paid_spin.setMinimumHeight(spin_h)
         self.payment_combo.setMinimumHeight(spin_h)
-        self.total_label.setStyleSheet(f"font-size: {total_px}px; font-weight: bold; color: {ThemeManager.get('primary')};")
-        self.change_label.setStyleSheet(f"font-size: {change_px}px; font-weight: bold; color: {ThemeManager.get('success')};")
+        self.total_label.setProperty("metricSizePx", total_px)
+        self.change_label.setProperty("metricSizePx", change_px)

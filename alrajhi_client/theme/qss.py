@@ -3714,6 +3714,172 @@ def build_global_qss(colors: dict) -> str:
         }}
 
 
+        /* Phase453: Windows runtime visual acceptance corrections.  This layer
+           sits after Phase452 and converts screenshot-visible native Qt/Windows
+           controls into the central ERP grammar without changing behavior. */
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QLineEdit,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QComboBox,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QDateEdit,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QSpinBox,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QDoubleSpinBox,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QTextEdit,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QPlainTextEdit {{
+            min-height: {BRAND.get('runtime_control_height', 36)}px;
+            background-color: {colors.get('input_bg', '#FFFFFF')};
+            color: {colors['text_primary']};
+            border: 1px solid {BRAND.get('document_editor_input_border', colors.get('border'))};
+            border-radius: {radius_md}px;
+            padding: 5px 10px;
+            font-weight: 820;
+            selection-background-color: {colors.get('selection_bg')};
+            selection-color: {colors.get('selection_text')};
+        }}
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QLineEdit:focus,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QComboBox:focus,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QDateEdit:focus,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QSpinBox:focus,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QDoubleSpinBox:focus {{
+            border: 1px solid {colors.get('border_focus', colors.get('primary'))};
+            background-color: {colors.get('input_focus_bg', colors.get('input_bg', '#FFFFFF'))};
+        }}
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QComboBox::drop-down,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QDateEdit::drop-down {{
+            width: 28px;
+            border: none;
+            background: transparent;
+        }}
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QSpinBox::up-button,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QSpinBox::down-button,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QDoubleSpinBox::up-button,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QDoubleSpinBox::down-button {{
+            width: 24px;
+            border: none;
+            background-color: {colors.get('brand_soft', '#EAF4FF')};
+        }}
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QTableView,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QTableWidget {{
+            background-color: {colors.get('bg_table', '#FFFFFF')};
+            alternate-background-color: {colors.get('bg_table_alt', '#F8FAFC')};
+            color: {colors['text_primary']};
+            border: 1px solid {BRAND.get('runtime_table_gridline', colors.get('border'))};
+            border-radius: {radius_md}px;
+            gridline-color: {BRAND.get('runtime_table_gridline', colors.get('border'))};
+            selection-background-color: {colors.get('selection_bg')};
+            selection-color: {colors.get('selection_text')};
+            outline: 0;
+        }}
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QTableView::item,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QTableWidget::item {{
+            padding: 6px;
+            border-bottom: 1px solid {BRAND.get('runtime_table_gridline', colors.get('border'))};
+        }}
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QTableView::item:selected,
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QTableWidget::item:selected {{
+            background-color: {BRAND.get('runtime_current_cell_bg', colors.get('selection_bg'))};
+            color: {colors['text_primary']};
+            border: 1px solid {BRAND.get('runtime_current_cell_border', colors.get('warning'))};
+        }}
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QHeaderView::section {{
+            background-color: {BRAND.get('runtime_table_header_bg', colors.get('brand_soft'))};
+            color: {BRAND.get('runtime_table_header_text', colors.get('primary'))};
+            border: none;
+            border-left: 1px solid {BRAND.get('runtime_table_gridline', colors.get('border'))};
+            padding: 8px;
+            font-weight: 950;
+        }}
+        QPushButton[visualRole="runtime_primary_action"],
+        QPushButton[visualRole="runtime_operational_action"],
+        QWidget[windowsRuntimeVisualAcceptancePhase="453"] QPushButton#primary {{
+            min-height: {BRAND.get('pos_runtime_action_height', 52)}px;
+            background-color: {BRAND.get('document_editor_primary_bg', colors.get('primary'))};
+            color: #FFFFFF;
+            border: 1px solid {BRAND.get('document_editor_primary_bg', colors.get('primary'))};
+            border-radius: {radius_md}px;
+            padding: 8px 16px;
+            font-weight: 950;
+        }}
+        QPushButton[visualRole="runtime_secondary_action"] {{
+            min-height: 38px;
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            color: {colors.get('text_primary')};
+            border: 1px solid {colors.get('border')};
+            border-radius: {radius_md}px;
+            padding: 7px 13px;
+            font-weight: 900;
+        }}
+        QPushButton[visualRole="runtime_danger_action"] {{
+            min-height: 40px;
+            background-color: {colors.get('danger_soft')};
+            color: {colors.get('danger')};
+            border: 1px solid {colors.get('danger')};
+            border-radius: {radius_md}px;
+            padding: 7px 13px;
+            font-weight: 900;
+        }}
+        QFrame#loginCard[loginRuntimeVisualPhase="453"],
+        QFrame#loginCard[loginRuntimePolicy="horizontal_runtime_stabilized"] {{
+            background-color: {colors.get('surface_root', colors.get('bg_window'))};
+            border: 1px solid {colors.get('first_run_card_border', colors.get('border'))};
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#loginCard[loginRuntimePolicy="horizontal_runtime_stabilized"] QFrame#firstRunFormPanel {{
+            background-color: {BRAND.get('login_runtime_left_panel_bg', colors.get('card_bg', '#FFFFFF'))};
+            border: 1px solid {colors.get('first_run_card_border', colors.get('border'))};
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#loginCard[loginRuntimePolicy="horizontal_runtime_stabilized"] QFrame#loginCredentialsPanel {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border')};
+            border-radius: {radius_lg}px;
+            margin-top: 4px;
+        }}
+        QFrame#loginCard[loginRuntimePolicy="horizontal_runtime_stabilized"] QLabel#firstRunLoginModeChip,
+        QFrame#loginCard[loginRuntimePolicy="horizontal_runtime_stabilized"] QLabel#loginAdminWarning {{
+            background-color: {BRAND.get('login_runtime_warning_bg', colors.get('warning_soft'))};
+            border: 1px solid {colors.get('warning')};
+            border-radius: {radius_md}px;
+            padding: 6px 10px;
+        }}
+        QLabel[visualRole="operational_metric_value"] {{
+            background: transparent;
+            color: {BRAND.get('operational_primary_bg', colors.get('primary'))};
+            font-size: 25px;
+            font-weight: 950;
+        }}
+        QLabel[visualRole="operational_metric_value"][metricRole="change"],
+        QLabel[visualRole="operational_metric_value"][metricTone="success"] {{
+            color: {colors.get('success')};
+        }}
+        QLabel[visualRole="operational_metric_value"][metricTone="danger"] {{
+            color: {colors.get('danger')};
+        }}
+        QWidget[operationalSurfacePhase="448"][windowsRuntimeVisualAcceptancePhase="453"] QLineEdit[visualRole="operational_scan_input"] {{
+            min-height: {BRAND.get('pos_runtime_scan_height', 64)}px;
+            font-size: 25px;
+            border: 2px solid {BRAND.get('operational_primary_bg', colors.get('primary'))};
+            background-color: #FFFFFF;
+        }}
+        QWidget[operationalSurfacePhase="448"][windowsRuntimeVisualAcceptancePhase="453"] QWidget[visualRole="operational_payment_shell"] {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {BRAND.get('operational_panel_border', colors.get('border'))};
+            border-radius: {radius_lg}px;
+            padding: 8px;
+        }}
+        QWidget[visualRole="material_editor"][windowsRuntimeVisualAcceptancePhase="453"] QGroupBox[visualRole="material_form_card"] {{
+            background-color: {BRAND.get('document_editor_card_bg', '#FFFFFF')};
+            border: 1px solid {BRAND.get('document_editor_card_border', colors.get('border'))};
+            border-radius: {radius_lg}px;
+            margin-top: 18px;
+            padding: 20px 15px 15px 15px;
+        }}
+        QWidget[visualRole="material_editor"][windowsRuntimeVisualAcceptancePhase="453"] QFrame#MaterialEditorActionBar {{
+            background-color: {BRAND.get('document_editor_action_bar_bg', colors.get('bg_panel'))};
+            border: 1px solid {BRAND.get('document_editor_card_border', colors.get('border'))};
+            border-radius: {radius_lg}px;
+            padding: 6px;
+        }}
+
+
 
     """
 

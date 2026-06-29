@@ -36,6 +36,7 @@ from PyQt5.QtWidgets import (
 from theme.brand import BRAND
 from workspace.runtime.visual_polish_contract import workspace_visual_policy
 from ui.table_direction_policy import apply_table_direction, apply_table_direction_tree
+from ui.windows_runtime_visual_acceptance import apply_windows_runtime_visual_acceptance
 
 
 _TABLE_ROW_SIZES = {"compact": 30, "comfortable": 36, "touch": 46}
@@ -325,6 +326,14 @@ def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_ty
     # so old Basit/Modern settings styling cannot dominate cards, tabs, notes or inputs.
     try:
         _apply_settings_workspace_template(root, policy)
+    except Exception:
+        pass
+
+    # Phase453: final Windows screenshot-facing acceptance pass.  It must run
+    # after list/settings/document/operational roles so it only fills gaps and
+    # performs Arabic label cleanup for controls created by lazy pages.
+    try:
+        apply_windows_runtime_visual_acceptance(root, policy.page_id, policy.workspace_type)
     except Exception:
         pass
 

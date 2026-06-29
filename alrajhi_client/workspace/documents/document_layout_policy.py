@@ -221,6 +221,13 @@ def _set_visual_role(widget: QWidget, role: str) -> None:
         pass
 
 
+def _force_visual_role(widget: QWidget, role: str) -> None:
+    try:
+        widget.setProperty("visualRole", role)
+    except Exception:
+        pass
+
+
 def _apply_document_visual_template(widget: QWidget, *, kind: str) -> None:
     """Apply Phase450 document-editor visual identity roles.
 
@@ -231,7 +238,8 @@ def _apply_document_visual_template(widget: QWidget, *, kind: str) -> None:
     """
     try:
         widget.setProperty("documentVisualTemplatePhase", 450)
-        widget.setProperty("projectVisualIdentityPhase", 450)
+        widget.setProperty("projectVisualIdentityPhase", 453)
+        widget.setProperty("windowsRuntimeVisualAcceptancePhase", 453)
         widget.setProperty("visualWorkspaceType", "document")
         widget.setProperty("visualRole", "document_editor_surface")
     except Exception:
@@ -239,16 +247,16 @@ def _apply_document_visual_template(widget: QWidget, *, kind: str) -> None:
 
     header_names = {
         "DocumentHeaderCard", "ExpenseDocumentHeaderCard", "TransactionHeaderCard",
-        "DocumentTitleCard", "TransactionInlineHeaderBar",
+        "DocumentTitleCard", "TransactionInlineHeaderBar", "HeaderCard",
     }
     panel_names = {
         "DocumentPanel", "ExpenseDocumentPanel", "DocumentSection", "ExpenseDocumentSection",
         "FormCard", "DocumentPanelCard", "MaterialBasicCard", "MaterialPricingCard",
-        "MaterialBarcodeCard", "MaterialUnitsCard",
+        "MaterialBarcodeCard", "MaterialUnitsCard", "ActionCard", "RightPanel",
     }
     summary_names = {
         "SummaryPanel", "ExpenseSummaryPanel", "TransactionFooterPanel",
-        "BomSummaryPanel", "ProductionSummaryPanel", "MetricCard",
+        "BomSummaryPanel", "ProductionSummaryPanel", "MetricCard", "TotalsCard",
     }
     action_names = {
         "BottomActionBar", "ExpenseBottomActionBar", "TransactionBottomActionBar",
@@ -259,16 +267,17 @@ def _apply_document_visual_template(widget: QWidget, *, kind: str) -> None:
         try:
             name = child.objectName() or ""
             child.setProperty("documentVisualTemplatePhase", 450)
+            child.setProperty("windowsRuntimeVisualAcceptancePhase", 453)
             if name in header_names:
-                _set_visual_role(child, "document_header")
+                _force_visual_role(child, "document_header")
             elif name in panel_names:
-                _set_visual_role(child, "document_card")
+                _force_visual_role(child, "document_card")
             elif name in summary_names:
-                _set_visual_role(child, "document_summary")
+                _force_visual_role(child, "document_summary")
             elif name in action_names:
-                _set_visual_role(child, "document_action_bar")
+                _force_visual_role(child, "document_action_bar")
             elif name in {"TransactionInlineHeaderField"}:
-                _set_visual_role(child, "document_header_field")
+                _force_visual_role(child, "document_header_field")
         except Exception:
             pass
 
@@ -295,9 +304,10 @@ def _apply_document_visual_template(widget: QWidget, *, kind: str) -> None:
 
     for button in widget.findChildren(QPushButton):
         try:
-            if button.objectName() == "primary" or button in (getattr(widget, "bottom_save_btn", None), getattr(widget, "header_save_btn", None), getattr(widget, "save_btn", None)):
+            text = button.text() or ""
+            if button.objectName() == "primary" or button in (getattr(widget, "bottom_save_btn", None), getattr(widget, "header_save_btn", None), getattr(widget, "save_btn", None)) or "حفظ" in text or "دفع" in text:
                 button.setProperty("visualRole", "document_primary_action")
-            elif "delete" in (button.objectName() or "").lower() or "حذف" in button.text():
+            elif "delete" in (button.objectName() or "").lower() or "حذف" in text or "إلغاء" in text or "الغاء" in text:
                 button.setProperty("visualRole", "document_danger_action")
             else:
                 _set_visual_role(button, "document_action")

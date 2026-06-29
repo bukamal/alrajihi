@@ -46,6 +46,8 @@ class LoginDialog(FramelessDialog):
         self.main_frame.setProperty('loginDensity', 'horizontal_compact')
         self.main_frame.setProperty('loginOverlapPolicy', 'horizontal_no_overlap')
         self.main_frame.setProperty('loginRuntimePolicy', 'horizontal_runtime_stabilized')
+        self.main_frame.setProperty('loginRuntimeVisualPhase', 453)
+        self.main_frame.setProperty('windowsRuntimeVisualAcceptancePhase', 453)
         self.main_frame.setProperty('loginPasswordPolicy', 'password_row_visible_fixed')
         self._stabilize_horizontal_login_chrome()
         self.main_frame.setStyleSheet(ThemeManager.get_stylesheet())
