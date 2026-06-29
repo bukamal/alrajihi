@@ -1,0 +1,106 @@
+{
+  "ready": true,
+  "checks": 38,
+  "issues": 0,
+  "details": [],
+  "spec_count": 24,
+  "factory_specs": {
+    "dashboard": {
+      "module": "alrajhi_client.views.widgets.dashboard_widget",
+      "class": "DashboardWidget"
+    },
+    "items": {
+      "module": "alrajhi_client.views.widgets.items_widget",
+      "class": "ItemsWidget"
+    },
+    "sales_invoices": {
+      "module": "alrajhi_client.views.widgets.invoices_widget",
+      "class": "SalesInvoicesWidget"
+    },
+    "purchase_invoices": {
+      "module": "alrajhi_client.views.widgets.invoices_widget",
+      "class": "PurchaseInvoicesWidget"
+    },
+    "pos": {
+      "module": "alrajhi_client.views.widgets.pos_widget",
+      "class": "POSWidget"
+    },
+    "manufacturing": {
+      "module": "alrajhi_client.views.widgets.manufacturing_widget",
+      "class": "ManufacturingWidget"
+    },
+    "customers": {
+      "module": "alrajhi_client.views.widgets.customers_widget",
+      "class": "CustomersWidget"
+    },
+    "suppliers": {
+      "module": "alrajhi_client.views.widgets.suppliers_widget",
+      "class": "SuppliersWidget"
+    },
+    "vouchers": {
+      "module": "alrajhi_client.views.widgets.vouchers_widget",
+      "class": "VouchersWidget"
+    },
+    "returns": {
+      "module": "alrajhi_client.views.widgets.returns_widget",
+      "class": "ReturnsWidget"
+    },
+    "purchase_returns": {
+      "module": "alrajhi_client.views.widgets.returns_widget",
+      "class": "PurchaseReturnsWidget"
+    },
+    "reports": {
+      "module": "alrajhi_client.views.widgets.reports_widget",
+      "class": "ReportsWidget"
+    },
+    "settings": {
+      "module": "alrajhi_client.views.widgets.settings_widget",
+      "class": "SettingsWidget"
+    },
+    "users": {
+      "module": "alrajhi_client.views.widgets.users_widget",
+      "class": "UsersWidget"
+    },
+    "categories": {
+      "module": "alrajhi_client.views.widgets.categories_widget",
+      "class": "CategoriesWidget"
+    },
+    "warehouses": {
+      "module": "alrajhi_client.views.widgets.warehouses_widget",
+      "class": "WarehousesWidget"
+    },
+    "branches": {
+      "module": "alrajhi_client.views.widgets.branches_widget",
+      "class": "BranchesWidget"
+    },
+    "cashboxes": {
+      "module": "alrajhi_client.views.widgets.cashboxes_widget",
+      "class": "CashboxesWidget"
+    },
+    "audit_log": {
+      "module": "alrajhi_client.views.widgets.audit_log_widget",
+      "class": "AuditLogWidget"
+    },
+    "offline_queue": {
+      "module": "alrajhi_client.views.widgets.offline_queue_widget",
+      "class": "OfflineQueueWidget"
+    },
+    "monitoring": {
+      "module": "alrajhi_client.views.widgets.monitoring_widget",
+      "class": "MonitoringWidget"
+    },
+    "restaurant": {
+      "module": "alrajhi_client.views.restaurant.restaurant_simple_pos_widget",
+      "class": "RestaurantSimplePOSWidget"
+    },
+    "cafe": {
+      "module": "alrajhi_client.views.cafe",
+      "class": "CafeWorkspaceWidget"
+    },
+    "apparel": {
+      "module": "alrajhi_client.views.apparel",
+      "class": "ApparelWorkspaceWidget"
+    }
+  },
+  "legacy_short_specs": {}
+}

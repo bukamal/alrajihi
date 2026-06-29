@@ -35,6 +35,7 @@ from core.money_display_policy import format_money
 from printing.printing_service import printing_service
 from ui.editable_smart_grid import EditableSmartGrid
 from ui.form_validation import FormValidator, make_error_label
+from ui.visual_state import set_visual_state
 from utils import show_toast
 from workspace.documents import BaseDocumentTab
 from workspace.documents.document_permission_binder import DocumentPermissionBinder
@@ -139,6 +140,9 @@ class MaterialDocumentTab(BaseDocumentTab):
 
     def _build_ui(self) -> None:
         self.setLayoutDirection(qt_layout_direction())
+        self.setProperty('visualWorkspaceType', 'materials')
+        self.setProperty('materialsVisualPhase', '445')
+        self.setProperty('visualRole', 'material_editor')
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 14, 14, 14)
         root.setSpacing(10)
@@ -151,12 +155,16 @@ class MaterialDocumentTab(BaseDocumentTab):
 
         body = QSplitter(Qt.Horizontal, self)
         body.setObjectName('ItemEditorResponsiveSplitter')
+        body.setProperty('visualRole', 'workspace_splitter')
+        body.setProperty('materialsVisualPhase', '445')
         body.setChildrenCollapsible(False)
         body.setProperty('shell_component', 'material.master_detail_splitter')
         root.addWidget(body, 1)
 
         left = QFrame(self)
-        left.setObjectName('MaterialColumn')
+        left.setObjectName('MaterialEditorPrimaryColumn')
+        left.setProperty('visualRole', 'material_editor_column')
+        left.setProperty('materialsVisualPhase', '445')
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(10)
@@ -167,7 +175,9 @@ class MaterialDocumentTab(BaseDocumentTab):
         body.setStretchFactor(0, 3)
 
         right = QFrame(self)
-        right.setObjectName('MaterialColumn')
+        right.setObjectName('MaterialEditorDetailColumn')
+        right.setProperty('visualRole', 'material_editor_column')
+        right.setProperty('materialsVisualPhase', '445')
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(10)
@@ -204,7 +214,9 @@ class MaterialDocumentTab(BaseDocumentTab):
 
     def _build_basic_panel(self) -> QGroupBox:
         box = QGroupBox(tr('material_basic_data'), self)
-        box.setObjectName('FormCard')
+        box.setObjectName('MaterialBasicCard')
+        box.setProperty('visualRole', 'material_form_card')
+        box.setProperty('materialsVisualPhase', '445')
         form = QFormLayout(box)
         form.setLabelAlignment(Qt.AlignRight)
 
@@ -232,7 +244,9 @@ class MaterialDocumentTab(BaseDocumentTab):
 
     def _build_pricing_inventory_panel(self) -> QGroupBox:
         box = QGroupBox(tr('material_pricing_inventory'), self)
-        box.setObjectName('FormCard')
+        box.setObjectName('MaterialPricingCard')
+        box.setProperty('visualRole', 'material_form_card')
+        box.setProperty('materialsVisualPhase', '445')
         form = QFormLayout(box)
         form.setLabelAlignment(Qt.AlignRight)
 
@@ -276,7 +290,9 @@ class MaterialDocumentTab(BaseDocumentTab):
 
     def _build_barcode_panel(self) -> QGroupBox:
         box = QGroupBox(tr('material_barcode_panel'), self)
-        box.setObjectName('FormCard')
+        box.setObjectName('MaterialBarcodeCard')
+        box.setProperty('visualRole', 'material_form_card')
+        box.setProperty('materialsVisualPhase', '445')
         layout = QVBoxLayout(box)
         layout.setSpacing(8)
 
@@ -317,11 +333,15 @@ class MaterialDocumentTab(BaseDocumentTab):
 
     def _build_units_panel(self) -> QGroupBox:
         box = QGroupBox(tr('material_units_panel'), self)
-        box.setObjectName('FormCard')
+        box.setObjectName('MaterialUnitsCard')
+        box.setProperty('visualRole', 'material_form_card')
+        box.setProperty('materialsVisualPhase', '445')
         layout = QVBoxLayout(box)
         layout.setSpacing(8)
 
         self.units_table = EditableSmartGrid(0, 4, self, identity='materials.units')
+        self.units_table.setProperty('visualRole', 'materials_table')
+        self.units_table.setProperty('materialsVisualPhase', '445')
         self.units_table.setHorizontalHeaderLabels([
             tr('material_unit'),
             tr('conversion_factor'),
@@ -351,7 +371,9 @@ class MaterialDocumentTab(BaseDocumentTab):
 
     def _build_bottom_actions(self) -> QFrame:
         bar = QFrame(self)
-        bar.setObjectName('BottomActionBar')
+        bar.setObjectName('MaterialEditorActionBar')
+        bar.setProperty('visualRole', 'material_action_bar')
+        bar.setProperty('materialsVisualPhase', '445')
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(8)
@@ -376,21 +398,18 @@ class MaterialDocumentTab(BaseDocumentTab):
         return bar
 
     def _apply_styles(self) -> None:
-        self.setStyleSheet('''
-            QFrame#DocumentHeaderCard, QGroupBox#FormCard, QFrame#BottomActionBar {
-                border: 1px solid palette(mid);
-                border-radius: 14px;
-                background: palette(base);
-            }
-            QLabel#DocumentTitle { font-size: 18px; font-weight: 900; }
-            QLabel#DocumentSubtitle, QLabel#InfoLabel { color: palette(mid); }
-            QLabel#DocumentShellBadge { color: palette(mid); font-size: 10px; font-weight: 700; }
-            QLabel#BarcodeStatus { font-size: 11px; color: palette(mid); }
-            QPushButton#primary { font-weight: 900; padding: 8px 16px; }
-            QLineEdit, QComboBox, QDoubleSpinBox { min-height: 34px; padding: 5px 9px; }
-            QTableWidget, QTableView { border: 1px solid palette(mid); border-radius: 10px; }
-            QHeaderView::section { font-weight: 800; padding: 7px; }
-        ''')
+        """Phase445: use centralized material visual identity instead of local QSS."""
+        for widget in (self, self.header_frame):
+            try:
+                widget.setProperty('materialsVisualPhase', '445')
+            except Exception:
+                pass
+        try:
+            self.setStyleSheet('')
+            self.style().unpolish(self)
+            self.style().polish(self)
+        except Exception:
+            pass
 
     def _connect_dirty_tracking(self) -> None:
         for widget in (self.name_edit, self.barcode_edit, self.unit_edit):
@@ -438,7 +457,7 @@ class MaterialDocumentTab(BaseDocumentTab):
             self.save_btn.setEnabled(False)
             self.save_label_btn.setEnabled(False)
             self.stock_warning_label.setText(tr('material_readonly_permission'))
-            self.stock_warning_label.setStyleSheet('color: #b91c1c; font-weight: 700;')
+            set_visual_state(self.stock_warning_label, 'danger', weight='strong', size='caption', role='semantic_status')
         else:
             self.save_btn.setEnabled(True)
             self.save_label_btn.setEnabled(can_print)
@@ -460,7 +479,7 @@ class MaterialDocumentTab(BaseDocumentTab):
                 self.stock_warning_label.setText(tr('material_opening_qty_locked'))
             elif not can_edit_opening:
                 self.stock_warning_label.setText(tr('material_opening_qty_permission_locked'))
-            self.stock_warning_label.setStyleSheet('color: #b45309; font-weight: 700;')
+            set_visual_state(self.stock_warning_label, 'warning', weight='strong', size='caption', role='semantic_status')
 
         # material_shell_permission_binding: keep document contract actions in sync with legacy policy.
         try:
@@ -674,17 +693,17 @@ class MaterialDocumentTab(BaseDocumentTab):
         value = barcode_input_service.normalize(self.barcode_edit.text())
         if not value:
             self.barcode_status_label.setText(tr('barcode_optional_hint'))
-            self.barcode_status_label.setStyleSheet('font-size: 11px; color: #666;')
+            set_visual_state(self.barcode_status_label, 'muted', size='caption', role='semantic_status')
             FormValidator.clear(self.barcode_error, self.barcode_edit)
             return
         try:
             info = barcode_service.validate(value, allow_empty=False)
             self.barcode_status_label.setText(tr('barcode_valid', symbology=info.symbology))
-            self.barcode_status_label.setStyleSheet('font-size: 11px; color: #2e7d32;')
+            set_visual_state(self.barcode_status_label, 'success', weight='strong', size='caption', role='semantic_status')
             FormValidator.clear(self.barcode_error, self.barcode_edit)
         except BarcodeError as exc:
             self.barcode_status_label.setText(tr('material_barcode_invalid', error=str(exc)))
-            self.barcode_status_label.setStyleSheet('font-size: 11px; color: #c62828;')
+            set_visual_state(self.barcode_status_label, 'danger', weight='strong', size='caption', role='semantic_status')
 
     def update_margin_preview(self) -> None:
         purchase = float(self.purchase_spin.value()) if hasattr(self, 'purchase_spin') else 0.0
@@ -692,17 +711,17 @@ class MaterialDocumentTab(BaseDocumentTab):
         profit = selling - purchase
         margin = (profit / selling * 100) if selling > 0 else 0.0
         self.margin_label.setText(tr('profit_margin', value=f'{format_money(profit, self.display_curr)} ({margin:.1f}%)'))
-        self.margin_label.setStyleSheet('color: #b91c1c; font-weight: 700;' if profit < 0 else 'color: #047857; font-weight: 700;' if profit > 0 else 'color: #4b5563;')
+        set_visual_state(self.margin_label, 'danger' if profit < 0 else 'success' if profit > 0 else 'muted', weight='strong' if profit != 0 else 'normal', size='caption', role='semantic_status')
 
     def update_stock_preview(self) -> None:
         qty = float(self.qty_spin.value()) if hasattr(self, 'qty_spin') else 0.0
         reorder = float(self.reorder_spin.value()) if hasattr(self, 'reorder_spin') else 0.0
         if reorder > 0 and qty <= reorder:
             self.stock_warning_label.setText(tr('stock_reorder_warning'))
-            self.stock_warning_label.setStyleSheet('color: #b91c1c; font-weight: 700;')
+            set_visual_state(self.stock_warning_label, 'danger', weight='strong', size='caption', role='semantic_status')
         else:
             self.stock_warning_label.setText(tr('stock_no_warning'))
-            self.stock_warning_label.setStyleSheet('color: #047857; font-weight: 700;')
+            set_visual_state(self.stock_warning_label, 'success', weight='strong', size='caption', role='semantic_status')
 
 
     def _validate_unit_rows(self, validator: FormValidator) -> None:

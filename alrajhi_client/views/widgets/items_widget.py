@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from decimal import Decimal
 
-from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QComboBox, QLabel, QHeaderView, QCheckBox
+from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QComboBox, QLabel, QHeaderView, QCheckBox, QFrame
 from i18n import translate, qt_layout_direction
 from core.services.product_service import product_service
 from core.services.settings_service import settings_service
@@ -76,9 +76,12 @@ class ItemsWidget(BaseWidget):
         self.document_permission_binder = DocumentPermissionBinder(self.document_descriptor)
         bind_list_workspace(self, 'materials')
         super().__init__(parent)
+        self._apply_materials_workspace_identity()
         self.setLayoutDirection(qt_layout_direction())
         self.table.set_table_identity('materials.workspace.items_grid')
         self.table.setProperty('print_title', translate('items_inventory'))
+        self.table.setProperty('visualRole', 'materials_table')
+        self.table.setProperty('materialsVisualPhase', '445')
         self.load_categories()
         self.load_filters()
         self.category_filter.currentIndexChanged.connect(self._on_filter_changed)
@@ -89,6 +92,28 @@ class ItemsWidget(BaseWidget):
         self.show_apparel_base_filter.stateChanged.connect(self._on_filter_changed)
         self._restore_material_grid_view()
         self.refresh()
+
+
+    def _apply_materials_workspace_identity(self):
+        """Apply Phase445 material list visual identity without touching data logic."""
+        try:
+            self.setProperty('visualWorkspaceType', 'materials')
+            self.setProperty('materialsVisualPhase', '445')
+            self.setProperty('visualRole', 'workspace_surface')
+            if hasattr(self, 'toolbar') and self.toolbar is not None:
+                self.toolbar.setProperty('visualRole', 'materials_toolbar')
+                self.toolbar.setProperty('materialsVisualPhase', '445')
+                if hasattr(self.toolbar, 'search_edit'):
+                    self.toolbar.search_edit.setProperty('visualRole', 'materials_search')
+        except Exception:
+            pass
+
+    def _style_material_filter_widget(self, widget, role='materials_filter'):
+        try:
+            widget.setProperty('visualRole', role)
+            widget.setProperty('materialsVisualPhase', '445')
+        except Exception:
+            pass
 
     def _pref_key(self, name):
         try:
@@ -153,40 +178,60 @@ class ItemsWidget(BaseWidget):
 
     def load_filters(self):
         """Add material-specific filters above the grid while keeping toolbar search unified."""
-        filter_layout = QHBoxLayout()
-        filter_layout.setContentsMargins(0, 0, 0, 0)
-        filter_layout.addWidget(QLabel(translate("category_label")))
+        filter_card = QFrame(self)
+        filter_card.setObjectName('MaterialsFilterCard')
+        filter_card.setProperty('materialsFilterSurface', '445')
+        filter_card.setProperty('materialsVisualPhase', '445')
+        filter_layout = QHBoxLayout(filter_card)
+        filter_layout.setContentsMargins(10, 8, 10, 8)
+        filter_layout.setSpacing(8)
+
+        def add_label(text):
+            label = QLabel(text)
+            label.setProperty('visualRole', 'materials_filter_label')
+            label.setProperty('materialsVisualPhase', '445')
+            filter_layout.addWidget(label)
+            return label
+
+        add_label(translate("category_label"))
+        self._style_material_filter_widget(self.category_filter)
         filter_layout.addWidget(self.category_filter)
-        filter_layout.addWidget(QLabel(translate("item_type_label")))
+        add_label(translate("item_type_label"))
         if self.type_filter.count() == 0:
             self.type_filter.addItem(translate("all_types"), None)
             self.type_filter.addItem(translate("stock_item_type"), STOCK)
             self.type_filter.addItem(translate("finished_product_type"), FINISHED_PRODUCT)
             self.type_filter.addItem(translate("service_item_type"), SERVICE)
+        self._style_material_filter_widget(self.type_filter)
         filter_layout.addWidget(self.type_filter)
 
-        filter_layout.addWidget(QLabel(translate('material_stock_filter')))
+        add_label(translate('material_stock_filter'))
         if self.stock_filter.count() == 0:
             self.stock_filter.addItem(translate('all_stock_statuses'), None)
             self.stock_filter.addItem(translate('stock_ok'), 'ok')
             self.stock_filter.addItem(translate('stock_low'), 'low')
             self.stock_filter.addItem(translate('stock_empty'), 'out')
+        self._style_material_filter_widget(self.stock_filter)
         filter_layout.addWidget(self.stock_filter)
 
-        filter_layout.addWidget(QLabel(translate('material_view_preset')))
+        add_label(translate('material_view_preset'))
         if self.preset_filter.count() == 0:
             for preset_name in ('compact', 'cashier', 'warehouse', 'accountant', 'manager'):
                 self.preset_filter.addItem(material_preset_label(preset_name), preset_name)
+        self._style_material_filter_widget(self.preset_filter)
         filter_layout.addWidget(self.preset_filter)
 
-        filter_layout.addWidget(QLabel(translate('row_density')))
+        add_label(translate('row_density'))
         if self.density_filter.count() == 0:
             for density_name in ('compact', 'comfortable', 'touch'):
                 self.density_filter.addItem(translate(f'density_{density_name}'), density_name)
+        self._style_material_filter_widget(self.density_filter)
         filter_layout.addWidget(self.density_filter)
+        self.show_apparel_base_filter.setProperty('materialsVisualPhase', '445')
         filter_layout.addWidget(self.show_apparel_base_filter)
         filter_layout.addStretch()
-        self.layout().insertLayout(1, filter_layout)
+        self.material_filter_card = filter_card
+        self.layout().insertWidget(1, filter_card)
 
     def _restore_material_grid_view(self):
         preset = settings_service.get(self._pref_key('active_preset'), settings_service.get('materials/list/default_preset', 'manager')) or 'manager'

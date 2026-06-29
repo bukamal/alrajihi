@@ -131,10 +131,12 @@ BRAND = {
     'dashboard_cash_balance_bg': '#FFF7ED',
     'dashboard_cash_balance_text': '#C2410C',
     # Phase439: project-wide visual identity enforcement for tabs and workspace content.
-    'project_visual_identity_phase': 440,
+    'project_visual_identity_phase': 445,
     # Phase440: legacy local style sweep and Windows runtime acceptance matrix.
-    'legacy_visual_style_sweep_phase': 440,
+    'legacy_visual_style_sweep_phase': 445,
     'windows_runtime_acceptance_phase': 440,
+    # Phase441/442: semantic status labels/frames and dialog/workspace headers migrated from hard-coded local QSS.
+    'semantic_visual_state_phase': 445,
     'workspace_style_source': 'centralized_runtime_visual_identity',
     'workspace_scroll_bg': '#F8FBFF',
     'workspace_splitter_handle': '#D8E5F2',
@@ -147,6 +149,17 @@ BRAND = {
     'workspace_section_header_text': '#0B3D63',
     'workspace_tab_radius': 12,
     'workspace_tab_min_height': 38,
+    # Phase445: materials workspace/list/editor visual identity migration.
+    'materials_visual_phase': 445,
+    'materials_filter_card_bg': '#F8FBFF',
+    'materials_filter_chip_bg': '#EAF4FF',
+    'materials_filter_chip_text': '#0B3D63',
+    'materials_filter_card_border': '#D8E5F2',
+    'materials_table_header_bg': '#DDEEFF',
+    'materials_table_header_text': '#0B3D63',
+    'materials_editor_card_radius': 16,
+    'materials_editor_primary_action_bg': '#0A6D9A',
+    'materials_editor_primary_action_hover': '#095D84',
     'login_card_width': 520,
     'login_pre352_safe_width': 500,
     'login_pre352_safe_height': 660,

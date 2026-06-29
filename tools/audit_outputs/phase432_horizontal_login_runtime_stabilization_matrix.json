@@ -464,14 +464,14 @@
       "category": "qss_runtime",
       "description": "Generated light QSS includes Phase432 runtime stabilization",
       "status": "pass",
-      "detail": 95484
+      "detail": 98185
     },
     {
       "key": "qss_runtime_dark",
       "category": "qss_runtime",
       "description": "Generated dark QSS includes Phase432 runtime stabilization",
       "status": "pass",
-      "detail": 96221
+      "detail": 99003
     }
   ]
 }

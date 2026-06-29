@@ -67,7 +67,8 @@ class ColumnContractCustomizerDialog(QDialog):
         for c, text in enumerate(headers):
             lbl = QLabel(text)
             lbl.setAlignment(Qt.AlignCenter)
-            lbl.setStyleSheet('font-weight: 800;')
+            lbl.setProperty('visualRole', 'table_column_header')
+            lbl.setProperty('visualStyleSource', 'centralized_runtime_visual_identity')
             grid.addWidget(lbl, 0, c)
 
         for r, state in enumerate(contract_column_states(self.contract), start=1):

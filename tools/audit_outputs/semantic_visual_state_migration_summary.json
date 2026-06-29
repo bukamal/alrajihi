@@ -1,0 +1,31 @@
+{
+  "ready": true,
+  "checks": 39,
+  "issues": 0,
+  "details": [],
+  "legacy_visual_style_summary": {
+    "ready": true,
+    "checks": 88,
+    "issues": 0,
+    "details": [],
+    "total_local_styles": 81,
+    "counts": {
+      "legacy_local_style": 41,
+      "tokenized_local_style": 29,
+      "branded_startup_allowed": 5,
+      "mixed_legacy_style": 6
+    },
+    "csv": "/mnt/data/phase445_work/alrajhi_phase444_lazy_page_runtime_packaging_hardening/tools/audit_outputs/legacy_visual_style_sweep.csv",
+    "summary_json": "/mnt/data/phase445_work/alrajhi_phase444_lazy_page_runtime_packaging_hardening/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
+  },
+  "migrated_files": {
+    "alrajhi_client/features/items/item_editor_tab.py": {
+      "issues": [],
+      "semantic_calls": 8
+    },
+    "alrajhi_client/views/dialogs/item_dialog.py": {
+      "issues": [],
+      "semantic_calls": 11
+    }
+  }
+}

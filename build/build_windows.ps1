@@ -61,13 +61,23 @@ pyinstaller `
   --collect-submodules alrajhi_client.workspace `
   --collect-submodules alrajhi_client.shell `
   --collect-submodules alrajhi_client.ui `
+  --collect-submodules alrajhi_client.views `
+  --collect-submodules alrajhi_client.views.widgets `
+  --collect-submodules alrajhi_client.views.dialogs `
   --collect-submodules alrajhi_client.views.restaurant `
+  --collect-submodules alrajhi_client.views.cafe `
+  --collect-submodules alrajhi_client.views.apparel `
   --collect-submodules alrajhi_client.printing `
   --collect-submodules features `
   --collect-submodules workspace `
   --collect-submodules shell `
   --collect-submodules ui `
+  --collect-submodules views `
+  --collect-submodules views.widgets `
+  --collect-submodules views.dialogs `
   --collect-submodules views.restaurant `
+  --collect-submodules views.cafe `
+  --collect-submodules views.apparel `
   --collect-submodules printing `
   --collect-submodules alrajhi_client.database `
   --collect-submodules alrajhi_client.database.repositories `
@@ -89,6 +99,28 @@ pyinstaller `
   --hidden-import alrajhi_client.printing.print_templates `
   --hidden-import alrajhi_client.printing.printing_service `
   --hidden-import alrajhi_client.printing.print_manager `
+  --hidden-import alrajhi_client.views.widgets.dashboard_widget `
+  --hidden-import alrajhi_client.views.widgets.items_widget `
+  --hidden-import alrajhi_client.views.widgets.invoices_widget `
+  --hidden-import alrajhi_client.views.widgets.pos_widget `
+  --hidden-import alrajhi_client.views.widgets.manufacturing_widget `
+  --hidden-import alrajhi_client.views.widgets.customers_widget `
+  --hidden-import alrajhi_client.views.widgets.suppliers_widget `
+  --hidden-import alrajhi_client.views.widgets.vouchers_widget `
+  --hidden-import alrajhi_client.views.widgets.returns_widget `
+  --hidden-import alrajhi_client.views.widgets.reports_widget `
+  --hidden-import alrajhi_client.views.widgets.settings_widget `
+  --hidden-import alrajhi_client.views.widgets.users_widget `
+  --hidden-import alrajhi_client.views.widgets.categories_widget `
+  --hidden-import alrajhi_client.views.widgets.warehouses_widget `
+  --hidden-import alrajhi_client.views.widgets.branches_widget `
+  --hidden-import alrajhi_client.views.widgets.cashboxes_widget `
+  --hidden-import alrajhi_client.views.widgets.audit_log_widget `
+  --hidden-import alrajhi_client.views.widgets.offline_queue_widget `
+  --hidden-import alrajhi_client.views.widgets.monitoring_widget `
+  --hidden-import alrajhi_client.views.restaurant.restaurant_simple_pos_widget `
+  --hidden-import alrajhi_client.views.cafe.cafe_workspace_widget `
+  --hidden-import alrajhi_client.views.apparel.apparel_workspace_widget `
   --hidden-import database.repositories.audit_repo `
   --hidden-import database.repositories.base_repo `
   --hidden-import database.repositories.branch_repo `

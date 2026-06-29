@@ -192,7 +192,7 @@
       "detail": "heavy page import is not eager at shell startup"
     },
     {
-      "key": "forbidden_import:from views.widgets.pos_widget import",
+      "key": "forbidden_import:from alrajhi_client.views.widgets.pos_widget import",
       "status": "pass",
       "detail": "heavy page import is not eager at shell startup"
     },
@@ -272,7 +272,7 @@
       "detail": "heavy page import is not eager at shell startup"
     },
     {
-      "key": "forbidden_import:from views.restaurant.restaurant_simple_pos_widget import",
+      "key": "forbidden_import:from alrajhi_client.views.restaurant.restaurant_simple_pos_widget import",
       "status": "pass",
       "detail": "heavy page import is not eager at shell startup"
     },

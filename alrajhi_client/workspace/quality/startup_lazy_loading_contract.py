@@ -49,7 +49,7 @@ REQUIRED_LAZY_FACTORY_KEYS = [
 FORBIDDEN_EAGER_IMPORTS = [
     "from views.widgets.items_widget import",
     "from views.widgets.invoices_widget import",
-    "from views.widgets.pos_widget import",
+    "from alrajhi_client.views.widgets.pos_widget import",
     "from views.widgets.manufacturing_widget import",
     "from views.widgets.customers_widget import",
     "from views.widgets.suppliers_widget import",
@@ -65,7 +65,7 @@ FORBIDDEN_EAGER_IMPORTS = [
     "from views.widgets.audit_log_widget import",
     "from views.widgets.offline_queue_widget import",
     "from views.widgets.monitoring_widget import",
-    "from views.restaurant.restaurant_simple_pos_widget import",
+    "from alrajhi_client.views.restaurant.restaurant_simple_pos_widget import",
     "from views.cafe import CafeWorkspaceWidget",
     "from views.apparel import ApparelWorkspaceWidget",
 ]

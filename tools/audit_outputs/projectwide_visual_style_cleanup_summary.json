@@ -1,0 +1,43 @@
+{
+  "ready": true,
+  "checks": 96,
+  "issues": 0,
+  "details": [],
+  "migrated_files": {
+    "alrajhi_client/views/dialogs/barcode_camera_dialog.py": {
+      "issues": [],
+      "semantic_calls": 5,
+      "visual_role_markers": 1
+    },
+    "alrajhi_client/views/dialogs/column_contract_customizer.py": {
+      "issues": [],
+      "semantic_calls": 0,
+      "visual_role_markers": 1
+    },
+    "alrajhi_client/views/widgets/offline_queue_widget.py": {
+      "issues": [],
+      "semantic_calls": 0,
+      "visual_role_markers": 1
+    },
+    "alrajhi_client/views/main_window.py": {
+      "issues": [],
+      "semantic_calls": 1,
+      "visual_role_markers": 1
+    }
+  },
+  "legacy_visual_style_summary": {
+    "ready": true,
+    "checks": 88,
+    "issues": 0,
+    "details": [],
+    "total_local_styles": 81,
+    "counts": {
+      "legacy_local_style": 41,
+      "tokenized_local_style": 29,
+      "branded_startup_allowed": 5,
+      "mixed_legacy_style": 6
+    },
+    "csv": "/mnt/data/phase445_work/alrajhi_phase444_lazy_page_runtime_packaging_hardening/tools/audit_outputs/legacy_visual_style_sweep.csv",
+    "summary_json": "/mnt/data/phase445_work/alrajhi_phase444_lazy_page_runtime_packaging_hardening/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
+  }
+}

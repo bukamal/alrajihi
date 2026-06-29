@@ -15,6 +15,7 @@ from utils import show_toast
 from ui.form_validation import FormValidator, make_error_label
 from theme_manager import ThemeManager
 from ui.editable_smart_grid import EditableSmartGrid
+from ui.visual_state import set_visual_state
 
 class ItemDialog(CenteredDialog):
     def __init__(self, parent=None, item_id=None):
@@ -104,7 +105,7 @@ class ItemDialog(CenteredDialog):
         barcode_layout.addWidget(camera_btn)
         general_form.addRow(translate("barcode_label"), barcode_widget)
         self.barcode_status_label = QLabel("")
-        self.barcode_status_label.setStyleSheet("font-size: 11px; color: #666;")
+        set_visual_state(self.barcode_status_label, 'muted', size='caption', role='semantic_status')
         general_form.addRow("", self.barcode_status_label)
         self.barcode_error = make_error_label()
         general_form.addRow("", self.barcode_error)
@@ -433,11 +434,11 @@ class ItemDialog(CenteredDialog):
         margin = (profit / selling * 100) if selling > 0 else 0.0
         self.margin_label.setText(translate("profit_margin", value=f"{profit:.2f} {self.symbol} ({margin:.1f}%)"))
         if profit < 0:
-            self.margin_label.setStyleSheet("color: #b91c1c; font-weight: 700;")
+            set_visual_state(self.margin_label, 'danger', weight='strong', size='caption', role='semantic_status')
         elif profit > 0:
-            self.margin_label.setStyleSheet("color: #047857; font-weight: 700;")
+            set_visual_state(self.margin_label, 'success', weight='strong', size='caption', role='semantic_status')
         else:
-            self.margin_label.setStyleSheet("color: #4b5563;")
+            set_visual_state(self.margin_label, 'muted', size='caption', role='semantic_status')
 
     def update_stock_preview(self):
         if not hasattr(self, 'current_stock_label'):
@@ -447,12 +448,12 @@ class ItemDialog(CenteredDialog):
         self.current_stock_label.setText(translate("current_stock", qty=f"{qty:.2f}"))
         if reorder > 0 and qty <= reorder:
             self.stock_warning_label.setText(translate("stock_reorder_warning"))
-            self.stock_warning_label.setStyleSheet("color: #b91c1c; font-weight: 700;")
-            self.stock_status_frame.setStyleSheet("QFrame#StockStatusFrame { border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; }")
+            set_visual_state(self.stock_warning_label, 'danger', weight='strong', size='caption', role='semantic_status')
+            set_visual_state(self.stock_status_frame, 'danger', role='runtime_card')
         else:
             self.stock_warning_label.setText(translate("stock_no_warning"))
-            self.stock_warning_label.setStyleSheet("color: #047857; font-weight: 700;")
-            self.stock_status_frame.setStyleSheet("QFrame#StockStatusFrame { border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; }")
+            set_visual_state(self.stock_warning_label, 'success', weight='strong', size='caption', role='semantic_status')
+            set_visual_state(self.stock_status_frame, 'info', role='runtime_card')
 
     def scan_barcode_with_camera(self):
         try:
@@ -479,15 +480,15 @@ class ItemDialog(CenteredDialog):
         value = self.barcode_edit.text().strip()
         if not value:
             self.barcode_status_label.setText(translate("barcode_optional_hint"))
-            self.barcode_status_label.setStyleSheet("font-size: 11px; color: #666;")
+            set_visual_state(self.barcode_status_label, 'muted', size='caption', role='semantic_status')
             return
         try:
             info = barcode_service.validate(value, allow_empty=False)
             self.barcode_status_label.setText(translate("barcode_valid", symbology=info.symbology))
-            self.barcode_status_label.setStyleSheet("font-size: 11px; color: #2e7d32;")
+            set_visual_state(self.barcode_status_label, 'success', weight='strong', size='caption', role='semantic_status')
         except BarcodeError as e:
             self.barcode_status_label.setText(f"✗ {e}")
-            self.barcode_status_label.setStyleSheet("font-size: 11px; color: #c62828;")
+            set_visual_state(self.barcode_status_label, 'danger', weight='strong', size='caption', role='semantic_status')
 
     def add_subunit(self):
         from PyQt5.QtWidgets import QDialog, QFormLayout, QLineEdit, QDoubleSpinBox

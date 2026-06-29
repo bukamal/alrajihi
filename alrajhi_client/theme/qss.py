@@ -254,8 +254,8 @@ def build_global_qss(colors: dict) -> str:
             border: 0;
         }}
         /* Phase439/440: project-wide visual identity enforcement for all workspaces/tabs. */
-        QWidget[projectVisualIdentityPhase="439"], QWidget[projectVisualIdentityPhase="440"],
-        QWidget[visualIdentitySweepPhase="440"] {{
+        QWidget[projectVisualIdentityPhase="439"], QWidget[projectVisualIdentityPhase="440"], QWidget[projectVisualIdentityPhase="441"], QWidget[projectVisualIdentityPhase="442"], QWidget[projectVisualIdentityPhase="445"],
+        QWidget[visualIdentitySweepPhase="440"], QWidget[visualIdentitySweepPhase="441"], QWidget[visualIdentitySweepPhase="442"], QWidget[visualIdentitySweepPhase="445"] {{
             background-color: {colors.get('workspace_surface_bg', colors.get('surface_root', colors['bg_window']))};
             color: {colors['text_primary']};
         }}
@@ -296,14 +296,168 @@ def build_global_qss(colors: dict) -> str:
         QWidget[visualStyleSource="centralized_runtime_visual_identity"] QFrame[visualRole="workspace_card"] {{
             padding: 1px;
         }}
+        /* Phase441: semantic visual states replace hard-coded local status styles. */
+        QLabel[visualStyleSource="centralized_visual_state"],
+        QFrame[visualStyleSource="centralized_visual_state"] QLabel {{
+            background: transparent;
+            border: none;
+        }}
+        QLabel[visualRole="semantic_status"][visualStateSize="caption"] {{
+            font-size: {caption_px}px;
+            padding: 2px 4px;
+        }}
+        QLabel[visualStateWeight="strong"] {{ font-weight: 800; }}
+        QLabel[visualState="muted"] {{ color: {colors['text_muted']}; }}
+        QLabel[visualState="default"] {{ color: {colors['text_secondary']}; }}
+        QLabel[visualState="success"] {{ color: {colors['success']}; }}
+        QLabel[visualState="warning"] {{ color: {colors['warning']}; }}
+        QLabel[visualState="danger"] {{ color: {colors['danger']}; }}
+        QLabel[visualState="info"] {{ color: {colors['info']}; }}
+        QLabel[visualRole="semantic_error_card"] {{
+            background-color: {colors.get('danger_soft', colors.get('brand_soft', colors['bg_panel']))};
+            color: {colors['danger']};
+            border: 1px solid {colors['danger']};
+            border-radius: {radius_md}px;
+            padding: 24px;
+            font-size: 15px;
+            font-weight: 800;
+        }}
+        QLabel[visualRole="table_column_header"] {{
+            background-color: {colors.get('workspace_section_header_bg', colors['brand_soft'])};
+            color: {colors.get('workspace_section_header_text', colors['primary'])};
+            border: 1px solid {colors.get('workspace_card_border', colors['border'])};
+            border-radius: {radius_sm}px;
+            padding: 6px 8px;
+            font-weight: 900;
+        }}
+        QLabel[visualRole="camera_preview"] {{
+            background-color: {colors.get('surface_sunken', colors['bg_table_alt'])};
+            color: {colors.get('text_secondary', colors['text_primary'])};
+            border: 1px solid {colors.get('workspace_card_border', colors['border'])};
+            border-radius: {radius_md}px;
+            padding: 10px;
+            font-weight: 800;
+        }}
+        QFrame[visualState="success"] {{
+            background-color: {colors.get('success_soft', colors.get('brand_soft', colors['bg_panel']))};
+            border: 1px solid {colors['success']};
+            border-radius: {radius_md}px;
+        }}
+        QFrame[visualState="warning"] {{
+            background-color: {colors.get('warning_soft', colors.get('brand_soft', colors['bg_panel']))};
+            border: 1px solid {colors['warning']};
+            border-radius: {radius_md}px;
+        }}
+        QFrame[visualState="danger"] {{
+            background-color: {colors.get('danger_soft', colors.get('brand_soft', colors['bg_panel']))};
+            border: 1px solid {colors['danger']};
+            border-radius: {radius_md}px;
+        }}
+        QFrame[visualState="info"] {{
+            background-color: {colors.get('info_soft', colors.get('brand_soft', colors['bg_panel']))};
+            border: 1px solid {colors['info']};
+            border-radius: {radius_md}px;
+        }}
+
+        /* Phase445: materials workspace/list/editor visual identity migration. */
+        QWidget[materialsVisualPhase="445"], QWidget[visualWorkspaceType="materials"] {{
+            background-color: {colors.get('workspace_content_bg', colors['bg_window'])};
+            color: {colors['text_primary']};
+        }}
+        QFrame#MaterialsFilterCard, QWidget[materialsFilterSurface="445"] {{
+            background-color: {BRAND.get('materials_filter_card_bg', colors.get('workspace_card_bg', colors['bg_panel']))};
+            border: 1px solid {BRAND.get('materials_filter_card_border', colors.get('workspace_card_border', colors['border']))};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+            padding: 6px;
+        }}
+        QLabel[visualRole="materials_filter_label"] {{
+            background: transparent;
+            color: {colors.get('text_secondary', colors['text_primary'])};
+            font-weight: 800;
+            padding: 0 4px;
+        }}
+        QComboBox[visualRole="materials_filter"], QLineEdit[visualRole="materials_search"] {{
+            min-height: 34px;
+            border-radius: {radius_sm}px;
+            border: 1px solid {colors.get('workspace_card_border', colors['border'])};
+            background-color: {colors.get('input_bg', colors['bg_panel'])};
+            color: {colors['text_primary']};
+            padding: 4px 8px;
+        }}
+        QWidget[visualRole="materials_toolbar"], QWidget[visualRole="materials_toolbar"] QPushButton {{
+            border-radius: {radius_sm}px;
+        }}
+        QTableView[visualRole="materials_table"] QHeaderView::section,
+        QTableWidget[visualRole="materials_table"] QHeaderView::section {{
+            background-color: {BRAND.get('materials_table_header_bg', colors.get('header_bg', colors['primary']))};
+            color: {BRAND.get('materials_table_header_text', colors.get('header_text', '#ffffff'))};
+            font-weight: 900;
+            padding: 8px;
+            border: none;
+            border-left: 1px solid {colors.get('workspace_card_border', colors['border'])};
+        }}
+        QGroupBox[visualRole="material_form_card"], QFrame[visualRole="material_form_card"] {{
+            background-color: {colors.get('workspace_card_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('workspace_card_border', colors['border'])};
+            border-radius: {BRAND.get('materials_editor_card_radius', radius_lg)}px;
+            margin-top: 16px;
+            padding: 18px 14px 14px 14px;
+            font-weight: 850;
+            color: {colors['text_primary']};
+        }}
+        QGroupBox[visualRole="material_form_card"]::title {{
+            subcontrol-origin: margin;
+            right: 16px;
+            padding: 0 10px;
+            color: {colors.get('workspace_section_header_text', colors['primary'])};
+            background-color: {colors.get('workspace_card_bg', colors['bg_panel'])};
+            font-weight: 900;
+        }}
+        QFrame#MaterialEditorActionBar, QFrame[visualRole="material_action_bar"] {{
+            background-color: {colors.get('workspace_card_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('workspace_card_border', colors['border'])};
+            border-radius: {BRAND.get('workspace_card_radius', radius_lg)}px;
+        }}
+        QWidget[visualRole="material_editor"] QLineEdit,
+        QWidget[visualRole="material_editor"] QComboBox,
+        QWidget[visualRole="material_editor"] QDoubleSpinBox,
+        QWidget[visualRole="material_editor"] QSpinBox {{
+            min-height: 36px;
+            border-radius: {radius_sm}px;
+            border: 1px solid {colors.get('workspace_card_border', colors['border'])};
+            background-color: {colors.get('input_bg', colors['bg_panel'])};
+            color: {colors['text_primary']};
+            padding: 5px 9px;
+        }}
+        QWidget[visualRole="material_editor"] QLineEdit:focus,
+        QWidget[visualRole="material_editor"] QComboBox:focus,
+        QWidget[visualRole="material_editor"] QDoubleSpinBox:focus,
+        QWidget[visualRole="material_editor"] QSpinBox:focus {{
+            border: 1px solid {colors.get('border_focus', colors['primary'])};
+        }}
+        QWidget[visualRole="material_editor"] QPushButton#primary {{
+            background-color: {BRAND.get('materials_editor_primary_action_bg', colors['primary'])};
+            color: white;
+            border: 1px solid {BRAND.get('materials_editor_primary_action_bg', colors['primary'])};
+            font-weight: 900;
+        }}
+        QWidget[visualRole="material_editor"] QPushButton#primary:hover {{
+            background-color: {BRAND.get('materials_editor_primary_action_hover', colors['primary_hover'])};
+        }}
         QTabWidget[projectVisualIdentityPhase="439"]::pane,
-        QTabWidget[projectVisualIdentityPhase="440"]::pane {{
+        QTabWidget[projectVisualIdentityPhase="440"]::pane,
+        QTabWidget[projectVisualIdentityPhase="441"]::pane,
+        QTabWidget[projectVisualIdentityPhase="442"]::pane,
+        QTabWidget[projectVisualIdentityPhase="445"]::pane {{
             border: 1px solid {colors.get('workspace_card_border', colors['border'])};
             background-color: {colors.get('workspace_content_bg', colors['bg_window'])};
             border-radius: {BRAND.get('workspace_tab_radius', radius_md)}px;
         }}
         QTabWidget[projectVisualIdentityPhase="439"] QTabBar::tab,
-        QTabWidget[projectVisualIdentityPhase="440"] QTabBar::tab {{
+        QTabWidget[projectVisualIdentityPhase="440"] QTabBar::tab,
+        QTabWidget[projectVisualIdentityPhase="441"] QTabBar::tab,
+        QTabWidget[projectVisualIdentityPhase="442"] QTabBar::tab,
+        QTabWidget[projectVisualIdentityPhase="445"] QTabBar::tab {{
             min-height: {BRAND.get('workspace_tab_min_height', tab_min_height)}px;
             border-radius: {BRAND.get('workspace_tab_radius', radius_md)}px;
             margin: 3px;

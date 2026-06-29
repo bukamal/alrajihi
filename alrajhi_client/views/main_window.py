@@ -39,6 +39,7 @@ from theme.brand import BRAND, get_tokens
 from ui.runtime_visual_polish import apply_runtime_visual_polish
 from ui.operational_fullscreen_controller import OperationalFullscreenController
 from ui.main_shell_runtime_fit import apply_main_shell_runtime_fit
+from ui.visual_state import set_visual_state
 
 PAID_FEATURE_PAGES = {
     'manufacturing': 'manufacturing',
@@ -51,33 +52,78 @@ PAID_FEATURE_PAGES = {
 # Phase436: page factories are lightweight specs.  Only the dashboard is built
 # at shell startup; the rest are lazy-loaded on first navigation.
 PAGE_FACTORY_SPECS = {
-    'dashboard': ('views.widgets.dashboard_widget', 'DashboardWidget'),
-    'items': ('views.widgets.items_widget', 'ItemsWidget'),
-    'sales_invoices': ('views.widgets.invoices_widget', 'SalesInvoicesWidget'),
-    'purchase_invoices': ('views.widgets.invoices_widget', 'PurchaseInvoicesWidget'),
-    'pos': ('views.widgets.pos_widget', 'POSWidget'),
-    'manufacturing': ('views.widgets.manufacturing_widget', 'ManufacturingWidget'),
-    'customers': ('views.widgets.customers_widget', 'CustomersWidget'),
-    'suppliers': ('views.widgets.suppliers_widget', 'SuppliersWidget'),
-    'vouchers': ('views.widgets.vouchers_widget', 'VouchersWidget'),
-    'returns': ('views.widgets.returns_widget', 'ReturnsWidget'),
-    'purchase_returns': ('views.widgets.returns_widget', 'PurchaseReturnsWidget'),
-    'reports': ('views.widgets.reports_widget', 'ReportsWidget'),
-    'settings': ('views.widgets.settings_widget', 'SettingsWidget'),
-    'users': ('views.widgets.users_widget', 'UsersWidget'),
-    'categories': ('views.widgets.categories_widget', 'CategoriesWidget'),
-    'warehouses': ('views.widgets.warehouses_widget', 'WarehousesWidget'),
-    'branches': ('views.widgets.branches_widget', 'BranchesWidget'),
-    'cashboxes': ('views.widgets.cashboxes_widget', 'CashboxesWidget'),
-    'audit_log': ('views.widgets.audit_log_widget', 'AuditLogWidget'),
-    'offline_queue': ('views.widgets.offline_queue_widget', 'OfflineQueueWidget'),
-    'monitoring': ('views.widgets.monitoring_widget', 'MonitoringWidget'),
-    'restaurant': ('views.restaurant.restaurant_simple_pos_widget', 'RestaurantSimplePOSWidget'),
-    'cafe': ('views.cafe', 'CafeWorkspaceWidget'),
-    'apparel': ('views.apparel', 'ApparelWorkspaceWidget'),
+    # Phase443: lazy factories must use fully-qualified package paths.  The
+    # Phase436 short paths worked in some source-tree executions but failed in
+    # packaged/runtime Windows sessions with errors such as
+    # ``No module named 'views.widgets.pos_widget'``.
+    'dashboard': ('alrajhi_client.views.widgets.dashboard_widget', 'DashboardWidget'),
+    'items': ('alrajhi_client.views.widgets.items_widget', 'ItemsWidget'),
+    'sales_invoices': ('alrajhi_client.views.widgets.invoices_widget', 'SalesInvoicesWidget'),
+    'purchase_invoices': ('alrajhi_client.views.widgets.invoices_widget', 'PurchaseInvoicesWidget'),
+    'pos': ('alrajhi_client.views.widgets.pos_widget', 'POSWidget'),
+    'manufacturing': ('alrajhi_client.views.widgets.manufacturing_widget', 'ManufacturingWidget'),
+    'customers': ('alrajhi_client.views.widgets.customers_widget', 'CustomersWidget'),
+    'suppliers': ('alrajhi_client.views.widgets.suppliers_widget', 'SuppliersWidget'),
+    'vouchers': ('alrajhi_client.views.widgets.vouchers_widget', 'VouchersWidget'),
+    'returns': ('alrajhi_client.views.widgets.returns_widget', 'ReturnsWidget'),
+    'purchase_returns': ('alrajhi_client.views.widgets.returns_widget', 'PurchaseReturnsWidget'),
+    'reports': ('alrajhi_client.views.widgets.reports_widget', 'ReportsWidget'),
+    'settings': ('alrajhi_client.views.widgets.settings_widget', 'SettingsWidget'),
+    'users': ('alrajhi_client.views.widgets.users_widget', 'UsersWidget'),
+    'categories': ('alrajhi_client.views.widgets.categories_widget', 'CategoriesWidget'),
+    'warehouses': ('alrajhi_client.views.widgets.warehouses_widget', 'WarehousesWidget'),
+    'branches': ('alrajhi_client.views.widgets.branches_widget', 'BranchesWidget'),
+    'cashboxes': ('alrajhi_client.views.widgets.cashboxes_widget', 'CashboxesWidget'),
+    'audit_log': ('alrajhi_client.views.widgets.audit_log_widget', 'AuditLogWidget'),
+    'offline_queue': ('alrajhi_client.views.widgets.offline_queue_widget', 'OfflineQueueWidget'),
+    'monitoring': ('alrajhi_client.views.widgets.monitoring_widget', 'MonitoringWidget'),
+    'restaurant': ('alrajhi_client.views.restaurant.restaurant_simple_pos_widget', 'RestaurantSimplePOSWidget'),
+    'cafe': ('alrajhi_client.views.cafe', 'CafeWorkspaceWidget'),
+    'apparel': ('alrajhi_client.views.apparel', 'ApparelWorkspaceWidget'),
 }
 
 _PAGE_FACTORY_CLASS_CACHE = {}
+_LAZY_FACTORY_PACKAGE_PREFIX = 'alrajhi_client.'
+_LEGACY_FACTORY_MODULE_PREFIXES = ('views.', 'features.', 'ui.', 'workspace.', 'shell.')
+
+
+def normalize_page_factory_module_name(module_name: str) -> str:
+    """Return the canonical import path for a lazy page factory module.
+
+    Phase443 keeps the source of truth fully-qualified while accepting legacy
+    specs defensively.  This prevents Windows/PyInstaller sessions from trying
+    to resolve top-level modules like ``views.widgets.pos_widget``.
+    """
+    module_name = str(module_name or '').strip()
+    if not module_name:
+        return module_name
+    if module_name.startswith(_LAZY_FACTORY_PACKAGE_PREFIX):
+        return module_name
+    if module_name.startswith(_LEGACY_FACTORY_MODULE_PREFIXES):
+        return f"{_LAZY_FACTORY_PACKAGE_PREFIX}{module_name}"
+    return module_name
+
+
+def page_factory_import_candidates(module_name: str):
+    """Yield safe import candidates for packaged and source-tree runs."""
+    module_name = str(module_name or '').strip()
+    canonical = normalize_page_factory_module_name(module_name)
+    candidates = [canonical]
+    # Direct source-tree runs may have ``alrajhi_client`` itself on sys.path and
+    # still rely on top-level imports.  Keep this fallback only after the
+    # canonical path fails because the package root is unavailable.
+    if canonical.startswith(_LAZY_FACTORY_PACKAGE_PREFIX):
+        legacy = canonical[len(_LAZY_FACTORY_PACKAGE_PREFIX):]
+        if legacy and legacy not in candidates:
+            candidates.append(legacy)
+    return candidates
+
+
+def _is_missing_candidate_module(exc: ModuleNotFoundError, candidate: str) -> bool:
+    missing = getattr(exc, 'name', '') or ''
+    if not missing:
+        return False
+    return candidate == missing or candidate.startswith(f"{missing}.")
 
 
 def load_page_factory_class(page_key: str):
@@ -85,10 +131,25 @@ def load_page_factory_class(page_key: str):
     if page_key in _PAGE_FACTORY_CLASS_CACHE:
         return _PAGE_FACTORY_CLASS_CACHE[page_key]
     module_name, class_name = PAGE_FACTORY_SPECS[page_key]
-    module = importlib.import_module(module_name)
-    factory = getattr(module, class_name)
-    _PAGE_FACTORY_CLASS_CACHE[page_key] = factory
-    return factory
+    last_missing = None
+    for candidate in page_factory_import_candidates(module_name):
+        try:
+            module = importlib.import_module(candidate)
+            factory = getattr(module, class_name)
+            _PAGE_FACTORY_CLASS_CACHE[page_key] = factory
+            return factory
+        except ModuleNotFoundError as exc:
+            # Only try the next candidate if the candidate package itself is
+            # unavailable.  If a dependency inside the page module is missing,
+            # surface that real runtime error instead of hiding it as a path
+            # fallback.
+            if _is_missing_candidate_module(exc, candidate):
+                last_missing = exc
+                continue
+            raise
+    if last_missing is not None:
+        raise last_missing
+    raise ModuleNotFoundError(module_name)
 
 
 # Phase 331: page metadata is now owned by the central UI registry so
@@ -438,17 +499,26 @@ class MainWindow(QMainWindow):
         self._install_fixed_dashboard_surface()
 
 
-    def _remote_error_page(self, page_key: str, exc: Exception):
+    def _format_page_load_error_message(self, page_key: str, exc: Exception) -> str:
         title = page_title(page_key)
+        if isinstance(exc, ModuleNotFoundError):
+            missing = getattr(exc, 'name', '') or str(exc)
+            return (
+                f"تعذر تحميل واجهة {title}.\n"
+                f"نوع الخطأ: مسار استيراد/حزمة غير متاحة.\n"
+                f"التفصيل: {missing}\n"
+                "هذا ليس خطأ REST/API. تحقق من حزمة الواجهة أو مسار الـ lazy factory ثم أعد فتح الصفحة."
+            )
+        return translate('remote_page_load_failed', page=title, reason=exc)
+
+    def _remote_error_page(self, page_key: str, exc: Exception):
         w = QWidget(self)
         layout = QVBoxLayout(w)
         layout.setContentsMargins(36, 36, 36, 36)
-        msg = QLabel(
-            translate('remote_page_load_failed', page=title, reason=exc)
-        )
+        msg = QLabel(self._format_page_load_error_message(page_key, exc))
         msg.setWordWrap(True)
         msg.setAlignment(Qt.AlignCenter)
-        msg.setStyleSheet("QLabel { font-size: 15px; color: #7f1d1d; padding: 24px; background:#fff1f2; border:1px solid #fecdd3; border-radius:12px; }")
+        set_visual_state(msg, 'danger', weight='strong', size='body', role='semantic_error_card')
         layout.addWidget(msg)
         return w
 

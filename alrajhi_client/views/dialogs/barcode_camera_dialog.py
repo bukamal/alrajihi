@@ -8,6 +8,7 @@ from core.services.barcode_scanner_service import barcode_scanner_service
 from utils import show_toast
 from i18n import translate, qt_layout_direction
 from core.services.settings_service import settings_service
+from ui.visual_state import set_visual_state
 
 
 class BarcodeCameraDialog(CenteredDialog):
@@ -33,12 +34,14 @@ class BarcodeCameraDialog(CenteredDialog):
         self.status_label = QLabel(translate("ready"))
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setWordWrap(True)
+        set_visual_state(self.status_label, 'info', size='caption', role='semantic_status')
         layout.addWidget(self.status_label)
 
         self.video_label = QLabel(translate("press_start_camera"))
         self.video_label.setAlignment(Qt.AlignCenter)
         self.video_label.setMinimumHeight(360)
-        self.video_label.setStyleSheet("border: 1px solid #aaa; background: #111; color: white;")
+        self.video_label.setProperty('visualRole', 'camera_preview')
+        self.video_label.setProperty('visualStyleSource', 'centralized_runtime_visual_identity')
         layout.addWidget(self.video_label)
 
         controls = QHBoxLayout()
@@ -63,6 +66,7 @@ class BarcodeCameraDialog(CenteredDialog):
             self.status_label.setText(
                 translate("camera_unavailable_msg", reason=barcode_scanner_service.unavailable_reason())
             )
+            set_visual_state(self.status_label, 'warning', weight='strong', size='caption', role='semantic_status')
             self.start_btn.setEnabled(False)
 
     def start_camera(self):
@@ -73,8 +77,10 @@ class BarcodeCameraDialog(CenteredDialog):
             self.capture = None
             show_toast(translate("camera_open_failed_help"), "error", self)
             self.status_label.setText(translate("camera_open_failed"))
+            set_visual_state(self.status_label, 'danger', weight='strong', size='caption', role='semantic_status')
             return
         self.status_label.setText(translate("point_camera_to_barcode"))
+        set_visual_state(self.status_label, 'info', weight='strong', size='caption', role='semantic_status')
         self.timer.start(80)
 
     def stop_camera(self):
@@ -98,6 +104,7 @@ class BarcodeCameraDialog(CenteredDialog):
         if result and result.value != self.last_value:
             self.last_value = result.value
             self.status_label.setText(translate("barcode_detected", value=result.value, symbology=result.symbology))
+            set_visual_state(self.status_label, 'success', weight='strong', size='caption', role='semantic_status')
             self.barcode_scanned.emit(result.value, result.symbology)
             if self.auto_close:
                 self.accept()

@@ -76,7 +76,8 @@ def _layout_apply(widget: QWidget, margin: int, spacing: int) -> None:
 
 def _apply_table_polish(table: QTableView, density: str) -> None:
     apply_table_direction(table)
-    table.setProperty("visualRole", "runtime_table")
+    if not table.property("visualRole"):
+        table.setProperty("visualRole", "runtime_table")
     table.setAlternatingRowColors(True)
     table.setWordWrap(False)
     try:
@@ -176,22 +177,27 @@ def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_ty
             elif isinstance(child, QAbstractButton):
                 _apply_button_polish(child, "workspace_action")
             elif isinstance(child, QScrollArea):
-                child.setProperty("visualRole", "workspace_scroll")
+                if not child.property("visualRole"):
+                    child.setProperty("visualRole", "workspace_scroll")
                 try:
                     child.setWidgetResizable(True)
                 except Exception:
                     pass
             elif isinstance(child, QStackedWidget):
-                child.setProperty("visualRole", "workspace_stack")
+                if not child.property("visualRole"):
+                    child.setProperty("visualRole", "workspace_stack")
             elif isinstance(child, QSplitter):
-                child.setProperty("visualRole", "workspace_splitter")
+                if not child.property("visualRole"):
+                    child.setProperty("visualRole", "workspace_splitter")
             elif isinstance(child, QLabel):
                 name = (child.objectName() or "").lower()
                 text = (child.text() or "").strip()
                 if "title" in name or "header" in name or len(text) <= 28 and text.endswith((':', '：')):
-                    child.setProperty("visualRole", "section_header")
+                    if not child.property("visualRole"):
+                        child.setProperty("visualRole", "section_header")
             elif isinstance(child, (QFrame, QGroupBox)):
-                child.setProperty("visualRole", "workspace_card")
+                if not child.property("visualRole"):
+                    child.setProperty("visualRole", "workspace_card")
         except Exception:
             continue
 
