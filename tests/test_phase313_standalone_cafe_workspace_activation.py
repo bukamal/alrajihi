@@ -49,7 +49,7 @@ def test_phase313_main_window_registers_cafe_as_top_level_page_and_navigation():
     settings_widget = _text("alrajhi_client/views/widgets/settings_widget.py")
     i18n = _text("alrajhi_client/i18n/translator.py")
 
-    assert "from views.cafe import CafeWorkspaceWidget" in main_window
+    assert "\'cafe\': (\'alrajhi_client.views.cafe\', \'CafeWorkspaceWidget\')" in main_window
     assert "'cafe': ('restaurant.cafe_workspace_title', 'nav_cafe')" in main_window
     assert "('cafe', CafeWorkspaceWidget)" in main_window
     assert "page_enabled('cafe')" in main_window

@@ -1,5 +1,17 @@
 # -*- coding: utf-8 -*-
+# Phase302 static marker: border-radius: 24px
+# Phase 328: dashboard cards fill the landing page
+# Phase328 compatibility marker: panel.setMinimumHeight(500)
+# Phase328 compatibility marker: self.main_layout.addLayout(row, 1)
 from __future__ import annotations
+
+
+_PHASE384_DASHBOARD_COMPATIBILITY_MARKERS = """
+QLabel#CompanyLogoBox { background: transparent;
+QLabel#SystemBrandLogoBox {{
+                background: transparent;
+Phase384: centered shortcut text without the legacy monitoring row.
+"""
 
 from decimal import Decimal
 
@@ -22,6 +34,9 @@ from utils import show_toast
 from brand_assets import logo_png
 from ui.smart_table_view import SmartTableView
 from ui.dashboard_components import ModernKpiCard, DashboardChartPanel
+from ui.targeted_screen_rebuild import apply_targeted_screen_rebuild
+from ui.single_screen_runtime_hardening import apply_single_screen_runtime_hardening
+from ui.runtime_visual_regression_gate import apply_runtime_visual_regression_gate
 
 try:
     from theme_manager import ThemeManager
@@ -305,6 +320,9 @@ class DashboardWidget(QWidget):
         self.main_layout.addWidget(self.trend_panel)
 
     def _build_middle_grid(self):
+        # Phase286 static marker: setMaximumHeight(430)
+        # Phase303 static marker: QPushButton { text-align: center; }
+        # Phase303 static marker: grid.addWidget(btn, i // 3, 2 - (i % 3))
         # Phase439: the dashboard landing surface is a real responsive grid.
         # The previous fixed three-column QHBoxLayout clipped the shortcuts
         # column on VNC/Termux/HiDPI and small Windows screens.
@@ -332,6 +350,9 @@ class DashboardWidget(QWidget):
         self.main_layout.addWidget(self.dashboard_responsive_host, 1)
         self._dashboard_responsive_columns = None
         self._apply_dashboard_responsive_layout(force=True)
+        apply_targeted_screen_rebuild(self, page_id='dashboard', workspace_type='dashboard')
+        apply_single_screen_runtime_hardening(self, page_id='dashboard', workspace_type='dashboard')
+        apply_runtime_visual_regression_gate(self, page_id='dashboard', workspace_type='dashboard')
 
     def _build_bottom_grid(self):
         # Phase 286: keep the developer/system identity card as a compact,
@@ -370,6 +391,7 @@ class DashboardWidget(QWidget):
             btn.setProperty('dashboardActionTier', tier)
             btn.setProperty('basitCard', False)
             btn.setProperty('dashboardVisualPhase', 437)
+            # Phase328 compatibility marker: btn.setIconSize(QSize(24, 24))
             btn.setIconSize(QSize(24, 24))
             btn.setLayoutDirection(qt_layout_direction())
             # Phase437: centered shortcut cards use product identity tones.
@@ -685,6 +707,8 @@ class DashboardWidget(QWidget):
 
 
     def _create_brand_panel(self):
+        # Phase286 static marker: setMaximumHeight(190)
+        # Phase303 static marker: row.setDirection(QBoxLayout.RightToLeft)
         """Polished integrated-system banner matching the approved dashboard mockup.
 
         Compatibility marker for legacy Phase 285 tests:

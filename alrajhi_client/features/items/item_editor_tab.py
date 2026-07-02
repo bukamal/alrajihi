@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QHeaderView,
     QSplitter,
+    QTextEdit,
     QVBoxLayout,
 )
 
@@ -27,16 +28,23 @@ from core.services.barcode_service import barcode_service, BarcodeError
 from core.services.barcode_input_service import barcode_input_service
 from core.services.permission_service import permission_service
 from core.services.product_service import product_service
+from core.services.category_operation_policy import category_operation_policy
 from core.services.settings_service import settings_service
 from core.item_types import STOCK, FINISHED_PRODUCT, SERVICE, normalize_item_type, is_stock
 from i18n import qt_layout_direction, translate
 from currency import currency
+from theme.brand import BRAND
 from core.money_display_policy import format_money
 from printing.printing_service import printing_service
 from ui.editable_smart_grid import EditableSmartGrid
 from ui.form_validation import FormValidator, make_error_label
 from ui.visual_state import set_visual_state
 from utils import show_toast
+from ui.runtime_layout_reconstruction import apply_runtime_layout_reconstruction
+from ui.targeted_screen_rebuild import apply_targeted_screen_rebuild
+from ui.single_screen_runtime_hardening import apply_single_screen_runtime_hardening
+from ui.runtime_visual_regression_gate import apply_runtime_visual_regression_gate
+from ui.inline_quick_create import InlineQuickCreatePanel
 from workspace.documents import BaseDocumentTab
 from workspace.documents.document_permission_binder import DocumentPermissionBinder
 from features.items.material_shell_contract import (
@@ -143,6 +151,8 @@ class MaterialDocumentTab(BaseDocumentTab):
         self.setProperty('visualWorkspaceType', 'materials')
         self.setProperty('materialsVisualPhase', '445')
         self.setProperty('windowsRuntimeVisualAcceptancePhase', 453)
+        self.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.setProperty('materialRuntimeLayoutReconstructionPhase', 454)
         self.setProperty('visualRole', 'material_editor')
         root = QVBoxLayout(self)
         root.setContentsMargins(14, 14, 14, 14)
@@ -156,6 +166,8 @@ class MaterialDocumentTab(BaseDocumentTab):
 
         body = QSplitter(Qt.Horizontal, self)
         body.setObjectName('ItemEditorResponsiveSplitter')
+        body.setProperty('runtimeLayoutReconstructionPhase', 454)
+        body.setProperty('runtimeLayoutSplitter', 'material_cards_rebalanced_splitter')
         body.setProperty('visualRole', 'workspace_splitter')
         body.setProperty('materialsVisualPhase', '445')
         body.setChildrenCollapsible(False)
@@ -166,6 +178,8 @@ class MaterialDocumentTab(BaseDocumentTab):
         left.setObjectName('MaterialEditorPrimaryColumn')
         left.setProperty('visualRole', 'material_editor_column')
         left.setProperty('materialsVisualPhase', '445')
+        left.setProperty('runtimeLayoutReconstructionPhase', 454)
+        left.setMinimumWidth(int(BRAND.get('material_runtime_card_min_width', 330)))
         left_layout = QVBoxLayout(left)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(10)
@@ -179,6 +193,8 @@ class MaterialDocumentTab(BaseDocumentTab):
         right.setObjectName('MaterialEditorDetailColumn')
         right.setProperty('visualRole', 'material_editor_column')
         right.setProperty('materialsVisualPhase', '445')
+        right.setProperty('runtimeLayoutReconstructionPhase', 454)
+        right.setMinimumWidth(int(BRAND.get('material_runtime_card_min_width', 330)))
         right_layout = QVBoxLayout(right)
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.setSpacing(10)
@@ -188,6 +204,10 @@ class MaterialDocumentTab(BaseDocumentTab):
         body.setStretchFactor(1, 5)
 
         root.addWidget(self._build_bottom_actions())
+        apply_runtime_layout_reconstruction(self, page_id='material_editor', workspace_type='material')
+        apply_targeted_screen_rebuild(self, page_id='material_editor', workspace_type='material')
+        apply_single_screen_runtime_hardening(self, page_id='material_editor', workspace_type='material')
+        apply_runtime_visual_regression_gate(self, page_id='material_editor', workspace_type='material')
         self._apply_styles()
 
     def _build_header(self) -> QFrame:
@@ -218,6 +238,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         box.setObjectName('MaterialBasicCard')
         box.setProperty('visualRole', 'material_form_card')
         box.setProperty('materialsVisualPhase', '445')
+        box.setProperty('runtimeLayoutReconstructionPhase', 454)
         form = QFormLayout(box)
         form.setLabelAlignment(Qt.AlignRight)
 
@@ -228,7 +249,24 @@ class MaterialDocumentTab(BaseDocumentTab):
         form.addRow('', self.name_error)
 
         self.category_combo = QComboBox()
-        form.addRow(tr('category_label'), self.category_combo)
+        category_widget = QFrame(self)
+        category_widget.setObjectName('MaterialCategoryInlineCreateRow')
+        category_row = QHBoxLayout(category_widget)
+        category_row.setContentsMargins(0, 0, 0, 0)
+        category_row.setSpacing(8)
+        category_row.addWidget(self.category_combo, 1)
+        self.quick_add_category_btn = QPushButton(tr('material_quick_add_category'))
+        self.quick_add_category_btn.setObjectName('MaterialQuickAddCategoryButton')
+        self.quick_add_category_btn.setProperty('visualRole', 'document_inline_create_action')
+        self.quick_add_category_btn.setToolTip(tr('material_quick_add_category_tooltip'))
+        self.quick_add_category_btn.clicked.connect(self.create_category_from_material_editor)
+        category_row.addWidget(self.quick_add_category_btn)
+        form.addRow(tr('category_label'), category_widget)
+
+        self.quick_category_panel = InlineQuickCreatePanel('category', self, context={'categories': self.categories})
+        self.quick_category_panel.setObjectName('MaterialInlineQuickCategoryPanel')
+        self.quick_category_panel.created.connect(self._on_inline_category_created)
+        form.addRow('', self.quick_category_panel)
 
         self.type_combo = QComboBox()
         self.type_combo.addItem(tr('stock_item_type'), STOCK)
@@ -248,6 +286,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         box.setObjectName('MaterialPricingCard')
         box.setProperty('visualRole', 'material_form_card')
         box.setProperty('materialsVisualPhase', '445')
+        box.setProperty('runtimeLayoutReconstructionPhase', 454)
         form = QFormLayout(box)
         form.setLabelAlignment(Qt.AlignRight)
 
@@ -294,6 +333,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         box.setObjectName('MaterialBarcodeCard')
         box.setProperty('visualRole', 'material_form_card')
         box.setProperty('materialsVisualPhase', '445')
+        box.setProperty('runtimeLayoutReconstructionPhase', 454)
         layout = QVBoxLayout(box)
         layout.setSpacing(8)
 
@@ -340,6 +380,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         box.setObjectName('MaterialUnitsCard')
         box.setProperty('visualRole', 'material_form_card')
         box.setProperty('materialsVisualPhase', '445')
+        box.setProperty('runtimeLayoutReconstructionPhase', 454)
         layout = QVBoxLayout(box)
         layout.setSpacing(8)
 
@@ -381,6 +422,8 @@ class MaterialDocumentTab(BaseDocumentTab):
         bar.setObjectName('MaterialEditorActionBar')
         bar.setProperty('visualRole', 'material_action_bar')
         bar.setProperty('materialsVisualPhase', '445')
+        bar.setProperty('runtimeLayoutReconstructionPhase', 454)
+        bar.setMinimumHeight(int(BRAND.get('material_runtime_action_footer_height', 58)))
         layout = QHBoxLayout(bar)
         layout.setContentsMargins(12, 8, 12, 8)
         layout.setSpacing(8)
@@ -391,6 +434,8 @@ class MaterialDocumentTab(BaseDocumentTab):
         self.save_btn = QPushButton(tr('save'))
         self.save_btn.setObjectName('primary')
         self.save_btn.setProperty('visualRole', 'document_primary_action')
+        self.save_btn.setMinimumWidth(150)
+        self.save_btn.setMinimumHeight(44)
         self.save_label_btn = QPushButton(tr('material_save_and_print_label'))
         self.save_label_btn.setVisible(False)
         self.close_btn = QPushButton(tr('close'))
@@ -497,6 +542,44 @@ class MaterialDocumentTab(BaseDocumentTab):
             self.apply_document_permissions()
         except Exception:
             pass
+        if hasattr(self, 'quick_add_category_btn'):
+            can_create_category = self._can_create_category_inline()
+            self.quick_add_category_btn.setEnabled(can_create_category and bool(self.security_policy.get('can_edit', True)))
+            if not can_create_category:
+                self.quick_add_category_btn.setToolTip(tr('material_quick_add_category_denied'))
+
+    def _can_create_category_inline(self) -> bool:
+        try:
+            return bool(category_operation_policy.can(category_operation_policy.OP_CREATE))
+        except Exception:
+            return False
+
+    def _existing_category_for_name(self, name: str, parent_id=None):
+        normalized = str(name or '').strip().casefold()
+        parent_normalized = int(parent_id or 0)
+        if not normalized:
+            return None
+        for category in self.categories or []:
+            existing_name = str(category.get('name') or '').strip().casefold()
+            existing_parent = int(category.get('parent_id') or 0)
+            if existing_name == normalized and existing_parent == parent_normalized:
+                return category
+        return None
+
+    def create_category_from_material_editor(self) -> None:
+        """Open the unified Phase460 inline quick-create panel for categories."""
+        if not self._can_create_category_inline():
+            show_toast(tr('material_quick_add_category_denied'), 'error', self)
+            return
+        if hasattr(self, 'quick_category_panel'):
+            self.quick_category_panel.set_context(categories=self.categories)
+            self.quick_category_panel.toggle_panel()
+
+    def _on_inline_category_created(self, entity_type: str, result: Dict[str, Any]) -> None:
+        if entity_type != 'category':
+            return
+        self.reload_categories(select_id=result.get('id'))
+        self.set_dirty(True)
 
     def _load_activity_summary(self) -> None:
         if not self.item_id:
@@ -511,7 +594,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         if bool(self.material_settings.get('auto_generate_barcode_for_new_material', True)):
             self.generate_barcode(silent=True)
         self.unit_edit.setText(str(self.material_settings.get('default_unit') or tr('unit_piece')))
-        self.add_unit_row(tr('unit_box') if tr('unit_box') != 'unit_box' else 'علبة', 1)
+        # Phase459: sub-units are explicit user decisions; never seed a default box/carton row.
         default_type = normalize_item_type(self.material_settings.get('default_item_type') or STOCK)
         idx = self.type_combo.findData(default_type)
         if idx >= 0:
@@ -521,7 +604,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         self.update_margin_preview()
         self.update_stock_preview()
 
-    def reload_categories(self) -> None:
+    def reload_categories(self, select_id=None) -> None:
         current = self.category_combo.currentData() if hasattr(self, 'category_combo') else None
         self.categories = product_service.categories()
         self.category_combo.blockSignals(True)
@@ -529,8 +612,9 @@ class MaterialDocumentTab(BaseDocumentTab):
         self.category_combo.addItem(tr('no_category'), None)
         for cat in self.categories:
             self.category_combo.addItem(cat.get('full_name') or cat.get('name', ''), cat.get('id'))
-        if current is not None:
-            idx = self.category_combo.findData(current)
+        target = select_id if select_id is not None else current
+        if target is not None:
+            idx = self.category_combo.findData(target)
             if idx >= 0:
                 self.category_combo.setCurrentIndex(idx)
         self.category_combo.blockSignals(False)
@@ -643,7 +727,7 @@ class MaterialDocumentTab(BaseDocumentTab):
         self.qty_spin.setValue(0)
         self.reorder_spin.setValue(0)
         self.units_table.setRowCount(0)
-        self.add_unit_row(tr('unit_box') if tr('unit_box') != 'unit_box' else 'علبة', 1)
+        # Phase459: sub-units are explicit user decisions; never seed a default box/carton row.
         self.generate_barcode(silent=True)
         self.name_edit.setFocus()
         self._load_activity_summary()

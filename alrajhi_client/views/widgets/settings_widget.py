@@ -525,6 +525,7 @@ class SettingsWidget(QWidget):
         self._make_bool_row(form, 'contract_parties_enabled', 'parties/enabled', 'settings_module_parties', True)
         self._make_bool_row(form, 'contract_categories_enabled', 'categories/enabled', 'settings_module_categories', True)
         self._make_bool_row(form, 'contract_branches_enabled', 'branches/enabled', 'settings_module_branches', True)
+        self._make_bool_row(form, 'contract_transactions_enabled', 'transactions/enabled', 'settings_module_transactions', True)
         layout.addWidget(modules_group)
 
         pos_group, pform = self._form_card(translate('settings_pos_contract_title'), translate('settings_pos_contract_help'))
@@ -590,6 +591,7 @@ class SettingsWidget(QWidget):
             'parties/enabled': self.contract_parties_enabled.isChecked(),
             'categories/enabled': self.contract_categories_enabled.isChecked(),
             'branches/enabled': self.contract_branches_enabled.isChecked(),
+            'transactions/enabled': self.contract_transactions_enabled.isChecked(),
             'pos/operations/allow_checkout': self.contract_pos_checkout.isChecked(),
             'pos/operations/allow_suspend': self.contract_pos_suspend.isChecked(),
             'pos/operations/allow_print_receipt': self.contract_pos_print.isChecked(),
@@ -2377,6 +2379,16 @@ class SettingsWidget(QWidget):
         settings.setValue('server/port', port)
         settings.setValue('server/auto_start', new['server/auto_start'])
         settings.sync()
+        if old != new:
+            try:
+                settings_service.clear_cache()
+            except Exception:
+                pass
+            try:
+                from database.connection import DatabaseConnection
+                DatabaseConnection.reset_runtime_connection()
+            except Exception:
+                pass
         audit_service.log('UPDATE', 'SETTINGS_NETWORK', None, old_values=old, new_values=new, details=translate('settings_network_audit_update'))
         QMessageBox.information(self, translate('saved'), translate('settings_network_saved'))
         self.refresh_server_status()

@@ -2,12 +2,13 @@
 from PyQt5.QtWidgets import (QFormLayout, QLineEdit, QDoubleSpinBox, QComboBox, QPushButton,
                              QHBoxLayout, QVBoxLayout, QMessageBox, QTableWidgetItem,
                              QHeaderView, QLabel, QWidget, QSplitter, QGroupBox, QApplication, QDialog,
-                             QShortcut, QFrame, QInputDialog)
+                             QShortcut, QFrame, QDialogButtonBox, QTextEdit)
 from PyQt5.QtCore import Qt
 from i18n import translate, qt_layout_direction
 from PyQt5.QtGui import QKeySequence
 from views.centered_dialog import CenteredDialog
 from core.services.product_service import product_service
+from core.services.category_operation_policy import category_operation_policy
 from core.services.barcode_service import barcode_service, BarcodeError
 from core.item_types import STOCK, FINISHED_PRODUCT, SERVICE, normalize_item_type
 from currency import currency
@@ -16,6 +17,7 @@ from ui.form_validation import FormValidator, make_error_label
 from theme_manager import ThemeManager
 from ui.editable_smart_grid import EditableSmartGrid
 from ui.visual_state import set_visual_state
+from ui.inline_quick_create import InlineQuickCreatePanel
 
 class ItemDialog(CenteredDialog):
     def __init__(self, parent=None, item_id=None):
@@ -120,12 +122,17 @@ class ItemDialog(CenteredDialog):
         category_layout.setContentsMargins(0, 0, 0, 0)
         category_layout.setSpacing(8)
         category_layout.addWidget(self.category_combo, 1)
-        self.add_category_btn = QPushButton('+')
-        self.add_category_btn.setToolTip(translate('add_category') if translate('add_category') != 'add_category' else 'إضافة تصنيف')
-        self.add_category_btn.setFixedWidth(38)
+        self.add_category_btn = QPushButton(translate('material_quick_add_category'))
+        self.add_category_btn.setObjectName('MaterialDialogQuickAddCategoryButton')
+        self.add_category_btn.setToolTip(translate('material_quick_add_category_tooltip'))
         self.add_category_btn.clicked.connect(self.add_category_from_dialog)
         category_layout.addWidget(self.add_category_btn)
         general_form.addRow(translate("category_label"), category_widget)
+
+        self.quick_category_panel = InlineQuickCreatePanel('category', self, context={'categories': self.categories})
+        self.quick_category_panel.setObjectName('MaterialDialogInlineQuickCategoryPanel')
+        self.quick_category_panel.created.connect(self._on_inline_category_created)
+        general_form.addRow('', self.quick_category_panel)
 
         self.type_combo = QComboBox()
         self.type_combo.addItem(translate("stock_item_type"), STOCK)
@@ -390,21 +397,35 @@ class ItemDialog(CenteredDialog):
                 self.category_combo.setCurrentIndex(idx)
         self.category_combo.blockSignals(False)
 
-    def add_category_from_dialog(self):
-        text, ok = QInputDialog.getText(
-            self,
-            translate('add_category') if translate('add_category') != 'add_category' else 'إضافة تصنيف',
-            translate('category_name') if translate('category_name') != 'category_name' else 'اسم التصنيف'
-        )
-        name = str(text or '').strip()
-        if not ok or not name:
-            return
+    def _can_create_category_inline(self) -> bool:
         try:
-            cat_id = product_service.add_category(name)
-            self.refresh_categories(select_id=cat_id)
-            show_toast(translate('category_added') if translate('category_added') != 'category_added' else 'تمت إضافة التصنيف', 'success', self)
-        except Exception as exc:
-            show_toast(translate("category_create_failed", error=str(exc)), "error", self)
+            return bool(category_operation_policy.can(category_operation_policy.OP_CREATE))
+        except Exception:
+            return False
+
+    def _existing_category_for_name(self, name: str, parent_id=None):
+        normalized = str(name or '').strip().casefold()
+        parent_normalized = int(parent_id or 0)
+        for category in self.categories or []:
+            existing_name = str(category.get('name') or '').strip().casefold()
+            existing_parent = int(category.get('parent_id') or 0)
+            if existing_name == normalized and existing_parent == parent_normalized:
+                return category
+        return None
+
+    def add_category_from_dialog(self):
+        """Open the Phase460 inline quick-create panel inside the material form."""
+        if not self._can_create_category_inline():
+            show_toast(translate('material_quick_add_category_denied'), 'error', self)
+            return
+        if hasattr(self, 'quick_category_panel'):
+            self.quick_category_panel.set_context(categories=self.categories)
+            self.quick_category_panel.toggle_panel()
+
+    def _on_inline_category_created(self, entity_type, result):
+        if entity_type != 'category':
+            return
+        self.refresh_categories(select_id=result.get('id'))
 
     def clear_for_new(self):
         if not self.is_edit:

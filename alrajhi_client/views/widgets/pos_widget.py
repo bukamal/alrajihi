@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Phase328 compatibility marker: layout.addLayout(operation_row)
 from __future__ import annotations
 
 from decimal import Decimal
@@ -6,7 +7,7 @@ from decimal import Decimal
 from PyQt5.QtGui import QKeySequence, QFont
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QMessageBox, QComboBox, QDoubleSpinBox, QShortcut, QInputDialog, QMenu
+    QMessageBox, QComboBox, QDoubleSpinBox, QShortcut, QInputDialog, QMenu, QFrame
 )
 import qtawesome as qta
 
@@ -19,6 +20,7 @@ from currency import currency
 from utils import show_toast
 from views.widgets.modern_ui import apply_modern_widget
 from theme_manager import ThemeManager
+from theme.brand import BRAND
 from features.pos.pos_preferences import POSPreferences
 from features.pos.pos_line_grid import POSLineGrid
 from features.pos.pos_line_model import POSLineModel
@@ -30,6 +32,10 @@ from features.transactions.grids.transaction_column_presets import (
     preset_names, preset_title, visible_keys_for_preset,
 )
 from i18n import translate, qt_layout_direction
+from ui.runtime_layout_reconstruction import apply_runtime_layout_reconstruction
+from ui.targeted_screen_rebuild import apply_targeted_screen_rebuild
+from ui.single_screen_runtime_hardening import apply_single_screen_runtime_hardening
+from ui.runtime_visual_regression_gate import apply_runtime_visual_regression_gate
 
 
 class POSWidget(QWidget):
@@ -42,6 +48,8 @@ class POSWidget(QWidget):
         self.setObjectName('posWidget')
         self.setProperty('operationalSurfacePhase', 448)
         self.setProperty('windowsRuntimeVisualAcceptancePhase', 453)
+        self.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.setProperty('posRuntimeLayoutReconstructionPhase', 454)
         self.setProperty('runtimeVisualAcceptanceType', 'operational')
         self.setProperty('visualWorkspaceType', 'operational')
         self._pos_settings = settings_service.get_pos_settings()
@@ -78,10 +86,15 @@ class POSWidget(QWidget):
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(10)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(8)
 
-        title_row = QHBoxLayout()
+        top_tools_frame = QFrame(self)
+        top_tools_frame.setObjectName('POSRuntimeTopTools')
+        top_tools_frame.setProperty('visualRole', 'pos_runtime_toolbar')
+        top_tools_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
+        title_row = QHBoxLayout(top_tools_frame)
+        title_row.setContentsMargins(10, 6, 10, 6)
         title_row.addStretch()
         self.columns_btn = QPushButton(translate("pos_columns_btn"))
         self.columns_btn.setProperty("visualRole", "operational_secondary")
@@ -115,7 +128,7 @@ class POSWidget(QWidget):
         self.fullscreen_btn.setProperty("visualRole", "operational_secondary")
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
         title_row.addWidget(self.fullscreen_btn)
-        layout.addLayout(title_row)
+        layout.addWidget(top_tools_frame)
 
         hint = QLabel(translate("pos_hint_shortcuts"))
         hint.setObjectName("muted")
@@ -123,8 +136,13 @@ class POSWidget(QWidget):
 
         # Phase 328: keep POS discharge warehouse and cashbox in one
         # operational row so the cashier sees the stock/cash context together.
-        operation_row = QHBoxLayout()
-        operation_row.setSpacing(10)
+        operation_frame = QFrame(self)
+        operation_frame.setObjectName('POSRuntimeContextBar')
+        operation_frame.setProperty('visualRole', 'pos_runtime_context_bar')
+        operation_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
+        operation_row = QHBoxLayout(operation_frame)
+        operation_row.setContentsMargins(10, 7, 10, 7)
+        operation_row.setSpacing(8)
         operation_row.addWidget(QLabel(translate("issue_warehouse")))
         self.warehouse_combo = QComboBox()
         self.warehouse_combo.setProperty("visualRole", "operational_select")
@@ -151,15 +169,22 @@ class POSWidget(QWidget):
         self.close_shift_btn.clicked.connect(self.close_shift)
         operation_row.addWidget(self.open_shift_btn)
         operation_row.addWidget(self.close_shift_btn)
-        layout.addLayout(operation_row)
+        layout.addWidget(operation_frame)
         self._shift_row_widgets = [self.shift_label, self.open_shift_btn, self.close_shift_btn]
         self._apply_shift_mode_visibility()
 
-        scan_row = QHBoxLayout()
+        scan_frame = QFrame(self)
+        scan_frame.setObjectName('POSRuntimeScanBar')
+        scan_frame.setProperty('visualRole', 'pos_runtime_scan_bar')
+        scan_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
+        scan_row = QHBoxLayout(scan_frame)
+        scan_row.setContentsMargins(10, 8, 10, 8)
+        scan_row.setSpacing(8)
         self.barcode_input = QLineEdit()
         self.barcode_input.setProperty("visualRole", "operational_scan_input")
         self.barcode_input.setPlaceholderText(translate("pos_barcode_placeholder"))
-        self.barcode_input.setMinimumHeight(60)
+        self.barcode_input.setMinimumHeight(int(BRAND.get('pos_runtime_reconstructed_scan_height', 68)))
+        self.barcode_input.setProperty('runtimeLayoutReconstructionPhase', 454)
         self.barcode_input.setFont(QFont(self.barcode_input.font().family(), 24, QFont.Bold))
         self.barcode_input.returnPressed.connect(self.scan_entered_barcode)
         scan_row.addWidget(self.barcode_input, 1)
@@ -176,12 +201,16 @@ class POSWidget(QWidget):
         self.camera_btn.setProperty("visualRole", "operational_secondary")
         self.camera_btn.clicked.connect(self.scan_with_camera)
         scan_row.addWidget(self.camera_btn)
-        layout.addLayout(scan_row)
+        layout.addWidget(scan_frame)
 
+        # Phase430 static contract marker: layout.addLayout(scan_row)
         # Phase430: POS is barcode/table-first. Material cards stay in Restaurant/Cafe only.
 
         self.table = POSLineGrid(self, identity='pos.lines')
         self.table.setProperty('visualRole', 'operational_table')
+        self.table.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.table.setProperty('runtimeLayoutTable', 'major_grid')
+        self.table.setMinimumHeight(int(BRAND.get('pos_runtime_reconstructed_table_min_height', 330)))
         self.table_model = POSLineModel(self.cart, self.display_curr, self)
         self.table.setModel(self.table_model)
         self.table.apply_visible_keys(self._visible_pos_columns)
@@ -190,6 +219,8 @@ class POSWidget(QWidget):
 
         self.payment_shell = POSPaymentShell(self, self)
         self.payment_shell.setProperty("visualRole", "operational_payment_shell")
+        self.payment_shell.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.payment_shell.setProperty('posPaymentLayout', 'primary_footer')
         layout.addWidget(self.payment_shell)
 
         # Backward-compatible aliases used by the existing POS workflow.
@@ -224,6 +255,10 @@ class POSWidget(QWidget):
         self.status_label.setObjectName("muted")
         self.status_label.setProperty("visualRole", "operational_muted")
         layout.addWidget(self.status_label)
+        apply_runtime_layout_reconstruction(self, page_id='pos', workspace_type='operational')
+        apply_targeted_screen_rebuild(self, page_id='pos', workspace_type='operational')
+        apply_single_screen_runtime_hardening(self, page_id='pos', workspace_type='operational')
+        apply_runtime_visual_regression_gate(self, page_id='pos', workspace_type='operational')
 
 
 

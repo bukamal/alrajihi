@@ -677,7 +677,7 @@ translate_api::settings_print_saved::ar,api,alrajhi_client/i18n/translator.py,OK
 translate_api::settings_print_saved::de,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_saved') returns translated text in de
 translate_api::settings_print_saved::en,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_saved') returns translated text in en
 translate_api::settings_print_saved::fr,api,alrajhi_client/i18n/translator.py,OK,translate('settings_print_saved') returns translated text in fr
-literal_translation_key_usage_scanned,usage,alrajhi_client,OK,literal keys=1652 files=98
+literal_translation_key_usage_scanned,usage,alrajhi_client,OK,literal keys=1660 files=98
 critical_literal_keys_exist_in_catalog,usage,alrajhi_client/i18n/translator.py,OK,critical missing literal keys=0
 release_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase422 doc registered
 release_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase422 test registered

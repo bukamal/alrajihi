@@ -37,7 +37,7 @@ REQUIRED_SHELL_TOKEN_KEYS: Sequence[str] = tuple(spec.key for spec in REQUIRED_S
 
 REQUIRED_SHELL_OBJECT_NAMES: Sequence[str] = (
     "TabbedWorkspace",
-    "MainNavToolButton",
+    "MainNavButton",
     "UnifiedActionBar",
     "ActionBarContext",
     "ActionBarButton_save",
@@ -53,7 +53,7 @@ REQUIRED_SHELL_QSS_MARKERS: Sequence[str] = (
     "QTabBar::tab[tabKind=\"sub\"]",
     "Phase354: branded icon menu and action bar runtime",
     "QWidget#IconMenuBar",
-    "QToolButton#MainNavToolButton",
+    "QPushButton#MainNavButton",
     "QFrame#UnifiedActionBar",
     "QLabel#ActionBarContext",
 )

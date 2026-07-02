@@ -37,5 +37,7 @@ def test_voucher_widget_still_routes_to_workspace_tabs():
     source = (ROOT / 'alrajhi_client/views/widgets/vouchers_widget.py').read_text(encoding='utf-8')
     assert 'main.open_quick_voucher' in source
     main = (ROOT / 'alrajhi_client/views/main_window.py').read_text(encoding='utf-8')
-    assert 'from features.vouchers import VoucherEditorTab' in main
+    # Phase378/458: voucher creation is inline inside VouchersWidget.
+    assert 'from features.vouchers import VoucherEditorTab' in source
     assert 'def open_quick_voucher' in main
+    assert "_open_page_inline_action('vouchers'" in main

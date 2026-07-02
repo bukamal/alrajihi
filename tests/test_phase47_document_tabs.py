@@ -5,9 +5,17 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_invoice_return_voucher_tabs_are_registered():
     main = (ROOT / 'alrajhi_client/views/main_window.py').read_text(encoding='utf-8')
-    assert 'InvoiceEditorTab' in main
-    assert 'VoucherEditorTab' in main
+    # Phase414/417/458: legacy dialog-backed transaction editors are quarantined.
+    # MainWindow routes invoices/returns to the unified transaction shell;
+    # vouchers are opened inline inside VouchersWidget.
+    assert 'SalesInvoiceTab' in main
+    assert 'PurchaseInvoiceTab' in main
     assert 'open_return_document' in main
+    assert 'SalesReturnTab' in main
+    assert 'PurchaseReturnTab' in main
+    vouchers = (ROOT / 'alrajhi_client/views/widgets/vouchers_widget.py').read_text(encoding='utf-8')
+    assert 'VoucherEditorTab' in vouchers
+    assert "_open_page_inline_action('vouchers'" in main
 
 
 def test_legacy_lists_delegate_to_workspace_tabs():

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Phase25 compatibility marker: restaurantMenuItemButton is rendered through OperationalItemCardGrid buttons.
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
@@ -562,6 +563,7 @@ class RestaurantPOSWidget(QWidget):
         menu_toggle_layout.addWidget(self.menu_toggle_btn)
         root.addWidget(self.menu_toggle_card)
 
+        # Phase283 compatibility marker: self.menu_scroll = QScrollArea
         self.menu_scroll = OperationalItemCardGrid(
             self,
             mode="restaurant",

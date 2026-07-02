@@ -33,7 +33,7 @@
   },
   "tool_outputs": {
     "basit_final_acceptance": "Phase409 Basit final acceptance audit OK (67 checks)\nAudit report: tools/audit_outputs/basit_final_acceptance_report.md",
-    "release_readiness": "release checks: 158\nissue groups: 0\nmatrix: /mnt/data/alrajhi_phase425_work/alrajhi_phase424_golden_dataset_runtime_replay_bridge/tools/audit_outputs/release_readiness_gate_matrix.csv\nsummary: /mnt/data/alrajhi_phase425_work/alrajhi_phase424_golden_dataset_runtime_replay_bridge/tools/audit_outputs/release_readiness_gate_summary.json",
+    "release_readiness": "release checks: 167\nissue groups: 0\nmatrix: /mnt/data/phase458_work/alrajhi_phase457_runtime_visual_regression_gate/tools/audit_outputs/release_readiness_gate_matrix.csv\nsummary: /mnt/data/phase458_work/alrajhi_phase457_runtime_visual_regression_gate/tools/audit_outputs/release_readiness_gate_summary.json",
     "release_packaging": "Release packaging guard passed.",
     "hidden_imports": "Release hidden imports guard passed."
   }

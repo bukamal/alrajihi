@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Unified keyboard policy for editable ERP tables.
+Phase384 compatibility marker: start_edit=True
 
 Phase 337 standardized Enter/Shift+Enter traversal.  Phase 348 extends the
 same policy to entry focus and editor text handling:

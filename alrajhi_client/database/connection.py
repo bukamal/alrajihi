@@ -298,6 +298,18 @@ class DatabaseConnection:
             cls._instance._init_mode()
         return cls._instance
 
+    @classmethod
+    def reset_runtime_connection(cls):
+        """Force the next gateway access to re-read network mode/server settings."""
+        inst = cls._instance
+        if inst is not None:
+            try:
+                inst.close()
+            except Exception:
+                pass
+        cls._instance = None
+        cls._local_conn = None
+
     def _init_mode(self):
         settings = QSettings("Alrajhi", "Accounting")
         self.mode = settings.value("network/mode", "local")

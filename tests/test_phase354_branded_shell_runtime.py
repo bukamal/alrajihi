@@ -41,7 +41,7 @@ def test_shell_runtime_files_are_wired_textually():
     files = {
         'alrajhi_client/shell/tab_workspace.py': ['BRANDED_TABS_PHASE = 354', 'compose_tab_label', '_apply_tab_identity', 'setTabData', 'brandedTabs'],
         'alrajhi_client/shell/unified_action_bar.py': ['BRANDED_ACTION_BAR_PHASE = 354', 'shellChromeRole', 'ActionBarButton_save', 'ActionBarButton_print'],
-        'alrajhi_client/views/main_window.py': ['navigation_bar_stylesheet', 'shellChromeRole', 'MainNavToolButton', 'menuLabel'],
+        'alrajhi_client/views/main_window.py': ['navigation_bar_stylesheet', 'shellChromeRole', 'MainNavButton', 'menuLabel'],
         'alrajhi_client/theme/qss.py': ['Phase354: branded workspace tab cards', 'Phase354: branded icon menu and action bar runtime'],
     }
     for rel, markers in files.items():

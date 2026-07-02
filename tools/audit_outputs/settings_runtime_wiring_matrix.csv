@@ -30,7 +30,10 @@ contract_runtime_state,reports.result,10,date;reference;name;description;amount;
 contract_runtime_state,restaurant.kds_lines,4,item;qty;modifiers;notes,item;qty;modifiers;notes,item;qty;modifiers;notes
 contract_runtime_state,restaurant.kds_tickets,6,ticket;table;station;line_count;status;elapsed_minutes,ticket;table;station;line_count;status;elapsed_minutes,ticket;table;station;line_count;status;elapsed_minutes
 contract_runtime_state,restaurant.kitchen_queue,6,ticket;table;station;line_count;status;elapsed_minutes,ticket;table;station;line_count;status;elapsed_minutes,ticket;table;station;line_count;status;elapsed_minutes
+contract_runtime_state,restaurant.menu_categories,6,id;name;code;item_count;status;notes,id;name;code;item_count;status;notes,id;name;code;item_count;status;notes
+contract_runtime_state,restaurant.menu_items,8,id;name;category;barcode;price;station;status;notes,id;name;category;barcode;price;station;status;notes,id;name;category;barcode;price;station;status;notes
 contract_runtime_state,restaurant.order_lines,11,row;item;qty;total,row;item;qty;price;total,row;item;unit;qty;price;total;status
+contract_runtime_state,restaurant.simple_invoice_lines,5,item;quantity;price;total;notes,item;quantity;price;total;notes,item;quantity;price;total;notes
 contract_runtime_state,restaurant.tables,5,table;zone;guests;status;notes,table;zone;guests;status;notes,table;zone;guests;status;notes
 contract_runtime_state,returns.lines,15,row;original_invoice;barcode;item;variant;original_qty;previous_qty;returnable_qty;unit;qty;reason;restock;price;total;notes,row;original_invoice;barcode;item;variant;original_qty;previous_qty;returnable_qty;unit;qty;reason;restock;price;total;notes,row;original_invoice;barcode;item;variant;original_qty;previous_qty;returnable_qty;unit;qty;reason;restock;price;total;notes
 contract_runtime_state,returns.list,9,reference;return_no;original_invoice;customer;return_total;refund;settlement_remaining;date;notes,reference;return_no;original_invoice;customer;return_total;refund;settlement_remaining;date;notes,reference;return_no;original_invoice;customer;return_total;refund;settlement_remaining;date;notes

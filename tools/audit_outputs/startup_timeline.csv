@@ -1,14 +1,10 @@
 ﻿name,elapsed_ms,delta_ms,category,detail
 app_start,0,0,startup,Application entry point reached
-runtime_mode_resolved,1,1,startup,mode=local
-prelogin_splash_created,629,627,startup,Branded pre-login splash created
-database_bootstrap_started,644,15,startup,Preparing database and startup services
-database_bootstrap_finished,1284,640,startup,Database/bootstrap stage finished
-activation_check_started,1302,17,startup,Checking activation/license
-activation_check_finished,1341,39,startup,Activation/license check finished
-login_dialog_open,1357,16,login,Opening LoginDialog
-login_accepted,29088,27731,login,Login accepted; starting post-login transition
-post_login_user_context_ready,29298,209,post_login,User session and password policy resolved
-main_window_create_started,29304,6,post_login,Constructing MainWindow
-main_window_created,30885,1581,post_login,MainWindow constructed
-main_window_shown,32624,1738,post_login,MainWindow shown
+runtime_mode_resolved,8,8,startup,mode=local
+prelogin_splash_created,3529,3521,startup,Branded pre-login splash created
+database_bootstrap_started,3602,72,startup,Preparing database and startup services
+database_bootstrap_finished,4872,1270,startup,Database/bootstrap stage finished
+activation_check_started,4961,88,startup,Checking activation/license
+activation_check_finished,5160,198,startup,Activation/license check finished
+login_dialog_open,5223,62,login,Opening LoginDialog
+login_cancelled,46560,41337,login,LoginDialog rejected by user

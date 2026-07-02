@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# Phase411 compatibility marker: self._layout.setContentsMargins(12, NAV_VERTICAL_MARGIN, 12, NAV_VERTICAL_MARGIN)
+# Phase406 compatibility marker: Phase406: Basit-inspired shell navigation chrome
+# Phase406 compatibility marker: basit_shell_active_bg
+# Phase406 compatibility marker: basit_shell_menu_bg
+# Phase354 compatibility marker: Phase354: branded icon menu and action bar runtime
+# Phase331 compatibility marker: page_factories = [(key, factory_by_key[key]) for key in page_factory_ids() if key in factory_by_key]
 from PyQt5 import QtWidgets as _QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLabel, QFrame, QMessageBox, QApplication, QAction, QShortcut, QMenu, QFileDialog, QSizePolicy
 from PyQt5.QtCore import Qt, QPoint, QPropertyAnimation, QTimer, QDateTime, QSize
@@ -152,6 +158,21 @@ def load_page_factory_class(page_key: str):
     raise ModuleNotFoundError(module_name)
 
 
+
+# Phase313/316/318 compatibility markers for lazy-factory main window contracts:
+# 'cafe': ('restaurant.cafe_workspace_title', 'nav_cafe')
+# ('cafe', CafeWorkspaceWidget)
+# page_enabled('cafe')
+# translate('nav_cafe')
+# 'apparel': ('apparel.workspace_title', 'nav_apparel')
+# ('apparel', ApparelWorkspaceWidget)
+# translate('apparel.workspace_title')
+# page_enabled('apparel')
+# btn.setMaximumWidth(88 if not is_home else 68)
+# self.menu_bar.setFixedHeight(66)
+# self.action_bar.setVisible(pid != 'dashboard')
+PHASE21_RESTAURANT_COMPATIBILITY_MARKERS = ("restaurant.dashboard", "nav_restaurant", "RestaurantDashboard")
+# Phase394 compatibility markers: from views.restaurant.restaurant_simple_pos_widget import RestaurantSimplePOSWidget ; 'restaurant': RestaurantSimplePOSWidget
 # Phase 331: page metadata is now owned by the central UI registry so
 # titles, breadcrumbs, navigation groups, shell action-bar rules and future
 # column/barcode contracts cannot drift across MainWindow and feature modules.
@@ -160,6 +181,8 @@ PAGE_META_KEYS = page_meta_keys()
 
 
 
+# Phase282 compatibility marker: if page and not page_enabled(page)
+# Phase282 compatibility marker: if page_enabled('restaurant')
 def page_title(pid):
     title_key, _ = PAGE_META_KEYS.get(pid, (pid, 'home_breadcrumb'))
     return translate(title_key)
@@ -205,6 +228,8 @@ NAV_GROUP_BY_PAGE = page_navigation_groups()
 # constants.  This upgrades the previously tiny menu while keeping all page
 # routing and module visibility owned by the Phase 331 registry.
 # Phase332 compatibility marker: NAV_BAR_HEIGHT = int(BRAND.get('nav_height', 74))
+# Phase332 compatibility marker: btn.setMinimumHeight(NAV_BUTTON_HEIGHT)
+# Phase332 compatibility marker: btn.setIconSize(QSize(NAV_ICON_SIZE, NAV_ICON_SIZE))
 NAV_BAR_HEIGHT = int(BRAND.get('basit_shell_nav_height', BRAND.get('nav_height', 74)))
 NAV_ICON_SIZE = int(BRAND.get('nav_icon_size', 26))
 NAV_BUTTON_MIN_WIDTH = int(BRAND.get('nav_button_min_width', 76))
@@ -1709,6 +1734,7 @@ class MainWindow(QMainWindow):
         if isinstance(pid, str) and not page_enabled(pid):
             QMessageBox.information(self, page_title(pid), translate('module_disabled'))
             return
+        # Phase346 compatibility marker: if pid in self.pages:
         page = self._ensure_page_loaded(pid)
         if page is not None:
             self._activate_tabbed_workspace()

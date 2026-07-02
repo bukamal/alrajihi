@@ -21,6 +21,6 @@ cli_invokes_all_probes,tool,tools/run_phase416_runtime_acceptance.py,OK,manual C
 release_gate_doc,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase416 doc registered in release gate
 release_gate_test,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase416 test registered in release gate
 release_gate_check,release,alrajhi_client/workspace/quality/release_gate_contract.py,OK,Phase416 release check registered
-scenario_count,output,/mnt/data/alrajhi_phase432_work/alrajhi_phase430_pos_barcode_table_first_layout/tools/audit_outputs/runtime_acceptance_scenario_matrix.csv,OK,scenario rows=12
-pyqt_status_explicit,output,/mnt/data/alrajhi_phase432_work/alrajhi_phase430_pos_barcode_table_first_layout/tools/audit_outputs/runtime_acceptance_scenario_matrix.csv,OK,PyQt runtime availability is reported explicitly
-scenario_output_written,output,/mnt/data/alrajhi_phase432_work/alrajhi_phase430_pos_barcode_table_first_layout/tools/audit_outputs/runtime_acceptance_scenario_matrix.csv,OK,scenario matrix output is written
+scenario_count,output,/mnt/data/phase458_work/alrajhi_phase457_runtime_visual_regression_gate/tools/audit_outputs/runtime_acceptance_scenario_matrix.csv,OK,scenario rows=12
+pyqt_status_explicit,output,/mnt/data/phase458_work/alrajhi_phase457_runtime_visual_regression_gate/tools/audit_outputs/runtime_acceptance_scenario_matrix.csv,OK,PyQt runtime availability is reported explicitly
+scenario_output_written,output,/mnt/data/phase458_work/alrajhi_phase457_runtime_visual_regression_gate/tools/audit_outputs/runtime_acceptance_scenario_matrix.csv,OK,scenario matrix output is written

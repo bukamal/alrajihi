@@ -14,9 +14,16 @@ def test_master_detail_shell_exists():
 def test_customers_suppliers_use_master_detail():
     for rel in ['alrajhi_client/views/widgets/customers_widget.py', 'alrajhi_client/views/widgets/suppliers_widget.py']:
         text = (ROOT / rel).read_text(encoding='utf-8')
-        assert 'ResponsiveMasterDetail' in text
-        assert 'DetailPlaceholder' in text
+        # Phase376/458: the concrete list widgets install the shared
+        # master-detail shell through PartyInlineEditorHostMixin.
+        assert 'PartyInlineEditorHostMixin' in text
+        assert '_install_party_inline_host' in text
         assert '_update_detail_preview' in text
+    host = (ROOT / 'alrajhi_client/views/widgets/party_inline_editor_host.py').read_text(encoding='utf-8')
+    shared = (ROOT / 'alrajhi_client/views/widgets/unified_inline_workspace.py').read_text(encoding='utf-8')
+    assert 'UnifiedInlineWorkspaceMixin' in host
+    assert 'ResponsiveMasterDetail' in shared
+    assert 'DetailPlaceholder' in shared
 
 
 def test_item_editor_is_responsive_splitter():

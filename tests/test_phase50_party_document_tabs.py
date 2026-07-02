@@ -17,7 +17,11 @@ def test_party_document_tab_exists_and_uses_services():
 def test_main_window_routes_customer_supplier_to_document_tabs():
     source = (ROOT / 'alrajhi_client/views/main_window.py').read_text(encoding='utf-8')
     assert 'def open_party_document' in source
-    assert 'from features.parties import PartyEditorTab' in source
+    # Phase378/458: parties open through the unified inline editor host,
+    # not by eager PartyEditorTab imports in MainWindow.
+    host = (ROOT / 'alrajhi_client/views/widgets/party_inline_editor_host.py').read_text(encoding='utf-8')
+    assert 'from features.parties import PartyEditorTab' in host
+    assert "_open_page_inline_action(page_id, method_name" in source
     assert "open_party_document('customer')" in source
     assert "open_party_document('supplier')" in source
 

@@ -23,8 +23,10 @@ def test_invoice_dialog_supports_embedded_workspace_document_mode():
 def test_main_window_opens_quick_invoices_as_document_tabs():
     source = _read("alrajhi_client/views/main_window.py")
     ast.parse(source)
-    assert "from features.invoices import InvoiceEditorTab" in source
-    assert "widget = InvoiceEditorTab(self, inv_type=inv_type, invoice_id=invoice_id)" in source
+    assert "from features.transactions.documents.purchase_invoice_tab import PurchaseInvoiceTab" in source
+    assert "from features.transactions.documents.sales_invoice_tab import SalesInvoiceTab" in source
+    assert "widget = PurchaseInvoiceTab(self, invoice_id=invoice_id)" in source
+    assert "widget = SalesInvoiceTab(self, invoice_id=invoice_id)" in source
     assert "self._open_document_tab(tab_id" in source
     assert "singleton=False" in source
     assert "save_current_tab" in source

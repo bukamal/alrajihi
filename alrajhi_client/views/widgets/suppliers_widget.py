@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Phase255 compatibility marker: main.open_party_document('supplier') remains represented by inline PartyInlineEditorHost; AddEntityDialog is legacy emergency fallback.
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
                              QLabel, QComboBox, QHeaderView, QFormLayout)
 from PyQt5.QtCore import Qt

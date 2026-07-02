@@ -80,6 +80,7 @@ SETTINGS_SCOPE_DESCRIPTORS: tuple[SettingsScopeDescriptor, ...] = (
         ui_sections=("transactions", "accounting", "inventory", "printing", "ui"),
         operation_key_prefixes=("transactions/operations",),
         keys=(
+            _key("transactions/enabled", VALUE_BOOL, "true"),
             _key("invoice/sales_prefix", default="SAL-"),
             _key("invoice/purchase_prefix", default="PUR-"),
             _key("invoice/number_format", default="{PREFIX}{00000}"),

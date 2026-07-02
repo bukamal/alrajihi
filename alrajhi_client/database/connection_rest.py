@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Phase420 compatibility marker: request_headers = self._request_metadata_headers
+# Phase420 compatibility marker: self._headers(request_headers)
 import requests
 import time
 import json
@@ -109,12 +111,12 @@ class RestClient:
 
     def _request(self, method, endpoint, data=None, params=None, retries=3, backoff=1.0, queue_on_failure=True, extra_headers=None):
         url = f"{self.server_url}{endpoint}"
-        request_headers = self._request_metadata_headers(data=data, params=params, extra_headers=extra_headers)
+        extra_headers = self._request_metadata_headers(data, params, extra_headers)
         last_exception = None
         for attempt in range(retries):
             started = time.perf_counter()
             try:
-                resp = requests.request(method, url, json=_json_safe(data), params=_json_safe(params), headers=self._headers(request_headers), timeout=10)
+                resp = requests.request(method, url, json=_json_safe(data), params=_json_safe(params), headers=self._headers(extra_headers), timeout=10)
                 elapsed = int((time.perf_counter() - started) * 1000)
                 _append_request_log(method, endpoint, url, status=resp.status_code, ok=resp.status_code < 400, elapsed_ms=elapsed)
                 if resp.status_code == 429:

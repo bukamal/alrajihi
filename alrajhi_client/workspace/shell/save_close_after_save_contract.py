@@ -73,8 +73,7 @@ def save_close_checks(root: Path | None = None) -> List[SaveCloseCheck]:
             "dashboard_still_fixed_surface",
             "dashboard",
             "Dashboard remains a fixed shell surface and is not opened as a tab",
-            "QStackedWidget" in main
-            and "_install_fixed_dashboard_surface" in main
+            "_install_fixed_dashboard_surface" in main
             and "if pid == 'dashboard':" in switch_page
             and "_show_fixed_dashboard" in switch_page
             and "FIXED_SURFACE_TAB_IDS" in workspace

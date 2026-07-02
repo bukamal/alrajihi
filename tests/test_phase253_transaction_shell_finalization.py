@@ -86,11 +86,10 @@ def test_main_window_uses_unified_transaction_shell_before_legacy_fallback():
     assert "PurchaseInvoiceTab" in source
     assert "SalesReturnTab" in source
     assert "PurchaseReturnTab" in source
-    assert "allow_legacy_transaction_documents" in source
     assert "Unified transaction document shell unavailable" in source
-    invoice_gate = source.index("allow_legacy_transaction_documents")
-    invoice_legacy = source.index("from features.invoices import InvoiceEditorTab")
-    assert invoice_gate < invoice_legacy
+    assert "Legacy invoice dialog is disabled by Phase414 and quarantined by Phase417" in source
+    assert "from features.invoices import InvoiceEditorTab" not in source
+    assert "from features.invoices.invoice_editor_tab import" not in source
 
 
 def test_legacy_transaction_adapters_are_marked_and_not_official_shells():
@@ -104,6 +103,8 @@ def test_legacy_transaction_adapters_are_marked_and_not_official_shells():
 
 def test_legacy_transaction_fallback_is_explicitly_off_by_default():
     source = (ROOT / "alrajhi_client/features/transactions/feature_flags.py").read_text(encoding="utf-8")
-    assert "features/allow_legacy_transaction_documents" in source
-    assert "ALRAJHI_ALLOW_LEGACY_TRANSACTION_DOCUMENTS" in source
-    assert "return _bool_setting(\"features/allow_legacy_transaction_documents\", False)" in source
+    assert "LEGACY_TRANSACTION_DOCUMENTS_DISABLED = True" in source
+    assert "def allow_legacy_transaction_documents" in source
+    assert "return False" in source
+    assert "features/allow_legacy_transaction_documents" not in source
+    assert "ALRAJHI_ALLOW_LEGACY_TRANSACTION_DOCUMENTS" not in source

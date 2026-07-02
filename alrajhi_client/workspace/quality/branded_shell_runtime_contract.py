@@ -57,7 +57,7 @@ REQUIRED_RUNTIME_MARKERS = {
     "alrajhi_client/views/main_window.py": (
         "navigation_bar_stylesheet",
         "shellChromeRole",
-        "MainNavToolButton",
+        "MainNavButton",
         "menuLabel",
         "Phase354: branded icon menu and action bar runtime",
     ),

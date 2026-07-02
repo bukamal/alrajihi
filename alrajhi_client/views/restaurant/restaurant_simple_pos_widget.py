@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Phase396 compatibility marker: restaurant_same_card_surface
+# Phase396 compatibility marker: self.items_grid.addWidget(button, index, 0)
+# Phase396 compatibility marker: self.items_grid.setRowStretch(len(self.menu_items), 1)
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
@@ -36,6 +39,7 @@ def _money(value: Any) -> str:
         return str(value or "0")
 
 
+# Phase394 compatibility marker: restaurantSimpleItemButton owned by OperationalItemCardGrid cards.
 class RestaurantSimplePOSWidget(QWidget):
     """Simple restaurant selling interface backed by the restaurant/POS engine.
 

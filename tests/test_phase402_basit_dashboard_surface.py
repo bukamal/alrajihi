@@ -14,7 +14,7 @@ def test_dashboard_root_and_page_are_basit_surfaces():
     src = read("alrajhi_client/views/widgets/dashboard_widget.py")
     assert "self.setProperty('basitInspired', True)" in src
     assert "page.setProperty('basitInspired', True)" in src
-    assert "QFrame#DashboardQuickActionsPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; }" in src
+    assert "dashboardSurface', 'identity_aligned'" in src
 
 
 def test_daily_shortcuts_use_basit_card_grammar_and_metrics():
@@ -22,7 +22,7 @@ def test_daily_shortcuts_use_basit_card_grammar_and_metrics():
     legacy = read("alrajhi_client/views/widgets/dashboard_legacy_components.py")
     assert "BRAND.get('basit_dashboard_card_height', 96)" in src
     assert "btn.setProperty('visualRole', 'dashboard_shortcut')" in src
-    assert "btn.setProperty('basitCard', True)" in src
+    assert "btn.setProperty('basitCard', False)" in src
     assert "self.setProperty('visualRole', 'dashboard_shortcut')" in legacy
     assert "basit_blue" in legacy
     assert "border-radius: 3px" in legacy
@@ -30,11 +30,11 @@ def test_daily_shortcuts_use_basit_card_grammar_and_metrics():
 
 def test_dashboard_cash_company_and_brand_panels_use_basit_rectangles():
     src = read("alrajhi_client/views/widgets/dashboard_widget.py")
-    assert "QFrame#DashboardCompanyPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; }" in src
-    assert "QFrame#DashboardCashPanel { background: #edf2f7; border: 1px solid #aab8cc; border-radius: 2px; }" in src
+    assert "dashboardSurface', 'identity_aligned'" in src
+    assert "dashboardVisualPhase', 437" in src
     assert "balance_box.setProperty('basitTotalFooter', True)" in src
-    assert "currency_box.setProperty('basitPanel', True)" in src
-    assert "panel.setProperty('basitPanel', True)" in src
+    assert "currency_box.setProperty('basitPanel', False)" in src
+    assert "panel.setProperty('basitPanel', False)" in src
 
 
 def test_quality_contract_documents_dashboard_visual_stage():

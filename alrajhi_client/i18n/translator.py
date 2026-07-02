@@ -8661,3 +8661,361 @@ def load_translations():
         _phase422_load_in_progress = False
 
 _phase422_apply_i18n_rtl_quality_keys()
+
+
+# Phase 458: reconcile newly registered navigation/barcode/settings keys across all supported languages.
+def _phase458_apply_contract_reconciliation_keys() -> None:
+    payload = {
+        'ar': {
+            'add_category': 'إضافة تصنيف',
+            'add_user_new': 'إضافة مستخدم جديد',
+            'new_branch': 'فرع جديد',
+            'nav_restaurant': 'المطعم',
+            'nav_cafe': 'الكافي',
+            'nav_apparel': 'الألبسة',
+            'barcode_labels': 'لصاقات الباركود',
+            'restaurant.barcode_menu_items': 'باركود أصناف المنيو',
+            'restaurant.barcode_table_labels': 'باركود/QR الطاولات',
+            'restaurant.cafe_workspace_title': 'واجهة الكافي',
+            'cafe.barcode_products': 'باركود منتجات الكافي',
+            'cafe.barcode_modifier_labels': 'باركود الإضافات',
+            'apparel.workspace_title': 'واجهة الألبسة',
+            'apparel.barcode_variant_labels': 'باركود مقاسات وألوان الألبسة',
+            'settings_module_transactions': 'المعاملات والفواتير والمرتجعات',
+            'settings.transactions': 'المعاملات',
+        },
+        'de': {
+            'add_category': 'Kategorie hinzufügen',
+            'add_user_new': 'Neuen Benutzer hinzufügen',
+            'new_branch': 'Neue Filiale',
+            'nav_restaurant': 'Restaurant',
+            'nav_cafe': 'Café',
+            'nav_apparel': 'Bekleidung',
+            'barcode_labels': 'Barcode-Etiketten',
+            'restaurant.barcode_menu_items': 'Menüartikel-Barcodes',
+            'restaurant.barcode_table_labels': 'Tisch-Barcodes/QR',
+            'restaurant.cafe_workspace_title': 'Café-Arbeitsbereich',
+            'cafe.barcode_products': 'Café-Produktbarcodes',
+            'cafe.barcode_modifier_labels': 'Zusatz-Barcodes',
+            'apparel.workspace_title': 'Bekleidungs-Arbeitsbereich',
+            'apparel.barcode_variant_labels': 'Bekleidungsvarianten-Barcodes',
+            'settings_module_transactions': 'Transaktionen, Rechnungen und Retouren',
+            'settings.transactions': 'Transaktionen',
+        },
+        'en': {
+            'add_category': 'Add category',
+            'add_user_new': 'Add new user',
+            'new_branch': 'New branch',
+            'nav_restaurant': 'Restaurant',
+            'nav_cafe': 'Cafe',
+            'nav_apparel': 'Apparel',
+            'barcode_labels': 'Barcode labels',
+            'restaurant.barcode_menu_items': 'Menu item barcodes',
+            'restaurant.barcode_table_labels': 'Table barcode/QR labels',
+            'restaurant.cafe_workspace_title': 'Cafe workspace',
+            'cafe.barcode_products': 'Cafe product barcodes',
+            'cafe.barcode_modifier_labels': 'Modifier barcodes',
+            'apparel.workspace_title': 'Apparel workspace',
+            'apparel.barcode_variant_labels': 'Apparel variant barcodes',
+            'settings_module_transactions': 'Transactions, invoices and returns',
+            'settings.transactions': 'Transactions',
+        },
+        'fr': {
+            'add_category': 'Ajouter une catégorie',
+            'add_user_new': 'Ajouter un nouvel utilisateur',
+            'new_branch': 'Nouvelle succursale',
+            'nav_restaurant': 'Restaurant',
+            'nav_cafe': 'Café',
+            'nav_apparel': 'Vêtements',
+            'barcode_labels': 'Étiquettes de codes-barres',
+            'restaurant.barcode_menu_items': 'Codes-barres des articles du menu',
+            'restaurant.barcode_table_labels': 'Codes-barres/QR des tables',
+            'restaurant.cafe_workspace_title': 'Espace café',
+            'cafe.barcode_products': 'Codes-barres des produits café',
+            'cafe.barcode_modifier_labels': 'Codes-barres des suppléments',
+            'apparel.workspace_title': 'Espace vêtements',
+            'apparel.barcode_variant_labels': 'Codes-barres des variantes de vêtements',
+            'settings_module_transactions': 'Transactions, factures et retours',
+            'settings.transactions': 'Transactions',
+        },
+    }
+    for lang, values in payload.items():
+        _translations.setdefault(lang, {}).update(values)
+
+if '_PHASE458_BASE_LOAD_TRANSLATIONS' not in globals():
+    _PHASE458_BASE_LOAD_TRANSLATIONS = load_translations
+_phase458_load_in_progress = False
+
+def load_translations():
+    global _phase458_load_in_progress
+    if _phase458_load_in_progress:
+        return
+    _phase458_load_in_progress = True
+    try:
+        _PHASE458_BASE_LOAD_TRANSLATIONS()
+        _phase458_apply_contract_reconciliation_keys()
+    finally:
+        _phase458_load_in_progress = False
+
+_phase458_apply_contract_reconciliation_keys()
+
+# Phase 459: material creation UX keys.
+def _phase459_apply_material_creation_ux_keys() -> None:
+    payload = {
+        'ar': {
+            'material_quick_add_category': '+ تصنيف',
+            'material_quick_add_category_tooltip': 'إضافة تصنيف جديد من نفس واجهة المادة',
+            'material_quick_add_category_denied': 'لا تملك صلاحية إضافة تصنيف',
+            'material_quick_category_title': 'إضافة تصنيف سريع',
+            'material_quick_category_subtitle': 'أنشئ التصنيف ثم اختره تلقائيًا دون مغادرة واجهة المادة.',
+            'material_category_already_exists_selected': 'التصنيف موجود مسبقًا وتم اختياره',
+            'material_no_default_subunit_contract': 'الوحدات الفرعية لا تُضاف افتراضيًا؛ أضفها يدويًا عند الحاجة.',
+        },
+        'de': {
+            'material_quick_add_category': '+ Kategorie',
+            'material_quick_add_category_tooltip': 'Neue Kategorie direkt aus dem Materialformular anlegen',
+            'material_quick_add_category_denied': 'Keine Berechtigung zum Anlegen von Kategorien',
+            'material_quick_category_title': 'Schnellkategorie anlegen',
+            'material_quick_category_subtitle': 'Kategorie erstellen und automatisch auswählen, ohne das Materialformular zu verlassen.',
+            'material_category_already_exists_selected': 'Kategorie existiert bereits und wurde ausgewählt',
+            'material_no_default_subunit_contract': 'Untereinheiten werden nicht automatisch angelegt; fügen Sie sie bei Bedarf manuell hinzu.',
+        },
+        'en': {
+            'material_quick_add_category': '+ Category',
+            'material_quick_add_category_tooltip': 'Create a category from the same material form',
+            'material_quick_add_category_denied': 'You do not have permission to create categories',
+            'material_quick_category_title': 'Quick category creation',
+            'material_quick_category_subtitle': 'Create the category and select it automatically without leaving the material form.',
+            'material_category_already_exists_selected': 'The category already exists and was selected',
+            'material_no_default_subunit_contract': 'Sub-units are not added by default; add them manually when needed.',
+        },
+        'fr': {
+            'material_quick_add_category': '+ Catégorie',
+            'material_quick_add_category_tooltip': 'Créer une catégorie depuis le même formulaire de matière',
+            'material_quick_add_category_denied': 'Vous n’avez pas l’autorisation de créer des catégories',
+            'material_quick_category_title': 'Création rapide de catégorie',
+            'material_quick_category_subtitle': 'Créez la catégorie et sélectionnez-la automatiquement sans quitter la fiche matière.',
+            'material_category_already_exists_selected': 'La catégorie existe déjà et a été sélectionnée',
+            'material_no_default_subunit_contract': 'Les sous-unités ne sont pas ajoutées par défaut ; ajoutez-les manuellement si nécessaire.',
+        },
+    }
+    for lang, values in payload.items():
+        _translations.setdefault(lang, {}).update(values)
+
+if '_PHASE459_BASE_LOAD_TRANSLATIONS' not in globals():
+    _PHASE459_BASE_LOAD_TRANSLATIONS = load_translations
+_phase459_load_in_progress = False
+
+def load_translations():
+    global _phase459_load_in_progress
+    if _phase459_load_in_progress:
+        return
+    _phase459_load_in_progress = True
+    try:
+        _PHASE459_BASE_LOAD_TRANSLATIONS()
+        _phase459_apply_material_creation_ux_keys()
+    finally:
+        _phase459_load_in_progress = False
+
+_phase459_apply_material_creation_ux_keys()
+
+# Phase 460: unified inline quick-create keys.
+def _phase460_apply_inline_quick_create_keys() -> None:
+    payload = {
+        'ar': {
+            'inline_quick_create_save_select': 'حفظ واختيار',
+            'inline_quick_create_permission_denied': 'لا تملك صلاحية الإضافة السريعة',
+            'inline_quick_create_required': 'الحقل مطلوب: {field}',
+            'inline_quick_create_failed': 'فشلت الإضافة السريعة: {error}',
+            'inline_quick_create_saved_selected': 'تم الحفظ والاختيار',
+            'inline_quick_create_existing_selected': 'السجل موجود وتم اختياره',
+            'inline_quick_create_party_tooltip': 'إضافة سريعة من نفس الفاتورة دون فتح تبويب جديد',
+            'inline_quick_create_item_tooltip': 'إضافة مادة سريعة من نفس الفاتورة',
+            'inline_quick_create_category_title': 'إضافة تصنيف سريع',
+            'inline_quick_create_category_subtitle': 'أضف التصنيف داخل نفس الواجهة، ثم اختره تلقائيًا.',
+            'inline_quick_create_unit_title': 'إضافة وحدة سريعة',
+            'inline_quick_create_unit_subtitle': 'أضف وحدة تحويل اختيارية دون مغادرة المادة.',
+            'inline_quick_create_customer_title': 'إضافة عميل سريع',
+            'inline_quick_create_customer_subtitle': 'أنشئ العميل من داخل الفاتورة ثم اختره تلقائيًا.',
+            'inline_quick_create_supplier_title': 'إضافة مورد سريع',
+            'inline_quick_create_supplier_subtitle': 'أنشئ المورد من داخل فاتورة الشراء ثم اختره تلقائيًا.',
+            'inline_quick_create_item_title': 'إضافة مادة سريعة',
+            'inline_quick_create_item_subtitle': 'أضف البيانات الأساسية فقط، ثم أكمل الفاتورة مباشرة.',
+            'customer_name': 'اسم العميل',
+            'supplier_name': 'اسم المورد',
+            'phone': 'الهاتف',
+            'address': 'العنوان',
+            'unit_name': 'اسم الوحدة',
+            'conversion_factor': 'معامل التحويل',
+        },
+        'de': {
+            'inline_quick_create_save_select': 'Speichern und auswählen',
+            'inline_quick_create_permission_denied': 'Keine Berechtigung für Schnellerfassung',
+            'inline_quick_create_required': 'Pflichtfeld: {field}',
+            'inline_quick_create_failed': 'Schnellerfassung fehlgeschlagen: {error}',
+            'inline_quick_create_saved_selected': 'Gespeichert und ausgewählt',
+            'inline_quick_create_existing_selected': 'Datensatz existiert bereits und wurde ausgewählt',
+            'inline_quick_create_party_tooltip': 'Direkt im Beleg anlegen, ohne neuen Tab zu öffnen',
+            'inline_quick_create_item_tooltip': 'Material direkt im Beleg schnell anlegen',
+            'inline_quick_create_category_title': 'Kategorie schnell anlegen',
+            'inline_quick_create_category_subtitle': 'Kategorie inline erstellen und automatisch auswählen.',
+            'inline_quick_create_unit_title': 'Einheit schnell anlegen',
+            'inline_quick_create_unit_subtitle': 'Optionale Umrechnungseinheit ohne Verlassen des Materials anlegen.',
+            'inline_quick_create_customer_title': 'Kunde schnell anlegen',
+            'inline_quick_create_customer_subtitle': 'Kunden im Beleg erstellen und automatisch auswählen.',
+            'inline_quick_create_supplier_title': 'Lieferant schnell anlegen',
+            'inline_quick_create_supplier_subtitle': 'Lieferanten im Einkaufsbeleg erstellen und automatisch auswählen.',
+            'inline_quick_create_item_title': 'Material schnell anlegen',
+            'inline_quick_create_item_subtitle': 'Nur Basisdaten erfassen und direkt im Beleg weiterarbeiten.',
+            'customer_name': 'Kundenname',
+            'supplier_name': 'Lieferantenname',
+            'phone': 'Telefon',
+            'address': 'Adresse',
+            'unit_name': 'Einheitsname',
+            'conversion_factor': 'Umrechnungsfaktor',
+        },
+        'en': {
+            'inline_quick_create_save_select': 'Save and select',
+            'inline_quick_create_permission_denied': 'You do not have permission to quick-create this record',
+            'inline_quick_create_required': 'Required field: {field}',
+            'inline_quick_create_failed': 'Quick create failed: {error}',
+            'inline_quick_create_saved_selected': 'Saved and selected',
+            'inline_quick_create_existing_selected': 'Existing record selected',
+            'inline_quick_create_party_tooltip': 'Create inline from this document without opening a new tab',
+            'inline_quick_create_item_tooltip': 'Quick-create an item from this document',
+            'inline_quick_create_category_title': 'Quick category creation',
+            'inline_quick_create_category_subtitle': 'Create the category inline and select it automatically.',
+            'inline_quick_create_unit_title': 'Quick unit creation',
+            'inline_quick_create_unit_subtitle': 'Add an optional conversion unit without leaving the material.',
+            'inline_quick_create_customer_title': 'Quick customer creation',
+            'inline_quick_create_customer_subtitle': 'Create the customer inside the invoice and select it automatically.',
+            'inline_quick_create_supplier_title': 'Quick supplier creation',
+            'inline_quick_create_supplier_subtitle': 'Create the supplier inside the purchase invoice and select it automatically.',
+            'inline_quick_create_item_title': 'Quick item creation',
+            'inline_quick_create_item_subtitle': 'Enter only the essential data and continue the invoice immediately.',
+            'customer_name': 'Customer name',
+            'supplier_name': 'Supplier name',
+            'phone': 'Phone',
+            'address': 'Address',
+            'unit_name': 'Unit name',
+            'conversion_factor': 'Conversion factor',
+        },
+        'fr': {
+            'inline_quick_create_save_select': 'Enregistrer et sélectionner',
+            'inline_quick_create_permission_denied': 'Vous n’avez pas l’autorisation de créer rapidement cet enregistrement',
+            'inline_quick_create_required': 'Champ obligatoire : {field}',
+            'inline_quick_create_failed': 'Échec de la création rapide : {error}',
+            'inline_quick_create_saved_selected': 'Enregistré et sélectionné',
+            'inline_quick_create_existing_selected': 'Enregistrement existant sélectionné',
+            'inline_quick_create_party_tooltip': 'Créer dans ce document sans ouvrir un nouvel onglet',
+            'inline_quick_create_item_tooltip': 'Créer rapidement une matière depuis ce document',
+            'inline_quick_create_category_title': 'Création rapide de catégorie',
+            'inline_quick_create_category_subtitle': 'Créez la catégorie en ligne et sélectionnez-la automatiquement.',
+            'inline_quick_create_unit_title': 'Création rapide d’unité',
+            'inline_quick_create_unit_subtitle': 'Ajoutez une unité de conversion optionnelle sans quitter la matière.',
+            'inline_quick_create_customer_title': 'Création rapide de client',
+            'inline_quick_create_customer_subtitle': 'Créez le client dans la facture et sélectionnez-le automatiquement.',
+            'inline_quick_create_supplier_title': 'Création rapide de fournisseur',
+            'inline_quick_create_supplier_subtitle': 'Créez le fournisseur dans la facture d’achat et sélectionnez-le automatiquement.',
+            'inline_quick_create_item_title': 'Création rapide de matière',
+            'inline_quick_create_item_subtitle': 'Saisissez les données essentielles puis continuez la facture.',
+            'customer_name': 'Nom du client',
+            'supplier_name': 'Nom du fournisseur',
+            'phone': 'Téléphone',
+            'address': 'Adresse',
+            'unit_name': 'Nom de l’unité',
+            'conversion_factor': 'Facteur de conversion',
+        },
+    }
+    for lang, values in payload.items():
+        _translations.setdefault(lang, {}).update(values)
+
+if '_PHASE460_BASE_LOAD_TRANSLATIONS' not in globals():
+    _PHASE460_BASE_LOAD_TRANSLATIONS = load_translations
+_phase460_load_in_progress = False
+
+def load_translations():
+    global _phase460_load_in_progress
+    if _phase460_load_in_progress:
+        return
+    _phase460_load_in_progress = True
+    try:
+        _PHASE460_BASE_LOAD_TRANSLATIONS()
+        _phase460_apply_inline_quick_create_keys()
+    finally:
+        _phase460_load_in_progress = False
+
+_phase460_apply_inline_quick_create_keys()
+
+
+# Phase 461: inline quick-create coverage for vouchers and payment targets.
+def _phase461_apply_inline_quick_create_payment_keys() -> None:
+    payload = {
+        'ar': {
+            'inline_quick_create_customer_tooltip': 'إضافة عميل سريع من نفس السند دون فتح تبويب جديد',
+            'inline_quick_create_supplier_tooltip': 'إضافة مورد سريع من نفس السند دون فتح تبويب جديد',
+            'inline_quick_create_cashbox_tooltip': 'إضافة صندوق سريع من نفس السند أو المصروف',
+            'inline_quick_create_bank_account_tooltip': 'إضافة حساب بنكي سريع من نفس السند أو المصروف',
+            'inline_quick_create_cashbox_title': 'إضافة صندوق سريع',
+            'inline_quick_create_cashbox_subtitle': 'أنشئ الصندوق داخل نفس مستند الدفع ثم اختره تلقائيًا.',
+            'inline_quick_create_bank_account_title': 'إضافة حساب بنكي سريع',
+            'inline_quick_create_bank_account_subtitle': 'أنشئ الحساب البنكي داخل نفس مستند الدفع ثم اختره تلقائيًا.',
+            'cashbox_name': 'اسم الصندوق',
+            'cashbox_name_placeholder': 'مثال: صندوق الفرع الرئيسي',
+        },
+        'de': {
+            'inline_quick_create_customer_tooltip': 'Kunden direkt im Beleg anlegen, ohne neuen Tab zu öffnen',
+            'inline_quick_create_supplier_tooltip': 'Lieferanten direkt im Beleg anlegen, ohne neuen Tab zu öffnen',
+            'inline_quick_create_cashbox_tooltip': 'Kasse direkt im Beleg/Ausgabenbeleg anlegen',
+            'inline_quick_create_bank_account_tooltip': 'Bankkonto direkt im Beleg/Ausgabenbeleg anlegen',
+            'inline_quick_create_cashbox_title': 'Kasse schnell anlegen',
+            'inline_quick_create_cashbox_subtitle': 'Kasse inline im Zahlungsbeleg erstellen und automatisch auswählen.',
+            'inline_quick_create_bank_account_title': 'Bankkonto schnell anlegen',
+            'inline_quick_create_bank_account_subtitle': 'Bankkonto inline im Zahlungsbeleg erstellen und automatisch auswählen.',
+            'cashbox_name': 'Kassenname',
+            'cashbox_name_placeholder': 'z. B. Hauptfilialkasse',
+        },
+        'en': {
+            'inline_quick_create_customer_tooltip': 'Create a customer inline from this voucher without opening a new tab',
+            'inline_quick_create_supplier_tooltip': 'Create a supplier inline from this voucher without opening a new tab',
+            'inline_quick_create_cashbox_tooltip': 'Create a cashbox inline from this voucher or expense',
+            'inline_quick_create_bank_account_tooltip': 'Create a bank account inline from this voucher or expense',
+            'inline_quick_create_cashbox_title': 'Quick cashbox creation',
+            'inline_quick_create_cashbox_subtitle': 'Create the cashbox inside the payment document and select it automatically.',
+            'inline_quick_create_bank_account_title': 'Quick bank-account creation',
+            'inline_quick_create_bank_account_subtitle': 'Create the bank account inside the payment document and select it automatically.',
+            'cashbox_name': 'Cashbox name',
+            'cashbox_name_placeholder': 'Example: Main branch cashbox',
+        },
+        'fr': {
+            'inline_quick_create_customer_tooltip': 'Créer un client dans ce bon sans ouvrir un nouvel onglet',
+            'inline_quick_create_supplier_tooltip': 'Créer un fournisseur dans ce bon sans ouvrir un nouvel onglet',
+            'inline_quick_create_cashbox_tooltip': 'Créer une caisse dans ce bon ou cette dépense',
+            'inline_quick_create_bank_account_tooltip': 'Créer un compte bancaire dans ce bon ou cette dépense',
+            'inline_quick_create_cashbox_title': 'Création rapide de caisse',
+            'inline_quick_create_cashbox_subtitle': 'Créez la caisse dans le document de paiement et sélectionnez-la automatiquement.',
+            'inline_quick_create_bank_account_title': 'Création rapide de compte bancaire',
+            'inline_quick_create_bank_account_subtitle': 'Créez le compte bancaire dans le document de paiement et sélectionnez-le automatiquement.',
+            'cashbox_name': 'Nom de la caisse',
+            'cashbox_name_placeholder': 'Exemple : caisse de la succursale principale',
+        },
+    }
+    for lang, values in payload.items():
+        _translations.setdefault(lang, {}).update(values)
+
+if '_PHASE461_BASE_LOAD_TRANSLATIONS' not in globals():
+    _PHASE461_BASE_LOAD_TRANSLATIONS = load_translations
+_phase461_load_in_progress = False
+
+def load_translations():
+    global _phase461_load_in_progress
+    if _phase461_load_in_progress:
+        return
+    _phase461_load_in_progress = True
+    try:
+        _PHASE461_BASE_LOAD_TRANSLATIONS()
+        _phase461_apply_inline_quick_create_payment_keys()
+    finally:
+        _phase461_load_in_progress = False
+
+_phase461_apply_inline_quick_create_payment_keys()

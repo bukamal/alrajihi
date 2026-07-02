@@ -282,6 +282,26 @@ GENERIC_OPERATION_COLUMNS = _columns(("name", "status", "updated_at", "notes"), 
 APPAREL_MATRIX_COLUMNS = _columns(("color", "size", "barcode", "sku", "quantity", "sale_price", "cost_price"), required=("color", "size"), money=("sale_price", "cost_price"), quantity=("quantity",), widths={"barcode": 170, "sku": 150})
 BATCH_BARCODE_COLUMNS = _columns(("id", "name", "barcode", "price", "details", "copies"), required=("name", "barcode"), money=("price",), quantity=("copies",), widths={"name": 240, "details": 280})
 
+RESTAURANT_SIMPLE_INVOICE_COLUMNS = _columns(
+    ("item", "quantity", "price", "total", "notes"),
+    required=("item", "quantity", "total"),
+    money=("price", "total"),
+    quantity=("quantity",),
+    widths={"item": 260, "notes": 220},
+)
+RESTAURANT_MENU_CATEGORY_COLUMNS = _columns(
+    ("id", "name", "code", "item_count", "status", "notes"),
+    required=("name",),
+    quantity=("item_count",),
+    widths={"name": 220, "notes": 240},
+)
+RESTAURANT_MENU_ITEM_COLUMNS = _columns(
+    ("id", "name", "category", "barcode", "price", "station", "status", "notes"),
+    required=("name", "price"),
+    money=("price",),
+    widths={"name": 240, "category": 180, "barcode": 170, "notes": 240},
+)
+
 TABLE_COLUMN_CONTRACTS: Mapping[str, TableColumnContract] = {
     contract_id("sales_invoices", "lines"): _contract("sales_invoices", "lines", "editable_line", SALES_INVOICE_LINE_COLUMNS, editable=True),
     contract_id("purchase_invoices", "lines"): _contract("purchase_invoices", "lines", "editable_line", PURCHASE_INVOICE_LINE_COLUMNS, editable=True),
@@ -317,6 +337,9 @@ TABLE_COLUMN_CONTRACTS: Mapping[str, TableColumnContract] = {
     contract_id("apparel", "matrix"): _contract("apparel", "matrix", "matrix", APPAREL_MATRIX_COLUMNS, editable=True),
     contract_id("apparel", "reports"): _contract("apparel", "reports", "report", APPAREL_REPORT_COLUMNS),
     contract_id("pos", "lines"): _contract("pos", "lines", "operational_line", POS_LINE_COLUMNS, printable=True, exportable=True),
+    contract_id("restaurant", "simple_invoice_lines"): _contract("restaurant", "simple_invoice_lines", "operational_line", RESTAURANT_SIMPLE_INVOICE_COLUMNS, editable=True, printable=True, exportable=True),
+    contract_id("restaurant", "menu_categories"): _contract("restaurant", "menu_categories", "operational_list", RESTAURANT_MENU_CATEGORY_COLUMNS, printable=True, exportable=True),
+    contract_id("restaurant", "menu_items"): _contract("restaurant", "menu_items", "operational_list", RESTAURANT_MENU_ITEM_COLUMNS, printable=True, exportable=True),
     contract_id("restaurant", "order_lines"): _contract("restaurant", "order_lines", "operational_line", RESTAURANT_ORDER_LINE_COLUMNS, printable=True, exportable=True),
     contract_id("restaurant", "kds_tickets"): _contract("restaurant", "kds_tickets", "operational_board", RESTAURANT_KDS_TICKET_COLUMNS, printable=True, exportable=True),
     contract_id("restaurant", "kds_lines"): _contract("restaurant", "kds_lines", "operational_board", RESTAURANT_KDS_LINE_COLUMNS, printable=True, exportable=True),
@@ -366,6 +389,9 @@ TABLE_IDENTITY_CONTRACTS: Mapping[str, str] = {
     "reports.result": "reports.result",
     "batch_print.items.default": "batch_print.labels",
     "batch_print.apparel.variant_labels": "batch_print.labels",
+    "restaurant.simple.invoice": "restaurant.simple_invoice_lines",
+    "restaurant.menu.categories": "restaurant.menu_categories",
+    "restaurant.menu.items": "restaurant.menu_items",
     "batch_print.restaurant.menu_items": "batch_print.labels",
     "batch_print.restaurant.table_labels": "batch_print.labels",
     "batch_print.cafe.products": "batch_print.labels",

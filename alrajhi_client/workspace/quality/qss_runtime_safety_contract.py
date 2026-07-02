@@ -29,7 +29,7 @@ REQUIRED_QSS_RUNTIME_MARKERS = (
 REQUIRED_ESCAPED_SOURCE_MARKERS = (
     "QTabWidget#TabbedWorkspace::pane {{",
     "QTabWidget#TabbedWorkspace QTabBar::tab:selected {{",
-    "QToolButton#MainNavToolButton:hover {{",
+    "QPushButton#MainNavButton:hover {{",
     "QFrame#UnifiedActionBar {{",
     "QFrame#UnifiedActionBar QToolButton[shellChromeRole=\"primary\"] {{",
     "QDialog[brandDialog=\"true\"], QMessageBox[brandDialog=\"true\"] {{",

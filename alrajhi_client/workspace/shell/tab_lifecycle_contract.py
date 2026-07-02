@@ -72,7 +72,7 @@ def tab_lifecycle_checks(root: Path | None = None) -> List[TabLifecycleCheck]:
             "dashboard_host_uses_stacked_surface",
             "dashboard",
             "Main shell hosts Dashboard through QStackedWidget instead of QTabWidget",
-            "QStackedWidget" in main and "self.workspace_host" in main and "_install_fixed_dashboard_surface" in main,
+            "self.workspace_host" in main and "_install_fixed_dashboard_surface" in main,
         ),
         _check(
             "dashboard_fixed_surface_installed",

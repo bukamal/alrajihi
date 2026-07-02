@@ -17,7 +17,7 @@ from workspace.shell.tab_lifecycle_contract import (
 def test_phase346_dashboard_is_fixed_surface_not_tab():
     main = (ROOT / "alrajhi_client/views/main_window.py").read_text(encoding="utf-8")
     workspace = (ROOT / "alrajhi_client/shell/tab_workspace.py").read_text(encoding="utf-8")
-    assert "QStackedWidget" in main
+    assert "self.workspace_host" in main
     assert "_install_fixed_dashboard_surface" in main
     assert "if pid == 'dashboard':" in main
     assert "_show_fixed_dashboard" in main

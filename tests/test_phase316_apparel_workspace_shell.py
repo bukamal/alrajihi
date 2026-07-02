@@ -45,7 +45,7 @@ def test_phase316_main_window_registers_apparel_as_top_level_inventory_page():
     settings_tabs = text("alrajhi_client/features/settings/settings_document_tabs.py")
     i18n = text("alrajhi_client/i18n/translator.py")
 
-    assert "from views.apparel import ApparelWorkspaceWidget" in main_window
+    assert "\'apparel\': (\'alrajhi_client.views.apparel\', \'ApparelWorkspaceWidget\')" in main_window
     assert "'apparel': ('apparel.workspace_title', 'nav_apparel')" in main_window
     assert "('apparel', ApparelWorkspaceWidget)" in main_window
     assert "translate('apparel.workspace_title')" in main_window

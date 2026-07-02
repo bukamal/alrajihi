@@ -40,7 +40,7 @@ def test_settings_registry_contains_expected_tabs_in_order():
     assert keys == [
         "appearance", "languages", "profiles", "contracts", "company",
         "invoices", "units", "returns", "inventory", "manufacturing",
-        "reports", "printing", "pos", "currency", "rates", "network",
+        "reports", "printing", "settings_surface", "pos", "currency", "rates", "network",
         "security", "workflow", "settings_audit", "security_events",
         "backup", "diagnostics",
     ]

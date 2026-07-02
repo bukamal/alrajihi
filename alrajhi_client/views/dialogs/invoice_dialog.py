@@ -21,8 +21,13 @@ from features.transactions import TransactionDocumentLayout, TransactionLineGrid
 # SmartTableView foundation is provided through TransactionLineGrid for invoice lines.
 import qtawesome as qta
 from theme_manager import ThemeManager
+from theme.brand import BRAND
 from i18n import translate, qt_layout_direction
 from workspace.documents.document_layout_policy import apply_document_layout_policy
+from ui.runtime_layout_reconstruction import apply_runtime_layout_reconstruction
+from ui.targeted_screen_rebuild import apply_targeted_screen_rebuild
+from ui.single_screen_runtime_hardening import apply_single_screen_runtime_hardening
+from ui.runtime_visual_regression_gate import apply_runtime_visual_regression_gate
 
 from views.dialogs.invoice_document_components import (
     InvoiceActionsComponent,
@@ -430,6 +435,8 @@ class InvoiceDialog(CenteredDialog):
         invoice_type_label = translate('sale_type') if inv_type == 'sale' else translate('purchase_type')
         self.setWindowTitle(translate('edit_invoice_window', type=invoice_type_label) if invoice_id else translate('new_invoice_window', type=invoice_type_label))
         self.setLayoutDirection(qt_layout_direction())
+        self.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.setProperty('invoiceRuntimeLayoutReconstructionPhase', 454)
         self.resize(1280, 760)
         self.setMinimumSize(1120, 680)
 
@@ -622,6 +629,8 @@ class InvoiceDialog(CenteredDialog):
 
     def init_ui(self):
         self._apply_modern_invoice_style()
+        self.content_widget.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.content_widget.setProperty('invoiceRuntimeLayoutReconstructionPhase', 454)
         root_layout = QVBoxLayout(self.content_widget)
         root_layout.setContentsMargins(12, 12, 12, 12)
         root_layout.setSpacing(12)
@@ -629,6 +638,8 @@ class InvoiceDialog(CenteredDialog):
         title_frame = QFrame()
         self.title_frame = title_frame
         title_frame.setObjectName("HeaderCard")
+        title_frame.setProperty("runtimeLayoutCard", "invoice_title_header")
+        title_frame.setProperty("runtimeLayoutReconstructionPhase", 454)
         title_layout = QHBoxLayout(title_frame)
         title_layout.setContentsMargins(16, 12, 16, 12)
         title_layout.setSpacing(12)
@@ -666,6 +677,8 @@ class InvoiceDialog(CenteredDialog):
 
         header_frame = QFrame()
         header_frame.setObjectName("HeaderCard")
+        header_frame.setProperty("runtimeLayoutCard", "invoice_header_fields")
+        header_frame.setProperty("runtimeLayoutReconstructionPhase", 454)
         header_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         header_layout = QVBoxLayout(header_frame)
         header_layout.setContentsMargins(14, 12, 14, 12)
@@ -718,20 +731,28 @@ class InvoiceDialog(CenteredDialog):
         root_layout.addWidget(header_frame)
 
         content_splitter = QSplitter(Qt.Horizontal)
+        content_splitter.setProperty("runtimeLayoutReconstructionPhase", 454)
+        content_splitter.setProperty("runtimeLayoutSplitter", "invoice_table_summary_splitter")
         self.content_splitter = content_splitter
         content_splitter.setChildrenCollapsible(False)
         content_splitter.setHandleWidth(8)
 
         left_panel = QWidget()
+        left_panel.setObjectName("InvoiceRuntimeLinesPanel")
+        left_panel.setProperty("runtimeLayoutReconstructionPhase", 454)
         left_layout = QVBoxLayout(left_panel)
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.setSpacing(10)
 
         search_frame = QFrame()
         search_frame.setObjectName("ActionCard")
+        search_frame.setProperty("runtimeLayoutCard", "invoice_quick_entry")
+        search_frame.setProperty("runtimeLayoutReconstructionPhase", 454)
         search_layout = QHBoxLayout(search_frame)
         search_layout.setContentsMargins(12, 10, 12, 10)
         self.search_input = QLineEdit()
+        self.search_input.setObjectName("InvoiceRuntimeSearchInput")
+        self.search_input.setProperty("visualRole", "document_runtime_search")
         self.search_input.setPlaceholderText(translate("barcode_search_placeholder"))
         self.search_input.returnPressed.connect(self.add_item_from_search)
         self.quick_qty_spin = QDoubleSpinBox()
@@ -804,7 +825,9 @@ class InvoiceDialog(CenteredDialog):
         self.lines_model.dataChanged.connect(lambda *_: self.update_warehouse_availability_label())
         self.lines_model.rowsInserted.connect(lambda *_: self.update_invoice_grid_status())
         self.lines_model.rowsRemoved.connect(lambda *_: self.update_invoice_grid_status())
-        self.lines_table.setMinimumHeight(360)
+        self.lines_table.setMinimumHeight(int(BRAND.get('invoice_runtime_reconstructed_table_min_height', 340)))
+        self.lines_table.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.lines_table.setProperty('runtimeLayoutTable', 'invoice_major_grid')
         self.lines_table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         left_layout.addWidget(self.lines_table, 1)
 
@@ -843,8 +866,10 @@ class InvoiceDialog(CenteredDialog):
 
         right_panel = QFrame()
         right_panel.setObjectName("RightPanel")
-        right_panel.setMinimumWidth(300)
-        right_panel.setMaximumWidth(390)
+        right_panel.setProperty('runtimeLayoutCard', 'invoice_financial_summary')
+        right_panel.setProperty('runtimeLayoutReconstructionPhase', 454)
+        right_panel.setMinimumWidth(int(BRAND.get('invoice_runtime_reconstructed_right_width', 330)) - 40)
+        right_panel.setMaximumWidth(int(BRAND.get('invoice_runtime_reconstructed_right_width', 330)) + 50)
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(14, 14, 14, 14)
         right_layout.setSpacing(10)
@@ -918,6 +943,8 @@ class InvoiceDialog(CenteredDialog):
         bottom_bar = QFrame()
         self.bottom_action_bar = bottom_bar
         bottom_bar.setObjectName("BottomActionBar")
+        bottom_bar.setProperty("runtimeLayoutCard", "invoice_sticky_action_footer")
+        bottom_bar.setProperty("runtimeLayoutReconstructionPhase", 454)
         bottom_layout = QHBoxLayout(bottom_bar)
         bottom_layout.setContentsMargins(12, 8, 12, 8)
         bottom_layout.setSpacing(10)
@@ -940,6 +967,10 @@ class InvoiceDialog(CenteredDialog):
         # Phase 235: print_btn is connected directly to unified print.
         self.cancel_btn.clicked.connect(self.reject)
         self.new_btn.clicked.connect(self._clear_invoice_form)
+        apply_runtime_layout_reconstruction(self.content_widget, page_id='invoice_dialog', workspace_type='document')
+        apply_targeted_screen_rebuild(self.content_widget, page_id='invoice_dialog', workspace_type='document')
+        apply_single_screen_runtime_hardening(self.content_widget, page_id='invoice_dialog', workspace_type='document')
+        apply_runtime_visual_regression_gate(self.content_widget, page_id='invoice_dialog', workspace_type='document')
         QTimer.singleShot(0, self.focus_barcode_input)
         QTimer.singleShot(0, self.update_invoice_grid_status)
 

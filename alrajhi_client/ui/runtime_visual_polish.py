@@ -37,6 +37,10 @@ from theme.brand import BRAND
 from workspace.runtime.visual_polish_contract import workspace_visual_policy
 from ui.table_direction_policy import apply_table_direction, apply_table_direction_tree
 from ui.windows_runtime_visual_acceptance import apply_windows_runtime_visual_acceptance
+from ui.runtime_layout_reconstruction import apply_runtime_layout_reconstruction
+from ui.targeted_screen_rebuild import apply_targeted_screen_rebuild
+from ui.single_screen_runtime_hardening import apply_single_screen_runtime_hardening
+from ui.runtime_visual_regression_gate import apply_runtime_visual_regression_gate
 
 
 _TABLE_ROW_SIZES = {"compact": 30, "comfortable": 36, "touch": 46}
@@ -334,6 +338,14 @@ def apply_runtime_visual_polish(root: QWidget | None, page_id: str, workspace_ty
     # performs Arabic label cleanup for controls created by lazy pages.
     try:
         apply_windows_runtime_visual_acceptance(root, policy.page_id, policy.workspace_type)
+        # Phase454: reconstruct dense Runtime layouts after the Windows acceptance polish.
+        apply_runtime_layout_reconstruction(root, policy.page_id, policy.workspace_type)
+        # Phase455: targeted rebuild for the screenshot-problem screens.
+        apply_targeted_screen_rebuild(root, policy.page_id, policy.workspace_type)
+        # Phase456: harden the rebuilt single screens against Windows runtime regressions.
+        apply_single_screen_runtime_hardening(root, policy.page_id, policy.workspace_type)
+        # Phase457: gate the Phase453-456 chain and expose a deterministic regression signature.
+        apply_runtime_visual_regression_gate(root, policy.page_id, policy.workspace_type)
     except Exception:
         pass
 

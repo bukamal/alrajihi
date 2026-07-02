@@ -17,9 +17,15 @@ def test_dashboard_has_visible_professional_three_card_layout_not_placeholder_on
     assert 'DashboardCompanyPanel' in src
     assert 'DashboardCashPanel' in src
     assert 'setMaximumHeight(430)' in middle
-    assert 'row.addWidget(self.project_panel, 5)' in middle
-    assert 'row.addWidget(self.company_panel, 4)' in middle
-    assert 'row.addWidget(self.quick_panel, 5)' in middle
+    # Phase458: Phase439 supersedes the old fixed HBox proportions with a responsive grid.
+    assert 'DashboardResponsiveGridHost' in middle
+    assert '_apply_dashboard_responsive_layout' in src
+    assert 'self.quick_panel' in middle
+    assert 'self.company_panel' in middle
+    assert 'self.project_panel' in middle
+    assert 'row.addWidget(self.quick_panel, 5)' not in middle
+    assert 'row.addWidget(self.company_panel, 4)' not in middle
+    assert 'row.addWidget(self.project_panel, 5)' not in middle
 
 
 def test_dashboard_bottom_alerts_are_defensively_hidden_not_rendered():

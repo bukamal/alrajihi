@@ -122,7 +122,7 @@ DOCUMENT_ACTIONS: tuple[str, ...] = ("new", "save", "refresh", "print", "export"
 OPERATION_ACTIONS: tuple[str, ...] = ("refresh", "print", "export", "quick_open")
 # Dashboard must show only the allowed utility surface requested by UX: user,
 # theme, refresh and screenshot.  Alerts and generic document buttons stay out.
-DASHBOARD_ACTIONS: tuple[str, ...] = ("refresh", "theme", "screenshot", "fullscreen", "user")
+DASHBOARD_ACTIONS: tuple[str, ...] = ("refresh", "theme", "screenshot", "user")
 
 
 BARCODE_PRINT_PROFILES: Mapping[str, WorkspaceBarcodeProfileSpec] = {

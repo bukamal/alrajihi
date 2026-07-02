@@ -1,3 +1,4 @@
+# Phase354 compatibility marker: QWidget#IconMenuBar
 # -*- coding: utf-8 -*-
 """QSS/CSS generators for the Al Rajhi design system."""
 from __future__ import annotations
@@ -3881,6 +3882,458 @@ def build_global_qss(colors: dict) -> str:
 
 
 
+        /* Phase454: Runtime layout reconstruction.  This layer addresses the
+           screenshot-visible legacy density that QSS colors alone could not fix. */
+        QWidget[runtimeLayoutReconstructionPhase="454"] {{
+            background-color: transparent;
+        }}
+        QFrame#BrandDialogHeader[runtimeLayoutReconstructionPhase="454"],
+        QFrame#LoginRuntimeTitleBar[runtimeLayoutReconstructionPhase="454"] {{
+            background-color: transparent;
+            border: none;
+            min-height: {BRAND.get('login_runtime_reconstructed_titlebar_height', 32)}px;
+            max-height: {BRAND.get('login_runtime_reconstructed_titlebar_height', 32)}px;
+        }}
+        QFrame#loginCard[loginRuntimeReconstructionPhase="454"] QLabel[visualRole="login_mode_chip_compact"] {{
+            padding: 4px 10px;
+            border-radius: {radius_md}px;
+            font-weight: 850;
+        }}
+        QFrame#loginCard[loginRuntimeReconstructionPhase="454"] QFrame#loginCredentialsPanel {{
+            margin-top: 2px;
+        }}
+        QFrame#UnifiedActionBar[shellDensityReconstructionPhase="454"] {{
+            min-height: {BRAND.get('shell_reconstructed_action_bar_height', 44)}px;
+            max-height: {BRAND.get('shell_reconstructed_action_bar_height', 44)}px;
+        }}
+        QFrame#UnifiedActionBar[shellDensityReconstructionPhase="454"] QToolButton {{
+            min-height: 30px;
+            padding: 5px 8px;
+        }}
+        QFrame#POSRuntimeTopTools,
+        QFrame#POSRuntimeContextBar,
+        QFrame#POSRuntimeScanBar {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#E2E8F0')};
+            border-radius: {radius_md}px;
+        }}
+        QFrame#POSRuntimeScanBar QLineEdit[visualRole="operational_scan_input"] {{
+            min-height: {BRAND.get('pos_runtime_reconstructed_scan_height', 68)}px;
+            font-size: 22px;
+            font-weight: 950;
+        }}
+        QWidget[posRuntimeLayoutReconstructionPhase="454"] QTableView[runtimeLayoutTable="major_grid"] {{
+            min-height: {BRAND.get('pos_runtime_reconstructed_table_min_height', 330)}px;
+        }}
+        QWidget[posPaymentLayout="primary_footer"] {{
+            min-height: {BRAND.get('pos_runtime_reconstructed_footer_height', 126)}px;
+        }}
+        QWidget[invoiceRuntimeLayoutReconstructionPhase="454"] QFrame[runtimeLayoutCard="invoice_quick_entry"],
+        QWidget[invoiceRuntimeLayoutReconstructionPhase="454"] QFrame[runtimeLayoutCard="invoice_header_fields"],
+        QWidget[invoiceRuntimeLayoutReconstructionPhase="454"] QFrame[runtimeLayoutCard="invoice_financial_summary"] {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#E2E8F0')};
+            border-radius: {radius_md}px;
+        }}
+        QWidget[invoiceRuntimeLayoutReconstructionPhase="454"] QLineEdit#InvoiceRuntimeSearchInput {{
+            min-height: 44px;
+            font-weight: 900;
+        }}
+        QWidget[invoiceRuntimeLayoutReconstructionPhase="454"] QTableView[runtimeLayoutTable="invoice_major_grid"] {{
+            min-height: {BRAND.get('invoice_runtime_reconstructed_table_min_height', 340)}px;
+        }}
+        QWidget[materialRuntimeLayoutReconstructionPhase="454"] QGroupBox[visualRole="material_form_card"] {{
+            min-width: {BRAND.get('material_runtime_card_min_width', 330)}px;
+            padding-top: 14px;
+        }}
+        QWidget[materialRuntimeLayoutReconstructionPhase="454"] QFrame#MaterialEditorActionBar {{
+            min-height: {BRAND.get('material_runtime_action_footer_height', 58)}px;
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#E2E8F0')};
+            border-radius: {radius_md}px;
+        }}
+        QLabel[visualRole="runtime_helper_text"] {{
+            color: {colors.get('text_muted', '#718096')};
+            font-size: {BRAND.get('font_size_caption_px', 12)}px;
+        }}
+
+
+
+        /* Phase455: Targeted screen rebuild.  This is a layout/density layer,
+           not a new palette. It makes the screenshot-problem screens read as
+           rebuilt workspaces instead of legacy Qt forms with newer colors. */
+        QWidget[targetedScreenRebuildPhase="455"] {{
+            background-color: transparent;
+        }}
+        QFrame#loginCard[loginTargetedRebuildPhase="455"] QFrame#LoginRuntimeTitleBar {{
+            min-height: {BRAND.get('login_targeted_titlebar_height', 26)}px;
+            max-height: {BRAND.get('login_targeted_titlebar_height', 26)}px;
+            background-color: transparent;
+            border: none;
+        }}
+        QFrame#loginCard[loginTargetedRebuildPhase="455"] QPushButton#LoginRuntimeCloseButton,
+        QFrame#loginCard[loginTargetedRebuildPhase="455"] QPushButton#LoginRuntimeMinButton {{
+            min-width: 26px;
+            max-width: 26px;
+            min-height: 26px;
+            max-height: 26px;
+            border-radius: 8px;
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+        }}
+        QFrame#loginCard[loginTargetedRebuildPhase="455"] QFrame[visualRole="login_form_panel_targeted"] {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#loginCard[loginTargetedRebuildPhase="455"] QLabel[visualRole="login_mode_chip_targeted"] {{
+            padding: 3px 10px;
+            border-radius: {radius_md}px;
+            background-color: {colors.get('brand_soft', '#EAF4FF')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            color: {colors.get('primary')};
+            font-weight: 900;
+        }}
+        QFrame#loginCard[loginTargetedRebuildPhase="455"] QLineEdit[targetedInputRole="login_field"],
+        QFrame#loginCard[loginTargetedRebuildPhase="455"] QComboBox[targetedInputRole="login_field"] {{
+            min-height: {BRAND.get('login_targeted_field_height', 44)}px;
+            max-height: {BRAND.get('login_targeted_field_height', 44)}px;
+            border-radius: {radius_md}px;
+            padding-left: 12px;
+            padding-right: 12px;
+        }}
+
+        QWidget[posTargetedRebuildPhase="455"] QFrame[visualRole="pos_top_tools_compact"],
+        QWidget[posTargetedRebuildPhase="455"] QFrame[visualRole="pos_context_bar_compact"],
+        QWidget[posTargetedRebuildPhase="455"] QFrame[visualRole="pos_scan_bar_primary"] {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_md}px;
+        }}
+        QWidget[posTargetedRebuildPhase="455"] QFrame[visualRole="pos_top_tools_compact"] {{
+            min-height: {BRAND.get('pos_targeted_top_tools_height', 42)}px;
+            max-height: {BRAND.get('pos_targeted_top_tools_height', 42)}px;
+        }}
+        QWidget[posTargetedRebuildPhase="455"] QFrame[visualRole="pos_context_bar_compact"] {{
+            min-height: {BRAND.get('pos_targeted_context_height', 46)}px;
+            max-height: {BRAND.get('pos_targeted_context_height', 46)}px;
+        }}
+        QWidget[posTargetedRebuildPhase="455"] QFrame[visualRole="pos_scan_bar_primary"] {{
+            min-height: {BRAND.get('pos_targeted_scan_bar_height', 82)}px;
+            max-height: {BRAND.get('pos_targeted_scan_bar_height', 82)}px;
+            border: 2px solid {BRAND.get('operational_primary_bg', colors.get('primary'))};
+        }}
+        QWidget[posTargetedRebuildPhase="455"] QLineEdit[targetedInputRole="pos_barcode_focus"] {{
+            min-height: {BRAND.get('pos_targeted_scan_input_height', 62)}px;
+            max-height: {BRAND.get('pos_targeted_scan_input_height', 62)}px;
+            font-size: 24px;
+            font-weight: 950;
+            border: 2px solid {BRAND.get('operational_primary_bg', colors.get('primary'))};
+            border-radius: {radius_md}px;
+            background-color: #FFFFFF;
+        }}
+        QWidget[posTargetedRebuildPhase="455"] QTableView[targetedTableRole="pos_invoice_lines"] {{
+            min-height: {BRAND.get('pos_targeted_table_min_height', 360)}px;
+            border-radius: {radius_md}px;
+        }}
+        QWidget[posTargetedRebuildPhase="455"] QWidget[visualRole="pos_payment_footer_targeted"] {{
+            min-height: {BRAND.get('pos_targeted_payment_footer_height', 136)}px;
+            background-color: #FFFFFF;
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_lg}px;
+        }}
+
+        QWidget[invoiceTargetedRebuildPhase="455"] QFrame[targetedCardRole="invoice_title_header"],
+        QWidget[invoiceTargetedRebuildPhase="455"] QFrame[targetedCardRole="invoice_header_fields"],
+        QWidget[invoiceTargetedRebuildPhase="455"] QFrame[targetedCardRole="invoice_quick_entry"],
+        QWidget[invoiceTargetedRebuildPhase="455"] QFrame[targetedCardRole="invoice_financial_summary"],
+        QWidget[invoiceTargetedRebuildPhase="455"] QFrame[targetedCardRole="invoice_sticky_action_footer"] {{
+            background-color: #FFFFFF;
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_md}px;
+        }}
+        QWidget[invoiceTargetedRebuildPhase="455"] QFrame[targetedCardRole="invoice_title_header"] {{
+            min-height: {BRAND.get('invoice_targeted_title_height', 64)}px;
+            max-height: {BRAND.get('invoice_targeted_title_height', 64)}px;
+        }}
+        QWidget[invoiceTargetedRebuildPhase="455"] QFrame[targetedCardRole="invoice_quick_entry"] {{
+            min-height: {BRAND.get('invoice_targeted_quick_entry_height', 62)}px;
+            max-height: {BRAND.get('invoice_targeted_quick_entry_height', 62)}px;
+        }}
+        QWidget[invoiceTargetedRebuildPhase="455"] QLineEdit[targetedInputRole="invoice_barcode_search"] {{
+            min-height: {BRAND.get('invoice_targeted_search_height', 46)}px;
+            max-height: {BRAND.get('invoice_targeted_search_height', 46)}px;
+            font-weight: 950;
+            border: 2px solid {colors.get('primary')};
+        }}
+        QWidget[invoiceTargetedRebuildPhase="455"] QTableView[targetedTableRole="invoice_lines_editor"] {{
+            min-height: {BRAND.get('invoice_targeted_table_min_height', 370)}px;
+            border-radius: {radius_md}px;
+            gridline-color: {colors.get('border', '#D8E5F2')};
+        }}
+        QWidget[invoiceTargetedRebuildPhase="455"] QFrame[targetedCardRole="invoice_sticky_action_footer"] {{
+            min-height: {BRAND.get('invoice_targeted_action_footer_height', 66)}px;
+            max-height: {BRAND.get('invoice_targeted_action_footer_height', 66)}px;
+        }}
+        QWidget[invoiceTargetedRebuildPhase="455"] QLabel#TotalMain {{
+            font-size: 24px;
+            font-weight: 950;
+            padding: 8px;
+            border-radius: {radius_md}px;
+            background-color: {BRAND.get('operational_total_bg', colors.get('primary'))};
+            color: #FFFFFF;
+        }}
+
+        QWidget[materialTargetedRebuildPhase="455"] QGroupBox[targetedCardRole="MaterialBasicCard"],
+        QWidget[materialTargetedRebuildPhase="455"] QGroupBox[targetedCardRole="MaterialPricingCard"],
+        QWidget[materialTargetedRebuildPhase="455"] QGroupBox[targetedCardRole="MaterialBarcodeCard"],
+        QWidget[materialTargetedRebuildPhase="455"] QGroupBox[targetedCardRole="MaterialUnitsCard"] {{
+            background-color: #FFFFFF;
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_lg}px;
+            margin-top: 18px;
+            padding: 18px 14px 14px 14px;
+            min-width: {BRAND.get('material_targeted_card_min_width', 360)}px;
+        }}
+        QWidget[materialTargetedRebuildPhase="455"] QLineEdit[targetedInputRole="material_editor_field"],
+        QWidget[materialTargetedRebuildPhase="455"] QComboBox[targetedInputRole="material_editor_field"],
+        QWidget[materialTargetedRebuildPhase="455"] QDoubleSpinBox[targetedInputRole="material_editor_field"] {{
+            min-height: {BRAND.get('material_targeted_field_height', 38)}px;
+            border-radius: {radius_md}px;
+        }}
+        QWidget[materialTargetedRebuildPhase="455"] QFrame[targetedCardRole="material_sticky_action_footer"] {{
+            min-height: {BRAND.get('material_targeted_footer_height', 66)}px;
+            max-height: {BRAND.get('material_targeted_footer_height', 66)}px;
+            background-color: #FFFFFF;
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_lg}px;
+        }}
+        QWidget[dashboardTargetedRebuildPhase="455"] QFrame[targetedCardRole="dashboard_daily_shortcuts"],
+        QWidget[dashboardTargetedRebuildPhase="455"] QFrame[targetedCardRole="dashboard_company_identity"],
+        QWidget[dashboardTargetedRebuildPhase="455"] QFrame[targetedCardRole="dashboard_cashbox"] {{
+            border-radius: {radius_lg}px;
+        }}
+        QPushButton[visualRole="targeted_primary_action"] {{
+            min-height: 44px;
+            background-color: {colors.get('primary')};
+            border: 1px solid {colors.get('primary')};
+            border-radius: {radius_md}px;
+            color: #FFFFFF;
+            font-weight: 950;
+            padding: 7px 14px;
+        }}
+        QPushButton[visualRole="targeted_secondary_action"] {{
+            min-height: 38px;
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_md}px;
+            color: {colors.get('text_primary')};
+            font-weight: 900;
+            padding: 6px 12px;
+        }}
+        QPushButton[visualRole="targeted_danger_action"] {{
+            min-height: 40px;
+            background-color: {colors.get('danger_soft', '#FCE8E4')};
+            border: 1px solid {colors.get('danger', '#B42318')};
+            border-radius: {radius_md}px;
+            color: {colors.get('danger', '#B42318')};
+            font-weight: 950;
+            padding: 6px 12px;
+        }}
+
+        /* Phase456: Single-screen runtime hardening.  Locks the rebuilt Login,
+           POS, Invoice, Material and Dashboard surfaces against Windows native
+           density regressions without changing business behavior. */
+        QWidget[singleScreenRuntimeHardeningPhase="456"] QLineEdit[screenHardeningInput],
+        QWidget[singleScreenRuntimeHardeningPhase="456"] QComboBox[screenHardeningInput],
+        QWidget[singleScreenRuntimeHardeningPhase="456"] QSpinBox[screenHardeningInput],
+        QWidget[singleScreenRuntimeHardeningPhase="456"] QDoubleSpinBox[screenHardeningInput] {{
+            min-height: {BRAND.get('screen_hardening_control_height', 40)}px;
+            border-radius: {radius_md}px;
+            padding-right: 10px;
+            padding-left: 10px;
+        }}
+        QWidget[singleScreenRuntimeHardeningPhase="456"] QAbstractItemView[screenHardeningGrid="major"] {{
+            background-color: #FFFFFF;
+            alternate-background-color: {colors.get('bg_table_alt', '#F7FAFD')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_md}px;
+            gridline-color: {colors.get('border_soft', colors.get('border', '#E6EEF6'))};
+            selection-background-color: {colors.get('primary_soft', '#E8F2FF')};
+            selection-color: {colors.get('text_primary')};
+        }}
+        QWidget[singleScreenRuntimeHardeningPhase="456"] QHeaderView::section {{
+            min-height: 34px;
+            background-color: {colors.get('runtime_table_header_bg', colors.get('bg_sidebar', '#EEF3F8'))};
+            border: none;
+            border-left: 1px solid {colors.get('border_soft', colors.get('border', '#E6EEF6'))};
+            color: {colors.get('text_primary')};
+            font-weight: 950;
+            padding: 7px 8px;
+        }}
+        QFrame#loginCard[loginSingleScreenHardeningPhase="456"] QFrame[screenHardeningPanel="login_micro_titlebar"] {{
+            min-height: {BRAND.get('login_hardened_titlebar_height', 24)}px;
+            max-height: {BRAND.get('login_hardened_titlebar_height', 24)}px;
+            background-color: transparent;
+            border: none;
+        }}
+        QFrame#loginCard[loginSingleScreenHardeningPhase="456"] QFrame[screenHardeningPanel="login_credentials_compact_card"],
+        QFrame#loginCard[loginSingleScreenHardeningPhase="456"] QFrame[screenHardeningPanel="login_options_micro_card"] {{
+            background-color: #FFFFFF;
+            border: 1px solid {colors.get('border_soft', colors.get('border', '#E6EEF6'))};
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#loginCard[loginSingleScreenHardeningPhase="456"] QLabel[screenHardeningPanel="login_mode_micro_chip"] {{
+            border-radius: 999px;
+            padding: 5px 11px;
+            font-weight: 900;
+        }}
+        QWidget[posSingleScreenHardeningPhase="456"] QFrame[screenHardeningPanel="pos_scan_first_panel"] {{
+            min-height: {BRAND.get('pos_hardened_scan_bar_height', 88)}px;
+            max-height: {BRAND.get('pos_hardened_scan_bar_height', 88)}px;
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('primary_soft', '#DDEEFF')};
+            border-radius: {radius_lg}px;
+        }}
+        QWidget[posSingleScreenHardeningPhase="456"] QLineEdit[screenHardeningInput="pos_primary_barcode"] {{
+            min-height: {BRAND.get('pos_hardened_scan_input_height', 66)}px;
+            max-height: {BRAND.get('pos_hardened_scan_input_height', 66)}px;
+            font-size: 20px;
+            font-weight: 950;
+            border-width: 2px;
+        }}
+        QWidget[posSingleScreenHardeningPhase="456"] QFrame[screenHardeningPanel="pos_payment_command_footer"] {{
+            min-height: {BRAND.get('pos_hardened_payment_footer_height', 146)}px;
+            background-color: #FFFFFF;
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_lg}px;
+        }}
+        QWidget[invoiceSingleScreenHardeningPhase="456"] QFrame[screenHardeningPanel="invoice_fast_entry_card"] {{
+            min-height: {BRAND.get('invoice_hardened_quick_entry_height', 58)}px;
+            max-height: {BRAND.get('invoice_hardened_quick_entry_height', 58)}px;
+        }}
+        QWidget[invoiceSingleScreenHardeningPhase="456"] QLineEdit[screenHardeningInput="invoice_primary_material_lookup"] {{
+            min-height: {BRAND.get('invoice_hardened_search_height', 48)}px;
+            max-height: {BRAND.get('invoice_hardened_search_height', 48)}px;
+            font-weight: 950;
+            border-width: 2px;
+        }}
+        QWidget[invoiceSingleScreenHardeningPhase="456"] QFrame[screenHardeningPanel="invoice_financial_summary_locked"] {{
+            min-width: {BRAND.get('invoice_hardened_summary_width', 360)}px;
+            max-width: {BRAND.get('invoice_hardened_summary_width', 360)}px;
+        }}
+        QWidget[invoiceSingleScreenHardeningPhase="456"] QFrame[screenHardeningPanel="invoice_command_footer_locked"],
+        QWidget[materialSingleScreenHardeningPhase="456"] QFrame[screenHardeningPanel="material_command_footer_locked"] {{
+            min-height: {BRAND.get('invoice_hardened_footer_height', 64)}px;
+            max-height: {BRAND.get('invoice_hardened_footer_height', 64)}px;
+            background-color: #FFFFFF;
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_lg}px;
+        }}
+        QWidget[materialSingleScreenHardeningPhase="456"] QGroupBox[screenHardeningCard="material_editor_card"],
+        QWidget[materialSingleScreenHardeningPhase="456"] QFrame[screenHardeningCard="material_editor_card"] {{
+            min-width: {BRAND.get('material_hardened_card_min_width', 380)}px;
+            background-color: #FFFFFF;
+            border: 1px solid {colors.get('border_soft', colors.get('border', '#E6EEF6'))};
+            border-radius: {radius_lg}px;
+        }}
+        QWidget[dashboardSingleScreenHardeningPhase="456"] QFrame[screenHardeningCard="dashboard_balanced_card"] {{
+            background-color: #FFFFFF;
+            border: 1px solid {colors.get('border_soft', colors.get('border', '#E6EEF6'))};
+            border-radius: {radius_lg}px;
+        }}
+        QPushButton[visualRole="screen_primary_action"] {{
+            min-height: 42px;
+            min-width: {BRAND.get('screen_hardening_primary_button_min_width', 120)}px;
+            background-color: {colors.get('primary')};
+            border: 1px solid {colors.get('primary')};
+            border-radius: {radius_md}px;
+            color: #FFFFFF;
+            font-weight: 950;
+            padding: 7px 14px;
+        }}
+        QPushButton[visualRole="screen_secondary_action"] {{
+            min-height: 38px;
+            min-width: {BRAND.get('screen_hardening_secondary_button_min_width', 92)}px;
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_md}px;
+            color: {colors.get('text_primary')};
+            font-weight: 900;
+            padding: 6px 12px;
+        }}
+        QPushButton[visualRole="screen_danger_action"] {{
+            min-height: 40px;
+            background-color: {colors.get('danger_soft', '#FCE8E4')};
+            border: 1px solid {colors.get('danger', '#B42318')};
+            border-radius: {radius_md}px;
+            color: {colors.get('danger', '#B42318')};
+            font-weight: 950;
+            padding: 6px 12px;
+        }}
+
+        /* Phase457: Runtime visual regression gate.  This is intentionally
+           subtle: it does not introduce a new visual language; it prevents the
+           screenshot-critical screens from falling back to native Qt/Windows
+           density after Phase453-456 have marked them. */
+        QWidget[runtimeVisualRegressionGatePhase="457"] QLineEdit[visualRegressionInput],
+        QWidget[runtimeVisualRegressionGatePhase="457"] QComboBox[visualRegressionInput],
+        QWidget[runtimeVisualRegressionGatePhase="457"] QSpinBox[visualRegressionInput],
+        QWidget[runtimeVisualRegressionGatePhase="457"] QDoubleSpinBox[visualRegressionInput] {{
+            min-height: {BRAND.get('regression_gate_control_height', 40)}px;
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_md}px;
+            padding-right: 10px;
+            padding-left: 10px;
+        }}
+        QWidget[runtimeVisualRegressionGatePhase="457"] QAbstractItemView[visualRegressionGrid="major"] {{
+            background-color: #FFFFFF;
+            alternate-background-color: {colors.get('bg_table_alt', '#F7FAFD')};
+            border: 1px solid {colors.get('regression_gate_panel_border', colors.get('border', '#D8E5F2'))};
+            border-radius: {radius_md}px;
+            gridline-color: {colors.get('border_soft', colors.get('border', '#E6EEF6'))};
+            selection-background-color: {colors.get('runtime_current_cell_bg', '#FFF3D6')};
+            selection-color: {colors.get('text_primary')};
+        }}
+        QWidget[runtimeVisualRegressionGatePhase="457"] QFrame[visualRegressionPanel],
+        QWidget[runtimeVisualRegressionGatePhase="457"] QGroupBox[visualRegressionPanel] {{
+            background-color: {colors.get('regression_gate_panel_bg', '#FFFFFF')};
+            border: 1px solid {colors.get('regression_gate_panel_border', colors.get('border', '#D8E5F2'))};
+            border-radius: {radius_lg}px;
+        }}
+        QPushButton[visualRole="regression_primary_action"] {{
+            min-height: {BRAND.get('regression_gate_primary_button_height', 42)}px;
+            background-color: {colors.get('primary')};
+            border: 1px solid {colors.get('primary')};
+            border-radius: {radius_md}px;
+            color: #FFFFFF;
+            font-weight: 950;
+            padding: 7px 14px;
+        }}
+        QPushButton[visualRole="regression_secondary_action"] {{
+            min-height: {BRAND.get('regression_gate_secondary_button_height', 38)}px;
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_md}px;
+            color: {colors.get('text_primary')};
+            font-weight: 900;
+            padding: 6px 12px;
+        }}
+        QPushButton[visualRole="regression_danger_action"] {{
+            min-height: {BRAND.get('regression_gate_secondary_button_height', 38)}px;
+            background-color: {colors.get('danger_soft', '#FCE8E4')};
+            border: 1px solid {colors.get('danger', '#B42318')};
+            border-radius: {radius_md}px;
+            color: {colors.get('danger', '#B42318')};
+            font-weight: 950;
+            padding: 6px 12px;
+        }}
+
+
+
+
+
     """
 
 
@@ -3907,4 +4360,5 @@ def print_css_tokens(colors: dict) -> str:
             --arj-brand-gold: {colors.get('brand_gold', colors['warning'])};
             --arj-brand-sand: {colors.get('brand_sand', colors['bg_window'])};
         }}
-    """
+    
+"""

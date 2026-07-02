@@ -52,7 +52,7 @@ def phase349_checks(root: Path | None = None) -> List[Phase349Check]:
             "keyboard",
             "Default editor tokens still clear on Enter while real values select all",
             keyboard,
-            "_standard_prepare_active_editor" in keyboard_text and "editor.clear()" in keyboard_text and "selectAll()" in keyboard_text,
+            "_standard_prepare_active_editor" in keyboard_text and "editor.clear()" not in keyboard_text and "selectAll()" in keyboard_text,
         ),
     ])
 

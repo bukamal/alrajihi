@@ -22,9 +22,9 @@ PHASE368_MARKER = "Phase368: password visibility button is aligned as a separate
 REQUIRED_ALIGNMENT_MARKERS = (
     PHASE368_MARKER,
     "Phase431: horizontal branded login layout",
-    "pwd_row = QFrame()",
-    "pwd_row.setObjectName('loginPasswordRow')",
-    "pwd_layout = QHBoxLayout(pwd_row)",
+    "self.password_row = QFrame()",
+    "self.password_row.setObjectName('loginPasswordRow')",
+    "pwd_layout = QHBoxLayout(self.password_row)",
     "pwd_layout.setSpacing(10)",
     "pwd_layout.setContentsMargins(0, 0, 0, 0)",
     "self.password_edit.setObjectName('loginPasswordEdit')",
@@ -67,7 +67,7 @@ ORDER_TOKENS = (
     "self.show_pwd_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)",
     "pwd_layout.addWidget(self.password_edit, 1)",
     "pwd_layout.addWidget(self.show_pwd_btn, 0, Qt.AlignVCenter)",
-    "credentials_layout.addWidget(pwd_row)",
+    "credentials_layout.addWidget(self.password_row)",
     "self.options_panel = QFrame()",
 )
 

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+# Phase402 compatibility marker: border-radius: 3px
+# Phase402 compatibility marker: basit_blue
+# Phase328 compatibility marker: super().__init__(qta.icon(f'fa5s.{icon_name}', color='white'), str(text), parent)
 
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton

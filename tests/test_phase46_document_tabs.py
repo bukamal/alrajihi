@@ -14,7 +14,11 @@ def test_main_window_routes_quick_item_to_document_tab():
     assert 'def open_item_document' in text
     assert 'def open_category_document' in text
     assert 'ItemEditorTab' in text
-    assert 'CategoryEditorTab' in text
+    # Phase378/458: category creation is routed inline through CategoriesWidget,
+    # not instantiated eagerly in MainWindow.
+    categories = (ROOT / 'alrajhi_client/views/widgets/categories_widget.py').read_text(encoding='utf-8')
+    assert 'CategoryEditorTab' in categories
+    assert "_open_page_inline_action('categories'" in text
 
 
 def test_list_widgets_route_add_edit_to_document_tabs():

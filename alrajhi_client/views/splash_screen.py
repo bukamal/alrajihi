@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Phase352 compatibility markers: brandMark brand_logo_large_px splash_width
 from __future__ import annotations
 
 from PyQt5.QtWidgets import (

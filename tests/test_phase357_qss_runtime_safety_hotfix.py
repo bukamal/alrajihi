@@ -23,7 +23,7 @@ def test_phase357_source_keeps_literal_qss_braces_escaped():
     text = (ROOT / 'alrajhi_client/theme/qss.py').read_text(encoding='utf-8')
     assert 'QTabWidget#TabbedWorkspace::pane {{' in text
     assert 'QFrame#UnifiedActionBar {{' in text
-    assert 'QToolButton#MainNavToolButton:hover {{' in text
+    assert 'QPushButton#MainNavButton:hover {{' in text
     assert 'QFrame#UnifiedActionBar QToolButton[shellChromeRole="primary"] {{' in text
 
 

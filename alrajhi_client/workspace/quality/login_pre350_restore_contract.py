@@ -21,8 +21,8 @@ PHASE367_MARKER = "Phase431: horizontal branded login layout"
 
 REQUIRED_PRE350_MARKERS = (
     PHASE367_MARKER,
-    "self.resize(int(BRAND.get('login_horizontal_width', 1040)), int(BRAND.get('login_horizontal_height', 640)))",
-    "self.setMinimumSize(int(BRAND.get('login_horizontal_min_width', 900)), int(BRAND.get('login_horizontal_min_height', 560)))",
+    "self.resize(int(BRAND.get('login_horizontal_width', 1120)), int(BRAND.get('login_horizontal_height', 660)))",
+    "self.setMinimumSize(int(BRAND.get('login_horizontal_min_width', 980)), int(BRAND.get('login_horizontal_min_height', 600)))",
     "self.main_frame.setObjectName('loginCard')",
     "self.main_frame.setProperty('loginLayout', 'horizontal_branded_split')",
     "self.main_frame.setProperty('loginLayoutPolicy', 'horizontal_brand_form_no_overlay')",

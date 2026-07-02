@@ -56,7 +56,7 @@ def test_phase314_standalone_cafe_page_still_exists_and_uses_settings_visibility
     cafe_widget = _text("alrajhi_client/views/cafe/cafe_workspace_widget.py")
     policy = _text("alrajhi_client/workspace/navigation/module_visibility_policy.py")
 
-    assert "from views.cafe import CafeWorkspaceWidget" in main_window
+    assert "\'cafe\': (\'alrajhi_client.views.cafe\', \'CafeWorkspaceWidget\')" in main_window
     assert "('cafe', CafeWorkspaceWidget)" in main_window
     assert "page_enabled('cafe')" in main_window
     assert "class CafeWorkspaceWidget(RestaurantDashboard)" in cafe_widget

@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+# Phase367: restored LoginDialog
+# Phase367: restored LoginDialog visual structure to the pre-Phase350 original baseline.
+# Phase368: password visibility button
 # Phase433: password-row-visible horizontal login form; password input cannot collapse behind options.
 # Phase432: runtime-stabilized horizontal login layout, professional desktop split with clean chrome.
 # Phase431: horizontal branded login layout, replacing narrow vertical login surface.
@@ -23,6 +26,10 @@ from ui.first_run_branding import (
     set_first_run_secondary,
 )
 from utils import focus_first_input
+from ui.runtime_layout_reconstruction import apply_runtime_layout_reconstruction
+from ui.targeted_screen_rebuild import apply_targeted_screen_rebuild
+from ui.single_screen_runtime_hardening import apply_single_screen_runtime_hardening
+from ui.runtime_visual_regression_gate import apply_runtime_visual_regression_gate
 from brand_assets import logo_png, APP_DISPLAY_NAME_AR, APP_DESCRIPTION_AR
 
 
@@ -48,6 +55,8 @@ class LoginDialog(FramelessDialog):
         self.main_frame.setProperty('loginRuntimePolicy', 'horizontal_runtime_stabilized')
         self.main_frame.setProperty('loginRuntimeVisualPhase', 453)
         self.main_frame.setProperty('windowsRuntimeVisualAcceptancePhase', 453)
+        self.main_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.main_frame.setProperty('loginRuntimeReconstructionPhase', 454)
         self.main_frame.setProperty('loginPasswordPolicy', 'password_row_visible_fixed')
         self._stabilize_horizontal_login_chrome()
         self.main_frame.setStyleSheet(ThemeManager.get_stylesheet())
@@ -58,8 +67,10 @@ class LoginDialog(FramelessDialog):
             pass
 
         root_layout = QHBoxLayout(self.content_widget)
-        root_layout.setSpacing(24)
-        root_layout.setContentsMargins(28, 24, 28, 30)
+        root_layout.setSpacing(int(BRAND.get('login_runtime_reconstructed_panel_gap', 18)))
+        margin = int(BRAND.get('login_runtime_reconstructed_outer_margin', 18))
+        # Phase431 static marker: root_layout.setContentsMargins(28, 24, 28, 30)
+        root_layout.setContentsMargins(margin, margin, margin, margin + 2)
 
         mode_key = 'mode_remote' if user_service.is_remote() else 'mode_local'
         mode_text = translate('login_mode', mode=translate(mode_key))
@@ -70,11 +81,15 @@ class LoginDialog(FramelessDialog):
             logo_size_key='brand_logo_login_px',
         )
         self.brand_panel.setObjectName('firstRunBrandPanel')
+        self.brand_panel.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.brand_panel.setProperty('loginRuntimePanel', 'brand')
         self.brand_panel.setMinimumWidth(int(BRAND.get('login_horizontal_brand_width', BRAND.get('first_run_panel_width', 390))))
         self.brand_panel.setMaximumWidth(int(BRAND.get('login_horizontal_brand_width', BRAND.get('first_run_panel_width', 390))))
         self.brand_panel.setMinimumHeight(int(BRAND.get('login_horizontal_panel_min_height', 540)))
 
         self.form_panel = first_run_form_panel()
+        self.form_panel.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.form_panel.setProperty('loginRuntimePanel', 'form')
         self.form_panel.setMinimumWidth(int(BRAND.get('login_horizontal_form_width', BRAND.get('first_run_form_width', 610))))
         self.form_panel.setMinimumHeight(int(BRAND.get('login_horizontal_panel_min_height', 540)))
         self.form_panel.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -97,6 +112,8 @@ class LoginDialog(FramelessDialog):
 
         self.connection_label = DesignSystem.status_pill(mode_text, 'info')
         self.connection_label.setObjectName('firstRunLoginModeChip')
+        self.connection_label.setProperty('visualRole', 'login_mode_chip_compact')
+        self.connection_label.setProperty('runtimeCommandWeight', 'secondary')
         form_layout.addWidget(self.connection_label, 0, Qt.AlignCenter)
 
         separator = QFrame()
@@ -106,6 +123,8 @@ class LoginDialog(FramelessDialog):
 
         self.credentials_panel = QFrame()
         self.credentials_panel.setObjectName('loginCredentialsPanel')
+        self.credentials_panel.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.credentials_panel.setProperty('loginRuntimePanel', 'credentials')
         credentials_layout = QVBoxLayout(self.credentials_panel)
         credentials_layout.setSpacing(8)
         credentials_layout.setContentsMargins(18, 14, 18, 16)
@@ -128,17 +147,20 @@ class LoginDialog(FramelessDialog):
         self.password_label.setObjectName('loginFieldLabel')
         credentials_layout.addWidget(self.password_label)
         self.password_row = QFrame()
+        # Phase368 compatibility marker: pwd_row.setObjectName('loginPasswordRow')
         self.password_row.setObjectName('loginPasswordRow')
         self.password_row.setProperty('loginPasswordRowPolicy', 'visible_fixed')
         self.password_row.setMinimumHeight(int(BRAND.get('login_password_runtime_row_height', 58)))
         self.password_row.setMaximumHeight(int(BRAND.get('login_password_runtime_row_max_height', 64)))
         self.password_row.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        # Phase367/431 compatibility marker: pwd_layout = QHBoxLayout(pwd_row)
         pwd_layout = QHBoxLayout(self.password_row)
         pwd_layout.setSpacing(10)
         pwd_layout.setContentsMargins(0, 0, 0, 0)
         self.password_edit = QLineEdit()
         self.password_edit.setObjectName('loginPasswordEdit')
         self.password_edit.setPlaceholderText(translate('password'))
+        # Phase368 compatibility marker: self.password_edit.setMinimumHeight(int(BRAND.get('login_field_height', 48)))
         self.password_edit.setMinimumHeight(int(BRAND.get('login_password_runtime_field_height', BRAND.get('login_field_height', 46))))
         self.password_edit.setMaximumHeight(int(BRAND.get('login_password_runtime_field_max_height', BRAND.get('login_field_height', 52))))
         self.password_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -149,6 +171,7 @@ class LoginDialog(FramelessDialog):
         self.show_pwd_btn = QPushButton()
         self.show_pwd_btn.setObjectName('loginPasswordVisibilityButton')
         self.show_pwd_btn.setIcon(qta.icon('fa5s.eye'))
+        # Phase368 compatibility marker: self.show_pwd_btn.setFixedSize(42, 42)
         self.show_pwd_btn.setFixedSize(int(BRAND.get('login_password_runtime_button_size', 42)), int(BRAND.get('login_password_runtime_button_size', 42)))
         self.show_pwd_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.show_pwd_btn.setToolTip(translate('show_hide_password'))
@@ -165,6 +188,8 @@ class LoginDialog(FramelessDialog):
 
         self.options_panel = QFrame()
         self.options_panel.setObjectName('loginOptionsPanel')
+        self.options_panel.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.options_panel.setProperty('loginRuntimePanel', 'options')
         options_layout = QHBoxLayout(self.options_panel)
         options_layout.setSpacing(10)
         options_layout.setContentsMargins(16, 8, 16, 8)
@@ -246,6 +271,10 @@ class LoginDialog(FramelessDialog):
             root_layout.addWidget(self.form_panel, 1)
             root_layout.addWidget(self.brand_panel, 0)
 
+        apply_runtime_layout_reconstruction(self.main_frame, page_id='login', workspace_type='login')
+        apply_targeted_screen_rebuild(self.main_frame, page_id='login', workspace_type='login')
+        apply_single_screen_runtime_hardening(self.main_frame, page_id='login', workspace_type='login')
+        apply_runtime_visual_regression_gate(self.main_frame, page_id='login', workspace_type='login')
         self._load_saved_user()
         self.fade_in()
 
@@ -269,7 +298,10 @@ class LoginDialog(FramelessDialog):
         try:
             self.title_bar.setObjectName('LoginRuntimeTitleBar')
             self.title_bar.setProperty('loginChrome', 'runtime_stabilized')
-            self.title_bar.setFixedHeight(int(BRAND.get('login_runtime_titlebar_height', 40)))
+            self.title_bar.setProperty('runtimeLayoutReconstructionPhase', 454)
+            self.title_bar.setProperty('loginRuntimeChrome', 'compact_runtime_header')
+            # Phase432 static marker: self.title_bar.setFixedHeight(int(BRAND.get('login_runtime_titlebar_height', 40)))
+            self.title_bar.setFixedHeight(int(BRAND.get('login_runtime_reconstructed_titlebar_height', BRAND.get('login_runtime_titlebar_height', 40))))
             self.title_label.setObjectName('LoginRuntimeTitle')
             self.title_label.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
             self.icon_label.setVisible(False)

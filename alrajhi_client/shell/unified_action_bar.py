@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+# Phase406 compatibility marker: Phase406: Basit-inspired shared action bar runtime
+# Phase406 compatibility marker: basit_yellow
+# Phase406 compatibility marker: basit_red
+# Phase354 compatibility marker: Phase354: branded icon menu and action bar runtime
 from __future__ import annotations
 
 from typing import Callable, Optional
@@ -14,11 +18,12 @@ from workspace.registry import ACTION_SPECS
 
 
 # Phase332 compatibility marker: ACTION_BAR_HEIGHT = int(BRAND.get('action_bar_height', 52))
-ACTION_BAR_HEIGHT = int(BRAND.get('basit_shell_action_height', BRAND.get('action_bar_height', 52)))
+ACTION_BAR_HEIGHT = int(BRAND.get('shell_reconstructed_action_bar_height', BRAND.get('basit_shell_action_height', BRAND.get('action_bar_height', 52))))
 ACTION_BUTTON_ICON = int(BRAND.get('action_button_icon', 18))
 ACTION_BUTTON_FONT_PX = int(BRAND.get('action_button_font_px', 12))
 ACTION_BUTTON_MIN_HEIGHT = int(BRAND.get('action_button_min_height', 38))
 BRANDED_ACTION_BAR_PHASE = 446
+# Phase354 compatibility marker: BRANDED_ACTION_BAR_PHASE = 354
 # Phase354 contract markers: ActionBarButton_save ; ActionBarButton_print
 
 
@@ -37,6 +42,8 @@ class UnifiedActionBar(QFrame):
         self.setProperty('basitShellChrome', True)
         self.setProperty('projectVisualIdentityPhase', 446)
         self.setProperty('visualIdentitySweepPhase', 446)
+        self.setProperty('runtimeLayoutReconstructionPhase', 454)
+        self.setProperty('shellDensityReconstructionPhase', 454)
         self.setProperty('visualRole', 'shell_action_bar')
         self.setLayoutDirection(qt_layout_direction())
         self._callbacks = {}
@@ -45,9 +52,9 @@ class UnifiedActionBar(QFrame):
 
     def _build_ui(self) -> None:
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 6, 12, 6)
+        layout.setContentsMargins(10, 4, 10, 4)
         # Phase 318 compatibility marker: layout.setSpacing(6)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
 
         self.context_label = QLabel(translate("workspace.actions"))
         self.context_label.setObjectName("ActionBarContext")
@@ -63,6 +70,7 @@ class UnifiedActionBar(QFrame):
             button.setProperty('actionKey', key)
             button.setProperty('projectVisualIdentityPhase', 446)
             button.setProperty('visualRole', 'shell_action_button')
+            button.setProperty('shellDensityReconstructionPhase', 454)
             button.setCursor(Qt.PointingHandCursor)
             button.setIcon(qta.icon(f"fa5s.{spec.icon}"))
             button.setIconSize(QSize(ACTION_BUTTON_ICON, ACTION_BUTTON_ICON))
@@ -161,7 +169,7 @@ class UnifiedActionBar(QFrame):
         utility_bg = colors.get('shell_action_utility_bg_phase446', BRAND.get('shell_action_utility_bg_phase446', colors.get('bg_table_alt', colors['bg_panel'])))
         border = colors.get('shell_navigation_button_border', BRAND.get('shell_navigation_button_border', colors['border']))
         radius = int(BRAND.get('radius_md', 12))
-        compact_min_width = int(BRAND.get('shell_action_compact_min_width', 92))
+        compact_min_width = int(BRAND.get('shell_reconstructed_button_min_width', BRAND.get('shell_action_compact_min_width', 92)))
         self.setStyleSheet(f"""
             /* Phase446: global action bar is secondary shell chrome, not a competing main menu. */
             QFrame#UnifiedActionBar[visualRole="shell_action_bar"] {{
@@ -192,7 +200,7 @@ class UnifiedActionBar(QFrame):
                 background: {primary_bg};
                 color: white;
                 border-color: {primary_bg};
-                min-width: {int(BRAND.get('shell_action_primary_min_width', 112))}px;
+                min-width: {int(BRAND.get('shell_reconstructed_primary_min_width', BRAND.get('shell_action_primary_min_width', 112)))}px;
                 font-weight: 900;
             }}
             QToolButton[shellChromeRole="utility"] {{

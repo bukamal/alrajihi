@@ -27,6 +27,7 @@ from PyQt5.QtWidgets import (
 from workspace.documents.base_document_tab import BaseDocumentTab
 from workspace.documents.document_contract import descriptor_for
 from core.services.catalog_service import catalog_service
+from ui.inline_quick_create import InlineQuickCreatePanel, quick_create_can
 from core.services.barcode_input_service import barcode_input_service
 from core.services.invoice_service import invoice_service
 from core.services.warehouse_service import warehouse_service
@@ -161,6 +162,19 @@ class TransactionDocumentTab(BaseDocumentTab):
         self.party_combo.setEditable(True)
         self.party_combo.setMinimumWidth(120)
         self.party_combo.setMaximumWidth(220)
+        self.quick_party_btn = QToolButton(self)
+        self.quick_party_btn.setObjectName("TransactionInlineQuickPartyButton")
+        self.quick_party_btn.setProperty("visualRole", "document_inline_create_action")
+        self.quick_party_btn.setText("+")
+        self.quick_party_btn.setToolTip(tr("inline_quick_create_party_tooltip"))
+        self.quick_party_btn.clicked.connect(self._toggle_inline_party_create)
+        self.party_selector_widget = QFrame(self)
+        self.party_selector_widget.setObjectName("TransactionPartyInlineCreateRow")
+        party_selector_layout = QHBoxLayout(self.party_selector_widget)
+        party_selector_layout.setContentsMargins(0, 0, 0, 0)
+        party_selector_layout.setSpacing(4)
+        party_selector_layout.addWidget(self.party_combo, 1)
+        party_selector_layout.addWidget(self.quick_party_btn)
         self.date_edit = QDateEdit(QDate.currentDate())
         self.date_edit.setCalendarPopup(True)
         self.date_edit.setMinimumWidth(98)
@@ -185,6 +199,12 @@ class TransactionDocumentTab(BaseDocumentTab):
         add_btn.setProperty("basitToolbarButton", True)
         add_btn.setMaximumWidth(72)
         add_btn.clicked.connect(self.add_item_from_search)
+        self.quick_item_btn = QToolButton(self)
+        self.quick_item_btn.setObjectName("TransactionInlineQuickItemButton")
+        self.quick_item_btn.setProperty("visualRole", "document_inline_create_action")
+        self.quick_item_btn.setText("+")
+        self.quick_item_btn.setToolTip(tr("inline_quick_create_item_tooltip"))
+        self.quick_item_btn.clicked.connect(self._toggle_inline_item_create)
         if self.is_return:
             self.original_invoice_combo = QComboBox()
             self.original_invoice_combo.setEditable(True)
@@ -213,13 +233,14 @@ class TransactionDocumentTab(BaseDocumentTab):
         # Phase348: do not force returns to start with invoice selection.
         # Assisted invoice loading is exposed through return tools, while the
         # main header mirrors sales/purchase documents.
-        header.addWidget(self._inline_header_field(tr("customers") if self.inv_type == "sale" else tr("suppliers"), self.party_combo, stretch=2))
+        header.addWidget(self._inline_header_field(tr("customers") if self.inv_type == "sale" else tr("suppliers"), self.party_selector_widget, stretch=2))
         header.addWidget(self._inline_header_field(tr("date"), self.date_edit))
         header.addWidget(self._inline_header_field(tr("warehouses"), self.warehouse_combo, stretch=1))
         header.addWidget(self._inline_header_field(tr("currency"), self.currency_label))
         header.addWidget(self._inline_header_field(tr("transaction_reference"), self.ref_edit))
         header.addWidget(self._inline_header_field(tr("transaction_quick_search"), self.search_input, stretch=2))
         header.addWidget(add_btn)
+        header.addWidget(self.quick_item_btn)
         header.addSpacing(4)
         header.addWidget(QLabel(tr("transaction_preset")))
         header.addWidget(self.presets_combo)
@@ -228,6 +249,19 @@ class TransactionDocumentTab(BaseDocumentTab):
         header.addWidget(reset_columns_btn)
         header.addWidget(save_btn)
         root.addWidget(inline_header)
+
+        self.quick_party_panel = InlineQuickCreatePanel(self._quick_party_entity(), self)
+        self.quick_party_panel.setObjectName("TransactionInlineQuickPartyPanel")
+        self.quick_party_panel.created.connect(self._on_inline_party_created)
+        self.quick_party_panel.setVisible(False)
+        root.addWidget(self.quick_party_panel)
+        self.quick_item_panel = InlineQuickCreatePanel('item', self, context={'categories': self._category_rows_for_quick_create()})
+        self.quick_item_panel.setObjectName("TransactionInlineQuickItemPanel")
+        self.quick_item_panel.created.connect(self._on_inline_item_created)
+        self.quick_item_panel.setVisible(False)
+        root.addWidget(self.quick_item_panel)
+        self._refresh_quick_party_visibility()
+        self._refresh_quick_item_visibility()
 
         self.return_tools = None
         if self.is_return:
@@ -376,6 +410,72 @@ class TransactionDocumentTab(BaseDocumentTab):
     def _focus_search(self) -> None:
         self.search_input.setFocus()
         self.search_input.selectAll()
+
+    def _quick_party_entity(self) -> str:
+        return "supplier" if self.inv_type == "purchase" else "customer"
+
+    def _refresh_quick_party_visibility(self) -> None:
+        entity = self._quick_party_entity()
+        allowed = quick_create_can(entity)
+        if hasattr(self, "quick_party_btn"):
+            self.quick_party_btn.setEnabled(allowed)
+            self.quick_party_btn.setToolTip(tr("inline_quick_create_party_tooltip") if allowed else tr("inline_quick_create_permission_denied"))
+
+    def _toggle_inline_party_create(self) -> None:
+        if not hasattr(self, "quick_party_panel"):
+            return
+        entity = self._quick_party_entity()
+        if self.quick_party_panel.entity_type != entity:
+            self.quick_party_panel.setParent(None)
+            self.quick_party_panel = InlineQuickCreatePanel(entity, self)
+            self.quick_party_panel.setObjectName("TransactionInlineQuickPartyPanel")
+            self.quick_party_panel.created.connect(self._on_inline_party_created)
+            self.layout().insertWidget(1, self.quick_party_panel)
+        self.quick_party_panel.toggle_panel()
+
+    def _on_inline_party_created(self, entity_type: str, result: dict) -> None:
+        if entity_type not in ("customer", "supplier"):
+            return
+        self._load_parties()
+        target_id = result.get("id")
+        if target_id is not None:
+            idx = self.party_combo.findData(target_id)
+            if idx >= 0:
+                self.party_combo.setCurrentIndex(idx)
+        self.set_dirty(True)
+
+    def _category_rows_for_quick_create(self) -> list:
+        try:
+            from core.services.product_service import product_service
+            return product_service.categories()
+        except Exception:
+            return []
+
+    def _refresh_quick_item_visibility(self) -> None:
+        allowed = quick_create_can("item") and not self.is_return
+        if hasattr(self, "quick_item_btn"):
+            self.quick_item_btn.setEnabled(allowed)
+            self.quick_item_btn.setToolTip(tr("inline_quick_create_item_tooltip") if allowed else tr("inline_quick_create_permission_denied"))
+
+    def _toggle_inline_item_create(self) -> None:
+        if self.is_return or not hasattr(self, "quick_item_panel"):
+            return
+        self.quick_item_panel.set_context(categories=self._category_rows_for_quick_create())
+        self.quick_item_panel.toggle_panel()
+
+    def _on_inline_item_created(self, entity_type: str, result: dict) -> None:
+        if entity_type != "item":
+            return
+        label = result.get("barcode") or result.get("name") or ""
+        if label:
+            self.search_input.setText(str(label))
+            try:
+                self._material_completer_rows = []
+                self._refresh_material_completer()
+            except Exception:
+                pass
+            self.add_item_from_search()
+        self.set_dirty(True)
 
     def _return_service(self):
         return purchase_return_service if self.inv_type == "purchase" else sales_return_service
