@@ -15,8 +15,8 @@
       "branded_startup_allowed": 5,
       "mixed_legacy_style": 6
     },
-    "csv": "/mnt/data/phase465_work/alrajhi_phase464_architecture_guard_network_reset/tools/audit_outputs/legacy_visual_style_sweep.csv",
-    "summary_json": "/mnt/data/phase465_work/alrajhi_phase464_architecture_guard_network_reset/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
+    "csv": "/mnt/data/alrajhi_phase466_pos_operational_toolbar_cleanup/tools/audit_outputs/legacy_visual_style_sweep.csv",
+    "summary_json": "/mnt/data/alrajhi_phase466_pos_operational_toolbar_cleanup/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
   },
   "migrated_files": {
     "alrajhi_client/features/items/item_editor_tab.py": {

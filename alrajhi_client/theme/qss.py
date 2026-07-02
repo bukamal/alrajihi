@@ -4449,6 +4449,228 @@ def build_global_qss(colors: dict) -> str:
         }}
 
 
+        /* Phase468: solid floating quick-create surfaces and calmer transaction layout. */
+        QFrame[floatingQuickCreate="true"],
+        QFrame[floatingSurfaceSolid="true"] {{
+            background-color: {colors.get('surface_raised', colors.get('card_bg', colors['bg_panel']))};
+            color: {colors['text_primary']};
+            border: 2px solid {colors.get('primary', '#0E7AA8')};
+            border-radius: 16px;
+        }}
+        QFrame[floatingQuickCreate="true"] QLabel,
+        QFrame[floatingSurfaceSolid="true"] QLabel {{
+            background: transparent;
+            border: none;
+            color: {colors['text_primary']};
+        }}
+        QFrame[floatingQuickCreate="true"] QLabel#InlineQuickCreateTitle {{
+            font-size: 16px;
+            font-weight: 950;
+            color: {colors['text_primary']};
+        }}
+        QFrame[floatingQuickCreate="true"] QLabel#InlineQuickCreateSubtitle {{
+            font-size: 12px;
+            font-weight: 750;
+            color: {colors.get('text_secondary', colors['text_primary'])};
+        }}
+        QFrame[floatingQuickCreate="true"] QPushButton#InlineQuickCreateCloseButton {{
+            min-width: 30px;
+            max-width: 30px;
+            min-height: 30px;
+            max-height: 30px;
+            border-radius: 9px;
+            background-color: {colors.get('brand_soft', colors.get('bg_panel', '#EEF6FA'))};
+            color: {colors['text_primary']};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            padding: 0;
+            font-weight: 950;
+        }}
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="468"] {{
+            background-color: {colors.get('workspace_card_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 14px;
+        }}
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="468"] QFrame#TransactionInlineHeaderField {{
+            background-color: {colors.get('input_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 10px;
+            min-height: 42px;
+        }}
+
+        /* Phase469: operational cleanup for POS/restaurant and hard opaque floating cards. */
+        QFrame[floatingQuickCreate="true"],
+        QFrame[floatingSurfaceSolid="true"] {{
+            background: {colors.get('surface_raised', colors.get('card_bg', colors['bg_panel']))};
+            background-color: {colors.get('surface_raised', colors.get('card_bg', colors['bg_panel']))};
+            opacity: 1;
+        }}
+        QWidget#posWidget[posOperationalCleanupPhase="469"] QFrame#POSRuntimeContextBar,
+        QWidget#posWidget[posOperationalCleanupPhase="469"] QFrame#POSRuntimeScanBar {{
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 12px;
+            background-color: {colors.get('workspace_card_bg', colors.get('bg_panel', '#FFFFFF'))};
+        }}
+        QWidget#posWidget[posOperationalCleanupPhase="469"] QWidget#posPaymentShell[posPaymentCompactPhase="469"] {{
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 12px;
+            background-color: {colors.get('workspace_card_bg', colors.get('bg_panel', '#FFFFFF'))};
+            max-height: 172px;
+        }}
+        QWidget#restaurantSimplePOSWidget[restaurantOperationalCleanupPhase="469"] QFrame#restaurantSimpleHeaderCard {{
+            background-color: {colors.get('workspace_card_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 14px;
+        }}
+        QWidget#restaurantSimplePOSWidget[restaurantOperationalCleanupPhase="469"] QPushButton[basitToolbarButton="true"],
+        QWidget#restaurantSimplePOSWidget[restaurantOperationalCleanupPhase="469"] QPushButton[visualRole="operational_secondary"],
+        QWidget#restaurantSimplePOSWidget[restaurantOperationalCleanupPhase="469"] QPushButton[visualRole="operational_primary"] {{
+            min-height: 40px;
+        }}
+        /* Phase470: responsive list/material shell and scrollable floating forms. */
+        QWidget[responsiveToolbarPhase="470"] {{
+            background-color: {colors.get('workspace_card_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 14px;
+            padding: 8px;
+        }}
+        QWidget[responsiveToolbarPhase="470"] QPushButton {{
+            min-height: 36px;
+            border-radius: 10px;
+            padding-left: 12px;
+            padding-right: 12px;
+            font-weight: 850;
+        }}
+        QWidget[responsiveToolbarPhase="470"] QLineEdit[visualRole="list_search_input"] {{
+            min-height: 38px;
+            border-radius: 11px;
+            padding-left: 12px;
+            padding-right: 12px;
+        }}
+        QFrame#MaterialsFilterCard[materialsFilterGridPhase="470"] {{
+            padding: 8px;
+        }}
+        QFrame#MaterialsFilterCell[materialsFilterCellPhase="470"] {{
+            background-color: {colors.get('input_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 10px;
+            padding: 4px 8px;
+            min-height: 38px;
+        }}
+        QFrame#MaterialsFilterCell[materialsFilterCellPhase="470"] QLabel {{
+            min-width: 72px;
+        }}
+        QFrame#MaterialsFilterCell[materialsFilterCellPhase="470"] QComboBox {{
+            min-width: 120px;
+        }}
+        QFrame[floatingQuickCreate="true"] QScrollArea#InlineQuickCreateFormScroll {{
+            background-color: {colors.get('surface_raised', colors.get('card_bg', colors.get('bg_panel', '#FFFFFF')))};
+            border: none;
+        }}
+        QFrame[floatingQuickCreate="true"] QFrame#InlineQuickCreateFormHolder {{
+            background-color: {colors.get('surface_raised', colors.get('card_bg', colors.get('bg_panel', '#FFFFFF')))};
+            border: none;
+        }}
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="468"] QLabel#TransactionInlineHeaderLabel {{
+            background: transparent;
+            border: none;
+            color: {colors.get('text_secondary', colors['text_primary'])};
+            font-size: 11px;
+            font-weight: 850;
+            padding-left: 4px;
+            padding-right: 4px;
+        }}
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="468"] QLineEdit,
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="468"] QComboBox,
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="468"] QDateEdit {{
+            min-height: 34px;
+            border-radius: 8px;
+        }}
+        QWidget#TransactionBottomActionBar[transactionActionLayoutPhase="468"] {{
+            background-color: {colors.get('workspace_card_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 14px;
+        }}
+        QWidget#TransactionBottomActionBar[transactionActionLayoutPhase="468"] QPushButton {{
+            min-height: 42px;
+            min-width: 112px;
+            border-radius: 11px;
+            font-weight: 900;
+        }}
+
+        /* Phase471: runtime screenshot fit for transaction headers, action footers and restaurant totals. */
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="471"] {{
+            background-color: {colors.get('workspace_card_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 14px;
+            padding: 2px;
+        }}
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="471"] QFrame#TransactionInlineHeaderField[transactionHeaderFieldPhase="471"] {{
+            background-color: {colors.get('input_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 10px;
+            min-height: 58px;
+        }}
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="471"] QLabel#TransactionInlineHeaderLabel {{
+            background: transparent;
+            border: none;
+            color: {colors.get('text_secondary', colors['text_primary'])};
+            font-size: 11px;
+            font-weight: 900;
+            min-height: 15px;
+        }}
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="471"] QLineEdit,
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="471"] QComboBox,
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="471"] QDateEdit {{
+            min-height: 34px;
+            border-radius: 8px;
+            padding-left: 8px;
+            padding-right: 8px;
+        }}
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="471"] QToolButton,
+        QFrame#TransactionDocumentHeaderShell[transactionHeaderPhase="471"] QPushButton {{
+            min-height: 36px;
+            border-radius: 10px;
+            padding-left: 12px;
+            padding-right: 12px;
+            font-weight: 900;
+        }}
+        QWidget#TransactionBottomActionBar[transactionActionLayoutPhase="471"] {{
+            background-color: {colors.get('workspace_card_bg', colors.get('bg_panel', '#FFFFFF'))};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: 14px;
+            padding: 8px;
+        }}
+        QWidget#TransactionBottomActionBar[transactionActionLayoutPhase="471"] QPushButton {{
+            min-height: 40px;
+            min-width: 118px;
+            border-radius: 11px;
+            font-weight: 900;
+            padding-left: 10px;
+            padding-right: 10px;
+        }}
+        QWidget#restaurantSimplePOSWidget[restaurantOperationalCleanupPhase="471"] QFrame#restaurantSimpleFooter[restaurantFooterLayoutPhase="471"] {{
+            background-color: {colors.get('basit_toolbar_bg', colors['bg_panel'])};
+            border: 1px solid {colors.get('basit_toolbar_border', colors['border'])};
+            border-radius: 12px;
+            min-height: 104px;
+        }}
+        QWidget#restaurantSimplePOSWidget[restaurantOperationalCleanupPhase="471"] QLabel#restaurantSimpleTotal {{
+            font-size: 18px;
+            min-height: 42px;
+            max-height: 54px;
+            padding: 6px 12px;
+            border-radius: 9px;
+        }}
+        QWidget#restaurantSimplePOSWidget[restaurantOperationalCleanupPhase="471"] QPushButton#restaurantSimplePrintButton,
+        QWidget#restaurantSimplePOSWidget[restaurantOperationalCleanupPhase="471"] QPushButton#restaurantSimpleCheckoutButton {{
+            min-height: 40px;
+            font-size: 14px;
+            border-radius: 10px;
+        }}
+
+
+
+
 
 
 

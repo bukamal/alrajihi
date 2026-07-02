@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Reusable table toolbar for search, actions, and column preferences."""
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QPushButton, QLineEdit, QLabel, QMenu
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QLineEdit, QLabel, QMenu
 from PyQt5.QtCore import pyqtSignal, Qt, QTimer
 from i18n import translate
 
@@ -31,9 +31,23 @@ class TableToolbar(QWidget):
         self._search_timer.setSingleShot(True)
         self._search_timer.timeout.connect(self._emit_search)
 
-        layout = QHBoxLayout(self)
+        # Phase470: responsive two-row toolbar.  List workspaces such as
+        # materials/invoices can contain many commands; a single horizontal row
+        # clips labels on smaller screens.  Keep the public button attributes and
+        # signals unchanged, but split actions from search/meta controls.
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setSpacing(6)
+        self.setProperty('responsiveToolbarPhase', '470')
+
+        action_row = QHBoxLayout()
+        action_row.setObjectName('TableToolbarActionRow')
+        action_row.setContentsMargins(0, 0, 0, 0)
+        action_row.setSpacing(8)
+        search_row = QHBoxLayout()
+        search_row.setObjectName('TableToolbarSearchRow')
+        search_row.setContentsMargins(0, 0, 0, 0)
+        search_row.setSpacing(8)
 
         self.add_btn = QPushButton(translate("add_entity", entity=entity_name))
         self.add_btn.setProperty('basitToolbarButton', True)
@@ -41,7 +55,7 @@ class TableToolbar(QWidget):
         self.add_btn.setProperty('listActionKind', 'primary')
         self.add_btn.setObjectName("primary")
         self.add_btn.clicked.connect(self.addRequested.emit)
-        layout.addWidget(self.add_btn)
+        action_row.addWidget(self.add_btn)
 
         self.edit_btn = QPushButton(translate("edit"))
         self.edit_btn.setProperty('basitToolbarButton', True)
@@ -49,7 +63,7 @@ class TableToolbar(QWidget):
         self.edit_btn.setProperty('listActionKind', 'secondary')
         self.edit_btn.setEnabled(False)
         self.edit_btn.clicked.connect(self.editRequested.emit)
-        layout.addWidget(self.edit_btn)
+        action_row.addWidget(self.edit_btn)
 
         self.delete_btn = QPushButton(translate("delete"))
         self.delete_btn.setProperty('basitToolbarButton', True)
@@ -58,7 +72,7 @@ class TableToolbar(QWidget):
         self.delete_btn.setObjectName("danger")
         self.delete_btn.setEnabled(False)
         self.delete_btn.clicked.connect(self.deleteRequested.emit)
-        layout.addWidget(self.delete_btn)
+        action_row.addWidget(self.delete_btn)
 
         self.search_edit = QLineEdit()
         self.search_edit.setProperty('basitListSearch', True)
@@ -68,7 +82,7 @@ class TableToolbar(QWidget):
         self.search_edit.setClearButtonEnabled(True)
         self.search_edit.setMinimumWidth(220)
         self.search_edit.textChanged.connect(lambda *_: self._search_timer.start(self._search_delay_ms))
-        layout.addWidget(self.search_edit, 1)
+        search_row.addWidget(self.search_edit, 1)
 
         self.filter_btn = QPushButton(translate("filters") if translate("filters") != "filters" else "Filters")
         self.filter_btn.setProperty('basitToolbarButton', True)
@@ -76,7 +90,7 @@ class TableToolbar(QWidget):
         self.filter_btn.setProperty('listActionKind', 'filter')
         self.filter_btn.setToolTip(translate("advanced_filters_hint") if translate("advanced_filters_hint") != "advanced_filters_hint" else "Advanced table filters")
         self.filter_btn.clicked.connect(self._show_filters)
-        layout.addWidget(self.filter_btn)
+        search_row.addWidget(self.filter_btn)
 
         self.columns_btn = QPushButton(translate("columns"))
         self.columns_btn.setProperty('basitToolbarButton', True)
@@ -84,42 +98,46 @@ class TableToolbar(QWidget):
         self.columns_btn.setProperty('listActionKind', 'columns')
         self.columns_btn.setToolTip(translate("column_chooser_hint") if translate("column_chooser_hint") != "column_chooser_hint" else "Show, hide, reorder, and save columns")
         self.columns_btn.clicked.connect(self._show_columns_menu)
-        layout.addWidget(self.columns_btn)
+        search_row.addWidget(self.columns_btn)
 
         self.fit_btn = QPushButton(translate("fit_columns") if translate("fit_columns") != "fit_columns" else "Fit")
         self.fit_btn.setProperty('basitToolbarButton', True)
         self.fit_btn.setProperty('visualRole', 'list_action')
         self.fit_btn.setProperty('listActionKind', 'fit')
         self.fit_btn.clicked.connect(self._fit_columns)
-        layout.addWidget(self.fit_btn)
+        search_row.addWidget(self.fit_btn)
 
-        self.export_btn = QPushButton(translate("excel"))
+        self.export_btn = QPushButton("Excel")
+        self.export_btn.setToolTip(translate("export_excel"))
         self.export_btn.setProperty('basitToolbarButton', True)
         self.export_btn.setProperty('visualRole', 'list_action')
         self.export_btn.setProperty('listActionKind', 'export')
         self.export_btn.clicked.connect(self.exportRequested.emit)
-        layout.addWidget(self.export_btn)
+        action_row.addWidget(self.export_btn)
 
         self.print_btn = QPushButton(translate("print"))
         self.print_btn.setProperty('basitToolbarButton', True)
         self.print_btn.setProperty('visualRole', 'list_action')
         self.print_btn.setProperty('listActionKind', 'print')
         self.print_btn.clicked.connect(self.printRequested.emit)
-        layout.addWidget(self.print_btn)
+        action_row.addWidget(self.print_btn)
 
         self.refresh_btn = QPushButton(translate("refresh"))
         self.refresh_btn.setProperty('basitToolbarButton', True)
         self.refresh_btn.setProperty('visualRole', 'list_action')
         self.refresh_btn.setProperty('listActionKind', 'refresh')
         self.refresh_btn.clicked.connect(self.refreshRequested.emit)
-        layout.addWidget(self.refresh_btn)
+        action_row.addWidget(self.refresh_btn)
 
         self.counter_label = QLabel(translate("records_count", count=0))
         self.counter_label.setProperty('basitCounter', True)
         self.counter_label.setProperty('visualRole', 'list_counter')
         self.counter_label.setObjectName("muted")
         self.counter_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.counter_label)
+        action_row.addWidget(self.counter_label)
+        action_row.addStretch(1)
+        layout.addLayout(action_row)
+        layout.addLayout(search_row)
 
         self._table = None
 

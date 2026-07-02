@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Professional inline quick-create panel used across document surfaces.
+"""Professional quick-create panel used across document surfaces.
 
-The widget is intentionally inline-first and never opens separate workspace tabs.  It saves through existing services/gateways so local,
-client/server, permissions and audit behavior remain consistent.
+Phase467 keeps the existing InlineQuickCreatePanel API for compatibility, but
+opens it as a floating overlay/drawer so it no longer pushes page layouts, scan
+bars or document grids.  It still saves through existing services/gateways so
+local, client/server, permissions and audit behavior remain consistent.
 """
 from __future__ import annotations
 
@@ -19,6 +21,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QPushButton,
     QTextEdit,
+    QScrollArea,
     QVBoxLayout,
 )
 
@@ -26,6 +29,14 @@ from i18n import qt_layout_direction, translate
 from utils import show_toast
 from ui.visual_state import set_visual_state
 from ui.inline_quick_create_registry import definition_for
+# Phase468 compatibility marker: floatingSurfacePhase", "468"
+from ui.floating_quick_create import (
+    floating_surface_for,
+    floating_width_for,
+    hide_floating_quick_create,
+    position_floating_quick_create,
+    show_floating_quick_create,
+)
 
 
 def _tr(key: str, **kwargs) -> str:
@@ -80,7 +91,12 @@ class InlineQuickCreatePanel(QFrame):
         self.setProperty("visualRole", "inline_quick_create_panel")
         self.setProperty("quickCreateEntity", self.entity_type)
         self.setProperty("quickCreateMode", self.definition.mode)
-        self.setProperty("phase", "460")
+        self.setProperty("quickCreateSurface", floating_surface_for(self.entity_type))
+        self.setProperty("quickCreateWidth", floating_width_for(self.entity_type))
+        self.setProperty("floatingQuickCreate", "true")
+        self.setProperty("phase", "470")
+        self.setProperty("floatingSurfacePhase", "470")  # Phase469 compatibility marker: floatingSurfacePhase", "469"
+        self.setProperty("floatingLayoutSafe", True)
         self.setLayoutDirection(qt_layout_direction())
         self._build_ui()
         self.setVisible(False)
@@ -90,12 +106,22 @@ class InlineQuickCreatePanel(QFrame):
         root.setContentsMargins(12, 12, 12, 12)
         root.setSpacing(8)
 
+        title_row = QHBoxLayout()
+        title_row.setContentsMargins(0, 0, 0, 0)
+        title_row.setSpacing(6)
         title = QLabel(_tr(self.definition.title_key))
         title.setObjectName("InlineQuickCreateTitle")
+        close_btn = QPushButton("×")
+        close_btn.setObjectName("InlineQuickCreateCloseButton")
+        close_btn.setFixedSize(30, 30)
+        close_btn.setToolTip(_tr("cancel"))
+        close_btn.clicked.connect(self.cancel)
+        title_row.addWidget(title, 1)
+        title_row.addWidget(close_btn, 0)
         subtitle = QLabel(_tr(self.definition.subtitle_key))
         subtitle.setObjectName("InlineQuickCreateSubtitle")
         subtitle.setWordWrap(True)
-        root.addWidget(title)
+        root.addLayout(title_row)
         root.addWidget(subtitle)
 
         self.error_label = QLabel("")
@@ -103,7 +129,11 @@ class InlineQuickCreatePanel(QFrame):
         self.error_label.setVisible(False)
         set_visual_state(self.error_label, "danger", weight="strong", size="caption", role="semantic_status")
 
-        form = QFormLayout()
+        # Phase470: form content is scrollable inside floating drawers.  The
+        # overlay itself remains fixed and never pushes the host page layout.
+        form_holder = QFrame(self)
+        form_holder.setObjectName("InlineQuickCreateFormHolder")
+        form = QFormLayout(form_holder)
         form.setObjectName("InlineQuickCreateForm")
         form.setLabelAlignment(Qt.AlignRight)
         for field in self.definition.fields:
@@ -111,7 +141,12 @@ class InlineQuickCreatePanel(QFrame):
             self.inputs[field.name] = widget
             label = _tr(field.label_key) + (" *" if field.required else "")
             form.addRow(label, widget)
-        root.addLayout(form)
+        self.form_scroll = QScrollArea(self)
+        self.form_scroll.setObjectName("InlineQuickCreateFormScroll")
+        self.form_scroll.setWidgetResizable(True)
+        self.form_scroll.setFrameShape(QFrame.NoFrame)
+        self.form_scroll.setWidget(form_holder)
+        root.addWidget(self.form_scroll, 1)
         root.addWidget(self.error_label)
 
         actions = QHBoxLayout()
@@ -206,12 +241,13 @@ class InlineQuickCreatePanel(QFrame):
                         widget.setCurrentIndex(idx)
                 widget.blockSignals(False)
 
-    def show_panel(self, focus_first: bool = True) -> None:
+    def show_panel(self, focus_first: bool = True, anchor=None) -> None:
         if not quick_create_can(self.entity_type):
             show_toast(_tr("inline_quick_create_permission_denied"), "warning", self)
             return
-        self.setVisible(True)
         self.error_label.setVisible(False)
+        self.setProperty("quickCreateReturnFocus", (anchor or self.sender()).objectName() if hasattr((anchor or self.sender()), "objectName") else "")
+        show_floating_quick_create(self, anchor=anchor or self.sender())
         if focus_first:
             for widget in self.inputs.values():
                 if hasattr(widget, "setFocus"):
@@ -220,16 +256,26 @@ class InlineQuickCreatePanel(QFrame):
                         widget.selectAll()
                     break
 
-    def toggle_panel(self) -> None:
+    def toggle_panel(self, *_, anchor=None) -> None:
         if self.isVisible():
             self.cancel()
         else:
-            self.show_panel()
+            self.show_panel(anchor=anchor or self.sender())
 
     def cancel(self) -> None:
         self.clear_inputs()
-        self.setVisible(False)
+        hide_floating_quick_create(self)
         self.cancelled.emit(self.entity_type)
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            self.cancel()
+            return
+        super().keyPressEvent(event)
+
+    def refresh_floating_position(self, anchor=None) -> None:
+        if self.isVisible():
+            position_floating_quick_create(self, anchor=anchor)
 
     def clear_inputs(self) -> None:
         for widget in self.inputs.values():
@@ -493,6 +539,6 @@ class InlineQuickCreatePanel(QFrame):
             self.created.emit(self.entity_type, result)
             show_toast(_tr("inline_quick_create_existing_selected") if result.get("existing") else _tr("inline_quick_create_saved_selected"), "info" if result.get("existing") else "success", self)
             self.clear_inputs()
-            self.setVisible(False)
+            hide_floating_quick_create(self)
         except Exception as exc:
             self._show_error(_tr("inline_quick_create_failed", error=str(exc)))

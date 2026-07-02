@@ -80,8 +80,7 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         self.inline_warehouse_panel.setObjectName('InventoryTransferInlineQuickWarehousePanel')
         self.inline_item_panel = InlineQuickCreatePanel('item', self)
         self.inline_item_panel.setObjectName('InventoryTransferInlineQuickItemPanel')
-        header_layout.addWidget(self.inline_warehouse_panel)
-        header_layout.addWidget(self.inline_item_panel)
+        # Phase467: floating quick-create panels are parented to this page, not inserted into the header layout.
         root.addWidget(header)
 
         self.grid = InventoryTransferGrid(self.columns, self, identity='inventory.transfer.lines')

@@ -132,7 +132,7 @@ class ItemDialog(CenteredDialog):
         self.quick_category_panel = InlineQuickCreatePanel('category', self, context={'categories': self.categories})
         self.quick_category_panel.setObjectName('MaterialDialogInlineQuickCategoryPanel')
         self.quick_category_panel.created.connect(self._on_inline_category_created)
-        general_form.addRow('', self.quick_category_panel)
+        # Phase467: category quick-create opens as a floating popover and must not push the dialog form layout.
 
         self.type_combo = QComboBox()
         self.type_combo.addItem(translate("stock_item_type"), STOCK)

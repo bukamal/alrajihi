@@ -32,20 +32,22 @@ class POSPaymentShell(QWidget):
         self.setProperty("visualRole", "operational_payment_shell")
         self.setProperty("operationalSurfacePhase", 448)
         self.setProperty("windowsRuntimeVisualAcceptancePhase", 453)
+        self.setProperty("posPaymentCompactPhase", 469)
         self._build_ui()
 
     def _build_ui(self) -> None:
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(8)
+        root.setSpacing(5)
 
         header = QLabel(translate("pos_payment_shell_title"))
         header.setObjectName("sectionTitle")
         header.setProperty("visualRole", "operational_section_title")
         root.addWidget(header)
+        header.setVisible(False)  # Phase469: compact sticky POS footer; title consumes cashier space.
 
         totals = QHBoxLayout()
-        totals.setSpacing(8)
+        totals.setSpacing(6)
 
         self.total_label = self._metric_label(translate("total_zero"), "total")
         self.change_label = self._metric_label(translate("change_zero"), "change")
@@ -56,8 +58,8 @@ class POSPaymentShell(QWidget):
         payment_card.setObjectName("posPaymentCard")
         payment_card.setProperty("visualRole", "operational_panel")
         payment_layout = QHBoxLayout(payment_card)
-        payment_layout.setContentsMargins(10, 8, 10, 8)
-        payment_layout.setSpacing(8)
+        payment_layout.setContentsMargins(8, 6, 8, 6)
+        payment_layout.setSpacing(6)
         payment_layout.addWidget(QLabel(translate("payment_method")))
         self.payment_combo = QComboBox(payment_card)
         self.payment_combo.setProperty("visualRole", "operational_select")
@@ -75,7 +77,7 @@ class POSPaymentShell(QWidget):
         root.addLayout(totals)
 
         actions = QGridLayout()
-        actions.setSpacing(8)
+        actions.setSpacing(6)
 
         self.cash_btn = self._action_button("pos_cash_full_btn", primary=True)
         self.card_btn = self._action_button("pos_card_btn")
@@ -85,13 +87,13 @@ class POSPaymentShell(QWidget):
         self.remove_btn = self._action_button("pos_delete_line_btn", danger=True)
         self.clear_btn = self._action_button("pos_clear_cart_btn")
 
-        actions.addWidget(self.cash_btn, 0, 0)
-        actions.addWidget(self.card_btn, 0, 1)
-        actions.addWidget(self.checkout_btn, 0, 2)
-        actions.addWidget(self.suspend_btn, 1, 0)
-        actions.addWidget(self.resume_btn, 1, 1)
-        actions.addWidget(self.remove_btn, 1, 2)
-        actions.addWidget(self.clear_btn, 1, 3)
+        # Phase469: one compact action row prevents the footer from being cut on
+        # 1024x768 cashier screens after global chrome and tab bars are present.
+        for index, button in enumerate((
+            self.cash_btn, self.card_btn, self.checkout_btn, self.suspend_btn,
+            self.resume_btn, self.remove_btn, self.clear_btn,
+        )):
+            actions.addWidget(button, 0, index)
         root.addLayout(actions)
 
     def _metric_label(self, text: str, role: str) -> QLabel:
@@ -131,11 +133,11 @@ class POSPaymentShell(QWidget):
     def apply_density(self, density: str) -> None:
         density = str(density or "touch").lower()
         if density == "compact":
-            button_h, spin_h, total_px, change_px = 36, 40, 20, 17
+            button_h, spin_h, total_px, change_px = 32, 34, 18, 16
         elif density == "comfortable":
-            button_h, spin_h, total_px, change_px = 46, 48, 24, 19
+            button_h, spin_h, total_px, change_px = 38, 40, 21, 17
         else:
-            button_h, spin_h, total_px, change_px = 62, 60, 30, 22
+            button_h, spin_h, total_px, change_px = 44, 42, 24, 18
 
         for name in (
             "cash_btn",

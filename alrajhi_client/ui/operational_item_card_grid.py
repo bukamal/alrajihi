@@ -81,6 +81,14 @@ class OperationalItemCardGrid(QWidget):
         width = int(width if width is not None else self.scroll.viewport().width())
         if width <= 0:
             return self.default_columns
+        # Phase472: restaurant/cafe card grids are true product grids.  They
+        # should not collapse to a single/list-like column on normal operator
+        # screens; the parent shell allocates enough width and this method keeps
+        # a 3-column minimum for restaurant cards, with 4 columns on wide panes.
+        if self.mode in {"restaurant", "cafe"}:
+            if width >= 720 and self.max_columns > self.default_columns:
+                return self.max_columns
+            return max(self.min_columns, self.default_columns)
         if width < 420:
             return max(1, min(self.default_columns, self.min_columns))
         if width >= 940 and self.max_columns > self.default_columns:
@@ -160,7 +168,7 @@ class OperationalItemCardGrid(QWidget):
             button.setProperty("operational_mode", self.mode)
             button.setProperty("basitCard", True)
             button.setCursor(Qt.PointingHandCursor)
-            button.setMinimumHeight(74 if self.mode in {"restaurant", "cafe"} else 66)
+            button.setMinimumHeight(88 if self.mode in {"restaurant", "cafe"} else 66)
             button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             button.clicked.connect(lambda _=False, payload=item: self.itemActivated.emit(dict(payload)))
             self.grid.addWidget(button, index // self._columns, index % self._columns)

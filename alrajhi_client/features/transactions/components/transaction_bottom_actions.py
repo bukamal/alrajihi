@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 
-from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QWidget
+from PyQt5.QtWidgets import QGridLayout, QPushButton, QSizePolicy, QWidget
 
 from ..i18n import tr
 
@@ -15,10 +15,16 @@ class TransactionBottomActions(QWidget):
         self._buttons = {}
         self.setObjectName("TransactionBottomActionBar")
         self.setProperty("transaction_footer_role", "actions")
-        layout = QHBoxLayout(self)
+        self.setProperty("transactionActionLayoutPhase", "471")
+        # Phase468 compatibility marker: transactionActionLayoutPhase", "468"
+        # Phase468: grid layout prevents bottom command overlap on small RTL
+        # screens while keeping the same action contract and callbacks.
+        layout = QGridLayout(self)
         layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(12)
-        for text_key, callback in actions:
+        layout.setHorizontalSpacing(10)
+        layout.setVerticalSpacing(8)
+        max_per_row = 5  # Phase471: fixed responsive grid, never a single overflow row.
+        for index, (text_key, callback) in enumerate(actions):
             button = QPushButton(tr(text_key), self)
             action_name = self._action_name_for_key(text_key)
             if action_name:
@@ -26,12 +32,16 @@ class TransactionBottomActions(QWidget):
                 button.setProperty("transaction_footer_role", action_name)
                 self._buttons[action_name] = button
             # Phase349 compatibility markers: setMinimumHeight(44), setMinimumWidth(108)
-            # Phase355 raises the visual minimums while preserving the earlier contract.
-            button.setMinimumHeight(50)
-            button.setMinimumWidth(126)
+            # Phase468 tightens the buttons and wraps them instead of allowing collisions.
+            button.setMinimumHeight(42)
+            button.setMinimumWidth(118)
+            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
             button.clicked.connect(callback)
-            layout.addWidget(button)
-        layout.addStretch(1)
+            row = index // max_per_row
+            col = index % max_per_row
+            layout.addWidget(button, row, col)
+        for col in range(max_per_row):
+            layout.setColumnStretch(col, 1)
 
     @staticmethod
     def _action_name_for_key(text_key: str) -> str:

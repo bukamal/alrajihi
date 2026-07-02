@@ -139,8 +139,7 @@ class BomDocumentTab(BaseDocumentTab):
         self.inline_product_panel.setObjectName('BomInlineQuickProductPanel')
         self.inline_component_panel = InlineQuickCreatePanel('item', self)
         self.inline_component_panel.setObjectName('BomInlineQuickComponentPanel')
-        header_layout.addWidget(self.inline_product_panel)
-        header_layout.addWidget(self.inline_component_panel)
+        # Phase467: floating quick-create panels are not added to the BOM header layout.
         root.addWidget(self.header_card)
 
         self.grid = BomComponentsGrid(self.columns, self, identity='manufacturing.bom.components')

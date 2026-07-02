@@ -242,15 +242,18 @@ class UnifiedActionBar(QFrame):
 
 
     def apply_action_contract(self, action_keys, *, show_context: bool = True) -> None:
-        """Show only actions declared by the active workspace manifest."""
-        keys = {str(key) for key in (action_keys or ())}
+        """Apply the Phase466 utility-only shared toolbar contract."""
+        allowed = {"refresh", "theme", "screenshot", "fullscreen", "user"}
+        keys = {str(key) for key in (action_keys or ()) if str(key) in allowed}
+        # New/Save/Print/Export/Quick Open are intentionally hidden globally.
+        # They stay wired for shortcuts/page-local actions but no longer crowd
+        # the shared shell strip.
         for key, button in self._buttons.items():
             button.setVisible(key in keys)
         for key, widget in getattr(self, "_utility_widgets", {}).items():
             widget.setVisible(key in keys)
-        self.context_label.setVisible(bool(show_context))
-        if "alert" not in keys:
-            self.alert_badge.hide()
+        self.context_label.setVisible(False)
+        self.alert_badge.hide()
         self._position_alert_badge()
 
     def visible_action_keys(self) -> tuple[str, ...]:

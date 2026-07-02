@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from decimal import Decimal
 
-from PyQt5.QtWidgets import QHBoxLayout, QPushButton, QComboBox, QLabel, QHeaderView, QCheckBox, QFrame
+from PyQt5.QtWidgets import QHBoxLayout, QGridLayout, QPushButton, QComboBox, QLabel, QHeaderView, QCheckBox, QFrame
 from i18n import translate, qt_layout_direction
 from core.services.product_service import product_service
 from core.services.settings_service import settings_service
@@ -182,54 +182,72 @@ class ItemsWidget(BaseWidget):
         filter_card.setObjectName('MaterialsFilterCard')
         filter_card.setProperty('materialsFilterSurface', '445')
         filter_card.setProperty('materialsVisualPhase', '445')
-        filter_layout = QHBoxLayout(filter_card)
+        # Phase470: material filters are a responsive grid, not one long row.
+        # This prevents cropped labels such as row_density and avoids pushing the
+        # table on narrow cashier/laptop screens.
+        filter_layout = QGridLayout(filter_card)
         filter_layout.setContentsMargins(10, 8, 10, 8)
-        filter_layout.setSpacing(8)
+        filter_layout.setHorizontalSpacing(8)
+        filter_layout.setVerticalSpacing(8)
+        filter_card.setProperty('materialsFilterGridPhase', '470')
+        _grid_pos = {'row': 0, 'col': 0}
 
-        def add_label(text):
-            label = QLabel(text)
+        def add_pair(label_text, widget):
+            label = QLabel(label_text)
             label.setProperty('visualRole', 'materials_filter_label')
             label.setProperty('materialsVisualPhase', '445')
-            filter_layout.addWidget(label)
+            wrapper = QFrame(filter_card)
+            wrapper.setObjectName('MaterialsFilterCell')
+            wrapper.setProperty('materialsFilterCellPhase', '470')
+            cell = QHBoxLayout(wrapper)
+            cell.setContentsMargins(0, 0, 0, 0)
+            cell.setSpacing(6)
+            cell.addWidget(label, 0)
+            cell.addWidget(widget, 1)
+            row, col = _grid_pos['row'], _grid_pos['col']
+            filter_layout.addWidget(wrapper, row, col)
+            filter_layout.setColumnStretch(col, 1)
+            _grid_pos['col'] += 1
+            if _grid_pos['col'] >= 3:
+                _grid_pos['row'] += 1
+                _grid_pos['col'] = 0
             return label
 
-        add_label(translate("category_label"))
         self._style_material_filter_widget(self.category_filter)
-        filter_layout.addWidget(self.category_filter)
-        add_label(translate("item_type_label"))
+        add_pair(translate("category_label"), self.category_filter)
+
         if self.type_filter.count() == 0:
             self.type_filter.addItem(translate("all_types"), None)
             self.type_filter.addItem(translate("stock_item_type"), STOCK)
             self.type_filter.addItem(translate("finished_product_type"), FINISHED_PRODUCT)
             self.type_filter.addItem(translate("service_item_type"), SERVICE)
         self._style_material_filter_widget(self.type_filter)
-        filter_layout.addWidget(self.type_filter)
+        add_pair(translate("item_type_label"), self.type_filter)
 
-        add_label(translate('material_stock_filter'))
+
         if self.stock_filter.count() == 0:
             self.stock_filter.addItem(translate('all_stock_statuses'), None)
             self.stock_filter.addItem(translate('stock_ok'), 'ok')
             self.stock_filter.addItem(translate('stock_low'), 'low')
             self.stock_filter.addItem(translate('stock_empty'), 'out')
         self._style_material_filter_widget(self.stock_filter)
-        filter_layout.addWidget(self.stock_filter)
+        add_pair(translate('material_stock_filter'), self.stock_filter)
 
-        add_label(translate('material_view_preset'))
+
         if self.preset_filter.count() == 0:
             for preset_name in ('compact', 'cashier', 'warehouse', 'accountant', 'manager'):
                 self.preset_filter.addItem(material_preset_label(preset_name), preset_name)
         self._style_material_filter_widget(self.preset_filter)
-        filter_layout.addWidget(self.preset_filter)
+        add_pair(translate('material_view_preset'), self.preset_filter)
 
-        add_label(translate('row_density'))
+
         if self.density_filter.count() == 0:
             for density_name in ('compact', 'comfortable', 'touch'):
                 self.density_filter.addItem(translate(f'density_{density_name}'), density_name)
         self._style_material_filter_widget(self.density_filter)
-        filter_layout.addWidget(self.density_filter)
+        add_pair(translate('row_density'), self.density_filter)
         self.show_apparel_base_filter.setProperty('materialsVisualPhase', '445')
-        filter_layout.addWidget(self.show_apparel_base_filter)
-        filter_layout.addStretch()
+        filter_layout.addWidget(self.show_apparel_base_filter, _grid_pos['row'], _grid_pos['col'])
         self.material_filter_card = filter_card
         self.layout().insertWidget(1, filter_card)
 

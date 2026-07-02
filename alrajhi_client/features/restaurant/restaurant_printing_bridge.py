@@ -55,7 +55,17 @@ class RestaurantPrintingBridge:
             split_bills = self.service.list_split_bills(int(session_id))
         except Exception:
             split_bills = []
-        return self._attach_route({"session": session, "balance": balance, "split_bills": split_bills}, "receipt")
+        payload = {"session": session, "balance": balance, "split_bills": split_bills}
+        try:
+            total = str(balance.get("total") or session.get("invoice_total") or session.get("total") or "0")
+            paid = str(balance.get("paid") or session.get("paid_amount") or "0")
+            remaining = str(balance.get("remaining") or session.get("remaining") or "0")
+            payload["payment_status"] = "paid" if str(remaining) in {"0", "0.0", "0.00"} and str(paid) not in {"", "0", "0.0", "0.00"} else "unpaid"
+            payload["paid_receipt_enforced"] = payload["payment_status"] == "paid"
+            payload["payment_total"] = total
+        except Exception:
+            payload["payment_status"] = ""
+        return self._attach_route(payload, "receipt")
 
     def session_summary_payload(self, session_id: int) -> Dict[str, Any]:
         payload = self.receipt_payload(session_id)

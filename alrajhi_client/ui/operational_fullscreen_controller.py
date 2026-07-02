@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Dict, Iterable, Optional
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QPushButton, QToolBar, QWidget
 
 from i18n.translator import translate, qt_layout_direction
@@ -123,10 +123,20 @@ class OperationalFullscreenController:
         self._notify_pages(True)
 
     def exit(self) -> None:
+        # Phase466: always clear the floating exit overlay first.  In some
+        # Windows/runtime paths the OS can leave fullscreen before the
+        # controller state is updated; returning early would leave the red
+        # "exit fullscreen" button visible in normal mode.
+        try:
+            self._exit_button.hide()
+            self._exit_button.setVisible(False)
+        except Exception:
+            pass
         if not self._active:
+            self._snapshot = None
+            self._notify_pages(False)
             return
         snapshot = self._snapshot
-        self._exit_button.hide()
         if snapshot is not None:
             for widget, visible in snapshot.widget_visibility.items():
                 try:
@@ -149,6 +159,12 @@ class OperationalFullscreenController:
         self._active = False
         self._snapshot = None
         self._notify_pages(False)
+        # A delayed hide covers deferred native showNormal/showMaximized events.
+        try:
+            QTimer.singleShot(0, self._exit_button.hide)
+            QTimer.singleShot(80, self._exit_button.hide)
+        except Exception:
+            pass
 
     def toggle(self) -> None:
         if self._active:
@@ -173,6 +189,11 @@ class OperationalFullscreenController:
     def refresh_overlay_position(self) -> None:
         if self._active:
             self._show_exit_button()
+        else:
+            try:
+                self._exit_button.hide()
+            except Exception:
+                pass
 
     def _notify_pages(self, active: bool) -> None:
         """Let operational pages update local button labels without owning mode."""

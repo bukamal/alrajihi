@@ -116,13 +116,18 @@ ACTION_SPECS: Mapping[str, WorkspaceActionSpec] = {
     "user": WorkspaceActionSpec("user", "user", "user", placement="utility"),
 }
 
-UTILITY_ACTION_KEYS: tuple[str, ...] = ("alert", "theme", "screenshot", "fullscreen", "user")
+# Phase429 compatibility marker: UTILITY_ACTION_KEYS: tuple[str, ...] = ("alert", "theme", "screenshot", "fullscreen", "user")
+UTILITY_ACTION_KEYS: tuple[str, ...] = ("refresh", "theme", "screenshot", "fullscreen", "user")
+# Phase466: the visible shared toolbar is now utility-only by UX decision.
+# Document/list commands remain available through page controls and shortcuts,
+# but the global strip no longer shows New/Save/Print/Export/Quick Open.
+GLOBAL_UTILITY_ACTIONS: tuple[str, ...] = ("refresh", "theme", "screenshot", "fullscreen", "user")
 COMMON_LIST_ACTIONS: tuple[str, ...] = ("new", "refresh", "print", "export", "quick_open")
 DOCUMENT_ACTIONS: tuple[str, ...] = ("new", "save", "refresh", "print", "export", "quick_open")
 OPERATION_ACTIONS: tuple[str, ...] = ("refresh", "print", "export", "quick_open")
 # Dashboard must show only the allowed utility surface requested by UX: user,
 # theme, refresh and screenshot.  Alerts and generic document buttons stay out.
-DASHBOARD_ACTIONS: tuple[str, ...] = ("refresh", "theme", "screenshot", "user")
+DASHBOARD_ACTIONS: tuple[str, ...] = GLOBAL_UTILITY_ACTIONS
 
 
 BARCODE_PRINT_PROFILES: Mapping[str, WorkspaceBarcodeProfileSpec] = {
@@ -690,15 +695,15 @@ def action_keys_for_page(page_id: str) -> tuple[str, ...]:
 
 
 def effective_action_keys_for_page(page_id: str) -> tuple[str, ...]:
-    """Visible shell actions after utility buttons are applied by contract."""
-    keys = tuple(action_keys_for_page(page_id))
-    if page_id == "dashboard":
-        return DASHBOARD_ACTIONS
-    merged: list[str] = []
-    for key in (*keys, *UTILITY_ACTION_KEYS):
-        if key in ACTION_SPECS and key not in merged:
-            merged.append(key)
-    return tuple(merged)
+    """Visible shell actions after Phase466 utility-only toolbar policy.
+
+    The shared action strip is intentionally no longer a document command bar.
+    It always exposes only the low-risk utility controls requested for every
+    workspace: refresh, theme, screenshot, fullscreen and current user.
+    Page-specific commands such as new/save/print/export continue to exist in
+    page-local controls and shortcuts, but they do not occupy global chrome.
+    """
+    return GLOBAL_UTILITY_ACTIONS
 
 
 def action_specs_for_page(page_id: str) -> tuple[WorkspaceActionSpec, ...]:
@@ -739,6 +744,7 @@ __all__ = [
     "WorkspaceTableSpec",
     "ACTION_SPECS",
     "UTILITY_ACTION_KEYS",
+    "GLOBAL_UTILITY_ACTIONS",
     "PAGE_MANIFESTS",
     "BARCODE_PRINT_PROFILES",
     "MAIN_NAVIGATION_MENUS",

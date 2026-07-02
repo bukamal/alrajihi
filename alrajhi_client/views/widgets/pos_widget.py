@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QKeySequence, QFont
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
@@ -52,6 +53,7 @@ class POSWidget(QWidget):
         self.setProperty('windowsRuntimeVisualAcceptancePhase', 453)
         self.setProperty('runtimeLayoutReconstructionPhase', 454)
         self.setProperty('posRuntimeLayoutReconstructionPhase', 454)
+        self.setProperty('posOperationalCleanupPhase', 469)
         self.setProperty('runtimeVisualAcceptanceType', 'operational')
         self.setProperty('visualWorkspaceType', 'operational')
         mark_visual_shell(self, surface='pos', shell_type='operational')
@@ -89,8 +91,8 @@ class POSWidget(QWidget):
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 8, 10, 8)
-        layout.setSpacing(8)
+        layout.setContentsMargins(8, 6, 8, 6)
+        layout.setSpacing(6)
 
         top_tools_frame = QFrame(self)
         self.top_tools_frame = top_tools_frame
@@ -133,11 +135,16 @@ class POSWidget(QWidget):
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
         title_row.addWidget(self.fullscreen_btn)
         layout.addWidget(top_tools_frame)
+        # Phase466: POS is an operational cashier surface.  Configuration
+        # controls stay available in code/menus, but the normal screen must not
+        # stack administrative toolbars above the scan field.
+        top_tools_frame.setVisible(False)
 
         self.pos_hint_label = QLabel(translate("pos_hint_shortcuts"))
         self.pos_hint_label.setObjectName("muted")
         self.pos_hint_label.setProperty('visualShellPhase', 465)
         layout.addWidget(self.pos_hint_label)
+        self.pos_hint_label.setVisible(False)
 
         # Phase 328: keep POS discharge warehouse and cashbox in one
         # operational row so the cashier sees the stock/cash context together.
@@ -147,8 +154,8 @@ class POSWidget(QWidget):
         operation_frame.setProperty('visualRole', 'pos_runtime_context_bar')
         operation_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
         operation_row = QHBoxLayout(operation_frame)
-        operation_row.setContentsMargins(10, 7, 10, 7)
-        operation_row.setSpacing(8)
+        operation_row.setContentsMargins(8, 5, 8, 5)
+        operation_row.setSpacing(6)
         operation_row.addWidget(QLabel(translate("issue_warehouse")))
         self.warehouse_combo = QComboBox()
         self.warehouse_combo.setProperty("visualRole", "operational_select")
@@ -167,7 +174,7 @@ class POSWidget(QWidget):
         self.quick_cashbox_btn.setObjectName("POSInlineQuickCashboxButton")
         self.quick_cashbox_btn.setToolTip(translate("inline_quick_create_cashbox_tooltip"))
         self.quick_cashbox_btn.setProperty("visualRole", "operational_secondary")
-        self.quick_cashbox_btn.setMinimumHeight(44)
+        self.quick_cashbox_btn.setMinimumHeight(36)
         self.quick_cashbox_btn.setVisible(quick_create_can('cashbox'))
         self.quick_cashbox_btn.clicked.connect(self.toggle_inline_cashbox_create)
         operation_row.addWidget(self.quick_cashbox_btn)
@@ -185,9 +192,12 @@ class POSWidget(QWidget):
         operation_row.addWidget(self.close_shift_btn)
         layout.addWidget(operation_frame)
         self.inline_cashbox_panel = InlineQuickCreatePanel('cashbox', self)
-        self.inline_cashbox_panel.setObjectName("POSInlineQuickCashboxPanel")
+        self.inline_cashbox_panel.setObjectName("POSQuickCreateDrawer_cashbox")  # Phase462 marker: POSInlineQuickCashboxPanel
+        self.inline_cashbox_panel.setProperty("quickCreateSurface", "floating_drawer")
+        self.inline_cashbox_panel.setFixedWidth(int(BRAND.get('pos_quick_create_drawer_width', 360)))
         self.inline_cashbox_panel.created.connect(self._on_inline_cashbox_created)
-        layout.addWidget(self.inline_cashbox_panel)
+        self.inline_cashbox_panel.cancelled.connect(lambda *_: self._focus_barcode_input())
+        self.inline_cashbox_panel.hide()
         self._shift_row_widgets = [self.shift_label, self.open_shift_btn, self.close_shift_btn]
         self._apply_shift_mode_visibility()
 
@@ -197,14 +207,14 @@ class POSWidget(QWidget):
         scan_frame.setProperty('visualRole', 'pos_runtime_scan_bar')
         scan_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
         scan_row = QHBoxLayout(scan_frame)
-        scan_row.setContentsMargins(10, 8, 10, 8)
-        scan_row.setSpacing(8)
+        scan_row.setContentsMargins(8, 6, 8, 6)
+        scan_row.setSpacing(6)
         self.barcode_input = QLineEdit()
         self.barcode_input.setProperty("visualRole", "operational_scan_input")
         self.barcode_input.setPlaceholderText(translate("pos_barcode_placeholder"))
-        self.barcode_input.setMinimumHeight(int(BRAND.get('pos_runtime_reconstructed_scan_height', 68)))
+        self.barcode_input.setMinimumHeight(int(BRAND.get('pos_operational_scan_height_phase469', 56)))
         self.barcode_input.setProperty('runtimeLayoutReconstructionPhase', 454)
-        self.barcode_input.setFont(QFont(self.barcode_input.font().family(), 24, QFont.Bold))
+        self.barcode_input.setFont(QFont(self.barcode_input.font().family(), 20, QFont.Bold))
         self.barcode_input.returnPressed.connect(self.scan_entered_barcode)
         scan_row.addWidget(self.barcode_input, 1)
 
@@ -225,16 +235,19 @@ class POSWidget(QWidget):
         self.quick_item_btn.setObjectName("POSInlineQuickItemButton")
         self.quick_item_btn.setToolTip(translate("inline_quick_create_pos_item_tooltip"))
         self.quick_item_btn.setProperty("visualRole", "operational_secondary")
-        self.quick_item_btn.setMinimumHeight(44)
+        self.quick_item_btn.setMinimumHeight(40)
         self.quick_item_btn.setVisible(quick_create_can('item'))
         self.quick_item_btn.clicked.connect(self.toggle_inline_item_create)
         scan_row.addWidget(self.quick_item_btn)
         layout.addWidget(scan_frame)
 
         self.inline_item_panel = InlineQuickCreatePanel('item', self)
-        self.inline_item_panel.setObjectName("POSInlineQuickItemPanel")
+        self.inline_item_panel.setObjectName("POSQuickCreateDrawer_item")  # Phase462 marker: POSInlineQuickItemPanel
+        self.inline_item_panel.setProperty("quickCreateSurface", "floating_drawer")
+        self.inline_item_panel.setFixedWidth(int(BRAND.get('pos_quick_create_drawer_width', 360)))
         self.inline_item_panel.created.connect(self._on_inline_item_created)
-        layout.addWidget(self.inline_item_panel)
+        self.inline_item_panel.cancelled.connect(lambda *_: self._focus_barcode_input())
+        self.inline_item_panel.hide()
 
         # Phase430 static contract marker: layout.addLayout(scan_row)
         # Phase430: POS is barcode/table-first. Material cards stay in Restaurant/Cafe only.
@@ -243,7 +256,7 @@ class POSWidget(QWidget):
         self.table.setProperty('visualRole', 'operational_table')
         self.table.setProperty('runtimeLayoutReconstructionPhase', 454)
         self.table.setProperty('runtimeLayoutTable', 'major_grid')
-        self.table.setMinimumHeight(int(BRAND.get('pos_runtime_reconstructed_table_min_height', 330)))
+        self.table.setMinimumHeight(int(BRAND.get('pos_table_min_height_phase469', 240)))
         self.table_model = POSLineModel(self.cart, self.display_curr, self)
         self.table.setModel(self.table_model)
         self.table.apply_visible_keys(self._visible_pos_columns)
@@ -254,6 +267,8 @@ class POSWidget(QWidget):
         self.payment_shell.setProperty("visualRole", "operational_payment_shell")
         self.payment_shell.setProperty('runtimeLayoutReconstructionPhase', 454)
         self.payment_shell.setProperty('posPaymentLayout', 'primary_footer')
+        self.payment_shell.setProperty('posPaymentCompactPhase', 469)
+        self.payment_shell.setMaximumHeight(int(BRAND.get('pos_payment_footer_max_height_phase469', 172)))
         layout.addWidget(self.payment_shell)
 
         # Backward-compatible aliases used by the existing POS workflow.
@@ -295,12 +310,90 @@ class POSWidget(QWidget):
 
 
 
+    def _pos_quick_create_panels(self):
+        return (getattr(self, 'inline_cashbox_panel', None), getattr(self, 'inline_item_panel', None))
+
+    def _hide_pos_quick_create_drawers(self, *, focus_scan: bool = True) -> None:
+        for panel in self._pos_quick_create_panels():
+            if panel is not None:
+                try:
+                    panel.hide()
+                except Exception:
+                    pass
+        if focus_scan:
+            self._focus_barcode_input()
+
+    def _show_pos_quick_create_drawer(self, panel) -> None:
+        """Show quick-create as a floating POS drawer, never as inline chrome.
+
+        The drawer overlays the cart area on the side and is deliberately kept
+        below the scan bar.  This preserves the cashier's barcode focus and
+        prevents the + action from pushing/overlapping controls above search.
+        """
+        if panel is None:
+            return
+        for other in self._pos_quick_create_panels():
+            if other is not None and other is not panel:
+                try:
+                    other.hide()
+                except Exception:
+                    pass
+        if panel.isVisible():
+            panel.hide()
+            self._focus_barcode_input()
+            return
+        try:
+            panel.show_panel(anchor=self.sender())
+            panel.raise_()
+            self._position_pos_quick_create_drawer(panel)  # Phase469: anchored floating drawer below scan bar
+        except Exception:
+            try:
+                panel.show_panel(anchor=self.sender())
+            except Exception:
+                pass
+
+    def _position_pos_quick_create_drawer(self, panel=None) -> None:
+        panels = [panel] if panel is not None else [p for p in self._pos_quick_create_panels() if p is not None and p.isVisible()]
+        for p in panels:
+            if p is None or not p.isVisible():
+                continue
+            width = max(320, min(int(BRAND.get('pos_quick_create_drawer_width', 360)), max(320, self.width() - 32)))
+            p.setFixedWidth(width)
+            try:
+                p.adjustSize()
+            except Exception:
+                pass
+            margin = 14
+            try:
+                scan_bottom = self.scan_frame.y() + self.scan_frame.height() + margin
+            except Exception:
+                scan_bottom = 96
+            height = min(max(220, p.sizeHint().height()), max(220, self.height() - scan_bottom - margin))
+            p.setFixedHeight(height)
+            if self.layoutDirection() == Qt.RightToLeft:
+                # Phase469: Arabic/RTL drawer opens from the right side of the
+                # POS surface; it must not cover the left-side global chrome or
+                # float semi-detached from its trigger.
+                x = max(margin, self.width() - width - margin)
+            else:
+                x = margin
+            # Phase467: panel may be reparented to the top-level floating host; map
+            # the POS-local drawer coordinates to that parent instead of moving it
+            # as if it were still inside the POS layout.
+            target_parent = p.parentWidget() or self
+            try:
+                target_pos = target_parent.mapFromGlobal(self.mapToGlobal(QPoint(x, scan_bottom)))
+                p.move(target_pos)
+            except Exception:
+                p.move(x, scan_bottom)
+            p.raise_()
+
     def toggle_inline_cashbox_create(self):
-        self.inline_cashbox_panel.toggle_panel()
+        self._show_pos_quick_create_drawer(self.inline_cashbox_panel)
 
     def toggle_inline_item_create(self):
         self.inline_item_panel.set_context()
-        self.inline_item_panel.toggle_panel()
+        self._show_pos_quick_create_drawer(self.inline_item_panel)
 
     def _on_inline_cashbox_created(self, entity_type, result):
         target_id = result.get('id')
@@ -321,7 +414,7 @@ class POSWidget(QWidget):
             self.cart = pos_service.new_cart(self._selected_warehouse_id(), self._selected_cashbox_id())
             self.refresh_cart()
         self.refresh_shift_state()
-        self._focus_barcode_input()
+        self._hide_pos_quick_create_drawers(focus_scan=True)
 
     def _on_inline_item_created(self, entity_type, result):
         barcode = str(result.get('barcode') or '').strip()
@@ -331,6 +424,7 @@ class POSWidget(QWidget):
         else:
             self.status_label.setText(translate('inline_quick_create_item_created_scan_or_search'))
             self._focus_barcode_input()
+        self._hide_pos_quick_create_drawers(focus_scan=True)
 
 
 
@@ -739,6 +833,13 @@ class POSWidget(QWidget):
         except Exception:
             pass
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        try:
+            self._position_pos_quick_create_drawer()
+        except Exception:
+            pass
+
     def toggle_fullscreen(self):
         window = self.window()
         if hasattr(window, 'toggle_operational_fullscreen'):
@@ -751,7 +852,10 @@ class POSWidget(QWidget):
         # Phase465: operational fullscreen is a kiosk shell, not just a maximized
         # administrative page. Hide POS configuration chrome and keep only the
         # context, scan bar, cart, and sticky payment footer.
-        set_widgets_visible((getattr(self, 'top_tools_frame', None), getattr(self, 'pos_hint_label', None)), not bool(active))
+        # Phase465 compatibility marker: set_widgets_visible((getattr(self, 'top_tools_frame', None), getattr(self, 'pos_hint_label', None)), not bool(active))
+        set_widgets_visible((getattr(self, 'top_tools_frame', None), getattr(self, 'pos_hint_label', None)), False)
+        if active:
+            self._hide_pos_quick_create_drawers(focus_scan=False)
         if hasattr(self, 'fullscreen_btn'):
             self.fullscreen_btn.setText(translate("exit_fullscreen") if active else translate("fullscreen"))
         try:

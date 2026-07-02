@@ -1324,13 +1324,16 @@ def restaurant_receipt_html(data: Dict[str, Any], paper: str = "default") -> str
     total = balance.get("total", session.get("invoice_total", session.get("total", "0")))
     paid = balance.get("paid", session.get("paid_amount", "0"))
     remaining = balance.get("remaining", session.get("remaining", "0"))
+    payment_status_raw = str((data or {}).get("payment_status") or "").strip().lower()
+    payment_status_label = _tr("restaurant.receipt_paid") if payment_status_raw == "paid" else (_tr("restaurant.receipt_unpaid") if payment_status_raw else "")
 
     body = f"""
     {_company_header(settings, title)}
     {_meta_table([
         [(_tr("print_document_number"), ref), (_tr("restaurant_table"), table), (_tr("restaurant_guests"), guests)],
         [(_tr("restaurant_opened_at"), opened), (_tr("restaurant_closed_at"), closed), (_tr("restaurant_waiter"), waiter)],
-        [(_tr("print_currency"), _currency_label(currency_code, settings)), (_tr("restaurant_order_state"), _restaurant_status(session.get("order_state") or session.get("status") or "")), (_tr("print_notes"), session.get("notes") or "")],
+        [(_tr("print_currency"), _currency_label(currency_code, settings)), (_tr("restaurant_order_state"), _restaurant_status(session.get("order_state") or session.get("status") or "")), (_tr("restaurant.receipt_payment_status"), payment_status_label)],
+        [(_tr("print_notes"), session.get("notes") or ""), ("", ""), ("", "")],
     ])}
     {_table(table_headers, rows, _tr("print_no_lines"))}
     {_totals_table([

@@ -160,8 +160,7 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         self.inline_product_panel.setObjectName('ProductionOrderInlineQuickProductPanel')
         self.inline_warehouse_panel = InlineQuickCreatePanel('warehouse', self)
         self.inline_warehouse_panel.setObjectName('ProductionOrderInlineQuickWarehousePanel')
-        header.addWidget(self.inline_product_panel)
-        header.addWidget(self.inline_warehouse_panel)
+        # Phase467: floating quick-create panels are not added to the production header layout.
         root.addWidget(self.header_card)
 
         grid_card = QFrame(self)

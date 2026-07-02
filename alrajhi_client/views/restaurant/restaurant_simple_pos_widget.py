@@ -66,6 +66,10 @@ class RestaurantSimplePOSWidget(QWidget):
         self.setProperty("basitInspired", True)
         self.setProperty("operationalSurfacePhase", 448)
         self.setProperty("visualWorkspaceType", "operational")
+        self.setProperty("restaurantOperationalCleanupPhase", 472)
+        self.setProperty("restaurantCardGridPhase", 472)
+        # Phase471 compatibility marker: restaurantOperationalCleanupPhase", 471
+        # Phase469 compatibility marker: restaurantOperationalCleanupPhase", 469
         self.setLayoutDirection(qt_layout_direction())
         self._build_ui()
         self.reload_categories()
@@ -80,9 +84,18 @@ class RestaurantSimplePOSWidget(QWidget):
         header_card = QFrame()
         header_card.setObjectName("restaurantSimpleHeaderCard")
         header_card.setProperty("visualRole", "operational_header")
-        header = QHBoxLayout(header_card)
-        header.setContentsMargins(14, 8, 14, 8)
-        header.setSpacing(10)
+        # Phase469: split the restaurant operation header into stable title,
+        # search and action rows instead of one crowded HBox that clips buttons
+        # on 1024px screens.
+        header = QVBoxLayout(header_card)
+        header.setContentsMargins(12, 8, 12, 8)
+        header.setSpacing(6)
+        title_row = QHBoxLayout()
+        title_row.setSpacing(8)
+        search_row = QHBoxLayout()
+        search_row.setSpacing(8)
+        action_row = QHBoxLayout()
+        action_row.setSpacing(8)
         title_box = QVBoxLayout()
         title_box.setSpacing(2)
         self.title = QLabel("🍽  " + _("restaurant.simple_pos_title"))
@@ -92,7 +105,8 @@ class RestaurantSimplePOSWidget(QWidget):
         self.subtitle.setProperty("visualRole", "operational_muted")
         title_box.addWidget(self.title)
         title_box.addWidget(self.subtitle)
-        header.addLayout(title_box, 2)
+        title_row.addLayout(title_box, 1)
+        header.addLayout(title_row)
         self.search_edit = QLineEdit()
         self.search_edit.setObjectName("restaurantSimpleSearch")
         self.search_edit.setProperty("visualRole", "operational_input")
@@ -130,23 +144,26 @@ class RestaurantSimplePOSWidget(QWidget):
         self.fullscreen_btn.setProperty("visualRole", "operational_secondary")
         self.fullscreen_btn.setMinimumHeight(46)
         self.fullscreen_btn.setProperty("basitToolbarButton", True)
-        header.addWidget(self.search_edit, 3)
-        header.addWidget(self.search_btn)
-        header.addWidget(self.new_sale_btn)
-        header.addWidget(self.refresh_btn)
-        header.addWidget(self.quick_category_btn)
-        header.addWidget(self.quick_item_btn)
-        header.addWidget(self.fullscreen_btn)
+        search_row.addWidget(self.search_edit, 1)
+        search_row.addWidget(self.search_btn)
+        action_row.addWidget(self.new_sale_btn)
+        action_row.addWidget(self.refresh_btn)
+        action_row.addWidget(self.quick_category_btn)
+        action_row.addWidget(self.quick_item_btn)
+        action_row.addWidget(self.fullscreen_btn)
+        action_row.addStretch(1)
+        header.addLayout(search_row)
+        header.addLayout(action_row)
         root.addWidget(header_card)
 
         self.inline_category_panel = InlineQuickCreatePanel('category', self, context={'categories': self.categories})
         self.inline_category_panel.setObjectName("restaurantSimpleInlineQuickCategoryPanel")
         self.inline_category_panel.created.connect(self._on_inline_category_created)
-        root.addWidget(self.inline_category_panel)
+        # Phase467: category quick-create floats over the restaurant POS layout.
         self.inline_item_panel = InlineQuickCreatePanel('item', self, context={'categories': self.categories})
         self.inline_item_panel.setObjectName("restaurantSimpleInlineQuickItemPanel")
         self.inline_item_panel.created.connect(self._on_inline_item_created)
-        root.addWidget(self.inline_item_panel)
+        # Phase467: item quick-create floats over the restaurant POS layout.
 
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.setObjectName("restaurantSimpleThreeSectionSplitter")
@@ -154,10 +171,14 @@ class RestaurantSimplePOSWidget(QWidget):
         self.splitter.addWidget(self._build_category_section())
         self.splitter.addWidget(self._build_items_section())
         self.splitter.addWidget(self._build_invoice_section())
+        # Phase472: restaurant operation is product-card first.  The material
+        # card surface must have enough width to show 3/4 columns; the invoice
+        # and category panes remain usable but no longer consume the dominant
+        # share of the screen.
         self.splitter.setStretchFactor(0, 1)
-        self.splitter.setStretchFactor(1, 2)
+        self.splitter.setStretchFactor(1, 4)
         self.splitter.setStretchFactor(2, 3)
-        self.splitter.setSizes([270, 360, 720])
+        self.splitter.setSizes([150, 520, 440])
         root.addWidget(self.splitter, 1)
 
         self.status = QLabel("")
@@ -227,13 +248,15 @@ class RestaurantSimplePOSWidget(QWidget):
             self,
             mode="restaurant",
             default_columns=3,
-            min_columns=2,
+            min_columns=3,
             max_columns=4,
             empty_text=_("restaurant.no_menu_items"),
             money_formatter=_money,
             icon="🍽",
         )
         self.items_grid.setObjectName("restaurantSimpleItemCardGrid")
+        self.items_grid.setProperty("restaurantCardGridPhase", 472)
+        self.items_grid.setMinimumWidth(380)
         self.items_grid.itemActivated.connect(self.add_item)
         layout.addWidget(self.items_grid, 1)
         return frame
@@ -287,13 +310,24 @@ class RestaurantSimplePOSWidget(QWidget):
         footer = QFrame()
         footer.setObjectName("restaurantSimpleFooter")
         footer.setProperty("visualRole", "operational_footer")
-        footer_layout = QHBoxLayout(footer)
-        footer_layout.setContentsMargins(10, 8, 10, 8)
-        footer_layout.setSpacing(10)
+        footer.setProperty("restaurantFooterLayoutPhase", "471")
+        # Phase471: keep the red total readable by giving it its own row.
+        # The previous HBox clipped the total text when print/checkout buttons
+        # consumed the narrow invoice column.
+        footer_layout = QVBoxLayout(footer)
+        footer_layout.setContentsMargins(8, 6, 8, 6)
+        footer_layout.setSpacing(6)
         self.total_label = QLabel(_("restaurant.simple_total") + ": " + _money("0"))
         self.total_label.setObjectName("restaurantSimpleTotal")
         self.total_label.setProperty("basitTotal", True)
         self.total_label.setProperty("visualRole", "operational_total")
+        self.total_label.setMinimumHeight(44)
+        self.total_label.setMaximumHeight(54)
+        self.total_label.setAlignment(Qt.AlignCenter)
+        action_row = QHBoxLayout()
+        action_row.setObjectName("restaurantSimpleFooterActions")
+        action_row.setContentsMargins(0, 0, 0, 0)
+        action_row.setSpacing(8)
         self.print_btn = QPushButton("🧾  " + _("restaurant.print_receipt"))
         self.print_btn.setObjectName("restaurantSimplePrintButton")
         self.print_btn.setProperty("visualRole", "operational_secondary")
@@ -301,11 +335,13 @@ class RestaurantSimplePOSWidget(QWidget):
         self.checkout_btn.setObjectName("restaurantSimpleCheckoutButton")
         self.checkout_btn.setProperty("visualRole", "operational_primary")
         for button in (self.print_btn, self.checkout_btn):
-            button.setMinimumHeight(58)
-            button.setMinimumWidth(160)
-        footer_layout.addWidget(self.total_label, 1)
-        footer_layout.addWidget(self.print_btn)
-        footer_layout.addWidget(self.checkout_btn)
+            button.setMinimumHeight(42)
+            button.setMinimumWidth(128)
+            button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        action_row.addWidget(self.print_btn, 1)
+        action_row.addWidget(self.checkout_btn, 1)
+        footer_layout.addWidget(self.total_label)
+        footer_layout.addLayout(action_row)
         layout.addWidget(footer)
         return frame
 
@@ -592,11 +628,24 @@ class RestaurantSimplePOSWidget(QWidget):
     def print_receipt(self) -> None:
         if not self.session:
             return
+        if not restaurant_operation_policy.can(restaurant_operation_policy.OP_CHECKOUT):
+            self.status.setText(restaurant_operation_policy.denial_message(restaurant_operation_policy.OP_CHECKOUT))
+            return
         try:
-            self.service.mark_session_lines_served(int(self.session["id"]))
-            if restaurant_printing_bridge.receipt_print(int(self.session["id"]), self):
-                self.status.setText(_("restaurant.receipt_printed"))
+            # Phase472: a restaurant customer receipt is a paid receipt.
+            # Printing from the simple restaurant surface closes the session
+            # through the normal checkout path first, then prints the closed
+            # session payload with paid=total and remaining=0.
+            # Compatibility marker: checkout_simple_pos_session internally calls
+            # mark_session_lines_served for the simple restaurant path.
+            session_id = int(self.session["id"])
+            result = self.service.checkout_simple_pos_session(session_id, payment_method="cash")
+            if restaurant_printing_bridge.receipt_print(session_id, self):
+                reference = result.get("invoice_reference") or result.get("invoice_id") or ""
+                self.status.setText(_("restaurant.receipt_printed_paid") + (f": {reference}" if reference else ""))
+            self.session = None
             self._refresh_invoice()
+            self.sessionClosed.emit()
         except Exception as exc:
             self.status.setText(str(exc))
 

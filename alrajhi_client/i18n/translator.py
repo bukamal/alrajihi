@@ -2601,6 +2601,15 @@ def translate(key: str, **kwargs) -> str:
     text = _translations.get(_current_lang, {}).get(key)
     if text is None:
         text = _translations.get(DEFAULT_LANGUAGE, {}).get(key, key)
+    # Phase468: tolerate the historic page_of placeholder split.  Some widgets
+    # pass pages=total_pages while older translations used {total}; others pass
+    # total while newer translations use {pages}.  Normalize both names so the
+    # UI never leaks raw {page}/{total}/{pages} tokens.
+    if key == 'page_of':
+        if 'pages' in kwargs and 'total' not in kwargs:
+            kwargs['total'] = kwargs.get('pages')
+        if 'total' in kwargs and 'pages' not in kwargs:
+            kwargs['pages'] = kwargs.get('total')
     if kwargs:
         try:
             return text.format(**kwargs)
@@ -3513,6 +3522,10 @@ _translations['ar'].update({
     'restaurant.payment_recorded': 'تم تسجيل الدفعة',
     'restaurant.paid': 'المدفوع',
     'restaurant.remaining': 'المتبقي',
+    'restaurant.receipt_payment_status': 'حالة الدفع',
+    'restaurant.receipt_paid': 'مدفوع',
+    'restaurant.receipt_unpaid': 'غير مدفوع',
+    'restaurant.receipt_printed_paid': 'تمت طباعة إيصال مدفوع',
     'payment.cash': 'نقدي',
     'payment.card': 'بطاقة',
     'payment.bank': 'تحويل/بنك',
@@ -3522,6 +3535,10 @@ _translations['de'].update({
     'restaurant.payment_recorded': 'Zahlung wurde gebucht',
     'restaurant.paid': 'Bezahlt',
     'restaurant.remaining': 'Offen',
+    'restaurant.receipt_payment_status': 'Zahlungsstatus',
+    'restaurant.receipt_paid': 'Bezahlt',
+    'restaurant.receipt_unpaid': 'Unbezahlt',
+    'restaurant.receipt_printed_paid': 'Bezahlter Beleg wurde gedruckt',
     'payment.cash': 'Bar',
     'payment.card': 'Karte',
     'payment.bank': 'Bank/Überweisung',
@@ -3531,6 +3548,10 @@ _translations['en'].update({
     'restaurant.payment_recorded': 'Payment recorded',
     'restaurant.paid': 'Paid',
     'restaurant.remaining': 'Remaining',
+    'restaurant.receipt_payment_status': 'Payment status',
+    'restaurant.receipt_paid': 'Paid',
+    'restaurant.receipt_unpaid': 'Unpaid',
+    'restaurant.receipt_printed_paid': 'Paid receipt printed',
     'payment.cash': 'Cash',
     'payment.card': 'Card',
     'payment.bank': 'Bank transfer',
@@ -8073,6 +8094,8 @@ _FR_KEY_OVERRIDES = {
     'transaction_column_previous_return': 'Retour précédent', 'transaction_column_returnable': 'Retournable',
     'transaction_column_return_qty': 'Quantité retournée', 'transaction_column_reason': 'Motif',
     'manufacturing': 'Fabrication', 'restaurant.dashboard': 'Tableau de bord restaurant',
+    'restaurant.receipt_payment_status': 'État du paiement', 'restaurant.receipt_paid': 'Payé',
+    'restaurant.receipt_unpaid': 'Non payé', 'restaurant.receipt_printed_paid': 'Reçu payé imprimé',
     'restaurant.kitchen_display': 'Écran cuisine', 'workspace.quick_open': 'Ouverture rapide',
     'workspace.recent_tabs': 'Onglets récents', 'workspace.favorites': 'Favoris',
     'category.operation.restore': 'Restaurer une catégorie', 'category.operation.archive': 'Archiver une catégorie',
@@ -9161,3 +9184,30 @@ def load_translations():
         _phase463_load_in_progress = False
 
 _phase463_apply_inline_quick_create_inventory_manufacturing_keys()
+
+
+# Phase468: material/list workspace key-leak cleanup.
+_translations['ar'].update({
+    'row_density': 'كثافة الصفوف',
+    'density_compact': 'مضغوط',
+    'density_comfortable': 'مريح',
+    'density_touch': 'لمس',
+})
+_translations['de'].update({
+    'row_density': 'Zeilendichte',
+    'density_compact': 'Kompakt',
+    'density_comfortable': 'Komfortabel',
+    'density_touch': 'Touch',
+})
+_translations['en'].update({
+    'row_density': 'Row density',
+    'density_compact': 'Compact',
+    'density_comfortable': 'Comfortable',
+    'density_touch': 'Touch',
+})
+_translations['fr'].update({
+    'row_density': 'Densité des lignes',
+    'density_compact': 'Compacte',
+    'density_comfortable': 'Confortable',
+    'density_touch': 'Tactile',
+})

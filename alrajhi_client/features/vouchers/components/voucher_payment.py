@@ -71,8 +71,8 @@ class VoucherPaymentPanel(QWidget):
 
         self.quick_cashbox_btn = self._quick_button('cashbox', tr('inline_quick_create_cashbox_tooltip'))
         self.quick_bank_btn = self._quick_button('bank_account', tr('inline_quick_create_bank_account_tooltip'))
-        self.quick_cashbox_btn.clicked.connect(lambda *_: self.quick_cashbox_panel.toggle_panel())
-        self.quick_bank_btn.clicked.connect(lambda *_: self.quick_bank_panel.toggle_panel())
+        self.quick_cashbox_btn.clicked.connect(self.quick_cashbox_panel.toggle_panel)
+        self.quick_bank_btn.clicked.connect(self.quick_bank_panel.toggle_panel)
         self.cashbox_field = self._combo_with_inline_button('VoucherCashboxInlineCreateField', self.cashbox_combo, self.quick_cashbox_btn)
         self.bank_field = self._combo_with_inline_button('VoucherBankInlineCreateField', self.bank_combo, self.quick_bank_btn)
 
@@ -85,13 +85,13 @@ class VoucherPaymentPanel(QWidget):
         self.quick_cashbox_panel.setObjectName('VoucherInlineQuickCashboxPanel')
         self.quick_cashbox_panel.created.connect(self._on_inline_payment_target_created)
         self.quick_cashbox_panel.setVisible(False)
-        layout.addWidget(self.quick_cashbox_panel, 2, 0, 1, 4)
+        # Phase467: cashbox quick-create floats above the payment form.
 
         self.quick_bank_panel = InlineQuickCreatePanel('bank_account', self)
         self.quick_bank_panel.setObjectName('VoucherInlineQuickBankAccountPanel')
         self.quick_bank_panel.created.connect(self._on_inline_payment_target_created)
         self.quick_bank_panel.setVisible(False)
-        layout.addWidget(self.quick_bank_panel, 3, 0, 1, 4)
+        # Phase467: bank-account quick-create floats above the payment form.
 
         self.amount_spin.valueChanged.connect(lambda *_: self.changed.emit())
         self.payment_method_combo.currentIndexChanged.connect(lambda *_: (self.update_payment_visibility(), self.changed.emit()))

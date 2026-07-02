@@ -246,11 +246,11 @@ class RestaurantDashboard(QWidget):
         self.inline_category_panel = InlineQuickCreatePanel('category', self)
         self.inline_category_panel.setObjectName("restaurantDashboardInlineQuickCategoryPanel")
         self.inline_category_panel.created.connect(self._on_inline_category_created)
-        layout.addWidget(self.inline_category_panel)
+        # Phase467: category quick-create floats over the restaurant dashboard.
         self.inline_item_panel = InlineQuickCreatePanel('item', self)
         self.inline_item_panel.setObjectName("restaurantDashboardInlineQuickItemPanel")
         self.inline_item_panel.created.connect(self._on_inline_item_created)
-        layout.addWidget(self.inline_item_panel)
+        # Phase467: item quick-create floats over the restaurant dashboard.
 
         self.table_ops_card = QFrame()
         self.table_ops_card.setObjectName("restaurantTableOperationsBar")

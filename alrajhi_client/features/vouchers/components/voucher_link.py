@@ -72,8 +72,8 @@ class VoucherLinkPanel(QWidget):
 
         self.quick_customer_btn = self._quick_button('customer', tr('inline_quick_create_customer_tooltip'))
         self.quick_supplier_btn = self._quick_button('supplier', tr('inline_quick_create_supplier_tooltip'))
-        self.quick_customer_btn.clicked.connect(lambda *_: self.quick_customer_panel.toggle_panel())
-        self.quick_supplier_btn.clicked.connect(lambda *_: self.quick_supplier_panel.toggle_panel())
+        self.quick_customer_btn.clicked.connect(self.quick_customer_panel.toggle_panel)
+        self.quick_supplier_btn.clicked.connect(self.quick_supplier_panel.toggle_panel)
 
         self.customer_field = self._combo_with_inline_button('VoucherCustomerInlineCreateField', self.customer_combo, self.quick_customer_btn)
         self.supplier_field = self._combo_with_inline_button('VoucherSupplierInlineCreateField', self.supplier_combo, self.quick_supplier_btn)
@@ -86,13 +86,13 @@ class VoucherLinkPanel(QWidget):
         self.quick_customer_panel.setObjectName('VoucherInlineQuickCustomerPanel')
         self.quick_customer_panel.created.connect(self._on_inline_party_created)
         self.quick_customer_panel.setVisible(False)
-        layout.addWidget(self.quick_customer_panel, 1, 0, 1, 4)
+        # Phase467: customer quick-create floats above the voucher form.
 
         self.quick_supplier_panel = InlineQuickCreatePanel('supplier', self)
         self.quick_supplier_panel.setObjectName('VoucherInlineQuickSupplierPanel')
         self.quick_supplier_panel.created.connect(self._on_inline_party_created)
         self.quick_supplier_panel.setVisible(False)
-        layout.addWidget(self.quick_supplier_panel, 2, 0, 1, 4)
+        # Phase467: supplier quick-create floats above the voucher form.
 
         self.customer_combo.currentIndexChanged.connect(lambda *_: (self.update_invoice_list(), self.changed.emit()))
         self.supplier_combo.currentIndexChanged.connect(lambda *_: (self.update_invoice_list(), self.changed.emit()))

@@ -568,13 +568,14 @@ class RestaurantPOSWidget(QWidget):
             self,
             mode="restaurant",
             default_columns=3,
-            min_columns=2,
+            min_columns=3,
             max_columns=4,
             empty_text=_("restaurant.no_menu_items"),
             money_formatter=_display_money,
             icon="🍽",
         )
         self.menu_scroll.setObjectName("restaurantMenuOperationalItemCardGrid")
+        self.menu_scroll.setProperty("restaurantCardGridPhase", 472)
         self.menu_scroll.itemActivated.connect(self.add_menu_item)
         self.menu_scroll.setMinimumHeight(168)
         self.menu_scroll.setMaximumHeight(260)
@@ -1121,9 +1122,21 @@ class RestaurantPOSWidget(QWidget):
             return
         if not self._require_restaurant_operation(restaurant_operation_policy.OP_PRINT_RECEIPT):
             return
+        if not self._require_restaurant_operation(restaurant_operation_policy.OP_CHECKOUT):
+            return
         try:
-            if restaurant_printing_bridge.receipt_print(int(self.session["id"]), self):
-                self.status.setText(_("restaurant.receipt_printed"))
+            # Phase472: receipt printing from restaurant operation surfaces
+            # represents a paid customer receipt, not an unpaid preview.  Close
+            # the current session as cash-paid before delegating to the unified
+            # restaurant receipt printer.
+            session_id = int(self.session["id"])
+            result = self.service.checkout_simple_pos_session(session_id, payment_method="cash")
+            if restaurant_printing_bridge.receipt_print(session_id, self):
+                reference = result.get("invoice_reference") or result.get("invoice_id") or ""
+                self.status.setText(_("restaurant.receipt_printed_paid") + (f": {reference}" if reference else ""))
+            self.session = None
+            self.load_session(None)
+            self.sessionClosed.emit()
         except Exception as exc:
             self.status.setText(str(exc))
 
