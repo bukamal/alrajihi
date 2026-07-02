@@ -116,6 +116,22 @@ QUICK_CREATE_DEFINITIONS: Dict[str, QuickCreateDefinition] = {
             QuickCreateField("notes", "notes_label", "text_edit", False, "optional_short_description"),
         ),
     ),
+
+    "warehouse": QuickCreateDefinition(
+        entity_type="warehouse",
+        title_key="inline_quick_create_warehouse_title",
+        subtitle_key="inline_quick_create_warehouse_subtitle",
+        mode="card",
+        permission_policy="inventory_operation_policy",
+        permission_operation="warehouse_create",
+        fields=(
+            QuickCreateField("name", "warehouse_name_label", "line_edit", True, "warehouse_name_placeholder"),
+            QuickCreateField("code", "warehouse_code_label", "line_edit", False, "warehouse_code_placeholder"),
+            QuickCreateField("branch_id", "branch_label", "combo", False),
+            QuickCreateField("location", "warehouse_location_label", "line_edit", False, "warehouse_location_placeholder"),
+            QuickCreateField("notes", "notes_label", "text_edit", False, "optional_short_description"),
+        ),
+    ),
     "item": QuickCreateDefinition(
         entity_type="item",
         title_key="inline_quick_create_item_title",

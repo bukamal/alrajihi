@@ -52,6 +52,11 @@ class SystemGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def reset_runtime_connection(self) -> None:
+        """Force runtime database/gateway settings to be re-read after network changes."""
+        raise NotImplementedError
+
+    @abstractmethod
     def run_health_checks(self) -> Dict[str, object]:
         raise NotImplementedError
 

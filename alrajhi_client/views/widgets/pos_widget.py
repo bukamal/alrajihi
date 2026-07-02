@@ -36,6 +36,7 @@ from ui.runtime_layout_reconstruction import apply_runtime_layout_reconstruction
 from ui.targeted_screen_rebuild import apply_targeted_screen_rebuild
 from ui.single_screen_runtime_hardening import apply_single_screen_runtime_hardening
 from ui.runtime_visual_regression_gate import apply_runtime_visual_regression_gate
+from ui.inline_quick_create import InlineQuickCreatePanel, quick_create_can
 
 
 class POSWidget(QWidget):
@@ -157,6 +158,14 @@ class POSWidget(QWidget):
         self._load_cashboxes()
         self.cashbox_combo.currentIndexChanged.connect(self.on_cashbox_changed)
         operation_row.addWidget(self.cashbox_combo, 1)
+        self.quick_cashbox_btn = QPushButton("+")
+        self.quick_cashbox_btn.setObjectName("POSInlineQuickCashboxButton")
+        self.quick_cashbox_btn.setToolTip(translate("inline_quick_create_cashbox_tooltip"))
+        self.quick_cashbox_btn.setProperty("visualRole", "operational_secondary")
+        self.quick_cashbox_btn.setMinimumHeight(44)
+        self.quick_cashbox_btn.setVisible(quick_create_can('cashbox'))
+        self.quick_cashbox_btn.clicked.connect(self.toggle_inline_cashbox_create)
+        operation_row.addWidget(self.quick_cashbox_btn)
         self.shift_label = QLabel(translate("no_open_shift"))
         self.shift_label.setObjectName("muted")
         self.shift_label.setProperty("visualRole", "operational_muted")
@@ -170,6 +179,10 @@ class POSWidget(QWidget):
         operation_row.addWidget(self.open_shift_btn)
         operation_row.addWidget(self.close_shift_btn)
         layout.addWidget(operation_frame)
+        self.inline_cashbox_panel = InlineQuickCreatePanel('cashbox', self)
+        self.inline_cashbox_panel.setObjectName("POSInlineQuickCashboxPanel")
+        self.inline_cashbox_panel.created.connect(self._on_inline_cashbox_created)
+        layout.addWidget(self.inline_cashbox_panel)
         self._shift_row_widgets = [self.shift_label, self.open_shift_btn, self.close_shift_btn]
         self._apply_shift_mode_visibility()
 
@@ -201,7 +214,21 @@ class POSWidget(QWidget):
         self.camera_btn.setProperty("visualRole", "operational_secondary")
         self.camera_btn.clicked.connect(self.scan_with_camera)
         scan_row.addWidget(self.camera_btn)
+
+        self.quick_item_btn = QPushButton("+ " + translate("item"))
+        self.quick_item_btn.setObjectName("POSInlineQuickItemButton")
+        self.quick_item_btn.setToolTip(translate("inline_quick_create_pos_item_tooltip"))
+        self.quick_item_btn.setProperty("visualRole", "operational_secondary")
+        self.quick_item_btn.setMinimumHeight(44)
+        self.quick_item_btn.setVisible(quick_create_can('item'))
+        self.quick_item_btn.clicked.connect(self.toggle_inline_item_create)
+        scan_row.addWidget(self.quick_item_btn)
         layout.addWidget(scan_frame)
+
+        self.inline_item_panel = InlineQuickCreatePanel('item', self)
+        self.inline_item_panel.setObjectName("POSInlineQuickItemPanel")
+        self.inline_item_panel.created.connect(self._on_inline_item_created)
+        layout.addWidget(self.inline_item_panel)
 
         # Phase430 static contract marker: layout.addLayout(scan_row)
         # Phase430: POS is barcode/table-first. Material cards stay in Restaurant/Cafe only.
@@ -260,6 +287,44 @@ class POSWidget(QWidget):
         apply_single_screen_runtime_hardening(self, page_id='pos', workspace_type='operational')
         apply_runtime_visual_regression_gate(self, page_id='pos', workspace_type='operational')
 
+
+
+    def toggle_inline_cashbox_create(self):
+        self.inline_cashbox_panel.toggle_panel()
+
+    def toggle_inline_item_create(self):
+        self.inline_item_panel.set_context()
+        self.inline_item_panel.toggle_panel()
+
+    def _on_inline_cashbox_created(self, entity_type, result):
+        target_id = result.get('id')
+        previous_id = self._selected_cashbox_id()
+        has_lines = bool(getattr(self, 'cart', None) and getattr(self.cart, 'lines', None))
+        try:
+            self.cashbox_combo.blockSignals(True)
+            self._load_cashboxes()
+            select_id = previous_id if has_lines and previous_id else target_id
+            idx = self.cashbox_combo.findData(select_id)
+            if idx >= 0:
+                self.cashbox_combo.setCurrentIndex(idx)
+        finally:
+            self.cashbox_combo.blockSignals(False)
+        if has_lines and target_id and str(target_id) != str(previous_id or ''):
+            self.status_label.setText(translate('inline_quick_create_cashbox_created_select_after_clear'))
+        else:
+            self.cart = pos_service.new_cart(self._selected_warehouse_id(), self._selected_cashbox_id())
+            self.refresh_cart()
+        self.refresh_shift_state()
+        self._focus_barcode_input()
+
+    def _on_inline_item_created(self, entity_type, result):
+        barcode = str(result.get('barcode') or '').strip()
+        if barcode:
+            self.barcode_input.setText(barcode)
+            self.add_barcode_to_cart(barcode, mode='manual')
+        else:
+            self.status_label.setText(translate('inline_quick_create_item_created_scan_or_search'))
+            self._focus_barcode_input()
 
 
 

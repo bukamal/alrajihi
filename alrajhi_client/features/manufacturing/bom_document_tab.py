@@ -14,12 +14,13 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QShortcut
 
 from core.offline_guard import is_offline_read_error, offline_read_message
-from core.item_types import is_finished_product
+from core.item_types import FINISHED_PRODUCT, is_finished_product
 from core.services.barcode_input_service import barcode_input_service
 from core.services.catalog_service import catalog_service
 from core.services.manufacturing_operation_policy import manufacturing_operation_policy
 from core.services.manufacturing_service import manufacturing_service
 from features.manufacturing.manufacturing_printing_bridge import manufacturing_printing_bridge
+from ui.inline_quick_create import InlineQuickCreatePanel, quick_create_can
 from features.dialog_documents import DialogDocumentTab
 from features.manufacturing.components.bom_summary_panel import BomSummaryPanel
 from features.manufacturing.grids.bom_components_grid import BomComponentsGrid
@@ -120,14 +121,26 @@ class BomDocumentTab(BaseDocumentTab):
         self.search_edit = QLineEdit(self)
         self.search_edit.setPlaceholderText(translate('manufacturing_component_search_placeholder'))
         self.add_component_btn = QPushButton(translate('add_component'))
+        self.add_product_quick_btn = QPushButton('+', self); self.add_product_quick_btn.setObjectName('BomInlineQuickProductButton')
+        self.add_product_quick_btn.setToolTip(translate('inline_quick_create_finished_product_tooltip'))
+        self.add_component_quick_btn = QPushButton('+', self); self.add_component_quick_btn.setObjectName('BomInlineQuickComponentButton')
+        self.add_component_quick_btn.setToolTip(translate('inline_quick_create_component_item_tooltip'))
+        product_box = QHBoxLayout(); product_box.setContentsMargins(0, 0, 0, 0); product_box.addWidget(self.product_combo, 1); product_box.addWidget(self.add_product_quick_btn)
+        component_box = QHBoxLayout(); component_box.setContentsMargins(0, 0, 0, 0); component_box.addWidget(self.search_edit, 1); component_box.addWidget(self.add_component_quick_btn)
         meta.addWidget(QLabel(translate('finished_product')), 0, 0)
-        meta.addWidget(self.product_combo, 0, 1)
+        meta.addLayout(product_box, 0, 1)
         meta.addWidget(QLabel(translate('quantity_per_unit')), 0, 2)
         meta.addWidget(self.qty_spin, 0, 3)
         meta.addWidget(QLabel(translate('manufacturing_component_lookup')), 1, 0)
-        meta.addWidget(self.search_edit, 1, 1, 1, 2)
+        meta.addLayout(component_box, 1, 1, 1, 2)
         meta.addWidget(self.add_component_btn, 1, 3)
         header_layout.addLayout(meta)
+        self.inline_product_panel = InlineQuickCreatePanel('item', self, context={'item_type': FINISHED_PRODUCT})
+        self.inline_product_panel.setObjectName('BomInlineQuickProductPanel')
+        self.inline_component_panel = InlineQuickCreatePanel('item', self)
+        self.inline_component_panel.setObjectName('BomInlineQuickComponentPanel')
+        header_layout.addWidget(self.inline_product_panel)
+        header_layout.addWidget(self.inline_component_panel)
         root.addWidget(self.header_card)
 
         self.grid = BomComponentsGrid(self.columns, self, identity='manufacturing.bom.components')
@@ -175,6 +188,10 @@ class BomDocumentTab(BaseDocumentTab):
         self.print_btn = self.bottom_print_btn
         self.add_component_btn.clicked.connect(self._add_component_from_search)
         self.search_edit.returnPressed.connect(self._add_component_from_search)
+        self.add_product_quick_btn.clicked.connect(self.inline_product_panel.toggle_panel)
+        self.add_component_quick_btn.clicked.connect(self.inline_component_panel.toggle_panel)
+        self.inline_product_panel.created.connect(self._on_inline_product_created)
+        self.inline_component_panel.created.connect(self._on_inline_component_created)
         self.add_empty_btn.clicked.connect(self._add_empty_component_line)
         self.remove_component_btn.clicked.connect(self._remove_selected_component)
         self.cancel_btn.clicked.connect(self._close_parent_tab)
@@ -184,6 +201,28 @@ class BomDocumentTab(BaseDocumentTab):
         self.model.rowsRemoved.connect(lambda *args: self._on_model_changed())
 
         self.setProperty('documentLocalStylesSuppressed', True)
+
+    def _select_combo_data(self, combo: QComboBox, value) -> None:
+        for index in range(combo.count()):
+            if str(combo.itemData(index)) == str(value):
+                combo.setCurrentIndex(index)
+                return
+
+    def _on_inline_product_created(self, entity_type: str, result: dict) -> None:
+        target_id = result.get('id')
+        self._load_products()
+        if target_id is not None:
+            self._select_combo_data(self.product_combo, target_id)
+        self.set_dirty(True)
+        self._refresh_summary()
+
+    def _on_inline_component_created(self, entity_type: str, result: dict) -> None:
+        token = result.get('barcode') or result.get('name') or ''
+        self.search_edit.setText(str(token))
+        if result.get('barcode'):
+            self._add_component_from_search()
+        else:
+            show_toast(translate('inline_quick_create_item_created_search_to_add'), 'info', self)
 
     def _connect_dirty_signals(self) -> None:
         self.product_combo.currentIndexChanged.connect(lambda *_: self.set_dirty(True))
@@ -201,6 +240,8 @@ class BomDocumentTab(BaseDocumentTab):
         )
         self.bottom_save_btn.setEnabled(can_save)
         self.add_component_btn.setEnabled(can_save)
+        self.add_product_quick_btn.setEnabled(can_save and quick_create_can('item'))
+        self.add_component_quick_btn.setEnabled(can_save and quick_create_can('item'))
         self.add_empty_btn.setEnabled(can_save)
         self.remove_component_btn.setEnabled(can_save)
         self.grid.setEnabled(can_save)

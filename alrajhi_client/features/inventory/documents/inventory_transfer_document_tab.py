@@ -14,6 +14,7 @@ from core.services.catalog_service import catalog_service
 from core.services.inventory_operation_policy import inventory_operation_policy
 from core.services.warehouse_service import warehouse_service
 from features.inventory.inventory_printing_bridge import inventory_printing_bridge
+from ui.inline_quick_create import InlineQuickCreatePanel, quick_create_can
 from features.inventory.grids.inventory_transfer_grid import InventoryTransferGrid
 from features.inventory.grids.inventory_transfer_lines_model import InventoryTransferLinesModel
 from features.inventory.grids.inventory_transfer_schema import inventory_transfer_lines_schema
@@ -31,6 +32,7 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         super().__init__('warehouse_transfer', document_id=None, parent=parent)
         self.columns = inventory_transfer_lines_schema()
         self.model = InventoryTransferLinesModel(self.columns, self)
+        self._inline_warehouse_target = 'to'
         self._build_ui()
         self._load_warehouses()
         self.model.add_empty_line()
@@ -60,11 +62,27 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         self.lookup_edit = QLineEdit(self); self.lookup_edit.setPlaceholderText(translate('inventory_transfer_lookup_placeholder'))
         self.lookup_qty = QDoubleSpinBox(self); self.lookup_qty.setRange(0.0001, 999999999); self.lookup_qty.setDecimals(4); self.lookup_qty.setValue(1)
         self.add_line_btn = QPushButton(translate('add_line'))
-        meta.addWidget(QLabel(translate('from_warehouse_clean')), 0, 0); meta.addWidget(self.from_combo, 0, 1)
-        meta.addWidget(QLabel(translate('to_warehouse_clean')), 0, 2); meta.addWidget(self.to_combo, 0, 3)
-        meta.addWidget(QLabel(translate('inventory_transfer_lookup')), 1, 0); meta.addWidget(self.lookup_edit, 1, 1, 1, 2)
+        self.add_from_warehouse_btn = QPushButton('+', self); self.add_from_warehouse_btn.setObjectName('InventoryTransferInlineQuickFromWarehouseButton')
+        self.add_from_warehouse_btn.setToolTip(translate('inline_quick_create_warehouse_tooltip'))
+        self.add_to_warehouse_btn = QPushButton('+', self); self.add_to_warehouse_btn.setObjectName('InventoryTransferInlineQuickToWarehouseButton')
+        self.add_to_warehouse_btn.setToolTip(translate('inline_quick_create_warehouse_tooltip'))
+        self.add_item_quick_btn = QPushButton('+', self); self.add_item_quick_btn.setObjectName('InventoryTransferInlineQuickItemButton')
+        self.add_item_quick_btn.setToolTip(translate('inline_quick_create_inventory_item_tooltip'))
+        from_box = QHBoxLayout(); from_box.setContentsMargins(0, 0, 0, 0); from_box.addWidget(self.from_combo, 1); from_box.addWidget(self.add_from_warehouse_btn)
+        to_box = QHBoxLayout(); to_box.setContentsMargins(0, 0, 0, 0); to_box.addWidget(self.to_combo, 1); to_box.addWidget(self.add_to_warehouse_btn)
+        lookup_box = QHBoxLayout(); lookup_box.setContentsMargins(0, 0, 0, 0); lookup_box.addWidget(self.lookup_edit, 1); lookup_box.addWidget(self.add_item_quick_btn)
+        meta.addWidget(QLabel(translate('from_warehouse_clean')), 0, 0); meta.addLayout(from_box, 0, 1)
+        meta.addWidget(QLabel(translate('to_warehouse_clean')), 0, 2); meta.addLayout(to_box, 0, 3)
+        meta.addWidget(QLabel(translate('inventory_transfer_lookup')), 1, 0); meta.addLayout(lookup_box, 1, 1, 1, 2)
         meta.addWidget(self.lookup_qty, 1, 3); meta.addWidget(self.add_line_btn, 1, 4)
-        header_layout.addLayout(meta); root.addWidget(header)
+        header_layout.addLayout(meta)
+        self.inline_warehouse_panel = InlineQuickCreatePanel('warehouse', self)
+        self.inline_warehouse_panel.setObjectName('InventoryTransferInlineQuickWarehousePanel')
+        self.inline_item_panel = InlineQuickCreatePanel('item', self)
+        self.inline_item_panel.setObjectName('InventoryTransferInlineQuickItemPanel')
+        header_layout.addWidget(self.inline_warehouse_panel)
+        header_layout.addWidget(self.inline_item_panel)
+        root.addWidget(header)
 
         self.grid = InventoryTransferGrid(self.columns, self, identity='inventory.transfer.lines')
         self.grid.setModel(self.model)
@@ -99,12 +117,41 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         self.bottom_print_btn.clicked.connect(self.workspace_print)
         self.save_btn = self.bottom_save_btn; self.print_btn = self.bottom_print_btn
         self.add_line_btn.clicked.connect(self._add_line_from_lookup); self.lookup_edit.returnPressed.connect(self._add_line_from_lookup)
+        self.add_from_warehouse_btn.clicked.connect(lambda: self._open_inline_warehouse('from'))
+        self.add_to_warehouse_btn.clicked.connect(lambda: self._open_inline_warehouse('to'))
+        self.add_item_quick_btn.clicked.connect(self.inline_item_panel.toggle_panel)
+        self.inline_warehouse_panel.created.connect(self._on_inline_warehouse_created)
+        self.inline_item_panel.created.connect(self._on_inline_item_created)
         self.add_empty_btn.clicked.connect(self._add_empty_line); self.remove_line_btn.clicked.connect(self._remove_selected_line)
         self.close_btn.clicked.connect(self._close_parent_tab); self.from_combo.currentIndexChanged.connect(self._refresh_availability)
         self.to_combo.currentIndexChanged.connect(lambda *_: self.set_dirty(True))
         self.model.dataChanged.connect(lambda *args: self._on_model_changed())
         self.model.rowsInserted.connect(lambda *args: self._on_model_changed()); self.model.rowsRemoved.connect(lambda *args: self._on_model_changed())
         self.setProperty('documentLocalStylesSuppressed', True)
+
+    def _open_inline_warehouse(self, target: str) -> None:
+        self._inline_warehouse_target = 'from' if target == 'from' else 'to'
+        self.inline_item_panel.setVisible(False)
+        self.inline_warehouse_panel.toggle_panel()
+
+    def _select_combo_data(self, combo: QComboBox, value) -> None:
+        for index in range(combo.count()):
+            if str(combo.itemData(index)) == str(value):
+                combo.setCurrentIndex(index)
+                return
+
+    def _on_inline_warehouse_created(self, entity_type: str, result: dict) -> None:
+        target_id = result.get('id')
+        self._load_warehouses(target_id=target_id, target=self._inline_warehouse_target)
+        self.set_dirty(True)
+
+    def _on_inline_item_created(self, entity_type: str, result: dict) -> None:
+        token = result.get('barcode') or result.get('name') or ''
+        self.lookup_edit.setText(str(token))
+        if result.get('barcode'):
+            self._add_line_from_lookup()
+        else:
+            show_toast(translate('inline_quick_create_item_created_search_to_add'), 'info', self)
 
     def _connect_dirty_signals(self) -> None:
         self.notes_edit.textChanged.connect(lambda: self.set_dirty(True))
@@ -122,11 +169,16 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         print_allowed = inventory_operation_policy.can(inventory_operation_policy.OP_PRINT)
         for widget in (self.save_btn, self.bottom_save_btn, self.add_line_btn, self.add_empty_btn, self.remove_line_btn, self.grid):
             widget.setEnabled(bool(allowed))
+        self.add_item_quick_btn.setEnabled(bool(allowed) and quick_create_can('item'))
+        self.add_from_warehouse_btn.setEnabled(bool(allowed) and quick_create_can('warehouse'))
+        self.add_to_warehouse_btn.setEnabled(bool(allowed) and quick_create_can('warehouse'))
         for widget in (getattr(self, 'print_btn', None), getattr(self, 'bottom_print_btn', None)):
             if widget is not None:
                 widget.setEnabled(bool(print_allowed))
 
-    def _load_warehouses(self) -> None:
+    def _load_warehouses(self, *, target_id=None, target: str | None = None) -> None:
+        current_from = self.from_combo.currentData()
+        current_to = self.to_combo.currentData()
         self.from_combo.clear(); self.to_combo.clear()
         try:
             warehouses = warehouse_service.warehouses(include_archived=False)
@@ -135,7 +187,14 @@ class InventoryTransferDocumentTab(BaseDocumentTab):
         for wh in warehouses or []:
             label = f"{wh.get('name','')} ({wh.get('code') or '—'})"
             self.from_combo.addItem(label, wh.get('id')); self.to_combo.addItem(label, wh.get('id'))
-        if self.to_combo.count() > 1:
+        self._select_combo_data(self.from_combo, current_from)
+        self._select_combo_data(self.to_combo, current_to)
+        if target_id is not None:
+            if target == 'from':
+                self._select_combo_data(self.from_combo, target_id)
+            else:
+                self._select_combo_data(self.to_combo, target_id)
+        elif self.to_combo.count() > 1 and current_to in (None, ''):
             self.to_combo.setCurrentIndex(1)
 
     def _available_for_item(self, item_id) -> Any:

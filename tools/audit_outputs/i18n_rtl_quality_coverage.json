@@ -2,33 +2,33 @@
   "languages": [
     {
       "language": "ar",
-      "key_count": 1726,
+      "key_count": 1745,
       "missing_from_ar": 0,
       "missing_from_en": 0,
       "extra_vs_ar": 0
     },
     {
       "language": "de",
-      "key_count": 1719,
+      "key_count": 1738,
       "missing_from_ar": 7,
       "missing_from_en": 0,
       "extra_vs_ar": 0
     },
     {
       "language": "en",
-      "key_count": 1719,
+      "key_count": 1738,
       "missing_from_ar": 7,
       "missing_from_en": 0,
       "extra_vs_ar": 0
     },
     {
       "language": "fr",
-      "key_count": 1791,
+      "key_count": 1810,
       "missing_from_ar": 0,
       "missing_from_en": 0,
       "extra_vs_ar": 65
     }
   ],
-  "ar_key_count": 1726,
-  "en_key_count": 1719
+  "ar_key_count": 1745,
+  "en_key_count": 1738
 }

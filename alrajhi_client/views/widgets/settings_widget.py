@@ -2385,8 +2385,7 @@ class SettingsWidget(QWidget):
             except Exception:
                 pass
             try:
-                from database.connection import DatabaseConnection
-                DatabaseConnection.reset_runtime_connection()
+                system_service.reset_runtime_connection()
             except Exception:
                 pass
         audit_service.log('UPDATE', 'SETTINGS_NETWORK', None, old_values=old, new_values=new, details=translate('settings_network_audit_update'))

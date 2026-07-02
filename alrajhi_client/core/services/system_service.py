@@ -97,5 +97,13 @@ class SystemService:
         """Return read-only local database diagnostics without exposing DatabaseConnection to UI."""
         return self._get_gateway().local_diagnostics_snapshot()
 
+    def reset_runtime_connection(self) -> None:
+        """Rebuild runtime database/gateway state after network settings change.
+
+        UI code must not import DatabaseConnection directly; this service keeps
+        the operation behind the SystemGateway architecture boundary.
+        """
+        self._get_gateway().reset_runtime_connection()
+
 
 system_service = SystemService()

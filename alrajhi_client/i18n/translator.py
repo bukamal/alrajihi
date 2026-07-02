@@ -9019,3 +9019,145 @@ def load_translations():
         _phase461_load_in_progress = False
 
 _phase461_apply_inline_quick_create_payment_keys()
+
+
+# Phase 462: inline quick-create coverage for operational sale surfaces (POS/Restaurant/Cafe).
+def _phase462_apply_inline_quick_create_operational_keys() -> None:
+    payload = {
+        'ar': {
+            'inline_quick_create_pos_item_tooltip': 'إضافة مادة سريعة من شاشة البيع دون مغادرة POS',
+            'inline_quick_create_restaurant_category_tooltip': 'إضافة تصنيف مطعم سريع داخل نفس الواجهة',
+            'inline_quick_create_restaurant_item_tooltip': 'إضافة مادة/صنف سريع داخل نفس واجهة المطعم',
+            'inline_quick_create_item_created_scan_or_search': 'تم إنشاء المادة. امسح الباركود أو ابحث عنها لإضافتها للبيع.',
+            'inline_quick_create_item_created_available': 'تم إنشاء المادة وأصبحت متاحة ضمن البطاقات.',
+            'inline_quick_create_cashbox_created_select_after_clear': 'تم إنشاء الصندوق. سيتم اختياره بعد إنهاء أو تفريغ السلة الحالية.',
+        },
+        'de': {
+            'inline_quick_create_pos_item_tooltip': 'Material direkt im POS anlegen, ohne die Kasse zu verlassen',
+            'inline_quick_create_restaurant_category_tooltip': 'Restaurant-Kategorie direkt in dieser Oberfläche anlegen',
+            'inline_quick_create_restaurant_item_tooltip': 'Restaurant-Artikel/Material direkt in dieser Oberfläche anlegen',
+            'inline_quick_create_item_created_scan_or_search': 'Material wurde angelegt. Barcode scannen oder suchen, um es zu verkaufen.',
+            'inline_quick_create_item_created_available': 'Material wurde angelegt und ist in den Karten verfügbar.',
+            'inline_quick_create_cashbox_created_select_after_clear': 'Kasse wurde angelegt. Sie wird nach Abschluss oder Leeren des aktuellen Warenkorbs ausgewählt.',
+        },
+        'en': {
+            'inline_quick_create_pos_item_tooltip': 'Create an item inline from POS without leaving the sale screen',
+            'inline_quick_create_restaurant_category_tooltip': 'Create a restaurant category inline from this workspace',
+            'inline_quick_create_restaurant_item_tooltip': 'Create a restaurant item/material inline from this workspace',
+            'inline_quick_create_item_created_scan_or_search': 'Item created. Scan its barcode or search for it to add it to the sale.',
+            'inline_quick_create_item_created_available': 'Item created and available in the card grid.',
+            'inline_quick_create_cashbox_created_select_after_clear': 'Cashbox created. It will be selected after the current cart is completed or cleared.',
+        },
+        'fr': {
+            'inline_quick_create_pos_item_tooltip': 'Créer une matière dans le POS sans quitter l’écran de vente',
+            'inline_quick_create_restaurant_category_tooltip': 'Créer une catégorie de restaurant dans cette interface',
+            'inline_quick_create_restaurant_item_tooltip': 'Créer une matière/article de restaurant dans cette interface',
+            'inline_quick_create_item_created_scan_or_search': 'Matière créée. Scannez son code-barres ou recherchez-la pour l’ajouter à la vente.',
+            'inline_quick_create_item_created_available': 'Matière créée et disponible dans les cartes.',
+            'inline_quick_create_cashbox_created_select_after_clear': 'Caisse créée. Elle sera sélectionnée après finalisation ou vidage du panier actuel.',
+        },
+    }
+    for lang, values in payload.items():
+        _translations.setdefault(lang, {}).update(values)
+
+if '_PHASE462_BASE_LOAD_TRANSLATIONS' not in globals():
+    _PHASE462_BASE_LOAD_TRANSLATIONS = load_translations
+_phase462_load_in_progress = False
+
+def load_translations():
+    global _phase462_load_in_progress
+    if _phase462_load_in_progress:
+        return
+    _phase462_load_in_progress = True
+    try:
+        _PHASE462_BASE_LOAD_TRANSLATIONS()
+        _phase462_apply_inline_quick_create_operational_keys()
+    finally:
+        _phase462_load_in_progress = False
+
+_phase462_apply_inline_quick_create_operational_keys()
+
+
+# Phase 463: inline quick-create coverage for inventory and manufacturing documents.
+def _phase463_apply_inline_quick_create_inventory_manufacturing_keys() -> None:
+    payload = {
+        'ar': {
+            'inline_quick_create_warehouse_tooltip': 'إضافة مستودع سريع من نفس المستند دون فتح تبويب جديد',
+            'inline_quick_create_inventory_item_tooltip': 'إضافة مادة سريعة من مستند المخزون',
+            'inline_quick_create_finished_product_tooltip': 'إضافة منتج نهائي سريع من مستند التصنيع',
+            'inline_quick_create_component_item_tooltip': 'إضافة مكوّن سريع من مستند التركيبة',
+            'inline_quick_create_warehouse_title': 'إضافة مستودع سريع',
+            'inline_quick_create_warehouse_subtitle': 'أنشئ المستودع داخل نفس المستند ثم اختره تلقائيًا.',
+            'inline_quick_create_item_created_search_to_add': 'تم إنشاء المادة. راجع الحقل ثم أضفها إلى السطر عند الحاجة.',
+            'warehouse_name_label': 'اسم المستودع',
+            'warehouse_code_label': 'كود المستودع',
+            'warehouse_location_label': 'موقع المستودع',
+            'warehouse_name_placeholder': 'مثال: المستودع الرئيسي',
+            'warehouse_code_placeholder': 'مثال: WH-001',
+            'warehouse_location_placeholder': 'مثال: الطابق الأرضي',
+        },
+        'de': {
+            'inline_quick_create_warehouse_tooltip': 'Lager direkt im aktuellen Dokument anlegen, ohne neuen Tab zu öffnen',
+            'inline_quick_create_inventory_item_tooltip': 'Material direkt aus dem Inventurdokument anlegen',
+            'inline_quick_create_finished_product_tooltip': 'Fertigprodukt direkt aus dem Fertigungsdokument anlegen',
+            'inline_quick_create_component_item_tooltip': 'Komponente direkt aus der Stückliste anlegen',
+            'inline_quick_create_warehouse_title': 'Lager schnell anlegen',
+            'inline_quick_create_warehouse_subtitle': 'Lager inline im Dokument erstellen und automatisch auswählen.',
+            'inline_quick_create_item_created_search_to_add': 'Material wurde angelegt. Prüfen Sie das Feld und fügen Sie es bei Bedarf als Zeile hinzu.',
+            'warehouse_name_label': 'Lagername',
+            'warehouse_code_label': 'Lagercode',
+            'warehouse_location_label': 'Lagerort',
+            'warehouse_name_placeholder': 'z. B. Hauptlager',
+            'warehouse_code_placeholder': 'z. B. WH-001',
+            'warehouse_location_placeholder': 'z. B. Erdgeschoss',
+        },
+        'en': {
+            'inline_quick_create_warehouse_tooltip': 'Create a warehouse inline from this document without opening a new tab',
+            'inline_quick_create_inventory_item_tooltip': 'Create an item inline from this inventory document',
+            'inline_quick_create_finished_product_tooltip': 'Create a finished product inline from this manufacturing document',
+            'inline_quick_create_component_item_tooltip': 'Create a component item inline from this BOM document',
+            'inline_quick_create_warehouse_title': 'Quick warehouse creation',
+            'inline_quick_create_warehouse_subtitle': 'Create the warehouse inside this document and select it automatically.',
+            'inline_quick_create_item_created_search_to_add': 'Item created. Review the lookup field and add it to the line when needed.',
+            'warehouse_name_label': 'Warehouse name',
+            'warehouse_code_label': 'Warehouse code',
+            'warehouse_location_label': 'Warehouse location',
+            'warehouse_name_placeholder': 'Example: Main warehouse',
+            'warehouse_code_placeholder': 'Example: WH-001',
+            'warehouse_location_placeholder': 'Example: Ground floor',
+        },
+        'fr': {
+            'inline_quick_create_warehouse_tooltip': 'Créer un entrepôt dans ce document sans ouvrir un nouvel onglet',
+            'inline_quick_create_inventory_item_tooltip': 'Créer une matière depuis ce document d’inventaire',
+            'inline_quick_create_finished_product_tooltip': 'Créer un produit fini depuis ce document de fabrication',
+            'inline_quick_create_component_item_tooltip': 'Créer un composant depuis cette nomenclature',
+            'inline_quick_create_warehouse_title': 'Création rapide d’entrepôt',
+            'inline_quick_create_warehouse_subtitle': 'Créez l’entrepôt dans ce document et sélectionnez-le automatiquement.',
+            'inline_quick_create_item_created_search_to_add': 'Matière créée. Vérifiez le champ de recherche puis ajoutez-la à la ligne si nécessaire.',
+            'warehouse_name_label': 'Nom de l’entrepôt',
+            'warehouse_code_label': 'Code de l’entrepôt',
+            'warehouse_location_label': 'Emplacement de l’entrepôt',
+            'warehouse_name_placeholder': 'Exemple : entrepôt principal',
+            'warehouse_code_placeholder': 'Exemple : WH-001',
+            'warehouse_location_placeholder': 'Exemple : rez-de-chaussée',
+        },
+    }
+    for lang, values in payload.items():
+        _translations.setdefault(lang, {}).update(values)
+
+if '_PHASE463_BASE_LOAD_TRANSLATIONS' not in globals():
+    _PHASE463_BASE_LOAD_TRANSLATIONS = load_translations
+_phase463_load_in_progress = False
+
+def load_translations():
+    global _phase463_load_in_progress
+    if _phase463_load_in_progress:
+        return
+    _phase463_load_in_progress = True
+    try:
+        _PHASE463_BASE_LOAD_TRANSLATIONS()
+        _phase463_apply_inline_quick_create_inventory_manufacturing_keys()
+    finally:
+        _phase463_load_in_progress = False
+
+_phase463_apply_inline_quick_create_inventory_manufacturing_keys()

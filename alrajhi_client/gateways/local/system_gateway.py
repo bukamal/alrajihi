@@ -103,6 +103,9 @@ class LocalSystemGateway(SystemGateway):
             risk_count += 1
         return {'mode': 'local', 'checks': checks, 'risk_count': risk_count, 'summary': f'{risk_count} risk indicators'}
 
+    def reset_runtime_connection(self) -> None:
+        DatabaseConnection.reset_runtime_connection()
+
     def local_diagnostics_snapshot(self) -> Dict[str, object]:
         import os
         db = self._db()

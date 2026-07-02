@@ -23,6 +23,7 @@ from workspace.operational.operational_shell_contract import bind_operational_sh
 from ui.table_direction_policy import apply_table_direction
 from ui.editable_smart_grid import EditableSmartGrid
 from ui.operational_item_card_grid import OperationalItemCardGrid
+from ui.inline_quick_create import InlineQuickCreatePanel, quick_create_can
 
 
 def _dec(value: Any, default: str = "0") -> Decimal:
@@ -112,6 +113,18 @@ class RestaurantSimplePOSWidget(QWidget):
         self.refresh_btn.setProperty("visualRole", "operational_secondary")
         self.refresh_btn.setMinimumHeight(46)
         self.refresh_btn.setProperty("basitToolbarButton", True)
+        self.quick_category_btn = QPushButton("+ " + _("category_label"))
+        self.quick_category_btn.setObjectName("restaurantSimpleInlineQuickCategoryButton")
+        self.quick_category_btn.setToolTip(_("inline_quick_create_restaurant_category_tooltip"))
+        self.quick_category_btn.setProperty("visualRole", "operational_secondary")
+        self.quick_category_btn.setMinimumHeight(46)
+        self.quick_category_btn.setVisible(quick_create_can('category'))
+        self.quick_item_btn = QPushButton("+ " + _("item"))
+        self.quick_item_btn.setObjectName("restaurantSimpleInlineQuickItemButton")
+        self.quick_item_btn.setToolTip(_("inline_quick_create_restaurant_item_tooltip"))
+        self.quick_item_btn.setProperty("visualRole", "operational_secondary")
+        self.quick_item_btn.setMinimumHeight(46)
+        self.quick_item_btn.setVisible(quick_create_can('item'))
         self.fullscreen_btn = QPushButton("⛶  " + _("fullscreen"))
         self.fullscreen_btn.setObjectName("restaurantSimpleFullscreenButton")
         self.fullscreen_btn.setProperty("visualRole", "operational_secondary")
@@ -121,8 +134,19 @@ class RestaurantSimplePOSWidget(QWidget):
         header.addWidget(self.search_btn)
         header.addWidget(self.new_sale_btn)
         header.addWidget(self.refresh_btn)
+        header.addWidget(self.quick_category_btn)
+        header.addWidget(self.quick_item_btn)
         header.addWidget(self.fullscreen_btn)
         root.addWidget(header_card)
+
+        self.inline_category_panel = InlineQuickCreatePanel('category', self, context={'categories': self.categories})
+        self.inline_category_panel.setObjectName("restaurantSimpleInlineQuickCategoryPanel")
+        self.inline_category_panel.created.connect(self._on_inline_category_created)
+        root.addWidget(self.inline_category_panel)
+        self.inline_item_panel = InlineQuickCreatePanel('item', self, context={'categories': self.categories})
+        self.inline_item_panel.setObjectName("restaurantSimpleInlineQuickItemPanel")
+        self.inline_item_panel.created.connect(self._on_inline_item_created)
+        root.addWidget(self.inline_item_panel)
 
         self.splitter = QSplitter(Qt.Horizontal)
         self.splitter.setObjectName("restaurantSimpleThreeSectionSplitter")
@@ -144,6 +168,8 @@ class RestaurantSimplePOSWidget(QWidget):
         self.search_btn.clicked.connect(self.reload_menu)
         self.search_edit.returnPressed.connect(self.reload_menu)
         self.refresh_btn.clicked.connect(self.reload)
+        self.quick_category_btn.clicked.connect(self.toggle_inline_category_create)
+        self.quick_item_btn.clicked.connect(self.toggle_inline_item_create)
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
         self.new_sale_btn.clicked.connect(self.start_new_sale)
         self.qty_plus_btn.clicked.connect(lambda: self.adjust_selected_quantity(Decimal("1")))
@@ -283,6 +309,31 @@ class RestaurantSimplePOSWidget(QWidget):
         layout.addWidget(footer)
         return frame
 
+
+    def toggle_inline_category_create(self) -> None:
+        self.inline_category_panel.set_context(categories=self.categories)
+        self.inline_category_panel.toggle_panel()
+
+    def toggle_inline_item_create(self) -> None:
+        self.inline_item_panel.set_context(categories=self.categories)
+        self.inline_item_panel.toggle_panel()
+
+    def _on_inline_category_created(self, entity_type: str, result: dict[str, Any]) -> None:
+        target_id = result.get("id")
+        self.reload_categories()
+        if target_id:
+            self.select_category(target_id)
+        self.status.setText(_("inline_quick_create_saved_selected"))
+
+    def _on_inline_item_created(self, entity_type: str, result: dict[str, Any]) -> None:
+        category_id = result.get("category_id")
+        if category_id:
+            self.current_category_id = int(category_id)
+        self.reload_menu()
+        self._render_categories()
+        self.status.setText(_("inline_quick_create_item_created_available"))
+
+
     def reload(self) -> None:
         self.reload_categories()
         self.reload_menu()
@@ -304,6 +355,10 @@ class RestaurantSimplePOSWidget(QWidget):
         except Exception as exc:
             self.categories = []
             self.status.setText(str(exc))
+        if hasattr(self, 'inline_category_panel'):
+            self.inline_category_panel.set_context(categories=self.categories)
+        if hasattr(self, 'inline_item_panel'):
+            self.inline_item_panel.set_context(categories=self.categories)
         self._render_categories()
 
     def _render_categories(self) -> None:

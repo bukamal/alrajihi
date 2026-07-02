@@ -24,11 +24,12 @@ from PyQt5.QtWidgets import (
 )
 
 from core.offline_guard import is_offline_read_error, offline_read_message
-from core.item_types import is_finished_product
+from core.item_types import FINISHED_PRODUCT, is_finished_product
 from core.services.catalog_service import catalog_service
 from core.services.manufacturing_operation_policy import manufacturing_operation_policy
 from core.services.manufacturing_service import manufacturing_service
 from features.manufacturing.manufacturing_printing_bridge import manufacturing_printing_bridge
+from ui.inline_quick_create import InlineQuickCreatePanel, quick_create_can
 from core.services.settings_service import settings_service
 from core.services.warehouse_service import warehouse_service
 from features.dialog_documents import DialogDocumentTab
@@ -78,6 +79,7 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         self.materials_model = ProductionRequiredMaterialsModel(self.columns, self)
         self._product_items: list[dict[str, Any]] = []
         self._product_bom_map: dict[int, dict | None] = {}
+        self._inline_warehouse_target = 'raw'
         self._build_ui()
         self._load_warehouses()
         self._load_products()
@@ -133,18 +135,33 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         self.output_warehouse_combo = QComboBox(self)
         self.notes_edit = QTextEdit(self)
         self.notes_edit.setMaximumHeight(78)
+        self.add_product_quick_btn = QPushButton('+', self); self.add_product_quick_btn.setObjectName('ProductionOrderInlineQuickProductButton')
+        self.add_product_quick_btn.setToolTip(translate('inline_quick_create_finished_product_tooltip'))
+        self.add_raw_warehouse_btn = QPushButton('+', self); self.add_raw_warehouse_btn.setObjectName('ProductionOrderInlineQuickRawWarehouseButton')
+        self.add_raw_warehouse_btn.setToolTip(translate('inline_quick_create_warehouse_tooltip'))
+        self.add_output_warehouse_btn = QPushButton('+', self); self.add_output_warehouse_btn.setObjectName('ProductionOrderInlineQuickOutputWarehouseButton')
+        self.add_output_warehouse_btn.setToolTip(translate('inline_quick_create_warehouse_tooltip'))
+        product_box = QHBoxLayout(); product_box.setContentsMargins(0, 0, 0, 0); product_box.addWidget(self.product_combo, 1); product_box.addWidget(self.add_product_quick_btn)
+        raw_box = QHBoxLayout(); raw_box.setContentsMargins(0, 0, 0, 0); raw_box.addWidget(self.raw_warehouse_combo, 1); raw_box.addWidget(self.add_raw_warehouse_btn)
+        output_box = QHBoxLayout(); output_box.setContentsMargins(0, 0, 0, 0); output_box.addWidget(self.output_warehouse_combo, 1); output_box.addWidget(self.add_output_warehouse_btn)
 
         meta.addWidget(QLabel(translate('finished_product')), 0, 0)
-        meta.addWidget(self.product_combo, 0, 1)
+        meta.addLayout(product_box, 0, 1)
         meta.addWidget(QLabel(translate('planned_quantity_label')), 0, 2)
         meta.addWidget(self.qty_spin, 0, 3)
         meta.addWidget(QLabel(translate('raw_warehouse_label')), 1, 0)
-        meta.addWidget(self.raw_warehouse_combo, 1, 1)
+        meta.addLayout(raw_box, 1, 1)
         meta.addWidget(QLabel(translate('output_warehouse_label')), 1, 2)
-        meta.addWidget(self.output_warehouse_combo, 1, 3)
+        meta.addLayout(output_box, 1, 3)
         meta.addWidget(QLabel(translate('notes_label')), 2, 0)
         meta.addWidget(self.notes_edit, 2, 1, 1, 3)
         header.addLayout(meta)
+        self.inline_product_panel = InlineQuickCreatePanel('item', self, context={'item_type': FINISHED_PRODUCT})
+        self.inline_product_panel.setObjectName('ProductionOrderInlineQuickProductPanel')
+        self.inline_warehouse_panel = InlineQuickCreatePanel('warehouse', self)
+        self.inline_warehouse_panel.setObjectName('ProductionOrderInlineQuickWarehousePanel')
+        header.addWidget(self.inline_product_panel)
+        header.addWidget(self.inline_warehouse_panel)
         root.addWidget(self.header_card)
 
         grid_card = QFrame(self)
@@ -186,12 +203,36 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         self.bottom_save_btn.clicked.connect(self.workspace_save)
         self.save_btn = self.bottom_save_btn
         self.refresh_btn.clicked.connect(self._refresh_required_materials)
+        self.add_product_quick_btn.clicked.connect(self.inline_product_panel.toggle_panel)
+        self.add_raw_warehouse_btn.clicked.connect(lambda: self._open_inline_warehouse('raw'))
+        self.add_output_warehouse_btn.clicked.connect(lambda: self._open_inline_warehouse('output'))
+        self.inline_product_panel.created.connect(self._on_inline_product_created)
+        self.inline_warehouse_panel.created.connect(self._on_inline_warehouse_created)
         self.cancel_btn.clicked.connect(self._close_parent_tab)
         self.product_combo.currentIndexChanged.connect(self._refresh_required_materials)
         self.qty_spin.valueChanged.connect(self._refresh_required_materials)
         self.raw_warehouse_combo.currentIndexChanged.connect(self._refresh_required_materials)
 
         self.setProperty('documentLocalStylesSuppressed', True)
+
+    def _open_inline_warehouse(self, target: str) -> None:
+        self._inline_warehouse_target = 'output' if target == 'output' else 'raw'
+        self.inline_product_panel.setVisible(False)
+        self.inline_warehouse_panel.toggle_panel()
+
+    def _on_inline_product_created(self, entity_type: str, result: dict) -> None:
+        target_id = result.get('id')
+        self._load_products()
+        if target_id is not None:
+            self._select_combo_data(self.product_combo, target_id)
+        self.set_dirty(True)
+        self._refresh_required_materials()
+
+    def _on_inline_warehouse_created(self, entity_type: str, result: dict) -> None:
+        target_id = result.get('id')
+        self._load_warehouses(target_id=target_id, target=self._inline_warehouse_target)
+        self.set_dirty(True)
+        self._refresh_required_materials()
 
     def _install_shortcuts(self) -> None:
         QShortcut(QKeySequence.Save, self, activated=self.workspace_save)
@@ -211,9 +252,14 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
         self.qty_spin.setEnabled(can_create)
         self.raw_warehouse_combo.setEnabled(can_create)
         self.output_warehouse_combo.setEnabled(can_create)
+        self.add_product_quick_btn.setEnabled(can_create and quick_create_can('item'))
+        self.add_raw_warehouse_btn.setEnabled(can_create and quick_create_can('warehouse'))
+        self.add_output_warehouse_btn.setEnabled(can_create and quick_create_can('warehouse'))
         self.notes_edit.setReadOnly(not can_create)
 
-    def _load_warehouses(self) -> None:
+    def _load_warehouses(self, *, target_id=None, target: str | None = None) -> None:
+        current_raw = self.raw_warehouse_combo.currentData()
+        current_output = self.output_warehouse_combo.currentData()
         try:
             warehouses = warehouse_service.warehouses()
             fallback_default = warehouse_service.default_warehouse_id()
@@ -228,12 +274,19 @@ class ProductionOrderDocumentTab(BaseDocumentTab):
             combo.blockSignals(True)
             combo.clear()
             for wh in warehouses:
-                combo.addItem(str(wh.get('name') or ''), wh.get('id'))
+                label = str(wh.get('name') or '')
+                code = str(wh.get('code') or '').strip()
+                combo.addItem(f"{label} ({code})" if code else label, wh.get('id'))
             combo.blockSignals(False)
-        raw_default = self._int_or_none(self.settings.get('default_raw_warehouse_id')) or fallback_default
-        output_default = self._int_or_none(self.settings.get('default_output_warehouse_id')) or fallback_default
+        raw_default = current_raw or self._int_or_none(self.settings.get('default_raw_warehouse_id')) or fallback_default
+        output_default = current_output or self._int_or_none(self.settings.get('default_output_warehouse_id')) or fallback_default
         self._select_combo_data(self.raw_warehouse_combo, raw_default)
         self._select_combo_data(self.output_warehouse_combo, output_default)
+        if target_id is not None:
+            if target == 'output':
+                self._select_combo_data(self.output_warehouse_combo, target_id)
+            else:
+                self._select_combo_data(self.raw_warehouse_combo, target_id)
 
     def _load_products(self) -> None:
         self.product_combo.blockSignals(True)

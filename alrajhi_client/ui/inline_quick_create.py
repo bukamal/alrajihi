@@ -56,6 +56,9 @@ def quick_create_can(entity_type: str) -> bool:
         if entity == "bank_account":
             from core.services.finance_operation_policy import finance_operation_policy
             return bool(finance_operation_policy.can(finance_operation_policy.OP_BANK_CREATE))
+        if entity == "warehouse":
+            from core.services.inventory_operation_policy import inventory_operation_policy
+            return bool(inventory_operation_policy.can(inventory_operation_policy.OP_WAREHOUSE_CREATE))
     except Exception:
         return False
     return False
@@ -326,6 +329,23 @@ class InlineQuickCreatePanel(QFrame):
                     return row
         return None
 
+    def _find_existing_warehouse(self, name: str, code: str = "", branch_id: Any = None):
+        try:
+            from core.services.warehouse_service import warehouse_service
+            rows = warehouse_service.warehouses(include_archived=False)
+        except Exception:
+            rows = []
+        name_norm = str(name or "").strip().casefold()
+        code_norm = str(code or "").strip().casefold()
+        branch_norm = str(branch_id or "").strip()
+        for row in rows or []:
+            same_name = str(row.get("name") or "").strip().casefold() == name_norm
+            same_code = bool(code_norm) and str(row.get("code") or "").strip().casefold() == code_norm
+            same_branch = not branch_norm or str(row.get("branch_id") or "").strip() == branch_norm
+            if same_branch and (same_name or same_code):
+                return row
+        return None
+
     def _save_category(self, data: Dict[str, Any]) -> Dict[str, Any]:
         existing = self._find_existing_category(data.get("name"), data.get("parent_id"))
         if existing:
@@ -401,9 +421,28 @@ class InlineQuickCreatePanel(QFrame):
         label = payload["bank_name"] or payload["account_name"]
         return {"id": new_id, "name": label, "branch_id": branch_id, "existing": False}
 
+    def _save_warehouse(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        existing = self._find_existing_warehouse(data.get("name"), data.get("code"), data.get("branch_id"))
+        if existing:
+            return {"id": existing.get("id"), "name": existing.get("name"), "code": existing.get("code"), "existing": True}
+        from core.services.branch_service import branch_service
+        from core.services.warehouse_service import warehouse_service
+        branch_id = data.get("branch_id") or branch_service.current_branch_id() or branch_service.default_branch_id()
+        payload = {
+            "name": str(data.get("name") or "").strip(),
+            "code": str(data.get("code") or "").strip(),
+            "branch_id": branch_id,
+            "location": str(data.get("location") or "").strip(),
+            "notes": str(data.get("notes") or "").strip(),
+            "is_active": 1,
+        }
+        new_id = warehouse_service.add_warehouse(payload)
+        return {"id": new_id, "name": payload["name"], "code": payload.get("code"), "branch_id": branch_id, "existing": False}
+
     def _save_item(self, data: Dict[str, Any]) -> Dict[str, Any]:
         from core.item_types import STOCK
         from core.services.product_service import product_service
+        item_type = self.context.get("item_type") or STOCK
         payload = {
             "name": str(data.get("name") or "").strip(),
             "barcode": str(data.get("barcode") or "").strip() or None,
@@ -413,11 +452,18 @@ class InlineQuickCreatePanel(QFrame):
             "purchase_price": float(data.get("purchase_price") or 0),
             "quantity": 0,
             "reorder_level": 0,
-            "item_type": STOCK,
+            "item_type": item_type,
             "units": [],
         }
         new_id = product_service.add_item(payload)
-        return {"id": new_id, "name": payload["name"], "barcode": payload.get("barcode"), "existing": False}
+        return {
+            "id": new_id,
+            "name": payload["name"],
+            "barcode": payload.get("barcode"),
+            "category_id": payload.get("category_id"),
+            "unit": payload.get("unit"),
+            "existing": False,
+        }
 
     def save(self) -> None:
         if not quick_create_can(self.entity_type):
@@ -437,6 +483,8 @@ class InlineQuickCreatePanel(QFrame):
                 result = self._save_cashbox(data)
             elif self.entity_type == "bank_account":
                 result = self._save_bank_account(data)
+            elif self.entity_type == "warehouse":
+                result = self._save_warehouse(data)
             elif self.entity_type == "item":
                 result = self._save_item(data)
             else:

@@ -37,7 +37,7 @@
       "branded_startup_allowed": 5,
       "mixed_legacy_style": 6
     },
-    "csv": "/mnt/data/phase461_work/alrajhi_phase457_runtime_visual_regression_gate/tools/audit_outputs/legacy_visual_style_sweep.csv",
-    "summary_json": "/mnt/data/phase461_work/alrajhi_phase457_runtime_visual_regression_gate/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
+    "csv": "/mnt/data/work_phase464/alrajhi_phase457_runtime_visual_regression_gate/tools/audit_outputs/legacy_visual_style_sweep.csv",
+    "summary_json": "/mnt/data/work_phase464/alrajhi_phase457_runtime_visual_regression_gate/tools/audit_outputs/legacy_visual_style_sweep_summary.json"
   }
 }

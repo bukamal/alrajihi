@@ -18,6 +18,7 @@ from views.restaurant.kitchen_display_widget import KitchenDisplayWidget
 from views.dialogs.batch_print_dialog import BatchPrintDialog
 from views.restaurant.restaurant_analytics_widget import RestaurantAnalyticsWidget
 from workspace.operational.operational_shell_contract import bind_operational_shell
+from ui.inline_quick_create import InlineQuickCreatePanel, quick_create_can
 
 
 
@@ -205,12 +206,21 @@ class RestaurantDashboard(QWidget):
         self.mode_badge.setObjectName("restaurantModeBadge")
         self.refresh_button = QPushButton("↻  " + _("common.refresh"))
         self.refresh_button.setObjectName("restaurantRefreshButton")
+        self.quick_category_btn = QPushButton("+ " + _("category_label"))
+        self.quick_category_btn.setObjectName("restaurantDashboardInlineQuickCategoryButton")
+        self.quick_category_btn.setToolTip(_("inline_quick_create_restaurant_category_tooltip"))
+        self.quick_category_btn.setVisible(quick_create_can('category'))
+        self.quick_item_btn = QPushButton("+ " + _("item"))
+        self.quick_item_btn.setObjectName("restaurantDashboardInlineQuickItemButton")
+        self.quick_item_btn.setToolTip(_("inline_quick_create_restaurant_item_tooltip"))
+        self.quick_item_btn.setVisible(quick_create_can('item'))
         self.menu_barcode_btn = QPushButton("🏷️  " + _("barcode.restaurant_menu_labels"))
         self.menu_barcode_btn.setObjectName("restaurantMenuBarcodeButton")
         self.table_barcode_btn = QPushButton("▦  " + _("barcode.restaurant_table_labels"))
         self.table_barcode_btn.setObjectName("restaurantTableBarcodeButton")
-        for button in (self.order_mode_btn, self.cafe_mode_btn, self.kitchen_mode_btn, self.tables_mode_btn, self.analytics_mode_btn, self.refresh_button, self.menu_barcode_btn, self.table_barcode_btn):
+        for button in (self.order_mode_btn, self.cafe_mode_btn, self.kitchen_mode_btn, self.tables_mode_btn, self.analytics_mode_btn, self.refresh_button, self.quick_category_btn, self.quick_item_btn, self.menu_barcode_btn, self.table_barcode_btn):
             button.setMinimumHeight(44)
+            button.setProperty("visualRole", "operational_secondary")
         self.analytics_mode_btn.setVisible(bool(self._ui_settings.get("show_analytics_panel")) and not self._standalone_cafe_workspace)
         self.cafe_mode_btn.setVisible(False)
         if self._standalone_cafe_workspace:
@@ -229,7 +239,18 @@ class RestaurantDashboard(QWidget):
         header.addWidget(self.menu_barcode_btn)
         header.addWidget(self.table_barcode_btn)
         header.addWidget(self.refresh_button)
+        header.addWidget(self.quick_category_btn)
+        header.addWidget(self.quick_item_btn)
         layout.addWidget(header_card)
+
+        self.inline_category_panel = InlineQuickCreatePanel('category', self)
+        self.inline_category_panel.setObjectName("restaurantDashboardInlineQuickCategoryPanel")
+        self.inline_category_panel.created.connect(self._on_inline_category_created)
+        layout.addWidget(self.inline_category_panel)
+        self.inline_item_panel = InlineQuickCreatePanel('item', self)
+        self.inline_item_panel.setObjectName("restaurantDashboardInlineQuickItemPanel")
+        self.inline_item_panel.created.connect(self._on_inline_item_created)
+        layout.addWidget(self.inline_item_panel)
 
         self.table_ops_card = QFrame()
         self.table_ops_card.setObjectName("restaurantTableOperationsBar")
@@ -375,6 +396,8 @@ class RestaurantDashboard(QWidget):
         self.status.setObjectName("restaurantStatusBar")
         layout.addWidget(self.status)
 
+        self.quick_category_btn.clicked.connect(self.toggle_inline_category_create)
+        self.quick_item_btn.clicked.connect(self.toggle_inline_item_create)
         self.order_mode_btn.clicked.connect(self.show_order_mode)
         self.cafe_mode_btn.clicked.connect(self.show_cafe_mode)
         self.new_cafe_order_btn.clicked.connect(self.start_new_cafe_order)
@@ -417,6 +440,24 @@ class RestaurantDashboard(QWidget):
 
     def print_cafe_modifier_barcodes(self) -> None:
         self._open_barcode_batch_dialog("cafe.modifier_labels")
+
+
+    def toggle_inline_category_create(self) -> None:
+        self.inline_category_panel.toggle_panel()
+
+    def toggle_inline_item_create(self) -> None:
+        self.inline_item_panel.toggle_panel()
+
+    def _on_inline_category_created(self, entity_type: str, result: dict) -> None:
+        self.status.setText(_("inline_quick_create_saved_selected"))
+        if hasattr(self, "pos"):
+            self.pos.reload_menu()
+
+    def _on_inline_item_created(self, entity_type: str, result: dict) -> None:
+        if hasattr(self, "pos"):
+            self.pos.reload_menu()
+        self.status.setText(_("inline_quick_create_item_created_available"))
+
 
     def _restaurant_ui_settings(self) -> dict:
         try:
