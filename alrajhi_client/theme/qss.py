@@ -4331,6 +4331,124 @@ def build_global_qss(colors: dict) -> str:
         }}
 
 
+        /* Phase465: Visual shell unification and collision fixes.
+           This layer is layout-safe: it uses existing object names/properties and
+           does not change data flow, services, or page routing. */
+        QFrame#BrandDialogFrame[visualShellPhase="465"][standardModalChrome="true"] {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#BrandDialogHeader[visualShellPhase="465"][standardModalChrome="true"] {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: none;
+            border-bottom: 1px solid {colors.get('border', '#D8E5F2')};
+            min-height: {BRAND.get('standard_modal_titlebar_height', 44)}px;
+            max-height: {BRAND.get('standard_modal_titlebar_height', 44)}px;
+        }}
+        QWidget[standardModalBody="true"] {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+        }}
+        QLabel#ChangePasswordIntro {{
+            color: {colors.get('text_secondary', '#475569')};
+            font-size: {BRAND.get('font_size_caption_px', 12) + 1}px;
+            font-weight: 750;
+            padding: 0 8px 6px 8px;
+        }}
+        QDialog[standardModalChrome="true"] QLineEdit,
+        QFrame#BrandDialogFrame[standardModalChrome="true"] QLineEdit {{
+            min-height: {BRAND.get('standard_modal_input_height', 42)}px;
+            border-radius: {radius_md}px;
+            padding-right: 12px;
+            padding-left: 12px;
+        }}
+        QFrame#BrandDialogFrame[standardModalChrome="true"] QPushButton[dialogActionRole="primary"] {{
+            min-height: {BRAND.get('standard_modal_action_height', 44)}px;
+            min-width: {BRAND.get('standard_modal_primary_width', 150)}px;
+        }}
+        QFrame#loginCard[visualShellPhase="465"] {{
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_lg}px;
+        }}
+        QFrame#LoginRuntimeTitleBar[visualShellPhase="465"] {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: none;
+            border-bottom: 1px solid {colors.get('border', '#D8E5F2')};
+            min-height: {BRAND.get('login_visual_shell_titlebar_height', 38)}px;
+            max-height: {BRAND.get('login_visual_shell_titlebar_height', 38)}px;
+        }}
+        QFrame#loginCard[visualShellPhase="465"] QFrame#firstRunFormPanel,
+        QFrame#loginCard[visualShellPhase="465"] QFrame#firstRunBrandPanel {{
+            margin-top: 0px;
+        }}
+        QFrame#loginCard[visualShellPhase="465"] QFrame#loginCredentialsPanel {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+        }}
+        QFrame#brandedStartupCard[visualShellPhase="465"] {{
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                stop:0 #062D4C,
+                stop:0.52 #0A526E,
+                stop:1 #0A7D78);
+            border: 1px solid rgba(255,255,255,0.28);
+            border-radius: 20px;
+        }}
+        QFrame#startupIdentityPanel[visualShellPhase="465"],
+        QFrame#brandedStartupCard[visualShellPhase="465"] QFrame#startupIdentityPanel {{
+            background-color: rgba(255,255,255,0.09);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 18px;
+            min-height: 150px;
+        }}
+        QFrame#brandedStartupCard[visualShellPhase="465"] QLabel[startupStageChip="true"] {{
+            background-color: transparent;
+            color: rgba(255,255,255,0.74);
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 12px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 850;
+            min-width: 84px;
+        }}
+        QFrame#brandedStartupCard[visualShellPhase="465"] QLabel[startupStageChip="true"][state="active"] {{
+            background-color: rgba(255,255,255,0.95);
+            color: #07365C;
+            border: 1px solid rgba(255,255,255,1.0);
+        }}
+        QWidget#posWidget[visualShellPhase="465"] {{
+            background-color: {colors.get('bg_window', '#F5F7FA')};
+        }}
+        QWidget#posWidget[visualShellPhase="465"] QFrame#POSRuntimeTopTools,
+        QWidget#posWidget[visualShellPhase="465"] QFrame#POSRuntimeContextBar,
+        QWidget#posWidget[visualShellPhase="465"] QFrame#POSRuntimeScanBar {{
+            background-color: {colors.get('bg_panel', '#FFFFFF')};
+            border: 1px solid {colors.get('border', '#D8E5F2')};
+            border-radius: {radius_md}px;
+        }}
+        QWidget#posWidget[visualShellPhase="465"] QFrame#POSRuntimeTopTools {{
+            max-height: {BRAND.get('pos_visual_shell_tools_height', 48)}px;
+        }}
+        QWidget#posWidget[visualShellPhase="465"] QFrame#POSRuntimeTopTools QPushButton,
+        QWidget#posWidget[visualShellPhase="465"] QFrame#POSRuntimeTopTools QComboBox {{
+            min-height: 34px;
+            max-height: 38px;
+        }}
+        QWidget#posWidget[visualShellPhase="465"] QFrame#POSRuntimeScanBar QLineEdit[visualRole="operational_scan_input"] {{
+            min-height: {BRAND.get('pos_visual_shell_scan_height', 64)}px;
+            font-size: 23px;
+            font-weight: 950;
+        }}
+        QWidget#posWidget[operationalFullscreenActive="true"] QFrame#POSRuntimeContextBar,
+        QWidget#posWidget[operationalFullscreenActive="true"] QFrame#POSRuntimeScanBar {{
+            border-radius: {radius_sm}px;
+        }}
+        QWidget#posWidget[operationalFullscreenActive="true"] QTableView[runtimeLayoutTable="major_grid"] {{
+            min-height: {BRAND.get('pos_kiosk_table_min_height', 420)}px;
+        }}
+        QWidget#posWidget[operationalFullscreenActive="true"] QWidget[posPaymentLayout="primary_footer"] {{
+            min-height: {BRAND.get('pos_kiosk_footer_height', 132)}px;
+        }}
+
+
 
 
 

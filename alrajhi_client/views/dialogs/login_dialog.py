@@ -30,6 +30,7 @@ from ui.runtime_layout_reconstruction import apply_runtime_layout_reconstruction
 from ui.targeted_screen_rebuild import apply_targeted_screen_rebuild
 from ui.single_screen_runtime_hardening import apply_single_screen_runtime_hardening
 from ui.runtime_visual_regression_gate import apply_runtime_visual_regression_gate
+from ui.visual_shell import mark_visual_shell
 from brand_assets import logo_png, APP_DISPLAY_NAME_AR, APP_DESCRIPTION_AR
 
 
@@ -55,6 +56,8 @@ class LoginDialog(FramelessDialog):
         self.main_frame.setProperty('loginRuntimePolicy', 'horizontal_runtime_stabilized')
         self.main_frame.setProperty('loginRuntimeVisualPhase', 453)
         self.main_frame.setProperty('windowsRuntimeVisualAcceptancePhase', 453)
+        self.main_frame.setProperty('visualShellPhase', 465)
+        self.main_frame.setProperty('loginChromePolicy', 'single_close_no_overlap')
         self.main_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
         self.main_frame.setProperty('loginRuntimeReconstructionPhase', 454)
         self.main_frame.setProperty('loginPasswordPolicy', 'password_row_visible_fixed')
@@ -271,6 +274,7 @@ class LoginDialog(FramelessDialog):
             root_layout.addWidget(self.form_panel, 1)
             root_layout.addWidget(self.brand_panel, 0)
 
+        mark_visual_shell(self.main_frame, surface='login', shell_type='login')
         apply_runtime_layout_reconstruction(self.main_frame, page_id='login', workspace_type='login')
         apply_targeted_screen_rebuild(self.main_frame, page_id='login', workspace_type='login')
         apply_single_screen_runtime_hardening(self.main_frame, page_id='login', workspace_type='login')
@@ -301,7 +305,9 @@ class LoginDialog(FramelessDialog):
             self.title_bar.setProperty('runtimeLayoutReconstructionPhase', 454)
             self.title_bar.setProperty('loginRuntimeChrome', 'compact_runtime_header')
             # Phase432 static marker: self.title_bar.setFixedHeight(int(BRAND.get('login_runtime_titlebar_height', 40)))
-            self.title_bar.setFixedHeight(int(BRAND.get('login_runtime_reconstructed_titlebar_height', BRAND.get('login_runtime_titlebar_height', 40))))
+            self.title_bar.setProperty('visualShellPhase', 465)
+            self.title_bar.setProperty('loginChromePolicy', 'single_close_no_overlap')
+            self.title_bar.setFixedHeight(int(BRAND.get('login_visual_shell_titlebar_height', BRAND.get('login_runtime_reconstructed_titlebar_height', BRAND.get('login_runtime_titlebar_height', 38)))))
             self.title_label.setObjectName('LoginRuntimeTitle')
             self.title_label.setAlignment(Qt.AlignVCenter | Qt.AlignRight)
             self.icon_label.setVisible(False)
@@ -311,6 +317,7 @@ class LoginDialog(FramelessDialog):
                 btn.setFixedSize(30, 30)
                 btn.setMinimumSize(30, 30)
                 btn.setMaximumSize(30, 30)
+            self.min_btn.setVisible(False)
             self.max_btn.setVisible(False)
         except Exception:
             pass

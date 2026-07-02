@@ -36,6 +36,7 @@ from ui.runtime_layout_reconstruction import apply_runtime_layout_reconstruction
 from ui.targeted_screen_rebuild import apply_targeted_screen_rebuild
 from ui.single_screen_runtime_hardening import apply_single_screen_runtime_hardening
 from ui.runtime_visual_regression_gate import apply_runtime_visual_regression_gate
+from ui.visual_shell import mark_visual_shell, set_widgets_visible
 from ui.inline_quick_create import InlineQuickCreatePanel, quick_create_can
 
 
@@ -53,6 +54,7 @@ class POSWidget(QWidget):
         self.setProperty('posRuntimeLayoutReconstructionPhase', 454)
         self.setProperty('runtimeVisualAcceptanceType', 'operational')
         self.setProperty('visualWorkspaceType', 'operational')
+        mark_visual_shell(self, surface='pos', shell_type='operational')
         self._pos_settings = settings_service.get_pos_settings()
         self._pos_preferences = POSPreferences()
         self.cart = pos_service.new_cart(self._selected_warehouse_id() if hasattr(self, 'warehouse_combo') else None, self._selected_cashbox_id() if hasattr(self, 'cashbox_combo') else None)
@@ -91,6 +93,7 @@ class POSWidget(QWidget):
         layout.setSpacing(8)
 
         top_tools_frame = QFrame(self)
+        self.top_tools_frame = top_tools_frame
         top_tools_frame.setObjectName('POSRuntimeTopTools')
         top_tools_frame.setProperty('visualRole', 'pos_runtime_toolbar')
         top_tools_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
@@ -131,13 +134,15 @@ class POSWidget(QWidget):
         title_row.addWidget(self.fullscreen_btn)
         layout.addWidget(top_tools_frame)
 
-        hint = QLabel(translate("pos_hint_shortcuts"))
-        hint.setObjectName("muted")
-        layout.addWidget(hint)
+        self.pos_hint_label = QLabel(translate("pos_hint_shortcuts"))
+        self.pos_hint_label.setObjectName("muted")
+        self.pos_hint_label.setProperty('visualShellPhase', 465)
+        layout.addWidget(self.pos_hint_label)
 
         # Phase 328: keep POS discharge warehouse and cashbox in one
         # operational row so the cashier sees the stock/cash context together.
         operation_frame = QFrame(self)
+        self.operation_frame = operation_frame
         operation_frame.setObjectName('POSRuntimeContextBar')
         operation_frame.setProperty('visualRole', 'pos_runtime_context_bar')
         operation_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
@@ -187,6 +192,7 @@ class POSWidget(QWidget):
         self._apply_shift_mode_visibility()
 
         scan_frame = QFrame(self)
+        self.scan_frame = scan_frame
         scan_frame.setObjectName('POSRuntimeScanBar')
         scan_frame.setProperty('visualRole', 'pos_runtime_scan_bar')
         scan_frame.setProperty('runtimeLayoutReconstructionPhase', 454)
@@ -740,8 +746,20 @@ class POSWidget(QWidget):
         self._focus_barcode_input()
 
     def set_operational_fullscreen_active(self, active: bool):
+        self.setProperty('operationalFullscreenActive', bool(active))
+        self.setProperty('posKioskShell', bool(active))
+        # Phase465: operational fullscreen is a kiosk shell, not just a maximized
+        # administrative page. Hide POS configuration chrome and keep only the
+        # context, scan bar, cart, and sticky payment footer.
+        set_widgets_visible((getattr(self, 'top_tools_frame', None), getattr(self, 'pos_hint_label', None)), not bool(active))
         if hasattr(self, 'fullscreen_btn'):
             self.fullscreen_btn.setText(translate("exit_fullscreen") if active else translate("fullscreen"))
+        try:
+            self.style().unpolish(self)
+            self.style().polish(self)
+            self.update()
+        except Exception:
+            pass
         self._focus_barcode_input()
 
     def on_payment_method_changed(self):

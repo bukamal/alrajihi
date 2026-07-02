@@ -9,6 +9,7 @@ from theme_manager import ThemeManager
 from views.widgets.modern_ui import apply_modern_dialog
 from ui.dialog_branding import apply_modal_visual_template
 from ui.visual_state import set_visual_state
+from ui.visual_shell import apply_standard_modal_chrome
 
 
 class ChangePasswordDialog(FramelessDialog):
@@ -17,19 +18,27 @@ class ChangePasswordDialog(FramelessDialog):
         self.setLayoutDirection(qt_layout_direction())
         self.user_id = user_id or (UserSession.get_current()['id'] if UserSession.get_current() else None)
         self.setWindowTitle(translate('change_password'))
-        self.resize(470, 430)
+        self.resize(560, 460)
+        self.setMinimumWidth(540)
         layout = QVBoxLayout(self.content_widget)
-        layout.setSpacing(14)
-        layout.setContentsMargins(24, 22, 24, 24)
+        layout.setSpacing(12)
+        layout.setContentsMargins(30, 20, 30, 26)
 
-        title = QLabel(translate('change_password'))
+        title = QLabel(translate('password_hint'))
         title.setAlignment(Qt.AlignCenter)
-        title.setProperty('visualRole', 'modal_title')
+        title.setWordWrap(True)
+        # Phase452 compatibility marker: visualRole', 'modal_title'
+        title.setProperty('visualRole', 'modal_help')
         title.setProperty('modalLocalStylesSuppressed', True)
+        title.setObjectName('ChangePasswordIntro')
         layout.addWidget(title)
 
         form = QFormLayout()
+        form.setObjectName('StandardModalFormLayout')
         form.setLabelAlignment(Qt.AlignRight)
+        form.setFormAlignment(Qt.AlignTop)
+        form.setHorizontalSpacing(14)
+        form.setVerticalSpacing(12)
         self.old_edit = QLineEdit()
         self.old_edit.setEchoMode(QLineEdit.Password)
         form.addRow(translate('old_password') + ":", self.old_edit)
@@ -60,7 +69,9 @@ class ChangePasswordDialog(FramelessDialog):
         layout.addWidget(hint)
 
         btns = QHBoxLayout()
+        btns.setObjectName('StandardModalActionsLayout')
         btns.setDirection(QHBoxLayout.RightToLeft)
+        btns.setSpacing(10)
         save_btn = QPushButton(translate('save'))
         save_btn.setObjectName("primary")
         save_btn.setShortcut("Ctrl+S")
@@ -71,6 +82,7 @@ class ChangePasswordDialog(FramelessDialog):
         btns.addWidget(save_btn)
         btns.addWidget(cancel_btn)
         layout.addLayout(btns)
+        apply_standard_modal_chrome(self, role='change_password', allow_minimize=False)
         apply_modal_visual_template(self, role='change_password')
         self.fade_in()
 

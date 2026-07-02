@@ -19,6 +19,7 @@ from i18n import translate
 from theme.brand import BRAND
 from ui.design_system import DesignSystem
 from ui.first_run_branding import apply_first_run_surface
+from ui.visual_shell import mark_visual_shell
 
 
 class ModernSplashScreen(QSplashScreen):
@@ -44,6 +45,7 @@ class ModernSplashScreen(QSplashScreen):
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setObjectName("BrandedPreLoginSplashWindow")
         self.setProperty("startupPhase", 434)
+        self.setProperty("visualShellPhase", 465)
 
         width = int(BRAND.get("startup_splash_width", 760))
         height = int(BRAND.get("startup_splash_height", 440))
@@ -54,6 +56,8 @@ class ModernSplashScreen(QSplashScreen):
         self.container.setProperty("basitStartupSurface", True)
         self.container.setProperty('basitDialogSurface', 'splash')
         self.container.setProperty("startupSurfacePolicy", "phase434_prelogin_branded")
+        self.container.setProperty("visualShellPhase", 465)
+        self.container.setProperty("startupCollisionPolicy", "text_progress_single_status")
         self.container.setProperty("legacyYellowHeader", False)
         self.container.setProperty("interactiveStageButtons", False)
         apply_first_run_surface(self.container, 'splash')
@@ -62,21 +66,21 @@ class ModernSplashScreen(QSplashScreen):
 
         root = QVBoxLayout(self.container)
         root.setAlignment(Qt.AlignCenter)
-        root.setSpacing(12)
-        root.setContentsMargins(42, 34, 42, 30)
+        root.setSpacing(10)
+        root.setContentsMargins(46, 32, 46, 28)
 
         identity_panel = QFrame()
         identity_panel.setObjectName("startupIdentityPanel")
         identity_panel.setProperty("startupIdentityPanel", True)
         identity_layout = QVBoxLayout(identity_panel)
         identity_layout.setAlignment(Qt.AlignCenter)
-        identity_layout.setSpacing(7)
-        identity_layout.setContentsMargins(16, 10, 16, 10)
+        identity_layout.setSpacing(6)
+        identity_layout.setContentsMargins(18, 12, 18, 12)
 
         self.logo = QLabel()
         self.logo.setAlignment(Qt.AlignCenter)
         self.logo.setObjectName("startupBrandMark")
-        logo_px = int(BRAND.get("startup_splash_logo_px", 86))
+        logo_px = int(BRAND.get("startup_splash_logo_px", 76))
         self.logo.setPixmap(QPixmap(logo_png(256)).scaled(logo_px, logo_px, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         identity_layout.addWidget(self.logo, alignment=Qt.AlignCenter)
 
@@ -101,6 +105,7 @@ class ModernSplashScreen(QSplashScreen):
             chip = QLabel(text)
             chip.setObjectName(object_name)
             chip.setProperty("startupStageChip", True)
+            chip.setProperty("visualShellPhase", 465)
             chip.setProperty("firstRunStageChip", True)
             chip.setProperty("state", "pending")
             chip.setAlignment(Qt.AlignCenter)
@@ -143,6 +148,7 @@ class ModernSplashScreen(QSplashScreen):
         self.footer_label.setAlignment(Qt.AlignCenter)
         root.addWidget(self.footer_label)
 
+        mark_visual_shell(self.container, surface="startup_splash", shell_type="startup")
         self.setWindowOpacity(0)
         self._set_stage_state(0)
         self.show()
@@ -180,7 +186,8 @@ class ModernSplashScreen(QSplashScreen):
         self.progress.setValue(value)
         if message:
             self.step_label.setText(message)
-            self.status_label.setText(message)
+            # Phase465: avoid duplicate visible status text on the splash.
+            self.status_label.setText(detail or self._detail_for_value(value))
         if detail:
             self.detail_label.setText(detail)
         else:
